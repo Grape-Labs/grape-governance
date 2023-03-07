@@ -14,6 +14,7 @@ export const GRAPE_DRIVE = '/?storage=';
 export const GRAPE_RPC_REFRESH = 25000;
 export const GRAPE_TREASURY = 'GrapevviL94JZRiZwn2LjpWtmDacXU8QhAJvzpUMMFdL';
 
+export const GGAPI_STORAGE_POOL = process.env.REACT_APP_API_GGAPI_STORAGE_POOL || "8NWhkw3TZgVqGRS38V2PsrYvVBqWFbtRs5xgvs9qPwVA";
 export const MARKET_LOGO = STATIC_LOGO;
 
 export const BOARDING_PROGRAM_CONFIG = '2ZaLmrM1WUTYBE2NdsJRVLS5egAvVZwYUSZNJkVeijYq'
