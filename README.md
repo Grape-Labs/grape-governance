@@ -1,6 +1,6 @@
-# Grape Boarding | Getting Started 
+# Grape Governance API | Getting Started 
 
-- Grape Boarding 2 the Marketplace Repo
+- Grape Governance API
 
 Pending to be completed
 
