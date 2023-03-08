@@ -7,7 +7,6 @@ export const SOFLARE_NOTIFICATIONS_API_KEY = process.env.REACT_APP_API_KEY_SOLFL
 export const PROXY = '';//process.env.REACT_APP_API_PROXY || '';
 export const CLOUDFLARE_IPFS_CDN = 'https://cloudflare-ipfs.com';
 export const HELIUS_API = process.env.REACT_APP_API_HELIUS || null;
-//export const GRAPE_DRIVE = '/';
 
 export const GRAPE_DRIVE = '/?storage=';
 
@@ -15,7 +14,8 @@ export const GRAPE_RPC_REFRESH = 25000;
 export const GRAPE_TREASURY = 'GrapevviL94JZRiZwn2LjpWtmDacXU8QhAJvzpUMMFdL';
 
 export const GGAPI_STORAGE_POOL = process.env.REACT_APP_API_GGAPI_STORAGE_POOL || "8NWhkw3TZgVqGRS38V2PsrYvVBqWFbtRs5xgvs9qPwVA";
+
+export const GGAPI_STORAGE_URI = 'https://shdw-drive.genesysgo.net';
 export const MARKET_LOGO = STATIC_LOGO;
 
-export const BOARDING_PROGRAM_CONFIG = '2ZaLmrM1WUTYBE2NdsJRVLS5egAvVZwYUSZNJkVeijYq'
 export const GRAPE_WHITELIST = process.env.REACT_APP_API_WHITELIST || null;

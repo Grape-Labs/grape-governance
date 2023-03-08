@@ -34,7 +34,8 @@ import {
     PROXY,
     CLOUDFLARE_IPFS_CDN,
     HELIUS_API,
-    GGAPI_STORAGE_POOL
+    GGAPI_STORAGE_POOL,
+    GGAPI_STORAGE_URI
 } from '../utils/grapeTools/constants';
 
 import CircularProgress from '@mui/material/CircularProgress';
@@ -78,6 +79,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [csvGenerated, setCSVGenerated] = React.useState(null);
     const [stringGenerated, setStringGenerated] = React.useState(null);
     const [governanceAddress, setGovernanceAddress] = React.useState(null);
+    const [governanceName, setGovernanceName] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(null);
     const [tokenArray, setTokenArray] = React.useState(null);
     const [governingTokenDecimals, setGoverningTokenDecimals] = React.useState(null);
@@ -144,16 +146,16 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const fetchGovernance = async(address:string) => {
         //const finalList = new Array();
         setLoading(true);
-
-        setStatus("Fetching Governance - Source: The Index");
+        setProposals(null);
+        setStatus("Fetching Governance - Source: Q");
         const connection = new Connection(GRAPE_RPC_ENDPOINT);
-        console.log("Fetching governance "+address);
+        //console.log("Fetching governance "+address);
         const grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(address))
         setRealm(grealm);
 
         setPrimaryStatus("Governance Fetched");
         
-        console.log("Governance: "+JSON.stringify(grealm));
+        //console.log("Governance: "+JSON.stringify(grealm));
 
         let gTD = null;
         if (tokenMap.get(grealm.account?.communityMint.toBase58())){
@@ -218,7 +220,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
             setMemberMap(rawTokenOwnerRecords);
 
-
             setPrimaryStatus("Fetching All Proposals");
 
             const gprops = await getAllProposals(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk);
@@ -258,8 +259,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
             const sortedResults = allprops.sort((a:any, b:any) => ((b.account?.votingAt != null ? b.account?.votingAt : 0) - (a.account?.votingAt != null ? a.account?.votingAt : 0)))
             
             setPrimaryStatus("Fetched Governance: "+grealm.account.name+" "+address+" with "+sortedResults.length+" proposals");
+            setGovernanceName(grealm.account.name);
 
-            console.log("proposals: "+JSON.stringify(sortedResults));
+            //console.log("proposals: "+JSON.stringify(sortedResults));
 
             setTotalDefeated(defeated);
             setTotalPassed(passed);
@@ -375,7 +377,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             try {
                 // do magic here...
 
-                console.log("item: "+JSON.stringify(thisitem));
+                //console.log("item: "+JSON.stringify(thisitem));
 
                 
                 //setLoadingParticipants(true);
@@ -534,40 +536,34 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 setUniqueYes(uYes);
                 setUniqueNo(uNo);
                 
+                thisitem.votingResults = votingResults;
+
             } catch (e) { // Handle errors from invalid calls
                 
             }
         }
 
-        /*
-        const jsonString = `data:text/json;chatset=utf-8,${encodeURIComponent(
-            JSON.stringify(votingResults)
-        )}`;
-
-        //console.log("jsonString: "+JSON.stringify(jsonString));
-
-        setJSONGenerated(jsonString);                
-        const jsonCSVString = encodeURI(`data:text/csv;chatset=utf-8,${csvFile}`);
         
-        setCSVGenerated(jsonCSVString); 
+        setSolanaVotingResultRows(finalList)
         
-        setSolanaVotingResultRows(votingResults)
-        */
         return finalList;
     }
     
     const exportFile = async(finalList:string, csvFile:string, fileName:string) => {
-        setStatus(`File generated! - ${finalList.length} mints`);
+        setStatus(`File generated! - ${finalList.length} proposals`);
             const jsonString = `data:text/json;chatset=utf-8,${encodeURIComponent(
                 JSON.stringify(finalList)
             )}`;
             
+            //console.log("encoded: "+JSON.stringify(finalList))
+
             setStringGenerated(JSON.stringify(finalList));
             setFileGenerated(jsonString);
             
-            const jsonCSVString = `data:text/csv;chatset=utf-8,${csvFile}`;
-            
-            setCSVGenerated(jsonCSVString); 
+            if (csvFile){
+                const jsonCSVString = `data:text/csv;chatset=utf-8,${csvFile}`;
+                setCSVGenerated(jsonCSVString);
+            }
             //const link = document.createElement("a");
             //link.href = jsonString;
             //link.download = fileName+".json";
@@ -593,7 +589,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         });
         
         const text = await new Response(blob).text()
-        console.log("text: "+text);
+        //console.log("text: "+text);
         console.log("size: "+blob.size);
 
         //const url = URL.createObjectURL(blob);
@@ -677,6 +673,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         
         const drive = await new ShdwDrive(new Connection(GRAPE_RPC_ENDPOINT), wallet).init();
         //console.log("drive: "+JSON.stringify(drive));
+        
         setThisDrive(drive);
         
         if (governanceAddress){
@@ -696,9 +693,11 @@ export function GovernanceSnapshotView (this: any, props: any) {
             setLoading(true);
             
             const finalProposalList = await fetchProposalData(finalList);
-            /*
-            if (finalProposalist){
+            
+            if (finalProposalList){
+                
                 const csvArrayFile = new Array();
+                
                 let csvFile = '';
                 var counter = 0;
                 for (var item of finalList){
@@ -709,12 +708,104 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     counter++;
                 }
                 //setCSVGenerated(csvFile);
+                setCSVGenerated(null);
+                
                 const fileName = governanceAddress+'.json';
-                exportFile(finalList, csvFile, fileName);
+
+                exportFile(finalList, null, fileName);
             }
-            */
+            
             setLoading(false);
         }
+    }
+
+
+    const fetchGovernanceLookupFile = async() => {
+        try{
+            const url = GGAPI_STORAGE_URI+"/"+GGAPI_STORAGE_POOL+'/governance_lookup.json';
+            const response = await window.fetch(url, {
+                method: 'GET',
+                headers: {
+                }
+              });
+              const string = await response.text();
+              const json = string === "" ? {} : JSON.parse(string);
+              return json;
+        } catch(e){
+            console.log("ERR: "+e)
+            return null;
+        }
+    }
+
+    const updateGovernanceLookupFile = async(fileName:string, timestamp:number, lookupFound:boolean) => {
+        // this should be called each time we update with governance
+        const storageAccountPK = GGAPI_STORAGE_POOL;
+
+        const lookup = new Array();
+        console.log("Storage Pool: "+GGAPI_STORAGE_POOL+" | Lookup File found: "+JSON.stringify(lookupFound))
+        if (lookupFound){ // update governanceLookup
+
+            const governanceLookup = await fetchGovernanceLookupFile();
+
+            // with the file found, lets generate the lookup as an array
+            console.log("Lookup Found: "+JSON.stringify(governanceLookup));
+
+            var govFound = false;
+            for (var item of governanceLookup){
+                if (item.governanceAddress === governanceAddress){
+                    item.version++;
+                    item.timestamp = timestamp;
+                    item.filename = fileName;
+                    govFound = true;
+                }
+            }
+            if (!govFound){
+                governanceLookup.push({
+                    governanceAddress:governanceAddress,
+                    governanceName:governanceName,
+                    version:0,
+                    timestamp:timestamp,
+                    filename:fileName
+                });
+            }
+
+            console.log("Replacing Governance Lookup");
+            const uploadFile = await returnJSON(JSON.stringify(governanceLookup), "governance_lookup.json");
+            const fileStream = blobToFile(uploadFile, "governance_lookup.json");
+            const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/governance_lookup.json';
+            await uploadReplaceToStoragePool(fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+        } else{ // create governanceLookup
+            lookup.push({
+                governanceAddress:governanceAddress,
+                governanceName:governanceName,
+                version:0,
+                timestamp:timestamp,
+                filename:fileName
+            });
+
+            console.log("Uploading new Governance Lookup");
+            const uploadFile = await returnJSON(JSON.stringify(lookup), "governance_lookup.json");
+            const fileStream = blobToFile(uploadFile, "governance_lookup.json");
+            await uploadToStoragePool(fileStream, new PublicKey(storageAccountPK));
+        }
+
+        // this will support versioning
+
+        // latest version will be shown
+
+        // query for lookupGovernance.json
+        // check if exists
+        // if not
+        // create a new lookupGovernance.json with a reference to the file (fields needed file & name & address)
+        // upload governance lookup file
+
+        // else if exists
+        // read all values
+
+        // find matching governance file
+        // update that line item with the new governance file
+        // upload updated governance lookup file
+
     }
 
     function blobToFile(theBlob: Blob, fileName: string){       
@@ -722,53 +813,53 @@ export function GovernanceSnapshotView (this: any, props: any) {
     }
 
     const handleUploadToStoragePool = async () => {
-        const fileName = governanceAddress+'.json';
+        const timestamp = Math.floor(new Date().getTime() / 1000);
+        const fileName = governanceAddress+'_'+timestamp+'.json';
+        const storageAccountPK = GGAPI_STORAGE_POOL;
+
         //exportJSON(fileGenerated, fileName);
-        
+        console.log("preparing to upload: "+fileName);
         if (!thisDrive){
             // set drive again here?
             alert("Drive not initialized...");
         } else{
-            const storageAccountPK = GGAPI_STORAGE_POOL;
+            
             const uploadFile = await returnJSON(stringGenerated, fileName);
             //const fileBlob = await fileToDataUri(uploadFile);
             // auto check if this file exists (now we manually do this)
             
-            const response = await thisDrive.listObjects(new PublicKey(storageAccountPK))
-
             let found = false;
-            if (response?.keys){
-                for (var item of response.keys){
-                    if (item === fileName){
-                        found = true;
+            let lookupFound = false;
+            try{
+                const response = await thisDrive.listObjects(new PublicKey(GGAPI_STORAGE_POOL))
+
+                if (response?.keys){
+                    for (var item of response.keys){
+                        if (item === fileName){
+                            found = true;
+                        }
+                        if (item === 'governance_lookup.json'){
+                            lookupFound = true;
+                        }
                     }
                 }
-            }
 
-            console.log("File found: "+JSON.stringify(found))
+                // update lookup
+                await updateGovernanceLookupFile(fileName, timestamp, lookupFound);
 
-            const fileType = null;
-            /*
-            const fd = new FormData();
-            fd.append("file",
-                new Blob([uploadFile], {type: fileType}),
-                fileName
-            );*/
-
-            //const fileStream = new File([uploadFile], fileName);
-            const fileStream = blobToFile(uploadFile, fileName);
-            //const altStream = <ShadowFile>{uploadFile, fileName}
-            /*
-            const fileStream = new File([uploadFile], fileName, 
-                {
-                    lastModified: new Date().getTime()
-                });
-            */
-            if (found){
-                const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+fileName;
-                uploadReplaceToStoragePool(fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
-            }else{
-                uploadToStoragePool(fileStream, new PublicKey(storageAccountPK));
+                // proceed to add file
+                console.log("Storage Pool: "+GGAPI_STORAGE_POOL+" | File found: "+JSON.stringify(found));
+            
+                const fileStream = blobToFile(uploadFile, fileName);
+                if (found){
+                    const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+fileName;
+                    await uploadReplaceToStoragePool(fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+                }else{
+                    await uploadToStoragePool(fileStream, new PublicKey(storageAccountPK));
+                }
+                
+            }catch(e){
+                console.log("ERR: "+e);
             }
         }
     }
@@ -846,14 +937,16 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 <DownloadIcon /> JSON
                             </Button>
                         </Tooltip>
-                        <Tooltip title="Download Grape Governance CSV file">
-                            <Button
-                                download={`${governanceAddress}.csv`}
-                                href={csvGenerated}
-                            >
-                                <DownloadIcon /> CSV
-                            </Button>
-                        </Tooltip>
+                        {csvGenerated &&
+                            <Tooltip title="Download Grape Governance CSV file">
+                                <Button
+                                    download={`${governanceAddress}.csv`}
+                                    href={csvGenerated}
+                                >
+                                    <DownloadIcon /> CSV
+                                </Button>
+                            </Tooltip>
+                        }
                         <Tooltip title="Upload to Grape Governance decentralized storage pool (used for Grape Governance API)">
                             <Button
                                 onClick={handleUploadToStoragePool}
