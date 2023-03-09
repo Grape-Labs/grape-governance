@@ -865,6 +865,12 @@ export function GovernanceSnapshotView (this: any, props: any) {
             const fileStream = blobToFile(uploadFile, "governance_lookup.json");
             await uploadToStoragePool(fileStream, new PublicKey(storageAccountPK));
 
+            // update autocomplete
+            governanceAutocomplete.push({
+                label: governanceName, 
+                value: governanceAddress
+            })
+
             setGovernanceLookup(lookup);
         }
     }
