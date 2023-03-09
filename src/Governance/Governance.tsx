@@ -47,6 +47,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import FitScreenIcon from '@mui/icons-material/FitScreen';
 import CheckIcon from '@mui/icons-material/Check';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import FileOpenIcon from '@mui/icons-material/FileOpen';
@@ -738,7 +739,7 @@ function GetParticipants(props: any){
                 <Button 
                     onClick={handleClickOpen}
                     sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
-                    <FileOpenIcon />
+                    <FitScreenIcon />
                 </Button>
             </Tooltip>
             {!loadingParticipants &&
@@ -1631,24 +1632,26 @@ export function GovernanceView(props: any) {
                     
                 console.log("with governance: "+governanceAddress);
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
+                if (publicKey){
 
-                const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwner(connection, programId, publicKey);
-                //console.log("ownerRecordsbyOwner: "+JSON.stringify(ownerRecordsbyOwner))
-                // check if part of this realm
-                let pcp = false;
-                let partOf = null;
-                for (const realm of ownerRecordsbyOwner){
-                    //console.log("owner record realm: "+JSON.stringify(realm))
-                    
-                    //console.log(realm.account.realm.toBase58() + " vs " + governanceToken?.governance)
-                    if ((realm.account.realm.toBase58() === governanceAddress)){
-                        pcp = true;
-                        partOf = realm;
-                        setParticipatingRealm(realm);
-                        console.log("realm: "+JSON.stringify(realm))
+                    const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwner(connection, programId, publicKey);
+                    //console.log("ownerRecordsbyOwner: "+JSON.stringify(ownerRecordsbyOwner))
+                    // check if part of this realm
+                    let pcp = false;
+                    let partOf = null;
+                    for (const realm of ownerRecordsbyOwner){
+                        //console.log("owner record realm: "+JSON.stringify(realm))
+                        
+                        //console.log(realm.account.realm.toBase58() + " vs " + governanceToken?.governance)
+                        if ((realm.account.realm.toBase58() === governanceAddress)){
+                            pcp = true;
+                            partOf = realm;
+                            setParticipatingRealm(realm);
+                            console.log("realm: "+JSON.stringify(realm))
+                        }
                     }
+                    setParticipating(pcp);
                 }
-                setParticipating(pcp);
 
                 const grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
                 setRealm(grealm);
@@ -1869,12 +1872,12 @@ export function GovernanceView(props: any) {
     }, [tokenMap]);
 
     React.useEffect(() => { 
-        if (publicKey && !loading){
+        if (!loading){
             if (!tokenMap){
                 getTokens();
             }
         }
-    }, [publicKey]);
+    }, []);
     
     //if (publicKey){
         if(loading){
@@ -1925,9 +1928,11 @@ export function GovernanceView(props: any) {
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12} sm={6} container justifyContent="flex-end">
-                                    <Typography variant="h4" align="right">
-                                        <VotingPower tokenArray={tokenArray} participatingRealm={participatingRealm} />
-                                    </Typography>
+                                    {publicKey &&
+                                        <Typography variant="h4" align="right">
+                                            <VotingPower tokenArray={tokenArray} participatingRealm={participatingRealm} />
+                                        </Typography>
+                                    }
                                 </Grid>
                             </Grid>
                             {/*
