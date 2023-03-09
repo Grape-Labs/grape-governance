@@ -10,6 +10,7 @@ import QRCode from "react-qr-code";
 import { 
     tryGetName,
 } from '@cardinal/namespaces';
+
 import { getProfilePicture } from '@solflare-wallet/pfp';
 import { findDisplayName } from '../name-service';
 import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
@@ -167,11 +168,12 @@ export default function ExplorerView(props:any){
             //const cardinal_registration = await cardinalResolver.resolve(new PublicKey(address));
             //const identity = await cardinalResolver.resolveReverse(address);
             //console.log("identity "+JSON.stringify(cardinal_registration))
+            
             const cardinal_registration = await tryGetName(
                 connection, 
                 new PublicKey(address)
             );
-            
+
             if (cardinal_registration){
                 found_cardinal = true;
                 console.log("cardinal_registration: "+JSON.stringify(cardinal_registration));
