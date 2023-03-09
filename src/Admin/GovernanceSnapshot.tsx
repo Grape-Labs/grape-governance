@@ -14,7 +14,8 @@ import {
     LinearProgress,
     Typography,
     Stack,
-    Tooltip
+    Tooltip,
+    Autocomplete
 } from '@mui/material';
 
 import DownloadIcon from '@mui/icons-material/Download';
@@ -32,7 +33,6 @@ import { WalletError } from '@solana/wallet-adapter-base';
 import { 
     GRAPE_RPC_ENDPOINT,
     PROXY,
-    CLOUDFLARE_IPFS_CDN,
     HELIUS_API,
     GGAPI_STORAGE_POOL,
     GGAPI_STORAGE_URI
@@ -40,7 +40,7 @@ import {
 
 import CircularProgress from '@mui/material/CircularProgress';
 
-const GOVERNANNCE_STATE = {
+const GOVERNANCE_STATE = {
     0:'Draft',
     1:'Signing Off',
     2:'Voting',
@@ -116,7 +116,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [MAX, setMax] = React.useState(100);
     const MIN = 0;
     const [thisDrive, setThisDrive] = React.useState(null);
-    
+    const [governanceLookup, setGovernanceLookup] = React.useState(null);
+    const [governanceAutocomplete, setGovernanceAutocomplete] = React.useState(null);
+
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
         (error: WalletError) => {
@@ -142,6 +144,11 @@ export function GovernanceSnapshotView (this: any, props: any) {
             });
         } catch(e){console.log("ERR: "+e)}
     }
+
+    const getGovernanceFromLookup  = async (fileName:string) => {
+        const fgl = await fetchGovernanceFile(fileName);
+        return fgl;
+    }  
 
     const fetchGovernance = async(address:string) => {
         //const finalList = new Array();
@@ -368,6 +375,18 @@ export function GovernanceSnapshotView (this: any, props: any) {
         setMax(length);
         const normalise = (value:number) => ((value - MIN) * 100) / (length - MIN);
 
+        let cached_governance = new Array();
+        if (governanceLookup){
+            for (let glitem of governanceLookup){
+                if (glitem.governanceAddress === governanceAddress){
+                    cached_governance = await getGovernanceFromLookup(glitem.filename);
+                }
+            }
+        }
+
+        //console.log("cached_governance: "+JSON.stringify(cached_governance));
+
+
         for (var thisitem of finalList){
             x++;
             setStatus("Fetching "+x+" of "+length);
@@ -375,169 +394,204 @@ export function GovernanceSnapshotView (this: any, props: any) {
             setProgress((prevProgress) => (prevProgress >= 100 ? 0 : normalise(x)));
             
             try {
-                // do magic here...
+                let skip_process = false;
+                if (cached_governance.length > 0){
+                    for (let cgov of cached_governance){
+                        if (cgov.pubkey === thisitem.pubkey.toBase58()){
+                            if ((cgov.account.state === 1)||
+                                (cgov.account.state === 3)||
+                                (cgov.account.state === 4)||
+                                (cgov.account.state === 5)||
+                                (cgov.account.state === 6)||
+                                (cgov.account.state === 7)||
+                                (cgov.account.state === 8)){
+                                    skip_process = true;
+                                    //console.log("Skipping...")
+                                    //setStatus("Fetching "+x+" of "+length+" S");
+                                }
 
-                //console.log("item: "+JSON.stringify(thisitem));
 
-                
-                //setLoadingParticipants(true);
-
-                let td = 6; // this is the default for NFT mints
-                let vType = null;
-                try{
-                    td = tokenMap.get(thisitem.account.governingTokenMint?.toBase58()).decimals;
-                    vType = 'Token';
-                    //console.log("tokenMap: "+tokenMap.get(thisitem.account.governingTokenMint?.toBase58()).decimals);
-                }catch(e){
-                    //console.log("ERR: "+e);
-                }
-                
-                if (realm.account.config?.councilMint?.toBase58() === thisitem?.account?.governingTokenMint?.toBase58()){
-                    vType = 'Council';
-                    td = 0;
-                }
-                
-                if (!vType){
-                    // check if backed token
-                    // important check if we have already fetched this data already
-                    const btkn = await getBackedTokenMetadata(thisitem.account.governingTokenMint?.toBase58(), wallet);
-                    if (btkn){
-                        // get parent token name
-                        const parentToken = tokenMap.get(btkn.parentToken);
-                        vType = parentToken ? `${parentToken.name} Backed Token` : `Backed Token`;
-                        td = btkn.decimals;
-                    } else{
-                        vType = 'NFT';
-                        td = 6;
-                    }
-                }
-                setTokenDecimals(td);
-                setVoteType(vType)
-
-                if (vType){
-                    setPropVoteType(vType);
-
-                    //thisitem.account.tokenOwnerRecord;
-                    for (const item of memberMap){
-                        if (item.pubkey.toBase58() === thisitem.account.tokenOwnerRecord.toBase58()){
-                            setProposalAuthor(item.account.governingTokenOwner.toBase58())
-                            //console.log("member:" + JSON.stringify(item));
+                                /*
+                                    const GOVERNANCE_STATE = {
+                                        0:'Draft',
+                                        1:'Signing Off',
+                                        2:'Voting',
+                                        3:'Succeeded',
+                                        4:'Executing',
+                                        5:'Completed',
+                                        6:'Cancelled',
+                                        7:'Defeated',
+                                        8:'Executing w/errors!',
+                                    }
+                                */
                         }
                     }
                 }
+                //console.log("Skipping ("+thisitem.pubkey.toBase58()+"): "+skip_process);
+                if (!skip_process){
+                    // do magic here...
+                    console.log("Fetching proposal details via RPC ("+thisitem.pubkey.toBase58()+")");
+                    //console.log("item: "+JSON.stringify(thisitem));
 
-                //if (thisitem.account?.state === 2){ // if voting state
-                    getGovernanceProps(thisitem)
-                //}
+                    
+                    //setLoadingParticipants(true);
 
-                const voteRecord = await getVoteRecords({
-                    connection: connection,
-                    programId: new PublicKey(thisitem.owner),
-                    proposalPk: new PublicKey(thisitem.pubkey),
-                });
-
-                const voteResults = voteRecord;//JSON.parse(JSON.stringify(voteRecord));
-                
-                const votingResults = [];
-                let csvFile = '';
-                let uYes = 0;
-                let uNo = 0;
-                if (voteResults?.value){
-                    let counter = 0;
-
-                    for (let item of voteResults.value){
-                        counter++;
-                        //console.log("item: "+JSON.stringify(item))
-                        if (item.account?.vote){
-                            if (item.account?.vote?.voteType === 0){
-                                uYes++;
-                            }else{
-                                uNo++;
-                            }
-                        } else{
-                            if (item.account.voteWeight.yes && item.account.voteWeight.yes > 0){
-                                uYes++;
-                            } else{
-                                uNo++;
-                            }
-                        }
-
-                        votingResults.push({
-                            id:counter,
-                            pubkey:item.pubkey.toBase58(),
-                            proposal:item.account.proposal.toBase58(),
-                            governingTokenOwner:item.account.governingTokenOwner.toBase58(),
-                            voteAddress:item.pubkey.toBase58(),
-                            quorumWeight:{
-                                vote:item.account.vote,
-                                voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
-                                legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
-                                legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
-                                decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
-                                councilMint:realm.account.config?.councilMint?.toBase58() ,
-                                governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
-                            },
-                            vote:{
-                                vote:item.account.vote,
-                                voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
-                                legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
-                                legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
-                                decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
-                                councilMint:realm.account.config?.councilMint?.toBase58() ,
-                                governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
-                            }
-                        })
-                        if (counter > 1)
-                            csvFile += '\r\n';
-                        else
-                            csvFile = 'tokenOwner,uiVotes,voterWeight,tokenDecimals,voteType,proposal\r\n';
-                        
-                        let voteType = 0;
-                        let voterWeight = 0;
-                        if (item.account?.voterWeight){
-                            voteType = item.account?.vote?.voteType;
-                            voterWeight = item.account?.voterWeight.toNumber();
-                        } else{
-                            if (item.account?.voteWeight?.yes && item.account?.voteWeight?.yes > 0){
-                                voteType = 0
-                                voterWeight = item.account?.voteWeight?.yes
-                            }else{
-                                voteType = 1
-                                voterWeight = item.account?.voteWeight?.no
-                            }
-                        }
-                        
-                        csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
-                        //    csvFile += item.pubkey.toBase58();
-                    }
-                }
-
-                votingResults.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
-
-                if (thisitem.account?.descriptionLink){
+                    let td = 6; // this is the default for NFT mints
+                    let vType = null;
                     try{
-                        const url = new URL(thisitem.account?.descriptionLink);
-                        const pathname = url.pathname;
-                        const parts = pathname.split('/');
-                        //console.log("pathname: "+pathname)
-                        let tGist = null;
-                        if (parts.length > 1)
-                            tGist = parts[2];
-                        
-                        setGist(tGist);
-
-                        const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
-                        setProposalDescription(rpd);
-                    } catch(e){
-                        console.log("ERR: "+e)
+                        td = tokenMap.get(thisitem.account.governingTokenMint?.toBase58()).decimals;
+                        vType = 'Token';
+                        //console.log("tokenMap: "+tokenMap.get(thisitem.account.governingTokenMint?.toBase58()).decimals);
+                    }catch(e){
+                        //console.log("ERR: "+e);
                     }
+                    
+                    if (realm.account.config?.councilMint?.toBase58() === thisitem?.account?.governingTokenMint?.toBase58()){
+                        vType = 'Council';
+                        td = 0;
+                    }
+                    
+                    if (!vType){
+                        // check if backed token
+                        // important check if we have already fetched this data already
+                        const btkn = await getBackedTokenMetadata(thisitem.account.governingTokenMint?.toBase58(), wallet);
+                        if (btkn){
+                            // get parent token name
+                            const parentToken = tokenMap.get(btkn.parentToken);
+                            vType = parentToken ? `${parentToken.name} Backed Token` : `Backed Token`;
+                            td = btkn.decimals;
+                        } else{
+                            vType = 'NFT';
+                            td = 6;
+                        }
+                    }
+                    setTokenDecimals(td);
+                    setVoteType(vType)
+
+                    if (vType){
+                        setPropVoteType(vType);
+
+                        //thisitem.account.tokenOwnerRecord;
+                        for (const item of memberMap){
+                            if (item.pubkey.toBase58() === thisitem.account.tokenOwnerRecord.toBase58()){
+                                setProposalAuthor(item.account.governingTokenOwner.toBase58())
+                                //console.log("member:" + JSON.stringify(item));
+                            }
+                        }
+                    }
+
+                    //if (thisitem.account?.state === 2){ // if voting state
+                        getGovernanceProps(thisitem)
+                    //}
+
+                    const voteRecord = await getVoteRecords({
+                        connection: connection,
+                        programId: new PublicKey(thisitem.owner),
+                        proposalPk: new PublicKey(thisitem.pubkey),
+                    });
+
+                    const voteResults = voteRecord;//JSON.parse(JSON.stringify(voteRecord));
+                    
+                    const votingResults = [];
+                    let csvFile = '';
+                    let uYes = 0;
+                    let uNo = 0;
+                    if (voteResults?.value){
+                        let counter = 0;
+
+                        for (let item of voteResults.value){
+                            counter++;
+                            //console.log("item: "+JSON.stringify(item))
+                            if (item.account?.vote){
+                                if (item.account?.vote?.voteType === 0){
+                                    uYes++;
+                                }else{
+                                    uNo++;
+                                }
+                            } else{
+                                if (item.account.voteWeight.yes && item.account.voteWeight.yes > 0){
+                                    uYes++;
+                                } else{
+                                    uNo++;
+                                }
+                            }
+
+                            votingResults.push({
+                                id:counter,
+                                pubkey:item.pubkey.toBase58(),
+                                proposal:item.account.proposal.toBase58(),
+                                governingTokenOwner:item.account.governingTokenOwner.toBase58(),
+                                voteAddress:item.pubkey.toBase58(),
+                                quorumWeight:{
+                                    vote:item.account.vote,
+                                    voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
+                                    legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
+                                    legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
+                                    decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
+                                    councilMint:realm.account.config?.councilMint?.toBase58() ,
+                                    governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
+                                },
+                                vote:{
+                                    vote:item.account.vote,
+                                    voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
+                                    legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
+                                    legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
+                                    decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
+                                    councilMint:realm.account.config?.councilMint?.toBase58() ,
+                                    governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
+                                }
+                            })
+                            if (counter > 1)
+                                csvFile += '\r\n';
+                            else
+                                csvFile = 'tokenOwner,uiVotes,voterWeight,tokenDecimals,voteType,proposal\r\n';
+                            
+                            let voteType = 0;
+                            let voterWeight = 0;
+                            if (item.account?.voterWeight){
+                                voteType = item.account?.vote?.voteType;
+                                voterWeight = item.account?.voterWeight.toNumber();
+                            } else{
+                                if (item.account?.voteWeight?.yes && item.account?.voteWeight?.yes > 0){
+                                    voteType = 0
+                                    voterWeight = item.account?.voteWeight?.yes
+                                }else{
+                                    voteType = 1
+                                    voterWeight = item.account?.voteWeight?.no
+                                }
+                            }
+                            
+                            csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
+                            //    csvFile += item.pubkey.toBase58();
+                        }
+                    }
+
+                    votingResults.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
+
+                    if (thisitem.account?.descriptionLink){
+                        try{
+                            const url = new URL(thisitem.account?.descriptionLink);
+                            const pathname = url.pathname;
+                            const parts = pathname.split('/');
+                            //console.log("pathname: "+pathname)
+                            let tGist = null;
+                            if (parts.length > 1)
+                                tGist = parts[2];
+                            
+                            setGist(tGist);
+
+                            const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
+                            setProposalDescription(rpd);
+                        } catch(e){
+                            console.log("ERR: "+e)
+                        }
+                    }
+
+                    setUniqueYes(uYes);
+                    setUniqueNo(uNo);
+                    
+                    thisitem.votingResults = votingResults;
                 }
-
-                setUniqueYes(uYes);
-                setUniqueNo(uNo);
-                
-                thisitem.votingResults = votingResults;
-
             } catch (e) { // Handle errors from invalid calls
                 
             }
@@ -719,10 +773,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
         }
     }
 
-
-    const fetchGovernanceLookupFile = async() => {
+    const fetchGovernanceFile = async(fileName:string) => {
         try{
-            const url = GGAPI_STORAGE_URI+"/"+GGAPI_STORAGE_POOL+'/governance_lookup.json';
+            const url = GGAPI_STORAGE_URI+"/"+GGAPI_STORAGE_POOL+'/'+fileName+'';
             const response = await window.fetch(url, {
                 method: 'GET',
                 headers: {
@@ -737,6 +790,34 @@ export function GovernanceSnapshotView (this: any, props: any) {
         }
     }
 
+    const fetchGovernanceLookupFile = async() => {
+        try{
+            const url = GGAPI_STORAGE_URI+"/"+GGAPI_STORAGE_POOL+'/governance_lookup.json';
+            const response = await window.fetch(url, {
+                method: 'GET',
+                headers: {
+                }
+              });
+
+              const string = await response.text();
+              const json = string === "" ? {} : JSON.parse(string);
+
+              const lookupAutocomplete = new Array();
+                for (var item of json){
+                    lookupAutocomplete.push({
+                        label: item.governanceName,
+                        value: item.governanceAddress
+                    });
+                }
+                setGovernanceAutocomplete(lookupAutocomplete);
+
+              return json;
+        } catch(e){
+            console.log("ERR: "+e)
+            return null;
+        }
+    }
+
     const updateGovernanceLookupFile = async(fileName:string, timestamp:number, lookupFound:boolean) => {
         // this should be called each time we update with governance
         const storageAccountPK = GGAPI_STORAGE_POOL;
@@ -744,7 +825,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
         const lookup = new Array();
         console.log("Storage Pool: "+GGAPI_STORAGE_POOL+" | Lookup File found: "+JSON.stringify(lookupFound))
         if (lookupFound){ // update governanceLookup
-            const governanceLookup = await fetchGovernanceLookupFile();
             // with the file found, lets generate the lookup as an array
             console.log("Lookup Found: "+JSON.stringify(governanceLookup));
             var govFound = false;
@@ -782,29 +862,14 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 timestamp:timestamp,
                 filename:fileName
             });
-
+            
             console.log("Uploading new Governance Lookup");
             const uploadFile = await returnJSON(JSON.stringify(lookup), "governance_lookup.json");
             const fileStream = blobToFile(uploadFile, "governance_lookup.json");
             await uploadToStoragePool(fileStream, new PublicKey(storageAccountPK));
         }
 
-        // this will support versioning
-
-        // latest version will be shown
-
-        // query for lookupGovernance.json
-        // check if exists
-        // if not
-        // create a new lookupGovernance.json with a reference to the file (fields needed file & name & address)
-        // upload governance lookup file
-
-        // else if exists
-        // read all values
-
-        // find matching governance file
-        // update that line item with the new governance file
-        // upload updated governance lookup file
+        setGovernanceLookup(lookup);
 
     }
 
@@ -823,11 +888,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
             // set drive again here?
             alert("Drive not initialized...");
         } else{
-            
             const uploadFile = await returnJSON(stringGenerated, fileName);
             //const fileBlob = await fileToDataUri(uploadFile);
             // auto check if this file exists (now we manually do this)
-            
             let found = false;
             let lookupFound = false;
             try{
@@ -864,9 +927,15 @@ export function GovernanceSnapshotView (this: any, props: any) {
         }
     }
 
+    const getGovernanceLookup  = async () => {
+        const fgl = await fetchGovernanceLookupFile();
+        setGovernanceLookup(fgl);
+    }      
+
     React.useEffect(() => { 
         if (!tokenMap){
             getTokens();
+            getGovernanceLookup();
         }
     }, []);
 
@@ -898,10 +967,30 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     Grape Governance API
                 </Typography>
 
-                <TextField 
-                    fullWidth 
-                    label="Enter a governance address" 
-                    onChange={(e) => setGovernanceAddress(e.target.value)}/>
+                {governanceAutocomplete ?
+                    <Autocomplete
+                        disablePortal
+                        id="combo-box-demo"
+                        options={governanceAutocomplete}
+                        getOptionLabel={(option) => option.value}
+                        renderOption={(props, option) => (
+                            <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                              {option.label}
+                              {/*
+                              <small>({option.value})</small>
+                                */}
+                            </Box>
+                        )}
+                        onChange={(e, sel) => setGovernanceAddress(sel.value)} 
+                        renderInput={(params) => <TextField {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="Governance" />}
+                    />
+                :
+                    <TextField 
+                        fullWidth 
+                        label="Enter a governance address" 
+                        onChange={(e) => setGovernanceAddress(e.target.value)}/>
+                    
+                }
                 
                 <Button 
                     onClick ={() => processGovernance(governanceAddress)} 
