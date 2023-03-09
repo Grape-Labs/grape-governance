@@ -2,6 +2,7 @@ import React, { useMemo, Suspense } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AdminView } from "./Admin/Admin";
+import { GovernanceView } from "./Governance/Governance";
 import CssBaseline from '@mui/material/CssBaseline';
 
 import {
@@ -44,7 +45,6 @@ import {
 //import { mainListItems, secondaryListItems } from './components/SidebarList/SidebarList';
 import grapeTheme from  './utils/config/theme'
 //import "./App.less";
-import { GRAPE_RPC_ENDPOINT, TX_RPC_ENDPOINT } from './utils/grapeTools/constants';
 
 function Copyright(props: any): JSX.Element {
   const { t, i18n } = useTranslation();
@@ -127,7 +127,11 @@ function DashboardContent() {
                               <Container maxWidth="xl" sx={{ mb: 4 }}>
                                   <Routes>
                                     
-                                    <Route path="/*" element={<AdminView />} >
+                                    <Route path="rpcgovernance/*" element={<GovernanceView />} >
+                                        <Route path=":handlekey" element={<GovernanceView />} />
+                                    </Route>
+
+                                    <Route path="admin/*" element={<AdminView />} >
                                         <Route path=":handlekey" element={<AdminView />} />
                                     </Route>
                                     

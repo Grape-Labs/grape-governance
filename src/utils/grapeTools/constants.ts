@@ -7,6 +7,7 @@ export const SOFLARE_NOTIFICATIONS_API_KEY = process.env.REACT_APP_API_KEY_SOLFL
 export const PROXY = '';//process.env.REACT_APP_API_PROXY || '';
 export const CLOUDFLARE_IPFS_CDN = 'https://cloudflare-ipfs.com';
 export const HELIUS_API = process.env.REACT_APP_API_HELIUS || null;
+export const TWITTER_PROXY = process.env.REACT_APP_API_TWITTER_PROXY || null;
 
 export const GRAPE_DRIVE = '/?storage=';
 
