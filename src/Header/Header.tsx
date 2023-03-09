@@ -17,7 +17,7 @@ import { PublicKey } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 
 import { 
-    MARKET_LOGO
+    APP_LOGO
 } from '../utils/grapeTools/constants';
 
 
@@ -245,11 +245,11 @@ export function Header(props: any) {
                         display='flex'
                         sx={{ml:1,mr:1}}
                     >
-                        <img src={MARKET_LOGO} height="40px" width="137px" className="header-logo" alt="Powered by Grape" />
+                        <img src={APP_LOGO} height="40px" width="137px" className="header-logo" alt="SPL Governance | Powered by Solana" />
                     </Typography>
                 </Button>
 
-                <Tooltip title={`Go to ...`}><IconButton sx={{borderRadius:'17px'}} component="a" href='https://verify.grapes.network'><DashboardOutlinedIcon/></IconButton></Tooltip>
+                <Tooltip title={`Go to SPL Governance`}><IconButton sx={{borderRadius:'17px'}} component="a" href='https://realms.today/realms'><DashboardOutlinedIcon/></IconButton></Tooltip>
             </Box>
             <div className="grape-wallet-adapter">
                 <WalletDialogProvider className="grape-wallet-provider">

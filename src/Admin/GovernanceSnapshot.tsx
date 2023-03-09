@@ -990,7 +990,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 >
                 
                 <Typography variant="h6" sx={{textAlign:'center'}}>
-                    Grape Governance API
+                    SPL Governance<br/>Decentralized Caching
                 </Typography>
 
                 {storageAutocomplete ?
@@ -1073,7 +1073,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
                 {fileGenerated &&
                     <ButtonGroup>                    
-                        <Tooltip title="Download Grape Governance JSON file">
+                        <Tooltip title="Download SPL Governance Cached JSON file">
                             <Button
                                 download={`${governanceAddress}.json`}
                                 href={fileGenerated}
@@ -1082,7 +1082,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             </Button>
                         </Tooltip>
                         {csvGenerated &&
-                            <Tooltip title="Download Grape Governance CSV file">
+                            <Tooltip title="Download SPL Governance CSV file">
                                 <Button
                                     download={`${governanceAddress}.csv`}
                                     href={csvGenerated}
@@ -1091,7 +1091,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 </Button>
                             </Tooltip>
                         }
-                        <Tooltip title="Upload to Grape Governance decentralized storage pool (used for Grape Governance API)">
+                        <Tooltip title="Upload to SPL Governance Caching storage pool">
                             <Button
                                 onClick={handleUploadToStoragePool}
                                 sx={{ml:1}}

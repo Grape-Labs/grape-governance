@@ -66,7 +66,7 @@ export function AdminView (this: any, props: any) {
                 borderRadius: '24px'
               }}>
                 <p>
-                <Typography variant='h4'>Grape Governance API</Typography>
+                <Typography variant='h4'>SPL Governance<br/>Decentralized Caching</Typography>
                 </p>
                 <WalletDialogProvider className="grape-wallet-provider">
                         <WalletMultiButton className="grape-wallet-button">
@@ -74,7 +74,7 @@ export function AdminView (this: any, props: any) {
                         </WalletMultiButton>
                 </WalletDialogProvider>
               <p>
-              <Typography variant='h5'>You need to be whitelisted to access the Grape Governance Admin Panel</Typography>
+              <Typography variant='h5'>You need to be whitelisted to access the SPL Governance | Decentralized Caching Admin Panel</Typography>
               </p>
             </Box>
           </>

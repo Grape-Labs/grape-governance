@@ -50,7 +50,7 @@ function Copyright(props: any): JSX.Element {
   const { t, i18n } = useTranslation();
     return (
     <Typography sx={{background:'transparent'}} variant="body2" color="text.secondary" align="center" {...props}>
-      {t('Powered by Grape on Solana')}
+      {t('Powered by Solana')}
       {/*
       <Link color="inherit" href="https://verify.grapes.network">
         Grape Network | Dashboard v1.1.5

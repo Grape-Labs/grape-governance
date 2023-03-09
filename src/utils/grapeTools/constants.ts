@@ -1,4 +1,4 @@
-import STATIC_LOGO from '../../public/grape_white_logo.svg';
+import STATIC_LOGO from '../../public/logotype-realms-blue-white.svg';
 
 export const TX_RPC_ENDPOINT = process.env.REACT_APP_API_TX_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
 export const GRAPE_RPC_ENDPOINT = process.env.REACT_APP_API_GRAPE_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
@@ -16,6 +16,6 @@ export const GRAPE_TREASURY = 'GrapevviL94JZRiZwn2LjpWtmDacXU8QhAJvzpUMMFdL';
 export const GGAPI_STORAGE_POOL = process.env.REACT_APP_API_GGAPI_STORAGE_POOL || "8NWhkw3TZgVqGRS38V2PsrYvVBqWFbtRs5xgvs9qPwVA";
 
 export const GGAPI_STORAGE_URI = 'https://shdw-drive.genesysgo.net';
-export const MARKET_LOGO = STATIC_LOGO;
+export const APP_LOGO = STATIC_LOGO;
 
 export const GRAPE_WHITELIST = process.env.REACT_APP_API_WHITELIST || null;
