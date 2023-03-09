@@ -118,6 +118,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [thisDrive, setThisDrive] = React.useState(null);
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [governanceAutocomplete, setGovernanceAutocomplete] = React.useState(null);
+    const [storageAutocomplete, setStorageAutocomplete] = React.useState(null);
+    const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
@@ -725,11 +727,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
     const processGovernance = async(updateAuthority:string) => {
         
-        const drive = await new ShdwDrive(new Connection(GRAPE_RPC_ENDPOINT), wallet).init();
-        //console.log("drive: "+JSON.stringify(drive));
-        
-        setThisDrive(drive);
-        
         if (governanceAddress){
             let finalList = null;
             setFileGenerated(null);
@@ -775,7 +772,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
     const fetchGovernanceFile = async(fileName:string) => {
         try{
-            const url = GGAPI_STORAGE_URI+"/"+GGAPI_STORAGE_POOL+'/'+fileName+'';
+            const url = GGAPI_STORAGE_URI+"/"+storagePool+'/'+fileName+'';
             const response = await window.fetch(url, {
                 method: 'GET',
                 headers: {
@@ -792,7 +789,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
     const fetchGovernanceLookupFile = async() => {
         try{
-            const url = GGAPI_STORAGE_URI+"/"+GGAPI_STORAGE_POOL+'/governance_lookup.json';
+            const url = GGAPI_STORAGE_URI+"/"+storagePool+'/governance_lookup.json';
             const response = await window.fetch(url, {
                 method: 'GET',
                 headers: {
@@ -820,10 +817,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
     const updateGovernanceLookupFile = async(fileName:string, timestamp:number, lookupFound:boolean) => {
         // this should be called each time we update with governance
-        const storageAccountPK = GGAPI_STORAGE_POOL;
+        const storageAccountPK = storagePool;
 
         const lookup = new Array();
-        console.log("Storage Pool: "+GGAPI_STORAGE_POOL+" | Lookup File found: "+JSON.stringify(lookupFound))
+        console.log("Storage Pool: "+storagePool+" | Lookup File found: "+JSON.stringify(lookupFound))
         if (lookupFound){ // update governanceLookup
             // with the file found, lets generate the lookup as an array
             console.log("Lookup Found: "+JSON.stringify(governanceLookup));
@@ -932,8 +929,32 @@ export function GovernanceSnapshotView (this: any, props: any) {
         setGovernanceLookup(fgl);
     }      
 
+
+    const initStorage  = async () => {
+        const drive = await new ShdwDrive(new Connection(GRAPE_RPC_ENDPOINT), wallet).init();
+        //console.log("drive: "+JSON.stringify(drive));
+        setThisDrive(drive);
+
+        try{
+            const response = await drive.getStorageAccounts("v2");
+            console.log("Storage Accounts: "+JSON.stringify(response))
+
+            const strgAccounts = new Array();
+            for (var item of response){
+                strgAccounts.push({
+                    label: item.account.identifier,
+                    value: item.publicKey.toBase58()
+                });
+            }
+            setStorageAutocomplete(strgAccounts);
+        }catch(e){
+            console.log("ERR: "+e);
+        }
+    }      
+
     React.useEffect(() => { 
         if (!tokenMap){
+            initStorage();
             getTokens();
             getGovernanceLookup();
         }
@@ -967,6 +988,33 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     Grape Governance API
                 </Typography>
 
+                {storageAutocomplete ?
+                    <Autocomplete
+                        disablePortal
+                        id="combo-box-demo"
+                        options={storageAutocomplete}
+                        getOptionLabel={(option) => option.value}
+                        renderOption={(props, option) => (
+                            <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                              {option.label}
+                              {/*
+                              <small>({option.value})</small>
+                                */}
+                            </Box>
+                        )}
+                        onChange={(e, sel) => setStoragePool(sel.value)} 
+                        renderInput={(params) => <TextField {...params} onChange={(e) => setStoragePool(e.target.value)} label="Storage Pool" />}
+                    />
+                :
+                    <TextField 
+                        fullWidth 
+                        label="Enter a storage pool address" 
+                        value={storagePool}
+                        onChange={(e) => setStoragePool(e.target.value)}/>
+                    
+                }
+
+                
                 {governanceAutocomplete ?
                     <Autocomplete
                         disablePortal
