@@ -744,13 +744,11 @@ export function GovernanceSnapshotView (this: any, props: any) {
         const lookup = new Array();
         console.log("Storage Pool: "+GGAPI_STORAGE_POOL+" | Lookup File found: "+JSON.stringify(lookupFound))
         if (lookupFound){ // update governanceLookup
-
             const governanceLookup = await fetchGovernanceLookupFile();
-
             // with the file found, lets generate the lookup as an array
             console.log("Lookup Found: "+JSON.stringify(governanceLookup));
-
             var govFound = false;
+            let cntr = 0;
             for (var item of governanceLookup){
                 if (item.governanceAddress === governanceAddress){
                     item.version++;
@@ -758,7 +756,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     item.filename = fileName;
                     govFound = true;
                 }
+                cntr++;
             }
+            console.log("Lookup has "+cntr+" entries");
             if (!govFound){
                 governanceLookup.push({
                     governanceAddress:governanceAddress,
