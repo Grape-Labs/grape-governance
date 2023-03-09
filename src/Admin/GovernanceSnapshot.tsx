@@ -1027,7 +1027,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         disablePortal
                         id="combo-box-demo"
                         options={governanceAutocomplete}
-                        getOptionLabel={(option) => option?value}
+                        getOptionLabel={(option) => option.value}
                         renderOption={(props, option) => (
                             <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                               {option.label}
@@ -1036,7 +1036,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 */}
                             </Box>
                         )}
-                        onChange={(e, sel) => setGovernanceAddress(sel.value)} 
+                        onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
                         renderInput={(params) => <TextField {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="Governance" />}
                     />
                 :
