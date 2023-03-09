@@ -1008,7 +1008,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 */}
                             </Box>
                         )}
-                        onChange={(e, sel) => setStoragePool(sel.value)} 
+                        onChange={(e, sel) => setStoragePool(sel?.value)} 
                         renderInput={(params) => <TextField {...params} onChange={(e) => setStoragePool(e.target.value)} label="Storage Pool" />}
                     />
                 :
@@ -1027,7 +1027,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         disablePortal
                         id="combo-box-demo"
                         options={governanceAutocomplete}
-                        getOptionLabel={(option) => option.value}
+                        getOptionLabel={(option) => option?value}
                         renderOption={(props, option) => (
                             <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                               {option.label}
