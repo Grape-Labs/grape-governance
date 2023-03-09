@@ -877,7 +877,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const handleUploadToStoragePool = async () => {
         const timestamp = Math.floor(new Date().getTime() / 1000);
         const fileName = governanceAddress+'_'+timestamp+'.json';
-        const storageAccountPK = GGAPI_STORAGE_POOL;
+        const storageAccountPK = storagePool;
 
         //exportJSON(fileGenerated, fileName);
         console.log("preparing to upload: "+fileName);
@@ -891,7 +891,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             let found = false;
             let lookupFound = false;
             try{
-                const response = await thisDrive.listObjects(new PublicKey(GGAPI_STORAGE_POOL))
+                const response = await thisDrive.listObjects(new PublicKey(storageAccountPK))
 
                 if (response?.keys){
                     for (var item of response.keys){
@@ -908,7 +908,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 await updateGovernanceLookupFile(fileName, timestamp, lookupFound);
 
                 // proceed to add file
-                console.log("Storage Pool: "+GGAPI_STORAGE_POOL+" | File found: "+JSON.stringify(found));
+                console.log("Storage Pool: "+storageAccountPK+" | File found: "+JSON.stringify(found));
             
                 const fileStream = blobToFile(uploadFile, fileName);
                 if (found){
