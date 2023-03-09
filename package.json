@@ -35,6 +35,7 @@
         "@blockworks-foundation/voter-stake-registry-client": "^0.2.3",
         "@bonfida/spl-name-service": "0.1.55",
         "@cardinal/namespaces": "^4.1.56",
+        "@cardinal/token-manager": "2.0.0",
         "@dialectlabs/react": "^0.5.4",
         "@emotion/react": "^11.4.1",
         "@emotion/styled": "^11.8.1",
