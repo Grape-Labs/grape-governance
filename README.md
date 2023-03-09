@@ -1,6 +1,6 @@
-# Grape Governance API | Getting Started 
+# SPL Governance Decentralized Caching | Getting Started 
 
-- Grape Governance API
+- SPL Governance Decentralized Caching
 
 Pending to be completed
 
