@@ -157,7 +157,7 @@ function DashboardContent() {
 export const NotFound = () => {
   return (
     <div style={{ height: "100%", overflow: "auto" }}>
-      <Paper className="grape-paper-background">
+      <Paper sx={{mt:5}} className="grape-paper-background">
         <Grid 
           className="grape-paper" 
           container
@@ -168,7 +168,7 @@ export const NotFound = () => {
             <Typography 
               align="center"
               variant="h3">
-              {'No Grapes Here...'}
+              {'Nothing to see Here...'}
             </Typography>
           </Grid>
         </Grid>
