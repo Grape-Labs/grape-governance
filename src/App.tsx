@@ -2,7 +2,8 @@ import React, { useMemo, Suspense } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AdminView } from "./Admin/Admin";
-import { GovernanceView } from "./Governance/Governance";
+import { GovernanceRPCView } from "./GovernanceRPC/Governance";
+import { GovernanceCachedView } from "./GovernanceCached/Governance";
 import CssBaseline from '@mui/material/CssBaseline';
 
 import {
@@ -127,8 +128,12 @@ function DashboardContent() {
                               <Container maxWidth="xl" sx={{ mb: 4 }}>
                                   <Routes>
                                     
-                                    <Route path="rpcgovernance/*" element={<GovernanceView />} >
-                                        <Route path=":handlekey" element={<GovernanceView />} />
+                                    <Route path="rpcgovernance/*" element={<GovernanceRPCView />} >
+                                        <Route path=":handlekey" element={<GovernanceRPCView />} />
+                                    </Route>
+
+                                    <Route path="cachedgovernance/*" element={<GovernanceCachedView />} >
+                                        <Route path=":handlekey" element={<GovernanceCachedView />} />
                                     </Route>
 
                                     <Route path="admin/*" element={<AdminView />} >
@@ -157,7 +162,10 @@ function DashboardContent() {
 export const NotFound = () => {
   return (
     <div style={{ height: "100%", overflow: "auto" }}>
-      <Paper sx={{mt:5}} className="grape-paper-background">
+      <Paper sx={{
+        mt:5,
+        p:5,
+        borderRadius:'24px'}}>
         <Grid 
           className="grape-paper" 
           container
@@ -168,8 +176,16 @@ export const NotFound = () => {
             <Typography 
               align="center"
               variant="h3">
-              {'Nothing to see Here...'}
+              {'Nothing to see here...'}
             </Typography>
+
+            <Typography 
+              align="center"
+              variant="caption">
+              {'TODO: Show cached governances w/timestamps'}
+            </Typography>
+
+            
           </Grid>
         </Grid>
       </Paper>

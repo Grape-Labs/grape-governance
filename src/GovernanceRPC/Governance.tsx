@@ -1551,7 +1551,7 @@ function RenderGovernanceTable(props:any) {
         )
 }
 
-export function GovernanceView(props: any) {
+export function GovernanceRPCView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
@@ -1829,7 +1829,6 @@ export function GovernanceView(props: any) {
                                 passed++;
                             else if (prop.account.state === 7)
                                 defeated++;
-
                         
                             if (prop.account?.yesVotesCount && prop.account?.noVotesCount){
                                 //console.log("tmap: "+JSON.stringify(tokenMap));
