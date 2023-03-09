@@ -864,10 +864,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
             const uploadFile = await returnJSON(JSON.stringify(lookup), "governance_lookup.json");
             const fileStream = blobToFile(uploadFile, "governance_lookup.json");
             await uploadToStoragePool(fileStream, new PublicKey(storageAccountPK));
+
+            setGovernanceLookup(lookup);
         }
-
-        setGovernanceLookup(lookup);
-
     }
 
     function blobToFile(theBlob: Blob, fileName: string){       
