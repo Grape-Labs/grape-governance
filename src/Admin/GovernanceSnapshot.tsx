@@ -995,6 +995,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
                 {storageAutocomplete ?
                     <Autocomplete
+                        freeSolo
                         disablePortal
                         id="combo-box-demo"
                         options={storageAutocomplete}
@@ -1022,6 +1023,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 
                 {governanceAutocomplete ?
                     <Autocomplete
+                        freeSolo
                         disablePortal
                         id="combo-box-demo"
                         options={governanceAutocomplete}
