@@ -1747,6 +1747,8 @@ export function GovernanceCachedView(props: any) {
                     const allprops: any[] = [];
                     for (var props of cached_governance){
                         allprops.push(props)
+
+                        
                     }
 
                     /* To Do
@@ -1993,6 +1995,8 @@ export function GovernanceCachedView(props: any) {
                 inner.vote.legacyNo = Number("0x"+inner.vote.legacyNo).toString()
                 */
             }
+
+
             
             counter++;
         }

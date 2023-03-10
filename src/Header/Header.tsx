@@ -17,6 +17,13 @@ import { PublicKey } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 
 import { 
+    PROXY,
+    HELIUS_API,
+    GGAPI_STORAGE_POOL,
+    GGAPI_STORAGE_URI
+} from '../utils/grapeTools/constants';
+
+import { 
     APP_LOGO
 } from '../utils/grapeTools/constants';
 
@@ -39,7 +46,9 @@ import {
     List,
     ListItem,
     ListItemText,
-    IconButton
+    IconButton,
+    Autocomplete,
+    TextField
 } from '@mui/material';
 
 import BurstModeIcon from '@mui/icons-material/BurstMode';
@@ -125,7 +134,9 @@ export function Header(props: any) {
     const [userId, setUserId] = React.useState(getParam('user_id'));
     const [providers, setProviders] = React.useState(['Sollet', 'Sollet Extension', 'Phantom','Solflare']);
     const [open_wallet, setOpenWallet] = React.useState(false);
-    
+    const [governanceAutocomplete, setGovernanceAutocomplete] = React.useState(null);
+    const [governanceAddress, setGovernanceAddress] = React.useState(null);
+
     const [anchorEl, setAnchorEl] = React.useState(null);
     const isWalletOpen = Boolean(anchorEl);
     const [newinputpkvalue, setNewInputPKValue] = React.useState("");
@@ -224,6 +235,42 @@ export function Header(props: any) {
             setNewInputPKValue('');
         }
     }
+    
+    const fetchGovernanceLookupFile = async() => {
+        try{
+            const url = GGAPI_STORAGE_URI+"/"+GGAPI_STORAGE_POOL+'/governance_lookup.json';
+            const response = await window.fetch(url, {
+                method: 'GET',
+                headers: {
+                }
+              });
+
+              const string = await response.text();
+              const json = string === "" ? {} : JSON.parse(string);
+
+              const lookupAutocomplete = new Array();
+                for (var item of json){
+                    lookupAutocomplete.push({
+                        label: item.governanceName,
+                        value: item.governanceAddress
+                    });
+                }
+                setGovernanceAutocomplete(lookupAutocomplete);
+
+              return json;
+        } catch(e){
+            console.log("ERR: "+e)
+            return null;
+        }
+    }
+
+    React.useEffect(() => { 
+        if (!governanceAutocomplete){
+            fetchGovernanceLookupFile();
+        }
+    }, []);
+
+
 
     return (
         <Toolbar
@@ -248,6 +295,34 @@ export function Header(props: any) {
                         <img src={APP_LOGO} height="40px" width="137px" className="header-logo" alt="SPL Governance | Powered by Solana" />
                     </Typography>
                 </Button>
+
+                    {governanceAutocomplete ?
+                        <Autocomplete
+                            sx={{ mt:1,ml:2,width: 300 }}
+                            disablePortal
+                            size="small"
+                            id="combo-box-demo"
+                            options={governanceAutocomplete}
+                            getOptionLabel={(option) => option.value}
+                            renderOption={(props, option) => (
+                                <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                {option.label}
+                                {/*
+                                <small>({option.value})</small>
+                                    */}
+                                </Box>
+                            )}
+                            onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
+                            renderInput={(params) => <TextField {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="Governance" />}
+                        />
+                    :
+                        <TextField 
+                            fullWidth 
+                            label="Enter a governance address" 
+                            onChange={(e) => setGovernanceAddress(e.target.value)}/>
+                        
+                    }
+
                 {/*
                 <Tooltip title={`Go to SPL Governance`}><IconButton sx={{borderRadius:'17px'}} component="a" href='https://realms.today/realms'><DashboardOutlinedIcon/></IconButton></Tooltip>
                 */}
