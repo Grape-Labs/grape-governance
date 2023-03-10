@@ -433,8 +433,8 @@ function GetParticipants(props: any){
             if (totalVotes && totalVotes > 0)
                 setTotalQuorum(totalVotes);
             
-            const qt = totalVotes-thisitem.account.options[0].voteWeight.toNumber()/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals);
-            const yesVotes = thisitem.account.options[0].voteWeight.toNumber()/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals);
+            const qt = totalVotes-Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals);
+            const yesVotes = Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals);
             
             const excess = yesVotes - totalVotes;
             
@@ -474,10 +474,6 @@ function GetParticipants(props: any){
 
     const getVotingParticipants = async () => {
         setLoadingParticipants(true);
-
-
-
-
 
         let td = 6; // this is the default for NFT mints
         let vType = null;
@@ -534,9 +530,18 @@ function GetParticipants(props: any){
             programId: new PublicKey(thisitem.owner),
             proposalPk: new PublicKey(thisitem.pubkey),
         });
+        const voteResults = voteRecord.value;//JSON.parse(JSON.stringify(voteRecord));
         */
-       // CACHE
-       const voteRecord = cachedGovernance.votingResults;
+        // CACHE
+        // fetch voting results
+        let voteRecord = null;
+        let from_cache = false;
+        for (var vresults of cachedGovernance){
+            if (thisitem.pubkey === vresults.pubkey){
+                voteRecord = vresults.votingResults;
+                from_cache = true;
+            }
+        }
 
         const voteResults = voteRecord;//JSON.parse(JSON.stringify(voteRecord));
         
@@ -544,51 +549,99 @@ function GetParticipants(props: any){
         let csvFile = '';
         let uYes = 0;
         let uNo = 0;
-        if (voteResults?.value){
+        if (voteResults){
             let counter = 0;
 
-            for (let item of voteResults.value){
+            for (let item of voteResults){
                 counter++;
-                //console.log("item: "+JSON.stringify(item))
-                if (item.account?.vote){
-                    if (item.account?.vote?.voteType === 0){
-                        uYes++;
-                    }else{
-                        uNo++;
-                    }
-                } else{
-                    if (item.account.voteWeight.yes && item.account.voteWeight.yes > 0){
-                        uYes++;
+                
+                if (!from_cache){
+                    if (item.voteType?.vote){
+                        if (item.account?.vote?.voteType === 0){
+                            uYes++;
+                        }else{
+                            uNo++;
+                        }
                     } else{
-                        uNo++;
+                        if (item.account.voteWeight.yes && item.account.voteWeight.yes > 0){
+                            uYes++;
+                        } else{
+                            uNo++;
+                        }
                     }
+
+                    votingResults.push({
+                        id:counter,
+                        pubkey:item.pubkey.toBase58(),
+                        proposal:item.account.proposal.toBase58(),
+                        governingTokenOwner:item.account.governingTokenOwner.toBase58(),
+                        voteAddress:item.pubkey.toBase58(),
+                        quorumWeight:{
+                            vote:item.account.vote,
+                            voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
+                            legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
+                            legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
+                            decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
+                            councilMint:realm.account.config?.councilMint?.toBase58() ,
+                            governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
+                        },
+                        vote:{
+                            vote:item.account.vote,
+                            voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
+                            legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
+                            legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
+                            decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
+                            councilMint:realm.account.config?.councilMint?.toBase58() ,
+                            governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
+                        }
+                    })
+                } else {   
+                    
+                    console.log(item.governingTokenOwner.toBase58() + ": "+item?.vote.voterWeight);
+                    
+                    
+                    if (item.vote?.vote){
+                        if (item.vote?.vote?.voteType === 0){
+                            uYes++;
+                        }else{
+                            uNo++;
+                        }
+                    } else{
+                        if (item.vote.vote.voteWeight.yes && item.vote.vote.voteWeight.yes > 0){
+                            uYes++;
+                        } else{
+                            uNo++;
+                        }
+                    }
+
+                    votingResults.push({
+                        id:counter,
+                        pubkey:item.pubkey.toBase58(),
+                        proposal:item.proposal.toBase58(),
+                        governingTokenOwner:item.governingTokenOwner.toBase58(),
+                        voteAddress:item.voteAddress.toBase58(),
+                        quorumWeight:{
+                            vote:item.quorumWeight.vote,
+                            voterWeight:(item.quorumWeight?.voterWeight ?  (item.quorumWeight.voterWeight) : null),
+                            legacyYes:(item.quorumWeight.legacyYes ?  (item.quorumWeight.legacyYes) : null),
+                            legacyNo:(item.quorumWeight.legacyNo ?  (item.quorumWeight.legacyNo) : null),
+                            decimals:(item.quorumWeight.decimals ?  (item.quorumWeight.decimals) : 0),
+                            councilMint:realm.account.config?.councilMint?.toBase58() ,
+                            governingTokenMint:thisitem.quorumWeight?.governingTokenMint.toBase58() 
+                        },
+                        vote:{
+                            vote:item.vote.vote,
+                            voterWeight:(item.vote?.voterWeight ?  (item.vote.voterWeight) : null),
+                            legacyYes:(item.vote.legacyYes ?  (item.vote.legacyYes) : null),
+                            legacyNo:(item.vote.legacyNo ?  (item.vote.legacyNo) : null),
+                            decimals:(item.vote.decimals ?  (item.vote.decimals) : 0),
+                            councilMint:realm.account.config?.councilMint?.toBase58() ,
+                            governingTokenMint:thisitem.vote?.governingTokenMint.toBase58() 
+                        }
+                    });
+                        
                 }
 
-                votingResults.push({
-                    id:counter,
-                    pubkey:item.pubkey.toBase58(),
-                    proposal:item.account.proposal.toBase58(),
-                    governingTokenOwner:item.account.governingTokenOwner.toBase58(),
-                    voteAddress:item.pubkey.toBase58(),
-                    quorumWeight:{
-                        vote:item.account.vote,
-                        voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
-                        legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
-                        legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
-                        decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
-                        councilMint:realm.account.config?.councilMint?.toBase58() ,
-                        governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
-                    },
-                    vote:{
-                        vote:item.account.vote,
-                        voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
-                        legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
-                        legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
-                        decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
-                        councilMint:realm.account.config?.councilMint?.toBase58() ,
-                        governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
-                    }
-                })
                 if (counter > 1)
                     csvFile += '\r\n';
                 else
@@ -596,27 +649,49 @@ function GetParticipants(props: any){
                 
                 let voteType = 0;
                 let voterWeight = 0;
-                if (item.account?.voterWeight){
-                    voteType = item.account?.vote?.voteType;
-                    voterWeight = item.account?.voterWeight.toNumber();
-                } else{
-                    if (item.account?.voteWeight?.yes && item.account?.voteWeight?.yes > 0){
-                        voteType = 0
-                        voterWeight = item.account?.voteWeight?.yes
-                    }else{
-                        voteType = 1
-                        voterWeight = item.account?.voteWeight?.no
+
+
+                if (!from_cache){
+                    if (item.account?.voterWeight){
+                        voteType = item.account?.vote?.voteType;
+                        voterWeight = Number(item.account?.voterWeight);
+                    } else{
+                        if (item.account?.voteWeight?.yes && item.account?.voteWeight?.yes > 0){
+                            voteType = 0
+                            voterWeight = item.account?.voteWeight?.yes
+                        }else{
+                            voteType = 1
+                            voterWeight = item.account?.voteWeight?.no
+                        }
                     }
+                    csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
+                
+                } else{
+                    if (item.vote?.voterWeight){
+                        voteType = item.vote?.vote?.voteType;
+                        voterWeight = Number(item.vote?.voterWeight);
+                    } else{
+                        if (item.vote?.voteWeight?.yes && item.account?.voteWeight?.yes > 0){
+                            voteType = 0
+                            voterWeight = item.vote?.voteWeight?.yes
+                        }else{
+                            voteType = 1
+                            voterWeight = item.vote?.voteWeight?.no
+                        }
+                    }
+                    csvFile += item.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (realm.account.config?.councilMint?.toBase58() === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint?.toBase58() === thisitem.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.proposal.toBase58()+'';
+                    
                 }
                 
-                csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
                 //    csvFile += item.pubkey.toBase58();
             }
         }
 
+        console.log("votingResults: "+JSON.stringify(votingResults));
+
         votingResults.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
 
-        if (thisitem.account?.descriptionLink){
+        if (!from_cache){
             try{
                 const url = new URL(thisitem.account?.descriptionLink);
                 const pathname = url.pathname;
@@ -629,6 +704,23 @@ function GetParticipants(props: any){
                 setGist(tGist);
 
                 const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
+                setProposalDescription(rpd);
+            } catch(e){
+                console.log("ERR: "+e)
+            }
+        } else {
+            try{
+                const url = new URL(thisitem?.descriptionLink);
+                const pathname = url.pathname;
+                const parts = pathname.split('/');
+                //console.log("pathname: "+pathname)
+                let tGist = null;
+                if (parts.length > 1)
+                    tGist = parts[2];
+                
+                setGist(tGist);
+
+                const rpd = await resolveProposalDescription(thisitem?.descriptionLink);
                 setProposalDescription(rpd);
             } catch(e){
                 console.log("ERR: "+e)
@@ -1130,11 +1222,11 @@ function GetParticipants(props: any){
                                                     <>
                                                         {thisitem.account?.votingAt &&
                                                             <>
-                                                                {/*thisitem.account?.votingCompletedAt ?
-                                                                    `Ended ${(moment.unix(Number(thisitem.account?.votingAt))+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
+                                                                {thisitem.account?.votingCompletedAt ?
+                                                                    `Ended ${moment.unix(Number(thisitem.account?.votingAt)+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
                                                                 :
-                                                                    `Ending ${(moment.unix(Number(thisitem.account?.votingAt))+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
-                                                                */}
+                                                                    `Ending ${moment.unix(Number(thisitem.account?.votingAt)+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
+                                                                }
                                                             </>
                                                         }
                                                     </>
@@ -1484,7 +1576,6 @@ function RenderGovernanceTable(props:any) {
                                                     
                                                     {item.account?.denyVoteWeight && 
                                                         <Typography variant="h6">
-                                                            {console.log("denyVoteWeight: "+item.account.denyVoteWeight)}
                                                             <Tooltip title={Number(item.account?.denyVoteWeight) <= 1 ?
                                                                 <>
                                                                     {Number(item.account?.denyVoteWeight)}
@@ -1637,9 +1728,9 @@ export function GovernanceCachedView(props: any) {
             setLoading(true);
             try{
                     
-                console.log("with governance: "+governanceAddress);
+                console.log("SPL Governance: "+governanceAddress);
                 
-                console.log("cached_governance: "+JSON.stringify(cached_governance));
+                //console.log("cached_governance: "+JSON.stringify(cached_governance));
                 
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
                 
@@ -1657,6 +1748,15 @@ export function GovernanceCachedView(props: any) {
                     for (var props of cached_governance){
                         allprops.push(props)
                     }
+
+                    /* To Do
+                    
+                    setTotalDefeated(defeated);
+                    setTotalPassed(passed);
+                    setTotalProposals(sortedResults.length);
+                    setTotalTotalVotesCasted(ttvc);
+
+                    */
                     
                     setProposals(allprops);
 
@@ -1883,10 +1983,15 @@ export function GovernanceCachedView(props: any) {
                 inner.quorumWeight.governingTokenMint = new PublicKey(inner.quorumWeight.governingTokenMint);
                 inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
                 inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
-
+                /*
                 inner.quorumWeight.voterWeight = Number("0x"+inner.quorumWeight.voterWeight).toString()
                 inner.vote.voterWeight = Number("0x"+inner.vote.voterWeight).toString()
 
+                inner.quorumWeight.legacyYes = Number("0x"+inner.quorumWeight.legacyYes).toString()
+                inner.vote.legacyYes = Number("0x"+inner.vote.legacyYes).toString()
+                inner.quorumWeight.legacyNo = Number("0x"+inner.quorumWeight.legacyNo).toString()
+                inner.vote.legacyNo = Number("0x"+inner.vote.legacyNo).toString()
+                */
             }
             
             counter++;
@@ -2074,7 +2179,7 @@ export function GovernanceCachedView(props: any) {
         }
     /*
     } else{
-        // check if participant in this governance
+        // check if participant in this governance?
         return (
             <Box
                 sx={{
