@@ -1262,35 +1262,19 @@ function RenderGovernanceTable(props:any) {
                     <Typography variant="h6">
                         <Tooltip title={
                             <>
-                            {cachedGovernance ?
                                 <>
                                 {thisGovernance?.account?.config?.maxVotingTime ?
-                                    `Ending ${moment.unix(+thisitem.account?.votingAt+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
+                                    `Ending ${moment.unix(Number(thisitem.account?.votingAt)+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
                                 :
                                     <>
                                     {thisitem.account?.votingCompletedAt ?
-                                        <>{`Started: ${thisitem.account?.votingAt && (moment.unix(Number(thisitem.account?.votingAt)).format("MMMM Da, YYYY, h:mm a"))} - Ended: ${thisitem.account?.votingAt && (moment.unix((Number(thisitem.account?.votingCompletedAt))).format("MMMM Da, YYYY, h:mm a"))}`}</>
+                                        <>{`Started: ${thisitem.account?.votingAt && (moment.unix(Number((thisitem.account?.votingAt))).format("MMMM Da, YYYY, h:mm a"))} - Ended: ${thisitem.account?.votingAt && (moment.unix(Number((thisitem.account?.votingCompletedAt))).format("MMMM Da, YYYY, h:mm a"))}`}</>
                                     :
-                                        `Created: ${+thisitem.account?.votingAt && (moment.unix(Number(thisitem.account?.votingAt)).format("MMMM D, YYYY, h:mm a"))}`
+                                        `Created: ${thisitem.account?.votingAt && (moment.unix(Number((thisitem.account?.votingAt))).format("MMMM D, YYYY, h:mm a"))}`
                                     }
                                     </>
                                 } 
                                 </>
-                            :
-                                <>
-                                {thisGovernance?.account?.config?.maxVotingTime ?
-                                    `Ending ${moment.unix(thisitem.account?.votingAt.toNumber()+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
-                                :
-                                    <>
-                                    {thisitem.account?.votingCompletedAt ?
-                                        <>{`Started: ${thisitem.account?.votingAt && (moment.unix((thisitem.account?.votingAt).toNumber()).format("MMMM Da, YYYY, h:mm a"))} - Ended: ${thisitem.account?.votingAt && (moment.unix((thisitem.account?.votingCompletedAt).toNumber()).format("MMMM Da, YYYY, h:mm a"))}`}</>
-                                    :
-                                        `Created: ${thisitem.account?.votingAt && (moment.unix((thisitem.account?.votingAt).toNumber()).format("MMMM D, YYYY, h:mm a"))}`
-                                    }
-                                    </>
-                                } 
-                                </>
-                            }
                             </>
                             }>
                             
@@ -1355,180 +1339,6 @@ function RenderGovernanceTable(props:any) {
                                     {/*console.log("item: "+JSON.stringify(item))*/}
                                     {item?.pubkey && item?.account &&
                                         <>
-                                        {cachedGovernance ?
-                                            <TableRow key={index} sx={{borderBottom:"none"}}>
-                                                <TableCell>
-                                                    <Typography variant="h6" color={(item.account?.state === 2) ? `white` : `gray`}>
-                                                    {item.account?.name}
-                                                    {item.account?.descriptionLink && 
-                                                        <Tooltip title={item.account?.descriptionLink}>
-                                                            <Button sx={{ml:1,borderRadius:'17px'}} color='inherit' ><HelpOutlineIcon sx={{ fontSize:16 }}/></Button>
-                                                        </Tooltip>
-                                                    }
-
-                                                        {realm.account.config?.councilMint?.toBase58() === item.account?.governingTokenMint ?
-                                                            <Tooltip title='Council Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon sx={{ fontSize:16 }} /></Button></Tooltip>
-                                                            :
-                                                            <>
-                                                            {tokenMap.get(item.account.governingTokenMint) ?
-                                                                <></>
-                                                            :
-                                                                <>
-                                                                    {governanceType === 1 ?
-                                                                        <></>
-                                                                    :
-                                                                    <Tooltip title='NFT Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><ImageOutlinedIcon sx={{ fontSize:16 }} /></Button></Tooltip>
-                                                                    }
-                                                                </>
-                                                            }
-                                                            </>
-                                                        }
-                                                        
-                                                    </Typography>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {item.account.yesVotesCount &&
-                                                        <Typography variant="h6">
-                                                            
-                                                            <Tooltip title={realm.account.config?.councilMint?.toBase58() === item.account?.governingTokenMint ?
-                                                                    <>{item.account.yesVotesCount}</>
-                                                                :
-                                                                <>
-                                                                        <>
-                                                                        {(+item.account.yesVotesCount/Math.pow(10, (tokenMap.get(item.account.governingTokenMint) ? tokenMap.get(item.account.governingTokenMint).decimals : 6) )).toFixed(0)}</>
-                                                                    
-
-                                                                </>
-                                                                }
-                                                            >
-                                                                <Button sx={{color:'#eee'}}>
-                                                                    {+item.account.yesVotesCount > 0 ?
-                                                                    <>
-                                                                    {`${(((+item.account.yesVotesCount)/((+item.account.noVotesCount)+(+item.account.yesVotesCount)))*100).toFixed(2)}%`}
-                                                                    </>
-                                                                    :
-                                                                    <>0%</>
-        }
-                                                                </Button>
-                                                            </Tooltip>
-                                                        </Typography>
-                                                    }
-
-                                                    {item.account?.options && item.account?.options[0]?.voteWeight && 
-                                                        <Typography variant="h6">
-                                                            
-                                                            {/*console.log("governingTokenMint: "+item.account.governingTokenMint.toBase58())*/}
-                                                            {/*console.log("vote: "+JSON.stringify(item.account))*/}
-                                                            
-                                                            <Tooltip title={realm.account.config?.councilMint?.toBase58() === item.account?.governingTokenMint ?
-                                                                    <>{+item.account?.options[0].voteWeight}</>
-                                                                :
-                                                                <>
-                                                                        <>
-                                                                        {(+item.account?.options[0].voteWeight/Math.pow(10, (tokenMap.get(item.account.governingTokenMint) ? tokenMap.get(item.account.governingTokenMint).decimals : 6) )).toFixed(0)}</>
-                                                                    
-
-                                                                </>
-                                                                }
-                                                            >
-                                                                <Button sx={{color:'white'}}>
-                                                                    {+item.account?.options[0].voteWeight > 0 ?
-                                                                    <>
-                                                                    {`${(((+item.account?.options[0].voteWeight)/((+item.account?.denyVoteWeight)+(+item.account?.options[0].voteWeight)))*100).toFixed(2)}%`}
-                                                                    </>
-                                                                    :
-                                                                    <>0%</>
-        }
-                                                                </Button>
-                                                            </Tooltip>
-                                                        </Typography>
-                                                    }
-                                                    {item.account?.options && item.account?.options[0]?.voterWeight && 
-                                                        <Typography variant="h6">
-                                                            {/*console.log("vote: "+JSON.stringify(item.account))*/}
-                                                            <Tooltip title={tokenMap.get(item.account.governingTokenMint) ?
-                                                                <>
-                                                                {(item.account?.options[0].voterWeight.toNumber()/Math.pow(10, (tokenMap.get(item.account.governingTokenMint) ? tokenMap.get(item.account.governingTokenMint).decimals : 6) )).toFixed(0)}
-                                                                </>
-                                                                :
-                                                                <>
-                                                                    {item.account?.options[0].voterWeight}
-                                                                </>
-                                                                }
-                                                            >
-                                                                <Button sx={{color:'white'}}>
-                                                                    {+item.account?.options[0].voterWeight > 0 ?
-                                                                    <>
-                                                                    {`${(((+item.account?.options[0].voterWeight)/((+item.account?.denyVoteWeight)+(+item.account?.options[0].voterWeight)))*100).toFixed(2)}%`}
-                                                                    </>
-                                                                    :
-                                                                    <>0%</>
-        }
-                                                                </Button>
-                                                            </Tooltip>
-                                                        </Typography>
-                                                    }
-                                                </TableCell>
-                                                <TableCell>
-
-                                                    {item.account.noVotesCount &&
-                                                            <Typography variant="h6">
-                                                                
-                                                                <Tooltip title={realm.account.config?.councilMint?.toBase58() === item.account?.governingTokenMint ?
-                                                                        <>{item.account.noVotesCount}</>
-                                                                    :
-                                                                    <>
-                                                                            <>
-                                                                            {(+item.account.noVotesCount/Math.pow(10, (tokenMap.get(item.account.governingTokenMint) ? tokenMap.get(item.account.governingTokenMint).decimals : 6) )).toFixed(0)}</>
-                                                                        
-
-                                                                    </>
-                                                                    }
-                                                                >
-                                                                    <Button sx={{color:'#eee'}}>
-                                                                        {+item.account.noVotesCount > 0 ?
-                                                                        <>
-                                                                        {`${(((+item.account.noVotesCount)/((+item.account.noVotesCount)+(+item.account.yesVotesCount)))*100).toFixed(2)}%`}
-                                                                        </>
-                                                                        :
-                                                                        <>0%</>
-            }
-                                                                    </Button>
-                                                                </Tooltip>
-                                                            </Typography>
-                                                    }
-
-                                                    {item.account?.denyVoteWeight && 
-                                                        <Typography variant="h6">
-                                                            <Tooltip title={+item.account?.denyVoteWeight <= 1 ?
-                                                                <>
-                                                                    {item.account?.denyVoteWeight}
-                                                                </>
-                                                                :
-                                                                <>
-                                                                    {(+item.account?.denyVoteWeight/Math.pow(10, (tokenMap.get(item.account.governingTokenMint) ? tokenMap.get(item.account.governingTokenMint).decimals : 6) )).toFixed(0)}
-                                                                </>
-                                                                }
-                                                            >
-                                                                <Button sx={{color:'white'}}>
-                                                                    {+item.account?.denyVoteWeight > 0 ?
-                                                                    <>
-                                                                    {`${(((+item.account?.denyVoteWeight/Math.pow(10, (tokenMap.get(item.account.governingTokenMint) ? tokenMap.get(item.account.governingTokenMint).decimals : 6) ))/((+item.account?.denyVoteWeight/Math.pow(10, (tokenMap.get(item.account.governingTokenMint) ? tokenMap.get(item.account.governingTokenMint).decimals : 6) ))+(+item.account?.options[0].voteWeight/Math.pow(10, (tokenMap.get(item.account.governingTokenMint) ? tokenMap.get(item.account.governingTokenMint).decimals : 6) ))))*100).toFixed(2)}%`}
-                                                                    </>:
-                                                                    <>0%</>
-                                                                    }
-                                                                </Button>
-                                                            </Tooltip>
-                                                        </Typography>
-                                                    }
-                                                </TableCell>
-                                                <GetProposalStatus item={item}/>
-                                                <TableCell align="center">
-                                                    <GetParticipants cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
-                                                </TableCell>
-                                            </TableRow>
-                                        :
-                                        
                                             <TableRow key={index} sx={{borderBottom:"none"}}>
                                                 <TableCell>
                                                     <Typography variant="h6" color={(item.account?.state === 2) ? `white` : `gray`}>
@@ -1594,20 +1404,20 @@ function RenderGovernanceTable(props:any) {
                                                             {/*console.log("vote: "+JSON.stringify(item.account))*/}
                                                             
                                                             <Tooltip title={realm.account.config?.councilMint?.toBase58() === item.account?.governingTokenMint?.toBase58() ?
-                                                                    <>{item.account?.options[0].voteWeight.toNumber()}</>
+                                                                    <>{Number(item.account?.options[0].voteWeight)}</>
                                                                 :
                                                                 <>
                                                                         <>
-                                                                        {(item.account?.options[0].voteWeight.toNumber()/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) )).toFixed(0)}</>
+                                                                        {(Number(item.account?.options[0].voteWeight)/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) )).toFixed(0)}</>
                                                                     
 
                                                                 </>
                                                                 }
                                                             >
                                                                 <Button sx={{color:'white'}}>
-                                                                    {item.account?.options[0].voteWeight.toNumber() > 0 ?
+                                                                    {Number(item.account?.options[0].voteWeight) > 0 ?
                                                                     <>
-                                                                    {`${(((item.account?.options[0].voteWeight.toNumber())/((item.account?.denyVoteWeight.toNumber())+(item.account?.options[0].voteWeight.toNumber())))*100).toFixed(2)}%`}
+                                                                    {`${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
                                                                     </>
                                                                     :
                                                                     <>0%</>
@@ -1621,18 +1431,18 @@ function RenderGovernanceTable(props:any) {
                                                             {/*console.log("vote: "+JSON.stringify(item.account))*/}
                                                             <Tooltip title={tokenMap.get(item.account.governingTokenMint.toBase58()) ?
                                                                 <>
-                                                                {(item.account?.options[0].voterWeight.toNumber()/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) )).toFixed(0)}
+                                                                {(Number(item.account?.options[0].voterWeight)/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) )).toFixed(0)}
                                                                 </>
                                                                 :
                                                                 <>
-                                                                    {item.account?.options[0].voterWeight.toNumber()}
+                                                                    {Number(item.account?.options[0].voterWeight)}
                                                                 </>
                                                                 }
                                                             >
                                                                 <Button sx={{color:'white'}}>
-                                                                    {item.account?.options[0].voterWeight.toNumber() > 0 ?
+                                                                    {Number(item.account?.options[0].voterWeight) > 0 ?
                                                                     <>
-                                                                    {`${(((item.account?.options[0].voterWeight.toNumber())/((item.account?.denyVoteWeight.toNumber())+(item.account?.options[0].voterWeight.toNumber())))*100).toFixed(2)}%`}
+                                                                    {`${(((Number(item.account?.options[0].voterWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voterWeight))))*100).toFixed(2)}%`}
                                                                     </>
                                                                     :
                                                                     <>0%</>
@@ -1648,20 +1458,20 @@ function RenderGovernanceTable(props:any) {
                                                             <Typography variant="h6">
                                                                 
                                                                 <Tooltip title={realm.account.config?.councilMint?.toBase58() === item.account?.governingTokenMint?.toBase58() ?
-                                                                        <>{item.account.noVotesCount.toNumber()}</>
+                                                                        <>{Number(item.account.noVotesCount)}</>
                                                                     :
                                                                     <>
                                                                             <>
-                                                                            {(item.account.noVotesCount.toNumber()/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) )).toFixed(0)}</>
+                                                                            {(Number(item.account.noVotesCount)/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) )).toFixed(0)}</>
                                                                         
 
                                                                     </>
                                                                     }
                                                                 >
                                                                     <Button sx={{color:'#eee'}}>
-                                                                        {item.account.noVotesCount.toNumber() > 0 ?
+                                                                        {Number(item.account.noVotesCount) > 0 ?
                                                                         <>
-                                                                        {`${(((item.account.noVotesCount.toNumber())/((item.account.noVotesCount.toNumber())+(item.account.yesVotesCount.toNumber())))*100).toFixed(2)}%`}
+                                                                        {`${(((Number(item.account.noVotesCount))/((Number(item.account.noVotesCount))+(Number(item.account.yesVotesCount))))*100).toFixed(2)}%`}
                                                                         </>
                                                                         :
                                                                         <>0%</>
@@ -1671,22 +1481,24 @@ function RenderGovernanceTable(props:any) {
                                                             </Typography>
                                                     }
 
+                                                    
                                                     {item.account?.denyVoteWeight && 
                                                         <Typography variant="h6">
-                                                            <Tooltip title={item.account?.denyVoteWeight.toNumber() <= 1 ?
+                                                            {console.log("denyVoteWeight: "+item.account.denyVoteWeight)}
+                                                            <Tooltip title={Number(item.account?.denyVoteWeight) <= 1 ?
                                                                 <>
-                                                                    {item.account?.denyVoteWeight.toNumber()}
+                                                                    {Number(item.account?.denyVoteWeight)}
                                                                 </>
                                                                 :
                                                                 <>
-                                                                    {(item.account?.denyVoteWeight.toNumber()/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) )).toFixed(0)}
+                                                                    {(Number(item.account?.denyVoteWeight)/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) )).toFixed(0)}
                                                                 </>
                                                                 }
                                                             >
                                                                 <Button sx={{color:'white'}}>
-                                                                    {item.account?.denyVoteWeight.toNumber() > 0 ?
+                                                                    {Number(item.account?.denyVoteWeight) > 0 ?
                                                                     <>
-                                                                    {`${(((item.account?.denyVoteWeight.toNumber()/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) ))/((item.account?.denyVoteWeight.toNumber()/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) ))+(item.account?.options[0].voteWeight.toNumber()/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) ))))*100).toFixed(2)}%`}
+                                                                    {`${(((Number(item.account?.denyVoteWeight)/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) ))/((Number(item.account?.denyVoteWeight)/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) ))+(Number(item.account?.options[0].voteWeight)/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) ))))*100).toFixed(2)}%`}
                                                                     </>:
                                                                     <>0%</>
                                                                     }
@@ -1700,7 +1512,6 @@ function RenderGovernanceTable(props:any) {
                                                     <GetParticipants cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                                 </TableCell>
                                             </TableRow>
-                                        }
                                         </>
                                     }
                                 </>
@@ -2029,6 +1840,40 @@ export function GovernanceCachedView(props: any) {
                     cached_governance = await getGovernanceFromLookup(glitem.filename);
                 }
             }
+        }
+
+        // convert values in governance to BigInt and PublicKeys accordingly
+        let counter = 0;
+        for (let cupdated of cached_governance){
+
+            cupdated.account.governance = new PublicKey(cupdated.account.governance);
+            cupdated.account.governingTokenMint = new PublicKey(cupdated.account.governingTokenMint);
+            cupdated.account.tokenOwnerRecord = new PublicKey(cupdated.account.tokenOwnerRecord);
+            cupdated.owner = new PublicKey(cupdated.owner);
+            cupdated.pubkey = new PublicKey(cupdated.pubkey);
+
+            
+            if (cupdated.account?.options && cupdated.account?.options[0]?.voteWeight){
+                cupdated.account.options[0].voteWeight = Number("0x"+cupdated.account.options[0].voteWeight)//parseInt(cupdated.account.pubkey?.options[0].voteWeight,16);
+                console.log("Counter: "+counter+" "+cupdated.account.options[0].voteWeight);
+            }
+            if (cupdated.account?.denyVoteWeight)
+                cupdated.account.denyVoteWeight = Number("0x"+cupdated.account.denyVoteWeight).toString()//parseInt(cupdated.account.denyVoteWeight,16);
+
+            if (cupdated.account?.yesVotesCount)
+                cupdated.account.yesVotesCount = Number("0x"+cupdated.account.yesVotesCount).toString()//parseInt(cupdated.account.yesVotesCount,16);
+            if (cupdated.account?.noVotesCount)
+                cupdated.account.noVotesCount = Number("0x"+cupdated.account.noVotesCount).toString()//parseInt(cupdated.account.noVotesCount,16);
+            
+            
+            cupdated.account.draftAt = Number("0x"+cupdated.account.draftAt).toString()//parseInt(cupdated.account.draftAt,16);
+            cupdated.account.signingOffAt = Number("0x"+cupdated.account.signingOffAt).toString()//parseInt(cupdated.account.signingOffAt,16);
+            cupdated.account.votingAt = Number("0x"+cupdated.account.votingAt).toString()//parseInt(cupdated.account.votingAt,16);
+            cupdated.account.votingAtSlot = Number("0x"+cupdated.account.votingAtSlot).toString()//parseInt(cupdated.account.votingAtSlot,16);
+            cupdated.account.vetoVoteWeight = Number("0x"+cupdated.account.vetoVoteWeight).toString()//parseInt(cupdated.account.vetoVoteWeight,16);
+            
+            // move to nested voting results
+            counter++;
         }
         
         setCachedGovernance(cached_governance);
