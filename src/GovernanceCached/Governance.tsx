@@ -829,14 +829,14 @@ function GetParticipants(props: any){
                                             <>For</>
                                         </Typography>
                                         <Typography variant="h3">
-                                            {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && thisitem.account?.options[0].voteWeight.toNumber() > 0 ?
+                                            {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
                                                 <>
-                                                {`${(((thisitem.account?.options[0].voteWeight.toNumber())/((thisitem.account?.denyVoteWeight.toNumber())+(thisitem.account?.options[0].voteWeight.toNumber())))*100).toFixed(2)}%`}
+                                                {`${(((Number(thisitem.account?.options[0].voteWeight))/((Number(thisitem.account?.denyVoteWeight))+(Number(thisitem.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
                                                 </>
                                             :
                                                 <>
                                                     {thisitem.account.yesVotesCount ?
-                                                        <>{(thisitem.account.yesVotesCount.toNumber()/(thisitem.account.noVotesCount.toNumber()+thisitem.account.yesVotesCount.toNumber())*100).toFixed(2)}%</>
+                                                        <>{(Number(thisitem.account.yesVotesCount)/(Number(thisitem.account.noVotesCount)+thisitem.account.yesVotesCount.toNumber())*100).toFixed(2)}%</>
                                                     :
                                                         <>0%</>
                                                     }
@@ -845,13 +845,13 @@ function GetParticipants(props: any){
                                         </Typography>
                                         {thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
                                             <Typography variant="caption">
-                                                {getFormattedNumberToLocale(formatAmount(+(thisitem.account.options[0].voteWeight.toNumber()/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                {getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
                                             </Typography>
                                         :
                                             <>
                                                 {thisitem.account?.yesVotesCount && 
                                                     <Typography variant="caption">
-                                                        {getFormattedNumberToLocale(formatAmount(+(thisitem.account.yesVotesCount.toNumber()/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                        {getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
                                                     </Typography>
                                                 }
                                             </>
@@ -869,14 +869,14 @@ function GetParticipants(props: any){
                                             <>Against</>
                                         </Typography>
                                         <Typography variant="h3">
-                                            {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && thisitem.account?.options[0].voteWeight.toNumber() > 0 ?
+                                            {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
                                                 <>
-                                                {`${(((thisitem.account?.denyVoteWeight.toNumber()/Math.pow(10, tokenDecimals))/((thisitem.account?.denyVoteWeight.toNumber()/Math.pow(10, tokenDecimals))+(thisitem.account?.options[0].voteWeight.toNumber()/Math.pow(10, tokenDecimals))))*100).toFixed(2)}%`}
+                                                {`${(((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))/((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))+(Number(thisitem.account?.options[0].voteWeight)/Math.pow(10, tokenDecimals))))*100).toFixed(2)}%`}
                                                 </>
                                             :
                                                 <>
                                                     {thisitem.account.noVotesCount ?
-                                                        <>{(thisitem.account.noVotesCount.toNumber()/(thisitem.account.noVotesCount.toNumber()+thisitem.account.yesVotesCount.toNumber())*100).toFixed(2)}%</>
+                                                        <>{(Number(thisitem.account.noVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
                                                     :
                                                         <>0%</>
                                                     }
@@ -885,13 +885,13 @@ function GetParticipants(props: any){
                                         </Typography>
                                         {thisitem.account?.denyVoteWeight ?
                                             <Typography variant="caption">
-                                                {getFormattedNumberToLocale(formatAmount(+(thisitem.account.denyVoteWeight.toNumber()/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                {getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
                                             </Typography>
                                         :
                                             <>
                                                 {thisitem.account?.noVotesCount && 
                                                     <Typography variant="caption">
-                                                        {getFormattedNumberToLocale(formatAmount(+(thisitem.account.noVotesCount.toNumber()/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                        {getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
                                                     </Typography>
                                                 }
                                             </>
@@ -991,13 +991,13 @@ function GetParticipants(props: any){
                                                 <>
                                                     {thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
                                                         <Typography variant="caption">
-                                                            {getFormattedNumberToLocale(formatAmount(+((thisitem.account.options[0].voteWeight.toNumber() + thisitem.account.denyVoteWeight.toNumber())/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                            {getFormattedNumberToLocale(formatAmount(+((Number(thisitem.account.options[0].voteWeight) + Number(thisitem.account.denyVoteWeight))/Math.pow(10, tokenDecimals)).toFixed(0)))}
                                                         </Typography>
                                                     :
                                                         <>
                                                             {thisitem.account?.yesVotesCount && 
                                                                 <Typography variant="caption">
-                                                                    {getFormattedNumberToLocale(formatAmount(+((thisitem.account.yesVotesCount.toNumber() + thisitem.account.noVotesCount.toNumber()) /Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                                    {getFormattedNumberToLocale(formatAmount(+((Number(thisitem.account.yesVotesCount) + Number(thisitem.account.noVotesCount)) /Math.pow(10, tokenDecimals)).toFixed(0)))}
                                                                 </Typography>
                                                             }
                                                         </>
@@ -1078,7 +1078,7 @@ function GetParticipants(props: any){
                                                 <>Started At</>
                                             </Typography>
                                             <Typography variant="subtitle2">
-                                                {moment.unix(thisitem.account?.votingAt.toNumber()).format("MMMM Da, YYYY, h:mm a")}
+                                                {moment.unix(Number(thisitem.account?.votingAt)).format("MMMM Da, YYYY, h:mm a")}
                                             </Typography>
                                         </Box>
                                     </Grid>
@@ -1100,7 +1100,7 @@ function GetParticipants(props: any){
                                                 {thisGovernance && thisGovernance?.account?.config?.maxVotingTime ?
                                                     <>
                                                         {thisitem.account?.votingAt &&
-                                                            `${moment.unix(thisitem.account?.votingAt.toNumber()+thisGovernance?.account?.config?.maxVotingTime).format("MMMM Da, YYYY, h:mm a")}`
+                                                            `${moment.unix(Number(thisitem.account?.votingAt)+thisGovernance?.account?.config?.maxVotingTime).format("MMMM Da, YYYY, h:mm a")}`
                                                         }
                                                     </>
                                                 :
@@ -1130,11 +1130,11 @@ function GetParticipants(props: any){
                                                     <>
                                                         {thisitem.account?.votingAt &&
                                                             <>
-                                                                {thisitem.account?.votingCompletedAt ?
-                                                                    `Ended ${moment.unix(thisitem.account?.votingAt.toNumber()+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
+                                                                {/*thisitem.account?.votingCompletedAt ?
+                                                                    `Ended ${(moment.unix(Number(thisitem.account?.votingAt))+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
                                                                 :
-                                                                    `Ending ${moment.unix(thisitem.account?.votingAt.toNumber()+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
-                                                                }
+                                                                    `Ending ${(moment.unix(Number(thisitem.account?.votingAt))+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
+                                                                */}
                                                             </>
                                                         }
                                                     </>
@@ -1645,7 +1645,10 @@ export function GovernanceCachedView(props: any) {
                 
                 const grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
                 setRealm(grealm);
-
+                const realmPk = grealm.pubkey;
+                const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
+                setMemberMap(rawTokenOwnerRecords);
+                
                 if (cached_governance){
                     
                     console.log("here we are...")
@@ -1661,7 +1664,7 @@ export function GovernanceCachedView(props: any) {
                     
                     //console.log("B realm: "+JSON.stringify(grealm));
 
-                    const realmPk = grealm.pubkey;
+                    
 
                     //console.log("communityMintMaxVoteWeightSource: " + grealm.account.config.communityMintMaxVoteWeightSource.value.toNumber());
                     
@@ -1715,8 +1718,8 @@ export function GovernanceCachedView(props: any) {
                         }
                     }
 
-                    const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
-                    setMemberMap(rawTokenOwnerRecords);
+                    //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
+                    //setMemberMap(rawTokenOwnerRecords);
 
                     //const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
 
@@ -1853,26 +1856,39 @@ export function GovernanceCachedView(props: any) {
             cupdated.pubkey = new PublicKey(cupdated.pubkey);
 
             
-            if (cupdated.account?.options && cupdated.account?.options[0]?.voteWeight){
-                cupdated.account.options[0].voteWeight = Number("0x"+cupdated.account.options[0].voteWeight)//parseInt(cupdated.account.pubkey?.options[0].voteWeight,16);
-                console.log("Counter: "+counter+" "+cupdated.account.options[0].voteWeight);
-            }
+            if (cupdated.account?.options && cupdated.account?.options[0]?.voteWeight)
+                cupdated.account.options[0].voteWeight = Number("0x"+cupdated.account.options[0].voteWeight)
             if (cupdated.account?.denyVoteWeight)
-                cupdated.account.denyVoteWeight = Number("0x"+cupdated.account.denyVoteWeight).toString()//parseInt(cupdated.account.denyVoteWeight,16);
+                cupdated.account.denyVoteWeight = Number("0x"+cupdated.account.denyVoteWeight).toString()
 
             if (cupdated.account?.yesVotesCount)
-                cupdated.account.yesVotesCount = Number("0x"+cupdated.account.yesVotesCount).toString()//parseInt(cupdated.account.yesVotesCount,16);
+                cupdated.account.yesVotesCount = Number("0x"+cupdated.account.yesVotesCount).toString()
             if (cupdated.account?.noVotesCount)
-                cupdated.account.noVotesCount = Number("0x"+cupdated.account.noVotesCount).toString()//parseInt(cupdated.account.noVotesCount,16);
+                cupdated.account.noVotesCount = Number("0x"+cupdated.account.noVotesCount).toString()
             
             
-            cupdated.account.draftAt = Number("0x"+cupdated.account.draftAt).toString()//parseInt(cupdated.account.draftAt,16);
-            cupdated.account.signingOffAt = Number("0x"+cupdated.account.signingOffAt).toString()//parseInt(cupdated.account.signingOffAt,16);
-            cupdated.account.votingAt = Number("0x"+cupdated.account.votingAt).toString()//parseInt(cupdated.account.votingAt,16);
-            cupdated.account.votingAtSlot = Number("0x"+cupdated.account.votingAtSlot).toString()//parseInt(cupdated.account.votingAtSlot,16);
-            cupdated.account.vetoVoteWeight = Number("0x"+cupdated.account.vetoVoteWeight).toString()//parseInt(cupdated.account.vetoVoteWeight,16);
+            cupdated.account.draftAt = Number("0x"+cupdated.account.draftAt).toString()
+            cupdated.account.signingOffAt = Number("0x"+cupdated.account.signingOffAt).toString()
+            cupdated.account.votingAt = Number("0x"+cupdated.account.votingAt).toString()
+            cupdated.account.votingAtSlot = Number("0x"+cupdated.account.votingAtSlot).toString()
+            cupdated.account.vetoVoteWeight = Number("0x"+cupdated.account.vetoVoteWeight).toString()
             
             // move to nested voting results
+            for (let inner of cupdated.votingResults){
+                inner.pubkey = new PublicKey(inner.pubkey);
+                inner.proposal = new PublicKey(inner.proposal);
+                inner.governingTokenOwner = new PublicKey(inner.governingTokenOwner);
+                inner.voteAddress = new PublicKey(inner.voteAddress);
+                inner.quorumWeight.councilMint = new PublicKey(inner.quorumWeight.councilMint);
+                inner.quorumWeight.governingTokenMint = new PublicKey(inner.quorumWeight.governingTokenMint);
+                inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
+                inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
+
+                inner.quorumWeight.voterWeight = Number("0x"+inner.quorumWeight.voterWeight).toString()
+                inner.vote.voterWeight = Number("0x"+inner.vote.voterWeight).toString()
+
+            }
+            
             counter++;
         }
         
