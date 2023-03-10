@@ -318,7 +318,9 @@ export function Header(props: any) {
                     :
                         <TextField 
                             fullWidth 
+                            size="small"
                             label="Enter a governance address" 
+                            sx={{ mt:1,ml:2,width: 300 }}
                             onChange={(e) => setGovernanceAddress(e.target.value)}/>
                         
                     }
