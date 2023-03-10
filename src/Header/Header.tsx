@@ -48,7 +48,10 @@ import {
     ListItemText,
     IconButton,
     Autocomplete,
-    TextField
+    TextField,
+    Radio,
+    RadioGroup,
+    FormControlLabel
 } from '@mui/material';
 
 import BurstModeIcon from '@mui/icons-material/BurstMode';
@@ -136,6 +139,7 @@ export function Header(props: any) {
     const [open_wallet, setOpenWallet] = React.useState(false);
     const [governanceAutocomplete, setGovernanceAutocomplete] = React.useState(null);
     const [governanceAddress, setGovernanceAddress] = React.useState(null);
+    const [fetchType, setFetchType] = React.useState("cachedgovernance");
 
     const [anchorEl, setAnchorEl] = React.useState(null);
     const isWalletOpen = Boolean(anchorEl);
@@ -264,13 +268,21 @@ export function Header(props: any) {
         }
     }
 
+    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setFetchType((event.target as HTMLInputElement).value);
+      };
+
     React.useEffect(() => { 
         if (!governanceAutocomplete){
             fetchGovernanceLookupFile();
         }
     }, []);
 
-
+    React.useEffect(() => {
+        if (governanceAddress && governanceAddress.length > 0){
+            navigate({pathname: "/"+fetchType+"/"+governanceAddress,},{ replace: true });
+        }
+    }, [governanceAddress]);
 
     return (
         <Toolbar
@@ -324,6 +336,18 @@ export function Header(props: any) {
                             onChange={(e) => setGovernanceAddress(e.target.value)}/>
                         
                     }
+
+                    <RadioGroup
+                            row
+                            aria-labelledby="demo-row-radio-buttons-group-label"
+                            name="row-radio-buttons-group"
+                            value={fetchType}
+                            onChange={handleChange}
+                            sx={{ml:2}}
+                        >
+                            <FormControlLabel value="cachedgovernance" control={<Radio />} label="Cached" />
+                            <FormControlLabel value="rpcgovernance" control={<Radio />} label="RPC" />
+                    </RadioGroup>
 
                 {/*
                 <Tooltip title={`Go to SPL Governance`}><IconButton sx={{borderRadius:'17px'}} component="a" href='https://realms.today/realms'><DashboardOutlinedIcon/></IconButton></Tooltip>

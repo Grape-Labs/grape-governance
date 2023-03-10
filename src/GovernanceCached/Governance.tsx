@@ -1740,25 +1740,62 @@ export function GovernanceCachedView(props: any) {
                 const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
                 setMemberMap(rawTokenOwnerRecords);
                 
+                let gTD = null;
+                if (tokenMap.get(grealm.account?.communityMint.toBase58())){
+                    setGovernanceType(0);
+                    gTD = tokenMap.get(grealm.account?.communityMint.toBase58()).decimals;
+                    setGoverningTokenDecimals(gTD);
+                } else{
+                    const btkn = await getBackedTokenMetadata(grealm.account?.communityMint.toBase58(), wallet);
+                    if (btkn){
+                        setGovernanceType(1);
+                        gTD = btkn.decimals;
+                        setGoverningTokenDecimals(gTD)
+                    } else{
+                        setGovernanceType(2);
+                        gTD = 0;
+                        setGoverningTokenDecimals(gTD);
+                    }
+                }
+
                 if (cached_governance){
                     
-                    console.log("here we are...")
+                    console.log("Cached it is...")
                     
+                    let passed = 0;
+                    let defeated = 0;
+                    let ttvc = 0;
                     const allprops: any[] = [];
-                    for (var props of cached_governance){
-                        allprops.push(props)
+                    for (var prop of cached_governance){
+                        
+                        console.log("ITEM: "+JSON.stringify(prop))
+                        if (prop.account.state === 3 || prop.account.state === 5)
+                            passed++;
+                        else if (prop.account.state === 7)
+                            defeated++;
+                    
+                        if (prop.account?.yesVotesCount && prop.account?.noVotesCount){
+                            //console.log("tmap: "+JSON.stringify(tokenMap));
+                            //console.log("item a: "+JSON.stringify(prop))
+                            if (tokenMap){
+                                ttvc += +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                            }
+                            
+                        } else if (prop.account?.options) {
+                            //console.log("item b: "+JSON.stringify(prop))
+                            if (tokenMap){
+                                ttvc += +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                            }
+                        }
 
+                        allprops.push(prop);
                         
                     }
 
-                    /* To Do
-                    
                     setTotalDefeated(defeated);
                     setTotalPassed(passed);
-                    setTotalProposals(sortedResults.length);
+                    setTotalProposals(allprops.length);
                     setTotalTotalVotesCasted(ttvc);
-
-                    */
                     
                     setProposals(allprops);
 
@@ -1766,28 +1803,8 @@ export function GovernanceCachedView(props: any) {
                     
                     //console.log("B realm: "+JSON.stringify(grealm));
 
-                    
-
                     //console.log("communityMintMaxVoteWeightSource: " + grealm.account.config.communityMintMaxVoteWeightSource.value.toNumber());
                     
-                    let gTD = null;
-                    if (tokenMap.get(grealm.account?.communityMint.toBase58())){
-                        setGovernanceType(0);
-                        gTD = tokenMap.get(grealm.account?.communityMint.toBase58()).decimals;
-                        setGoverningTokenDecimals(gTD);
-                    } else{
-                        const btkn = await getBackedTokenMetadata(grealm.account?.communityMint.toBase58(), wallet);
-                        if (btkn){
-                            setGovernanceType(1);
-                            gTD = btkn.decimals;
-                            setGoverningTokenDecimals(gTD)
-                        } else{
-                            setGovernanceType(2);
-                            gTD = 0;
-                            setGoverningTokenDecimals(gTD);
-                        }
-                    }
-
                     if (grealm?.account?.config?.useCommunityVoterWeightAddin){
                         const realmConfigPk = await getRealmConfigAddress(
                             programId,
@@ -2087,7 +2104,6 @@ export function GovernanceCachedView(props: any) {
                             </>
                         }
 
-                                {/*
                                 <Box sx={{ alignItems: 'center', textAlign: 'center',p:1}}>
                                     <Grid container spacing={0}>
                                         <Grid item xs={12} sm={4} md={4} key={1}>
@@ -2170,7 +2186,7 @@ export function GovernanceCachedView(props: any) {
                                         
                                     </Grid>
                                 </Box>
-                                */}  
+                                  
                                 
                         <RenderGovernanceTable cachedGovernance={cachedGovernance} memberMap={memberMap} governanceType={governanceType} governingTokenDecimals={governingTokenDecimals} governingTokenMint={governingTokenMint} tokenMap={tokenMap} realm={realm} thisToken={thisToken} proposals={proposals} nftBasedGovernance={nftBasedGovernance} governanceAddress={governanceAddress} />
                     </Box>

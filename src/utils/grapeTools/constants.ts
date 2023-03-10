@@ -14,7 +14,7 @@ export const GRAPE_DRIVE = '/?storage=';
 export const GRAPE_RPC_REFRESH = 25000;
 export const GRAPE_TREASURY = 'GrapevviL94JZRiZwn2LjpWtmDacXU8QhAJvzpUMMFdL';
 
-export const GGAPI_STORAGE_POOL = process.env.REACT_APP_API_GGAPI_STORAGE_POOL || "8NWhkw3TZgVqGRS38V2PsrYvVBqWFbtRs5xgvs9qPwVA";
+export const GGAPI_STORAGE_POOL = process.env.REACT_APP_API_GGAPI_STORAGE_POOL || "EwMD4x7m2Hsay5KfyFwuDMUPtnvw4XmRFYhByorwdkL4";
 
 export const GGAPI_STORAGE_URI = 'https://shdw-drive.genesysgo.net';
 export const APP_LOGO = STATIC_LOGO;

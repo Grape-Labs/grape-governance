@@ -664,7 +664,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         };
         reader.readAsDataURL(file);
         })
-
+    
     const uploadToStoragePool = async (files: File, storagePublicKey: PublicKey) => { 
         try{
             enqueueSnackbar(`Preparing to upload some files to ${storagePublicKey.toString()}`,{ variant: 'info' });
@@ -913,13 +913,16 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 await updateGovernanceLookupFile(fileName, timestamp, lookupFound);
 
                 // proceed to add file
-                console.log("Storage Pool: "+storageAccountPK+" | File found: "+JSON.stringify(found));
+                console.log("Storage Pool: "+storageAccountPK+" | File ("+fileName+") found: "+JSON.stringify(found));
             
                 const fileStream = blobToFile(uploadFile, fileName);
                 if (found){
+                    console.log("REPLACE")
                     const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+fileName;
                     await uploadReplaceToStoragePool(fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
                 }else{
+
+                    console.log("NEW")
                     await uploadToStoragePool(fileStream, new PublicKey(storageAccountPK));
                 }
                 

@@ -4825,10 +4825,10 @@
     "@noble/hashes" "~1.1.1"
     "@scure/base" "~1.1.0"
 
-"@shadow-drive/sdk@^3.0.10":
-  version "3.0.10"
-  resolved "https://registry.npmjs.org/@shadow-drive/sdk/-/sdk-3.0.10.tgz"
-  integrity sha512-OYyh3DTn83Y2wN8Cx/fqOVkoZyz/CVj52nTJ7Gdi+QRV+WxzTj259sz6K7iJMRJ5s0OlKD6nSz1mnc19gwCcJQ==
+"@shadow-drive/sdk@^3.2.2":
+  version "3.2.2"
+  resolved "https://registry.yarnpkg.com/@shadow-drive/sdk/-/sdk-3.2.2.tgz#e206443f0cbb8da368e146592648f35a1f6fe2dc"
+  integrity sha512-GVS8ghqWSEQW7dBOWKzDIpqfbJixsABC4fWWsPB4nWS0uv8NmGzkVWzSO+wwZl/GAnp43jrrAeO5b3KNKaKY0g==
   dependencies:
     "@project-serum/anchor" "^0.24.2"
     "@solana/spl-token" "^0.2.0"
