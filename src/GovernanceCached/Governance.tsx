@@ -1922,14 +1922,14 @@ export function GovernanceCachedView(props: any) {
         if (governanceLookup){
             getCachedGovernanceFromLookup();
         }
-    }, [governanceLookup]);
+    }, [governanceLookup, governanceAddress]);
     
     
     React.useEffect(() => {
         if (cachedGovernance && governanceAddress){
             getGovernance(cachedGovernance);
         }
-    }, [cachedGovernance, governanceAddress]);
+    }, [cachedGovernance]);
 
     const fetchGovernanceFile = async(fileName:string) => {
         try{
