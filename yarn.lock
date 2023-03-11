@@ -5187,7 +5187,7 @@
     superstruct "^0.14.2"
     tweetnacl "^1.0.0"
 
-"@solana/web3.js@^1.11.0", "@solana/web3.js@^1.17.0", "@solana/web3.js@^1.20.0", "@solana/web3.js@^1.22.0", "@solana/web3.js@^1.35.1", "@solana/web3.js@^1.36.0", "@solana/web3.js@^1.43.4", "@solana/web3.js@^1.47.0", "@solana/web3.js@^1.53.0", "@solana/web3.js@^1.63.1", "@solana/web3.js@^1.9.1":
+"@solana/web3.js@^1.11.0", "@solana/web3.js@^1.17.0", "@solana/web3.js@^1.20.0", "@solana/web3.js@^1.22.0", "@solana/web3.js@^1.35.1", "@solana/web3.js@^1.36.0", "@solana/web3.js@^1.43.4", "@solana/web3.js@^1.53.0", "@solana/web3.js@^1.63.1", "@solana/web3.js@^1.9.1":
   version "1.66.2"
   resolved "https://registry.npmjs.org/@solana/web3.js/-/web3.js-1.66.2.tgz"
   integrity sha512-RyaHMR2jGmaesnYP045VLeBGfR/gAW3cvZHzMFGg7bkO+WOYOYp1nEllf0/la4U4qsYGKCsO9eEevR5fhHiVHg==
@@ -11672,17 +11672,6 @@ graceful-fs@^4.1.10, graceful-fs@^4.1.2, graceful-fs@^4.1.6, graceful-fs@^4.1.9,
   version "4.2.10"
   resolved "https://registry.npmjs.org/graceful-fs/-/graceful-fs-4.2.10.tgz"
   integrity sha512-9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA==
-
-grape-art-listing-request@^0.0.29:
-  version "0.0.29"
-  resolved "https://registry.npmjs.org/grape-art-listing-request/-/grape-art-listing-request-0.0.29.tgz"
-  integrity sha512-gqHZaAN/qLXH/UUIKzsBEiMYZv0fASc6GmpaQT8Xm5C4Go02VEh/kiilILFeM/PAaVcwTBsOWfF3ONglaOXtdw==
-  dependencies:
-    "@solana/spl-token" "^0.2.0"
-    "@solana/web3.js" "^1.47.0"
-    bn.js "^5.2.1"
-    borsh "^0.7.0"
-    bs58 "^5.0.0"
 
 grapheme-splitter@^1.0.4:
   version "1.0.4"
