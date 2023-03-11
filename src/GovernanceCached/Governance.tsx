@@ -1999,9 +1999,11 @@ export function GovernanceCachedView(props: any) {
                     inner.proposal = new PublicKey(inner.proposal);
                     inner.governingTokenOwner = new PublicKey(inner.governingTokenOwner);
                     inner.voteAddress = new PublicKey(inner.voteAddress);
-                    inner.quorumWeight.councilMint = new PublicKey(inner.quorumWeight.councilMint);
+                    if (inner.quorumWeight?.councilMint)
+                        inner.quorumWeight.councilMint = new PublicKey(inner.quorumWeight.councilMint);
                     inner.quorumWeight.governingTokenMint = new PublicKey(inner.quorumWeight.governingTokenMint);
-                    inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
+                    if (inner.vote?.councilMint)
+                        inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
                     inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
                     /*
                     inner.quorumWeight.voterWeight = Number("0x"+inner.quorumWeight.voterWeight).toString()
