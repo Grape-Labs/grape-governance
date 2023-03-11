@@ -1193,6 +1193,7 @@ function GetParticipants(props: any){
 }
 
 function RenderGovernanceTable(props:any) {
+    const endTimer = props.endTimer;
     const realm = props.realm;
     const memberMap = props.memberMap;
     const thisToken = props.thisToken;
@@ -1302,6 +1303,10 @@ function RenderGovernanceTable(props:any) {
         //if (publicKey && !loading && realm)
         //    getProposals(realm);
     //}, [realm]);
+
+    React.useEffect(() => { 
+        endTimer();
+    }, []);
 
     if(loading){
         return (
@@ -1555,6 +1560,8 @@ export function GovernanceRPCView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
+    const [startTime, setStartTime] = React.useState(null);
+    const [endTime, setEndTime] = React.useState(null);
 
     const governanceAddress = urlParams;
 
@@ -1870,9 +1877,18 @@ export function GovernanceRPCView(props: any) {
             getGovernance();
     }, [tokenMap, governanceAddress]);
 
+    const startTimer = () => {
+        setStartTime(Date.now());
+    }
+
+    const endTimer = () => {
+        setEndTime(Date.now())
+    }
+
     React.useEffect(() => { 
         if (!loading){
             if (!tokenMap){
+                startTimer();
                 getTokens();
             }
         }
@@ -2043,7 +2059,15 @@ export function GovernanceRPCView(props: any) {
                                 </Box>
                                     
 
-                        <RenderGovernanceTable memberMap={memberMap} governanceType={governanceType} governingTokenDecimals={governingTokenDecimals} governingTokenMint={governingTokenMint} tokenMap={tokenMap} realm={realm} thisToken={thisToken} proposals={proposals} nftBasedGovernance={nftBasedGovernance} governanceAddress={governanceAddress} />
+                        <RenderGovernanceTable endTimer={endTimer} memberMap={memberMap} governanceType={governanceType} governingTokenDecimals={governingTokenDecimals} governingTokenMint={governingTokenMint} tokenMap={tokenMap} realm={realm} thisToken={thisToken} proposals={proposals} nftBasedGovernance={nftBasedGovernance} governanceAddress={governanceAddress} />
+                        {endTime &&
+                            <Typography 
+                                variant="caption"
+                                sx={{textAlign:'center'}}
+                            >
+                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}ms<br/>*This timer is only for the time it has taken to capture the general proposals & does not include proposal details
+                            </Typography>
+                        }
                     </Box>
                                 
                 );

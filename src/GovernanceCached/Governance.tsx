@@ -1296,6 +1296,7 @@ function GetParticipants(props: any){
 }
 
 function RenderGovernanceTable(props:any) {
+    const endTimer = props.endTimer;
     const realm = props.realm;
     const memberMap = props.memberMap;
     const thisToken = props.thisToken;
@@ -1336,14 +1337,17 @@ function RenderGovernanceTable(props:any) {
             ///const ends = thisitem.account?.votingAt.toNumber()+governance?.account?.config?.maxVotingTime;
             //console.log("ending at : " + moment.unix(thisitem.account?.votingAt.toNumber()+governance?.account?.config?.maxVotingTime).format("MMMM Da, YYYY, h:mm a"));
 
-            //console.log("Single governance: "+JSON.stringify(governance));
+            console.log("Single governance: "+JSON.stringify(governance));
         }
 
         React.useEffect(() => { 
             if (thisitem.account?.state === 2){ // if voting state
-                getGovernanceProps()
+                if (!thisGovernance){
+                    console.log("get gov props")
+                    //getGovernanceProps()
+                }
             }
-        }, [thisitem]);
+        }, [thisitem, !thisGovernance]);
 
         // calculate time left
         // /60/60/24 to get days
@@ -1393,6 +1397,10 @@ function RenderGovernanceTable(props:any) {
             </>
         )
     }
+
+    React.useEffect(() => { 
+        endTimer();
+    }, []);
 
     if (loading){
         return (
@@ -1656,7 +1664,8 @@ export function GovernanceCachedView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
-
+    const [startTime, setStartTime] = React.useState(null);
+    const [endTime, setEndTime] = React.useState(null);
     const governanceAddress = urlParams;
 
     //const governanceAddress = props.governanceAddress;
@@ -2034,9 +2043,18 @@ export function GovernanceCachedView(props: any) {
         getGovernance(cached_governance);
     }
 
+    const startTimer = () => {
+        setStartTime(Date.now());
+    }
+
+    const endTimer = () => {
+        setEndTime(Date.now())
+    }
+
     React.useEffect(() => { 
         if (!loading){
             if (!tokenMap){
+                startTimer();
                 getTokens();
             }
         }
@@ -2200,7 +2218,16 @@ export function GovernanceCachedView(props: any) {
                                 </Box>
                                   
                                 
-                        <RenderGovernanceTable cachedGovernance={cachedGovernance} memberMap={memberMap} governanceType={governanceType} governingTokenDecimals={governingTokenDecimals} governingTokenMint={governingTokenMint} tokenMap={tokenMap} realm={realm} thisToken={thisToken} proposals={proposals} nftBasedGovernance={nftBasedGovernance} governanceAddress={governanceAddress} />
+                        <RenderGovernanceTable endTimer={endTimer} cachedGovernance={cachedGovernance} memberMap={memberMap} governanceType={governanceType} governingTokenDecimals={governingTokenDecimals} governingTokenMint={governingTokenMint} tokenMap={tokenMap} realm={realm} thisToken={thisToken} proposals={proposals} nftBasedGovernance={nftBasedGovernance} governanceAddress={governanceAddress} />
+                        
+                        {endTime &&
+                            <Typography 
+                                variant="caption"
+                                sx={{textAlign:'center'}}
+                            >
+                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}ms<br/>* This is the time taken to capture all proposals & proposal details
+                            </Typography>
+                        }
                     </Box>
                                 
                 );
