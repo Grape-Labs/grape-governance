@@ -35,7 +35,7 @@ import {
     PROXY,
     HELIUS_API,
     GGAPI_STORAGE_POOL,
-    GGAPI_STORAGE_URI
+    GGAPI_STORAGE_URI,
 } from '../utils/grapeTools/constants';
 
 import CircularProgress from '@mui/material/CircularProgress';
@@ -791,7 +791,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
     const fetchGovernanceLookupFile = async() => {
         try{
-            const url = GGAPI_STORAGE_URI+"/"+storagePool+'/governance_lookup.json';
+            const url = PROXY+GGAPI_STORAGE_URI+"/"+storagePool+'/governance_lookup.json';
             const response = await window.fetch(url, {
                 method: 'GET',
                 headers: {

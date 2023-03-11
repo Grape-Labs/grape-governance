@@ -1895,7 +1895,7 @@ export function GovernanceCachedView(props: any) {
 
     const fetchGovernanceLookupFile = async() => {
         try{
-            const url = GGAPI_STORAGE_URI+"/"+storagePool+'/governance_lookup.json';
+            const url = PROXY+GGAPI_STORAGE_URI+"/"+storagePool+'/governance_lookup.json';
             const response = await window.fetch(url, {
                 method: 'GET',
                 headers: {
