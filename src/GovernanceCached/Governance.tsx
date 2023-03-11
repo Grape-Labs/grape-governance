@@ -1360,7 +1360,7 @@ function RenderGovernanceTable(props:any) {
                                 :
                                     <>
                                     {thisitem.account?.votingCompletedAt ?
-                                        <>{`Started: ${thisitem.account?.votingAt && (moment.unix(Number((thisitem.account?.votingAt))).format("MMMM Da, YYYY, h:mm a"))} - Ended: ${thisitem.account?.votingAt && (moment.unix(Number((thisitem.account?.votingCompletedAt))).format("MMMM Da, YYYY, h:mm a"))}`}</>
+                                        <>{`Started: ${thisitem.account?.votingAt && (moment.unix(Number((thisitem.account?.votingAt))).format("MMMM Da, YYYY, h:mm a"))}`}<br/>{`Ended: ${thisitem.account?.votingAt && (moment.unix(Number((thisitem.account?.votingCompletedAt))).format("MMMM Da, YYYY, h:mm a"))}`}</>
                                     :
                                         `Created: ${thisitem.account?.votingAt && (moment.unix(Number((thisitem.account?.votingAt))).format("MMMM D, YYYY, h:mm a"))}`
                                     }
@@ -1998,7 +1998,8 @@ export function GovernanceCachedView(props: any) {
             cupdated.account.votingAt = Number("0x"+cupdated.account.votingAt).toString()
             cupdated.account.votingAtSlot = Number("0x"+cupdated.account.votingAtSlot).toString()
             cupdated.account.vetoVoteWeight = Number("0x"+cupdated.account.vetoVoteWeight).toString()
-            
+            cupdated.account.votingCompletedAt = Number("0x"+cupdated.account.votingCompletedAt).toString()
+
             // move to nested voting results
             if (cupdated?.votingResults){
                 for (let inner of cupdated.votingResults){
