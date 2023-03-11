@@ -36,6 +36,7 @@ import {
 
 import {
     MenuItem,
+    Button,
     Menu,
     Tooltip,
     Dialog,
@@ -56,6 +57,7 @@ import {
 
 import BurstModeIcon from '@mui/icons-material/BurstMode';
 
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import SearchIcon from '@mui/icons-material/Search';
@@ -272,6 +274,10 @@ export function Header(props: any) {
         setFetchType((event.target as HTMLInputElement).value);
       };
 
+    const navigateToGovernance = () => {
+        navigate({pathname: "/"+fetchType+"/"+governanceAddress,},{ replace: true });
+    }
+
     React.useEffect(() => { 
         if (!governanceAutocomplete){
             fetchGovernanceLookupFile();
@@ -348,6 +354,13 @@ export function Header(props: any) {
                             <FormControlLabel value="cachedgovernance" control={<Radio />} label="Cached" />
                             <FormControlLabel value="rpcgovernance" control={<Radio />} label="RPC" />
                     </RadioGroup>
+
+                    <Button
+                        size="small"
+                        color='inherit'
+                        sx={{borderRadius:'17px'}}
+                        onClick={(e) => navigateToGovernance()}
+                    ><ArrowForwardIcon /></Button>
 
                 {/*
                 <Tooltip title={`Go to SPL Governance`}><IconButton sx={{borderRadius:'17px'}} component="a" href='https://realms.today/realms'><DashboardOutlinedIcon/></IconButton></Tooltip>

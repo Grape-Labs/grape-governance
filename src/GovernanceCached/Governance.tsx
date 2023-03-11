@@ -1993,24 +1993,26 @@ export function GovernanceCachedView(props: any) {
             cupdated.account.vetoVoteWeight = Number("0x"+cupdated.account.vetoVoteWeight).toString()
             
             // move to nested voting results
-            for (let inner of cupdated.votingResults){
-                inner.pubkey = new PublicKey(inner.pubkey);
-                inner.proposal = new PublicKey(inner.proposal);
-                inner.governingTokenOwner = new PublicKey(inner.governingTokenOwner);
-                inner.voteAddress = new PublicKey(inner.voteAddress);
-                inner.quorumWeight.councilMint = new PublicKey(inner.quorumWeight.councilMint);
-                inner.quorumWeight.governingTokenMint = new PublicKey(inner.quorumWeight.governingTokenMint);
-                inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
-                inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
-                /*
-                inner.quorumWeight.voterWeight = Number("0x"+inner.quorumWeight.voterWeight).toString()
-                inner.vote.voterWeight = Number("0x"+inner.vote.voterWeight).toString()
+            if (cupdated?.votingResults){
+                for (let inner of cupdated.votingResults){
+                    inner.pubkey = new PublicKey(inner.pubkey);
+                    inner.proposal = new PublicKey(inner.proposal);
+                    inner.governingTokenOwner = new PublicKey(inner.governingTokenOwner);
+                    inner.voteAddress = new PublicKey(inner.voteAddress);
+                    inner.quorumWeight.councilMint = new PublicKey(inner.quorumWeight.councilMint);
+                    inner.quorumWeight.governingTokenMint = new PublicKey(inner.quorumWeight.governingTokenMint);
+                    inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
+                    inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
+                    /*
+                    inner.quorumWeight.voterWeight = Number("0x"+inner.quorumWeight.voterWeight).toString()
+                    inner.vote.voterWeight = Number("0x"+inner.vote.voterWeight).toString()
 
-                inner.quorumWeight.legacyYes = Number("0x"+inner.quorumWeight.legacyYes).toString()
-                inner.vote.legacyYes = Number("0x"+inner.vote.legacyYes).toString()
-                inner.quorumWeight.legacyNo = Number("0x"+inner.quorumWeight.legacyNo).toString()
-                inner.vote.legacyNo = Number("0x"+inner.vote.legacyNo).toString()
-                */
+                    inner.quorumWeight.legacyYes = Number("0x"+inner.quorumWeight.legacyYes).toString()
+                    inner.vote.legacyYes = Number("0x"+inner.vote.legacyYes).toString()
+                    inner.quorumWeight.legacyNo = Number("0x"+inner.quorumWeight.legacyNo).toString()
+                    inner.vote.legacyNo = Number("0x"+inner.vote.legacyNo).toString()
+                    */
+                }
             }
 
 

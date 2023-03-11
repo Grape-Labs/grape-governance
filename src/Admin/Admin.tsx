@@ -15,7 +15,7 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletDialogProvider, WalletMultiButton } from '@solana/wallet-adapter-material-ui';
 
 import { 
-  GRAPE_WHITELIST 
+  APP_WHITELIST 
 } from '../utils/grapeTools/constants';
 
 const steps = [
@@ -29,16 +29,16 @@ export function AdminView (this: any, props: any) {
   const { publicKey, connect } = useWallet();
 
   const isWhitelisted = (address: string) => {
-    if (GRAPE_WHITELIST){
-      if (GRAPE_WHITELIST.length > 0){
-        const whitelist = GRAPE_WHITELIST.split(",");
+    if (APP_WHITELIST){
+      if (APP_WHITELIST.length > 0){
+        const whitelist = APP_WHITELIST.split(",");
         for (const item of whitelist){
           if (address === item)
             return true;
         }
       }
       /*
-      if (address === GRAPE_WHITELIST)
+      if (address === APP_WHITELIST)
         return true;
       */
       return false;
