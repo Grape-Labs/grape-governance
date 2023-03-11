@@ -2065,7 +2065,7 @@ export function GovernanceRPCView(props: any) {
                                 variant="caption"
                                 sx={{textAlign:'center'}}
                             >
-                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}ms<br/>*This timer is only for the time it has taken to capture the general proposals & does not include proposal details
+                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms)<br/>*This timer is only for the time it has taken to capture the general proposals & does not include proposal details
                             </Typography>
                         }
                     </Box>
