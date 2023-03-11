@@ -3,10 +3,6 @@ import { styled, alpha } from '@mui/material/styles';
 import { Link, useLocation, NavLink } from 'react-router-dom';
 import { useNavigate } from 'react-router';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
-import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
 
 import { useSnackbar } from 'notistack';
 
@@ -35,7 +31,10 @@ import {
 } from '@solana/wallet-adapter-material-ui';
 
 import {
+    Box,
+    Toolbar,
     MenuItem,
+    Typography,
     Button,
     Menu,
     Tooltip,
@@ -135,8 +134,6 @@ export function Header(props: any) {
     const { open_menu } = props;
     const [open_snackbar, setSnackbarState] = React.useState(false);
     const [tokenParam, setTokenParam] = React.useState(getParam('token'));
-    const [discordId, setDiscordId] = React.useState(getParam('discord_id'));
-    const [userId, setUserId] = React.useState(getParam('user_id'));
     const [providers, setProviders] = React.useState(['Sollet', 'Sollet Extension', 'Phantom','Solflare']);
     const [open_wallet, setOpenWallet] = React.useState(false);
     const [governanceAutocomplete, setGovernanceAutocomplete] = React.useState(null);
@@ -155,12 +152,6 @@ export function Header(props: any) {
 
     const wallet = useWallet();
     const theme: 'dark' | 'light' = 'dark';
-    //const YOUR_PROJECT_PUBLIC_KEY = new PublicKey(AUCTION_HOUSE_ADDRESS);
-
-    
-    const routes = [
-        { name: "Home", path: "/" },
-    ]
     
     //Menu
     const menuId = 'primary-wallet-account-menu';
@@ -354,13 +345,6 @@ export function Header(props: any) {
                             <FormControlLabel value="cachedgovernance" control={<Radio />} label="Cached" />
                             <FormControlLabel value="rpcgovernance" control={<Radio />} label="RPC" />
                     </RadioGroup>
-
-                    <Button
-                        size="small"
-                        color='inherit'
-                        sx={{borderRadius:'17px'}}
-                        onClick={(e) => navigateToGovernance()}
-                    ><ArrowForwardIcon /></Button>
 
                 {/*
                 <Tooltip title={`Go to SPL Governance`}><IconButton sx={{borderRadius:'17px'}} component="a" href='https://realms.today/realms'><DashboardOutlinedIcon/></IconButton></Tooltip>

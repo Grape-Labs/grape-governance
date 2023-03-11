@@ -1866,9 +1866,9 @@ export function GovernanceRPCView(props: any) {
     }
 
     React.useEffect(() => {
-        if (tokenMap)
+        if (tokenMap && governanceAddress)
             getGovernance();
-    }, [tokenMap]);
+    }, [tokenMap, governanceAddress]);
 
     React.useEffect(() => { 
         if (!loading){

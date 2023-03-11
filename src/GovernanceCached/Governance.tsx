@@ -1926,10 +1926,10 @@ export function GovernanceCachedView(props: any) {
     
     
     React.useEffect(() => {
-        if (cachedGovernance){
+        if (cachedGovernance && governanceAddress){
             getGovernance(cachedGovernance);
         }
-    }, [cachedGovernance]);
+    }, [cachedGovernance, governanceAddress]);
 
     const fetchGovernanceFile = async(fileName:string) => {
         try{

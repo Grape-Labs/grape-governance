@@ -95,9 +95,11 @@ function DashboardContent() {
     new SlopeWalletAdapter(),
   ], [network]);
   
+  const renderLoader = () => <p>Loading</p>;
+
   return (
     <>
-      <Suspense fallback="loading">
+      <Suspense fallback={renderLoader()}>
           <ThemeProvider theme={grapeTheme}>
               <div className="grape-gradient-background">
               <SnackbarProvider>
@@ -116,7 +118,7 @@ function DashboardContent() {
                                   toggleDrawer={toggleDrawer}
                               />
                           </AppBar>
-                              
+                          
                             <Grid
                               component="main"
                               sx={{
