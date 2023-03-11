@@ -1412,6 +1412,7 @@ function RenderGovernanceTable(props:any) {
                         <TableHead>
                             <TableRow>
                                 <TableCell><Typography variant="caption">Name</Typography></TableCell>
+                                <TableCell align="center" sx={{width:"12.5%"}}><Typography variant="caption">Proposed</Typography></TableCell>
                                 <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Yes</Typography></TableCell>
                                 <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">No</Typography></TableCell>
                                 <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Status</Typography></TableCell>
@@ -1462,24 +1463,30 @@ function RenderGovernanceTable(props:any) {
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell>
+                                                    <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
+                                                        {`${item.account?.votingAt ? (moment.unix(Number((item.account?.votingAt))).format("MMM D, YYYY, h:mm a")) : `-`}`}
+                                                    </Typography>
+
+                                                </TableCell>
+                                                <TableCell>
                                                     {item.account.yesVotesCount &&
                                                         <Typography variant="h6">
                                                             
                                                             <Tooltip title={realm.account.config?.councilMint?.toBase58() === item.account?.governingTokenMint?.toBase58() ?
-                                                                    <>{item.account.yesVotesCount.toNumber()}</>
+                                                                    <>{Number(item.account.yesVotesCount)}</>
                                                                 :
                                                                 <>
                                                                         <>
-                                                                        {(item.account.yesVotesCount.toNumber()/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) )).toFixed(0)}</>
+                                                                        {(Number(item.account.yesVotesCount)/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) )).toFixed(0)}</>
                                                                     
 
                                                                 </>
                                                                 }
                                                             >
                                                                 <Button sx={{color:'#eee'}}>
-                                                                    {item.account.yesVotesCount.toNumber() > 0 ?
+                                                                    {Number(item.account.yesVotesCount) > 0 ?
                                                                     <>
-                                                                    {`${(((item.account.yesVotesCount.toNumber())/((item.account.noVotesCount.toNumber())+(item.account.yesVotesCount.toNumber())))*100).toFixed(2)}%`}
+                                                                    {`${(((Number(item.account.yesVotesCount))/((Number(item.account.noVotesCount))+(Number(item.account.yesVotesCount))))*100).toFixed(2)}%`}
                                                                     </>
                                                                     :
                                                                     <>0%</>

@@ -917,12 +917,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
             
                 const fileStream = blobToFile(uploadFile, fileName);
                 if (found){
-                    console.log("REPLACE")
                     const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+fileName;
                     await uploadReplaceToStoragePool(fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
                 }else{
-
-                    console.log("NEW")
                     await uploadToStoragePool(fileStream, new PublicKey(storageAccountPK));
                 }
                 
