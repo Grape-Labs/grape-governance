@@ -673,7 +673,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
             );
             const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
             const signedTransaction = await thisDrive.uploadMultipleFiles(storagePublicKey, [files]);
-            
             let count = 0;
             for (var file of signedTransaction){
                 if (file.status === "Uploaded."){
@@ -726,7 +725,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
     }
 
     const processGovernance = async(updateAuthority:string) => {
-        
+        // Second drive creation (otherwise wallet is not connected when done earlier)
+        const drive = await new ShdwDrive(new Connection(GRAPE_RPC_ENDPOINT), wallet).init();
+        setThisDrive(drive);
+
         if (governanceAddress){
             let finalList = null;
             setFileGenerated(null);
@@ -883,12 +885,15 @@ export function GovernanceSnapshotView (this: any, props: any) {
         const timestamp = Math.floor(new Date().getTime() / 1000);
         const fileName = governanceAddress+'_'+timestamp+'.json';
         const storageAccountPK = storagePool;
-
+        
+        
         //exportJSON(fileGenerated, fileName);
         console.log("preparing to upload: "+fileName);
         if (!thisDrive){
-            // set drive again here?
-            alert("Drive not initialized...");
+            const drive = await new ShdwDrive(new Connection(GRAPE_RPC_ENDPOINT), wallet).init();
+            //console.log("drive: "+JSON.stringify(drive));
+            setThisDrive(drive);
+            alert("Drive not initialized, initializing now...");
         } else{
             const uploadFile = await returnJSON(stringGenerated, fileName);
             //const fileBlob = await fileToDataUri(uploadFile);

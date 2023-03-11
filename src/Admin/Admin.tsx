@@ -69,9 +69,9 @@ export function AdminView (this: any, props: any) {
                 <Typography variant='h4'>SPL Governance<br/>Decentralized Caching</Typography>
                 </p>
                 <WalletDialogProvider className="grape-wallet-provider">
-                        <WalletMultiButton className="grape-wallet-button">
-                          Connect your wallet to begin
-                        </WalletMultiButton>
+                  <WalletMultiButton className="grape-wallet-button">
+                    Connect your wallet to begin
+                  </WalletMultiButton>
                 </WalletDialogProvider>
               <p>
               <Typography variant='h5'>You need to be whitelisted to access the SPL Governance | Decentralized Caching Admin Panel</Typography>
