@@ -1768,7 +1768,7 @@ export function GovernanceCachedView(props: any) {
                     const allprops: any[] = [];
                     for (var prop of cached_governance){
                         
-                        console.log("ITEM: "+JSON.stringify(prop))
+                        //console.log("ITEM: "+JSON.stringify(prop))
                         if (prop.account.state === 3 || prop.account.state === 5)
                             passed++;
                         else if (prop.account.state === 7)

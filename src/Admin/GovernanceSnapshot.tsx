@@ -371,7 +371,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         }
     }
 
-    const fetchProposalData = async(finalList:any) => {
+    const fetchProposalData = async(finalList:any, forceSkip:boolean) => {
         let x=0;
         let length = finalList.length;
         setMax(length);
@@ -387,7 +387,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
         }
 
         //console.log("cached_governance: "+JSON.stringify(cached_governance));
-
 
         for (var thisitem of finalList){
             x++;
@@ -407,11 +406,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 (cgov.account.state === 6)||
                                 (cgov.account.state === 7)||
                                 (cgov.account.state === 8)){
-                                    skip_process = true;
-                                    //console.log("Skipping...")
-                                    //setStatus("Fetching "+x+" of "+length+" S");
+                                    thisitem.votingResults = cgov.votingResults;
+                                    if (!forceSkip)
+                                        skip_process = true;
                                 }
-
 
                                 /*
                                     const GOVERNANCE_STATE = {
@@ -435,7 +433,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     console.log("Fetching proposal details via RPC ("+thisitem.pubkey.toBase58()+")");
                     //console.log("item: "+JSON.stringify(thisitem));
 
-                    
                     //setLoadingParticipants(true);
 
                     let td = 6; // this is the default for NFT mints
@@ -492,16 +489,14 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         proposalPk: new PublicKey(thisitem.pubkey),
                     });
 
-                    const voteResults = voteRecord;//JSON.parse(JSON.stringify(voteRecord));
-                    
-                    const votingResults = [];
+                    const vrs = [];
                     let csvFile = '';
                     let uYes = 0;
                     let uNo = 0;
-                    if (voteResults?.value){
+                    if (voteRecord?.value){
                         let counter = 0;
 
-                        for (let item of voteResults.value){
+                        for (let item of voteRecord.value){
                             counter++;
                             //console.log("item: "+JSON.stringify(item))
                             if (item.account?.vote){
@@ -518,7 +513,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 }
                             }
 
-                            votingResults.push({
+                            vrs.push({
                                 id:counter,
                                 pubkey:item.pubkey.toBase58(),
                                 proposal:item.account.proposal.toBase58(),
@@ -568,7 +563,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         }
                     }
 
-                    votingResults.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
+                    vrs.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
 
                     if (thisitem.account?.descriptionLink){
                         try{
@@ -592,14 +587,14 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     setUniqueYes(uYes);
                     setUniqueNo(uNo);
                     
-                    thisitem.votingResults = votingResults;
+                    thisitem.votingResults = vrs;
                 }
             } catch (e) { // Handle errors from invalid calls
                 
             }
         }
 
-        
+        //console.log("finalList: "+JSON.stringify(finalList))
         setSolanaVotingResultRows(finalList)
         
         return finalList;
@@ -741,11 +736,11 @@ export function GovernanceSnapshotView (this: any, props: any) {
         }
     }
 
-    const processProposals = async(finalList) => {
+    const processProposals = async(finalList:any, forceSkip:boolean) => {
         if (finalList){
             setLoading(true);
             
-            const finalProposalList = await fetchProposalData(finalList);
+            const finalProposalList = await fetchProposalData(finalList, forceSkip);
             
             if (finalProposalList){
                 
@@ -1067,13 +1062,24 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     {primaryStatus}
                 </Typography>
                 
-                <Button 
-                    onClick ={() => processProposals(proposals)} 
-                    disabled={(!proposals)}
-                    variant='contained'
-                >
-                    Generate Historical Governance Snapshot
-                </Button>
+                <ButtonGroup>
+                    <Button 
+                        onClick ={() => processProposals(proposals, false)} 
+                        disabled={(!proposals)}
+                        variant='contained'
+                        title="Uses smart RPC fetches to fetch only non-completed proposals"
+                    >
+                        Generate Historical Governance Snapshot
+                    </Button>
+                    <Button 
+                        onClick ={() => processProposals(proposals, true)} 
+                        disabled={(!proposals)}
+                        variant='contained'
+                        title="Regenerates via RPC all proposals"
+                    >
+                        Force Fetch
+                    </Button>
+                </ButtonGroup>
 
                 <Typography variant='subtitle1' sx={{textAlign:'center'}}>
                     {status}
