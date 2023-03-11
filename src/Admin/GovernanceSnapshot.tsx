@@ -791,7 +791,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
     const fetchGovernanceLookupFile = async() => {
         try{
-            const url = PROXY+GGAPI_STORAGE_URI+"/"+storagePool+'/governance_lookup.json';
+            const url = GGAPI_STORAGE_URI+"/"+storagePool+'/governance_lookup.json';
             const response = await window.fetch(url, {
                 method: 'GET',
                 headers: {
