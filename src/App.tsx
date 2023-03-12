@@ -57,7 +57,9 @@ function Copyright(props: any): JSX.Element {
     return (
     
       <Box
-      sx={{/*
+      sx={{
+        mt:2
+        /*
         backgroundColor: '#222',
         '&:hover': {
           backgroundColor: '#ddd',
@@ -90,7 +92,7 @@ function Copyright(props: any): JSX.Element {
                 variant="body2"
                 sx={{verticalAlign:'middle'}}>
 
-                labs | Powered by Solana
+                web3 labs | Powered by Solana
                 </Typography>
               </Grid>
               
