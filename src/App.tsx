@@ -178,13 +178,17 @@ export const NotFound = () => {
             <Typography 
               align="center"
               variant="h3">
-              {'Nothing to see here...'}
+                Select a governance above to get started
             </Typography>
 
             <Typography 
               align="center"
               variant="caption">
-              {'TODO: Show cached governances w/timestamps'}
+                NOTE:
+                <br/>
+                *Cached method will fetch Governance will load all proposals & proposal details
+                <br/>
+                *RPC method will fetch Governance via RPC calls (additional RPC calls are needed per proposal, significantly increasing the load time)
             </Typography>
 
             
