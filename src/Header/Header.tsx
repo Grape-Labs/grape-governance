@@ -141,7 +141,7 @@ export function Header(props: any) {
     const location = useLocation();
     const currPath = location.pathname;
     const searchParams = new URLSearchParams(location.search);
-    const [fetchType, setFetchType] = React.useState(currPath.includes("cachedgovernance") ? "cachedgovernance" : "rpcgovernance");
+    const [fetchType, setFetchType] = React.useState(currPath.includes("rpcgovernance") ? "rpcgovernance" : "cachedgovernance");
 
     const [anchorEl, setAnchorEl] = React.useState(null);
     const isWalletOpen = Boolean(anchorEl);

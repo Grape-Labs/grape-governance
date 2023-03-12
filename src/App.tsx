@@ -21,6 +21,10 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { Helmet } from 'react-helmet';
 
+import { 
+  CREATOR_LOGO
+} from './utils/grapeTools/constants';
+
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -45,19 +49,54 @@ import {
 
 //import { mainListItems, secondaryListItems } from './components/SidebarList/SidebarList';
 import grapeTheme from  './utils/config/theme'
+import { borderRadius } from '@mui/system';
 //import "./App.less";
 
 function Copyright(props: any): JSX.Element {
   const { t, i18n } = useTranslation();
     return (
-    <Typography sx={{background:'transparent'}} variant="body2" color="text.secondary" align="center" {...props}>
-      {t('Powered by Solana')}
-      {/*
-      <Link color="inherit" href="https://verify.grapes.network">
-        Grape Network | Dashboard v1.1.5
-      </Link>
-      */}
-    </Typography>
+    
+      <Box
+      sx={{/*
+        backgroundColor: '#222',
+        '&:hover': {
+          backgroundColor: '#ddd',
+          opacity: [0.9, 0.8, 0.7],
+        },
+        borderRadius:'24px'
+      */}}
+    >
+        <Grid
+          container
+          direction="row"
+          justifyContent="center"
+          alignItems="center"
+        >
+            <Grid item>
+              <Typography 
+                align="center"
+                variant="body2"
+                sx={{verticalAlign:'middle'}}>
+
+                Developed by
+                </Typography>
+              </Grid>
+              <Grid item>
+                <img src={CREATOR_LOGO} height="50px" className="main-logo" alt="OMG Labs" />
+              </Grid>
+              <Grid item>
+              <Typography 
+                align="center"
+                variant="body2"
+                sx={{verticalAlign:'middle'}}>
+
+                labs | Powered by Solana
+                </Typography>
+              </Grid>
+              
+        </Grid>
+      </Box>
+    
   );
 }
 
@@ -190,7 +229,6 @@ export const NotFound = () => {
                 <br/>
                 *RPC method will fetch Governance via RPC calls (additional RPC calls are needed per proposal, significantly increasing the load time)
             </Typography>
-
             
           </Grid>
         </Grid>
