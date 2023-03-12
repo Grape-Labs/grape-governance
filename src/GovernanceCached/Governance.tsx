@@ -1741,6 +1741,7 @@ export function GovernanceCachedView(props: any) {
 
     const getGovernance = async (cached_governance) => {
         if (!loading){
+            startTimer();
             setLoading(true);
             try{
                     
@@ -2054,7 +2055,6 @@ export function GovernanceCachedView(props: any) {
     React.useEffect(() => { 
         if (!loading){
             if (!tokenMap){
-                startTimer();
                 getTokens();
             }
         }

@@ -1873,8 +1873,10 @@ export function GovernanceRPCView(props: any) {
     }
 
     React.useEffect(() => {
-        if (tokenMap && governanceAddress)
+        if (tokenMap && governanceAddress){
             getGovernance();
+            startTimer();
+        }
     }, [tokenMap, governanceAddress]);
 
     const startTimer = () => {
@@ -1888,7 +1890,6 @@ export function GovernanceRPCView(props: any) {
     React.useEffect(() => { 
         if (!loading){
             if (!tokenMap){
-                startTimer();
                 getTokens();
             }
         }
