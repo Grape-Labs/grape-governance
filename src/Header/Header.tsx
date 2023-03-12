@@ -138,15 +138,15 @@ export function Header(props: any) {
     const [open_wallet, setOpenWallet] = React.useState(false);
     const [governanceAutocomplete, setGovernanceAutocomplete] = React.useState(null);
     const [governanceAddress, setGovernanceAddress] = React.useState(null);
-    const [fetchType, setFetchType] = React.useState("cachedgovernance");
+    const location = useLocation();
+    const currPath = location.pathname;
+    const searchParams = new URLSearchParams(location.search);
+    const [fetchType, setFetchType] = React.useState(currPath.includes("cachedgovernance") ? "cachedgovernance" : "rpcgovernance");
 
     const [anchorEl, setAnchorEl] = React.useState(null);
     const isWalletOpen = Boolean(anchorEl);
     const [newinputpkvalue, setNewInputPKValue] = React.useState("");
     const navigate = useNavigate();
-    const location = useLocation();
-    const currPath = location.pathname;
-    const searchParams = new URLSearchParams(location.search);
     //const currPath = location?.pathname ?? "";
     const { enqueueSnackbar } = useSnackbar();
 
@@ -204,34 +204,6 @@ export function Header(props: any) {
     };
 
     const { t, i18n } = useTranslation();
-
-    function handlePublicKeySubmit(event: any) {
-        event.preventDefault();
-        //console.log(""+newinputpkvalue+" ("+newinputpkvalue.length+"): " +ValidateAddress(newinputpkvalue));
-        if ((newinputpkvalue && newinputpkvalue.length>0 && ValidateAddress(newinputpkvalue))||
-            ((newinputpkvalue.toLocaleUpperCase().indexOf(".SOL") > -1) || (newinputpkvalue.slice(0,1) === '@'))){
-            navigate({
-                pathname: "/"+newinputpkvalue
-            },
-                { replace: true }
-            );
-            setNewInputPKValue('');
-        } else if (newinputpkvalue && newinputpkvalue.length>0){
-            if (newinputpkvalue.toLocaleUpperCase().indexOf("MINT:") > -1){
-                let mint = newinputpkvalue.slice(5,newinputpkvalue.length);
-                if (ValidateAddress(mint)){
-                    navigate({
-                        pathname: "/"+mint
-                    },
-                        { replace: true }
-                    );
-                    setNewInputPKValue('');
-                }
-            }
-        }else{
-            setNewInputPKValue('');
-        }
-    }
     
     const fetchGovernanceLookupFile = async() => {
         try{
@@ -342,6 +314,7 @@ export function Header(props: any) {
                             onChange={handleChange}
                             sx={{ml:2}}
                         >
+
                             <FormControlLabel value="cachedgovernance" control={<Radio />} label="Cached" />
                             <FormControlLabel value="rpcgovernance" control={<Radio />} label="RPC" />
                     </RadioGroup>
