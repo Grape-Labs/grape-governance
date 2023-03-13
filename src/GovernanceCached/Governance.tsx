@@ -2225,7 +2225,9 @@ export function GovernanceCachedView(props: any) {
                                 variant="caption"
                                 sx={{textAlign:'center'}}
                             >
-                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Cached<br/>* This is the time taken to capture all proposals & proposal details
+                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Cached<br/>
+                                Cache Node: {storagePool}
+                                <br/>* This is the time taken to capture all proposals & proposal details
                             </Typography>
                         }
                     </Box>
