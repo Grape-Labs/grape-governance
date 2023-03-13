@@ -947,7 +947,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             const strgAccounts = new Array();
             for (var item of response){
                 strgAccounts.push({
-                    label: item.account.identifier.replaceAll("Grape","Test"),
+                    label: item.account.identifier,
                     value: item.publicKey.toBase58()
                 });
             }

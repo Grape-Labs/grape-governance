@@ -92,7 +92,7 @@ function Copyright(props: any): JSX.Element {
                 variant="body2"
                 sx={{verticalAlign:'middle'}}>
 
-                web3 labs | Powered by Solana
+                Web3 Labs | Powered by Solana
                 </Typography>
               </Grid>
               
