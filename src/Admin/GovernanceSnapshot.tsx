@@ -15,7 +15,8 @@ import {
     Typography,
     Stack,
     Tooltip,
-    Autocomplete
+    Autocomplete,
+    Alert
 } from '@mui/material';
 
 import DownloadIcon from '@mui/icons-material/Download';
@@ -951,7 +952,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     value: item.publicKey.toBase58()
                 });
             }
-            setStorageAutocomplete(strgAccounts);
+            if (strgAccounts.length > 0)
+                setStorageAutocomplete(strgAccounts);
         }catch(e){
             console.log("ERR: "+e);
         }
@@ -1083,36 +1085,44 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 </Typography>
 
                 {fileGenerated &&
-                    <ButtonGroup>                    
-                        <Tooltip title="Download SPL Governance Cached JSON file">
-                            <Button
-                                download={`${governanceAddress}.json`}
-                                href={fileGenerated}
-                            >
-                                <DownloadIcon /> JSON
-                            </Button>
-                        </Tooltip>
-                        {csvGenerated &&
-                            <Tooltip title="Download SPL Governance CSV file">
+                    <>
+                        <ButtonGroup>                    
+                            <Tooltip title="Download SPL Governance Cached JSON file">
                                 <Button
-                                    download={`${governanceAddress}.csv`}
-                                    href={csvGenerated}
+                                    download={`${governanceAddress}.json`}
+                                    href={fileGenerated}
                                 >
-                                    <DownloadIcon /> CSV
+                                    <DownloadIcon /> JSON
                                 </Button>
                             </Tooltip>
+                            {csvGenerated &&
+                                <Tooltip title="Download SPL Governance CSV file">
+                                    <Button
+                                        download={`${governanceAddress}.csv`}
+                                        href={csvGenerated}
+                                    >
+                                        <DownloadIcon /> CSV
+                                    </Button>
+                                </Tooltip>
+                            }
+
+                            <Tooltip title="Upload to your selected storage pool - *SHDW Storage Pool will need to be created for adding to your decentralized storage pool">
+                                <Button
+                                    disabled={!storageAutocomplete ? true : false}
+                                    onClick={handleUploadToStoragePool}
+                                    sx={{ml:1}}
+                                >
+                                    <CloudUploadIcon />
+                                </Button>
+                            </Tooltip>
+                        </ButtonGroup>
+                        
+                        {!storageAutocomplete &&
+                            <Alert severity="error">
+                                WARNING: The admin currently uses SHDW Storage to upload cache files to your storage pool, you will need to create a SHDW Drive Storage Pool to upload the generated files
+                            </Alert>
                         }
-
-                        <Tooltip title="Upload to your selected storage pool - *SHDW Storage Pool will need to be created for adding to your decentralized storage pool">
-                            <Button
-                                onClick={handleUploadToStoragePool}
-                                sx={{ml:1}}
-                            >
-                                <CloudUploadIcon />
-                            </Button>
-                        </Tooltip>
-                    </ButtonGroup>
-
+                    </>
                 }
 
                 <Box sx={{ width: '100%' }}>
