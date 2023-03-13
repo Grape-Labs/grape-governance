@@ -1102,7 +1102,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 </Button>
                             </Tooltip>
                         }
-                        <Tooltip title="Upload to SPL Governance Caching storage pool">
+
+                        <Tooltip title="Upload to your selected storage pool - *SHDW Storage Pool will need to be created for adding to your decentralized storage pool">
                             <Button
                                 onClick={handleUploadToStoragePool}
                                 sx={{ml:1}}
