@@ -1301,6 +1301,7 @@ function RenderGovernanceTable(props:any) {
     const memberMap = props.memberMap;
     const thisToken = props.thisToken;
     const tokenMap = props.tokenMap;
+    const governanceAddress = props.governanceAddress;
     const governanceType = props.governanceType;
     const cachedGovernance = props.cachedGovernance;
     const [loading, setLoading] = React.useState(false);
@@ -1615,7 +1616,7 @@ function RenderGovernanceTable(props:any) {
                                                 </TableCell>
                                                 <GetProposalStatus item={item}/>
                                                 <TableCell align="center">
-                                                    <GetParticipants cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
+                                                    <GetParticipants governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                                 </TableCell>
                                             </TableRow>
                                         </>
