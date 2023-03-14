@@ -580,6 +580,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     setUniqueNo(uNo);
                     
                     thisitem.votingResults = vrs;
+                    thisitem.realm = realm;
                 }
             } catch (e) { // Handle errors from invalid calls
                 

@@ -576,6 +576,15 @@ function GetParticipants(props: any){
                         proposal:item.account.proposal.toBase58(),
                         governingTokenOwner:item.account.governingTokenOwner.toBase58(),
                         voteAddress:item.pubkey.toBase58(),
+                        quorumWeight:{
+                            vote:item.account.vote,
+                            voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
+                            legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
+                            legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
+                            decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
+                            councilMint:realm.account.config?.councilMint?.toBase58() ,
+                            governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
+                        },
                         vote:{
                             vote:item.account.vote,
                             voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
@@ -611,6 +620,15 @@ function GetParticipants(props: any){
                         proposal:item.proposal.toBase58(),
                         governingTokenOwner:item.governingTokenOwner.toBase58(),
                         voteAddress:item.voteAddress.toBase58(),
+                        quorumWeight:{
+                            vote:item.vote.vote,
+                            voterWeight:(item.vote?.voterWeight ?  (item.vote.voterWeight) : null),
+                            legacyYes:(item.vote.legacyYes ?  (item.vote.legacyYes) : null),
+                            legacyNo:(item.vote.legacyNo ?  (item.vote.legacyNo) : null),
+                            decimals:(item.vote.decimals ?  (item.vote.decimals) : 0),
+                            councilMint:realm.account.config?.councilMint?.toBase58() ,
+                            governingTokenMint:thisitem.vote?.governingTokenMint.toBase58() 
+                        },
                         vote:{
                             vote:item.vote.vote,
                             voterWeight:(item.vote?.voterWeight ?  (item.vote.voterWeight) : null),
