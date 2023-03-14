@@ -569,22 +569,13 @@ function GetParticipants(props: any){
                             uNo++;
                         }
                     }
-
+                    
                     votingResults.push({
                         id:counter,
                         pubkey:item.pubkey.toBase58(),
                         proposal:item.account.proposal.toBase58(),
                         governingTokenOwner:item.account.governingTokenOwner.toBase58(),
                         voteAddress:item.pubkey.toBase58(),
-                        quorumWeight:{
-                            vote:item.account.vote,
-                            voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
-                            legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
-                            legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
-                            decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
-                            councilMint:realm.account.config?.councilMint?.toBase58() ,
-                            governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
-                        },
                         vote:{
                             vote:item.account.vote,
                             voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
@@ -620,15 +611,6 @@ function GetParticipants(props: any){
                         proposal:item.proposal.toBase58(),
                         governingTokenOwner:item.governingTokenOwner.toBase58(),
                         voteAddress:item.voteAddress.toBase58(),
-                        quorumWeight:{
-                            vote:item.quorumWeight.vote,
-                            voterWeight:(item.quorumWeight?.voterWeight ?  (item.quorumWeight.voterWeight) : null),
-                            legacyYes:(item.quorumWeight.legacyYes ?  (item.quorumWeight.legacyYes) : null),
-                            legacyNo:(item.quorumWeight.legacyNo ?  (item.quorumWeight.legacyNo) : null),
-                            decimals:(item.quorumWeight.decimals ?  (item.quorumWeight.decimals) : 0),
-                            councilMint:realm.account.config?.councilMint?.toBase58() ,
-                            governingTokenMint:thisitem.quorumWeight?.governingTokenMint.toBase58() 
-                        },
                         vote:{
                             vote:item.vote.vote,
                             voterWeight:(item.vote?.voterWeight ?  (item.vote.voterWeight) : null),
@@ -2018,9 +2000,9 @@ export function GovernanceCachedView(props: any) {
                     inner.proposal = new PublicKey(inner.proposal);
                     inner.governingTokenOwner = new PublicKey(inner.governingTokenOwner);
                     inner.voteAddress = new PublicKey(inner.voteAddress);
-                    if (inner.quorumWeight?.councilMint)
-                        inner.quorumWeight.councilMint = new PublicKey(inner.quorumWeight.councilMint);
-                    inner.quorumWeight.governingTokenMint = new PublicKey(inner.quorumWeight.governingTokenMint);
+                    if (inner.vote?.councilMint)
+                        inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
+                    inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
                     if (inner.vote?.councilMint)
                         inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
                     inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);

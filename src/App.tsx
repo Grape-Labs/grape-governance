@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AdminView } from "./Admin/Admin";
 import { GovernanceRPCView } from "./GovernanceRPC/Governance";
 import { GovernanceCachedView } from "./GovernanceCached/Governance";
+import { GovernanceMetricsView } from "./GovernanceCached/GovernanceMetrics";
 import CssBaseline from '@mui/material/CssBaseline';
 
 import {
@@ -178,6 +179,11 @@ function DashboardContent() {
                                     <Route path="cachedgovernance/*" element={<GovernanceCachedView />} >
                                         <Route path=":handlekey" element={<GovernanceCachedView />} />
                                     </Route>
+
+                                    <Route path="metrics/*" element={<GovernanceMetricsView />} >
+                                        <Route path=":handlekey" element={<GovernanceMetricsView />} />
+                                    </Route>
+                                    
 
                                     <Route path="admin/*" element={<AdminView />} >
                                         <Route path=":handlekey" element={<AdminView />} />

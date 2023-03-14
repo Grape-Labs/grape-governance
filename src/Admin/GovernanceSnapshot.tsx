@@ -520,15 +520,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 proposal:item.account.proposal.toBase58(),
                                 governingTokenOwner:item.account.governingTokenOwner.toBase58(),
                                 voteAddress:item.pubkey.toBase58(),
-                                quorumWeight:{
-                                    vote:item.account.vote,
-                                    voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
-                                    legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
-                                    legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
-                                    decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
-                                    councilMint:realm.account.config?.councilMint?.toBase58() ,
-                                    governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
-                                },
                                 vote:{
                                     vote:item.account.vote,
                                     voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
@@ -881,7 +872,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
         const timestamp = Math.floor(new Date().getTime() / 1000);
         const fileName = governanceAddress+'_'+timestamp+'.json';
         const storageAccountPK = storagePool;
-        
         
         //exportJSON(fileGenerated, fileName);
         console.log("preparing to upload: "+fileName);
