@@ -580,7 +580,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     setUniqueNo(uNo);
                     
                     thisitem.votingResults = vrs;
-                    thisitem.realm = realm;
                 }
             } catch (e) { // Handle errors from invalid calls
                 
@@ -589,7 +588,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
         //console.log("finalList: "+JSON.stringify(finalList))
         setSolanaVotingResultRows(finalList)
-        
+
         return finalList;
     }
     
@@ -821,6 +820,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     item.version++;
                     item.timestamp = timestamp;
                     item.filename = fileName;
+                    item.realm = realm;
                     govFound = true;
                 }
                 cntr++;
@@ -832,7 +832,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     governanceName:governanceName,
                     version:0,
                     timestamp:timestamp,
-                    filename:fileName
+                    filename:fileName,
+                    realm:realm,
                 });
             }
 
