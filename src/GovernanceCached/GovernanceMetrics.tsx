@@ -1161,7 +1161,7 @@ export function GovernanceMetricsView(props: any) {
                                     </Grid>
                                 </Box>
                                 
-                        {(metricsVoters <= 0) &&
+                        {(metricsTotalVotesDeposited <= 0) &&
                             <Box
                                 sx={{textAlign:'center'}}
                             >

@@ -1,6 +1,6 @@
 {
     "name": "@omg-labs/spl-governance-caching",
-    "version": "1.1.003",
+    "version": "1.1.004",
     "author": "Solana SPL Governance",
     "repository": "https://github.com/omg-labs/spl-governance-caching",
     "license": "Apache-2.0",
