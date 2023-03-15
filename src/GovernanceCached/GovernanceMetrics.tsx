@@ -217,6 +217,8 @@ function RenderVoterRecordTable(props:any) {
             for (var item of cachedGovernance){
                 const authorPk = item.account.tokenOwnerRecord;
                 let authorAddress = null;
+
+                
                 if (authorPk){
                     if (memberMap){
                        for (var memberItem of memberMap){
@@ -228,13 +230,14 @@ function RenderVoterRecordTable(props:any) {
                     }
                     
                 }
-
+                
                 // item.account.governingTokenOwner.toBase58()
                 if (realm.account.config?.councilMint && (realm.account.config?.councilMint.toBase58() === item.account.governingTokenMint.toBase58())){
                 } else{
                     totalCommunityProposals++;
                 }
-                if (item?.votingResutls){
+
+                if (item?.votingResults){
                     for (var inner_item of item.votingResults){
 
                         var councilpropcreator = 0;
@@ -296,7 +299,7 @@ function RenderVoterRecordTable(props:any) {
                                     }
 
                                 } else{ // Non Council
-
+                                    //console.log("non council vote...")
                                     totalCommunityParticipation++;
 
                                     if (inner_item?.vote){
@@ -401,21 +404,23 @@ function RenderVoterRecordTable(props:any) {
                     counter++;
                 }
 
-
             }
 
             exportFile(csvFile, governanceAddress+'_metrics.csv')
         }
 
-        setMetricsVoters(voterArray.length)
-        setMetricsAverageVotesPerParticipant(getFormattedNumberToLocale(formatAmount(+(totalVotesCasted/totalActiveVoters/totalCommunityProposals).toFixed(0))))
-        setMetricsAverageParticipation((totalCommunityParticipation/totalCommunityProposals).toFixed(0))
-        setMetricsActiveVoters(totalActiveVoters)
-        setMetricsEligibleVoters(totalEligibleVoters)
-        setMetricsTotalVotesDeposited(getFormattedNumberToLocale(formatAmount(totalVotesDeposited)));
-        setMetricsTotalVotesCasted(getFormattedNumberToLocale(formatAmount(totalVotesCasted)));
-        setMetricsTotalProposals(totalCommunityProposals);
-        
+        try{
+            setMetricsVoters(voterArray.length)
+            setMetricsAverageVotesPerParticipant(getFormattedNumberToLocale(formatAmount(+(totalVotesCasted/totalActiveVoters/totalCommunityProposals).toFixed(0))))
+            setMetricsAverageParticipation((totalCommunityParticipation/totalCommunityProposals).toFixed(0))
+            setMetricsActiveVoters(totalActiveVoters)
+            setMetricsEligibleVoters(totalEligibleVoters)
+            setMetricsTotalVotesDeposited(getFormattedNumberToLocale(formatAmount(totalVotesDeposited)));
+            setMetricsTotalVotesCasted(getFormattedNumberToLocale(formatAmount(totalVotesCasted)));
+            setMetricsTotalProposals(totalCommunityProposals);
+        }catch(e){
+            console.log("ERR: "+e);
+        }
         setVoterRecordRows(voterArray);
         endTime();
     }
