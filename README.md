@@ -30,7 +30,7 @@ API Access for improved composability over SPL Governance
 Add more decentralized storage pools
 
 **Getting Started**
-- The Administration panel requires the connected wallet to be whitelisted, this provides the fetching tools for fetching and uploading the created files to a decentralized storage pool
+- The Administration panel requires the connected wallet to be whitelisted, this provides the fetching tools for fetching and uploading the created files to a decentralized storage pool <img width="711" alt="Screenshot 2023-03-15 at 2 43 32 PM" src="https://user-images.githubusercontent.com/13381905/225312286-565df7d5-7a7d-4940-b2b1-04b8525d1ad0.png">
 - The simulation can be run for any Governance and a timer will show for the load time on the bottom https://spl-governance-caching.vercel.app/cachedgovernance/HgcYAkXFT1ENpUCjBZWc1TjAAFacUwdGZRNhTHx9cuo
 
 <img width="1504" alt="Screenshot 2023-03-15 at 2 41 16 PM" src="https://user-images.githubusercontent.com/13381905/225311780-a2b98f0c-b552-48ed-86e4-4280315639ac.png">
