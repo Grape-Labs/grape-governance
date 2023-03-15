@@ -242,10 +242,31 @@ function RenderVoterRecordTable(props:any) {
                             //inner_item.governingTokenMint
                             //inner_item.decimals
                             
-                            if (realm.account.config.councilMint.toBase58() === inner_item.councilMint){
-                                console.log("council vote...")
-                                
-                            } else{
+                            if (realm.account.config?.councilMint && (realm.account.config?.councilMint.toBase58() === item.account.governingTokenMint.toBase58())){ // Council Votes
+                                //console.log("council vote...")
+
+                                if (inner_item?.vote){
+                                    if (inner_item?.vote?.vote?.voteType === 0){
+                                        if ((inner_item?.vote?.voterWeight) > 0){
+                                            totalproposalsfor = 1; 
+                                            totalcouncilvotesfor = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);
+                                            totalcouncilvotes = (totalcouncilvotesfor);
+                                        }
+                                    } else{
+                                        totalcouncilvotesagainst = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//inner_item?.vote?.voterWeight; //getFormattedNumberToLocale(formatAmount(+(parseInt(inner_item?.vote?.voterWeight)/Math.pow(10, inner_item?.vote?.decimals)).toFixed(0)));
+                                        totalcouncilvotes = (totalcouncilvotesagainst);
+                                    }
+                                } else if (inner_item?.vote?.legacyYes) {
+                                    if (inner_item?.vote?.legacyYes > 0){
+                                        totalcouncilvotesfor = +((inner_item?.vote?.legacyYes)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyYes);
+                                        totalcouncilvotes = (totalcouncilvotesfor);
+                                    } else if (inner_item?.vote?.legacyNo > 0){
+                                        totalcouncilvotesagainst = +((inner_item?.vote?.legacyNo)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyNo);
+                                        totalcouncilvotes = (totalcouncilvotesagainst);
+                                    }
+                                }
+
+                            } else{ // Non Council
 
                                 if (inner_item?.vote){
                                     if (inner_item?.vote?.vote?.voteType === 0){
@@ -331,8 +352,8 @@ function RenderVoterRecordTable(props:any) {
                     if (counter > 0)
                         csvFile += '\r\n';
                     else
-                        csvFile = 'pubkey,totalproposalscreated,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
-                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
+                        csvFile = 'pubkey,totalproposalscreated,depositedvotes,councildepositedvotes,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
+                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
                     counter++;
                 }
 
