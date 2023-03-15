@@ -11,7 +11,7 @@ What we built:
 
 
 Why did we build it:
-- SPL Governance is incredible slow for the average governance user (30+ seconds to load a governance), this results to a diminished user experience and potentially drives away participation
+- SPL Governance is slow for the average governance user (30+ seconds to load a governance), this results to a diminished user experience and potentially drives away participation
 - Most importantly the delay also reduces the ability to onboard traditional web2 businesses to web3
 - Historical data is by nature historic on the blockchain and as a result via traditional fetching methods are expensive, significantly slow, RPC heavy, and redundant
 
