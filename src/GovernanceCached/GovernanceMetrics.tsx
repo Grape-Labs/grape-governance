@@ -954,10 +954,10 @@ export function GovernanceMetricsView(props: any) {
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
                                                 <Typography variant="body2" sx={{color:'yellow'}}>
-                                                    <>Voters</>
+                                                    <>All time Governance</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        ...
+                                                        All time deposited in SPL Governance
                                                         </>
                                                     }>
                                                     <Button
@@ -1036,7 +1036,7 @@ export function GovernanceMetricsView(props: any) {
                                                     <>Average Participation</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        ...
+                                                        Average Participation per Proposal
                                                         </>
                                                     }>
                                                     <Button
@@ -1062,7 +1062,7 @@ export function GovernanceMetricsView(props: any) {
                                                     <>Total Votes Deposited</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        ...
+                                                        Total Votes currently Deposited in this Governance
                                                         </>
                                                     }>
                                                     <Button
@@ -1088,7 +1088,7 @@ export function GovernanceMetricsView(props: any) {
                                                     <>Total Votes Casted</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        ...
+                                                        Total All Time Votes Casted
                                                         </>
                                                     }>
                                                     <Button
@@ -1114,7 +1114,7 @@ export function GovernanceMetricsView(props: any) {
                                                     <>Average Votes Casted Per Participant</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        ...
+                                                        The average of votes for any given participant
                                                         </>
                                                     }>
                                                     <Button
