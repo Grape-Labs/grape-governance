@@ -165,6 +165,7 @@ function RenderVoterRecordTable(props:any) {
     const votingrecordcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
         { field: 'pubkey', headerName: 'PublicKey', width: 260, hide: false},
+        { field: 'currentvotes', headerName: 'Current Voting Power', width: 140, hide: false},
         { field: 'totalproposalscreated', headerName: 'Proposals Created', width: 140, hide: false},
         { field: 'totalvotes', headerName: 'Total Votes Casted', width: 140, hide: false},
         { field: 'totalvotesfor', headerName: 'Total Votes For', width: 140, hide: false},
@@ -211,6 +212,7 @@ function RenderVoterRecordTable(props:any) {
                 // item.account.governingTokenOwner.toBase58()
                 for (var inner_item of item.votingResults){
 
+                    var currentvotes = 0;
                     var foundParticipant = false;
                     var propcreator = 0;
                     var totalvotes = 0;
@@ -227,7 +229,6 @@ function RenderVoterRecordTable(props:any) {
                     //console.log(author+" v "+inner_item.governingTokenOwner.toBase58())
                     if (authorAddress === inner_item.governingTokenOwner.toBase58()){ // has created this proposal
                         propcreator = 1;
-                        console.log("FOUND!")
                     }
 
                     for (var participant of voterArray){
@@ -278,9 +279,17 @@ function RenderVoterRecordTable(props:any) {
                     }
                     
                     if (!foundParticipant){
+                        currentvotes = 0;
+                        for (var memberItem of memberMap){
+                            if (memberItem.account.governingTokenOwner.toBase58() === inner_item.governingTokenOwner.toBase58()){
+                                currentvotes = +(Number(memberItem.account.governingTokenDepositAmount)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);
+                            }
+                        }
+
                         voterArray.push({
                             id: voter+1,
                             pubkey: inner_item.governingTokenOwner.toBase58(),
+                            currentvotes: currentvotes,
                             totalproposalscreated: propcreator,
                             totalvotes: totalvotes,
                             totalvotesfor: totalvotesfor,
