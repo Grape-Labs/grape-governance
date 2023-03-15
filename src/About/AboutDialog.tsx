@@ -45,11 +45,14 @@ export default function AboutDialog() {
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
                 <p>
+                    <Typography variant='subtitle1'>An increbibly fast infrastrastructure to improve the experience of SPL Governance via decentralized cached storage, second to introduce new ways to view historical data and to extract important governance metrics which was is currently difficult to achieve efficiently, and finally to provide an API where composing on SPL Governance will be accessible to any developer (even a new developer) with a minimum RPC burden. Ultimately we have achieved web2 load speeds, with an incredible web3 primitive, and this is the path to build for the next billion users that will board and make the experience of crypto seamless & transparent.</Typography>
+                    <i>"Web3 at Web2 Speeds!"</i>
+                </p>
+                <p>           
                     <Typography variant='h6'>
                         What we built
                     </Typography>
                     <Typography variant='body2'>
-                        An incredibly fast method of fetching SPL Governance via decentralized cached storage<br/>
                         <ul>
                             <li>UI Interfaces for simulating RPC/Cached experience for realms (created)</li>
                             <li>Administrator UI for for fetching historical and up to date SPL Governance proposals along with participation (created)</li>
