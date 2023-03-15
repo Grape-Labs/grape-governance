@@ -165,7 +165,8 @@ function RenderVoterRecordTable(props:any) {
     const votingrecordcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
         { field: 'pubkey', headerName: 'PublicKey', width: 260, hide: false},
-        { field: 'currentvotes', headerName: 'Current Voting Power', width: 140, hide: false},
+        { field: 'currentvotes', headerName: 'Current Voting Power', width: 120, hide: false},
+        { field: 'councilvotes', headerName: 'Council', width: 50, hide: false},
         { field: 'totalproposalscreated', headerName: 'Proposals Created', width: 140, hide: false},
         { field: 'totalvotes', headerName: 'Total Votes Casted', width: 140, hide: false},
         { field: 'totalvotesfor', headerName: 'Total Votes For', width: 140, hide: false},
@@ -212,7 +213,8 @@ function RenderVoterRecordTable(props:any) {
                 // item.account.governingTokenOwner.toBase58()
                 for (var inner_item of item.votingResults){
 
-                    var currentvotes = 0;
+                    var depositedgovernancevotes = 0;
+                    var depositedcouncilvotes = 0;
                     var foundParticipant = false;
                     var propcreator = 0;
                     var totalvotes = 0;
@@ -232,6 +234,7 @@ function RenderVoterRecordTable(props:any) {
                     }
 
                     for (var participant of voterArray){
+                        
                         //console.log("t: "+JSON.stringify(item.account))
                         
                         if (participant.pubkey === inner_item.governingTokenOwner.toBase58()){
@@ -239,27 +242,33 @@ function RenderVoterRecordTable(props:any) {
                             //inner_item.governingTokenMint
                             //inner_item.decimals
                             
-                            if (inner_item?.vote){
-                                if (inner_item?.vote?.vote?.voteType === 0){
-                                    if ((inner_item?.vote?.voterWeight) > 0){
-                                        totalproposalsfor = 1; 
-                                        totalvotesfor = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);
-                                        totalvotes = (totalvotesfor);
+                            if (realm.account.config.councilMint.toBase58() === inner_item.councilMint){
+                                console.log("council vote...")
+                                
+                            } else{
+
+                                if (inner_item?.vote){
+                                    if (inner_item?.vote?.vote?.voteType === 0){
+                                        if ((inner_item?.vote?.voterWeight) > 0){
+                                            totalproposalsfor = 1; 
+                                            totalvotesfor = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);
+                                            totalvotes = (totalvotesfor);
+                                        }
+                                    } else{
+                                        totalproposalsagainst = 1; 
+                                        totalvotesagainst = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//inner_item?.vote?.voterWeight; //getFormattedNumberToLocale(formatAmount(+(parseInt(inner_item?.vote?.voterWeight)/Math.pow(10, inner_item?.vote?.decimals)).toFixed(0)));
+                                        totalvotes = (totalvotesagainst);
                                     }
-                                } else{
-                                    totalproposalsagainst = 1; 
-                                    totalvotesagainst = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//inner_item?.vote?.voterWeight; //getFormattedNumberToLocale(formatAmount(+(parseInt(inner_item?.vote?.voterWeight)/Math.pow(10, inner_item?.vote?.decimals)).toFixed(0)));
-                                    totalvotes = (totalvotesagainst);
-                                }
-                            } else if (inner_item?.vote?.legacyYes) {
-                                if (inner_item?.vote?.legacyYes > 0){
-                                    totalproposalsfor = 1;
-                                    totalvotesfor = +((inner_item?.vote?.legacyYes)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyYes);
-                                    totalvotes = (totalvotesfor);
-                                } else if (inner_item?.vote?.legacyNo > 0){
-                                    totalproposalsagainst = 1;
-                                    totalvotesagainst = +((inner_item?.vote?.legacyNo)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyNo);
-                                    totalvotes = (totalvotesagainst);
+                                } else if (inner_item?.vote?.legacyYes) {
+                                    if (inner_item?.vote?.legacyYes > 0){
+                                        totalproposalsfor = 1;
+                                        totalvotesfor = +((inner_item?.vote?.legacyYes)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyYes);
+                                        totalvotes = (totalvotesfor);
+                                    } else if (inner_item?.vote?.legacyNo > 0){
+                                        totalproposalsagainst = 1;
+                                        totalvotesagainst = +((inner_item?.vote?.legacyNo)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyNo);
+                                        totalvotes = (totalvotesagainst);
+                                    }
                                 }
                             }
 
@@ -279,17 +288,28 @@ function RenderVoterRecordTable(props:any) {
                     }
                     
                     if (!foundParticipant){
-                        currentvotes = 0;
+                        depositedgovernancevotes = 0;
+                        depositedcouncilvotes = 0;
                         for (var memberItem of memberMap){
                             if (memberItem.account.governingTokenOwner.toBase58() === inner_item.governingTokenOwner.toBase58()){
-                                currentvotes = +(Number(memberItem.account.governingTokenDepositAmount)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);
+                                
+                                // check if council member
+                                //realm.account.communityMint
+                                //realm.account.config.councilMint
+
+                                if (realm.account.communityMint.toBase58() === memberItem.account.governingTokenMint.toBase58()){
+                                    depositedgovernancevotes = +(Number(memberItem.account.governingTokenDepositAmount)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);
+                                }else if (realm.account.config.councilMint.toBase58() === memberItem.account.governingTokenMint.toBase58()){
+                                    depositedcouncilvotes = +(Number(memberItem.account.governingTokenDepositAmount));
+                                }
                             }
                         }
 
                         voterArray.push({
                             id: voter+1,
                             pubkey: inner_item.governingTokenOwner.toBase58(),
-                            currentvotes: currentvotes,
+                            currentvotes: depositedgovernancevotes,
+                            councilvotes: depositedcouncilvotes,
                             totalproposalscreated: propcreator,
                             totalvotes: totalvotes,
                             totalvotesfor: totalvotesfor,
