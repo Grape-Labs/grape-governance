@@ -156,6 +156,7 @@ function RenderVoterRecordTable(props:any) {
     const setMetricsTotalVotesDeposited = props.setMetricsTotalVotesDeposited;
     const setMetricsTotalVotesCasted = props.setMetricsTotalVotesCasted;
     const setMetricsTotalProposals = props.setMetricsTotalProposals;
+    const setMetricsParticipationRate = props.setMetricsParticipationRate;
 
     const endTime = props.endTimer;
     const cachedGovernance = props.cachedGovernance;
@@ -418,6 +419,7 @@ function RenderVoterRecordTable(props:any) {
             setMetricsTotalVotesDeposited(getFormattedNumberToLocale(formatAmount(totalVotesDeposited)));
             setMetricsTotalVotesCasted(getFormattedNumberToLocale(formatAmount(totalVotesCasted)));
             setMetricsTotalProposals(totalCommunityProposals);
+            setMetricsParticipationRate((((totalCommunityParticipation/totalCommunityProposals)/totalEligibleVoters)*100).toFixed(2));
         }catch(e){
             console.log("ERR: "+e);
         }
@@ -529,6 +531,7 @@ export function GovernanceMetricsView(props: any) {
     const [metricsTotalVotesDeposited, setMetricsTotalVotesDeposited] = React.useState(null);
     const [metricsTotalVotesCasted, setMetricsTotalVotesCasted] = React.useState(null);
     const [metricsTotalProposals, setMetricsTotalProposals] = React.useState(null);
+    const [metricsParticipationRate, setMetricsParticipationRate] = React.useState(null);
 
     const [metricsActiveVoters, setMetricsActiveVoters] = React.useState(null);
 
@@ -1026,33 +1029,6 @@ export function GovernanceMetricsView(props: any) {
                                             </Box>
                                         </Grid>
 
-
-                                        <Grid item xs={12} sm={4} md={4} key={1}>
-                                            <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
-                                            >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
-                                                    <>Average Participation</>
-                                                </Typography>
-                                                <Tooltip title={<>
-                                                        Average Participation per Proposal
-                                                        </>
-                                                    }>
-                                                    <Button
-                                                        color='inherit'
-                                                        sx={{
-                                                            borderRadius:'17px'
-                                                        }}
-                                                    >
-                                                        <Typography variant="h3">
-                                                            {metricsAverageParticipation && metricsAverageParticipation}
-                                                        </Typography>
-                                                    </Button>
-                                                </Tooltip>
-                                            </Box>
-                                        </Grid>
-
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
                                                 className='grape-store-stat-item'
@@ -1104,7 +1080,7 @@ export function GovernanceMetricsView(props: any) {
                                                 </Tooltip>
                                             </Box>
                                         </Grid>
-
+                                        
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
                                                 className='grape-store-stat-item'
@@ -1137,6 +1113,32 @@ export function GovernanceMetricsView(props: any) {
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
                                                 <Typography variant="body2" sx={{color:'yellow'}}>
+                                                    <>Average Participation</>
+                                                </Typography>
+                                                <Tooltip title={<>
+                                                        Average Participation per Proposal
+                                                        </>
+                                                    }>
+                                                    <Button
+                                                        color='inherit'
+                                                        sx={{
+                                                            borderRadius:'17px'
+                                                        }}
+                                                    >
+                                                        <Typography variant="h3">
+                                                            {metricsAverageParticipation && metricsAverageParticipation}
+                                                        </Typography>
+                                                    </Button>
+                                                </Tooltip>
+                                            </Box>
+                                        </Grid>
+
+                                        <Grid item xs={12} sm={4} md={4} key={1}>
+                                            <Box
+                                                className='grape-store-stat-item'
+                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                            >
+                                                <Typography variant="body2" sx={{color:'yellow'}}>
                                                     <>Community Proposals</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -1151,6 +1153,32 @@ export function GovernanceMetricsView(props: any) {
                                                     >
                                                         <Typography variant="h3">
                                                             {metricsTotalProposals && metricsTotalProposals}
+                                                        </Typography>
+                                                    </Button>
+                                                </Tooltip>
+                                            </Box>
+                                        </Grid>
+
+                                        <Grid item xs={12} sm={4} md={4} key={1}>
+                                            <Box
+                                                className='grape-store-stat-item'
+                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                            >
+                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                    <>Participation Rate</>
+                                                </Typography>
+                                                <Tooltip title={<>
+                                                        The rate at which a participant will vote against all eligible voters
+                                                        </>
+                                                    }>
+                                                    <Button
+                                                        color='inherit'
+                                                        sx={{
+                                                            borderRadius:'17px'
+                                                        }}
+                                                    >
+                                                        <Typography variant="h3">
+                                                            {metricsParticipationRate && metricsParticipationRate}%
                                                         </Typography>
                                                     </Button>
                                                 </Tooltip>
@@ -1181,6 +1209,7 @@ export function GovernanceMetricsView(props: any) {
                             setMetricsTotalVotesDeposited={setMetricsTotalVotesDeposited}
                             setMetricsTotalVotesCasted={setMetricsTotalVotesCasted}
                             setMetricsTotalProposals={setMetricsTotalProposals}
+                            setMetricsParticipationRate={setMetricsParticipationRate}
                             memberMap={memberMap} 
                             endTimer={endTimer} 
                             cachedGovernance={cachedGovernance} 
