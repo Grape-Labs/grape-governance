@@ -35,13 +35,13 @@ Add more decentralized storage pools
 
 <img width="1504" alt="Screenshot 2023-03-15 at 2 41 16 PM" src="https://user-images.githubusercontent.com/13381905/225311780-a2b98f0c-b552-48ed-86e4-4280315639ac.png">
 
+Time taken on Realms UI for SPL Governance https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE is roughly 25-35s
+
 Time taken for load via Cache (Governance: Mango https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
 <img width="513" alt="Screenshot 2023-03-15 at 2 41 40 PM" src="https://user-images.githubusercontent.com/13381905/225311869-e8a25f57-17e1-4f1e-ad2a-1f50a59bb8f0.png">
 
 Time taken to load via Indexed RPC calls (Governance: Mango https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
 <img width="861" alt="Screenshot 2023-03-15 at 2 46 11 PM" src="https://user-images.githubusercontent.com/13381905/225312925-7557e495-859e-46ac-9b85-86dd481893f2.png">
-
-Time taken on SPL Governance https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE is roughly 25-35s
 
 
 References:
