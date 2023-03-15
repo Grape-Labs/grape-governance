@@ -886,6 +886,90 @@ export function GovernanceMetricsView(props: any) {
                             </>
                         }
 
+                            <Box sx={{ alignItems: 'center', textAlign: 'center',p:1}}>
+                                    <Grid container spacing={0}>
+                                        <Grid item xs={12} sm={4} md={4} key={1}>
+                                            <Box
+                                                className='grape-store-stat-item'
+                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                            >
+                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                    <>Total Participation</>
+                                                </Typography>
+                                                <Tooltip title={<>
+                                                        ...
+                                                        </>
+                                                    }>
+                                                    <Button
+                                                        color='inherit'
+                                                        sx={{
+                                                            borderRadius:'17px'
+                                                        }}
+                                                    >
+                                                        <Typography variant="h3">
+                                                            -
+                                                        </Typography>
+                                                    </Button>
+                                                </Tooltip>
+                                            </Box>
+                                        </Grid>
+
+                                        <Grid item xs={12} sm={4} md={4} key={1}>
+                                            <Box
+                                                className='grape-store-stat-item'
+                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                            >
+                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                    <>Average Votes Per Participant</>
+                                                </Typography>
+                                                <Tooltip title={<>
+                                                        ...
+                                                        </>
+                                                    }>
+                                                    <Button
+                                                        color='inherit'
+                                                        sx={{
+                                                            borderRadius:'17px'
+                                                        }}
+                                                    >
+                                                        <Typography variant="h3">
+                                                            -
+                                                        </Typography>
+                                                    </Button>
+                                                </Tooltip>
+                                            </Box>
+                                        </Grid>
+
+                                        <Grid item xs={12} sm={4} md={4} key={1}>
+                                            <Box
+                                                className='grape-store-stat-item'
+                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                            >
+                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                    <>Active Voters</>
+                                                </Typography>
+                                                <Tooltip title={<>
+                                                        ...
+                                                        </>
+                                                    }>
+                                                    <Button
+                                                        color='inherit'
+                                                        sx={{
+                                                            borderRadius:'17px'
+                                                        }}
+                                                    >
+                                                        <Typography variant="h3">
+                                                            -
+                                                        </Typography>
+                                                    </Button>
+                                                </Tooltip>
+                                            </Box>
+                                        </Grid>
+                                        
+                                        
+                                    </Grid>
+                                </Box>
+
                         <RenderVoterRecordTable memberMap={memberMap} endTimer={endTimer} cachedGovernance={cachedGovernance} governanceType={governanceType} governingTokenDecimals={governingTokenDecimals} governingTokenMint={governingTokenMint} tokenMap={tokenMap} realm={realm} thisToken={thisToken} proposals={proposals} nftBasedGovernance={nftBasedGovernance} governanceAddress={governanceAddress} />
                         
                         {endTime &&

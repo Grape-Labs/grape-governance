@@ -68,7 +68,7 @@ export default function AboutDialog() {
                     </Typography>
                     <Typography variant='body2'>
                         <ul>
-                            <li>SPL Governance is incredible slow for the average governance user (30+ seconds to load a governance), this results to a diminished user experience and potentially drives away participation</li>
+                            <li>SPL Governance is slow for the average governance user (30+ seconds to load a governance), this results to a diminished user experience and potentially drives away participation</li>
                             <li>Most importantly this delay potentially reduces the ability to onboard traditional Web2 businesses to Web3, and secure mass adoption</li>
                             <li>If we are to board the next billion users, we need to speed things up</li>
                             <li>Historical data is by nature historic on the blockchain and as a result via traditional fetching methods are expensive, significantly slow, RPC heavy, and redundant</li>
