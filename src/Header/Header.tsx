@@ -330,6 +330,7 @@ export function Header(props: any) {
 
                             <FormControlLabel value="cachedgovernance" control={<Radio />} label="Cached" />
                             <FormControlLabel value="rpcgovernance" control={<Radio />} label="RPC" />
+                            <FormControlLabel value="metrics" control={<Radio />} label="Metrics" />
                     </RadioGroup>
 
                 {/*

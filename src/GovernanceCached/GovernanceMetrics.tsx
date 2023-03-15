@@ -872,7 +872,7 @@ export function GovernanceMetricsView(props: any) {
                                         </Typography>
                                     </Grid>
                                     <Grid item xs={12} sm={6} container justifyContent="flex-end">
-                                        METRICS
+                                        HISTORICAL METRICS
                                     </Grid>
                                 </Grid>
                             </>
