@@ -895,7 +895,7 @@ export function GovernanceMetricsView(props: any) {
                             >
                                 Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Cached<br/>
                                 Cache Node: {storagePool}
-                                <br/>* This is the time taken to capture all proposals & proposal details
+                                <br/>* This is the time taken to capture all proposals & proposal historical metrics
                             </Typography>
                         }
                     </Box>
