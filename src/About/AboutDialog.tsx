@@ -65,7 +65,7 @@ export default function AboutDialog() {
                         <ul>
                             <li>SPL Governance is incredible slow for the average governance user (30+ seconds to load a governance), this results to a diminished user experience and potentially drives away participation</li>
                             <li>Most importantly the delay also reduces the ability to onboard traditional web2 businesses to web3</li>
-                            <li>Historical data is by nature historic on the blockchain and as a result via traditional fetching methods significantly slow, and RPC heavy</li>
+                            <li>Historical data is by nature historic on the blockchain and as a result via traditional fetching methods are significantly slow, and RPC heavy</li>
                         </ul>
                     </Typography>
                 </p>
@@ -87,6 +87,7 @@ export default function AboutDialog() {
                             <li>Improve NFT Governance, reliability & speed</li>
                             <li>Create an improved NFT SPL Governance Experience for mass adoption</li>
                             <li>Create SPL Governance plugins and begin working to capture true web2 companies to convert and use SPL Governance in the most transparent possible way</li>
+                            <li>API Access for improved composability over SPL Governance</li>
                             <li>Add more decentralized storage pools</li>
                         </ul>
                     
