@@ -335,14 +335,28 @@ function RenderVoterRecordTable(props:any) {
         <>
 
             {csvGenerated &&
-                <Tooltip title="Download SPL Governance CSV file">
-                    <Button
-                        download={`${governanceAddress}_metrics.csv`}
-                        href={csvGenerated}
-                    >
-                        <DownloadIcon /> CSV
-                    </Button>
-                </Tooltip>
+
+                <>
+                <Grid container sx={{mb:2}}>
+                    <Grid item xs={12} sm={6} container justifyContent="flex-start">
+                        
+                    </Grid>
+                    <Grid item xs={12} sm={6} container justifyContent="flex-end">
+                        <Tooltip title="Download SPL Governance CSV file">
+                            <Button
+                                color='inherit'
+                                download={`${governanceAddress}_metrics.csv`}
+                                href={csvGenerated}
+                                sx={{borderRadius:'17px'}}
+                            >
+                                <DownloadIcon /> CSV
+                            </Button>
+                        </Tooltip>
+                    </Grid>
+                </Grid>
+                </>
+
+                
             }
 
         {voterRecordRows ?
@@ -823,7 +837,7 @@ export function GovernanceMetricsView(props: any) {
                             </>
                         }
 
-                        <RenderVoterRecordTable memberMap={memberMap} endTimer={endTimer} cachedGovernance={cachedGovernance} memberMap={memberMap} governanceType={governanceType} governingTokenDecimals={governingTokenDecimals} governingTokenMint={governingTokenMint} tokenMap={tokenMap} realm={realm} thisToken={thisToken} proposals={proposals} nftBasedGovernance={nftBasedGovernance} governanceAddress={governanceAddress} />
+                        <RenderVoterRecordTable memberMap={memberMap} endTimer={endTimer} cachedGovernance={cachedGovernance} governanceType={governanceType} governingTokenDecimals={governingTokenDecimals} governingTokenMint={governingTokenMint} tokenMap={tokenMap} realm={realm} thisToken={thisToken} proposals={proposals} nftBasedGovernance={nftBasedGovernance} governanceAddress={governanceAddress} />
                         
                         {endTime &&
                             <Typography 

@@ -61,6 +61,8 @@ import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 
+import AboutDialog from '../About/AboutDialog';
+
 import { GRAPE_RPC_ENDPOINT } from '../utils/grapeTools/constants';
 import { ValidateAddress } from '../utils/grapeTools/WalletAddress'; // global key handling
 
@@ -149,7 +151,7 @@ export function Header(props: any) {
     const navigate = useNavigate();
     //const currPath = location?.pathname ?? "";
     const { enqueueSnackbar } = useSnackbar();
-
+    
     const wallet = useWallet();
     const theme: 'dark' | 'light' = 'dark';
     
@@ -276,6 +278,17 @@ export function Header(props: any) {
                         <img src={APP_LOGO} height="40px" width="137px" className="header-logo" alt="SPL Governance | Powered by Solana" />
                     </Typography>
                 </Button>
+
+                <>
+                <Tooltip title={`Admin Fetching Tools`}><IconButton sx={{borderRadius:'17px'}} 
+                    component={Link}
+                    to={'/admin'}
+                >
+                    <SettingsSuggestIcon /></IconButton>
+                </Tooltip>
+                </>
+
+                <AboutDialog />
 
                     {governanceAutocomplete ?
                         <Autocomplete
