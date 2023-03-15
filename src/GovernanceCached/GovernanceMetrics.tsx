@@ -372,7 +372,7 @@ function RenderVoterRecordTable(props:any) {
         }
 
         setVoterRecordRows(voterArray);
-
+        endTime();
     }
 
     React.useEffect(() => { 
