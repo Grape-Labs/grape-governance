@@ -174,6 +174,7 @@ function RenderVoterRecordTable(props:any) {
         { field: 'totalproposalparticipation', headerName: 'Total Proposal Participation', width: 140, hide: false},
         { field: 'totalproposalsfor', headerName: 'Total Proposals For', width: 170, hide: false},
         { field: 'totalproposalsagainst', headerName: 'Total Proposals Against', width: 170, hide: false},
+        { field: 'totalcouncilproposalscreated', headerName: 'Council Props Created', width: 140, hide: false},
         { field: 'totalcouncilvotes', headerName: 'Council Participation', width: 140, hide: false},
         { field: 'totalcouncilvotesfor', headerName: 'Council For', width: 170, hide: false},
         { field: 'totalcouncilvotesagainst', headerName: 'Council Against', width: 170, hide: false},
@@ -213,6 +214,7 @@ function RenderVoterRecordTable(props:any) {
                 // item.account.governingTokenOwner.toBase58()
                 for (var inner_item of item.votingResults){
 
+                    var councilpropcreator = 0;
                     var depositedgovernancevotes = 0;
                     var depositedcouncilvotes = 0;
                     var foundParticipant = false;
@@ -230,7 +232,11 @@ function RenderVoterRecordTable(props:any) {
                     propcreator = 0;
                     //console.log(author+" v "+inner_item.governingTokenOwner.toBase58())
                     if (authorAddress === inner_item.governingTokenOwner.toBase58()){ // has created this proposal
-                        propcreator = 1;
+                        if (realm.account.config?.councilMint && (realm.account.config?.councilMint.toBase58() === item.account.governingTokenMint.toBase58())){ 
+                            councilpropcreator = 1;
+                        } else{
+                            propcreator = 1;
+                        }
                     }
 
                     for (var participant of voterArray){
@@ -302,6 +308,7 @@ function RenderVoterRecordTable(props:any) {
                             participant.totalproposalparticipation += totalproposalparticipation;
                             participant.totalproposalsfor += totalproposalsfor;
                             participant.totalproposalsagainst += totalproposalsagainst;
+                            participant.totalcouncilproposalscreated += councilpropcreator;
                             participant.totalcouncilvotes += totalcouncilvotes;
                             participant.totalcouncilvotesfor += totalcouncilvotesfor;
                             participant.totalcouncilvotesagainst += totalcouncilvotesagainst;
@@ -338,6 +345,7 @@ function RenderVoterRecordTable(props:any) {
                             totalproposalparticipation: totalproposalparticipation,
                             totalproposalsfor: totalproposalsfor,
                             totalproposalsagainst: totalproposalsagainst,
+                            totalcouncilproposalscreated: councilpropcreator,
                             totalcouncilvotes: totalcouncilvotes,
                             totalcouncilvotesfor: totalcouncilvotesfor,
                             totalcouncilvotesagainst: totalcouncilvotesagainst,
@@ -353,7 +361,7 @@ function RenderVoterRecordTable(props:any) {
                         csvFile += '\r\n';
                     else
                         csvFile = 'pubkey,totalproposalscreated,depositedvotes,councildepositedvotes,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
-                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
+                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
                     counter++;
                 }
 
