@@ -599,7 +599,6 @@ function GetParticipants(props: any){
                     
                     console.log(item.governingTokenOwner.toBase58() + ": "+item?.vote.voterWeight);
                     
-                    
                     if (item.vote?.vote){
                         if (item.vote?.vote?.voteType === 0){
                             uYes++;
@@ -687,7 +686,7 @@ function GetParticipants(props: any){
             }
         }
 
-        console.log("votingResults: "+JSON.stringify(votingResults));
+        //console.log("votingResults: "+JSON.stringify(votingResults));
 
         votingResults.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
 
@@ -1668,7 +1667,7 @@ export function GovernanceCachedView(props: any) {
     const [startTime, setStartTime] = React.useState(null);
     const [endTime, setEndTime] = React.useState(null);
     const governanceAddress = urlParams;
-
+    const [cachedRealm, setCachedRealm] = React.useState(null);
     //const governanceAddress = props.governanceAddress;
     const [loading, setLoading] = React.useState(false);
     const [memberMap, setMemberMap] = React.useState(null);
@@ -1740,7 +1739,7 @@ export function GovernanceCachedView(props: any) {
         } catch(e){console.log("ERR: "+e)}
     }
 
-    const getGovernance = async (cached_governance) => {
+    const getGovernance = async (cached_governance:any) => {
         if (!loading){
             startTimer();
             setLoading(true);
@@ -1751,9 +1750,15 @@ export function GovernanceCachedView(props: any) {
                 //console.log("cached_governance: "+JSON.stringify(cached_governance));
                 
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
-                
                 const grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
-                setRealm(grealm);
+                
+                if (cachedRealm){
+                    console.log("Realm from cache")
+                    setRealm(cachedRealm);
+                } else{
+                    const grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
+                    setRealm(grealm);
+                }
                 const realmPk = grealm.pubkey;
                 const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
                 setMemberMap(rawTokenOwnerRecords);
@@ -1778,7 +1783,7 @@ export function GovernanceCachedView(props: any) {
 
                 if (cached_governance){
                     
-                    console.log("Cached it is...")
+                    console.log("Fetching via cache...")
                     
                     let passed = 0;
                     let defeated = 0;
@@ -1974,9 +1979,12 @@ export function GovernanceCachedView(props: any) {
     
     const getCachedGovernanceFromLookup = async () => {
         let cached_governance = new Array();
+        setCachedRealm(null);
         if (governanceLookup){
             for (let glitem of governanceLookup){
                 if (glitem.governanceAddress === governanceAddress){
+                    if (glitem?.realm)
+                        setCachedRealm(glitem?.realm)
                     cached_governance = await getGovernanceFromLookup(glitem.filename);
                 }
             }

@@ -186,23 +186,33 @@ function RenderVoterRecordTable(props:any) {
             }
     }
 
-    
-
     const renderVoterRecords = async () => {
-    
+        
         // we need to make a new object and push the voters
         var voterArray = new Array();
         if (cachedGovernance){
             var voter = 0;
             let csvFile = '';
             for (var item of cachedGovernance){
+                const authorPk = item.account.tokenOwnerRecord;
+                let authorAddress = null;
+                if (authorPk){
+                    if (memberMap){
+                       for (var memberItem of memberMap){
+                            if (memberItem.pubkey.toBase58() === authorPk.toBase58()){
+                                authorAddress = memberItem.account.governingTokenOwner.toBase58()
+                            }
+                        }
+                        
+                    }
+                    
+                }
+
                 // item.account.governingTokenOwner.toBase58()
-                
                 for (var inner_item of item.votingResults){
 
                     var foundParticipant = false;
                     var propcreator = 0;
-                    
                     var totalvotes = 0;
                     var totalvotesfor = 0;
                     var totalvotesagainst = 0;
@@ -213,21 +223,21 @@ function RenderVoterRecordTable(props:any) {
                     var totalcouncilvotesfor = 0;
                     var totalcouncilvotesagainst = 0;
                     
+                    propcreator = 0;
+                    //console.log(author+" v "+inner_item.governingTokenOwner.toBase58())
+                    if (authorAddress === inner_item.governingTokenOwner.toBase58()){ // has created this proposal
+                        propcreator = 1;
+                        console.log("FOUND!")
+                    }
+
                     for (var participant of voterArray){
                         //console.log("t: "+JSON.stringify(item.account))
-                        if (item.account?.governingTokenOwner){
-                            if (item.account?.governingTokenOwner.toBase58() === participant.pubkey) // has created this proposal
-                                propcreator = 1;
-                        }
-
+                        
                         if (participant.pubkey === inner_item.governingTokenOwner.toBase58()){
-                            
                             //inner_item.councilMint 
                             //inner_item.governingTokenMint
                             //inner_item.decimals
                             
-
-
                             if (inner_item?.vote){
                                 if (inner_item?.vote?.vote?.voteType === 0){
                                     if ((inner_item?.vote?.voterWeight) > 0){
@@ -252,12 +262,6 @@ function RenderVoterRecordTable(props:any) {
                                 }
                             }
 
-                            if (participant.pubkey === "KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT"){
-                                console.log((participant.totalproposalparticipation+totalproposalparticipation)+": Participated in: "+item.account.name + " vote aggregate: "+totalvotes);
-                                console.log("Weight ("+inner_item?.vote?.vote?.voteType+"): "+inner_item?.vote?.voterWeight+" d:");
-                                //console.log("Weight ("+inner_item?.vote?.voterWeight+"): "+inner_item?.vote?.voterWeight);
-                            }
-                            
                             foundParticipant = true;
                             
                             participant.totalproposalscreated += propcreator;
@@ -442,7 +446,7 @@ export function GovernanceMetricsView(props: any) {
         } catch(e){console.log("ERR: "+e)}
     }
 
-    const getGovernance = async (cached_governance) => {
+    const getGovernance = async (cached_governance:any) => {
         if (!loading){
             startTimer();
             setLoading(true);
@@ -456,6 +460,7 @@ export function GovernanceMetricsView(props: any) {
                 
                 const grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
                 setRealm(grealm);
+
                 const realmPk = grealm.pubkey;
                 const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
                 setMemberMap(rawTokenOwnerRecords);
@@ -666,10 +671,17 @@ export function GovernanceMetricsView(props: any) {
     } 
     
     const getCachedGovernanceFromLookup = async () => {
+        
         let cached_governance = new Array();
         if (governanceLookup){
             for (let glitem of governanceLookup){
                 if (glitem.governanceAddress === governanceAddress){
+
+                    if (glitem?.realm){
+                        const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(glitem?.realm.owner), new PublicKey(glitem?.realm.pubkey))
+                        setMemberMap(rawTokenOwnerRecords);
+                    }
+
                     cached_governance = await getGovernanceFromLookup(glitem.filename);
                 }
             }
@@ -718,12 +730,8 @@ export function GovernanceMetricsView(props: any) {
                         inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
                     inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
                     /*
-                    inner.quorumWeight.voterWeight = Number("0x"+inner.quorumWeight.voterWeight).toString()
                     inner.vote.voterWeight = Number("0x"+inner.vote.voterWeight).toString()
-
-                    inner.quorumWeight.legacyYes = Number("0x"+inner.quorumWeight.legacyYes).toString()
                     inner.vote.legacyYes = Number("0x"+inner.vote.legacyYes).toString()
-                    inner.quorumWeight.legacyNo = Number("0x"+inner.quorumWeight.legacyNo).toString()
                     inner.vote.legacyNo = Number("0x"+inner.vote.legacyNo).toString()
                     */
                 }
@@ -770,7 +778,7 @@ export function GovernanceMetricsView(props: any) {
                 </Box>
             )
         } else{
-            if (proposals && tokenMap){
+            if (proposals && memberMap && tokenMap){
                 return (
                     <Box
                         sx={{
@@ -806,7 +814,7 @@ export function GovernanceMetricsView(props: any) {
                             </>
                         }
 
-                        <RenderVoterRecordTable endTimer={endTimer} cachedGovernance={cachedGovernance} memberMap={memberMap} governanceType={governanceType} governingTokenDecimals={governingTokenDecimals} governingTokenMint={governingTokenMint} tokenMap={tokenMap} realm={realm} thisToken={thisToken} proposals={proposals} nftBasedGovernance={nftBasedGovernance} governanceAddress={governanceAddress} />
+                        <RenderVoterRecordTable memberMap={memberMap} endTimer={endTimer} cachedGovernance={cachedGovernance} memberMap={memberMap} governanceType={governanceType} governingTokenDecimals={governingTokenDecimals} governingTokenMint={governingTokenMint} tokenMap={tokenMap} realm={realm} thisToken={thisToken} proposals={proposals} nftBasedGovernance={nftBasedGovernance} governanceAddress={governanceAddress} />
                         
                         {endTime &&
                             <Typography 

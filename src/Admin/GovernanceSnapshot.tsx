@@ -226,8 +226,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
             setPrimaryStatus("Fetching Token Owner Records");
 
+            // to do get member map
             const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
-
             setMemberMap(rawTokenOwnerRecords);
 
             setPrimaryStatus("Fetching All Proposals");
@@ -470,7 +470,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
                     if (vType){
                         setPropVoteType(vType);
-
+                        
                         //thisitem.account.tokenOwnerRecord;
                         for (const item of memberMap){
                             if (item.pubkey.toBase58() === thisitem.account.tokenOwnerRecord.toBase58()){
@@ -556,7 +556,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     }
 
                     vrs.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
-
+                    
+                    /*
                     if (thisitem.account?.descriptionLink){
                         try{
                             const url = new URL(thisitem.account?.descriptionLink);
@@ -575,6 +576,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             console.log("ERR: "+e)
                         }
                     }
+                    */
 
                     setUniqueYes(uYes);
                     setUniqueNo(uNo);
