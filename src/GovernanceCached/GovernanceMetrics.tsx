@@ -158,6 +158,13 @@ function RenderVoterRecordTable(props:any) {
     const setMetricsTotalProposals = props.setMetricsTotalProposals;
     const setMetricsParticipationRate = props.setMetricsParticipationRate;
 
+    const setMetricsCommunityPassed = props.setMetricsCommunityPassed;
+    const setMetricsCommunityDefeated = props.setMetricsCommunityDefeated;
+    const setMetricsCommunityResultsRate = props.setMetricsCommunityResultsRate;
+    const setMetricsProposalsPerMonth = props.setMetricsProposalsPerMonth;
+    const setMetricsRetention = props.setMetricsRetention;
+    const setMetricsActiveRetention = props.setMetricsActiveRetention;
+
     const endTime = props.endTimer;
     const cachedGovernance = props.cachedGovernance;
     const memberMap = props.memberMap;
@@ -211,6 +218,9 @@ function RenderVoterRecordTable(props:any) {
         let totalCommunityProposals = 0;
         let totalVotesCasted = 0;
         let totalProposals = 0;
+        let totalCommunityPassed = 0;
+        let totalCommunityDefeated = 0;
+        let propsByMonth = new Array();
 
         if (cachedGovernance){
             var voter = 0;
@@ -229,13 +239,42 @@ function RenderVoterRecordTable(props:any) {
                         }
                         
                     }
-                    
                 }
                 
+                
+
                 // item.account.governingTokenOwner.toBase58()
                 if (realm.account.config?.councilMint && (realm.account.config?.councilMint.toBase58() === item.account.governingTokenMint.toBase58())){
+                    // council stats
                 } else{
                     totalCommunityProposals++;
+                    if (item.account.state === 3 || item.account.state === 5)
+                        totalCommunityPassed++;
+                    else if (item.account.state === 7)
+                        totalCommunityDefeated++;
+                    // set the date array
+
+                    let monthts = moment.unix(Number(item.account?.votingAt)).format("YYYY-MM");
+                    let pbi_found = false;
+                    for (var pbi of propsByMonth){
+                        if (pbi.date === monthts){
+                            pbi_found = true;
+                            pbi.count++;
+                            if (item.account.state === 3 || item.account.state === 5) 
+                                pbi.cpassing++
+                            if (item.account.state === 7)
+                                pbi.cdefeated++
+                        }
+                    }
+
+                    if (!pbi_found){
+                        propsByMonth.push({
+                            'date':monthts,
+                            'cpassing':(item.account.state === 3 || item.account.state === 5) ? 1 : 0,
+                            'cdefeated':(item.account.state === 7) ? 1 :0,
+                            'count':1
+                        });
+                    }
                 }
 
                 if (item?.votingResults){
@@ -411,6 +450,8 @@ function RenderVoterRecordTable(props:any) {
         }
 
         try{
+            setMetricsProposalsPerMonth(((totalCommunityProposals/propsByMonth.length)).toFixed(1))
+            
             setMetricsVoters(voterArray.length)
             setMetricsAverageVotesPerParticipant(getFormattedNumberToLocale(formatAmount(+(totalVotesCasted/totalActiveVoters/totalCommunityProposals).toFixed(0))))
             setMetricsAverageParticipation((totalCommunityParticipation/totalCommunityProposals).toFixed(0))
@@ -420,6 +461,10 @@ function RenderVoterRecordTable(props:any) {
             setMetricsTotalVotesCasted(getFormattedNumberToLocale(formatAmount(totalVotesCasted)));
             setMetricsTotalProposals(totalCommunityProposals);
             setMetricsParticipationRate((((totalCommunityParticipation/totalCommunityProposals)/totalEligibleVoters)*100).toFixed(2));
+
+            setMetricsCommunityPassed(totalCommunityPassed);
+            setMetricsCommunityDefeated(totalCommunityDefeated);
+            
         }catch(e){
             console.log("ERR: "+e);
         }
@@ -532,6 +577,21 @@ export function GovernanceMetricsView(props: any) {
     const [metricsTotalVotesCasted, setMetricsTotalVotesCasted] = React.useState(null);
     const [metricsTotalProposals, setMetricsTotalProposals] = React.useState(null);
     const [metricsParticipationRate, setMetricsParticipationRate] = React.useState(null);
+
+    const [metricsCommunityPassed, setMetricsCommunityPassed] = React.useState(null);
+    const [metricsCommunityDefeated, setMetricsCommunityDefeated] = React.useState(null);
+    const [metricsProposalsPerMonth, setMetricsProposalsPerMonth] = React.useState(null);
+    const [metricsRetention, setMetricsRetention] = React.useState(null);
+    const [metricsActiveRetention, setMetricsActiveRetention] = React.useState(null);
+    
+    // average proposals per month
+    // voter retention (eligible/all time)
+    // voter active retention (active/all time)
+    // add search (start/end)
+    // top 10 holders deposited
+    // top 10 holder % against deposited
+    // top 2 holders against quorum
+    // quorum?
 
     const [metricsActiveVoters, setMetricsActiveVoters] = React.useState(null);
 
@@ -1165,6 +1225,33 @@ export function GovernanceMetricsView(props: any) {
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
                                                 <Typography variant="body2" sx={{color:'yellow'}}>
+                                                    <>Community Results</>
+                                                </Typography>
+                                                <Tooltip title={<>
+                                                        Passing / Defeated
+                                                        </>
+                                                    }>
+                                                    <Button
+                                                        color='inherit'
+                                                        sx={{
+                                                            borderRadius:'17px'
+                                                        }}
+                                                    >
+                                                        <Typography variant="h3">
+                                                            <Badge badgeContent={<ThumbUpIcon fontSize='small' />} variant="dot" color="success">{metricsCommunityPassed}</Badge>/
+                                                            <Badge badgeContent={<ThumbDownIcon fontSize='small' />} variant="dot" color="error">{metricsCommunityDefeated}</Badge>
+                                                        </Typography>
+                                                    </Button>
+                                                </Tooltip>
+                                            </Box>
+                                        </Grid>
+
+                                        <Grid item xs={12} sm={4} md={4} key={1}>
+                                            <Box
+                                                className='grape-store-stat-item'
+                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                            >
+                                                <Typography variant="body2" sx={{color:'yellow'}}>
                                                     <>Participation Rate</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -1184,8 +1271,60 @@ export function GovernanceMetricsView(props: any) {
                                                 </Tooltip>
                                             </Box>
                                         </Grid>
-                                        
-                                        
+
+                                        <Grid item xs={12} sm={4} md={4} key={1}>
+                                            <Box
+                                                className='grape-store-stat-item'
+                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                            >
+                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                    <>Community Success Results</>
+                                                </Typography>
+                                                <Tooltip title={<>
+                                                        Passing / Defeated
+                                                        </>
+                                                    }>
+                                                    <Button
+                                                        color='inherit'
+                                                        sx={{
+                                                            borderRadius:'17px'
+                                                        }}
+                                                    >
+                                                        <Typography variant="h3">
+                                                            <Badge badgeContent={<ThumbUpIcon fontSize='small' />} variant="dot" color="success">{(metricsCommunityPassed/metricsTotalProposals*100).toFixed(0)}%</Badge>/
+                                                            <Badge badgeContent={<ThumbDownIcon fontSize='small' />} variant="dot" color="error">{(metricsCommunityDefeated/metricsTotalProposals*100).toFixed(0)}%</Badge>
+                                                        </Typography>
+                                                    </Button>
+                                                </Tooltip>
+                                            </Box>
+                                        </Grid>
+
+                                        <Grid item xs={12} sm={4} md={4} key={1}>
+                                            <Box
+                                                className='grape-store-stat-item'
+                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                            >
+                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                    <>Proposals p/Month</>
+                                                </Typography>
+                                                <Tooltip title={<>
+                                                        Proposals created per month (average)
+                                                        </>
+                                                    }>
+                                                    <Button
+                                                        color='inherit'
+                                                        sx={{
+                                                            borderRadius:'17px'
+                                                        }}
+                                                    >
+                                                        <Typography variant="h3">
+                                                            {metricsProposalsPerMonth ? metricsProposalsPerMonth : `-`}
+                                                        </Typography>
+                                                    </Button>
+                                                </Tooltip>
+                                            </Box>
+                                        </Grid>
+ 
                                     </Grid>
                                 </Box>
                                 
@@ -1210,6 +1349,11 @@ export function GovernanceMetricsView(props: any) {
                             setMetricsTotalVotesCasted={setMetricsTotalVotesCasted}
                             setMetricsTotalProposals={setMetricsTotalProposals}
                             setMetricsParticipationRate={setMetricsParticipationRate}
+                            setMetricsCommunityPassed={setMetricsCommunityPassed}
+                            setMetricsCommunityDefeated={setMetricsCommunityDefeated}
+                            setMetricsProposalsPerMonth={setMetricsProposalsPerMonth}
+                            setMetricsRetention={setMetricsRetention}
+                            setMetricsActiveRetention={setMetricsActiveRetention}
                             memberMap={memberMap} 
                             endTimer={endTimer} 
                             cachedGovernance={cachedGovernance} 
