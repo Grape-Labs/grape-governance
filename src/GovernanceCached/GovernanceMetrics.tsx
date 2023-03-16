@@ -1016,7 +1016,7 @@ export function GovernanceMetricsView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>All time Governance</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -1042,7 +1042,7 @@ export function GovernanceMetricsView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Current Eligible Voters</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -1068,7 +1068,7 @@ export function GovernanceMetricsView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>All Time Voters</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -1094,7 +1094,7 @@ export function GovernanceMetricsView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Total Votes Deposited</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -1120,7 +1120,7 @@ export function GovernanceMetricsView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Total Votes Casted</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -1146,7 +1146,7 @@ export function GovernanceMetricsView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Average Votes Casted Per Participant</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -1172,7 +1172,7 @@ export function GovernanceMetricsView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Average Participation</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -1198,7 +1198,7 @@ export function GovernanceMetricsView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Community Proposals</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -1224,7 +1224,7 @@ export function GovernanceMetricsView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Community Results</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -1251,7 +1251,7 @@ export function GovernanceMetricsView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Participation Rate</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -1277,7 +1277,7 @@ export function GovernanceMetricsView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Community Success Results</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -1304,7 +1304,7 @@ export function GovernanceMetricsView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'green'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Proposals p/Month</>
                                                 </Typography>
                                                 <Tooltip title={<>

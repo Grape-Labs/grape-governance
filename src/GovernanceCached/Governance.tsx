@@ -916,7 +916,7 @@ function GetParticipants(props: any){
                                         className='grape-store-stat-item'
                                         sx={{borderRadius:'24px',m:2,p:1}}
                                     >
-                                        <Typography variant="body2" sx={{color:'yellow'}}>
+                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                             <>For</>
                                         </Typography>
                                         <Typography variant="h3">
@@ -956,7 +956,7 @@ function GetParticipants(props: any){
                                         className='grape-store-stat-item'
                                         sx={{borderRadius:'24px',m:2,p:1}}
                                     >
-                                        <Typography variant="body2" sx={{color:'yellow'}}>
+                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                             <>Against</>
                                         </Typography>
                                         <Typography variant="h3">
@@ -1027,7 +1027,7 @@ function GetParticipants(props: any){
                                         className='grape-store-stat-item'
                                         sx={{borderRadius:'24px',m:2,p:1}}
                                     >
-                                        <Typography variant="body2" sx={{color:'yellow'}}>
+                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                             <>Type</>
                                         </Typography>
                                         <Typography variant="subtitle2">
@@ -1066,7 +1066,7 @@ function GetParticipants(props: any){
                                         className='grape-store-stat-item'
                                         sx={{borderRadius:'24px',m:2,p:1}}
                                     >
-                                        <Typography variant="body2" sx={{color:'yellow'}}>
+                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                             <>Participation</>
                                         </Typography>
                                         <Typography variant="subtitle2">
@@ -1104,7 +1104,7 @@ function GetParticipants(props: any){
                                         className='grape-store-stat-item'
                                         sx={{borderRadius:'24px',m:2,p:1}}
                                     >
-                                        <Typography variant="body2" sx={{color:'yellow'}}>
+                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                             <>General Sentiment</>
                                         </Typography>
                                         <Typography variant="subtitle2">
@@ -1125,7 +1125,7 @@ function GetParticipants(props: any){
                                         className='grape-store-stat-item'
                                         sx={{borderRadius:'24px',m:2,p:1}}
                                     >
-                                        <Typography variant="body2" sx={{color:'yellow'}}>
+                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                             Export
                                         </Typography>
                                         <Typography variant="subtitle2">
@@ -1165,7 +1165,7 @@ function GetParticipants(props: any){
                                             className='grape-store-stat-item'
                                             sx={{borderRadius:'24px',m:2,p:1}}
                                         >
-                                            <Typography variant="body2" sx={{color:'yellow'}}>
+                                            <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                 <>Started At</>
                                             </Typography>
                                             <Typography variant="subtitle2">
@@ -1180,7 +1180,7 @@ function GetParticipants(props: any){
                                         className='grape-store-stat-item'
                                         sx={{borderRadius:'24px',m:2,p:1}}
                                     >
-                                        <Typography variant="body2" sx={{color:'yellow'}}>
+                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                             {thisitem.account?.votingCompletedAt ?
                                                 <>Ended At</>
                                             :
@@ -1213,7 +1213,7 @@ function GetParticipants(props: any){
                                             className='grape-store-stat-item'
                                             sx={{borderRadius:'24px',m:2,p:1}}
                                         >
-                                            <Typography variant="body2" sx={{color:'yellow'}}>
+                                            <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                 <>Time Left</>
                                             </Typography>
                                             <Typography variant="subtitle2">
@@ -1244,7 +1244,7 @@ function GetParticipants(props: any){
                                             className='grape-store-stat-item'
                                             sx={{borderRadius:'24px',m:2,p:1}}
                                         >
-                                            <Typography variant="body2" sx={{color:'yellow'}}>
+                                            <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                 <>Status</>
                                             </Typography>
                                             <Typography variant="subtitle2">
@@ -2150,7 +2150,7 @@ export function GovernanceCachedView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Total Proposals/Success Rate</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -2175,7 +2175,7 @@ export function GovernanceCachedView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Total Casted Votes</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -2201,7 +2201,7 @@ export function GovernanceCachedView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Passing/Defeated</>
                                                 </Typography>
                                                 <Tooltip title={<>
