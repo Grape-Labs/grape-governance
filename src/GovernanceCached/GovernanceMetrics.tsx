@@ -988,19 +988,26 @@ export function GovernanceMetricsView(props: any) {
                             <>
                                 <Grid container>
                                     <Grid item xs={12} sm={6} container justifyContent="flex-start">
-                                        <Typography variant="h4">
-                                            {realm.account.name}
-
-                                            <Button
-                                                size='small'
-                                                sx={{ml:1, color:'white', borderRadius:'17px'}}
-                                                href={'https://realms.today/dao/'+(governanceAddress)}
-                                                target='blank'
-                                            >
-                                                <OpenInNewIcon/>
-                                            </Button>
-                                        
-                                        </Typography>
+                                        <Grid container>
+                                            <Grid item xs={12}>
+                                                <Typography variant="h4">
+                                                    {realm.account.name}
+                                                    
+                                                </Typography>
+                                            </Grid>
+                                            <Grid item xs={12}>
+                                                <Button
+                                                    size='small'
+                                                    sx={{color:'white', borderRadius:'17px'}}
+                                                    href={'https://realms.today/dao/'+(governanceAddress)}
+                                                    target='blank'
+                                                >
+                                                    <Typography variant="caption">
+                                                    View on Realms <OpenInNewIcon fontSize='inherit'/>
+                                                    </Typography>
+                                                </Button>
+                                            </Grid>
+                                        </Grid>
                                     </Grid>
                                     <Grid item xs={12} sm={6} container justifyContent="flex-end">
                                         HISTORICAL METRICS
