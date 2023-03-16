@@ -320,9 +320,9 @@ function GetParticipants(props: any){
                                     'error'
                                 }
                                 icon={params?.value?.vote?.voteType === 0 ?
-                                    <ThumbUpIcon color='success' sx={{ml:1}} />
+                                    <ThumbUpIcon color='success' fontSize='small' sx={{ml:1}} />
                                     :
-                                    <ThumbDownIcon sx={{color:'red',ml:1}}/>
+                                    <ThumbDownIcon fontSize='small' sx={{color:'red',ml:1}}/>
                                 }
                                 label={params.value?.voterWeight > 1 ?
                                     `${getFormattedNumberToLocale(formatAmount(+(parseInt(params.value.voterWeight)/Math.pow(10, params.value.decimals)).toFixed(0)))} votes` 
@@ -339,9 +339,9 @@ function GetParticipants(props: any){
                                     'error'
                                 }
                                 icon={params.value?.legacyYes > 0 ?
-                                    <ThumbUpIcon color='success' sx={{ml:1}} />
+                                    <ThumbUpIcon fontSize='small' color='success' sx={{ml:1}} />
                                     :
-                                    <ThumbDownIcon sx={{color:'red',ml:1}}/>
+                                    <ThumbDownIcon fontSize='small' sx={{color:'red',ml:1}}/>
                                 }
                                 label={params.value?.legacyYes > 0 ? 
                                         <>
@@ -936,13 +936,19 @@ function GetParticipants(props: any){
                                         </Typography>
                                         {thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
                                             <Typography variant="caption">
-                                                {getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                <Chip variant='outlined' color='success'
+                                                    icon={<ThumbUpIcon color='success' fontSize='small' sx={{ml:1}} />}
+                                                    label={getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                />
                                             </Typography>
                                         :
                                             <>
                                                 {thisitem.account?.yesVotesCount && 
                                                     <Typography variant="caption">
-                                                        {getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                        <Chip variant='outlined' color='success'
+                                                            icon={<ThumbUpIcon color='success' fontSize='small' sx={{ml:1}} />}
+                                                            label={getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                        />
                                                     </Typography>
                                                 }
                                             </>
@@ -976,13 +982,19 @@ function GetParticipants(props: any){
                                         </Typography>
                                         {thisitem.account?.denyVoteWeight ?
                                             <Typography variant="caption">
-                                                {getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                <Chip variant='outlined' color='error'
+                                                    icon={<ThumbDownIcon color='error' fontSize='small' sx={{ml:1}} />}
+                                                    label={getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                />
                                             </Typography>
                                         :
                                             <>
                                                 {thisitem.account?.noVotesCount && 
                                                     <Typography variant="caption">
-                                                        {getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                        <Chip variant='outlined' color='error'
+                                                            icon={<ThumbDownIcon color='error' fontSize='small' sx={{ml:1}} />}
+                                                            label={getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                        />
                                                     </Typography>
                                                 }
                                             </>
