@@ -528,7 +528,7 @@ function RenderVoterRecordTable(props:any) {
                 </div>
             </div>
         :
-            <LinearProgress />
+            <LinearProgress color="inherit" />
         }
         </>
 
@@ -968,7 +968,7 @@ export function GovernanceMetricsView(props: any) {
                 > 
                     <Typography variant="caption">Loading Governance {governanceAddress}...</Typography>
                     
-                    <LinearProgress />
+                    <LinearProgress color="inherit" />
                     
                 </Box>
             )

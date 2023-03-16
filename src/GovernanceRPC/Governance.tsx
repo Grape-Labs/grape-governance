@@ -1182,7 +1182,7 @@ function GetParticipants(props: any){
                             </div>
                         </div>
                     :
-                        <LinearProgress />
+                        <LinearProgress color="inherit" />
                     }
                     
                 </DialogContent> 
@@ -1312,7 +1312,7 @@ function RenderGovernanceTable(props:any) {
     if(loading){
         return (
             <Box sx={{ width: '100%' }}>
-                <LinearProgress sx={{borderRadius:'10px;'}} />
+                <LinearProgress sx={{borderRadius:'10px;'}} color="inherit" />
             </Box>
             
         )
@@ -1910,7 +1910,7 @@ export function GovernanceRPCView(props: any) {
                 > 
                     <Typography variant="caption">Loading Governance {governanceAddress}...</Typography>
                     
-                    <LinearProgress />
+                    <LinearProgress color="inherit" />
                     
                 </Box>
             )
