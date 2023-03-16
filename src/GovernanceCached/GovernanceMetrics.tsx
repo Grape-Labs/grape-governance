@@ -1180,6 +1180,32 @@ export function GovernanceMetricsView(props: any) {
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                    <>Proposals p/Month</>
+                                                </Typography>
+                                                <Tooltip title={<>
+                                                        Average proposals created per month
+                                                        </>
+                                                    }>
+                                                    <Button
+                                                        color='inherit'
+                                                        sx={{
+                                                            borderRadius:'17px'
+                                                        }}
+                                                    >
+                                                        <Typography variant="h3">
+                                                            {metricsProposalsPerMonth ? metricsProposalsPerMonth : `-`}
+                                                        </Typography>
+                                                    </Button>
+                                                </Tooltip>
+                                            </Box>
+                                        </Grid>
+
+                                        <Grid item xs={12} sm={4} md={4} key={1}>
+                                            <Box
+                                                className='grape-store-stat-item'
+                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                            >
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Average Participation</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -1194,6 +1220,32 @@ export function GovernanceMetricsView(props: any) {
                                                     >
                                                         <Typography variant="h3">
                                                             {metricsAverageParticipation && metricsAverageParticipation}
+                                                        </Typography>
+                                                    </Button>
+                                                </Tooltip>
+                                            </Box>
+                                        </Grid>
+
+                                        <Grid item xs={12} sm={4} md={4} key={1}>
+                                            <Box
+                                                className='grape-store-stat-item'
+                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                            >
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                    <>Participation Rate</>
+                                                </Typography>
+                                                <Tooltip title={<>
+                                                        The rate at which a participant will vote against all eligible voters
+                                                        </>
+                                                    }>
+                                                    <Button
+                                                        color='inherit'
+                                                        sx={{
+                                                            borderRadius:'17px'
+                                                        }}
+                                                    >
+                                                        <Typography variant="h3">
+                                                            {metricsParticipationRate && metricsParticipationRate}%
                                                         </Typography>
                                                     </Button>
                                                 </Tooltip>
@@ -1245,8 +1297,8 @@ export function GovernanceMetricsView(props: any) {
                                                         }}
                                                     >
                                                         <Typography variant="h3">
-                                                            <Badge badgeContent={<ThumbUpIcon fontSize='small' />} variant="dot" color="success">{metricsCommunityPassed}</Badge>/
-                                                            <Badge badgeContent={<ThumbDownIcon fontSize='small' />} variant="dot" color="error">{metricsCommunityDefeated}</Badge>
+                                                            <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{metricsCommunityPassed}</Badge>/
+                                                            <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{metricsCommunityDefeated}</Badge>
                                                         </Typography>
                                                     </Button>
                                                 </Tooltip>
@@ -1259,33 +1311,7 @@ export function GovernanceMetricsView(props: any) {
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Participation Rate</>
-                                                </Typography>
-                                                <Tooltip title={<>
-                                                        The rate at which a participant will vote against all eligible voters
-                                                        </>
-                                                    }>
-                                                    <Button
-                                                        color='inherit'
-                                                        sx={{
-                                                            borderRadius:'17px'
-                                                        }}
-                                                    >
-                                                        <Typography variant="h3">
-                                                            {metricsParticipationRate && metricsParticipationRate}%
-                                                        </Typography>
-                                                    </Button>
-                                                </Tooltip>
-                                            </Box>
-                                        </Grid>
-
-                                        <Grid item xs={12} sm={4} md={4} key={1}>
-                                            <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
-                                            >
-                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Community Success Results</>
+                                                    <>Community Success Rate</>
                                                 </Typography>
                                                 <Tooltip title={<>
                                                         Passing / Defeated
@@ -1298,34 +1324,8 @@ export function GovernanceMetricsView(props: any) {
                                                         }}
                                                     >
                                                         <Typography variant="h3">
-                                                            <Badge badgeContent={<ThumbUpIcon fontSize='small' />} variant="dot" color="success">{(metricsCommunityPassed/metricsTotalProposals*100).toFixed(0)}%</Badge>/
-                                                            <Badge badgeContent={<ThumbDownIcon fontSize='small' />} variant="dot" color="error">{(metricsCommunityDefeated/metricsTotalProposals*100).toFixed(0)}%</Badge>
-                                                        </Typography>
-                                                    </Button>
-                                                </Tooltip>
-                                            </Box>
-                                        </Grid>
-
-                                        <Grid item xs={12} sm={4} md={4} key={1}>
-                                            <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
-                                            >
-                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Proposals p/Month</>
-                                                </Typography>
-                                                <Tooltip title={<>
-                                                        Proposals created per month (average)
-                                                        </>
-                                                    }>
-                                                    <Button
-                                                        color='inherit'
-                                                        sx={{
-                                                            borderRadius:'17px'
-                                                        }}
-                                                    >
-                                                        <Typography variant="h3">
-                                                            {metricsProposalsPerMonth ? metricsProposalsPerMonth : `-`}
+                                                            <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{(metricsCommunityPassed/metricsTotalProposals*100).toFixed(0)}%</Badge>/
+                                                            <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{(metricsCommunityDefeated/metricsTotalProposals*100).toFixed(0)}%</Badge>
                                                         </Typography>
                                                     </Button>
                                                 </Tooltip>
