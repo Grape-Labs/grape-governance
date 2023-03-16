@@ -960,7 +960,7 @@ export function GovernanceMetricsView(props: any) {
                 <Box
                     sx={{
                         mt:6,
-                        background: 'rgba(0, 0, 0, 0.6)',
+                        background: 'rgba(0, 0, 0, 0.5)',
                         borderRadius: '17px',
                         p:4,
                         alignItems: 'center', textAlign: 'center'
@@ -978,7 +978,7 @@ export function GovernanceMetricsView(props: any) {
                     <Box
                         sx={{
                             mt:6,
-                            background: 'rgba(0, 0, 0, 0.6)',
+                            background: 'rgba(0, 0, 0, 0.5)',
                             borderRadius: '17px',
                             overflow: 'hidden',
                             p:4
@@ -1304,7 +1304,7 @@ export function GovernanceMetricsView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'green'}}>
                                                     <>Proposals p/Month</>
                                                 </Typography>
                                                 <Tooltip title={<>

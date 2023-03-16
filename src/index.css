@@ -47,7 +47,7 @@ code {
   position:relative;
 }
 
-.grape-art-header{
+.app-header{
   background: none;
   backdrop-filter: blur(12.5px);
 }

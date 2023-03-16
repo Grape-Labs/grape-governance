@@ -258,7 +258,7 @@ export function Header(props: any) {
     return (
         <Toolbar
             color="inherit"
-            className="grape-art-header"
+            className="app-header"
             >
 
             <Box display='flex' flexGrow={1}>

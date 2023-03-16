@@ -154,7 +154,7 @@ function DashboardContent() {
                           }}>
                           <CssBaseline />
                           <Router>
-                          <AppBar position="fixed" color="primary" style={{ background: 'rgba(0,0,0,0.5)' }}>
+                          <AppBar position="fixed" color="primary" style={{ background: 'rgba(0,0,0,0.75)' }}>
                               <Header
                                   open={open} 
                                   toggleDrawer={toggleDrawer}
