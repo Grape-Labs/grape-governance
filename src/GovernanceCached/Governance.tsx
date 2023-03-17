@@ -218,6 +218,7 @@ function TablePaginationActions(props) {
 
 function GetParticipants(props: any){
     const cachedGovernance = props.cachedGovernance;
+    const governanceLookup = props.governanceLookup;
     const connection = new Connection(GRAPE_RPC_ENDPOINT);
     const tokenMap = props.tokenMap;
     const memberMap = props.memberMap;
@@ -372,8 +373,21 @@ function GetParticipants(props: any){
     ];
 
     const getGovernanceProps = async () => {
-        const governance = await getGovernance(connection, thisitem.account.governance);
-        
+
+        let governance = null;
+        if (governanceLookup){
+            for (let glitem of governanceLookup){
+                if (glitem.governanceAddress === governanceAddress){
+                    if (glitem?.governance)
+                        governance = glitem.governance;
+                }
+            }
+        }
+
+        if (!governance){
+            alert("here... 21")
+            governance = await getGovernance(connection, thisitem.account.governance);    
+        }
         setThisGovernance(governance);
         
         //console.log("realm"+JSON.stringify(realm));
@@ -877,7 +891,7 @@ function GetParticipants(props: any){
                     <Box sx={{ alignItems: 'center', textAlign: 'center'}}>
                         {gist ?
                             <Box sx={{ alignItems: 'left', textAlign: 'left', p:1}}>
-                                <Typography variant='body1'>
+                                <Typography variant='body2'>
                                     <ReactMarkdown remarkPlugins={[[remarkGfm, {singleTilde: false}]]}>
                                         {proposalDescription}
                                     </ReactMarkdown>
@@ -900,7 +914,7 @@ function GetParticipants(props: any){
                             <>
                                 {thisitem.account?.descriptionLink &&
                                     <>
-                                        <Typography variant='caption'>{thisitem.account?.descriptionLink}</Typography>
+                                        <Typography variant='body1'>{thisitem.account?.descriptionLink}</Typography>
                                     </>
                                 }
                             </>
@@ -1315,6 +1329,7 @@ function RenderGovernanceTable(props:any) {
     const tokenMap = props.tokenMap;
     const governanceAddress = props.governanceAddress;
     const governanceType = props.governanceType;
+    const governanceLookup = props.governanceLookup;
     const cachedGovernance = props.cachedGovernance;
     const [loading, setLoading] = React.useState(false);
     //const [proposals, setProposals] = React.useState(props.proposals);
@@ -1633,7 +1648,7 @@ function RenderGovernanceTable(props:any) {
                                                 </TableCell>
                                                 <GetProposalStatus item={item} cachedGovernance={cachedGovernance} />
                                                 <TableCell align="center">
-                                                    <GetParticipants governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
+                                                    <GetParticipants governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                                 </TableCell>
                                             </TableRow>
                                         </>
@@ -2252,7 +2267,20 @@ export function GovernanceCachedView(props: any) {
                                 </Box>
                                   
                                 
-                        <RenderGovernanceTable endTimer={endTimer} cachedGovernance={cachedGovernance} memberMap={memberMap} governanceType={governanceType} governingTokenDecimals={governingTokenDecimals} governingTokenMint={governingTokenMint} tokenMap={tokenMap} realm={realm} thisToken={thisToken} proposals={proposals} nftBasedGovernance={nftBasedGovernance} governanceAddress={governanceAddress} />
+                        <RenderGovernanceTable 
+                            governanceLookup={governanceLookup} 
+                            endTimer={endTimer} 
+                            cachedGovernance={cachedGovernance} 
+                            memberMap={memberMap} 
+                            governanceType={governanceType} 
+                            governingTokenDecimals={governingTokenDecimals} 
+                            governingTokenMint={governingTokenMint} 
+                            tokenMap={tokenMap} 
+                            realm={realm} 
+                            thisToken={thisToken} 
+                            proposals={proposals} 
+                            nftBasedGovernance={nftBasedGovernance} 
+                            governanceAddress={governanceAddress} />
                         
                         {endTime &&
                             <Typography 
