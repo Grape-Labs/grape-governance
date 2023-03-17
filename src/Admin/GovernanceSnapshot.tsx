@@ -823,6 +823,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     item.timestamp = timestamp;
                     item.filename = fileName;
                     item.realm = realm;
+                    item.governance = thisGovernance;
                     govFound = true;
                 }
                 cntr++;
@@ -836,6 +837,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     timestamp:timestamp,
                     filename:fileName,
                     realm:realm,
+                    governance: thisGovernance
                 });
             }
 

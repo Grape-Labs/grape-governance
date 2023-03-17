@@ -1340,17 +1340,7 @@ function RenderGovernanceTable(props:any) {
     
     function GetProposalStatus(props: any){
         const thisitem = props.item;
-        const [thisGovernance, setThisGovernance] = React.useState(null);
-
-        const getGovernanceProps = async () => {
-            const governance = await getGovernance(connection, thisitem.account.governance);
-            setThisGovernance(governance);
-            //const starts = thisitem.account?.votingAt.toNumber();
-            ///const ends = thisitem.account?.votingAt.toNumber()+governance?.account?.config?.maxVotingTime;
-            //console.log("ending at : " + moment.unix(thisitem.account?.votingAt.toNumber()+governance?.account?.config?.maxVotingTime).format("MMMM Da, YYYY, h:mm a"));
-
-            console.log("Single governance: "+JSON.stringify(governance));
-        }
+        const [thisGovernance, setThisGovernance] = React.useState(props.cachedGovernnace);
 
         React.useEffect(() => { 
             if (thisitem.account?.state === 2){ // if voting state
@@ -1371,11 +1361,11 @@ function RenderGovernanceTable(props:any) {
                         <Tooltip title={
                             <>
                                 <>
-                                {thisGovernance?.account?.config?.maxVotingTime ?
-                                    `Ending ${moment.unix(Number(thisitem.account?.votingAt)+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
+                                {thisGovernance?.governance?.account?.config?.maxVotingTime ?
+                                    `Ending ${moment.unix(Number(thisitem.account?.votingAt)+(Number(thisGovernance?.governance?.account?.config?.maxVotingTime))).fromNow()}`
                                 :
                                     <>
-                                    {thisitem.account?.votingCompletedAt ?
+                                    {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
                                         <>{`Started: ${thisitem.account?.votingAt && (moment.unix(Number((thisitem.account?.votingAt))).format("MMMM Da, YYYY, h:mm a"))}`}<br/>{`Ended: ${thisitem.account?.votingAt && (moment.unix(Number((thisitem.account?.votingCompletedAt))).format("MMMM Da, YYYY, h:mm a"))}`}</>
                                     :
                                         `Created: ${thisitem.account?.votingAt && (moment.unix(Number((thisitem.account?.votingAt))).format("MMMM D, YYYY, h:mm a"))}`
@@ -1389,8 +1379,14 @@ function RenderGovernanceTable(props:any) {
                             <Button sx={{borderRadius:'17px',color:'inherit',textTransform:'none'}}>
                                 {GOVERNANNCE_STATE[thisitem.account?.state]}
                                     <>
-                                    {thisitem.account?.votingCompletedAt ?
-                                        <><CheckCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} /></>
+                                    {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
+                                        <>
+                                            { (thisitem.account?.state === 3 || thisitem.account?.state === 5) ?
+                                                <CheckCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
+                                            :
+                                                <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
+                                            }
+                                        </>
                                     :
                                         <>
                                         { thisitem.account?.state === 2 ?
@@ -1625,7 +1621,7 @@ function RenderGovernanceTable(props:any) {
                                                         </Typography>
                                                     }
                                                 </TableCell>
-                                                <GetProposalStatus item={item}/>
+                                                <GetProposalStatus item={item} cachedGovernance={cachedGovernance} />
                                                 <TableCell align="center">
                                                     <GetParticipants governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                                 </TableCell>
