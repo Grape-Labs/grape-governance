@@ -25,6 +25,7 @@ import {
 
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import GroupIcon from '@mui/icons-material/Group';
 
@@ -55,17 +56,17 @@ export default function GovernanceNavigation(props: any){
                         <Button
                             component={Link}
                             to={'/metrics/'+governanceAddress}
-                        ><ShowChartIcon /></Button>
+                        ><BarChartIcon /></Button>
                     </Tooltip>
-                    <Tooltip title="Treasury">
+                    <Tooltip title="Members (coming soon)">
                         <Button
-                            disabled={true}
-                        ><AccountBalanceIcon /></Button>
-                    </Tooltip>
-                    <Tooltip title="Members">
-                        <Button
-                            disabled={true}
+                            sx={{ml:1,color:'#999'}}
                         ><GroupIcon /></Button>
+                    </Tooltip>
+                    <Tooltip title="Treasury (coming soon)">
+                        <Button
+                            sx={{color:'#999'}}
+                        ><AccountBalanceIcon /></Button>
                     </Tooltip>
 
                 </ButtonGroup>

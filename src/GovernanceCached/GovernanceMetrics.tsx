@@ -1133,7 +1133,7 @@ export function GovernanceMetricsView(props: any) {
                                         //value={value}
                                         onChange={handleStartDateChange}
                                         renderInput={(params:any) => <TextField {...params} />}
-                                        sx={{mr:1}}
+                                        sx={{mr:1, borderRadius:'17px'}}
                                         />
                                     <DesktopDatePicker
                                         label="End Date"
@@ -1141,7 +1141,7 @@ export function GovernanceMetricsView(props: any) {
                                         //value={value}
                                         onChange={handleEndDateChange}
                                         renderInput={(params:any) => <TextField {...params} />}
-                                        sx={{ml:1}}
+                                        sx={{ml:1, borderRadius:'17px'}}
                                         />
                                 </LocalizationProvider>
 
