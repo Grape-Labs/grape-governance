@@ -417,63 +417,64 @@ function GetParticipants(props: any){
             //console.log("communityMintPromise ("+thisitem.account.governingTokenMint+") "+JSON.stringify(governingMintPromise))
             setGoverningMintInfo(governingMintDetails);
             
-            const communityWeight = governingMintDetails.value.data.parsed.info.supply - realm.account.config.minCommunityTokensToCreateGovernance.toNumber();
+            const communityWeight = governingMintDetails.value.data.parsed.info.supply - Number(realm.account.config.minCommunityTokensToCreateGovernance);
             //console.log("communityWeight: "+communityWeight);
             
-            const communityMintMaxVoteWeightSource = realm.account.config.communityMintMaxVoteWeightSource
-            const supplyFractionPercentage = communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
-            const communityVoteThreshold = governance.account.config.communityVoteThreshold
-            const councilVoteThreshold = governance.account.config.councilVoteThreshold
-            
-            //console.log("supplyFractionPercentage: "+supplyFractionPercentage)
-            //console.log("communityVoteThreshold: "+JSON.stringify(communityVoteThreshold))
-            //console.log("councilVoteThreshold: "+JSON.stringify(councilVoteThreshold))
+            const communityMintMaxVoteWeightSource = realm.account.config?.communityMintMaxVoteWeightSource
+            const supplyFractionPercentage = communityMintMaxVoteWeightSource?.fmtSupplyFractionPercentage();
+            if (supplyFractionPercentage){
+                const communityVoteThreshold = governance.account.config.communityVoteThreshold
+                const councilVoteThreshold = governance.account.config.councilVoteThreshold
+                
+                //console.log("supplyFractionPercentage: "+supplyFractionPercentage)
+                //console.log("communityVoteThreshold: "+JSON.stringify(communityVoteThreshold))
+                //console.log("councilVoteThreshold: "+JSON.stringify(councilVoteThreshold))
 
-            //const mintSupply = governingMintPromise.value.data.data.parsed.info.supply;
-            //const mintDecimals = governingMintPromise.value.data.data.parsed.info.decimals; 
-            
-            const voteThresholdPercentage=
-                realm.account.config.councilMint.toBase58() === thisitem.account.governingTokenMint.toBase58()
-                ? councilVoteThreshold.value
-                : communityVoteThreshold.value
-            
-            const tSupply = Number(governingMintDetails.value.data.parsed.info.supply/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals)) 
-            
-            setTotalSupply(tSupply);
-            
-            const totalVotes =
-                Number(governingMintDetails.value.data.parsed.info.supply/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals))  *
-                //Number(communityWeight/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals))  *
-                (voteThresholdPercentage * 0.01) *
-                  (Number(supplyFractionPercentage) / 100);
-            
-            //console.log("totalVotes: "+totalVotes)
-            //console.log("voteThresholdPercentage: "+(voteThresholdPercentage * 0.01))
-            //console.log("supplyFractionPercentage: "+(Number(supplyFractionPercentage) / 100))
-            
-            if (totalVotes && totalVotes > 0)
-                setTotalQuorum(totalVotes);
-            
-            const qt = totalVotes-Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals);
-            const yesVotes = Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals);
-            
-            const excess = yesVotes - totalVotes;
-            
-            if (excess > 0){
-                setExceededQuorum(excess);
-                setExceededQuorumPercentage(excess/totalVotes*100);
+                //const mintSupply = governingMintPromise.value.data.data.parsed.info.supply;
+                //const mintDecimals = governingMintPromise.value.data.data.parsed.info.decimals; 
+                
+                const voteThresholdPercentage=
+                    new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint.toBase58()
+                    ? councilVoteThreshold.value
+                    : communityVoteThreshold.value
+                
+                const tSupply = Number(governingMintDetails.value.data.parsed.info.supply/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals)) 
+                
+                setTotalSupply(tSupply);
+                
+                const totalVotes =
+                    Number(governingMintDetails.value.data.parsed.info.supply/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals))  *
+                    //Number(communityWeight/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals))  *
+                    (voteThresholdPercentage * 0.01) *
+                    (Number(supplyFractionPercentage) / 100);
+                
+                //console.log("totalVotes: "+totalVotes)
+                //console.log("voteThresholdPercentage: "+(voteThresholdPercentage * 0.01))
+                //console.log("supplyFractionPercentage: "+(Number(supplyFractionPercentage) / 100))
+                
+                if (totalVotes && totalVotes > 0)
+                    setTotalQuorum(totalVotes);
+                
+                const qt = totalVotes-Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals);
+                const yesVotes = Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals);
+                
+                const excess = yesVotes - totalVotes;
+                
+                if (excess > 0){
+                    setExceededQuorum(excess);
+                    setExceededQuorumPercentage(excess/totalVotes*100);
+                }
+
+                //console.log("yesVotes: "+yesVotes);
+                const totalVotesNeeded = Math.ceil(totalVotes - yesVotes);
+
+                if (qt < 0){
+                    setQuorumTargetPercentage(100);
+                }else{
+                    setQuorumTargetPercentage((totalVotesNeeded / totalVotes) * 100);
+                    setQuorumTarget(totalVotesNeeded);
+                }
             }
-
-            //console.log("yesVotes: "+yesVotes);
-            const totalVotesNeeded = Math.ceil(totalVotes - yesVotes);
-
-            if (qt < 0){
-                setQuorumTargetPercentage(100);
-            }else{
-                setQuorumTargetPercentage((totalVotesNeeded / totalVotes) * 100);
-                setQuorumTarget(totalVotesNeeded);
-            }
-
         }catch(e){
             console.log('ERR: '+e)
         }
@@ -506,7 +507,7 @@ function GetParticipants(props: any){
             //console.log("ERR: "+e);
         }
         
-        if (realm.account.config?.councilMint === thisitem?.account?.governingTokenMint?.toBase58()){
+        if (new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem?.account?.governingTokenMint?.toBase58()){
             vType = 'Council';
             td = 0;
         }
@@ -602,8 +603,8 @@ function GetParticipants(props: any){
                             voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
                             legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
                             legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
-                            decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
-                            councilMint:realm.account.config?.councilMint?.toBase58() ,
+                            decimals:(new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
+                            councilMint:new PublicKey(realm.account.config?.councilMint).toBase58() ,
                             governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
                         },
                         vote:{
@@ -611,8 +612,8 @@ function GetParticipants(props: any){
                             voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
                             legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
                             legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
-                            decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
-                            councilMint:realm.account.config?.councilMint?.toBase58() ,
+                            decimals:(new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
+                            councilMint:new PublicKey(realm.account.config?.councilMint).toBase58() ,
                             governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
                         }
                     })
@@ -646,7 +647,7 @@ function GetParticipants(props: any){
                             legacyYes:(item.vote.legacyYes ?  (item.vote.legacyYes) : null),
                             legacyNo:(item.vote.legacyNo ?  (item.vote.legacyNo) : null),
                             decimals:(item.vote.decimals ?  (item.vote.decimals) : 0),
-                            councilMint:realm.account.config?.councilMint ,
+                            councilMint:new PublicKey(realm.account.config?.councilMint).toBase58() ,
                             governingTokenMint:thisitem.vote?.governingTokenMint.toBase58() 
                         },
                         vote:{
@@ -655,7 +656,7 @@ function GetParticipants(props: any){
                             legacyYes:(item.vote.legacyYes ?  (item.vote.legacyYes) : null),
                             legacyNo:(item.vote.legacyNo ?  (item.vote.legacyNo) : null),
                             decimals:(item.vote.decimals ?  (item.vote.decimals) : 0),
-                            councilMint:realm.account.config?.councilMint ,
+                            councilMint:new PublicKey(realm.account.config?.councilMint).toBase58() ,
                             governingTokenMint:thisitem.vote?.governingTokenMint.toBase58() 
                         }
                     });
@@ -684,7 +685,7 @@ function GetParticipants(props: any){
                             voterWeight = item.account?.voteWeight?.no
                         }
                     }
-                    csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
+                    csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
                 
                 } else{
                     if (item.vote?.voterWeight){
@@ -699,7 +700,7 @@ function GetParticipants(props: any){
                             voterWeight = item.vote?.voteWeight?.no
                         }
                     }
-                    csvFile += item.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (realm.account.config?.councilMint === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.proposal.toBase58()+'';
+                    csvFile += item.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.proposal.toBase58()+'';
                     
                 }
                 
