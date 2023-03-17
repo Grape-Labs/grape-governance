@@ -79,6 +79,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [fileGenerated, setFileGenerated] = React.useState(null);
     const [csvGenerated, setCSVGenerated] = React.useState(null);
     const [stringGenerated, setStringGenerated] = React.useState(null);
+    const [membersStringGenerated, setMembersStringGenerated] = React.useState(null);
     const [governanceAddress, setGovernanceAddress] = React.useState(null);
     const [governanceName, setGovernanceName] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(null);
@@ -601,7 +602,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             )}`;
             
             //console.log("encoded: "+JSON.stringify(finalList))
-
+            
             setStringGenerated(JSON.stringify(finalList));
             setFileGenerated(jsonString);
             
@@ -755,6 +756,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 const fileName = governanceAddress+'.json';
 
                 exportFile(finalList, null, fileName);
+                // do teh following to get the members
+                setMembersStringGenerated(JSON.stringify(memberMap));
+            
             }
             
             setLoading(false);
@@ -806,7 +810,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         }
     }
 
-    const updateGovernanceLookupFile = async(fileName:string, timestamp:number, lookupFound:boolean) => {
+    const updateGovernanceLookupFile = async(fileName:string, memberFileName:string, timestamp:number, lookupFound:boolean) => {
         // this should be called each time we update with governance
         const storageAccountPK = storagePool;
 
@@ -828,6 +832,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     item.version++;
                     item.timestamp = timestamp;
                     item.filename = fileName;
+                    item.memberFilename = memberFileName;
                     item.realm = realm;
                     item.governance = thisGovernance;
                     item.governingMintDetails = governingMintDetails;
@@ -843,12 +848,13 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     version:0,
                     timestamp:timestamp,
                     filename:fileName,
+                    memberFilename: memberFileName,
                     realm:realm,
                     governance: thisGovernance,
                     governingMintDetails: governingMintDetails
                 });
             }
-
+            
             console.log("Replacing Governance Lookup");
             const uploadFile = await returnJSON(JSON.stringify(governanceLookup), "governance_lookup.json");
             const fileStream = blobToFile(uploadFile, "governance_lookup.json");
@@ -885,6 +891,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const handleUploadToStoragePool = async () => {
         const timestamp = Math.floor(new Date().getTime() / 1000);
         const fileName = governanceAddress+'_'+timestamp+'.json';
+        const memberFileName = governanceAddress+'_members_'+timestamp+'.json';
         const storageAccountPK = storagePool;
         
         //exportJSON(fileGenerated, fileName);
@@ -896,9 +903,11 @@ export function GovernanceSnapshotView (this: any, props: any) {
             alert("Drive not initialized, initializing now...");
         } else{
             const uploadFile = await returnJSON(stringGenerated, fileName);
+            const uploadMembersFile = await returnJSON(membersStringGenerated, fileName);
             //const fileBlob = await fileToDataUri(uploadFile);
             // auto check if this file exists (now we manually do this)
             let found = false;
+            let foundMembers = false;
             let lookupFound = false;
             try{
                 const response = await thisDrive.listObjects(new PublicKey(storageAccountPK))
@@ -907,18 +916,21 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     for (var item of response.keys){
                         if (item === fileName){
                             found = true;
-                        }
-                        if (item === 'governance_lookup.json'){
+                        } else if (item === memberFileName){
+                            foundMembers = true;
+                        } else if (item === 'governance_lookup.json'){
                             lookupFound = true;
                         }
                     }
                 }
 
                 // update lookup
-                await updateGovernanceLookupFile(fileName, timestamp, lookupFound);
+                console.log("1. Storage Pool: "+storageAccountPK+" | Lookup");
+                
+                await updateGovernanceLookupFile(fileName, memberFileName, timestamp, lookupFound);
 
-                // proceed to add file
-                console.log("Storage Pool: "+storageAccountPK+" | File ("+fileName+") found: "+JSON.stringify(found));
+                // proceed to add propsals
+                console.log("2. Storage Pool: "+storageAccountPK+" | File ("+fileName+") found: "+JSON.stringify(found));
             
                 const fileStream = blobToFile(uploadFile, fileName);
                 if (found){
@@ -926,6 +938,17 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     await uploadReplaceToStoragePool(fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
                 }else{
                     await uploadToStoragePool(fileStream, new PublicKey(storageAccountPK));
+                }
+
+                // proceed to add members
+                console.log("3. Storage Pool: "+storageAccountPK+" | Members ("+memberFileName+") found: "+JSON.stringify(foundMembers));
+                
+                const membersFileStream = blobToFile(uploadMembersFile, memberFileName);
+                if (foundMembers){
+                    const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+memberFileName;
+                    await uploadReplaceToStoragePool(membersFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+                }else{
+                    await uploadToStoragePool(membersFileStream, new PublicKey(storageAccountPK));
                 }
                 
             }catch(e){

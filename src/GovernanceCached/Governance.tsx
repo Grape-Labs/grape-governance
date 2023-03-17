@@ -1487,7 +1487,7 @@ function RenderGovernanceTable(props:any) {
                                                             </>
                                                         }
 
-                                                        {realm.account.config?.councilMint?.toBase58() === item.account?.governingTokenMint?.toBase58() ?
+                                                        {realm.account.config?.councilMint === item.account?.governingTokenMint?.toBase58() ?
                                                             <Tooltip title='Council Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon sx={{ fontSize:16 }} /></Button></Tooltip>
                                                             :
                                                             <>
@@ -1517,7 +1517,7 @@ function RenderGovernanceTable(props:any) {
                                                     {item.account.yesVotesCount &&
                                                         <Typography variant="h6">
                                                             
-                                                            <Tooltip title={realm.account.config?.councilMint?.toBase58() === item.account?.governingTokenMint?.toBase58() ?
+                                                            <Tooltip title={realm.account.config?.councilMint === item.account?.governingTokenMint?.toBase58() ?
                                                                     <>{Number(item.account.yesVotesCount)}</>
                                                                 :
                                                                 <>
@@ -1547,7 +1547,7 @@ function RenderGovernanceTable(props:any) {
                                                             {/*console.log("governingTokenMint: "+item.account.governingTokenMint.toBase58())*/}
                                                             {/*console.log("vote: "+JSON.stringify(item.account))*/}
                                                             
-                                                            <Tooltip title={realm.account.config?.councilMint?.toBase58() === item.account?.governingTokenMint?.toBase58() ?
+                                                            <Tooltip title={realm.account.config?.councilMint === item.account?.governingTokenMint?.toBase58() ?
                                                                     <>{Number(item.account?.options[0].voteWeight)}</>
                                                                 :
                                                                 <>
@@ -1601,7 +1601,7 @@ function RenderGovernanceTable(props:any) {
                                                     {item.account.noVotesCount &&
                                                             <Typography variant="h6">
                                                                 
-                                                                <Tooltip title={realm.account.config?.councilMint?.toBase58() === item.account?.governingTokenMint?.toBase58() ?
+                                                                <Tooltip title={realm.account.config?.councilMint === item.account?.governingTokenMint?.toBase58() ?
                                                                         <>{Number(item.account.noVotesCount)}</>
                                                                     :
                                                                     <>
@@ -1708,6 +1708,7 @@ export function GovernanceCachedView(props: any) {
     //const governanceAddress = props.governanceAddress;
     const [loading, setLoading] = React.useState(false);
     const [memberMap, setMemberMap] = React.useState(null);
+    const [cachedMemberMap, setCachedMemberMap] = React.useState(null);
     const [realm, setRealm] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(null);
     const [tokenArray, setTokenArray] = React.useState(null);
@@ -1798,24 +1799,55 @@ export function GovernanceCachedView(props: any) {
                     setRealm(grealm);
                 }
                 const realmPk = grealm.pubkey;
-                const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
+
+                // Check if we have this cached
+                let rawTokenOwnerRecords = null;
+                if (cachedMemberMap){
+                    console.log("Using Cached Member Map")
+                    rawTokenOwnerRecords = cachedMemberMap;
+                } else{
+                    rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
+                }
+
                 setMemberMap(rawTokenOwnerRecords);
                 
                 let gTD = null;
-                if (tokenMap.get(grealm.account?.communityMint.toBase58())){
-                    setGovernanceType(0);
-                    gTD = tokenMap.get(grealm.account?.communityMint.toBase58()).decimals;
-                    setGoverningTokenDecimals(gTD);
-                } else{
-                    const btkn = await getBackedTokenMetadata(grealm.account?.communityMint.toBase58(), wallet);
-                    if (btkn){
-                        setGovernanceType(1);
-                        gTD = btkn.decimals;
-                        setGoverningTokenDecimals(gTD)
-                    } else{
-                        setGovernanceType(2);
-                        gTD = 0;
-                        setGoverningTokenDecimals(gTD);
+                if (grealm.account?.communityMint){
+                    try{
+                        if (tokenMap.get(grealm.account?.communityMint.toBase58())){
+                            setGovernanceType(0);
+                            gTD = tokenMap.get(grealm.account?.communityMint.toBase58()).decimals;
+                            setGoverningTokenDecimals(gTD);
+                        } else{
+                            const btkn = await getBackedTokenMetadata(grealm.account?.communityMint.toBase58(), wallet);
+                            if (btkn){
+                                setGovernanceType(1);
+                                gTD = btkn.decimals;
+                                setGoverningTokenDecimals(gTD)
+                            } else{
+                                setGovernanceType(2);
+                                gTD = 0;
+                                setGoverningTokenDecimals(gTD);
+                            }
+                        }
+                    } catch(emt){
+                        
+                        if (tokenMap.get(grealm.account?.communityMint)){
+                            setGovernanceType(0);
+                            gTD = tokenMap.get(grealm.account?.communityMint).decimals;
+                            setGoverningTokenDecimals(gTD);
+                        } else{
+                            const btkn = await getBackedTokenMetadata(grealm.account?.communityMint, wallet);
+                            if (btkn){
+                                setGovernanceType(1);
+                                gTD = btkn.decimals;
+                                setGoverningTokenDecimals(gTD)
+                            } else{
+                                setGovernanceType(2);
+                                gTD = 0;
+                                setGoverningTokenDecimals(gTD);
+                            }
+                        }
                     }
                 }
 
@@ -1992,7 +2024,7 @@ export function GovernanceCachedView(props: any) {
         }
     }, [cachedGovernance]);
 
-    const fetchGovernanceFile = async(fileName:string) => {
+    const fetchLookupFile = async(fileName:string) => {
         try{
             const url = GGAPI_STORAGE_URI+"/"+GGAPI_STORAGE_POOL+'/'+fileName+'';
             const response = await window.fetch(url, {
@@ -2010,8 +2042,8 @@ export function GovernanceCachedView(props: any) {
         }
     }
 
-    const getGovernanceFromLookup  = async (fileName:string) => {
-        const fgl = await fetchGovernanceFile(fileName);
+    const getFileFromLookup  = async (fileName:string) => {
+        const fgl = await fetchLookupFile(fileName);
         return fgl;
     } 
     
@@ -2023,7 +2055,11 @@ export function GovernanceCachedView(props: any) {
                 if (glitem.governanceAddress === governanceAddress){
                     if (glitem?.realm)
                         setCachedRealm(glitem?.realm)
-                    cached_governance = await getGovernanceFromLookup(glitem.filename);
+                    if (glitem?.memberFilename){
+                        const cached_members = await getFileFromLookup(glitem.memberFilename);
+                        setCachedMemberMap(cached_members);
+                    }
+                    cached_governance = await getFileFromLookup(glitem.filename);
                 }
             }
         }
