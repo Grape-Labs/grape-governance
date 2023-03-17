@@ -817,6 +817,12 @@ export function GovernanceSnapshotView (this: any, props: any) {
             console.log("Lookup Found: "+JSON.stringify(governanceLookup));
             var govFound = false;
             let cntr = 0;
+
+            const governingMintPromise = 
+                await connection.getParsedAccountInfo(
+                    new PublicKey(thisGovernance.account.governingTokenMint)
+                );
+
             for (var item of governanceLookup){
                 if (item.governanceAddress === governanceAddress){
                     item.version++;
