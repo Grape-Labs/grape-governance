@@ -16,11 +16,17 @@ import remarkGfm from 'remark-gfm';
 
 import {
   Typography,
+  Tooltip,
   Button,
   Grid,
   Box,
   ButtonGroup,
 } from '@mui/material/';
+
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
+import ShowChartIcon from '@mui/icons-material/ShowChart';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import GroupIcon from '@mui/icons-material/Group';
 
 export default function GovernanceNavigation(props: any){
     const governanceAddress = props.governanceAddress;
@@ -39,20 +45,28 @@ export default function GovernanceNavigation(props: any){
                     variant='outlined'
                     sx={{borderRadius:'17px'}}
                 >
-                    <Button
-                        component={Link}
-                        to={'/cachedgovernance/'+governanceAddress}
-                    >Proposals</Button>
-                    <Button
-                        component={Link}
-                        to={'/metrics/'+governanceAddress}
-                    >Metrics</Button>
-                    <Button
-                        disabled={true}
-                    >Treasury</Button>
-                    <Button
-                        disabled={true}
-                    >Members</Button>
+                    <Tooltip title="Proposals">
+                        <Button
+                            component={Link}
+                            to={'/cachedgovernance/'+governanceAddress}
+                        ><HowToVoteIcon /></Button>
+                    </Tooltip>
+                    <Tooltip title="Metrics">
+                        <Button
+                            component={Link}
+                            to={'/metrics/'+governanceAddress}
+                        ><ShowChartIcon /></Button>
+                    </Tooltip>
+                    <Tooltip title="Treasury">
+                        <Button
+                            disabled={true}
+                        ><AccountBalanceIcon /></Button>
+                    </Tooltip>
+                    <Tooltip title="Members">
+                        <Button
+                            disabled={true}
+                        ><GroupIcon /></Button>
+                    </Tooltip>
 
                 </ButtonGroup>
                 

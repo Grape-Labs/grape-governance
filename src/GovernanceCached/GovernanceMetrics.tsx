@@ -16,6 +16,15 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import {
+    Chart,
+    BarSeries,
+    Title,
+    ArgumentAxis,
+    ValueAxis,
+  } from '@devexpress/dx-react-chart-material-ui';
+  import { Animation } from '@devexpress/dx-react-chart';
+
+import {
   Typography,
   Button,
   Grid,
@@ -150,6 +159,7 @@ const GOVERNANNCE_STATE = {
 }
 
 function RenderVoterRecordTable(props:any) {
+    const setGovernnaceChartData = props.setGovernanceChartData;
     const setMetricsVoters = props.setMetricsVoters;
     const setMetricsAverageVotesPerParticipant = props.setMetricsAverageVotesPerParticipant;
     const setMetricsAverageParticipation = props.setMetricsAverageParticipation;
@@ -256,7 +266,8 @@ function RenderVoterRecordTable(props:any) {
                         totalCommunityDefeated++;
                     // set the date array
 
-                    let monthts = moment.unix(Number(item.account?.votingAt)).format("YYYY-MM");
+                    //let monthts = moment.unix(Number(item.account?.votingAt)).format("YYYY-MM");
+                    let monthts = moment.unix(Number(item.account?.draftAt)).format("YYYY-MM");
                     let pbi_found = false;
                     for (var pbi of propsByMonth){
                         if (pbi.date === monthts){
@@ -452,6 +463,8 @@ function RenderVoterRecordTable(props:any) {
         }
 
         try{
+            setGovernnaceChartData(propsByMonth);
+
             setMetricsProposalsPerMonth(((totalCommunityProposals/propsByMonth.length)).toFixed(1))
             
             setMetricsVoters(voterArray.length)
@@ -587,6 +600,9 @@ export function GovernanceMetricsView(props: any) {
     const [metricsRetention, setMetricsRetention] = React.useState(null);
     const [metricsActiveRetention, setMetricsActiveRetention] = React.useState(null);
     
+
+    const [governanceChartData, setGovernanceChartData] = React.useState(null);
+
     // average proposals per month
     // voter retention (eligible/all time)
     // voter active retention (active/all time)
@@ -810,7 +826,7 @@ export function GovernanceMetricsView(props: any) {
                         }
                     }
 
-                    const sortedResults = allprops.sort((a:any, b:any) => ((b.account?.votingAt != null ? b.account?.votingAt : 0) - (a.account?.votingAt != null ? a.account?.votingAt : 0)))
+                    const sortedResults = allprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
                     
                     setTotalDefeated(defeated);
                     setTotalPassed(passed);
@@ -1048,6 +1064,24 @@ export function GovernanceMetricsView(props: any) {
                                     </Grid>
                                 </Grid>
                             </>
+                        }
+
+                        {governanceChartData &&
+                                <Box>
+                                    <Chart
+                                        data={governanceChartData}
+                                        >
+                                        <ArgumentAxis />
+                                        <ValueAxis max={7} />
+
+                                        <BarSeries
+                                            valueField="count"
+                                            argumentField="date"
+                                        />
+                                        <Title text="Proposals" />
+                                        <Animation />
+                                    </Chart>
+                                </Box>
                         }
 
                             <Box sx={{ alignItems: 'center', textAlign: 'center',p:1}}>
@@ -1381,6 +1415,7 @@ export function GovernanceMetricsView(props: any) {
                         }
 
                         <RenderVoterRecordTable 
+                            setGovernanceChartData={setGovernanceChartData}
                             setMetricsVoters={setMetricsVoters} 
                             setMetricsAverageVotesPerParticipant={setMetricsAverageVotesPerParticipant} 
                             setMetricsEligibleVoters={setMetricsEligibleVoters}
