@@ -548,9 +548,10 @@ function RenderVoterRecordTable(props:any) {
                         
                     </Grid>
                     <Grid item xs={12} sm={6} container justifyContent="flex-end">
-                        <Tooltip title="Download SPL Governance CSV file">
+                        <Tooltip title="Download the Governancne Metrics CSV File">
                             <Button
                                 color='inherit'
+                                variant='outlined'
                                 download={`${governanceAddress}_metrics.csv`}
                                 href={csvGenerated}
                                 sx={{borderRadius:'17px'}}
