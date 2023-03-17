@@ -814,13 +814,13 @@ export function GovernanceSnapshotView (this: any, props: any) {
         console.log("Storage Pool: "+storagePool+" | Lookup File found: "+JSON.stringify(lookupFound))
         if (lookupFound){ // update governanceLookup
             // with the file found, lets generate the lookup as an array
-            console.log("Lookup Found: "+JSON.stringify(governanceLookup));
             var govFound = false;
             let cntr = 0;
 
-            const governingMintPromise = 
+            //console.log("realm: "+JSON.stringify(realm))
+            const governingMintDetails = 
                 await connection.getParsedAccountInfo(
-                    new PublicKey(thisGovernance.account.governingTokenMint)
+                    new PublicKey(realm.account.communityMint)
                 );
 
             for (var item of governanceLookup){
@@ -830,6 +830,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     item.filename = fileName;
                     item.realm = realm;
                     item.governance = thisGovernance;
+                    item.governingMintDetails = governingMintDetails;
                     govFound = true;
                 }
                 cntr++;
@@ -843,7 +844,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     timestamp:timestamp,
                     filename:fileName,
                     realm:realm,
-                    governance: thisGovernance
+                    governance: thisGovernance,
+                    governingMintDetails: governingMintDetails
                 });
             }
 

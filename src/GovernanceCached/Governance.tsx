@@ -373,11 +373,12 @@ function GetParticipants(props: any){
     ];
 
     const getGovernanceProps = async () => {
-
+        let governance_item = null;
         let governance = null;
         if (governanceLookup){
             for (let glitem of governanceLookup){
                 if (glitem.governanceAddress === governanceAddress){
+                    governance_item = glitem;
                     if (glitem?.governance)
                         governance = glitem.governance;
                 }
@@ -385,7 +386,6 @@ function GetParticipants(props: any){
         }
 
         if (!governance){
-            alert("here... 21")
             governance = await getGovernance(connection, thisitem.account.governance);    
         }
         setThisGovernance(governance);
@@ -403,14 +403,19 @@ function GetParticipants(props: any){
             //    new PublicKey(governance.account.config.communityMint?.toBase58())
             //);
 
-            const governingMintPromise = 
+            let governingMintDetails = null;
+            if (governance_item?.governingMintDetails){
+                governingMintDetails = governance_item.governingMintDetails;
+            }else{
                 await connection.getParsedAccountInfo(
                     new PublicKey(thisitem.account.governingTokenMint)
                 );
-            //console.log("communityMintPromise ("+thisitem.account.governingTokenMint+") "+JSON.stringify(governingMintPromise))
-            setGoverningMintInfo(governingMintPromise);
+            }
             
-            const communityWeight = governingMintPromise.value.data.parsed.info.supply - realm.account.config.minCommunityTokensToCreateGovernance.toNumber();
+            //console.log("communityMintPromise ("+thisitem.account.governingTokenMint+") "+JSON.stringify(governingMintPromise))
+            setGoverningMintInfo(governingMintDetails);
+            
+            const communityWeight = governingMintDetails.value.data.parsed.info.supply - realm.account.config.minCommunityTokensToCreateGovernance.toNumber();
             //console.log("communityWeight: "+communityWeight);
             
             const communityMintMaxVoteWeightSource = realm.account.config.communityMintMaxVoteWeightSource
@@ -430,13 +435,12 @@ function GetParticipants(props: any){
                 ? councilVoteThreshold.value
                 : communityVoteThreshold.value
             
-            
-            const tSupply = Number(governingMintPromise.value.data.parsed.info.supply/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals)) 
+            const tSupply = Number(governingMintDetails.value.data.parsed.info.supply/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals)) 
             
             setTotalSupply(tSupply);
             
             const totalVotes =
-                Number(governingMintPromise.value.data.parsed.info.supply/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals))  *
+                Number(governingMintDetails.value.data.parsed.info.supply/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals))  *
                 //Number(communityWeight/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals))  *
                 (voteThresholdPercentage * 0.01) *
                   (Number(supplyFractionPercentage) / 100);
@@ -448,8 +452,8 @@ function GetParticipants(props: any){
             if (totalVotes && totalVotes > 0)
                 setTotalQuorum(totalVotes);
             
-            const qt = totalVotes-Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals);
-            const yesVotes = Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals);
+            const qt = totalVotes-Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals);
+            const yesVotes = Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals);
             
             const excess = yesVotes - totalVotes;
             
