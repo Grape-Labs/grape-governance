@@ -143,7 +143,8 @@ export function Header(props: any) {
     const location = useLocation();
     const currPath = location.pathname;
     const searchParams = new URLSearchParams(location.search);
-    const [fetchType, setFetchType] = React.useState(currPath.includes("rpcgovernance") ? "rpcgovernance" : currPath.includes("metrics") ? "metrics" : currPath.includes("members") ? "members" : currPath.includes("treasury") ? "treasury" : "cachedgovernance");
+    //const [fetchType, setFetchType] = React.useState(currPath.includes("rpcgovernance") ? "rpcgovernance" : currPath.includes("metrics") ? "metrics" : currPath.includes("members") ? "members" : currPath.includes("treasury") ? "treasury" : "cachedgovernance");
+    const [fetchType, setFetchType] = React.useState(currPath.includes("rpcgovernance") ? "rpcgovernance" : "cachedgovernance");
     
     const [anchorEl, setAnchorEl] = React.useState(null);
     const isWalletOpen = Boolean(anchorEl);
@@ -330,9 +331,11 @@ export function Header(props: any) {
 
                             <FormControlLabel value="cachedgovernance" control={<Radio />} label="Cached" />
                             <FormControlLabel value="rpcgovernance" control={<Radio />} label="RPC" />
+                            {/*
                             <FormControlLabel value="metrics" control={<Radio />} label="Metrics" />
                             <FormControlLabel value="members" control={<Radio />} label="Members" disabled={true} />
                             <FormControlLabel value="treasury" control={<Radio />} label="Treasury" disabled={true} />
+                            */}
                     </RadioGroup>
 
                 {/*

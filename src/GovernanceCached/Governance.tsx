@@ -43,6 +43,7 @@ import {
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
 
+import GovernanceNavigation from './GovernanceNavigation'; 
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
@@ -2118,8 +2119,6 @@ export function GovernanceCachedView(props: any) {
                 }
             }
 
-
-            
             counter++;
         }
         
@@ -2199,11 +2198,7 @@ export function GovernanceCachedView(props: any) {
                                         </Grid>
                                     </Grid>
                                     <Grid item xs={12} sm={6} container justifyContent="flex-end">
-                                        {publicKey &&
-                                            <Typography variant="h4" align="right">
-                                                <VotingPower tokenArray={tokenArray} participatingRealm={participatingRealm} />
-                                            </Typography>
-                                        }
+                                        <GovernanceNavigation governanceAddress={governanceAddress} />
                                     </Grid>
                                 </Grid>
                                 {/*

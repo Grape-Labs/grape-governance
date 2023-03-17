@@ -41,6 +41,8 @@ import {
   Alert
 } from '@mui/material/';
 
+import GovernanceNavigation from './GovernanceNavigation'; 
+
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
 
@@ -547,6 +549,7 @@ export function GovernanceMetricsView(props: any) {
     //const governanceAddress = props.governanceAddress;
     const [loading, setLoading] = React.useState(false);
     const [memberMap, setMemberMap] = React.useState(null);
+    const [cachedMemberMap, setCachedMemberMap] = React.useState(null);
     const [realm, setRealm] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(null);
     const [tokenArray, setTokenArray] = React.useState(null);
@@ -565,7 +568,7 @@ export function GovernanceMetricsView(props: any) {
     const [governingTokenDecimals, setGoverningTokenDecimals] = React.useState(null);
     const [governanceType, setGovernanceType] = React.useState(0);
     const [cachedGovernance, setCachedGovernance] = React.useState(null);
-
+    const [cachedRealm, setCachedRealm] = React.useState(null);
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
 
@@ -653,13 +656,31 @@ export function GovernanceMetricsView(props: any) {
                 
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
                 
-                const grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
-                setRealm(grealm);
-
+                let grealm = null;
+                if (cachedRealm){
+                    console.log("Realm from cache")
+                    setRealm(cachedRealm);
+                    grealm = cachedRealm;
+                } else{
+                    grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
+                    setRealm(grealm);
+                }
                 const realmPk = grealm.pubkey;
-                const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
+                setRealm(grealm);
+                //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
+                
+                let rawTokenOwnerRecords = null;
+                if (cachedMemberMap){
+                    console.log("Using Cached Member Map")
+                    rawTokenOwnerRecords = cachedMemberMap;
+                } else{
+                    rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
+                }
+                
                 setMemberMap(rawTokenOwnerRecords);
                 
+
+
                 let gTD = null;
                 if (tokenMap.get(grealm.account?.communityMint.toBase58())){
                     setGovernanceType(0);
@@ -842,7 +863,7 @@ export function GovernanceMetricsView(props: any) {
         }
     }, [cachedGovernance]);
 
-    const fetchGovernanceFile = async(fileName:string) => {
+    const fetchLookupFile = async(fileName:string) => {
         try{
             const url = GGAPI_STORAGE_URI+"/"+GGAPI_STORAGE_POOL+'/'+fileName+'';
             const response = await window.fetch(url, {
@@ -860,8 +881,8 @@ export function GovernanceMetricsView(props: any) {
         }
     }
 
-    const getGovernanceFromLookup  = async (fileName:string) => {
-        const fgl = await fetchGovernanceFile(fileName);
+    const getFileFromLookup  = async (fileName:string) => {
+        const fgl = await fetchLookupFile(fileName);
         return fgl;
     } 
     
@@ -873,11 +894,14 @@ export function GovernanceMetricsView(props: any) {
                 if (glitem.governanceAddress === governanceAddress){
 
                     if (glitem?.realm){
-                        const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(glitem?.realm.owner), new PublicKey(glitem?.realm.pubkey))
-                        setMemberMap(rawTokenOwnerRecords);
+                        setCachedRealm(glitem?.realm);
+                    }
+                    if (glitem?.memberFilename){
+                        const cached_members = await getFileFromLookup(glitem.memberFilename);
+                        setCachedMemberMap(cached_members);
                     }
 
-                    cached_governance = await getGovernanceFromLookup(glitem.filename);
+                    cached_governance = await getFileFromLookup(glitem.filename);
                 }
             }
         }
@@ -1010,7 +1034,17 @@ export function GovernanceMetricsView(props: any) {
                                         </Grid>
                                     </Grid>
                                     <Grid item xs={12} sm={6} container justifyContent="flex-end">
-                                        HISTORICAL METRICS
+                                        <Grid container>
+                                            <Grid item xs={12}>
+                                                <GovernanceNavigation governanceAddress={governanceAddress} />
+                                            </Grid>
+                                            <Grid item xs={12} 
+                                                justifyContent="flex-end"
+                                                alignItems="flex-end"
+                                                sx={{textAlign:'right'}}>
+                                                HISTORICAL METRICS
+                                            </Grid>
+                                        </Grid>
                                     </Grid>
                                 </Grid>
                             </>
