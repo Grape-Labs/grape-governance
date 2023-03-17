@@ -15,6 +15,8 @@ import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import dayjs, { Dayjs } from 'dayjs';
+
 import {
     Chart,
     BarSeries,
@@ -23,6 +25,14 @@ import {
     ValueAxis,
   } from '@devexpress/dx-react-chart-material-ui';
   import { Animation } from '@devexpress/dx-react-chart';
+
+import { 
+    DesktopDatePicker,
+    MobileDatePicker,
+    LocalizationProvider
+} from '@mui/x-date-pickers/';
+
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 import {
   Typography,
@@ -47,7 +57,8 @@ import {
   Badge,
   ButtonGroup,
   CircularProgress,
-  Alert
+  Alert,
+  TextField
 } from '@mui/material/';
 
 import GovernanceNavigation from './GovernanceNavigation'; 
@@ -159,6 +170,11 @@ const GOVERNANNCE_STATE = {
 }
 
 function RenderVoterRecordTable(props:any) {
+    //const [governanceStartDate, setGovernanceStartDate] = React.useState(props.governanceStartDate);
+    //const [governanceEndDate, setGovernanceEndDate] = React.useState(props.governanceEndDate);
+    const governanceStartDate = props.governanceStartDate;
+    const governanceEndDate = props.governanceEndDate;
+
     const setGovernnaceChartData = props.setGovernanceChartData;
     const setMetricsVoters = props.setMetricsVoters;
     const setMetricsAverageVotesPerParticipant = props.setMetricsAverageVotesPerParticipant;
@@ -190,6 +206,7 @@ function RenderVoterRecordTable(props:any) {
     const nftBasedGovernance = props.nftBasedGovernance;
     const governanceAddress = props.governanceAddress;
     const [csvGenerated, setCSVGenerated] = React.useState(null);
+    const [loading, setLoading] = React.useState(null);
 
     const [voterRecordRows, setVoterRecordRows] = React.useState(null);
     const votingrecordcolumns: GridColDef[] = [
@@ -212,11 +229,11 @@ function RenderVoterRecordTable(props:any) {
 
     const exportFile = async(csvFile:string, fileName:string) => {
         //setStatus(`File generated! - ${finalList.length} proposals`);
-            
-            if (csvFile){
-                const jsonCSVString = `data:text/csv;chatset=utf-8,${csvFile}`;
-                setCSVGenerated(jsonCSVString);
-            }
+        
+        if (csvFile){
+            const jsonCSVString = `data:text/csv;chatset=utf-8,${csvFile}`;
+            setCSVGenerated(jsonCSVString);
+        }
     }
 
     const renderVoterRecords = async () => {
@@ -233,228 +250,243 @@ function RenderVoterRecordTable(props:any) {
         let totalCommunityPassed = 0;
         let totalCommunityDefeated = 0;
         let propsByMonth = new Array();
-
+        setLoading(true);
         if (cachedGovernance){
             var voter = 0;
             let csvFile = '';
             for (var item of cachedGovernance){
-                const authorPk = item.account.tokenOwnerRecord;
-                let authorAddress = null;
 
-                
-                if (authorPk){
-                    if (memberMap){
-                       for (var memberItem of memberMap){
-                            if (memberItem.pubkey.toBase58() === authorPk.toBase58()){
-                                authorAddress = memberItem.account.governingTokenOwner.toBase58()
+                let skipProp = false;
+                if (governanceStartDate && governanceEndDate){
+                    if (governanceStartDate < governanceEndDate){
+                        skipProp = true;
+                        // check if proposal draft date is within start/end
+                        //console.log("draft at "+Number(item.account?.draftAt))
+                        if ((Number(item.account?.draftAt) >= governanceStartDate) && 
+                            (Number(item.account?.draftAt) <= governanceEndDate)){
+                                console.log("Skipping Prop "+item.pubkey)
+                                skipProp = false;
                             }
-                        }
-                        
-                    }
-                }
-                
-                
-
-                // item.account.governingTokenOwner.toBase58()
-                if (realm.account.config?.councilMint && (realm.account.config?.councilMint.toBase58() === item.account.governingTokenMint.toBase58())){
-                    // council stats
-                } else{
-                    totalCommunityProposals++;
-                    if (item.account.state === 3 || item.account.state === 5)
-                        totalCommunityPassed++;
-                    else if (item.account.state === 7)
-                        totalCommunityDefeated++;
-                    // set the date array
-
-                    //let monthts = moment.unix(Number(item.account?.votingAt)).format("YYYY-MM");
-                    let monthts = moment.unix(Number(item.account?.draftAt)).format("YYYY-MM");
-                    let pbi_found = false;
-                    for (var pbi of propsByMonth){
-                        if (pbi.date === monthts){
-                            pbi_found = true;
-                            pbi.count++;
-                            if (item.account.state === 3 || item.account.state === 5) 
-                                pbi.cpassing++
-                            if (item.account.state === 7)
-                                pbi.cdefeated++
-                        }
-                    }
-
-                    if (!pbi_found){
-                        propsByMonth.push({
-                            'date':monthts,
-                            'cpassing':(item.account.state === 3 || item.account.state === 5) ? 1 : 0,
-                            'cdefeated':(item.account.state === 7) ? 1 :0,
-                            'count':1
-                        });
                     }
                 }
 
-                if (item?.votingResults){
-                    for (var inner_item of item.votingResults){
+                if (!skipProp){
+                    const authorPk = item.account.tokenOwnerRecord;
+                    let authorAddress = null;
 
-                        var councilpropcreator = 0;
-                        var depositedgovernancevotes = 0;
-                        var depositedcouncilvotes = 0;
-                        var foundParticipant = false;
-                        var propcreator = 0;
-                        var totalvotes = 0;
-                        var totalvotesfor = 0;
-                        var totalvotesagainst = 0;
-                        var totalproposalparticipation = 1;
-                        var totalproposalsfor = 0;
-                        var totalproposalsagainst = 0;
-                        var totalcouncilvotes = 0;
-                        var totalcouncilvotesfor = 0;
-                        var totalcouncilvotesagainst = 0;
-                        
-                        propcreator = 0;
-                        //console.log(author+" v "+inner_item.governingTokenOwner.toBase58())
-                        if (authorAddress === inner_item.governingTokenOwner.toBase58()){ // has created this proposal
-                            if (realm.account.config?.councilMint && (realm.account.config?.councilMint.toBase58() === item.account.governingTokenMint.toBase58())){ 
-                                councilpropcreator = 1;
-                            } else{
-                                propcreator = 1;
-                            }
-                        }
-
-                        for (var participant of voterArray){
-                            
-                            //console.log("t: "+JSON.stringify(item.account))
-                            
-                            if (participant.pubkey === inner_item.governingTokenOwner.toBase58()){
-                                //inner_item.councilMint 
-                                //inner_item.governingTokenMint
-                                //inner_item.decimals
-                                
-                                if (realm.account.config?.councilMint && (realm.account.config?.councilMint.toBase58() === item.account.governingTokenMint.toBase58())){ // Council Votes
-                                    //console.log("council vote...")
-
-                                    if (inner_item?.vote){
-                                        if (inner_item?.vote?.vote?.voteType === 0){
-                                            if ((inner_item?.vote?.voterWeight) > 0){
-                                                totalproposalsfor = 1; 
-                                                totalcouncilvotesfor = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);
-                                                totalcouncilvotes = (totalcouncilvotesfor);
-                                            }
-                                        } else{
-                                            totalcouncilvotesagainst = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//inner_item?.vote?.voterWeight; //getFormattedNumberToLocale(formatAmount(+(parseInt(inner_item?.vote?.voterWeight)/Math.pow(10, inner_item?.vote?.decimals)).toFixed(0)));
-                                            totalcouncilvotes = (totalcouncilvotesagainst);
-                                        }
-                                    } else if (inner_item?.vote?.legacyYes) {
-                                        if (inner_item?.vote?.legacyYes > 0){
-                                            totalcouncilvotesfor = +((inner_item?.vote?.legacyYes)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyYes);
-                                            totalcouncilvotes = (totalcouncilvotesfor);
-                                        } else if (inner_item?.vote?.legacyNo > 0){
-                                            totalcouncilvotesagainst = +((inner_item?.vote?.legacyNo)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyNo);
-                                            totalcouncilvotes = (totalcouncilvotesagainst);
-                                        }
-                                    }
-
-                                } else{ // Non Council
-                                    //console.log("non council vote...")
-                                    totalCommunityParticipation++;
-
-                                    if (inner_item?.vote){
-                                        if (inner_item?.vote?.vote?.voteType === 0){
-                                            if ((inner_item?.vote?.voterWeight) > 0){
-                                                totalproposalsfor = 1; 
-                                                totalvotesfor = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);
-                                                totalvotes = (totalvotesfor);
-                                            }
-                                        } else{
-                                            totalproposalsagainst = 1; 
-                                            totalvotesagainst = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//inner_item?.vote?.voterWeight; //getFormattedNumberToLocale(formatAmount(+(parseInt(inner_item?.vote?.voterWeight)/Math.pow(10, inner_item?.vote?.decimals)).toFixed(0)));
-                                            totalvotes = (totalvotesagainst);
-                                        }
-                                    } else if (inner_item?.vote?.legacyYes) {
-                                        if (inner_item?.vote?.legacyYes > 0){
-                                            totalproposalsfor = 1;
-                                            totalvotesfor = +((inner_item?.vote?.legacyYes)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyYes);
-                                            totalvotes = (totalvotesfor);
-                                        } else if (inner_item?.vote?.legacyNo > 0){
-                                            totalproposalsagainst = 1;
-                                            totalvotesagainst = +((inner_item?.vote?.legacyNo)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyNo);
-                                            totalvotes = (totalvotesagainst);
-                                        }
-                                    }
+                    
+                    if (authorPk){
+                        if (memberMap){
+                        for (var memberItem of memberMap){
+                                if (memberItem.pubkey.toBase58() === authorPk.toBase58()){
+                                    authorAddress = memberItem.account.governingTokenOwner.toBase58()
                                 }
+                            }
+                            
+                        }
+                    }
 
-                                foundParticipant = true;
-                                
-                                if ((totalvotes>0)&&(participant.totalvotes <= 0))
-                                    totalActiveVoters++;
-                                totalVotesCasted+=totalvotes;
-                                
-                                participant.totalproposalscreated += propcreator;
-                                participant.totalvotes += totalvotes;
-                                participant.totalvotesfor += totalvotesfor;
-                                participant.totalvotesagainst += totalvotesagainst;
-                                participant.totalproposalparticipation += totalproposalparticipation;
-                                participant.totalproposalsfor += totalproposalsfor;
-                                participant.totalproposalsagainst += totalproposalsagainst;
-                                participant.totalcouncilproposalscreated += councilpropcreator;
-                                participant.totalcouncilvotes += totalcouncilvotes;
-                                participant.totalcouncilvotesfor += totalcouncilvotesfor;
-                                participant.totalcouncilvotesagainst += totalcouncilvotesagainst;
+                    // item.account.governingTokenOwner.toBase58()
+                    if (realm.account.config?.councilMint && (realm.account.config?.councilMint.toBase58() === item.account.governingTokenMint.toBase58())){
+                        // council stats
+                    } else{
+                        totalCommunityProposals++;
+                        if (item.account.state === 3 || item.account.state === 5)
+                            totalCommunityPassed++;
+                        else if (item.account.state === 7)
+                            totalCommunityDefeated++;
+                        // set the date array
+
+                        //let monthts = moment.unix(Number(item.account?.votingAt)).format("YYYY-MM");
+                        let monthts = moment.unix(Number(item.account?.draftAt)).format("YYYY-MM");
+                        let pbi_found = false;
+                        for (var pbi of propsByMonth){
+                            if (pbi.date === monthts){
+                                pbi_found = true;
+                                pbi.count++;
+                                if (item.account.state === 3 || item.account.state === 5) 
+                                    pbi.cpassing++
+                                if (item.account.state === 7)
+                                    pbi.cdefeated++
                             }
                         }
-                        
-                        if (!foundParticipant){
-                            depositedgovernancevotes = 0;
-                            depositedcouncilvotes = 0;
-                            for (var memberItem of memberMap){
-                                if (memberItem.account.governingTokenOwner.toBase58() === inner_item.governingTokenOwner.toBase58()){
+
+                        if (!pbi_found){
+                            propsByMonth.push({
+                                'date':monthts,
+                                'cpassing':(item.account.state === 3 || item.account.state === 5) ? 1 : 0,
+                                'cdefeated':(item.account.state === 7) ? 1 :0,
+                                'count':1
+                            });
+                        }
+                    }
+
+                    if (item?.votingResults){
+                        for (var inner_item of item.votingResults){
+
+                            var councilpropcreator = 0;
+                            var depositedgovernancevotes = 0;
+                            var depositedcouncilvotes = 0;
+                            var foundParticipant = false;
+                            var propcreator = 0;
+                            var totalvotes = 0;
+                            var totalvotesfor = 0;
+                            var totalvotesagainst = 0;
+                            var totalproposalparticipation = 1;
+                            var totalproposalsfor = 0;
+                            var totalproposalsagainst = 0;
+                            var totalcouncilvotes = 0;
+                            var totalcouncilvotesfor = 0;
+                            var totalcouncilvotesagainst = 0;
+                            
+                            propcreator = 0;
+                            //console.log(author+" v "+inner_item.governingTokenOwner.toBase58())
+                            if (authorAddress === inner_item.governingTokenOwner.toBase58()){ // has created this proposal
+                                if (realm.account.config?.councilMint && (realm.account.config?.councilMint.toBase58() === item.account.governingTokenMint.toBase58())){ 
+                                    councilpropcreator = 1;
+                                } else{
+                                    propcreator = 1;
+                                }
+                            }
+
+                            for (var participant of voterArray){
+                                
+                                //console.log("t: "+JSON.stringify(item.account))
+                                
+                                if (participant.pubkey === inner_item.governingTokenOwner.toBase58()){
+                                    //inner_item.councilMint 
+                                    //inner_item.governingTokenMint
+                                    //inner_item.decimals
                                     
-                                    // check if council member
-                                    //realm.account.communityMint
-                                    //realm.account.config.councilMint
+                                    if (realm.account.config?.councilMint && (realm.account.config?.councilMint.toBase58() === item.account.governingTokenMint.toBase58())){ // Council Votes
+                                        //console.log("council vote...")
 
-                                    if (realm.account.communityMint.toBase58() === memberItem.account.governingTokenMint.toBase58()){
-                                        depositedgovernancevotes = +(Number(memberItem.account.governingTokenDepositAmount)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);
-                                    }else if (realm.account.config.councilMint.toBase58() === memberItem.account.governingTokenMint.toBase58()){
-                                        depositedcouncilvotes = +(Number(memberItem.account.governingTokenDepositAmount));
+                                        if (inner_item?.vote){
+                                            if (inner_item?.vote?.vote?.voteType === 0){
+                                                if ((inner_item?.vote?.voterWeight) > 0){
+                                                    totalproposalsfor = 1; 
+                                                    totalcouncilvotesfor = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);
+                                                    totalcouncilvotes = (totalcouncilvotesfor);
+                                                }
+                                            } else{
+                                                totalcouncilvotesagainst = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//inner_item?.vote?.voterWeight; //getFormattedNumberToLocale(formatAmount(+(parseInt(inner_item?.vote?.voterWeight)/Math.pow(10, inner_item?.vote?.decimals)).toFixed(0)));
+                                                totalcouncilvotes = (totalcouncilvotesagainst);
+                                            }
+                                        } else if (inner_item?.vote?.legacyYes) {
+                                            if (inner_item?.vote?.legacyYes > 0){
+                                                totalcouncilvotesfor = +((inner_item?.vote?.legacyYes)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyYes);
+                                                totalcouncilvotes = (totalcouncilvotesfor);
+                                            } else if (inner_item?.vote?.legacyNo > 0){
+                                                totalcouncilvotesagainst = +((inner_item?.vote?.legacyNo)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyNo);
+                                                totalcouncilvotes = (totalcouncilvotesagainst);
+                                            }
+                                        }
+
+                                    } else{ // Non Council
+                                        //console.log("non council vote...")
+                                        totalCommunityParticipation++;
+
+                                        if (inner_item?.vote){
+                                            if (inner_item?.vote?.vote?.voteType === 0){
+                                                if ((inner_item?.vote?.voterWeight) > 0){
+                                                    totalproposalsfor = 1; 
+                                                    totalvotesfor = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);
+                                                    totalvotes = (totalvotesfor);
+                                                }
+                                            } else{
+                                                totalproposalsagainst = 1; 
+                                                totalvotesagainst = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//inner_item?.vote?.voterWeight; //getFormattedNumberToLocale(formatAmount(+(parseInt(inner_item?.vote?.voterWeight)/Math.pow(10, inner_item?.vote?.decimals)).toFixed(0)));
+                                                totalvotes = (totalvotesagainst);
+                                            }
+                                        } else if (inner_item?.vote?.legacyYes) {
+                                            if (inner_item?.vote?.legacyYes > 0){
+                                                totalproposalsfor = 1;
+                                                totalvotesfor = +((inner_item?.vote?.legacyYes)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyYes);
+                                                totalvotes = (totalvotesfor);
+                                            } else if (inner_item?.vote?.legacyNo > 0){
+                                                totalproposalsagainst = 1;
+                                                totalvotesagainst = +((inner_item?.vote?.legacyNo)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyNo);
+                                                totalvotes = (totalvotesagainst);
+                                            }
+                                        }
                                     }
+
+                                    foundParticipant = true;
+                                    
+                                    if ((totalvotes>0)&&(participant.totalvotes <= 0))
+                                        totalActiveVoters++;
+                                    totalVotesCasted+=totalvotes;
+                                    
+                                    participant.totalproposalscreated += propcreator;
+                                    participant.totalvotes += totalvotes;
+                                    participant.totalvotesfor += totalvotesfor;
+                                    participant.totalvotesagainst += totalvotesagainst;
+                                    participant.totalproposalparticipation += totalproposalparticipation;
+                                    participant.totalproposalsfor += totalproposalsfor;
+                                    participant.totalproposalsagainst += totalproposalsagainst;
+                                    participant.totalcouncilproposalscreated += councilpropcreator;
+                                    participant.totalcouncilvotes += totalcouncilvotes;
+                                    participant.totalcouncilvotesfor += totalcouncilvotesfor;
+                                    participant.totalcouncilvotesagainst += totalcouncilvotesagainst;
                                 }
                             }
+                            
+                            if (!foundParticipant){
+                                depositedgovernancevotes = 0;
+                                depositedcouncilvotes = 0;
+                                for (var memberItem of memberMap){
+                                    if (memberItem.account.governingTokenOwner.toBase58() === inner_item.governingTokenOwner.toBase58()){
+                                        
+                                        // check if council member
+                                        //realm.account.communityMint
+                                        //realm.account.config.councilMint
 
-                            if (depositedgovernancevotes>0)
-                                totalEligibleVoters++;
-                            if (totalvotes>0)
-                                totalActiveVoters++;
+                                        if (realm.account.communityMint.toBase58() === memberItem.account.governingTokenMint.toBase58()){
+                                            depositedgovernancevotes = +(Number(memberItem.account.governingTokenDepositAmount)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);
+                                        }else if (realm.account.config.councilMint.toBase58() === memberItem.account.governingTokenMint.toBase58()){
+                                            depositedcouncilvotes = +(Number(memberItem.account.governingTokenDepositAmount));
+                                        }
+                                    }
+                                }
 
-                            totalVotesDeposited+=depositedgovernancevotes;
-                            totalVotesCasted+=totalvotes;
+                                if (depositedgovernancevotes>0)
+                                    totalEligibleVoters++;
+                                if (totalvotes>0)
+                                    totalActiveVoters++;
 
-                            voterArray.push({
-                                id: voter+1,
-                                pubkey: inner_item.governingTokenOwner.toBase58(),
-                                currentvotes: depositedgovernancevotes,
-                                councilvotes: depositedcouncilvotes,
-                                totalproposalscreated: propcreator,
-                                totalvotes: totalvotes,
-                                totalvotesfor: totalvotesfor,
-                                totalvotesagainst: totalvotesagainst,
-                                totalproposalparticipation: totalproposalparticipation,
-                                totalproposalsfor: totalproposalsfor,
-                                totalproposalsagainst: totalproposalsagainst,
-                                totalcouncilproposalscreated: councilpropcreator,
-                                totalcouncilvotes: totalcouncilvotes,
-                                totalcouncilvotesfor: totalcouncilvotesfor,
-                                totalcouncilvotesagainst: totalcouncilvotesagainst,
-                            })
-                            voter++;
+                                totalVotesDeposited+=depositedgovernancevotes;
+                                totalVotesCasted+=totalvotes;
+
+                                voterArray.push({
+                                    id: voter+1,
+                                    pubkey: inner_item.governingTokenOwner.toBase58(),
+                                    currentvotes: depositedgovernancevotes,
+                                    councilvotes: depositedcouncilvotes,
+                                    totalproposalscreated: propcreator,
+                                    totalvotes: totalvotes,
+                                    totalvotesfor: totalvotesfor,
+                                    totalvotesagainst: totalvotesagainst,
+                                    totalproposalparticipation: totalproposalparticipation,
+                                    totalproposalsfor: totalproposalsfor,
+                                    totalproposalsagainst: totalproposalsagainst,
+                                    totalcouncilproposalscreated: councilpropcreator,
+                                    totalcouncilvotes: totalcouncilvotes,
+                                    totalcouncilvotesfor: totalcouncilvotesfor,
+                                    totalcouncilvotesagainst: totalcouncilvotesagainst,
+                                })
+                                voter++;
+                            }
                         }
                     }
-                }
-                var counter = 0;
-                for (var voter_item of voterArray){
-                    if (counter > 0)
-                        csvFile += '\r\n';
-                    else
-                        csvFile = 'pubkey,totalproposalscreated,depositedvotes,councildepositedvotes,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
-                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
-                    counter++;
+                    var counter = 0;
+                    for (var voter_item of voterArray){
+                        if (counter > 0)
+                            csvFile += '\r\n';
+                        else
+                            csvFile = 'pubkey,totalproposalscreated,depositedvotes,councildepositedvotes,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
+                        csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
+                        counter++;
+                    }
                 }
 
             }
@@ -469,14 +501,20 @@ function RenderVoterRecordTable(props:any) {
             
             setMetricsVoters(voterArray.length)
             setMetricsAverageVotesPerParticipant(getFormattedNumberToLocale(formatAmount(+(totalVotesCasted/totalActiveVoters/totalCommunityProposals).toFixed(0))))
-            setMetricsAverageParticipation((totalCommunityParticipation/totalCommunityProposals).toFixed(0))
+            if (totalCommunityParticipation > 0)
+                setMetricsAverageParticipation((totalCommunityParticipation/totalCommunityProposals).toFixed(0))
             setMetricsActiveVoters(totalActiveVoters)
             setMetricsEligibleVoters(totalEligibleVoters)
-            setMetricsTotalVotesDeposited(getFormattedNumberToLocale(formatAmount(totalVotesDeposited)));
+            if (totalVotesDeposited > 0)
+                setMetricsTotalVotesDeposited(getFormattedNumberToLocale(formatAmount(totalVotesDeposited)));
+            else
+                setMetricsTotalVotesDeposited(null);
             setMetricsTotalVotesCasted(getFormattedNumberToLocale(formatAmount(totalVotesCasted)));
             setMetricsTotalProposals(totalCommunityProposals);
-            setMetricsParticipationRate((((totalCommunityParticipation/totalCommunityProposals)/totalEligibleVoters)*100).toFixed(2));
-
+            if (totalEligibleVoters > 0)
+                setMetricsParticipationRate((((totalCommunityParticipation/totalCommunityProposals)/totalEligibleVoters)*100).toFixed(2));
+            else
+                setMetricsParticipationRate(null);
             setMetricsCommunityPassed(totalCommunityPassed);
             setMetricsCommunityDefeated(totalCommunityDefeated);
             
@@ -485,6 +523,7 @@ function RenderVoterRecordTable(props:any) {
         }
         setVoterRecordRows(voterArray);
         endTime();
+        setLoading(false);
     }
 
     React.useEffect(() => { 
@@ -492,9 +531,15 @@ function RenderVoterRecordTable(props:any) {
             renderVoterRecords();
     }, []);
 
+    React.useEffect(() => { 
+        if (governanceStartDate && governanceEndDate){
+            if (!loading)
+                renderVoterRecords();
+        }
+    }, [governanceStartDate, governanceEndDate]);
+
     return (
         <>
-
             {csvGenerated &&
 
                 <>
@@ -600,8 +645,20 @@ export function GovernanceMetricsView(props: any) {
     const [metricsRetention, setMetricsRetention] = React.useState(null);
     const [metricsActiveRetention, setMetricsActiveRetention] = React.useState(null);
     
+    const [governanceStartDate, setGovernanceStartDate] = React.useState(null);
+    const [governanceEndDate, setGovernanceEndDate] = React.useState(null);
+
 
     const [governanceChartData, setGovernanceChartData] = React.useState(null);
+
+    const handleStartDateChange = (newValue: Dayjs | null) => {
+        setGovernanceStartDate(newValue.unix());
+    }
+
+    const handleEndDateChange = (newValue: Dayjs | null) => {
+        setGovernanceEndDate(newValue.unix())
+        //setGovernanceEndDate(dayjs.unix(Number(newValue)));
+    }
 
     // average proposals per month
     // voter retention (eligible/all time)
@@ -1066,6 +1123,32 @@ export function GovernanceMetricsView(props: any) {
                             </>
                         }
 
+                        <Box sx={{ alignItems: 'center', textAlign: 'center',p:1}}>
+
+                            <div>
+                                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                    <DesktopDatePicker
+                                        label="Start Date"
+                                        inputFormat="YYYY/MM/DD"
+                                        //value={value}
+                                        onChange={handleStartDateChange}
+                                        renderInput={(params:any) => <TextField {...params} />}
+                                        sx={{mr:1}}
+                                        />
+                                    <DesktopDatePicker
+                                        label="End Date"
+                                        inputFormat="YYYY/MM/DD"
+                                        //value={value}
+                                        onChange={handleEndDateChange}
+                                        renderInput={(params:any) => <TextField {...params} />}
+                                        sx={{ml:1}}
+                                        />
+                                </LocalizationProvider>
+
+                            </div>
+
+                        </Box>
+
                         {governanceChartData &&
                                 <Box>
                                     <Chart
@@ -1441,7 +1524,9 @@ export function GovernanceMetricsView(props: any) {
                             thisToken={thisToken} 
                             proposals={proposals} 
                             nftBasedGovernance={nftBasedGovernance} 
-                            governanceAddress={governanceAddress} />
+                            governanceAddress={governanceAddress}
+                            governanceStartDate={governanceStartDate}
+                            governanceEndDate={governanceEndDate} />
                         
                         {endTime &&
                             <Typography 
