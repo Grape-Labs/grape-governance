@@ -506,7 +506,7 @@ function GetParticipants(props: any){
             //console.log("ERR: "+e);
         }
         
-        if (realm.account.config?.councilMint?.toBase58() === thisitem?.account?.governingTokenMint?.toBase58()){
+        if (realm.account.config?.councilMint === thisitem?.account?.governingTokenMint?.toBase58()){
             vType = 'Council';
             td = 0;
         }
@@ -533,8 +533,8 @@ function GetParticipants(props: any){
 
             //thisitem.account.tokenOwnerRecord;
             for (const item of memberMap){
-                if (item.pubkey.toBase58() === thisitem.account.tokenOwnerRecord.toBase58()){
-                    setProposalAuthor(item.account.governingTokenOwner.toBase58())
+                if (item.pubkey === thisitem.account.tokenOwnerRecord.toBase58()){
+                    setProposalAuthor(item.account.governingTokenOwner)
                     //console.log("member:" + JSON.stringify(item));
                 }
             }
@@ -646,7 +646,7 @@ function GetParticipants(props: any){
                             legacyYes:(item.vote.legacyYes ?  (item.vote.legacyYes) : null),
                             legacyNo:(item.vote.legacyNo ?  (item.vote.legacyNo) : null),
                             decimals:(item.vote.decimals ?  (item.vote.decimals) : 0),
-                            councilMint:realm.account.config?.councilMint?.toBase58() ,
+                            councilMint:realm.account.config?.councilMint ,
                             governingTokenMint:thisitem.vote?.governingTokenMint.toBase58() 
                         },
                         vote:{
@@ -655,7 +655,7 @@ function GetParticipants(props: any){
                             legacyYes:(item.vote.legacyYes ?  (item.vote.legacyYes) : null),
                             legacyNo:(item.vote.legacyNo ?  (item.vote.legacyNo) : null),
                             decimals:(item.vote.decimals ?  (item.vote.decimals) : 0),
-                            councilMint:realm.account.config?.councilMint?.toBase58() ,
+                            councilMint:realm.account.config?.councilMint ,
                             governingTokenMint:thisitem.vote?.governingTokenMint.toBase58() 
                         }
                     });
@@ -684,7 +684,7 @@ function GetParticipants(props: any){
                             voterWeight = item.account?.voteWeight?.no
                         }
                     }
-                    csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
+                    csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
                 
                 } else{
                     if (item.vote?.voterWeight){
@@ -699,7 +699,7 @@ function GetParticipants(props: any){
                             voterWeight = item.vote?.voteWeight?.no
                         }
                     }
-                    csvFile += item.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (realm.account.config?.councilMint?.toBase58() === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint?.toBase58() === thisitem.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.proposal.toBase58()+'';
+                    csvFile += item.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (realm.account.config?.councilMint === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.proposal.toBase58()+'';
                     
                 }
                 
@@ -1712,6 +1712,7 @@ export function GovernanceCachedView(props: any) {
     const [memberMap, setMemberMap] = React.useState(null);
     const [cachedMemberMap, setCachedMemberMap] = React.useState(null);
     const [realm, setRealm] = React.useState(null);
+    const [realmName, setRealmName] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(null);
     const [tokenArray, setTokenArray] = React.useState(null);
     const connection = new Connection(GRAPE_RPC_ENDPOINT);
@@ -1779,8 +1780,12 @@ export function GovernanceCachedView(props: any) {
         } catch(e){console.log("ERR: "+e)}
     }
 
-    const getGovernance = async (cached_governance:any) => {
+    const getGovernanceParameters = async (cached_governance:any) => {
         if (!loading){
+            setRealm(null);
+            setRealmName(null);
+            setMemberMap(null);
+
             startTimer();
             setLoading(true);
             try{
@@ -1793,13 +1798,15 @@ export function GovernanceCachedView(props: any) {
                 //const grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
                 let grealm = null;
                 if (cachedRealm){
-                    console.log("Realm from cache")
-                    setRealm(cachedRealm);
-                    grealm = cachedRealm;
+                    console.log("Realm from cache");
+                    console.log("cacheRealm: "+JSON.stringify(cachedRealm))
+                    grealm = cachedRealm;    
                 } else{
                     grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
-                    setRealm(grealm);
                 }
+                setRealm(grealm);
+                setRealmName(grealm.account.name);
+                
                 const realmPk = grealm.pubkey;
 
                 // Check if we have this cached
@@ -2008,23 +2015,33 @@ export function GovernanceCachedView(props: any) {
     }
 
     React.useEffect(() => {
-        if (tokenMap){
-            fetchGovernanceLookupFile();
+        if (cachedGovernance && governanceAddress){
+            console.log("Step 3.")
+            getGovernanceParameters(cachedGovernance);
         }
-    }, [tokenMap]);
+    }, [cachedGovernance]);
 
     React.useEffect(() => {
-        if (governanceLookup){
+        if (governanceAddress && governanceLookup){
+            console.log("Step 2.")
             getCachedGovernanceFromLookup();
         }
     }, [governanceLookup, governanceAddress]);
     
-    
     React.useEffect(() => {
-        if (cachedGovernance && governanceAddress){
-            getGovernance(cachedGovernance);
+        if (tokenMap){
+            console.log("Step 1.")
+            fetchGovernanceLookupFile();
         }
-    }, [cachedGovernance]);
+    }, [tokenMap]);
+
+    React.useEffect(() => { 
+        if (!loading){
+            if (!tokenMap){
+                getTokens();
+            }
+        }
+    }, []);
 
     const fetchLookupFile = async(fileName:string) => {
         try{
@@ -2056,7 +2073,7 @@ export function GovernanceCachedView(props: any) {
             for (let glitem of governanceLookup){
                 if (glitem.governanceAddress === governanceAddress){
                     if (glitem?.realm)
-                        setCachedRealm(glitem?.realm)
+                        setCachedRealm(glitem.realm);
                     if (glitem?.memberFilename){
                         const cached_members = await getFileFromLookup(glitem.memberFilename);
                         setCachedMemberMap(cached_members);
@@ -2124,7 +2141,7 @@ export function GovernanceCachedView(props: any) {
         }
         
         setCachedGovernance(cached_governance);
-        getGovernance(cached_governance);
+        //getGovernanceParameters(cached_governance);
     }
 
     const startTimer = () => {
@@ -2135,14 +2152,6 @@ export function GovernanceCachedView(props: any) {
         setEndTime(Date.now())
     }
 
-    React.useEffect(() => { 
-        if (!loading){
-            if (!tokenMap){
-                getTokens();
-            }
-        }
-    }, []);
-    
     //if (publicKey){
         if(loading){
             return (
@@ -2162,7 +2171,7 @@ export function GovernanceCachedView(props: any) {
                 </Box>
             )
         } else{
-            if (proposals && tokenMap){
+            if (proposals && tokenMap && memberMap && realm){
                 return (
                     <Box
                         sx={{
@@ -2180,8 +2189,7 @@ export function GovernanceCachedView(props: any) {
                                         <Grid container>
                                             <Grid item xs={12}>
                                                 <Typography variant="h4">
-                                                    {realm.account.name}
-                                                    
+                                                    {realmName}
                                                 </Typography>
                                             </Grid>
                                             <Grid item xs={12}>
