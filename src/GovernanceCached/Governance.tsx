@@ -47,6 +47,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import InfoIcon from '@mui/icons-material/Info';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
 import CheckIcon from '@mui/icons-material/Check';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -869,14 +870,14 @@ function GetParticipants(props: any){
                     
                     {proposalAuthor &&
                         <Box sx={{ alignItems: 'center', textAlign: 'center'}}>
-                            <Typography variant='caption'>Author: <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={proposalAuthor} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/></Typography>
+                            <Typography variant='body1'>Author: <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={proposalAuthor} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/></Typography>
                         </Box>
                     }
-
+                    
                     <Box sx={{ alignItems: 'center', textAlign: 'center'}}>
                         {gist ?
-                            <Box sx={{ alignItems: 'left', textAlign: 'left',p:1}}>
-                                <Typography variant='body2'>
+                            <Box sx={{ alignItems: 'left', textAlign: 'left', p:1}}>
+                                <Typography variant='body1'>
                                     <ReactMarkdown remarkPlugins={[[remarkGfm, {singleTilde: false}]]}>
                                         {proposalDescription}
                                     </ReactMarkdown>
@@ -1345,7 +1346,7 @@ function RenderGovernanceTable(props:any) {
         React.useEffect(() => { 
             if (thisitem.account?.state === 2){ // if voting state
                 if (!thisGovernance){
-                    console.log("get gov props")
+                    //console.log("get gov props")
                     //getGovernanceProps()
                 }
             }
@@ -1451,12 +1452,21 @@ function RenderGovernanceTable(props:any) {
                                             <TableRow key={index} sx={{borderBottom:"none"}}>
                                                 <TableCell>
                                                     <Typography variant="h6" color={(item.account?.state === 2) ? `white` : `gray`}>
-                                                    {item.account?.name}
-                                                    {item.account?.descriptionLink && 
-                                                        <Tooltip title={item.account?.descriptionLink}>
-                                                            <Button sx={{ml:1,borderRadius:'17px'}} color='inherit' ><HelpOutlineIcon sx={{ fontSize:16 }}/></Button>
-                                                        </Tooltip>
-                                                    }
+                                                        {item.account?.descriptionLink ?
+                                                            <Tooltip title={
+                                                                <Typography variant="body2">
+                                                                    {item.account?.descriptionLink}
+                                                                </Typography>}>
+                                                                <Button sx={{ml:-1,borderRadius:'17px',textAlign:'left',textTransform:'none'}} color='inherit' >
+                                                                    <Typography variant="h6">
+                                                                    {item.account?.name} <InfoIcon sx={{ml:1, fontSize:16 }}/>
+                                                                    </Typography></Button>
+                                                            </Tooltip>
+                                                        :
+                                                            <>
+                                                            {item.account?.name}
+                                                            </>
+                                                        }
 
                                                         {realm.account.config?.councilMint?.toBase58() === item.account?.governingTokenMint?.toBase58() ?
                                                             <Tooltip title='Council Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon sx={{ fontSize:16 }} /></Button></Tooltip>
