@@ -2170,7 +2170,7 @@ export function GovernanceCachedView(props: any) {
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Total Proposals/Success Rate</>
+                                                    <>Proposals/Success Rate</>
                                                 </Typography>
                                                 <Tooltip title={<>
                                                             Total proposals created in this governance<br/>Success rate is calculated on successfully completed proposals
@@ -2234,8 +2234,8 @@ export function GovernanceCachedView(props: any) {
                                                         }}
                                                     >
                                                         <Typography variant="h3">
-                                                            <Badge badgeContent={<ThumbUpIcon fontSize='small' />} variant="dot" color="success">{totalPassed}</Badge>/
-                                                            <Badge badgeContent={<ThumbDownIcon fontSize='small' />} variant="dot" color="error">{totalDefeated}</Badge>
+                                                            <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{totalPassed}</Badge>/
+                                                            <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{totalDefeated}</Badge>
                                                         </Typography>
                                                     </Button>
                                                 </Tooltip>
