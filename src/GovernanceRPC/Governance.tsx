@@ -2050,8 +2050,8 @@ export function GovernanceRPCView(props: any) {
                                                         }}
                                                     >
                                                         <Typography variant="h3">
-                                                            <Badge badgeContent={<ThumbUpIcon fontSize='small' />} variant="dot" color="success">{totalPassed}</Badge>/
-                                                            <Badge badgeContent={<ThumbDownIcon fontSize='small' />} variant="dot" color="error">{totalDefeated}</Badge>
+                                                            <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{totalPassed}</Badge>/
+                                                            <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{totalDefeated}</Badge>
                                                         </Typography>
                                                     </Button>
                                                 </Tooltip>
