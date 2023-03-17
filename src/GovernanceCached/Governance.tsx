@@ -404,7 +404,7 @@ function GetParticipants(props: any){
             //);
 
             let governingMintDetails = null;
-            if (governance_item?.governingMintDetails){
+            if (governance_item?.governingMintDetails){ // save even more RPC calls
                 governingMintDetails = governance_item.governingMintDetails;
             }else{
                 await connection.getParsedAccountInfo(
@@ -1787,13 +1787,14 @@ export function GovernanceCachedView(props: any) {
                 //console.log("cached_governance: "+JSON.stringify(cached_governance));
                 
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
-                const grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
-                
+                //const grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
+                let grealm = null;
                 if (cachedRealm){
                     console.log("Realm from cache")
                     setRealm(cachedRealm);
+                    grealm = cachedRealm;
                 } else{
-                    const grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
+                    grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
                     setRealm(grealm);
                 }
                 const realmPk = grealm.pubkey;
