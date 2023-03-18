@@ -511,9 +511,11 @@ function GetParticipants(props: any){
             //console.log("ERR: "+e);
         }
         
-        if (new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem?.account?.governingTokenMint?.toBase58()){
-            vType = 'Council';
-            td = 0;
+        if (realm.account.config?.councilMint){
+            if (new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem?.account?.governingTokenMint?.toBase58()){
+                vType = 'Council';
+                td = 0;
+            }
         }
         
         if (!vType){
@@ -651,7 +653,7 @@ function GetParticipants(props: any){
                             legacyYes:(item.vote.legacyYes ?  (item.vote.legacyYes) : null),
                             legacyNo:(item.vote.legacyNo ?  (item.vote.legacyNo) : null),
                             decimals:(item.vote.decimals ?  (item.vote.decimals) : 0),
-                            councilMint:new PublicKey(realm.account.config?.councilMint).toBase58() ,
+                            councilMint:(realm.account.config?.councilMint ? new PublicKey(realm.account.config?.councilMint).toBase58() : null),
                             governingTokenMint:thisitem.vote?.governingTokenMint.toBase58() 
                         },
                         vote:{
@@ -660,7 +662,7 @@ function GetParticipants(props: any){
                             legacyYes:(item.vote.legacyYes ?  (item.vote.legacyYes) : null),
                             legacyNo:(item.vote.legacyNo ?  (item.vote.legacyNo) : null),
                             decimals:(item.vote.decimals ?  (item.vote.decimals) : 0),
-                            councilMint:new PublicKey(realm.account.config?.councilMint).toBase58() ,
+                            councilMint:(realm.account.config?.councilMint ? new PublicKey(realm.account.config?.councilMint).toBase58() : null),
                             governingTokenMint:thisitem.vote?.governingTokenMint.toBase58() 
                         }
                     });
@@ -704,7 +706,8 @@ function GetParticipants(props: any){
                             voterWeight = item.vote?.voteWeight?.no
                         }
                     }
-                    csvFile += item.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.proposal.toBase58()+'';
+                    
+                    csvFile += item.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.proposal.toBase58()+'';
                     
                 }
                 
