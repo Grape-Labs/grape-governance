@@ -1430,8 +1430,9 @@ function RenderGovernanceTable(props:any) {
     }
 
     React.useEffect(() => { 
-        endTimer();
-    }, []);
+        if (realm)
+            endTimer();
+    }, [realm]);
 
     if (loading){
         return (
@@ -1800,7 +1801,7 @@ export function GovernanceCachedView(props: any) {
                 let grealm = null;
                 if (cachedRealm){
                     console.log("Realm from cache");
-                    console.log("cacheRealm: "+JSON.stringify(cachedRealm))
+                    //console.log("cacheRealm: "+JSON.stringify(cachedRealm))
                     grealm = cachedRealm;    
                 } else{
                     grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
@@ -2147,6 +2148,7 @@ export function GovernanceCachedView(props: any) {
 
     const startTimer = () => {
         setStartTime(Date.now());
+        setEndTime(null);
     }
 
     const endTimer = () => {
