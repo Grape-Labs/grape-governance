@@ -584,6 +584,7 @@ export function GovernanceMembersView(props: any) {
             }catch(e){console.log("ERR: "+e)}
         }
         setLoading(false);
+        endTimer();
     }
 
     const getCachedGovernanceFromLookup = async () => {
@@ -677,18 +678,17 @@ export function GovernanceMembersView(props: any) {
     }
 
     React.useEffect(() => {
+        if (cachedGovernance && governanceAddress){
+            getGovernanceMembers();
+        }
+    }, [cachedGovernance]);
+
+    React.useEffect(() => {
         if (governanceLookup){
             getCachedGovernanceFromLookup();
         }
     }, [governanceLookup, governanceAddress]);
     
-    React.useEffect(() => {
-        if (cachedGovernance && governanceAddress){
-            getGovernanceMembers();
-            endTimer();
-        }
-    }, [cachedGovernance]);
-
     React.useEffect(() => { 
         if (tokenMap){  
             startTimer();
