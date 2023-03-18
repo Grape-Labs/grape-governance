@@ -834,6 +834,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     item.filename = fileName;
                     item.memberFilename = memberFileName;
                     item.realm = realm;
+                    if (realm.account.config?.communityMintMaxVoteWeightSource)
+                        item.communityFmtSupplyFractionPercentage = realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
                     item.governance = thisGovernance;
                     item.governingMintDetails = governingMintDetails;
                     govFound = true;
@@ -842,6 +844,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
             }
             console.log("Lookup has "+cntr+" entries");
             if (!govFound){
+                let communityFmtSupplyFractionPercentage = null;
+                if (realm.account.config?.communityMintMaxVoteWeightSource)
+                    communityFmtSupplyFractionPercentage = realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
+                
                 governanceLookup.push({
                     governanceAddress:governanceAddress,
                     governanceName:governanceName,
@@ -850,6 +856,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     filename:fileName,
                     memberFilename: memberFileName,
                     realm:realm,
+                    communityFmtSupplyFractionPercentage: communityFmtSupplyFractionPercentage,
                     governance: thisGovernance,
                     governingMintDetails: governingMintDetails
                 });

@@ -381,6 +381,7 @@ function GetParticipants(props: any){
     const getGovernanceProps = async () => {
         let governance_item = null;
         let governance = null;
+
         if (governanceLookup){
             for (let glitem of governanceLookup){
                 if (glitem.governanceAddress === governanceAddress){
@@ -425,7 +426,14 @@ function GetParticipants(props: any){
             //console.log("communityWeight: "+communityWeight);
             
             const communityMintMaxVoteWeightSource = realm.account.config?.communityMintMaxVoteWeightSource
-            const supplyFractionPercentage = communityMintMaxVoteWeightSource?.fmtSupplyFractionPercentage();
+            let supplyFractionPercentage = null;
+            if (communityMintMaxVoteWeightSource?.fmtSupplyFractionPercentage)
+                supplyFractionPercentage = +communityMintMaxVoteWeightSource?.fmtSupplyFractionPercentage();
+            else 
+                supplyFractionPercentage = governance_item?.communityFmtSupplyFractionPercentage
+
+            // check if we have this cached
+            //console.log("supplyFractionPercentage: "+JSON.stringify(supplyFractionPercentage))
             if (supplyFractionPercentage){
                 const communityVoteThreshold = governance.account.config.communityVoteThreshold
                 const councilVoteThreshold = governance.account.config.councilVoteThreshold
@@ -479,6 +487,7 @@ function GetParticipants(props: any){
                     setQuorumTarget(totalVotesNeeded);
                 }
             }
+            
         }catch(e){
             console.log('ERR: '+e)
         }
@@ -706,7 +715,7 @@ function GetParticipants(props: any){
                             voterWeight = item.vote?.voteWeight?.no
                         }
                     }
-                    
+
                     csvFile += item.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.proposal.toBase58()+'';
                     
                 }
