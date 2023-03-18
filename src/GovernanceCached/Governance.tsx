@@ -1705,10 +1705,10 @@ export function GovernanceCachedView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
-    const [startTime, setStartTime] = React.useState(null);
-    const [endTime, setEndTime] = React.useState(null);
     const governanceAddress = urlParams;
     const [cachedRealm, setCachedRealm] = React.useState(null);
+    const [startTime, setStartTime] = React.useState(null);
+    const [endTime, setEndTime] = React.useState(null);
     //const governanceAddress = props.governanceAddress;
     const [loading, setLoading] = React.useState(false);
     const [memberMap, setMemberMap] = React.useState(null);
@@ -2167,7 +2167,7 @@ export function GovernanceCachedView(props: any) {
                         alignItems: 'center', textAlign: 'center'
                     }} 
                 > 
-                    <Typography variant="caption">Loading Governance {governanceAddress}...</Typography>
+                    <Typography variant="caption">Loading Governance {governanceAddress}</Typography>
                     
                     <LinearProgress color="inherit" />
                     

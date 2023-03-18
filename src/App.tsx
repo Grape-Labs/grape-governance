@@ -5,6 +5,7 @@ import { AdminView } from "./Admin/Admin";
 import { GovernanceRPCView } from "./GovernanceRPC/Governance";
 import { GovernanceCachedView } from "./GovernanceCached/Governance";
 import { GovernanceMetricsView } from "./GovernanceCached/GovernanceMetrics";
+import { GovernanceMembersView } from "./GovernanceCached/GovernanceMembers";
 import CssBaseline from '@mui/material/CssBaseline';
 
 import {
@@ -182,6 +183,9 @@ function DashboardContent() {
 
                                     <Route path="metrics/*" element={<GovernanceMetricsView />} >
                                         <Route path=":handlekey" element={<GovernanceMetricsView />} />
+                                    </Route>
+                                    <Route path="members/*" element={<GovernanceMembersView />} >
+                                        <Route path=":handlekey" element={<GovernanceMembersView />} />
                                     </Route>
                                     
 

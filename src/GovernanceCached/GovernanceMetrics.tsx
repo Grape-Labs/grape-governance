@@ -1064,7 +1064,7 @@ export function GovernanceMetricsView(props: any) {
                         alignItems: 'center', textAlign: 'center'
                     }} 
                 > 
-                    <Typography variant="caption">Loading Governance {governanceAddress}...</Typography>
+                    <Typography variant="caption">Loading Governance Metrics {governanceAddress}</Typography>
                     
                     <LinearProgress color="inherit" />
                     

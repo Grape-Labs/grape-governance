@@ -58,14 +58,15 @@ export default function GovernanceNavigation(props: any){
                             to={'/metrics/'+governanceAddress}
                         ><BarChartIcon /></Button>
                     </Tooltip>
-                    <Tooltip title="Members (coming soon)">
+                    <Tooltip title="Members (currently via RPC)">
                         <Button
-                            sx={{ml:1,color:'#999'}}
+                            component={Link}
+                            to={'/members/'+governanceAddress}
                         ><GroupIcon /></Button>
                     </Tooltip>
                     <Tooltip title="Treasury (coming soon)">
                         <Button
-                            sx={{color:'#999'}}
+                            sx={{color:'#999', ml:1}}
                         ><AccountBalanceIcon /></Button>
                     </Tooltip>
 
