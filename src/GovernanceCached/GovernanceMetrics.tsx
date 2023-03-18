@@ -62,6 +62,10 @@ import {
 } from '@mui/material/';
 
 import GovernanceNavigation from './GovernanceNavigation'; 
+import {
+    fetchGovernanceLookupFile,
+    getFileFromLookup
+} from './CachedStorageHelpers'; 
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
@@ -287,7 +291,7 @@ function RenderVoterRecordTable(props:any) {
                     }
 
                     // item.account.governingTokenOwner.toBase58()
-                    if (realm.account.config?.councilMint && (realm.account.config?.councilMint.toBase58() === item.account.governingTokenMint.toBase58())){
+                    if (realm.account.config?.councilMint && (new PublicKey(realm.account.config?.councilMint).toBase58() === item.account.governingTokenMint.toBase58())){
                         // council stats
                     } else{
                         totalCommunityProposals++;
@@ -668,6 +672,8 @@ export function GovernanceMetricsView(props: any) {
     // top 10 holders deposited
     // top 10 holder % against deposited
     // top 2 holders against quorum
+    // Peak voter participation
+    // Participating voters votes vs supply
     // quorum?
 
     const [metricsActiveVoters, setMetricsActiveVoters] = React.useState(null);
@@ -733,14 +739,13 @@ export function GovernanceMetricsView(props: any) {
                 let grealm = null;
                 if (cachedRealm){
                     console.log("Realm from cache")
-                    setRealm(cachedRealm);
                     grealm = cachedRealm;
                 } else{
                     grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
-                    setRealm(grealm);
                 }
-                const realmPk = grealm.pubkey;
                 setRealm(grealm);
+                //setRealmName(grealm?.account?.name);
+                const realmPk = grealm.pubkey;
                 //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
                 
                 let rawTokenOwnerRecords = null;
@@ -899,28 +904,14 @@ export function GovernanceMetricsView(props: any) {
         setLoading(false);
     }
 
-    const fetchGovernanceLookupFile = async() => {
-        try{
-            const url = GGAPI_STORAGE_URI+"/"+storagePool+'/governance_lookup.json';
-            const response = await window.fetch(url, {
-                method: 'GET',
-                headers: {
-                }
-              });
-
-              const string = await response.text();
-              const json = string === "" ? {} : JSON.parse(string);
-              setGovernanceLookup(json);
-              return json;
-        } catch(e){
-            console.log("ERR: "+e)
-            return null;
-        }
+    const callGovernanceLookup = async() => {
+        const fglf = await fetchGovernanceLookupFile(storagePool);
+        setGovernanceLookup(fglf);
     }
 
     React.useEffect(() => {
         if (tokenMap){
-            fetchGovernanceLookupFile();
+            callGovernanceLookup();
         }
     }, [tokenMap]);
 
@@ -930,35 +921,11 @@ export function GovernanceMetricsView(props: any) {
         }
     }, [governanceLookup, governanceAddress]);
     
-    
     React.useEffect(() => {
         if (cachedGovernance && governanceAddress){
             getGovernance(cachedGovernance);
         }
     }, [cachedGovernance]);
-
-    const fetchLookupFile = async(fileName:string) => {
-        try{
-            const url = GGAPI_STORAGE_URI+"/"+GGAPI_STORAGE_POOL+'/'+fileName+'';
-            const response = await window.fetch(url, {
-                method: 'GET',
-                headers: {
-                }
-              });
-              const string = await response.text();
-              const json = string === "" ? {} : JSON.parse(string);
-              
-              return json;
-        } catch(e){
-            console.log("ERR: "+e)
-            return null;
-        }
-    }
-
-    const getFileFromLookup  = async (fileName:string) => {
-        const fgl = await fetchLookupFile(fileName);
-        return fgl;
-    } 
     
     const getCachedGovernanceFromLookup = async () => {
         
@@ -971,11 +938,11 @@ export function GovernanceMetricsView(props: any) {
                         setCachedRealm(glitem?.realm);
                     }
                     if (glitem?.memberFilename){
-                        const cached_members = await getFileFromLookup(glitem.memberFilename);
+                        const cached_members = await getFileFromLookup(glitem.memberFilename, storagePool);
                         setCachedMemberMap(cached_members);
                     }
 
-                    cached_governance = await getFileFromLookup(glitem.filename);
+                    cached_governance = await getFileFromLookup(glitem.filename, storagePool);
                 }
             }
         }
@@ -1071,7 +1038,7 @@ export function GovernanceMetricsView(props: any) {
                 </Box>
             )
         } else{
-            if (proposals && memberMap && tokenMap){
+            if (realm && proposals && memberMap && tokenMap){
                 return (
                     <Box
                         sx={{

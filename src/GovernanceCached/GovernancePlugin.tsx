@@ -33,7 +33,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import ArrowCircleRightIcon from '@mui/icons-material/ArrowCircleRight';
 import ArrowCircleRightOutlinedIcon from '@mui/icons-material/ArrowCircleRightOutlined';
 
-import { GovernanceView } from './Governance';
+import { GovernanceCachedView } from './Governance';
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   '& .MuDialogContent-root': {
@@ -131,7 +131,7 @@ export default function GovernanceDetailsView(props: any) {
                 }}
         >
 
-            <GovernanceView governanceAddress={governanceAddress} />
+            <GovernanceCachedView governanceAddress={governanceAddress} />
             
         </BootstrapDialog>
         </div>

@@ -45,6 +45,10 @@ import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
 
 import GovernanceNavigation from './GovernanceNavigation'; 
+import {
+    fetchGovernanceLookupFile,
+    getFileFromLookup
+} from './CachedStorageHelpers'; 
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
@@ -1997,25 +2001,6 @@ export function GovernanceCachedView(props: any) {
         setLoading(false);
     }
 
-    const fetchGovernanceLookupFile = async() => {
-        try{
-            const url = GGAPI_STORAGE_URI+"/"+storagePool+'/governance_lookup.json';
-            const response = await window.fetch(url, {
-                method: 'GET',
-                headers: {
-                }
-              });
-
-              const string = await response.text();
-              const json = string === "" ? {} : JSON.parse(string);
-              setGovernanceLookup(json);
-              return json;
-        } catch(e){
-            console.log("ERR: "+e)
-            return null;
-        }
-    }
-
     React.useEffect(() => {
         if (cachedGovernance && governanceAddress){
             console.log("Step 3.")
@@ -2030,10 +2015,15 @@ export function GovernanceCachedView(props: any) {
         }
     }, [governanceLookup, governanceAddress]);
     
+    const callGovernanceLookup = async() => {
+        const fglf = await fetchGovernanceLookupFile(storagePool);
+        setGovernanceLookup(fglf);
+    }
+
     React.useEffect(() => {
         if (tokenMap){
             console.log("Step 1.")
-            fetchGovernanceLookupFile();
+            callGovernanceLookup();
         }
     }, [tokenMap]);
 
@@ -2044,29 +2034,6 @@ export function GovernanceCachedView(props: any) {
             }
         }
     }, []);
-
-    const fetchLookupFile = async(fileName:string) => {
-        try{
-            const url = GGAPI_STORAGE_URI+"/"+GGAPI_STORAGE_POOL+'/'+fileName+'';
-            const response = await window.fetch(url, {
-                method: 'GET',
-                headers: {
-                }
-              });
-              const string = await response.text();
-              const json = string === "" ? {} : JSON.parse(string);
-              
-              return json;
-        } catch(e){
-            console.log("ERR: "+e)
-            return null;
-        }
-    }
-
-    const getFileFromLookup  = async (fileName:string) => {
-        const fgl = await fetchLookupFile(fileName);
-        return fgl;
-    } 
     
     const getCachedGovernanceFromLookup = async () => {
         let cached_governance = new Array();
@@ -2077,10 +2044,10 @@ export function GovernanceCachedView(props: any) {
                     if (glitem?.realm)
                         setCachedRealm(glitem.realm);
                     if (glitem?.memberFilename){
-                        const cached_members = await getFileFromLookup(glitem.memberFilename);
+                        const cached_members = await getFileFromLookup(glitem.memberFilename, storagePool);
                         setCachedMemberMap(cached_members);
                     }
-                    cached_governance = await getFileFromLookup(glitem.filename);
+                    cached_governance = await getFileFromLookup(glitem.filename, storagePool);
                 }
             }
         }

@@ -12,7 +12,7 @@ import {
 import ExplorerView from '../utils/grapeTools/Explorer';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 
-import GovernanceDetailsView from './GovernanceDetails';
+import GovernanceDetailsView from './GovernancePlugin';
 import { TokenAmount } from '../utils/grapeTools/safe-math';
 import { useWallet } from '@solana/wallet-adapter-react';
 

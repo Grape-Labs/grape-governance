@@ -46,20 +46,25 @@ export default function GovernanceNavigation(props: any){
                     variant='outlined'
                     sx={{borderRadius:'17px'}}
                 >
-                    <Tooltip title="Proposals">
+                    <Tooltip title={
+                            <>Proposals<br/>* Via Cached Storage
+                            </>
+                        }>
                         <Button
                             component={Link}
                             to={'/cachedgovernance/'+governanceAddress}
                         ><HowToVoteIcon /></Button>
                     </Tooltip>
-                    <Tooltip title="Metrics">
+                    <Tooltip title={
+                        <>Metrics<br/>* Via Cached Storage
+                        </>}>
                         <Button
                             component={Link}
                             to={'/metrics/'+governanceAddress}
                         ><BarChartIcon /></Button>
                     </Tooltip>
                     <Tooltip title={
-                        <>Members<br/>* Migration to cached storage pending<br/>* Currently fetched via RPC
+                        <>Members<br/>* Via Cached Storage
                         </>}>
                         <Button
                             component={Link}

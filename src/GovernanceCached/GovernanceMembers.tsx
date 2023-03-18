@@ -36,6 +36,10 @@ import {
 } from '@mui/material/';
 
 import GovernanceNavigation from './GovernanceNavigation'; 
+import {
+    fetchGovernanceLookupFile,
+    getFileFromLookup
+} from './CachedStorageHelpers'; 
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
@@ -57,10 +61,8 @@ import IconButton from '@mui/material/IconButton';
 import PropTypes from 'prop-types';
 import { 
     GRAPE_RPC_ENDPOINT, 
-    TWITTER_PROXY } from '../utils/grapeTools/constants';
+    GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
 
-import { MakeLinkableAddress, ValidateAddress, ValidateCurve, trimAddress, timeAgo } from '../utils/grapeTools/WalletAddress'; // global key handling
-import { A } from '../utils/auctionHouse/helpers/constants';
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
 const StyledTable = styled(Table)(({ theme }) => ({
@@ -340,7 +342,14 @@ export function GovernanceMembersView(props: any) {
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
     const governanceAddress = urlParams;
-
+    const [governanceLookup, setGovernanceLookup] = React.useState(null);
+    const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
+    const [cachedGovernance, setCachedGovernance] = React.useState(null);
+    const [cachedRealm, setCachedRealm] = React.useState(null);
+    const [cachedMemberMap, setCachedMemberMap] = React.useState(null);
+    const [startTime, setStartTime] = React.useState(null);
+    const [endTime, setEndTime] = React.useState(null);
+    
     const [loading, setLoading] = React.useState(false);
     const [members, setMembers] = React.useState(null);
     const connection = new Connection(GRAPE_RPC_ENDPOINT)//useConnection();
@@ -393,6 +402,7 @@ export function GovernanceMembersView(props: any) {
                 
                 console.log("SPL Governnace: "+governanceAddress);
                 
+                /*
                 const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwner(connection, programId, publicKey);
                 // check if part of this realm
                 let pcp = false;
@@ -404,35 +414,41 @@ export function GovernanceMembersView(props: any) {
                     }
                 }
                 setParticipating(pcp);
+                */
 
-                const grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
+                let grealm = null;
+                if (cachedRealm){
+                    console.log("Realm from cache")
+                    grealm = cachedRealm;
+                } else{
+                    grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
+                }
+                const realmPk = new PublicKey(grealm.pubkey);
                 setRealm(grealm);
                 setRealmName(grealm.account.name);
+                
                 //console.log("realm: "+JSON.stringify(grealm))
 
-                setGoverningTokenMint(grealm.account.communityMint.toBase58());
+                setGoverningTokenMint(new PublicKey(grealm.account.communityMint).toBase58());
                 // with realm check if this is a backed token
                 let thisTokenDecimals = 0;
-                if (tokenMap.get(grealm.account.communityMint.toBase58())){
-                    thisTokenDecimals = tokenMap.get(grealm.account.communityMint.toBase58()).decimals; 
+                if (tokenMap.get(new PublicKey(grealm.account.communityMint).toBase58())){
+                    thisTokenDecimals = tokenMap.get(new PublicKey(grealm.account.communityMint).toBase58()).decimals; 
                 } else{
-                   const btkn = await getBackedTokenMetadata(grealm.account.communityMint.toBase58(), wallet);
+                   const btkn = await getBackedTokenMetadata(new PublicKey(grealm.account.communityMint).toBase58(), wallet);
                     if (btkn){
                         thisTokenDecimals = btkn.decimals;
                     }
                 }
                 setGoverningTokenDecimals(thisTokenDecimals);
 
-                const tknSupply = await connection.getTokenSupply(grealm.account.communityMint);
+                const tknSupply = await connection.getTokenSupply(new PublicKey(grealm.account.communityMint));
 
                 //const governingMintPromise = await connection.getParsedAccountInfo(grealm.account.communityMint);
                 if (tknSupply)
                     setCirculatingSupply(tknSupply);
-            
-            
-                const realmPk = grealm.pubkey;
-
-                const trecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
+                
+                const trecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(grealm.owner), realmPk)
                 
                 //console.log("trecords: "+JSON.stringify(trecords));
 
@@ -441,7 +457,6 @@ export function GovernanceMembersView(props: any) {
                 
                 //const sortedResults = trecords.sort((a,b) => (a.account?.governingTokenDepositAmount.toNumber() < b.account?.governingTokenDepositAmount.toNumber()) ? 1 : -1);
                 
-
                 // generate a super array with merged information
                 let participantArray = new Array();
                 let tVotes = 0;
@@ -460,13 +475,13 @@ export function GovernanceMembersView(props: any) {
                     for (let participant of participantArray){
                         if (participant.governingTokenOwner.toBase58() === record.account.governingTokenOwner.toBase58()){
                             foundParticipant = true;
-                            participant.governingTokenMint = (record.account.governingTokenMint.toBase58() !== grealm.account.config?.councilMint.toBase58()) ? record.account.governingTokenMint : participant.governingTokenMint;
-                            participant.totalVotesCount = (record.account.governingTokenMint.toBase58() !== grealm.account.config?.councilMint.toBase58()) ? record.account.totalVotesCount : participant.totalVotesCount;
-                            participant.councilVotesCount = (record.account.governingTokenMint.toBase58() === grealm.account.config?.councilMint.toBase58()) ? record.account.totalVotesCount : participant.councilVotesCount;
-                            participant.governingTokenDepositAmount = (record.account.governingTokenMint.toBase58() !== grealm.account.config?.councilMint.toBase58()) ? record.account.governingTokenDepositAmount : participant.governingTokenDepositAmount;
-                            participant.governingCouncilDepositAmount = (record.account.governingTokenMint.toBase58() === grealm.account.config?.councilMint.toBase58()) ? record.account.governingTokenDepositAmount : participant.governingCouncilDepositAmount;
+                            participant.governingTokenMint = (record.account.governingTokenMint.toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? record.account.governingTokenMint : participant.governingTokenMint;
+                            participant.totalVotesCount = (record.account.governingTokenMint.toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? record.account.totalVotesCount : participant.totalVotesCount;
+                            participant.councilVotesCount = (record.account.governingTokenMint.toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? record.account.totalVotesCount : participant.councilVotesCount;
+                            participant.governingTokenDepositAmount = (record.account.governingTokenMint.toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? record.account.governingTokenDepositAmount : participant.governingTokenDepositAmount;
+                            participant.governingCouncilDepositAmount = (record.account.governingTokenMint.toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? record.account.governingTokenDepositAmount : participant.governingCouncilDepositAmount;
                             
-                            if (record.account.governingTokenMint.toBase58() !== grealm.account.config.councilMint.toBase58()){
+                            if (record.account.governingTokenMint.toBase58() !== new PublicKey(grealm.account.config.councilMint).toBase58()){
                                 tVotes += record.account.governingTokenDepositAmount.toNumber();//record.account.totalVotesCount;
                                 tVotesCasted += record.account.totalVotesCount;//record.account.governingTokenDepositAmount.toNumber();
                             } else{
@@ -480,15 +495,15 @@ export function GovernanceMembersView(props: any) {
                             
                             if (grealm.account.config?.councilMint) {
                                 participantArray.push({
-                                    governingTokenMint:(record.account.governingTokenMint.toBase58() !== grealm.account.config?.councilMint.toBase58()) ? record.account.governingTokenMint : null,
+                                    governingTokenMint:(record.account.governingTokenMint.toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? record.account.governingTokenMint : null,
                                     governingTokenOwner:record.account.governingTokenOwner,
-                                    totalVotesCount:(record.account.governingTokenMint.toBase58() !== grealm.account.config?.councilMint.toBase58()) ? record.account.totalVotesCount : 0,
-                                    councilVotesCount:(record.account.governingTokenMint.toBase58() === grealm.account.config?.councilMint.toBase58()) ? record.account.totalVotesCount : 0,
-                                    governingTokenDepositAmount:(record.account.governingTokenMint.toBase58() !== grealm.account?.config.councilMint.toBase58()) ? record.account.governingTokenDepositAmount : new BN(0),
-                                    governingCouncilDepositAmount:(record.account.governingTokenMint.toBase58() === grealm.account?.config.councilMint.toBase58()) ? record.account.governingTokenDepositAmount : new BN(0),
+                                    totalVotesCount:(record.account.governingTokenMint.toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? record.account.totalVotesCount : 0,
+                                    councilVotesCount:(record.account.governingTokenMint.toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? record.account.totalVotesCount : 0,
+                                    governingTokenDepositAmount:(record.account.governingTokenMint.toBase58() !== new PublicKey(grealm.account?.config.councilMint).toBase58()) ? record.account.governingTokenDepositAmount : new BN(0),
+                                    governingCouncilDepositAmount:(record.account.governingTokenMint.toBase58() === new PublicKey(grealm.account?.config.councilMint).toBase58()) ? record.account.governingTokenDepositAmount : new BN(0),
                                 });
 
-                                if (record.account.governingTokenMint.toBase58() !== grealm.account?.config.councilMint.toBase58()){
+                                if (record.account.governingTokenMint.toBase58() !== new PublicKey(grealm.account?.config.councilMint).toBase58()){
                                     tVotes += record.account.governingTokenDepositAmount.toNumber();
                                     tVotesCasted += record.account.totalVotesCount;
                                 } else{
@@ -571,18 +586,124 @@ export function GovernanceMembersView(props: any) {
         setLoading(false);
     }
 
-    React.useEffect(() => { 
-        if (tokenMap){   
+    const getCachedGovernanceFromLookup = async () => {
+        
+        let cached_governance = new Array();
+        if (governanceLookup){
+            for (let glitem of governanceLookup){
+                if (glitem.governanceAddress === governanceAddress){
+
+                    if (glitem?.realm){
+                        setCachedRealm(glitem?.realm);
+                    }
+                    if (glitem?.memberFilename){
+                        const cached_members = await getFileFromLookup(glitem.memberFilename, storagePool);
+                        setCachedMemberMap(cached_members);
+                    }
+
+                    cached_governance = await getFileFromLookup(glitem.filename, storagePool);
+                }
+            }
+        }
+
+        // convert values in governance to BigInt and PublicKeys accordingly
+        let counter = 0;
+        for (let cupdated of cached_governance){
+
+            cupdated.account.governance = new PublicKey(cupdated.account.governance);
+            cupdated.account.governingTokenMint = new PublicKey(cupdated.account.governingTokenMint);
+            cupdated.account.tokenOwnerRecord = new PublicKey(cupdated.account.tokenOwnerRecord);
+            cupdated.owner = new PublicKey(cupdated.owner);
+            cupdated.pubkey = new PublicKey(cupdated.pubkey);
+
+            
+            if (cupdated.account?.options && cupdated.account?.options[0]?.voteWeight)
+                cupdated.account.options[0].voteWeight = Number("0x"+cupdated.account.options[0].voteWeight)
+            if (cupdated.account?.denyVoteWeight)
+                cupdated.account.denyVoteWeight = Number("0x"+cupdated.account.denyVoteWeight).toString()
+
+            if (cupdated.account?.yesVotesCount)
+                cupdated.account.yesVotesCount = Number("0x"+cupdated.account.yesVotesCount).toString()
+            if (cupdated.account?.noVotesCount)
+                cupdated.account.noVotesCount = Number("0x"+cupdated.account.noVotesCount).toString()
+            
+            cupdated.account.draftAt = Number("0x"+cupdated.account.draftAt).toString()
+            cupdated.account.signingOffAt = Number("0x"+cupdated.account.signingOffAt).toString()
+            cupdated.account.votingAt = Number("0x"+cupdated.account.votingAt).toString()
+            cupdated.account.votingAtSlot = Number("0x"+cupdated.account.votingAtSlot).toString()
+            cupdated.account.vetoVoteWeight = Number("0x"+cupdated.account.vetoVoteWeight).toString()
+            cupdated.account.votingCompletedAt = Number("0x"+cupdated.account.votingCompletedAt).toString()
+
+            // move to nested voting results
+            if (cupdated?.votingResults){
+                
+                for (let inner of cupdated.votingResults){
+                    inner.pubkey = new PublicKey(inner.pubkey);
+                    inner.proposal = new PublicKey(inner.proposal);
+                    inner.governingTokenOwner = new PublicKey(inner.governingTokenOwner);
+                    inner.voteAddress = new PublicKey(inner.voteAddress);
+                    if (inner.vote?.councilMint)
+                        inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
+                    inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
+                    if (inner.vote?.councilMint)
+                        inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
+                    inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
+                    /*
+                    inner.vote.voterWeight = Number("0x"+inner.vote.voterWeight).toString()
+                    inner.vote.legacyYes = Number("0x"+inner.vote.legacyYes).toString()
+                    inner.vote.legacyNo = Number("0x"+inner.vote.legacyNo).toString()
+                    */
+                }
+            }
+
+            counter++;
+        }
+        
+        setCachedGovernance(cached_governance);
+        //getGovernance(cached_governance);
+    }
+
+    const startTimer = () => {
+        setStartTime(Date.now());
+    }
+
+    const endTimer = () => {
+        setEndTime(Date.now())
+    }
+
+    const callGovernanceLookup = async() => {
+        const fglf = await fetchGovernanceLookupFile(storagePool);
+        setGovernanceLookup(fglf);
+    }
+
+    React.useEffect(() => {
+        if (governanceLookup){
+            getCachedGovernanceFromLookup();
+        }
+    }, [governanceLookup, governanceAddress]);
+    
+    React.useEffect(() => {
+        if (cachedGovernance && governanceAddress){
             getGovernanceMembers();
+            endTimer();
+        }
+    }, [cachedGovernance]);
+
+    React.useEffect(() => { 
+        if (tokenMap){  
+            startTimer();
+            callGovernanceLookup();
         }
     }, [tokenMap]);
 
     React.useEffect(() => { 
-        if (publicKey && !loading){   
-            getTokens();
+        if (!loading){
+            if (!tokenMap){
+                getTokens();
+            }
         }
-    }, [publicKey]);
-    
+    }, []);
+
     
         if(loading){
             return (
@@ -789,6 +910,16 @@ export function GovernanceMembersView(props: any) {
                             }
 
                         <RenderGovernanceMembersTable members={members} participating={participating} tokenMap={tokenMap} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />
+                    
+                        {endTime &&
+                            <Typography 
+                                variant="caption"
+                                sx={{textAlign:'center'}}
+                            >
+                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Cached<br/>
+                                Cache Node: {storagePool}
+                            </Typography>
+                        }
                     </Box>
                                 
                 );
