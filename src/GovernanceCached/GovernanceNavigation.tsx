@@ -58,7 +58,9 @@ export default function GovernanceNavigation(props: any){
                             to={'/metrics/'+governanceAddress}
                         ><BarChartIcon /></Button>
                     </Tooltip>
-                    <Tooltip title="Members (currently via RPC)">
+                    <Tooltip title={
+                        <>Members<br/>* Migration to cached storage pending<br/>* Currently fetched via RPC
+                        </>}>
                         <Button
                             component={Link}
                             to={'/members/'+governanceAddress}
