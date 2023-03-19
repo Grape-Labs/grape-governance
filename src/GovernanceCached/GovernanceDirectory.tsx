@@ -40,7 +40,9 @@ function GovernanceCardView(props:any) {
     const item = props.item;
 
     return (
-        <Card sx={{ minWidth: 275 }}>
+        <Card sx={{ 
+            borderRadius: '17px',
+            background: 'linear-gradient(to right, rgba(0,0,0,0.25), #434343)' }}>
         <CardContent>
             <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>
             Governance
