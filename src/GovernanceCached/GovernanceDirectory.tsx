@@ -64,7 +64,7 @@ function GovernanceCardView(props:any) {
                 {item?.totalProposals &&
                     <>Total Proposals {item.totalProposals}
                         {item?.totalCouncilProposals ?
-                            <>???{item?.totalCouncilProposals > 0 &&
+                            <>{item?.totalCouncilProposals > 0 &&
                                 <><br/>{item.totalProposals - item.totalCouncilProposals} community / {item.totalCouncilProposals} council</>
                             }
                             </>
