@@ -209,7 +209,7 @@ function RenderVoterRecordTable(props:any) {
     const cachedGovernance = props.cachedGovernance;
     const memberMap = props.memberMap;
     const governanceType = props.governanceType;
-    const governanceTokenDecimals = props.governanceTokenDecimals;
+    const governingTokenDecimals = props.governingTokenDecimals;
     const governaningTokenMint = props.governingTokenMint;
     const tokenMap = props.tokenMap;
     const realm = props.realm;
@@ -454,7 +454,7 @@ function RenderVoterRecordTable(props:any) {
                                         //realm.account.config.councilMint
 
                                         if (realm.account.communityMint.toBase58() === memberItem.account.governingTokenMint.toBase58()){
-                                            depositedgovernancevotes = +(Number(memberItem.account.governingTokenDepositAmount)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);
+                                            depositedgovernancevotes = +(+(memberItem.account.governingTokenDepositAmount)/Math.pow(10, +governingTokenDecimals)).toFixed(0);
                                         }else if (realm.account.config.councilMint.toBase58() === memberItem.account.governingTokenMint.toBase58()){
                                             depositedcouncilvotes = +(Number(memberItem.account.governingTokenDepositAmount));
                                         }
