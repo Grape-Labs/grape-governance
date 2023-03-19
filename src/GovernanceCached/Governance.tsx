@@ -1219,7 +1219,7 @@ function GetParticipants(props: any){
                                                 <>Started At</>
                                             </Typography>
                                             <Typography variant="subtitle2">
-                                                {moment.unix(Number(thisitem.account?.draftAt)).format("MMMM Da, YYYY, h:mm a")}
+                                                {moment.unix(Number(thisitem.account?.draftAt)).format("MMMM D, YYYY, h:mm a")}
                                             </Typography>
                                         </Box>
                                     </Grid>
@@ -1241,13 +1241,13 @@ function GetParticipants(props: any){
                                                 {thisGovernance && thisGovernance?.account?.config?.maxVotingTime ?
                                                     <>
                                                         {thisitem.account?.draftAt &&
-                                                            `${moment.unix(Number(thisitem.account?.draftAt)+thisGovernance?.account?.config?.maxVotingTime).format("MMMM Da, YYYY, h:mm a")}`
+                                                            `${moment.unix(Number(thisitem.account?.draftAt)+thisGovernance?.account?.config?.maxVotingTime).format("MMMM D, YYYY, h:mm a")}`
                                                         }
                                                     </>
                                                 :
                                                     <>
                                                     {thisitem.account?.votingCompletedAt ?
-                                                        `${moment.unix(thisitem.account?.votingCompletedAt).format("MMMM Da, YYYY, h:mm a")}`
+                                                        `${moment.unix(thisitem.account?.votingCompletedAt).format("MMMM D, YYYY, h:mm a")}`
                                                     :
                                                         `Ended`
                                                     }
@@ -1405,7 +1405,7 @@ function RenderGovernanceTable(props:any) {
                                 :
                                     <>
                                     {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
-                                        <>{`Started: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM Da, YYYY, h:mm a"))}`}<br/>{`Ended: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.votingCompletedAt))).format("MMMM Da, YYYY, h:mm a"))}`}</>
+                                        <>{`Started: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))}`}<br/>{`Ended: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.votingCompletedAt))).format("MMMM D, YYYY, h:mm a"))}`}</>
                                     :
                                         `Created: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))}`
                                     }
