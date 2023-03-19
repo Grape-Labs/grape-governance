@@ -23,8 +23,9 @@ import {
     Title,
     ArgumentAxis,
     ValueAxis,
+    Legend
   } from '@devexpress/dx-react-chart-material-ui';
-  import { Animation } from '@devexpress/dx-react-chart';
+  import { Stack, Animation } from '@devexpress/dx-react-chart';
 
 import { 
     DesktopDatePicker,
@@ -103,6 +104,13 @@ import PropTypes from 'prop-types';
 import { PROXY, GRAPE_RPC_ENDPOINT, TX_RPC_ENDPOINT, GGAPI_STORAGE_POOL, GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
+
+const Root = props => (
+    <Legend.Root {...props} sx={{ display: 'flex', margin: 'auto', flexDirection: 'row' }} />
+  );
+  const Label = props => (
+    <Legend.Label {...props} sx={{ whiteSpace: 'nowrap' }} />
+  );
 
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
     height: 15,
@@ -1123,13 +1131,30 @@ export function GovernanceMetricsView(props: any) {
                                         data={governanceChartData}
                                         >
                                         <ArgumentAxis />
-                                        <ValueAxis max={7} />
+                                        
+                                            <BarSeries
+                                                name="Proposals"
+                                                valueField="count"
+                                                argumentField="date"
+                                            />
 
-                                        <BarSeries
-                                            valueField="count"
-                                            argumentField="date"
-                                        />
+                                            <BarSeries
+                                                name="Defeated"
+                                                valueField="cdefeated"
+                                                argumentField="date"
+                                            />
+                                            <BarSeries
+                                                name="Passed"
+                                                valueField="cpassing"
+                                                argumentField="date"
+                                            />
                                         <Title text="Proposals" />
+                                        <Legend position="bottom" rootComponent={Root} labelComponent={Label} />
+                                        <Stack
+                                            stacks={[
+                                            { series: ['Proposals', 'Defeated', 'Passed'] },
+                                            ]}
+                                        />
                                         <Animation />
                                     </Chart>
                                 </Box>
