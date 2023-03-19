@@ -111,7 +111,10 @@ export function GovernanceDirectoryView() {
 
     const callGovernanceLookup = async() => {
         const fglf = await fetchGovernanceLookupFile(storagePool);
-        setGovernanceLookup(fglf);
+        // pre sort
+        const sorted = fglf.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
+
+        setGovernanceLookup(sorted);
         setLoading(false);
     }
 
