@@ -88,6 +88,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [governanceType, setGovernanceType] = React.useState(0);
     const [nftBasedGovernance, setNftBasedGovernance] = React.useState(false);
     const [memberMap, setMemberMap] = React.useState(null);
+    const [lastProposalDate, setLastProposalDate] = React.useState(null);
+    const [totalCouncilProposals, setTotalCouncilProposals] = React.useState(null);
     const [totalProposals, setTotalProposals] = React.useState(null);
     const [totalPassed, setTotalPassed] = React.useState(null);
     const [totalDefeated, setTotalDefeated] = React.useState(null);
@@ -239,9 +241,15 @@ export function GovernanceSnapshotView (this: any, props: any) {
             let passed = 0;
             let defeated = 0;
             let ttvc = 0;
+            let council = 0;
             
             for (const props of gprops){
                 for (const prop of props){
+                    
+                    // check if community or council
+                    if (grealm.account.config?.councilMint && (grealm.account.config?.councilMint.toBase58() === prop.account.governingTokenMint.toBase58()))
+                        council++;
+                    
                     if (prop){
                         allprops.push(prop);
                         if (prop.account.state === 3 || prop.account.state === 5)
@@ -269,11 +277,16 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
             const sortedResults = allprops.sort((a:any, b:any) => ((b.account?.votingAt != null ? b.account?.votingAt : 0) - (a.account?.votingAt != null ? a.account?.votingAt : 0)))
             
+            // get first date
+            if (sortedResults && sortedResults.length > 0)
+                if (sortedResults[0].account?.draftAt)
+                    setLastProposalDate(sortedResults[0].account?.draftAt)
+            
             setPrimaryStatus("Fetched Governance: "+grealm.account.name+" "+address+" with "+sortedResults.length+" proposals");
             setGovernanceName(grealm.account.name);
 
             //console.log("proposals: "+JSON.stringify(sortedResults));
-
+            setTotalCouncilProposals(council);
             setTotalDefeated(defeated);
             setTotalPassed(passed);
             setTotalProposals(sortedResults.length);
@@ -838,6 +851,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         item.communityFmtSupplyFractionPercentage = realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
                     item.governance = thisGovernance;
                     item.governingMintDetails = governingMintDetails;
+                    item.totalProposals = totalProposals;
+                    item.totalCouncilProposals = totalCouncilProposals;
+                    item.lastProposalDate = lastProposalDate;
+                    item.tokenSupply = totalSupply;
                     govFound = true;
                 }
                 cntr++;
@@ -858,7 +875,11 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     realm:realm,
                     communityFmtSupplyFractionPercentage: communityFmtSupplyFractionPercentage,
                     governance: thisGovernance,
-                    governingMintDetails: governingMintDetails
+                    governingMintDetails: governingMintDetails,
+                    totalProposals: totalProposals,
+                    totalCouncilProposals: totalCouncilProposals,
+                    lastProposalDate: lastProposalDate,
+                    tokenSupply: totalSupply
                 });
             }
             

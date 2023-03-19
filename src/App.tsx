@@ -6,6 +6,7 @@ import { GovernanceRPCView } from "./GovernanceRPC/Governance";
 import { GovernanceCachedView } from "./GovernanceCached/Governance";
 import { GovernanceMetricsView } from "./GovernanceCached/GovernanceMetrics";
 import { GovernanceMembersView } from "./GovernanceCached/GovernanceMembers";
+import { GovernanceDirectoryView } from "./GovernanceCached/GovernanceDirectory";
 import CssBaseline from '@mui/material/CssBaseline';
 
 import {
@@ -215,37 +216,8 @@ function DashboardContent() {
 export const NotFound = () => {
   return (
     <div style={{ height: "100%", overflow: "auto" }}>
-      <Paper sx={{
-        mt:5,
-        p:5,
-        borderRadius:'24px'}}>
-        <Grid 
-          className="grape-paper" 
-          container
-          alignContent="center"
-          justifyContent="center"
-          direction="column">
-          <Grid item>
-            <Typography 
-              align="center"
-              variant="h3">
-                Select a governance above to get started
-            </Typography>
-
-            <Typography 
-              align="center"
-              variant="caption">
-                NOTE:
-                <br/>
-                *Cached method will fetch Governance will load all proposals & proposal details
-                <br/>
-                *RPC method will fetch Governance via RPC calls (additional RPC calls are needed per proposal, significantly increasing the load time)
-            </Typography>
-            
-          </Grid>
-        </Grid>
-      </Paper>
-  </div>
+      <GovernanceDirectoryView />
+    </div>
   )
 }
 

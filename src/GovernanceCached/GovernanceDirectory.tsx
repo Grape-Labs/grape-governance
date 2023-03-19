@@ -1,0 +1,206 @@
+import React, { useCallback } from 'react';
+import { styled, useTheme } from '@mui/material/styles';
+import { Link } from "react-router-dom";
+
+import {
+    Box,
+    Grid,
+    Card,
+    CardActions,
+    CardContent,
+    Button,
+    Tooltip,
+    Typography,
+    LinearProgress,
+    linearProgressClasses
+} from '@mui/material/';
+
+import {
+    fetchGovernanceLookupFile,
+    getFileFromLookup
+} from './CachedStorageHelpers'; 
+
+import { GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
+import moment from 'moment';
+
+const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
+    height: 15,
+    borderRadius: '17px',
+    [`&.${linearProgressClasses.colorPrimary}`]: {
+      backgroundColor: theme.palette.grey[theme.palette.mode === 'light' ? 200 : 800],
+    },
+    [`& .${linearProgressClasses.bar}`]: {
+      borderRadius: '0px',
+      backgroundColor: theme.palette.mode === 'light' ? '#1a90ff' : '#ffffff',
+    },
+}));
+
+
+function GovernanceCardView(props:any) {
+    const item = props.item;
+
+    return (
+        <Card sx={{ minWidth: 275 }}>
+        <CardContent>
+            <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>
+            Governance
+            </Typography>
+            <Button 
+                component={Link}
+                to={'/cachedgovernance/'+item.governanceAddress}
+                size="large"
+                color='inherit'
+                sx={{borderRadius:'17px',textTransform:'none'}}
+                >
+                <Typography variant="h5" component="div">
+                {item.governanceName}
+                </Typography></Button><br/>
+            {item?.governanceAddress &&
+                <Typography variant='caption' color="text.secondary">
+                    {item.governanceAddress}
+                </Typography>
+            }
+            <Typography variant="body2">
+                {item?.totalProposals &&
+                    <>Total Proposals {item.totalProposals}
+                        {item?.totalCouncilProposals &&
+                            <><br/>{item.totalProposals - item.totalCouncilProposals} community / {item.totalCouncilProposals} council</>
+                        }
+                    </>
+                }
+                <br />
+                {item?.lastProposalDate &&
+                    <>Last Proposal {moment.unix(Number("0x"+item.lastProposalDate)).format("MMMM Da, YYYY, h:mm a") }</>
+                }
+            </Typography>
+        </CardContent>
+        <CardActions>
+            <Tooltip title="Cached method will fetch Governance will load all proposals & proposal details">
+                <Button 
+                    component={Link}
+                    to={'/cachedgovernance/'+item.governanceAddress}
+                    size="small"
+                    color='inherit'
+                    sx={{borderRadius:'17px',textTransform:'none'}}
+                    >View Governance</Button>
+            </Tooltip>
+            <Tooltip title="RPC method will fetch Governance via RPC calls (additional RPC calls are needed per proposal, significantly increasing the load time)">
+                <Button 
+                    component={Link}
+                    to={'/rpcgovernance/'+item.governanceAddress}
+                    size="small"
+                    color='inherit'
+                    sx={{borderRadius:'17px',textTransform:'none'}}>via RPC</Button>
+                </Tooltip>
+            {item.timestamp &&
+                <Typography marginLeft='auto' variant='caption'>Fetched: {moment.unix(Number(item.timestamp)).format("MMMM Da, YYYY, h:mm a") }</Typography>
+            }
+        </CardActions>
+        </Card>
+    );
+}
+
+export function GovernanceDirectoryView() {
+    const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
+    const [loading, setLoading] = React.useState(false);
+    const [governanceLookup, setGovernanceLookup] = React.useState(null);
+
+    const callGovernanceLookup = async() => {
+        const fglf = await fetchGovernanceLookupFile(storagePool);
+        setGovernanceLookup(fglf);
+        setLoading(false);
+    }
+
+    React.useEffect(() => {
+        if (!governanceLookup){
+            setLoading(true);
+            console.log("Step 1.")
+            callGovernanceLookup();
+        }
+    }, []);
+    
+
+    if(loading){
+        return (
+            <Box
+                sx={{
+                    mt:6,
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    borderRadius: '17px',
+                    p:4,
+                    alignItems: 'center', textAlign: 'center'
+                }} 
+            > 
+                <Typography variant="caption">Loading Directory</Typography>
+                
+                <LinearProgress color="inherit" />
+                
+            </Box>
+        )
+    } else{
+        if (governanceLookup){
+            return (
+                <Box
+                    sx={{
+                        mt:6,
+                        background: 'rgba(0, 0, 0, 0.6)',
+                        borderRadius: '17px',
+                        p:4,
+                        alignItems: 'center', textAlign: 'center'
+                    }} 
+                > 
+                    
+                    <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
+                        {governanceLookup.map((item: any,key:number) => (
+                            <Grid item xs={6} key={key}>
+                                <GovernanceCardView 
+                                    item={item}
+                                />
+                            </Grid>
+                        ))}
+                    </Grid>
+                </Box>
+            )
+        } else{
+            return(
+            <Box
+                sx={{
+                    mt:6,
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    borderRadius: '17px',
+                    p:4,
+                    alignItems: 'center', textAlign: 'center'
+                }} 
+            > 
+                <Grid 
+                    className="grape-paper" 
+                    container
+                    alignContent="center"
+                    justifyContent="center"
+                    direction="column">
+                    <Grid item>
+                        <Typography 
+                        align="center"
+                        variant="h3">
+                            Select a governance above to get started
+                        </Typography>
+
+                        <Typography 
+                        align="center"
+                        variant="caption">
+                            NOTE:
+                            <br/>
+                            *Cached method will fetch Governance will load all proposals & proposal details
+                            <br/>
+                            *RPC method will fetch Governance via RPC calls (additional RPC calls are needed per proposal, significantly increasing the load time)
+                        </Typography>
+                        
+                    </Grid>
+                    </Grid>
+            </Box>
+            );
+
+        }
+
+    }
+}
