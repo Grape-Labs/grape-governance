@@ -231,6 +231,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
             // to do get member map
             const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
+            // check #tokens deposited
+            
             setMemberMap(rawTokenOwnerRecords);
 
             setPrimaryStatus("Fetching All Proposals");
@@ -855,6 +857,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     item.totalCouncilProposals = totalCouncilProposals;
                     item.lastProposalDate = lastProposalDate;
                     item.tokenSupply = totalSupply;
+                    if (memberMap)
+                        item.memberCount = memberMap.length;
                     govFound = true;
                 }
                 cntr++;
@@ -864,7 +868,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 let communityFmtSupplyFractionPercentage = null;
                 if (realm.account.config?.communityMintMaxVoteWeightSource)
                     communityFmtSupplyFractionPercentage = realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
-                
+                let memberCount = 0;
+                if (memberMap)
+                    memberCount = memberMap.length;
+
                 governanceLookup.push({
                     governanceAddress:governanceAddress,
                     governanceName:governanceName,
@@ -879,6 +886,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     totalProposals: totalProposals,
                     totalCouncilProposals: totalCouncilProposals,
                     lastProposalDate: lastProposalDate,
+                    memberCount: memberCount,
                     tokenSupply: totalSupply
                 });
             }
