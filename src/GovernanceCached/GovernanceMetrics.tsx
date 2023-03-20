@@ -223,26 +223,32 @@ function RenderVoterRecordTable(props:any) {
     const [voterRecordRows, setVoterRecordRows] = React.useState(null);
     const votingrecordcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
-        { field: 'pubkey', headerName: 'PublicKey', width: 260, hide: false,
+        { field: 'pubkey', headerName: 'Voter', width: 260, hide: false,
             renderCell: (params) => {
                 return(
                     <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={params.value} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
                 )
             }
         },
-        { field: 'currentvotes', headerName: 'Current Voting Power', width: 120, hide: false},
-        { field: 'councilvotes', headerName: 'Council', width: 50, hide: false},
-        { field: 'totalproposalscreated', headerName: 'Proposals Created', width: 140, hide: false},
-        { field: 'totalvotes', headerName: 'Total Votes Casted', width: 140, hide: false},
-        { field: 'totalvotesfor', headerName: 'Total Votes For', width: 140, hide: false},
-        { field: 'totalvotesagainst', headerName: 'Total Votes Against', width: 170, hide: false},
-        { field: 'totalproposalparticipation', headerName: 'Total Proposal Participation', width: 140, hide: false},
-        { field: 'totalproposalsfor', headerName: 'Total Proposals For', width: 170, hide: false},
-        { field: 'totalproposalsagainst', headerName: 'Total Proposals Against', width: 170, hide: false},
-        { field: 'totalcouncilproposalscreated', headerName: 'Council Props Created', width: 140, hide: false},
-        { field: 'totalcouncilvotes', headerName: 'Council Participation', width: 140, hide: false},
-        { field: 'totalcouncilvotesfor', headerName: 'Council For', width: 170, hide: false},
-        { field: 'totalcouncilvotesagainst', headerName: 'Council Against', width: 170, hide: false},
+        { field: 'currentvotes', headerName: 'Current Voting Power', width: 120, hide: false, align: 'right',
+            renderCell: (params) => {
+                return(
+                    <>{params.value}</>
+                )
+            }
+        },
+        { field: 'councilvotes', headerName: 'Council', width: 50, hide: false, align: 'right',},
+        { field: 'totalproposalscreated', headerName: 'Proposals Created', width: 140, hide: false, align: 'right',},
+        { field: 'totalvotes', headerName: 'Total Votes Casted', width: 140, hide: false, align: 'right',},
+        { field: 'totalvotesfor', headerName: 'Total Votes For', width: 140, hide: false, align: 'right',},
+        { field: 'totalvotesagainst', headerName: 'Total Votes Against', width: 170, hide: false, align: 'right',},
+        { field: 'totalproposalparticipation', headerName: 'Total Proposal Participation', width: 140, hide: false, align: 'right',},
+        { field: 'totalproposalsfor', headerName: 'Total Proposals For', width: 170, hide: false, align: 'right',},
+        { field: 'totalproposalsagainst', headerName: 'Total Proposals Against', width: 170, hide: false, align: 'right',},
+        { field: 'totalcouncilproposalscreated', headerName: 'Council Props Created', width: 140, hide: false, align: 'right',},
+        { field: 'totalcouncilvotes', headerName: 'Council Participation', width: 140, hide: false, align: 'right',},
+        { field: 'totalcouncilvotesfor', headerName: 'Council For', width: 170, hide: false, align: 'right',},
+        { field: 'totalcouncilvotesagainst', headerName: 'Council Against', width: 170, hide: false, align: 'right',},
     ]
 
     const exportFile = async(csvFile:string, fileName:string) => {
