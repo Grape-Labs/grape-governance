@@ -42,11 +42,14 @@ const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
 
 function GovernanceCardView(props:any) {
     const item = props.item;
+    const randomColor = Math.floor(Math.random()*16777215).toString(16);
+
+    console.log("randomColor: "+randomColor)
 
     return (
         <Card sx={{ 
             borderRadius: '17px',
-            background: 'linear-gradient(to right, rgba(0,0,0,0.25), #434343)' }}>
+            background: 'linear-gradient(to right, rgba(0,0,0,0.50) 40%, #'+randomColor+' 200%)' }}>
         <CardContent>
             <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>
             Governance
