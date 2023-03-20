@@ -216,7 +216,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     
                     //console.log("tryRealmConfig: "+JSON.stringify(tryRealmConfig));
                     //setRealmConfig(realmConfigPK)
-
+                    
                     if (realmConfig && realmConfig?.account && realmConfig?.account?.communityTokenConfig.maxVoterWeightAddin){
                         if (realmConfig?.account?.communityTokenConfig.maxVoterWeightAddin.toBase58() === 'GnftV5kLjd67tvHpNGyodwWveEKivz3ZWvvE3Z4xi2iw'){ // NFT based community
                             setNftBasedGovernance(true);
@@ -232,8 +232,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
             // to do get member map
             const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
             // check #tokens deposited
-
             setMemberMap(rawTokenOwnerRecords);
+            // get unique members
+
 
             setPrimaryStatus("Fetching All Proposals");
 
@@ -859,9 +860,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     item.tokenSupply = totalSupply;
                     item.totalQuorum = totalQuorum;
                     if (memberMap)
-                        item.memberCount = memberMap.length;
+                        item.memberCount = new Set(memberMap).size; // memberMap.length;
                     govFound = true;
                 }
+                console.log("size: "+new Set(memberMap).size)
                 cntr++;
             }
             console.log("Lookup has "+cntr+" entries");
@@ -871,7 +873,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     communityFmtSupplyFractionPercentage = realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
                 let memberCount = 0;
                 if (memberMap)
-                    memberCount = memberMap.length;
+                    memberCount = new Set(memberMap).size; // memberMap.length;
 
                 governanceLookup.push({
                     governanceAddress:governanceAddress,

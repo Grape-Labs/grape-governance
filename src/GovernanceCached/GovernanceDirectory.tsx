@@ -20,6 +20,10 @@ import {
     getFileFromLookup
 } from './CachedStorageHelpers'; 
 
+import {
+    timeAgo
+} from '../utils/grapeTools/WalletAddress'
+
 import { GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
 import moment from 'moment';
 
@@ -76,7 +80,16 @@ function GovernanceCardView(props:any) {
                 }
                 <br />
                 {item?.lastProposalDate &&
-                    <>Last Proposal {moment.unix(Number("0x"+item.lastProposalDate)).format("MMMM D, YYYY, h:mm a") }</>
+                    <Tooltip title={
+                        <> {moment.unix(Number("0x"+item.lastProposalDate)).format("MMMM D, YYYY, h:mm a") }</>
+                    }>
+                        <Button
+                            color='inherit'
+                            sx={{borderRadius:'17px'}}
+                        >
+                        Last Proposal {timeAgo(Number("0x"+item.lastProposalDate).toString())}
+                        </Button>
+                    </Tooltip>
                 }
             </Typography>
         </CardContent>
