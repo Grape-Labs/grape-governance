@@ -223,7 +223,13 @@ function RenderVoterRecordTable(props:any) {
     const [voterRecordRows, setVoterRecordRows] = React.useState(null);
     const votingrecordcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
-        { field: 'pubkey', headerName: 'PublicKey', width: 260, hide: false},
+        { field: 'pubkey', headerName: 'PublicKey', width: 260, hide: false,
+            renderCell: (params) => {
+                return(
+                    <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={params.value} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
+                )
+            }
+        },
         { field: 'currentvotes', headerName: 'Current Voting Power', width: 120, hide: false},
         { field: 'councilvotes', headerName: 'Council', width: 50, hide: false},
         { field: 'totalproposalscreated', headerName: 'Proposals Created', width: 140, hide: false},
