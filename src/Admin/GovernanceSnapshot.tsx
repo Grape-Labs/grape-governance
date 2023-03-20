@@ -39,6 +39,7 @@ import {
     GGAPI_STORAGE_URI,
 } from '../utils/grapeTools/constants';
 
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import CircularProgress from '@mui/material/CircularProgress';
 
 const GOVERNANCE_STATE = {
@@ -730,6 +731,38 @@ export function GovernanceSnapshotView (this: any, props: any) {
         } 
     }
 
+    const deleteStoragePoolFile = async (storagePublicKey: PublicKey, file: string, version: string) => { 
+        try{
+            enqueueSnackbar(`Preparing to delete ${file}`,{ variant: 'info' });
+            const snackprogress = (key:any) => (
+                <CircularProgress sx={{padding:'10px'}} />
+            );
+            //console.log(storagePublicKey + "/"+storageAccount+" - file: "+file);
+            const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
+            
+            const signedTransaction = await thisDrive.deleteFile(storagePublicKey, 'https://shdw-drive.genesysgo.net/'+storagePublicKey.toBase58()+'/'+file, version || 'v2');
+            console.log("signedTransaction; "+JSON.stringify(signedTransaction))
+            
+            closeSnackbar(cnfrmkey);
+            const snackaction = (key:any) => (
+                <Button href={`https://explorer.solana.com/tx/${signedTransaction.txid}`} target='_blank'  sx={{color:'white'}}>
+                    {signedTransaction.message}
+                </Button>
+            );
+            enqueueSnackbar(`Transaction Confirmed`,{ variant: 'success', action:snackaction });
+            /*
+            setTimeout(function() {
+                getStorageFiles(storageAccount.publicKey);
+            }, 2000);
+            */
+        }catch(e){
+            closeSnackbar();
+            enqueueSnackbar(`${e}`,{ variant: 'error' });
+            console.log("Error: "+e);
+            //console.log("Error: "+JSON.stringify(e));
+        } 
+    }
+
     const processGovernance = async(updateAuthority:string) => {
         // Second drive creation (otherwise wallet is not connected when done earlier)
         const drive = await new ShdwDrive(new Connection(GRAPE_RPC_ENDPOINT), wallet).init();
@@ -859,11 +892,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     item.lastProposalDate = lastProposalDate;
                     item.tokenSupply = totalSupply;
                     item.totalQuorum = totalQuorum;
-                    if (memberMap)
-                        item.memberCount = new Set(memberMap).size; // memberMap.length;
                     govFound = true;
                 }
-                console.log("size: "+new Set(memberMap).size)
+                //console.log("size: "+new Set(memberMap).size)
                 cntr++;
             }
             console.log("Lookup has "+cntr+" entries");
@@ -871,9 +902,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 let communityFmtSupplyFractionPercentage = null;
                 if (realm.account.config?.communityMintMaxVoteWeightSource)
                     communityFmtSupplyFractionPercentage = realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
-                let memberCount = 0;
-                if (memberMap)
-                    memberCount = new Set(memberMap).size; // memberMap.length;
+                //let memberCount = 0;
+                //if (memberMap)
+                //    memberCount = new Set(memberMap).size; // memberMap.length;
 
                 governanceLookup.push({
                     governanceAddress:governanceAddress,
@@ -889,7 +920,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     totalProposals: totalProposals,
                     totalCouncilProposals: totalCouncilProposals,
                     lastProposalDate: lastProposalDate,
-                    memberCount: memberCount,
+                    //memberCount: memberCount,
                     tokenSupply: totalSupply,
                     totalQuorum: totalQuorum,
                 });
@@ -926,6 +957,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
     function blobToFile(theBlob: Blob, fileName: string){       
         return new File([theBlob], fileName, { lastModified: new Date().getTime(), type: theBlob.type })
+    }
+
+    const handleStoragePoolPurge = async () => {
+        // deleteStoragePoolFile()
     }
 
     const handleUploadToStoragePool = async () => {
@@ -1140,6 +1175,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     <Button 
                         onClick ={() => processProposals(proposals, true)} 
                         disabled={(!proposals)}
+                        color="warning"
                         variant='contained'
                         title="Regenerates via RPC all proposals"
                     >
@@ -1156,8 +1192,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         <ButtonGroup>                    
                             <Tooltip title="Download SPL Governance Cached JSON file">
                                 <Button
+                                    color="inherit"
                                     download={`${governanceAddress}.json`}
                                     href={fileGenerated}
+                                    sx={{borderRadius:'17px'}}
                                 >
                                     <DownloadIcon /> JSON
                                 </Button>
@@ -1165,8 +1203,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             {csvGenerated &&
                                 <Tooltip title="Download SPL Governance CSV file">
                                     <Button
+                                        color="inherit"
                                         download={`${governanceAddress}.csv`}
                                         href={csvGenerated}
+                                        sx={{borderRadius:'17px'}}
                                     >
                                         <DownloadIcon /> CSV
                                     </Button>
@@ -1175,13 +1215,26 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
                             <Tooltip title="Upload to your selected storage pool - *SHDW Storage Pool will need to be created for adding to your decentralized storage pool">
                                 <Button
+                                    color="inherit"
                                     disabled={!storageAutocomplete ? true : false}
                                     onClick={handleUploadToStoragePool}
-                                    sx={{ml:1}}
+                                    sx={{ml:1,borderRadius:'17px'}}
                                 >
                                     <CloudUploadIcon />
                                 </Button>
                             </Tooltip>
+                            {/*
+                            <Tooltip title="Purge historical files">
+                                <Button
+                                    color='inherit'
+                                    disabled={!storageAutocomplete ? true : false}
+                                    onClick={handleStoragePoolPurge}
+                                    sx={{ml:1,borderRadius:'17px'}}
+                                >
+                                    <DeleteForeverIcon color='error' />
+                                </Button>
+                            </Tooltip>
+                            */}
                         </ButtonGroup>
                         
                         {!storageAutocomplete &&
@@ -1193,7 +1246,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 }
 
                 <Box sx={{ width: '100%' }}>
-                    <LinearProgressWithLabel value={progress} />
+                    <LinearProgressWithLabel color="inherit" value={progress} />
                 </Box>
             </Stack>
             

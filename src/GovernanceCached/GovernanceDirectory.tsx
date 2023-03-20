@@ -171,6 +171,25 @@ export function GovernanceDirectoryView() {
                         alignItems: 'center', textAlign: 'center'
                     }} 
                 > 
+                    <Grid container>
+                        <Grid item xs={12} container justifyContent="flex-start"
+                            sx={{textAlign:'left',mb:2}}
+                        >
+                            <Grid container>
+                                <Grid item xs={12}>
+                                    <Typography variant="h4">
+                                        Governance Directory
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="caption">
+                                        {governanceLookup && governanceLookup.length} Cached
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+
                     
                     <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
                         {governanceLookup.map((item: any,key:number) => (
