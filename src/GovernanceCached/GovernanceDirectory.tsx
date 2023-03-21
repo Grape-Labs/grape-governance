@@ -51,8 +51,8 @@ function GovernanceCardView(props:any) {
             borderRadius: '17px',
             background: 'linear-gradient(to right, rgba(0,0,0,0.50) 40%, #'+randomColor+' 200%)' }}>
         <CardContent>
-            <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>
-            Governance
+            <Typography sx={{ fontSize: 14, color:'rgba(255,255,255,0.1)' }} gutterBottom>
+                Governance
             </Typography>
             <Button 
                 component={Link}
@@ -61,8 +61,8 @@ function GovernanceCardView(props:any) {
                 color='inherit'
                 sx={{borderRadius:'17px',textTransform:'none'}}
                 >
-                <Typography variant="h5" component="div">
-                {item.governanceName}
+                <Typography variant="h4" component="div">
+                    {item.governanceName}
                 </Typography></Button><br/>
             {item?.governanceAddress &&
                 <Typography variant='caption' color="text.secondary">
