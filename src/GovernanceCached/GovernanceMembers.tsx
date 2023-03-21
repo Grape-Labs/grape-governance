@@ -368,6 +368,7 @@ export function GovernanceMembersView(props: any) {
     const [votingParticipants, setVotingParticipants] = React.useState(null);
     const [totalVotesCasted, setTotalVotesCasted] = React.useState(null);
     const [totalDepositedCouncilVotes, setDepositedTotalCouncilVotes] = React.useState(null);
+    const [top10Participants, setTop10Participants] = React.useState(null);
     const [governingTokenMint, setGoverningTokenMint] = React.useState(null);
     const [governingTokenDecimals, setGoverningTokenDecimals] = React.useState(null);
     const [circulatingSupply, setCirculatingSupply] = React.useState(null);
@@ -561,24 +562,35 @@ export function GovernanceMembersView(props: any) {
                 const presortedResults = participantArray.sort((a,b) => (a.totalVotesCount > b.totalVotesCount) ? 1 : -1);
                 const sortedResults = presortedResults.sort((a,b) => (a.governingTokenDepositAmount.toNumber() < b.governingTokenDepositAmount.toNumber()) ? 1 : -1);
 
-                /*
-                var memberArray = new Array();
+
+
+
+                let top10 = null;
+                let count = 0;
+                let totalTopVotes = 0;
+                let totalTopSupply = 0;
+                let totalTopCirculatingSupply = 0;
+                let totalTopGovernanceSupply = 0;
                 for (var member of sortedResults){
-                    var found = false;
-                    for (var ma of memberArray){
-                        if (ma.account.governingTokenOwner.toBase58() === member.account.governingTokenOwner.toBase58()){
-                            found = true;
-                        }    
+                    if (count < 10){
+                        console.log("member " +JSON.stringify(member))
+                        totalTopVotes += Number(member.governingTokenDepositAmount)/Math.pow(10, thisTokenDecimals || 0);
+                        if (tknSupply && Number(tknSupply.value.amount) > 0){
+                            totalTopCirculatingSupply += (+member.governingTokenDepositAmount.toNumber()/Number(tknSupply.value.amount))*100
+                            totalTopGovernanceSupply += (+member.governingTokenDepositAmount.toNumber()/tVotes)*100
+                        }
                     }
-                    
-                    if (!found)
-                        memberArray.push(member);
+                    count++
                 }
 
-                console.log("ma len: "+memberArray.length);
-                */
+                top10 = {
+                    votes:totalTopVotes,
+                    percentageOfSupply:totalTopCirculatingSupply,
+                    percentageOfGovernanceSupply:totalTopGovernanceSupply
+                }
 
-                //console.log("trecords: "+JSON.stringify(trecords));
+                if (top10)
+                    setTop10Participants(top10);
                 setMembers(sortedResults);
             
             }catch(e){console.log("ERR: "+e)}
@@ -772,7 +784,7 @@ export function GovernanceMembersView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'green'}}>
                                                     <>Active/Participating/All Participants</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -793,6 +805,42 @@ export function GovernanceMembersView(props: any) {
                                                 </Tooltip>
                                             </Box>
                                         </Grid>
+                                        
+                                        <Grid item xs={12} md={6} lg={3} key={2}>
+                                            <Box
+                                                className='grape-store-stat-item'
+                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                            >
+                                                <Typography variant="body2" sx={{color:'green'}}>
+                                                    <>Top 10</>
+                                                </Typography>
+                                                {top10Participants &&
+                                                    <Tooltip title={<>
+                                                                <Typography variant="subtitle2">
+                                                                Top 10 holders have {top10Participants.votes.toFixed(0)} votes deposited
+                                                                <br/>
+                                                                {top10Participants.percentageOfGovernanceSupply.toFixed(1)}% deposited in Governance
+                                                                <br/>
+                                                                {top10Participants.percentageOfSupply.toFixed(1)}% of the total supply
+                                                                </Typography>
+                                                            </>
+                                                        }>
+                                                        <Button
+                                                            color='inherit'
+                                                            sx={{
+                                                                borderRadius:'17px'
+                                                            }}
+                                                        >
+                                                            <Typography variant="h3">
+                                                                {getFormattedNumberToLocale(top10Participants.votes.toFixed(0))}
+                                                            </Typography>
+                                                        </Button>
+                                                    </Tooltip>
+                                                }
+                                            </Box>
+                                        </Grid>
+
+                                        {/*
                                         <Grid item xs={12} md={6} lg={3} key={2}>
                                             <Box
                                                 className='grape-store-stat-item'
@@ -826,13 +874,14 @@ export function GovernanceMembersView(props: any) {
                                                 </Tooltip>
                                             </Box>
                                         </Grid>
+                                        */}
                                         
                                         <Grid item xs={12} md={6} lg={3} key={3}>
                                             <Box
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'yellow'}}>
+                                                <Typography variant="body2" sx={{color:'green'}}>
                                                     <>Total Votes Deposited</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -870,7 +919,7 @@ export function GovernanceMembersView(props: any) {
                                                     className='grape-store-stat-item'
                                                     sx={{borderRadius:'24px',m:2,p:1}}
                                                 >
-                                                    <Typography variant="body2" sx={{color:'yellow'}}>
+                                                    <Typography variant="body2" sx={{color:'green'}}>
                                                         <>% Circulating Supply</>
                                                     </Typography>
                                                     <Tooltip title={<>
