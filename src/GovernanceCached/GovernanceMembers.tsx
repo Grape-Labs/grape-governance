@@ -231,9 +231,9 @@ function RenderGovernanceMembersTable(props:any) {
                                                         <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={item.governingTokenOwner.toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='16px' />
                                                     </Typography>
                                                 </Grid>
-                                                    {item.governingCouncilDepositAmount.toNumber() > 0 &&
+                                                    {Number(item.governingCouncilDepositAmount) > 0 &&
                                                         <Grid item>
-                                                            <Tooltip title={`Council Member - Votes: ${item.governingCouncilDepositAmount.toNumber()}`}><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon /></Button></Tooltip>
+                                                            <Tooltip title={`Council Member - Votes: ${Number(item.governingCouncilDepositAmount)}`}><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon /></Button></Tooltip>
                                                         </Grid>
                                                     }
                                             </Grid>
@@ -241,9 +241,9 @@ function RenderGovernanceMembersTable(props:any) {
                                         <TableCell align="center" >
                                             <Typography variant="h6">
                                                 {governingTokenMint === item.governingTokenMint?.toBase58() ?
-                                                    `${getFormattedNumberToLocale(+((item.governingTokenDepositAmount.toNumber())/Math.pow(10, governingTokenDecimals || 0)).toFixed(0))}`
+                                                    `${getFormattedNumberToLocale(+((Number(item.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0))}`
                                                 :
-                                                    `${getFormattedNumberToLocale(+((item.governingTokenDepositAmount.toNumber())/Math.pow(10, tokenMap.get(item.governingTokenMint?.toBase58())?.decimals || 0)).toFixed(0))}`
+                                                    `${getFormattedNumberToLocale(+((Number(item.governingTokenDepositAmount))/Math.pow(10, tokenMap.get(item.governingTokenMint?.toBase58())?.decimals || 0)).toFixed(0))}`
                                                 }
                                                
                                             </Typography>
@@ -265,8 +265,8 @@ function RenderGovernanceMembersTable(props:any) {
                                         <TableCell align="center" >
                                             <Typography variant="h6">
                                                 {circulatingSupply &&
-                                                    <>{+item.governingTokenDepositAmount.toNumber() > 0 ?
-                                                    ((+item.governingTokenDepositAmount.toNumber()/totalDepositedVotes)*100).toFixed(2)
+                                                    <>{Number(item.governingTokenDepositAmount) > 0 ?
+                                                    ((+Number(item.governingTokenDepositAmount)/totalDepositedVotes)*100).toFixed(2)
                                                     :
                                                         <>
                                                         -
@@ -280,8 +280,8 @@ function RenderGovernanceMembersTable(props:any) {
                                         <TableCell align="center" >
                                             <Typography variant="h6">
                                                 {circulatingSupply &&
-                                                    <>{+item.governingTokenDepositAmount.toNumber() > 0 ?
-                                                        ((+item.governingTokenDepositAmount.toNumber()/circulatingSupply.value.amount)*100).toFixed(2)
+                                                    <>{+Number(item.governingTokenDepositAmount) > 0 ?
+                                                        ((+Number(item.governingTokenDepositAmount)/circulatingSupply.value.amount)*100).toFixed(2)
                                                     :
                                                         <>
                                                         -
@@ -483,11 +483,11 @@ export function GovernanceMembersView(props: any) {
                             participant.governingCouncilDepositAmount = (record.account.governingTokenMint.toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? record.account.governingTokenDepositAmount : participant.governingCouncilDepositAmount;
                             
                             if (record.account.governingTokenMint.toBase58() !== new PublicKey(grealm.account.config.councilMint).toBase58()){
-                                tVotes += record.account.governingTokenDepositAmount.toNumber();//record.account.totalVotesCount;
+                                tVotes += Number(record.account.governingTokenDepositAmount);//record.account.totalVotesCount;
                                 tVotesCasted += record.account.totalVotesCount;//record.account.governingTokenDepositAmount.toNumber();
                             } else{
                                 tCouncilVotes += record.account.totalVotesCount;
-                                tDepositedCouncilVotesCasted += record.account.governingTokenDepositAmount.toNumber();
+                                tDepositedCouncilVotesCasted += Number(record.account.governingTokenDepositAmount);
                             }
                         }
                     }
@@ -505,11 +505,11 @@ export function GovernanceMembersView(props: any) {
                                 });
 
                                 if (record.account.governingTokenMint.toBase58() !== new PublicKey(grealm.account?.config.councilMint).toBase58()){
-                                    tVotes += record.account.governingTokenDepositAmount.toNumber();
+                                    tVotes += Number(record.account.governingTokenDepositAmount);
                                     tVotesCasted += record.account.totalVotesCount;
                                 } else{
                                     tCouncilVotes += record.account.totalVotesCount;
-                                    tDepositedCouncilVotesCasted += record.account.governingTokenDepositAmount.toNumber();
+                                    tDepositedCouncilVotesCasted += Number(record.account.governingTokenDepositAmount);
                                 }
                             } else{
                                 participantArray.push({
@@ -520,12 +520,12 @@ export function GovernanceMembersView(props: any) {
                                     governingTokenDepositAmount:record.account.governingTokenDepositAmount,
                                     governingCouncilDepositAmount:new BN(0),
                                 });
-                                tVotes += record.account.governingTokenDepositAmount.toNumber();
+                                tVotes += Number(record.account.governingTokenDepositAmount);
                                 tVotesCasted += record.account.totalVotesCount;
                             }
                             if (record.account.totalVotesCount > 0)
                                 aParticipants++;
-                            if ((record.account.governingTokenDepositAmount.toNumber() > 0) || (record.account.governingTokenDepositAmount.toNumber() > 0))
+                            if ((Number(record.account.governingTokenDepositAmount) > 0) || (Number(record.account.governingTokenDepositAmount) > 0))
                                 lParticipants++;
                             tParticipants++; // all time
                     }
@@ -538,9 +538,9 @@ export function GovernanceMembersView(props: any) {
                         else
                             csvFile = 'Member,VotesDeposited,TokenDecimals,RawVotesDeposited,CouncilVotesDeposited\r\n';
                         
-                        let formattedDepositedAmount = (+((singleParticipant.governingTokenDepositAmount.toNumber())/Math.pow(10, thisTokenDecimals || 0)).toFixed(0));
+                        let formattedDepositedAmount = (+((Number(singleParticipant.governingTokenDepositAmount))/Math.pow(10, thisTokenDecimals || 0)).toFixed(0));
                         //csvFile += record.account.governingTokenOwner.toBase58()+','+record.account.governingTokenDepositAmount.toNumber();
-                        csvFile += singleParticipant.governingTokenOwner.toBase58()+','+formattedDepositedAmount+','+thisTokenDecimals+','+singleParticipant.governingTokenDepositAmount.toNumber()+','+singleParticipant.governingCouncilDepositAmount.toNumber();
+                        csvFile += singleParticipant.governingTokenOwner.toBase58()+','+formattedDepositedAmount+','+thisTokenDecimals+','+Number(singleParticipant.governingTokenDepositAmount)+','+Number(singleParticipant.governingCouncilDepositAmount);
                     
                         pcount++;
                 }
@@ -560,7 +560,7 @@ export function GovernanceMembersView(props: any) {
 
                 //console.log("participantArray: "+JSON.stringify(participantArray));
                 const presortedResults = participantArray.sort((a,b) => (a.totalVotesCount > b.totalVotesCount) ? 1 : -1);
-                const sortedResults = presortedResults.sort((a,b) => (a.governingTokenDepositAmount.toNumber() < b.governingTokenDepositAmount.toNumber()) ? 1 : -1);
+                const sortedResults = presortedResults.sort((a,b) => (Number(a.governingTokenDepositAmount) < Number(b.governingTokenDepositAmount)) ? 1 : -1);
 
 
 
@@ -576,8 +576,8 @@ export function GovernanceMembersView(props: any) {
                         console.log("member " +JSON.stringify(member))
                         totalTopVotes += Number(member.governingTokenDepositAmount)/Math.pow(10, thisTokenDecimals || 0);
                         if (tknSupply && Number(tknSupply.value.amount) > 0){
-                            totalTopCirculatingSupply += (+member.governingTokenDepositAmount.toNumber()/Number(tknSupply.value.amount))*100
-                            totalTopGovernanceSupply += (+member.governingTokenDepositAmount.toNumber()/tVotes)*100
+                            totalTopCirculatingSupply += (Number(member.governingTokenDepositAmount)/Number(tknSupply.value.amount))*100
+                            totalTopGovernanceSupply += (Number(member.governingTokenDepositAmount)/tVotes)*100
                         }
                     }
                     count++
