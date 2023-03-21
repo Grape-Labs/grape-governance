@@ -223,7 +223,7 @@ function RenderVoterRecordTable(props:any) {
     const [voterRecordRows, setVoterRecordRows] = React.useState(null);
     const votingrecordcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
-        { field: 'pubkey', headerName: 'Public Key', width: 260, hide: true},
+        { field: 'pubkey', headerName: 'PublicKey', width: 260, hide: true},
         { field: 'voter', headerName: 'Voter', width: 260, hide: false,
             renderCell: (params) => {
                 return(
