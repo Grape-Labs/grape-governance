@@ -819,9 +819,9 @@ export function GovernanceMembersView(props: any) {
                                                                 <Typography variant="subtitle2">
                                                                 Top 10 holders have {top10Participants.votes.toFixed(0)} votes deposited
                                                                 <br/>
-                                                                {top10Participants.percentageOfGovernanceSupply.toFixed(1)}% deposited in Governance
+                                                                {top10Participants.percentageOfGovernanceSupply.toFixed(1)}% of the total deposited in Governance
                                                                 <br/>
-                                                                {top10Participants.percentageOfSupply.toFixed(1)}% of the total supply
+                                                                {top10Participants.percentageOfSupply.toFixed(1)}% of the total token supply
                                                                 </Typography>
                                                             </>
                                                         }>
