@@ -223,7 +223,8 @@ function RenderVoterRecordTable(props:any) {
     const [voterRecordRows, setVoterRecordRows] = React.useState(null);
     const votingrecordcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
-        { field: 'pubkey', headerName: 'Voter', width: 260, hide: false,
+        { field: 'pubkey', headerName: 'Public Key', width: 260, hide: true},
+        { field: 'voter', headerName: 'Voter', width: 260, hide: false,
             renderCell: (params) => {
                 return(
                     <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={params.value} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
@@ -346,6 +347,18 @@ function RenderVoterRecordTable(props:any) {
                     }
 
                     if (item?.votingResults){
+
+                        var alltimehighparticipation = 0;
+                        var alltimehighvotes = 0;
+                        
+                        let participation = item.votingResults.length;
+                        if (participation > 0){
+                            if (participation > alltimehighparticipation)
+                                alltimehighparticipation;
+                            
+                        }
+                            
+
                         for (var inner_item of item.votingResults){
 
                             var councilpropcreator = 0;
@@ -362,7 +375,7 @@ function RenderVoterRecordTable(props:any) {
                             var totalcouncilvotes = 0;
                             var totalcouncilvotesfor = 0;
                             var totalcouncilvotesagainst = 0;
-                            
+
                             propcreator = 0;
                             //console.log(author+" v "+inner_item.governingTokenOwner.toBase58())
                             if (authorAddress === inner_item.governingTokenOwner.toBase58()){ // has created this proposal
@@ -372,6 +385,7 @@ function RenderVoterRecordTable(props:any) {
                                     propcreator = 1;
                                 }
                             }
+
 
                             for (var participant of voterArray){
                                 
@@ -484,6 +498,7 @@ function RenderVoterRecordTable(props:any) {
                                 voterArray.push({
                                     id: voter+1,
                                     pubkey: inner_item.governingTokenOwner.toBase58(),
+                                    voter: inner_item.governingTokenOwner.toBase58(),
                                     currentvotes: depositedgovernancevotes,
                                     councilvotes: depositedcouncilvotes,
                                     totalproposalscreated: propcreator,
