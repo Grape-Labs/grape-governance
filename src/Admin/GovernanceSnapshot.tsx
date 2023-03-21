@@ -1152,9 +1152,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                               {option.label}
                               &nbsp;
-                              <small>
-                                {option.totalProposalsVoting ? <><strong>{option.totalProposalsVoting}</strong> voting of </> : ``}
-                                {option.totalProposals}
+                              <small>(
+                                {option.totalProposalsVoting ? <><strong>{option.totalProposalsVoting} voting</strong> of </> : ``}
+                                {option.totalProposals})
                               </small>
                               
                             </Box>

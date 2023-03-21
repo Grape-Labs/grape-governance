@@ -227,7 +227,8 @@ export function Header(props: any) {
                     lookupAutocomplete.push({
                         label: item.governanceName,
                         value: item.governanceAddress,
-                        totalProposals: item.totalProposals
+                        totalProposals: item.totalProposals,
+                        totalProposalsVoting: item.totalProposalsVoting,
                     });
                 }
                 setGovernanceAutocomplete(lookupAutocomplete);
@@ -306,7 +307,11 @@ export function Header(props: any) {
                                 <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                                 {option.label}
                                 &nbsp;
-                                <small>({option.totalProposals})</small>
+                                <small>(
+                                    {option.totalProposalsVoting ? <><strong>{option.totalProposalsVoting} voting</strong> of </> : ``}
+                                    {option.totalProposals})
+                                </small>
+                                
                                 </Box>
                             )}
                             onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
