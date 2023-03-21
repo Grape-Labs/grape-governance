@@ -92,6 +92,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [lastProposalDate, setLastProposalDate] = React.useState(null);
     const [totalCouncilProposals, setTotalCouncilProposals] = React.useState(null);
     const [totalProposals, setTotalProposals] = React.useState(null);
+    const [totalProposalsVoting, setTotalProposalsVoting] = React.useState(null);
     const [totalPassed, setTotalPassed] = React.useState(null);
     const [totalDefeated, setTotalDefeated] = React.useState(null);
     const [totalVotesCasted, setTotalTotalVotesCasted] = React.useState(null);
@@ -246,7 +247,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
             let defeated = 0;
             let ttvc = 0;
             let council = 0;
-            
+            let voting = 0;
+
             for (const props of gprops){
                 for (const prop of props){
                     
@@ -260,7 +262,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             passed++;
                         else if (prop.account.state === 7)
                             defeated++;
-
+                        else if (prop.account.state === 2)
+                            voting++;
                         
                         if (prop.account?.yesVotesCount && prop.account?.noVotesCount){
                             //console.log("tmap: "+JSON.stringify(tokenMap));
@@ -293,6 +296,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             setTotalCouncilProposals(council);
             setTotalDefeated(defeated);
             setTotalPassed(passed);
+            setTotalProposalsVoting(voting);
             setTotalProposals(sortedResults.length);
             setTotalTotalVotesCasted(ttvc);
 
@@ -847,7 +851,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 for (var item of json){
                     lookupAutocomplete.push({
                         label: item.governanceName,
-                        value: item.governanceAddress
+                        value: item.governanceAddress,
+                        totalProposals: item.totalProposals,
+                        lastProposalDate: item.lastProposalDate,
                     });
                 }
                 setGovernanceAutocomplete(lookupAutocomplete);
@@ -888,6 +894,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     item.governance = thisGovernance;
                     item.governingMintDetails = governingMintDetails;
                     item.totalProposals = totalProposals;
+                    item.totalProposalsVoting = totalProposalsVoting;
                     item.totalCouncilProposals = totalCouncilProposals;
                     item.lastProposalDate = lastProposalDate;
                     item.tokenSupply = totalSupply;
@@ -918,6 +925,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     governance: thisGovernance,
                     governingMintDetails: governingMintDetails,
                     totalProposals: totalProposals,
+                    totalProposalsVoting: totalProposalsVoting,
                     totalCouncilProposals: totalCouncilProposals,
                     lastProposalDate: lastProposalDate,
                     //memberCount: memberCount,
@@ -948,7 +956,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
             // update autocomplete
             governanceAutocomplete.push({
                 label: governanceName, 
-                value: governanceAddress
+                value: governanceAddress,
+                totalProposals: totalProposals,
+                totalProposalsVoting: totalProposalsVoting,
+                lastProposalDate: lastProposalDate
             })
 
             setGovernanceLookup(lookup);
@@ -1034,7 +1045,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
     const getGovernanceLookup  = async () => {
         const fgl = await fetchGovernanceLookupFile();
-        setGovernanceLookup(fgl);
+        if (fgl && fgl.length > 0){
+            const sorted = fgl.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
+            setGovernanceLookup(sorted);
+        }
     }      
 
 
@@ -1108,8 +1122,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                               {option.label}
                               {/*
-                              <small>({option.value})</small>
-                                */}
+                              &nbsp;
+                              <small>({option.totalProposals})</small>
+                            */}
                             </Box>
                         )}
                         onChange={(e, sel) => setStoragePool(sel?.value)} 
@@ -1135,9 +1150,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         renderOption={(props, option) => (
                             <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                               {option.label}
-                              {/*
-                              <small>({option.value})</small>
-                                */}
+                              &nbsp;
+                              <small>({option.totalProposals})</small>
+                              
                             </Box>
                         )}
                         onChange={(e, sel) => setGovernanceAddress(sel?.value)} 

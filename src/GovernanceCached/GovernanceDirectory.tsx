@@ -15,6 +15,8 @@ import {
     linearProgressClasses
 } from '@mui/material/';
 
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
+
 import {
     fetchGovernanceLookupFile,
     getFileFromLookup
@@ -43,17 +45,33 @@ const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
 function GovernanceCardView(props:any) {
     const item = props.item;
     const randomColor = Math.floor(Math.random()*16777215).toString(16);
-
-    console.log("randomColor: "+randomColor)
+    //console.log("randomColor: "+randomColor)
 
     return (
         <Card sx={{ 
             borderRadius: '17px',
             background: 'linear-gradient(to right, rgba(0,0,0,0.50) 40%, #'+randomColor+' 200%)' }}>
         <CardContent>
-            <Typography sx={{ fontSize: 14, color:'rgba(255,255,255,0.1)' }} gutterBottom>
-                Governance
-            </Typography>
+            <Grid container>
+                <Grid item xs={12} sm={8} container justifyContent="flex-start">
+                    <Typography sx={{ fontSize: 14, color:'rgba(255,255,255,0.1)' }} gutterBottom>
+                        Governance
+                    </Typography>
+                </Grid>
+                <Grid item xs={12} sm={4} container justifyContent="flex-end">
+                    {item.totalProposalsVoting && item.totalProposalsVoting > 0 ?
+                        <Tooltip title={
+                            <>Voting: {item.totalProposalsVoting} Active Proposal{item.totalProposalsVoting > 1 ? `s`:``}</>}>
+                            <Button
+                                color='inherit'
+                                sx={{borderRadius:'17px'}}
+                            ><HowToVoteIcon /></Button>
+                        </Tooltip>
+                    :
+                        <></>
+                    }
+                </Grid>
+            </Grid>
             <Button 
                 component={Link}
                 to={'/cachedgovernance/'+item.governanceAddress}
