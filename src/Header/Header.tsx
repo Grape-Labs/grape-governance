@@ -220,11 +220,14 @@ export function Header(props: any) {
               const string = await response.text();
               const json = string === "" ? {} : JSON.parse(string);
 
+              const sorted = json.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
+
               const lookupAutocomplete = new Array();
-                for (var item of json){
+                for (var item of sorted){
                     lookupAutocomplete.push({
                         label: item.governanceName,
-                        value: item.governanceAddress
+                        value: item.governanceAddress,
+                        totalProposals: item.totalProposals
                     });
                 }
                 setGovernanceAutocomplete(lookupAutocomplete);
@@ -302,9 +305,8 @@ export function Header(props: any) {
                             renderOption={(props, option) => (
                                 <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                                 {option.label}
-                                {/*
-                                <small>({option.value})</small>
-                                    */}
+                                &nbsp;
+                                <small>({option.totalProposals})</small>
                                 </Box>
                             )}
                             onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
