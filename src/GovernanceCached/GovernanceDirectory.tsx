@@ -9,6 +9,7 @@ import {
     CardActions,
     CardContent,
     Button,
+    TextField,
     Tooltip,
     Typography,
     LinearProgress,
@@ -144,6 +145,7 @@ export function GovernanceDirectoryView() {
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
     const [loading, setLoading] = React.useState(false);
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
+    const [searchFilter, setSearchFilter] = React.useState(null);
 
     const callGovernanceLookup = async() => {
         const fglf = await fetchGovernanceLookupFile(storagePool);
@@ -192,8 +194,8 @@ export function GovernanceDirectoryView() {
                         alignItems: 'center', textAlign: 'center'
                     }} 
                 > 
-                    <Grid container>
-                        <Grid item xs={12} container justifyContent="flex-start"
+                    <Grid container sx={{mb:2}}>
+                        <Grid item xs={12} sm={6} container justifyContent="flex-start"
                             sx={{textAlign:'left',mb:2}}
                         >
                             <Grid container>
@@ -209,16 +211,44 @@ export function GovernanceDirectoryView() {
                                 </Grid>
                             </Grid>
                         </Grid>
+                        <Grid item xs={12} sm={6} container justifyContent="flex-end"
+                            sx={{textAlign:'right'}}
+                        >
+                            <Grid container>
+                                <Grid item xs={12}>
+                                    <TextField 
+                                        id="search-governances" 
+                                        label="Search" 
+                                        variant="outlined"
+                                        onChange={(e) => setSearchFilter(e.target.value)}
+                                        />
+                                </Grid>
+                            </Grid>
+                        </Grid>
                     </Grid>
 
                     
                     <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
                         {governanceLookup.map((item: any,key:number) => (
-                            <Grid item xs={12} sm={6} key={key}>
-                                <GovernanceCardView 
-                                    item={item}
-                                />
-                            </Grid>
+                            <>
+                            {searchFilter ?
+                                <>
+                                    {item.governanceName.toUpperCase().includes(searchFilter.toUpperCase()) &&
+                                        <Grid item xs={12} sm={6} key={key}>
+                                            <GovernanceCardView 
+                                                item={item}
+                                            />
+                                        </Grid>
+                                    }
+                                </>
+                                :
+                                <Grid item xs={12} sm={6} key={key}>
+                                    <GovernanceCardView 
+                                        item={item}
+                                    />
+                                </Grid>
+                            }
+                            </>
                         ))}
                     </Grid>
                 </Box>
