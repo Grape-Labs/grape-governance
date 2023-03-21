@@ -80,12 +80,11 @@ export default function AboutDialog() {
                         Next Steps...
                     </Typography>
                     <Typography variant='body2'>
-                        
                         <ul>
                             <Typography variant='subtitle1'>Phase 1</Typography>
                             <li>Continue to focus on building a unique, and incredibly fast SPL Governance experience</li>
                             <li>Build a directory to view active DAOs on Solana accessible via our cached storage</li>
-                            <li>Create unique metrics to add an understanding on SPL Governance participation, trends, activity</li>
+                            <li>Display easy to understand exportable metrics to add an understanding on SPL Governance participation, trends, activity</li>
                             <li>Provide metrics solutions run by the unique cached storage</li>
                             <li>Show members in any given Governance and a summary of the holders</li>
                             <li>Treasury cached per governance</li>
