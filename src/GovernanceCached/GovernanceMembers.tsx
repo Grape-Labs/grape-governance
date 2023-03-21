@@ -817,7 +817,9 @@ export function GovernanceMembersView(props: any) {
                                                 {top10Participants &&
                                                     <Tooltip title={<>
                                                                 <Typography variant="subtitle2">
-                                                                    TOP 10:
+                                                                    <strong>Top 10:</strong>
+                                                                </Typography>
+                                                                <Typography variant="body2">
                                                                     <ul>
                                                                         <li>Holders have {top10Participants.votes.toFixed(0)} votes deposited</li>
                                                                         <li>Hold {top10Participants.percentageOfGovernanceSupply.toFixed(1)}% of the total deposited in Governance</li>
