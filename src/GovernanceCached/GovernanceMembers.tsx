@@ -784,7 +784,7 @@ export function GovernanceMembersView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'green'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Active/Participating/All Participants</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -811,17 +811,18 @@ export function GovernanceMembersView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'green'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Top 10</>
                                                 </Typography>
                                                 {top10Participants &&
                                                     <Tooltip title={<>
                                                                 <Typography variant="subtitle2">
-                                                                Top 10 holders have {top10Participants.votes.toFixed(0)} votes deposited
-                                                                <br/>
-                                                                {top10Participants.percentageOfGovernanceSupply.toFixed(1)}% of the total deposited in Governance
-                                                                <br/>
-                                                                {top10Participants.percentageOfSupply.toFixed(1)}% of the total token supply
+                                                                    TOP 10:
+                                                                    <ul>
+                                                                        <li>Holders have {top10Participants.votes.toFixed(0)} votes deposited</li>
+                                                                        <li>Hold {top10Participants.percentageOfGovernanceSupply.toFixed(1)}% of the total deposited in Governance</li>
+                                                                        <li>Comprise {top10Participants.percentageOfSupply.toFixed(1)}% of the total token supply</li>
+                                                                    </ul>
                                                                 </Typography>
                                                             </>
                                                         }>
@@ -881,7 +882,7 @@ export function GovernanceMembersView(props: any) {
                                                 className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
-                                                <Typography variant="body2" sx={{color:'green'}}>
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Total Votes Deposited</>
                                                 </Typography>
                                                 <Tooltip title={<>
@@ -919,7 +920,7 @@ export function GovernanceMembersView(props: any) {
                                                     className='grape-store-stat-item'
                                                     sx={{borderRadius:'24px',m:2,p:1}}
                                                 >
-                                                    <Typography variant="body2" sx={{color:'green'}}>
+                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                         <>% Circulating Supply</>
                                                     </Typography>
                                                     <Tooltip title={<>
