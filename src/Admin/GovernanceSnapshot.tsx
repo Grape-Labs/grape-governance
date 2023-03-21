@@ -853,6 +853,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         label: item.governanceName,
                         value: item.governanceAddress,
                         totalProposals: item.totalProposals,
+                        totalProposalsVoting: item.totalProposalsVoting,
                         lastProposalDate: item.lastProposalDate,
                     });
                 }
@@ -1151,7 +1152,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                               {option.label}
                               &nbsp;
-                              <small>({option.totalProposals})</small>
+                              <small>
+                                {option.totalProposalsVoting ? <><strong>{option.totalProposalsVoting}</strong> voting of </> : ``}
+                                {option.totalProposals}
+                              </small>
                               
                             </Box>
                         )}
