@@ -1237,7 +1237,7 @@ export function GovernanceMetricsView(props: any) {
                                                     <>Current Eligible Voters</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        Voters that are currently eligible to vote (0+ deposited in Governance)
+                                                        An eligible voter is a voter that has great than 0 governance tokens in this Governance
                                                         </>
                                                     }>
                                                     <Button
@@ -1272,7 +1272,7 @@ export function GovernanceMetricsView(props: any) {
                                                     <>All Time Voters</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        Participants that have voted at any time
+                                                        Participant that has voted at least once
                                                         </>
                                                     }>
                                                     <Button
@@ -1307,7 +1307,7 @@ export function GovernanceMetricsView(props: any) {
                                                     <>Total Votes Deposited</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        Total Votes currently Deposited in this Governance
+                                                        The sum of all deposited votes in this Governance
                                                         </>
                                                     }>
                                                     <Button
@@ -1342,7 +1342,7 @@ export function GovernanceMetricsView(props: any) {
                                                     <>Total Votes Casted</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        Total All Time Votes Casted
+                                                        Total all time votes casted for all proposals in this Governnace
                                                         </>
                                                     }>
                                                     <Button
@@ -1377,7 +1377,7 @@ export function GovernanceMetricsView(props: any) {
                                                     <>Average Votes Casted Per Participant</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        The average of votes for any given participant
+                                                        The average votes casted per participant/per proposal
                                                         </>
                                                     }>
                                                     <Button
@@ -1482,7 +1482,7 @@ export function GovernanceMetricsView(props: any) {
                                                     <>Participation Rate</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        The rate at which a participant will vote against all eligible voters
+                                                        The rate at which an eligible voter will cast a vote in a proposal
                                                         </>
                                                     }>
                                                     <Button

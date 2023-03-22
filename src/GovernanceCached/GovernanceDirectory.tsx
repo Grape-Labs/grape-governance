@@ -199,7 +199,7 @@ export function GovernanceDirectoryView() {
                 <Box
                     sx={{
                         mt:6,
-                        background: 'rgba(0, 0, 0, 0.6)',
+                        background: 'rgba(0, 0, 0, 0.5)',
                         borderRadius: '17px',
                         p:4,
                         alignItems: 'center', textAlign: 'center'
@@ -245,7 +245,7 @@ export function GovernanceDirectoryView() {
                             {searchFilter ?
                                 <>
                                     {item.governanceName.toUpperCase().includes(searchFilter.toUpperCase()) &&
-                                        <Grid item xs={12} sm={6} key={key}>
+                                        <Grid item xs={12} sm={6} md={4} key={key}>
                                             <GovernanceCardView 
                                                 item={item}
                                             />
