@@ -82,38 +82,49 @@ function GovernanceCardView(props:any) {
                 >
                 <Typography variant="h4" component="div">
                     {item.governanceName}
-                </Typography></Button><br/>
-            {item?.governanceAddress &&
-                <Typography variant='caption' color="text.secondary">
-                    {item.governanceAddress}
-                </Typography>
-            }
-            <Typography variant="body2">
-                {item?.totalProposals &&
-                    <>Total Proposals {item.totalProposals}
-                        {item?.totalCouncilProposals ?
-                            <>{item?.totalCouncilProposals > 0 &&
-                                <><br/>{item.totalProposals - item.totalCouncilProposals} community / {item.totalCouncilProposals} council</>
-                            }
+                </Typography></Button>
+
+                <Box
+                    sx={{
+                        borderRadius:'24px',
+                        m:1,
+                        p:1,
+                        background: 'rgba(0, 0, 0, 0.2)'
+                    }}
+                >
+
+                    {item?.governanceAddress &&
+                        <Typography variant='caption' color="text.secondary">
+                            {item.governanceAddress}
+                        </Typography>
+                    }
+                    <Typography variant="body2">
+                        {item?.totalProposals &&
+                            <>Total Proposals <strong>{item.totalProposals}</strong>
+                                {item?.totalCouncilProposals ?
+                                    <>{item.totalCouncilProposals > 0 &&
+                                        <><br/>{item.totalProposals - item.totalCouncilProposals} community / {item.totalCouncilProposals} council</>
+                                    }
+                                    </>
+                                    :<></>
+                                }
                             </>
-                            :<></>
                         }
-                    </>
-                }
-                <br />
-                {item?.lastProposalDate &&
-                    <Tooltip title={
-                        <> {moment.unix(Number("0x"+item.lastProposalDate)).format("MMMM D, YYYY, h:mm a") }</>
-                    }>
-                        <Button
-                            color='inherit'
-                            sx={{borderRadius:'17px'}}
-                        >
-                        Last Proposal {timeAgo(Number("0x"+item.lastProposalDate).toString())}
-                        </Button>
-                    </Tooltip>
-                }
-            </Typography>
+                        <br />
+                        {item?.lastProposalDate &&
+                            <Tooltip title={
+                                <> {moment.unix(Number("0x"+item.lastProposalDate)).format("MMMM D, YYYY, h:mm a") }</>
+                            }>
+                                <Button
+                                    color='inherit'
+                                    sx={{borderRadius:'17px',textTransform:'none'}}
+                                >
+                                Last Proposal {timeAgo(Number("0x"+item.lastProposalDate).toString())}
+                                </Button>
+                            </Tooltip>
+                        }
+                    </Typography>
+                </Box>
         </CardContent>
         <CardActions>
             <Tooltip title="Cached method will fetch Governance will load all proposals & proposal details">
