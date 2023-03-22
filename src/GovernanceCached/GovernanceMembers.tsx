@@ -777,12 +777,16 @@ export function GovernanceMembersView(props: any) {
                         }
 
                             {(totalDepositedVotes || totalCouncilVotes) &&
-                                <Box sx={{ alignItems: 'center', textAlign: 'center',p:1}}>
+                                <Box sx={{ p:1}}>
                                     <Grid container spacing={0}>
                                         <Grid item xs={12} md={6} lg={3} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Active/Participating/All Participants</>
@@ -798,9 +802,14 @@ export function GovernanceMembersView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            {activeParticipants}/{votingParticipants}/{totalParticipants}
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                         >
+                                                            <Typography variant="h4">
+                                                                {activeParticipants}/{votingParticipants}/{totalParticipants}
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
@@ -808,8 +817,12 @@ export function GovernanceMembersView(props: any) {
                                         
                                         <Grid item xs={12} md={6} lg={3} key={2}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Top 10</>
@@ -834,9 +847,14 @@ export function GovernanceMembersView(props: any) {
                                                                 borderRadius:'17px'
                                                             }}
                                                         >
-                                                            <Typography variant="h3">
-                                                                {getFormattedNumberToLocale(top10Participants.votes.toFixed(0))}
-                                                            </Typography>
+                                                            <Grid container
+                                                                sx={{
+                                                                    verticalAlign: 'bottom'}}
+                                                                >
+                                                                <Typography variant="h4">
+                                                                    {getFormattedNumberToLocale(top10Participants.votes.toFixed(0))}
+                                                                </Typography>
+                                                            </Grid>
                                                         </Button>
                                                     </Tooltip>
                                                 }
@@ -846,7 +864,6 @@ export function GovernanceMembersView(props: any) {
                                         {/*
                                         <Grid item xs={12} md={6} lg={3} key={2}>
                                             <Box
-                                                className='grape-store-stat-item'
                                                 sx={{borderRadius:'24px',m:2,p:1}}
                                             >
                                                 <Typography variant="body2" sx={{color:'yellow'}}>
@@ -881,8 +898,12 @@ export function GovernanceMembersView(props: any) {
                                         
                                         <Grid item xs={12} md={6} lg={3} key={3}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Total Votes Deposited</>
@@ -901,17 +922,22 @@ export function GovernanceMembersView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            {totalDepositedVotes &&
-                                                                <>
-                                                                    {getFormattedNumberToLocale(+((totalDepositedVotes)/Math.pow(10, governingTokenDecimals || 0)).toFixed(0))}
-                                                                </>
-                                                            }
-                                                            {(totalDepositedVotes && totalDepositedCouncilVotes) &&
-                                                                <>/</>
-                                                            }
-                                                            {totalDepositedCouncilVotes && <>{totalDepositedCouncilVotes}</>}
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                            <Typography variant="h4">
+                                                                {totalDepositedVotes &&
+                                                                    <>
+                                                                        {getFormattedNumberToLocale(+((totalDepositedVotes)/Math.pow(10, governingTokenDecimals || 0)).toFixed(0))}
+                                                                    </>
+                                                                }
+                                                                {(totalDepositedVotes && totalDepositedCouncilVotes) &&
+                                                                    <>/</>
+                                                                }
+                                                                {totalDepositedCouncilVotes && <>{totalDepositedCouncilVotes}</>}
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
@@ -919,8 +945,12 @@ export function GovernanceMembersView(props: any) {
                                         {circulatingSupply && 
                                             <Grid item xs={12} md={6} lg={3} key={4}>
                                                 <Box
-                                                    className='grape-store-stat-item'
-                                                    sx={{borderRadius:'24px',m:2,p:1}}
+                                                    sx={{
+                                                        borderRadius:'24px',
+                                                        m:2,
+                                                        p:1,
+                                                        background: 'rgba(0, 0, 0, 0.2)'
+                                                    }}
                                                 >
                                                     <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                         <>% Circulating Supply</>
@@ -935,16 +965,20 @@ export function GovernanceMembersView(props: any) {
                                                                 borderRadius:'17px'
                                                             }}
                                                         >
-                                                            <Typography variant="h3">
-                                                                
-                                                                {circulatingSupply.value.amount > 0 ?
-                                                                    <>
-                                                                        {((totalDepositedVotes/circulatingSupply.value.amount)*100).toFixed(1)}%
-                                                                    </>
-                                                                :
-                                                                    <>-</>
-                                                                }
-                                                            </Typography>
+                                                            <Grid container
+                                                                sx={{
+                                                                    verticalAlign: 'bottom'}}
+                                                                >
+                                                                <Typography variant="h4">
+                                                                    {circulatingSupply.value.amount > 0 ?
+                                                                        <>
+                                                                            {((totalDepositedVotes/circulatingSupply.value.amount)*100).toFixed(1)}%
+                                                                        </>
+                                                                    :
+                                                                        <>-</>
+                                                                    }
+                                                                </Typography>
+                                                            </Grid>
                                                         </Button>
                                                     </Tooltip>
                                                 </Box>

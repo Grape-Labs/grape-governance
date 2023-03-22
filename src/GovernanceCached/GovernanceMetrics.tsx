@@ -1187,12 +1187,16 @@ export function GovernanceMetricsView(props: any) {
                                 </Box>
                         }
 
-                            <Box sx={{ alignItems: 'center', textAlign: 'center',p:1}}>
+                            <Box sx={{p:1}}>
                                     <Grid container spacing={0}>
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>All time Governance</>
@@ -1207,9 +1211,14 @@ export function GovernanceMetricsView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            {metricsVoters}
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                                <Typography variant="h4">
+                                                                {metricsVoters}
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
@@ -1217,8 +1226,12 @@ export function GovernanceMetricsView(props: any) {
 
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Current Eligible Voters</>
@@ -1233,9 +1246,14 @@ export function GovernanceMetricsView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            {metricsEligibleVoters && metricsEligibleVoters}
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                            <Typography variant="h4">
+                                                                {metricsEligibleVoters && metricsEligibleVoters}
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
@@ -1243,8 +1261,12 @@ export function GovernanceMetricsView(props: any) {
 
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>All Time Voters</>
@@ -1259,9 +1281,14 @@ export function GovernanceMetricsView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            {metricsActiveVoters && metricsActiveVoters}
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                            <Typography variant="h4">
+                                                                {metricsActiveVoters && metricsActiveVoters}
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
@@ -1269,8 +1296,12 @@ export function GovernanceMetricsView(props: any) {
 
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Total Votes Deposited</>
@@ -1285,9 +1316,14 @@ export function GovernanceMetricsView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            {metricsTotalVotesDeposited && metricsTotalVotesDeposited}
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                            <Typography variant="h4">
+                                                                {metricsTotalVotesDeposited && metricsTotalVotesDeposited}
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
@@ -1295,8 +1331,12 @@ export function GovernanceMetricsView(props: any) {
 
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Total Votes Casted</>
@@ -1311,9 +1351,14 @@ export function GovernanceMetricsView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            {metricsTotalVotesCasted && metricsTotalVotesCasted}
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                            <Typography variant="h4">
+                                                                {metricsTotalVotesCasted && metricsTotalVotesCasted}
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
@@ -1321,8 +1366,12 @@ export function GovernanceMetricsView(props: any) {
                                         
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Average Votes Casted Per Participant</>
@@ -1337,9 +1386,14 @@ export function GovernanceMetricsView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            {metricsAverageVotesPerParticipant && metricsAverageVotesPerParticipant}
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                            <Typography variant="h4">
+                                                                {metricsAverageVotesPerParticipant && metricsAverageVotesPerParticipant}
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
@@ -1347,8 +1401,12 @@ export function GovernanceMetricsView(props: any) {
 
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Proposals p/Month</>
@@ -1363,9 +1421,14 @@ export function GovernanceMetricsView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            {metricsProposalsPerMonth ? metricsProposalsPerMonth : `-`}
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                            <Typography variant="h4">
+                                                                {metricsProposalsPerMonth ? metricsProposalsPerMonth : `-`}
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
@@ -1373,8 +1436,12 @@ export function GovernanceMetricsView(props: any) {
 
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Average Participation</>
@@ -1389,9 +1456,14 @@ export function GovernanceMetricsView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            {metricsAverageParticipation && metricsAverageParticipation}
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                            <Typography variant="h4">
+                                                                {metricsAverageParticipation && metricsAverageParticipation}
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
@@ -1399,8 +1471,12 @@ export function GovernanceMetricsView(props: any) {
 
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Participation Rate</>
@@ -1415,9 +1491,14 @@ export function GovernanceMetricsView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            {metricsParticipationRate && metricsParticipationRate}%
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                            <Typography variant="h4">
+                                                                {metricsParticipationRate && metricsParticipationRate}%
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
@@ -1425,8 +1506,12 @@ export function GovernanceMetricsView(props: any) {
 
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Community Proposals</>
@@ -1441,9 +1526,14 @@ export function GovernanceMetricsView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            {metricsTotalProposals && metricsTotalProposals}
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                            <Typography variant="h4">
+                                                                {metricsTotalProposals && metricsTotalProposals}
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
@@ -1451,8 +1541,12 @@ export function GovernanceMetricsView(props: any) {
 
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Community Results</>
@@ -1467,10 +1561,15 @@ export function GovernanceMetricsView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{metricsCommunityPassed}</Badge>/
-                                                            <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{metricsCommunityDefeated}</Badge>
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                            <Typography variant="h4">
+                                                                <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{metricsCommunityPassed}</Badge>/
+                                                                <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{metricsCommunityDefeated}</Badge>
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
@@ -1478,8 +1577,12 @@ export function GovernanceMetricsView(props: any) {
 
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Community Success Rate</>
@@ -1494,10 +1597,15 @@ export function GovernanceMetricsView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{(metricsCommunityPassed/metricsTotalProposals*100).toFixed(0)}%</Badge>/
-                                                            <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{(metricsCommunityDefeated/metricsTotalProposals*100).toFixed(0)}%</Badge>
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                            <Typography variant="h4">
+                                                                <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{(metricsCommunityPassed/metricsTotalProposals*100).toFixed(0)}%</Badge>/
+                                                                <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{(metricsCommunityDefeated/metricsTotalProposals*100).toFixed(0)}%</Badge>
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
