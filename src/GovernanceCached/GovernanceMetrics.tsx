@@ -6,6 +6,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletDialogProvider, WalletMultiButton } from "@solana/wallet-adapter-material-ui";
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
 import React, { useCallback } from 'react';
+import BN from 'bn.js';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { styled, useTheme } from '@mui/material/styles';
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
@@ -204,6 +205,7 @@ function RenderVoterRecordTable(props:any) {
     const setMetricsProposalsPerMonth = props.setMetricsProposalsPerMonth;
     const setMetricsRetention = props.setMetricsRetention;
     const setMetricsActiveRetention = props.setMetricsActiveRetention;
+    const setMetricsTotalStaked = props.setMetricsTotalStaked;
 
     const endTime = props.endTimer;
     const cachedGovernance = props.cachedGovernance;
@@ -275,6 +277,15 @@ function RenderVoterRecordTable(props:any) {
         let totalCommunityPassed = 0;
         let totalCommunityDefeated = 0;
         let propsByMonth = new Array();
+
+        let participantArray = new Array();
+        let tStakedVotes = 0;
+        let tCouncilVotes = 0;
+        let tVotesCasted = 0;
+        let tDepositedCouncilVotesCasted = 0;
+        let tParticipants = 0;
+        let aParticipants = 0;
+        let lParticipants = 0;
         setLoading(true);
         if (cachedGovernance){
             var voter = 0;
@@ -303,8 +314,8 @@ function RenderVoterRecordTable(props:any) {
                     if (authorPk){
                         if (memberMap){
                         for (var memberItem of memberMap){
-                                if (memberItem.pubkey.toBase58() === authorPk.toBase58()){
-                                    authorAddress = memberItem.account.governingTokenOwner.toBase58()
+                                if (new PublicKey(memberItem.pubkey).toBase58() === authorPk.toBase58()){
+                                    authorAddress = new PublicKey(memberItem.account.governingTokenOwner).toBase58()
                                 }
                             }
                             
@@ -379,7 +390,7 @@ function RenderVoterRecordTable(props:any) {
                             propcreator = 0;
                             //console.log(author+" v "+inner_item.governingTokenOwner.toBase58())
                             if (authorAddress === inner_item.governingTokenOwner.toBase58()){ // has created this proposal
-                                if (realm.account.config?.councilMint && (realm.account.config?.councilMint.toBase58() === item.account.governingTokenMint.toBase58())){ 
+                                if (realm.account.config?.councilMint && (new PublicKey(realm.account.config?.councilMint).toBase58() === item.account.governingTokenMint.toBase58())){ 
                                     councilpropcreator = 1;
                                 } else{
                                     propcreator = 1;
@@ -396,7 +407,7 @@ function RenderVoterRecordTable(props:any) {
                                     //inner_item.governingTokenMint
                                     //inner_item.decimals
                                     
-                                    if (realm.account.config?.councilMint && (realm.account.config?.councilMint.toBase58() === item.account.governingTokenMint.toBase58())){ // Council Votes
+                                    if (realm.account.config?.councilMint && (new PublicKey(realm.account.config?.councilMint).toBase58() === item.account.governingTokenMint.toBase58())){ // Council Votes
                                         //console.log("council vote...")
 
                                         if (inner_item?.vote){
@@ -476,15 +487,15 @@ function RenderVoterRecordTable(props:any) {
                                 depositedgovernancevotes = 0;
                                 depositedcouncilvotes = 0;
                                 for (var memberItem of memberMap){
-                                    if (memberItem.account.governingTokenOwner.toBase58() === inner_item.governingTokenOwner.toBase58()){
+                                    if (new PublicKey(memberItem.account.governingTokenOwner).toBase58() === inner_item.governingTokenOwner.toBase58()){
                                         
                                         // check if council member
                                         //realm.account.communityMint
                                         //realm.account.config.councilMint
 
-                                        if (realm.account.communityMint.toBase58() === memberItem.account.governingTokenMint.toBase58()){
+                                        if (new PublicKey(realm.account.communityMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                                             depositedgovernancevotes = +(Number(memberItem.account.governingTokenDepositAmount)/Math.pow(10, +governingTokenDecimals)).toFixed(0);
-                                        }else if (realm.account.config.councilMint.toBase58() === memberItem.account.governingTokenMint.toBase58()){
+                                        }else if (new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                                             depositedcouncilvotes = +(Number(memberItem.account.governingTokenDepositAmount));
                                         }
                                     }
@@ -496,7 +507,6 @@ function RenderVoterRecordTable(props:any) {
                                     totalActiveVoters++;
 
                                 totalVotesDeposited+=depositedgovernancevotes;
-                                console.log("total staked: "+totalVotesDeposited)
                                 totalVotesCasted+=totalvotes;
 
                                 voterArray.push({
@@ -521,23 +531,76 @@ function RenderVoterRecordTable(props:any) {
                             }
                         }
                     }
-                    var counter = 0;
-                    for (var voter_item of voterArray){
-                        if (counter > 0)
-                            csvFile += '\r\n';
-                        else
-                            csvFile = 'pubkey,totalproposalscreated,depositedvotes,councildepositedvotes,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
-                        csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
-                        counter++;
+                    
+                }
+
+                var counter = 0;
+                tParticipants = 0;
+                tStakedVotes = 0;
+                tVotesCasted = 0;
+                tCouncilVotes = 0;
+                tDepositedCouncilVotesCasted = 0;
+                for (var voter_item of voterArray){
+                    if (counter > 0)
+                        csvFile += '\r\n';
+                    else
+                        csvFile = 'pubkey,totalproposalscreated,depositedvotes,councildepositedvotes,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
+                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
+                    counter++;
+
+                    tStakedVotes += voter_item.currentvotes;
+                    tVotesCasted += voter_item.totalvotes;
+                    tCouncilVotes += voter_item.councilvotes;
+                    tDepositedCouncilVotesCasted += voter_item.totalcouncilvotes;
+                
+                    tParticipants++;
+                }
+
+                var counter = 0;
+                tParticipants = 0;
+                tStakedVotes = 0;
+                tVotesCasted = 0;
+                tCouncilVotes = 0;
+                tDepositedCouncilVotesCasted = 0;
+                for (var member_item of memberMap){
+                    if (new PublicKey(member_item.account.governingTokenMint).toBase58() !== new PublicKey(realm.account.config.councilMint).toBase58()){
+                        tStakedVotes += Number(member_item.account.governingTokenDepositAmount);//record.account.totalVotesCount;
+                        tVotesCasted += member_item.account.totalVotesCount;//record.account.governingTokenDepositAmount.toNumber();
+                        tParticipants++;
+                    } else{
+                        tCouncilVotes += member_item.account.totalVotesCount;
+                        tDepositedCouncilVotesCasted += Number(member_item.account.governingTokenDepositAmount);
                     }
+                
                 }
 
             }
 
             exportFile(csvFile, governanceAddress+'_metrics.csv')
+
+            /*
+            let pcount = 0;
+            for (let singleParticipant of participantArray){
+                    if (pcount > 0)
+                        csvFile += '\r\n';
+                    else
+                        csvFile = 'Member,VotesDeposited,TokenDecimals,RawVotesDeposited,CouncilVotesDeposited\r\n';
+                    
+                    let formattedDepositedAmount = (+(((singleParticipant.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0));
+                    //csvFile += record.account.governingTokenOwner.toBase58()+','+record.account.governingTokenDepositAmount.toNumber();
+                    csvFile += singleParticipant.governingTokenOwner.toBase58()+','+formattedDepositedAmount+','+governingTokenDecimals+','+Number(singleParticipant.governingTokenDepositAmount)+','+Number(singleParticipant.governingCouncilDepositAmount);
+                
+                    pcount++;
+            }*/
+
         }
 
         try{
+
+            console.log(tParticipants+"("+memberMap.length+"): "+tStakedVotes+ " (decimals: "+governingTokenDecimals+")")
+            if (tStakedVotes > 0)
+                setMetricsTotalStaked(Number((tStakedVotes/Math.pow(10, +governingTokenDecimals)).toFixed(0)))
+
             setGovernnaceChartData(propsByMonth);
 
             setMetricsProposalsPerMonth(((totalCommunityProposals/propsByMonth.length)).toFixed(1))
@@ -549,7 +612,7 @@ function RenderVoterRecordTable(props:any) {
             setMetricsActiveVoters(totalActiveVoters)
             setMetricsEligibleVoters(totalEligibleVoters)
             if (totalVotesDeposited > 0)
-                setMetricsTotalVotesDeposited(getFormattedNumberToLocale(formatAmount(totalVotesDeposited)));
+                setMetricsTotalVotesDeposited(totalVotesDeposited);
             else
                 setMetricsTotalVotesDeposited(null);
             setMetricsTotalVotesCasted(getFormattedNumberToLocale(formatAmount(totalVotesCasted)));
@@ -570,8 +633,14 @@ function RenderVoterRecordTable(props:any) {
     }
 
     React.useEffect(() => { 
-        if (!voterRecordRows && cachedGovernance)
-            renderVoterRecords();
+        if (!voterRecordRows){
+            if (cachedGovernance){
+                if (!loading){
+                    console.log("FETCH!")
+                    renderVoterRecords();
+                }
+            }
+        }
     }, []);
 
     React.useEffect(() => { 
@@ -688,7 +757,8 @@ export function GovernanceMetricsView(props: any) {
     const [metricsProposalsPerMonth, setMetricsProposalsPerMonth] = React.useState(null);
     const [metricsRetention, setMetricsRetention] = React.useState(null);
     const [metricsActiveRetention, setMetricsActiveRetention] = React.useState(null);
-    
+    const [metricsTotalStaked, setMetricsTotalStaked] = React.useState(null);
+
     const [governanceStartDate, setGovernanceStartDate] = React.useState(null);
     const [governanceEndDate, setGovernanceEndDate] = React.useState(null);
 
@@ -796,16 +866,14 @@ export function GovernanceMetricsView(props: any) {
                 }
                 
                 setMemberMap(rawTokenOwnerRecords);
-                
-
 
                 let gTD = null;
-                if (tokenMap.get(grealm.account?.communityMint.toBase58())){
+                if (tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58())){
                     setGovernanceType(0);
-                    gTD = tokenMap.get(grealm.account?.communityMint.toBase58()).decimals;
+                    gTD = tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58()).decimals;
                     setGoverningTokenDecimals(gTD);
                 } else{
-                    const btkn = await getBackedTokenMetadata(grealm.account?.communityMint.toBase58(), wallet);
+                    const btkn = await getBackedTokenMetadata(new PublicKey(grealm.account?.communityMint).toBase58(), wallet);
                     if (btkn){
                         setGovernanceType(1);
                         gTD = btkn.decimals;
@@ -819,7 +887,6 @@ export function GovernanceMetricsView(props: any) {
 
                 if (cached_governance){
                     
-                    console.log("Cached it is...")
                     
                     let passed = 0;
                     let defeated = 0;
@@ -961,7 +1028,7 @@ export function GovernanceMetricsView(props: any) {
     }, [governanceLookup, governanceAddress]);
     
     React.useEffect(() => {
-        if (cachedGovernance && governanceAddress){
+        if (cachedGovernance && governanceAddress && !loading){
             getGovernance(cachedGovernance);
         }
     }, [cachedGovernance]);
@@ -1308,10 +1375,13 @@ export function GovernanceMetricsView(props: any) {
                                                 }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Total Votes Deposited & Participated</>
+                                                    <>Total Votes Staked</>
                                                 </Typography>
                                                 <Tooltip title={<>
                                                         The sum of all votes staked & that have participated in this Governance
+                                                        {metricsTotalVotesDeposited && 
+                                                            <><br/><b>{getFormattedNumberToLocale(formatAmount(metricsTotalVotesDeposited))}</b> staked & voted at least once</>
+                                                        }
                                                         </>
                                                     }>
                                                     <Button
@@ -1325,8 +1395,15 @@ export function GovernanceMetricsView(props: any) {
                                                                 verticalAlign: 'bottom'}}
                                                             >
                                                             <Typography variant="h4">
-                                                                {metricsTotalVotesDeposited && metricsTotalVotesDeposited}
-                                                            </Typography>
+                                                                {metricsTotalStaked && getFormattedNumberToLocale(formatAmount(metricsTotalStaked))}
+                                                            </Typography>    
+                                                            {metricsTotalVotesDeposited && 
+                                                                <Typography variant="h6">
+                                                                    /{(metricsTotalVotesDeposited/metricsTotalStaked*100).toFixed(1)}%
+                                                                </Typography>
+                                                            }
+
+                                                            
                                                         </Grid>
                                                     </Button>
                                                 </Tooltip>
@@ -1630,6 +1707,7 @@ export function GovernanceMetricsView(props: any) {
                         }
 
                         <RenderVoterRecordTable 
+                            setMetricsTotalStaked={setMetricsTotalStaked}
                             setGovernanceChartData={setGovernanceChartData}
                             setMetricsVoters={setMetricsVoters} 
                             setMetricsAverageVotesPerParticipant={setMetricsAverageVotesPerParticipant} 

@@ -1841,12 +1841,12 @@ export function GovernanceCachedView(props: any) {
                 let gTD = null;
                 if (grealm.account?.communityMint){
                     try{
-                        if (tokenMap.get(grealm.account?.communityMint.toBase58())){
+                        if (tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58())){
                             setGovernanceType(0);
-                            gTD = tokenMap.get(grealm.account?.communityMint.toBase58()).decimals;
+                            gTD = tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58()).decimals;
                             setGoverningTokenDecimals(gTD);
                         } else{
-                            const btkn = await getBackedTokenMetadata(grealm.account?.communityMint.toBase58(), wallet);
+                            const btkn = await getBackedTokenMetadata(new PublicKey(grealm.account?.communityMint).toBase58(), wallet);
                             if (btkn){
                                 setGovernanceType(1);
                                 gTD = btkn.decimals;
@@ -1858,7 +1858,6 @@ export function GovernanceCachedView(props: any) {
                             }
                         }
                     } catch(emt){
-                        
                         if (tokenMap.get(grealm.account?.communityMint)){
                             setGovernanceType(0);
                             gTD = tokenMap.get(grealm.account?.communityMint).decimals;
