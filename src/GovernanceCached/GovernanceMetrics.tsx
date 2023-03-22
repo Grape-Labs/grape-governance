@@ -390,7 +390,7 @@ function RenderVoterRecordTable(props:any) {
                             for (var participant of voterArray){
                                 
                                 //console.log("t: "+JSON.stringify(item.account))
-                                
+                                let depositedgovernancevotes = 0;
                                 if (participant.pubkey === inner_item.governingTokenOwner.toBase58()){
                                     //inner_item.councilMint 
                                     //inner_item.governingTokenMint
@@ -423,7 +423,7 @@ function RenderVoterRecordTable(props:any) {
                                     } else{ // Non Council
                                         //console.log("non council vote...")
                                         totalCommunityParticipation++;
-
+                                        
                                         if (inner_item?.vote){
                                             if (inner_item?.vote?.vote?.voteType === 0){
                                                 if ((inner_item?.vote?.voterWeight) > 0){
@@ -451,6 +451,8 @@ function RenderVoterRecordTable(props:any) {
 
                                     foundParticipant = true;
                                     
+                                    //totalVotesDeposited+=depositedgovernancevotes;
+
                                     if ((totalvotes>0)&&(participant.totalvotes <= 0))
                                         totalActiveVoters++;
                                     totalVotesCasted+=totalvotes;
@@ -466,6 +468,7 @@ function RenderVoterRecordTable(props:any) {
                                     participant.totalcouncilvotes += totalcouncilvotes;
                                     participant.totalcouncilvotesfor += totalcouncilvotesfor;
                                     participant.totalcouncilvotesagainst += totalcouncilvotesagainst;
+
                                 }
                             }
                             
@@ -480,7 +483,7 @@ function RenderVoterRecordTable(props:any) {
                                         //realm.account.config.councilMint
 
                                         if (realm.account.communityMint.toBase58() === memberItem.account.governingTokenMint.toBase58()){
-                                            depositedgovernancevotes = +(+(memberItem.account.governingTokenDepositAmount)/Math.pow(10, +governingTokenDecimals)).toFixed(0);
+                                            depositedgovernancevotes = +(Number(memberItem.account.governingTokenDepositAmount)/Math.pow(10, +governingTokenDecimals)).toFixed(0);
                                         }else if (realm.account.config.councilMint.toBase58() === memberItem.account.governingTokenMint.toBase58()){
                                             depositedcouncilvotes = +(Number(memberItem.account.governingTokenDepositAmount));
                                         }
@@ -493,6 +496,7 @@ function RenderVoterRecordTable(props:any) {
                                     totalActiveVoters++;
 
                                 totalVotesDeposited+=depositedgovernancevotes;
+                                console.log("total staked: "+totalVotesDeposited)
                                 totalVotesCasted+=totalvotes;
 
                                 voterArray.push({
@@ -1304,10 +1308,10 @@ export function GovernanceMetricsView(props: any) {
                                                 }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Total Votes Deposited</>
+                                                    <>Total Votes Deposited & Participated</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        The sum of all deposited votes in this Governance
+                                                        The sum of all votes staked & that have participated in this Governance
                                                         </>
                                                     }>
                                                     <Button

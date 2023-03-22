@@ -47,7 +47,7 @@ export default function GovernanceNavigation(props: any){
                     sx={{borderRadius:'17px'}}
                 >
                     <Tooltip title={
-                            <>Proposals<br/>* Via Cached Storage
+                            <><strong>Proposals</strong><br/>* Via Cached Storage
                             </>
                         }>
                         <Button
@@ -56,7 +56,7 @@ export default function GovernanceNavigation(props: any){
                         ><HowToVoteIcon /></Button>
                     </Tooltip>
                     <Tooltip title={
-                        <>Metrics<br/>* Via Cached Storage
+                        <><strong>Metrics</strong><br/>* Via Cached Storage
                         </>}>
                         <Button
                             component={Link}
@@ -64,14 +64,16 @@ export default function GovernanceNavigation(props: any){
                         ><BarChartIcon /></Button>
                     </Tooltip>
                     <Tooltip title={
-                        <>Members<br/>* Via Cached Storage
+                        <><strong>Members</strong><br/>* Via Cached Storage
                         </>}>
                         <Button
                             component={Link}
                             to={'/members/'+governanceAddress}
                         ><GroupIcon /></Button>
                     </Tooltip>
-                    <Tooltip title="Treasury (coming soon)">
+                    <Tooltip title={
+                        <><strong>Treasury</strong><br/> (coming soon)</>
+                        }>
                         <Button
                             sx={{color:'#999', ml:1}}
                         ><AccountBalanceIcon /></Button>

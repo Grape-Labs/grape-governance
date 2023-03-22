@@ -2146,7 +2146,7 @@ export function GovernanceCachedView(props: any) {
                         alignItems: 'center', textAlign: 'center'
                     }} 
                 > 
-                    <Typography variant="caption">Loading Governance {governanceAddress}</Typography>
+                    <Typography variant="caption">Loading Governance Proposals {governanceAddress}</Typography>
                     
                     <LinearProgress color="inherit" />
                     
