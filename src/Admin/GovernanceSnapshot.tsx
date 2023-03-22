@@ -26,6 +26,9 @@ import { LinearProgressProps } from '@mui/material/LinearProgress';
 
 import { Connection, PublicKey, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { ShdwDrive, ShadowFile } from "@shadow-drive/sdk";
+import {
+    formatBytes
+} from '../GovernanceCached/CachedStorageHelpers'; 
 import { useSnackbar } from 'notistack';
 
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -1068,13 +1071,30 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
         try{
             const response = await drive.getStorageAccounts("v2");
-            console.log("Storage Accounts: "+JSON.stringify(response))
+            //console.log("Storage Accounts: "+JSON.stringify(response))
 
             const strgAccounts = new Array();
             for (var item of response){
+
+                const body = {
+                    storage_account: item.publicKey.toBase58()
+                };
+                //console.log("body: "+JSON.stringify(body))
+                
+                const response = await window.fetch('https://shadow-storage.genesysgo.net/storage-account-info', {
+                    method: "POST",
+                    body: JSON.stringify(body),
+                    headers: { "Content-Type": "application/json" },
+                });
+            
+                const json = await response.json();
+
+
                 strgAccounts.push({
                     label: item.account.identifier,
-                    value: item.publicKey.toBase58()
+                    value: item.publicKey.toBase58(),
+                    storage: item.account.storage,
+                    currentUsage:json.current_usage,
                 });
             }
             if (strgAccounts.length > 0)
@@ -1129,11 +1149,12 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         getOptionLabel={(option) => option.value}
                         renderOption={(props, option) => (
                             <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
-                              {option.label}
-                              {/*
-                              &nbsp;
-                              <small>({option.totalProposals})</small>
-                            */}
+                                <Typography variant="body2">{option.label}</Typography>
+                                {
+                                <Typography variant="caption">
+                                    <small>&nbsp;({option?.currentUsage && <>{formatBytes(option.currentUsage)} of </>}{formatBytes(option.storage)})</small>
+                                </Typography>
+                                }
                             </Box>
                         )}
                         onChange={(e, sel) => setStoragePool(sel?.value)} 
