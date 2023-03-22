@@ -563,15 +563,20 @@ function RenderVoterRecordTable(props:any) {
                 tCouncilVotes = 0;
                 tDepositedCouncilVotesCasted = 0;
                 for (var member_item of memberMap){
-                    if (new PublicKey(member_item.account.governingTokenMint).toBase58() !== new PublicKey(realm.account.config.councilMint).toBase58()){
+                    if (realm.account.config?.councilMint){
+                        if (new PublicKey(member_item.account?.governingTokenMint).toBase58() !== new PublicKey(realm.account.config?.councilMint).toBase58()){
+                            tStakedVotes += Number(member_item.account.governingTokenDepositAmount);//record.account.totalVotesCount;
+                            tVotesCasted += member_item.account.totalVotesCount;//record.account.governingTokenDepositAmount.toNumber();
+                            tParticipants++;
+                        } else{
+                            tCouncilVotes += member_item.account.totalVotesCount;
+                            tDepositedCouncilVotesCasted += Number(member_item.account.governingTokenDepositAmount);
+                        }
+                    } else{
                         tStakedVotes += Number(member_item.account.governingTokenDepositAmount);//record.account.totalVotesCount;
                         tVotesCasted += member_item.account.totalVotesCount;//record.account.governingTokenDepositAmount.toNumber();
                         tParticipants++;
-                    } else{
-                        tCouncilVotes += member_item.account.totalVotesCount;
-                        tDepositedCouncilVotesCasted += Number(member_item.account.governingTokenDepositAmount);
                     }
-                
                 }
 
             }
@@ -636,7 +641,7 @@ function RenderVoterRecordTable(props:any) {
         if (!voterRecordRows){
             if (cachedGovernance){
                 if (!loading){
-                    console.log("FETCH!")
+                    console.log("Rendering voter records")
                     renderVoterRecords();
                 }
             }
