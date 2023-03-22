@@ -2211,12 +2211,17 @@ export function GovernanceCachedView(props: any) {
                         }
 
                         
-                                <Box sx={{ alignItems: 'center', textAlign: 'center',p:1}}>
+                                <Box sx={{ 
+                                    p:1}}>
                                     <Grid container spacing={0}>
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)',
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Proposals/Success Rate</>
@@ -2228,20 +2233,30 @@ export function GovernanceCachedView(props: any) {
                                                     <Button
                                                         color='inherit'
                                                         sx={{
-                                                            borderRadius:'17px'
+                                                            borderRadius:'17px',
                                                         }}
-                                                    >
-                                                        <Typography variant="h3">
-                                                            {totalProposals}/{((totalPassed/totalProposals)*100).toFixed(1)}%
-                                                        </Typography>
+                                                    >   
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                        >
+                                                            <Typography variant="h4">
+                                                                {totalProposals}
+                                                            </Typography>
+                                                            <Typography variant="h6">/{((totalPassed/totalProposals)*100).toFixed(1)}%</Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>
                                         </Grid>
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)',
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Total Casted Votes</>
@@ -2250,24 +2265,33 @@ export function GovernanceCachedView(props: any) {
                                                             Total votes casted for this governnace
                                                         </>
                                                     }>
-                                                    <Button
-                                                        color='inherit'
-                                                        sx={{
-                                                            borderRadius:'17px'
-                                                        }}
-                                                    >
-                                                        <Typography variant="h3">
-                                                            {getFormattedNumberToLocale(totalVotesCasted)}
-                                                        </Typography>
-                                                    </Button>
+                                                        <Button
+                                                            color='inherit'
+                                                            sx={{
+                                                                borderRadius:'17px'
+                                                            }}
+                                                        >
+                                                            <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                                <Typography variant="h4">
+                                                                    {getFormattedNumberToLocale(totalVotesCasted)}
+                                                                </Typography>
+                                                            </Grid>
+                                                        </Button>
                                                 </Tooltip>
                                             </Box>
                                         </Grid>
                                         
                                         <Grid item xs={12} sm={4} md={4} key={1}>
                                             <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:2,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)',
+                                                }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Passing/Defeated</>
@@ -2282,10 +2306,15 @@ export function GovernanceCachedView(props: any) {
                                                             borderRadius:'17px'
                                                         }}
                                                     >
-                                                        <Typography variant="h3">
-                                                            <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{totalPassed}</Badge>/
-                                                            <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{totalDefeated}</Badge>
-                                                        </Typography>
+                                                        <Grid container
+                                                            sx={{
+                                                                verticalAlign: 'bottom'}}
+                                                            >
+                                                            <Typography variant="h4">
+                                                                <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{totalPassed}</Badge>/
+                                                                <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{totalDefeated}</Badge>
+                                                            </Typography>
+                                                        </Grid>
                                                     </Button>
                                                 </Tooltip>
                                             </Box>

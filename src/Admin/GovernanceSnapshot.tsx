@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, memo, Suspense } from "react";
 import axios from "axios";
-import { getRealm, getAllProposals, getGovernance, getGovernanceAccounts, getGovernanceChatMessages, getTokenOwnerRecord, getTokenOwnerRecordsByOwner, getAllTokenOwnerRecords, getRealmConfigAddress, getGovernanceAccount, getAccountTypes, GovernanceAccountType, tryGetRealmConfig, getRealmConfig  } from '@solana/spl-governance';
+import { getRealm, getAllProposals, getGovernance, getProposal, getInstructionDataFromBase64, getGovernanceAccounts, getGovernanceChatMessages, getTokenOwnerRecord, getTokenOwnerRecordsByOwner, getAllTokenOwnerRecords, getRealmConfigAddress, getGovernanceAccount, getAccountTypes, GovernanceAccountType, tryGetRealmConfig, getRealmConfig  } from '@solana/spl-governance';
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
@@ -248,10 +248,17 @@ export function GovernanceSnapshotView (this: any, props: any) {
             let ttvc = 0;
             let council = 0;
             let voting = 0;
+            let count = 0;
 
             for (const props of gprops){
                 for (const prop of props){
                     
+                    /*
+                    if (count < 1){
+                        const prop_details = await getProposal(new Connection(GRAPE_RPC_ENDPOINT), prop.pubkey);
+                        console.log("prop_details: "+JSON.stringify(prop_details))
+                    }*/
+
                     // check if community or council
                     if (grealm.account.config?.councilMint && (grealm.account.config?.councilMint.toBase58() === prop.account.governingTokenMint.toBase58()))
                         council++;
@@ -279,6 +286,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             }
                         }
                     }
+                    count++;
                 }
             }
 
