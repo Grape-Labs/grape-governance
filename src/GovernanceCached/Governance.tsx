@@ -1749,7 +1749,8 @@ export function GovernanceCachedView(props: any) {
     const [totalProposals, setTotalProposals] = React.useState(null);
     const [totalPassed, setTotalPassed] = React.useState(null);
     const [totalDefeated, setTotalDefeated] = React.useState(null);
-    const [totalVotesCasted, setTotalTotalVotesCasted] = React.useState(null);
+    const [totalVotesCasted, setTotalVotesCasted] = React.useState(null);
+    const [totalCouncilVotesCasted, setTotalCouncilVotesCasted] = React.useState(null);
     const [governingTokenMint, setGoverningTokenMint] = React.useState(null);
     const [governingTokenDecimals, setGoverningTokenDecimals] = React.useState(null);
     const [governanceType, setGovernanceType] = React.useState(0);
@@ -1890,6 +1891,7 @@ export function GovernanceCachedView(props: any) {
                     let passed = 0;
                     let defeated = 0;
                     let ttvc = 0;
+                    let tcvc = 0;
                     const allprops: any[] = [];
                     for (var prop of cached_governance){
                         
@@ -1901,14 +1903,22 @@ export function GovernanceCachedView(props: any) {
                     
                         if (prop.account?.yesVotesCount && prop.account?.noVotesCount){
                             //console.log("tmap: "+JSON.stringify(tokenMap));
-                            //console.log("item a: "+JSON.stringify(prop))
-                            if (tokenMap){
+                            console.log("item a: "+JSON.stringify(prop))
+                            console.log("council: "+new PublicKey(grealm.account.config?.councilMint).toBase58())
+                            //if (tokenMap){
+                            if (grealm.account.config?.councilMint && new PublicKey(grealm.account.config?.councilMint).toBase58() === new PublicKey(prop.account?.governingTokenMint).toBase58()){
+                                tcvc += +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))).toFixed(0))
+                            } else{
                                 ttvc += +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
                             }
+                             
                             
                         } else if (prop.account?.options) {
                             //console.log("item b: "+JSON.stringify(prop))
-                            if (tokenMap){
+                            //if (tokenMap){
+                            if (grealm.account.config?.councilMint && new PublicKey(grealm.account.config?.councilMint).toBase58() === new PublicKey(prop.account?.governingTokenMint).toBase58()){
+                                tcvc += +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))).toFixed(0))
+                            } else{
                                 ttvc += +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
                             }
                         }
@@ -1920,7 +1930,8 @@ export function GovernanceCachedView(props: any) {
                     setTotalDefeated(defeated);
                     setTotalPassed(passed);
                     setTotalProposals(allprops.length);
-                    setTotalTotalVotesCasted(ttvc);
+                    setTotalCouncilVotesCasted(tcvc);
+                    setTotalVotesCasted(ttvc);
                     
                     setProposals(allprops);
 
@@ -1990,13 +2001,13 @@ export function GovernanceCachedView(props: any) {
                                     //console.log("tmap: "+JSON.stringify(tokenMap));
                                     //console.log("item a: "+JSON.stringify(prop))
                                     if (tokenMap){
-                                        ttvc += +(((prop.account?.yesVotesCount.toNumber() + prop.account?.noVotesCount.toNumber())/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                                        ttvc += +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
                                     }
                                     
                                 } else if (prop.account?.options) {
                                     //console.log("item b: "+JSON.stringify(prop))
                                     if (tokenMap){
-                                        ttvc += +(((prop.account?.options[0].voteWeight.toNumber() + prop.account?.denyVoteWeight.toNumber())/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                                        ttvc += +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
                                     }
                                 }
                             }
@@ -2008,7 +2019,7 @@ export function GovernanceCachedView(props: any) {
                     setTotalDefeated(defeated);
                     setTotalPassed(passed);
                     setTotalProposals(sortedResults.length);
-                    setTotalTotalVotesCasted(ttvc);
+                    setTotalVotesCasted(ttvc);
 
                     setProposals(sortedResults);
 
@@ -2268,6 +2279,10 @@ export function GovernanceCachedView(props: any) {
                                                 </Typography>
                                                 <Tooltip title={<>
                                                             Total votes casted for this governnace
+                                                            {(totalCouncilVotesCasted && totalVotesCasted) ?
+                                                                <><br/>Community/Council</>
+                                                            :<></>
+                                                            }
                                                         </>
                                                     }>
                                                         <Button
@@ -2280,9 +2295,24 @@ export function GovernanceCachedView(props: any) {
                                                             sx={{
                                                                 verticalAlign: 'bottom'}}
                                                             >
-                                                                <Typography variant="h4">
-                                                                    {getFormattedNumberToLocale(totalVotesCasted)}
+                                                                {totalVotesCasted ?
+                                                                    <Typography variant="h4">
+                                                                        {getFormattedNumberToLocale(totalVotesCasted)} 
+                                                                    </Typography>
+                                                                :<></>
+                                                                }
+
+                                                                <Typography variant="h4" color="#999">
+                                                                    {(totalCouncilVotesCasted && totalVotesCasted) ?
+                                                                        <>/</>
+                                                                    :<></>
+                                                                    }
+                                                                    {totalCouncilVotesCasted ?
+                                                                        <>{totalCouncilVotesCasted}</>
+                                                                    :<></>
+                                                                    }
                                                                 </Typography>
+                                                                
                                                             </Grid>
                                                         </Button>
                                                 </Tooltip>
