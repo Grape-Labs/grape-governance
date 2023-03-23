@@ -200,6 +200,8 @@ function RenderVoterRecordTable(props:any) {
     const setMetricsTotalVotesCasted = props.setMetricsTotalVotesCasted;
     const setMetricsTotalProposals = props.setMetricsTotalProposals;
     const setMetricsParticipationRate = props.setMetricsParticipationRate;
+    const setMetricsHighestParticipation = props.setMetricsHighestParticipation;
+    const setMetricsHighestParticipationProposalName = props.setMetricsHighestParticipationProposalName;
 
     const setMetricsCommunityPassed = props.setMetricsCommunityPassed;
     const setMetricsCommunityDefeated = props.setMetricsCommunityDefeated;
@@ -288,11 +290,14 @@ function RenderVoterRecordTable(props:any) {
         let tParticipants = 0;
         let aParticipants = 0;
         let lParticipants = 0;
+        var highestParticipation = 0;
+        var highestParticipationProposalName = null;
         setLoadingTable(true);
         
         if (cachedGovernance){
             var voter = 0;
             let csvFile = '';
+            let participationCount = 0;
             for (var item of cachedGovernance){
 
                 let skipProp = false;
@@ -361,18 +366,7 @@ function RenderVoterRecordTable(props:any) {
                     }
 
                     if (item?.votingResults){
-
-                        var alltimehighparticipation = 0;
-                        var alltimehighvotes = 0;
-                        
-                        let participation = item.votingResults.length;
-                        if (participation > 0){
-                            if (participation > alltimehighparticipation)
-                                alltimehighparticipation;
-                            
-                        }
-                            
-
+                        participationCount = 0;
                         for (var inner_item of item.votingResults){
 
                             var councilpropcreator = 0;
@@ -400,9 +394,11 @@ function RenderVoterRecordTable(props:any) {
                                 }
                             }
 
-
+                            var alltimehighvotes = 0;
+                            participationCount++;
                             for (var participant of voterArray){
                                 
+
                                 //console.log("t: "+JSON.stringify(item.account))
                                 let depositedgovernancevotes = 0;
                                 if (participant.pubkey === inner_item.governingTokenOwner.toBase58()){
@@ -484,6 +480,7 @@ function RenderVoterRecordTable(props:any) {
                                     participant.totalcouncilvotesagainst += totalcouncilvotesagainst;
 
                                 }
+                                
                             }
                             
                             if (!foundParticipant){
@@ -531,6 +528,15 @@ function RenderVoterRecordTable(props:any) {
                                     totalcouncilvotesagainst: totalcouncilvotesagainst,
                                 })
                                 voter++;
+                            }
+                        }
+
+                        //let voterCount = voterArray.length;
+                        if (participationCount > 0){
+                            if (participationCount > highestParticipation){
+                                console.log("voterCount: "+participationCount)
+                                highestParticipation = participationCount;
+                                highestParticipationProposalName = item.account?.name + ' on ' + moment.unix(Number(item.account?.draftAt)).format("YYYY-MM-DD") + ' '+GOVERNANNCE_STATE[item.account.state];
                             }
                         }
                     }
@@ -608,6 +614,10 @@ function RenderVoterRecordTable(props:any) {
             console.log(tParticipants+"("+memberMap.length+"): "+tStakedVotes+ " (decimals: "+governingTokenDecimals+")")
             if (tStakedVotes > 0)
                 setMetricsTotalStaked(Number((tStakedVotes/Math.pow(10, +governingTokenDecimals)).toFixed(0)))
+
+            setMetricsHighestParticipationProposalName(highestParticipationProposalName);
+            console.log("highest participation: "+highestParticipation)
+            setMetricsHighestParticipation(highestParticipation);
 
             setGovernnaceChartData(propsByMonth);
 
@@ -763,6 +773,8 @@ export function GovernanceMetricsView(props: any) {
     const [metricsProposalsPerMonth, setMetricsProposalsPerMonth] = React.useState(null);
     const [metricsRetention, setMetricsRetention] = React.useState(null);
     const [metricsActiveRetention, setMetricsActiveRetention] = React.useState(null);
+    const [metricsHighestParticipation, setMetricsHighestParticipation] = React.useState(null);
+    const [metricsHighestParticipationProposalName, setMetricsHighestParticipationProposalName] = React.useState(null);
     const [metricsTotalStaked, setMetricsTotalStaked] = React.useState(null);
 
     const [governanceStartDate, setGovernanceStartDate] = React.useState(null);
@@ -1537,7 +1549,8 @@ export function GovernanceMetricsView(props: any) {
                                                     <>Average Participation</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        Average Participation per Proposal
+                                                        Average Participation per Proposal<br/>
+                                                        The rate at which an eligible voter will cast a vote in a proposal
                                                         </>
                                                     }>
                                                     <Button
@@ -1552,6 +1565,11 @@ export function GovernanceMetricsView(props: any) {
                                                             >
                                                             <Typography variant="h4">
                                                                 {metricsAverageParticipation && metricsAverageParticipation}
+                                                            </Typography>
+                                                            <Typography variant="h6">
+                                                            {metricsParticipationRate && 
+                                                                <>/{metricsParticipationRate}%</>
+                                                            }
                                                             </Typography>
                                                         </Grid>
                                                     </Button>
@@ -1569,10 +1587,12 @@ export function GovernanceMetricsView(props: any) {
                                                 }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Participation Rate</>
+                                                    <>Highest Participation</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        The rate at which an eligible voter will cast a vote in a proposal
+                                                        Highest participation on all proposals
+                                                        <br/>
+                                                        Proposal {metricsHighestParticipationProposalName}
                                                         </>
                                                     }>
                                                     <Button
@@ -1586,7 +1606,7 @@ export function GovernanceMetricsView(props: any) {
                                                                 verticalAlign: 'bottom'}}
                                                             >
                                                             <Typography variant="h4">
-                                                                {metricsParticipationRate && metricsParticipationRate}%
+                                                                {metricsHighestParticipation && metricsHighestParticipation}
                                                             </Typography>
                                                         </Grid>
                                                     </Button>
@@ -1732,6 +1752,8 @@ export function GovernanceMetricsView(props: any) {
                             setMetricsProposalsPerMonth={setMetricsProposalsPerMonth}
                             setMetricsRetention={setMetricsRetention}
                             setMetricsActiveRetention={setMetricsActiveRetention}
+                            setMetricsHighestParticipation={setMetricsHighestParticipation}
+                            setMetricsHighestParticipationProposalName={setMetricsHighestParticipationProposalName}
                             memberMap={memberMap} 
                             endTimer={endTimer} 
                             cachedGovernance={cachedGovernance} 

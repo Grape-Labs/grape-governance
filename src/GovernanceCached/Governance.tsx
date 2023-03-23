@@ -643,7 +643,7 @@ function GetParticipants(props: any){
                             uNo++;
                         }
                     } else{
-                        if (item.vote.vote.voteWeight.yes && item.vote.vote.voteWeight.yes > 0){
+                        if (item.vote.vote?.voteWeight.yes && item.vote.vote.voteWeight.yes > 0){
                             uYes++;
                         } else{
                             uNo++;
@@ -965,7 +965,7 @@ function GetParticipants(props: any){
                                             :
                                                 <>
                                                     {thisitem.account.yesVotesCount ?
-                                                        <>{(Number(thisitem.account.yesVotesCount)/(Number(thisitem.account.noVotesCount)+thisitem.account.yesVotesCount.toNumber())*100).toFixed(2)}%</>
+                                                        <>{(Number(thisitem.account.yesVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
                                                     :
                                                         <>0%</>
                                                     }
@@ -1538,7 +1538,7 @@ function RenderGovernanceTable(props:any) {
 
                                                 </TableCell>
                                                 <TableCell>
-                                                    {item.account.yesVotesCount &&
+                                                    {item.account.yesVotesCount ?
                                                         <Typography variant="h6">
                                                             
                                                             <Tooltip title={realm.account.config?.councilMint === item.account?.governingTokenMint?.toBase58() ?
@@ -1556,18 +1556,16 @@ function RenderGovernanceTable(props:any) {
                                                             >
                                                                 <Button sx={{color:'#eee',borderRadius:'17px',textTransform:'none'}}>
                                                                     {Number(item.account.yesVotesCount) > 0 ?
-                                                                    <>
-                                                                    {`${(((Number(item.account.yesVotesCount))/((Number(item.account.noVotesCount))+(Number(item.account.yesVotesCount))))*100).toFixed(2)}%`}
-                                                                    </>
+                                                                        <>
+                                                                        {`${(((Number(item.account.yesVotesCount))/((Number(item.account.noVotesCount))+(Number(item.account.yesVotesCount))))*100).toFixed(2)}%`}
+                                                                        </>
                                                                     :
                                                                     <>0%</>
         }
                                                                 </Button>
                                                             </Tooltip>
                                                         </Typography>
-                                                    }
-
-                                                    {(item.account?.options && item.account?.options[0]?.voteWeight) ? 
+                                                    :
                                                         <Typography variant="h6">
                                                             {/*console.log("governingTokenMint: "+item.account.governingTokenMint.toBase58())*/}
                                                             {/*console.log("vote: "+JSON.stringify(item.account))*/}
@@ -1594,7 +1592,6 @@ function RenderGovernanceTable(props:any) {
                                                                 </Button>
                                                             </Tooltip>
                                                         </Typography>
-                                                    :<Typography variant="h6"><Button sx={{color:'white',borderRadius:'17px',textTransform:'none'}}>0%</Button></Typography>
                                                     }
                                                     {(item.account?.options && item.account?.options[0]?.voterWeight) &&
                                                         <Typography variant="h6">
