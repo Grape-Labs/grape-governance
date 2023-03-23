@@ -1903,13 +1903,12 @@ export function GovernanceCachedView(props: any) {
                     
                         if (prop.account?.yesVotesCount && prop.account?.noVotesCount){
                             //console.log("tmap: "+JSON.stringify(tokenMap));
-                            console.log("item a: "+JSON.stringify(prop))
-                            console.log("council: "+new PublicKey(grealm.account.config?.councilMint).toBase58())
+                            //console.log("item a: "+JSON.stringify(prop))
                             //if (tokenMap){
                             if (grealm.account.config?.councilMint && new PublicKey(grealm.account.config?.councilMint).toBase58() === new PublicKey(prop.account?.governingTokenMint).toBase58()){
                                 tcvc += +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))).toFixed(0))
                             } else{
-                                ttvc += +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                                ttvc += +(((Number("0x"+prop.account?.yesVotesCount) + Number("0x"+prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
                             }
                              
                             
@@ -1919,7 +1918,7 @@ export function GovernanceCachedView(props: any) {
                             if (grealm.account.config?.councilMint && new PublicKey(grealm.account.config?.councilMint).toBase58() === new PublicKey(prop.account?.governingTokenMint).toBase58()){
                                 tcvc += +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))).toFixed(0))
                             } else{
-                                ttvc += +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                                ttvc += +(((Number("0x"+prop.account?.options[0].voteWeight) + Number("0x"+prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
                             }
                         }
 
@@ -2007,7 +2006,7 @@ export function GovernanceCachedView(props: any) {
                                 } else if (prop.account?.options) {
                                     //console.log("item b: "+JSON.stringify(prop))
                                     if (tokenMap){
-                                        ttvc += +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                                        ttvc += +(((Number("0x"+prop.account?.options[0].voteWeight) + Number("0x"+prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
                                     }
                                 }
                             }
