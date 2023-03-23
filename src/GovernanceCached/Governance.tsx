@@ -1158,13 +1158,17 @@ function GetParticipants(props: any){
                                             <>General Sentiment</>
                                         </Typography>
                                         <Typography variant="subtitle2">
-                                            <Tooltip title='Unique For Votes / Unique Against Votes'>
+                                            <Tooltip title='Unique For Voters / Unique Against Voters'>
                                                 <Button
                                                     sx={{borderRadius:'17px'}}
                                                     variant="text"
                                                     color="inherit"
                                                 >
                                                     {uniqueYes} / {uniqueNo}
+                                                    {/*
+                                                    <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{uniqueYes}</Badge>/
+                                                    <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{uniqueNo}</Badge>
+                                                    */}
                                                 </Button>
                                             </Tooltip>
                                         </Typography>
@@ -1272,9 +1276,9 @@ function GetParticipants(props: any){
                                                         {thisitem.account?.draftAt &&
                                                             <>
                                                                 {thisitem.account?.votingCompletedAt ?
-                                                                    `Ended ${moment.unix(Number(thisitem.account?.draftAt)+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
+                                                                    `Ended ${moment.unix(Number(thisitem.account?.draftAt)+Number(thisGovernance?.account?.config?.maxVotingTime)).fromNow()}`
                                                                 :
-                                                                    `Ending ${moment.unix(Number(thisitem.account?.draftAt)+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
+                                                                    `Ending ${moment.unix(Number(thisitem.account?.draftAt)+Number(thisGovernance?.account?.config?.maxVotingTime)).fromNow()}`
                                                                 }
                                                             </>
                                                         }
