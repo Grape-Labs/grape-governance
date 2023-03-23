@@ -30,15 +30,21 @@ Next Steps...
 -- Add more decentralized storage pools
 
 **Getting Started**
-- The Administration panel requires the connected wallet to be whitelisted, this provides the fetching tools for fetching and uploading the created files to a decentralized storage pool <img width="711" alt="Screenshot 2023-03-15 at 2 43 32 PM" src="https://user-images.githubusercontent.com/13381905/225312286-565df7d5-7a7d-4940-b2b1-04b8525d1ad0.png">
+- The Administration panel requires the connected wallet to be whitelisted, this provides the fetching tools for fetching and uploading the created files to a decentralized storage pool
+- <img width="436" alt="Screenshot 2023-03-22 at 11 55 19 PM" src="https://user-images.githubusercontent.com/13381905/227047472-fb31afd1-079b-4b3d-836b-5b0f27d74183.png">
+- <img width="428" alt="Screenshot 2023-03-22 at 11 55 57 PM" src="https://user-images.githubusercontent.com/13381905/227047565-037eb923-e341-4548-857e-80754137f65b.png">
+
+
 - The simulation can be run for any Governance and a timer will show for the load time on the bottom https://spl-governance-caching.vercel.app/cachedgovernance/HgcYAkXFT1ENpUCjBZWc1TjAAFacUwdGZRNhTHx9cuo
 
-<img width="1504" alt="Screenshot 2023-03-15 at 2 41 16 PM" src="https://user-images.githubusercontent.com/13381905/225311780-a2b98f0c-b552-48ed-86e4-4280315639ac.png">
+<img width="1682" alt="Screenshot 2023-03-22 at 11 53 50 PM" src="https://user-images.githubusercontent.com/13381905/227047342-0fd4d7a8-7638-44c2-8d63-1d0fab2a7e4b.png">
+
 
 Time taken on Realms UI for SPL Governance https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE is roughly 25-35s
 
 Time taken for load via Cache (Governance: Mango https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
-<img width="513" alt="Screenshot 2023-03-15 at 2 41 40 PM" src="https://user-images.githubusercontent.com/13381905/225311869-e8a25f57-17e1-4f1e-ad2a-1f50a59bb8f0.png">
+<img width="543" alt="Screenshot 2023-03-22 at 11 56 46 PM" src="https://user-images.githubusercontent.com/13381905/227047694-0d793e26-c49f-4ae3-87fa-c7767076555a.png">
+
 
 Time taken to load via Indexed RPC calls (Governance: Mango https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
 <img width="861" alt="Screenshot 2023-03-15 at 2 46 11 PM" src="https://user-images.githubusercontent.com/13381905/225312925-7557e495-859e-46ac-9b85-86dd481893f2.png">
