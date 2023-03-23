@@ -1542,13 +1542,15 @@ function RenderGovernanceTable(props:any) {
                                                                 :
                                                                 <>
                                                                         <>
-                                                                        {(Number(item.account.yesVotesCount)/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) )).toFixed(0)}</>
+                                                                        {
+                                                                        (Number(item.account.yesVotesCount)/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) )).toFixed(0)
+                                                                        }</>
                                                                     
 
                                                                 </>
                                                                 }
                                                             >
-                                                                <Button sx={{color:'#eee'}}>
+                                                                <Button sx={{color:'#eee',borderRadius:'17px',textTransform:'none'}}>
                                                                     {Number(item.account.yesVotesCount) > 0 ?
                                                                     <>
                                                                     {`${(((Number(item.account.yesVotesCount))/((Number(item.account.noVotesCount))+(Number(item.account.yesVotesCount))))*100).toFixed(2)}%`}
@@ -1561,9 +1563,8 @@ function RenderGovernanceTable(props:any) {
                                                         </Typography>
                                                     }
 
-                                                    {item.account?.options && item.account?.options[0]?.voteWeight && 
+                                                    {(item.account?.options && item.account?.options[0]?.voteWeight) ? 
                                                         <Typography variant="h6">
-                                                            
                                                             {/*console.log("governingTokenMint: "+item.account.governingTokenMint.toBase58())*/}
                                                             {/*console.log("vote: "+JSON.stringify(item.account))*/}
                                                             
@@ -1578,7 +1579,7 @@ function RenderGovernanceTable(props:any) {
                                                                 </>
                                                                 }
                                                             >
-                                                                <Button sx={{color:'white'}}>
+                                                                <Button sx={{color:'white',borderRadius:'17px',textTransform:'none'}}>
                                                                     {Number(item.account?.options[0].voteWeight) > 0 ?
                                                                     <>
                                                                     {`${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
@@ -1589,8 +1590,9 @@ function RenderGovernanceTable(props:any) {
                                                                 </Button>
                                                             </Tooltip>
                                                         </Typography>
+                                                    :<Typography variant="h6"><Button sx={{color:'white',borderRadius:'17px',textTransform:'none'}}>0%</Button></Typography>
                                                     }
-                                                    {item.account?.options && item.account?.options[0]?.voterWeight && 
+                                                    {(item.account?.options && item.account?.options[0]?.voterWeight) &&
                                                         <Typography variant="h6">
                                                             {/*console.log("vote: "+JSON.stringify(item.account))*/}
                                                             <Tooltip title={tokenMap.get(item.account.governingTokenMint.toBase58()) ?
@@ -1603,10 +1605,10 @@ function RenderGovernanceTable(props:any) {
                                                                 </>
                                                                 }
                                                             >
-                                                                <Button sx={{color:'white'}}>
+                                                                <Button sx={{color:'white',borderRadius:'17px',textTransform:'none'}}>
                                                                     {Number(item.account?.options[0].voterWeight) > 0 ?
                                                                     <>
-                                                                    {`${(((Number(item.account?.options[0].voterWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voterWeight))))*100).toFixed(2)}%`}
+                                                                        {`${(((Number(item.account?.options[0].voterWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voterWeight))))*100).toFixed(2)}%`}
                                                                     </>
                                                                     :
                                                                     <>0%</>
@@ -1632,7 +1634,7 @@ function RenderGovernanceTable(props:any) {
                                                                     </>
                                                                     }
                                                                 >
-                                                                    <Button sx={{color:'#eee'}}>
+                                                                    <Button sx={{color:'#eee',borderRadius:'17px',textTransform:'none'}}>
                                                                         {Number(item.account.noVotesCount) > 0 ?
                                                                         <>
                                                                         {`${(((Number(item.account.noVotesCount))/((Number(item.account.noVotesCount))+(Number(item.account.yesVotesCount))))*100).toFixed(2)}%`}
@@ -1658,7 +1660,7 @@ function RenderGovernanceTable(props:any) {
                                                                 </>
                                                                 }
                                                             >
-                                                                <Button sx={{color:'white'}}>
+                                                                <Button sx={{color:'white',borderRadius:'17px',textTransform:'none'}}>
                                                                     {Number(item.account?.denyVoteWeight) > 0 ?
                                                                     <>
                                                                     {`${(((Number(item.account?.denyVoteWeight)/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) ))/((Number(item.account?.denyVoteWeight)/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) ))+(Number(item.account?.options[0].voteWeight)/Math.pow(10, (tokenMap.get(item.account.governingTokenMint?.toBase58()) ? tokenMap.get(item.account.governingTokenMint?.toBase58()).decimals : 6) ))))*100).toFixed(2)}%`}
