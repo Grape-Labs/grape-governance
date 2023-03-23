@@ -185,9 +185,11 @@ const GOVERNANNCE_STATE = {
 function RenderVoterRecordTable(props:any) {
     //const [governanceStartDate, setGovernanceStartDate] = React.useState(props.governanceStartDate);
     //const [governanceEndDate, setGovernanceEndDate] = React.useState(props.governanceEndDate);
+    const renderCount = props.renderCount;
+    const setRenderCount = props.setRenderCount;
     const governanceStartDate = props.governanceStartDate;
     const governanceEndDate = props.governanceEndDate;
-
+    const [loadingTable, setLoadingTable] = React.useState(false);
     const setGovernnaceChartData = props.setGovernanceChartData;
     const setMetricsVoters = props.setMetricsVoters;
     const setMetricsAverageVotesPerParticipant = props.setMetricsAverageVotesPerParticipant;
@@ -207,7 +209,7 @@ function RenderVoterRecordTable(props:any) {
     const setMetricsActiveRetention = props.setMetricsActiveRetention;
     const setMetricsTotalStaked = props.setMetricsTotalStaked;
 
-    const endTime = props.endTimer;
+    const endTimer = props.endTimer;
     const cachedGovernance = props.cachedGovernance;
     const memberMap = props.memberMap;
     const governanceType = props.governanceType;
@@ -220,7 +222,7 @@ function RenderVoterRecordTable(props:any) {
     const nftBasedGovernance = props.nftBasedGovernance;
     const governanceAddress = props.governanceAddress;
     const [csvGenerated, setCSVGenerated] = React.useState(null);
-    const [loading, setLoading] = React.useState(null);
+    //const [renderCount, setRenderCount] = React.useState(0);
 
     const [voterRecordRows, setVoterRecordRows] = React.useState(null);
     const votingrecordcolumns: GridColDef[] = [
@@ -286,7 +288,8 @@ function RenderVoterRecordTable(props:any) {
         let tParticipants = 0;
         let aParticipants = 0;
         let lParticipants = 0;
-        setLoading(true);
+        setLoadingTable(true);
+        
         if (cachedGovernance){
             var voter = 0;
             let csvFile = '';
@@ -494,7 +497,7 @@ function RenderVoterRecordTable(props:any) {
                                         //realm.account.config.councilMint
 
                                         if (new PublicKey(realm.account.communityMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
-                                            depositedgovernancevotes = +(Number(memberItem.account.governingTokenDepositAmount)/Math.pow(10, +governingTokenDecimals)).toFixed(0);
+                                            depositedgovernancevotes = +(Number("0x"+memberItem.account.governingTokenDepositAmount)/Math.pow(10, +governingTokenDecimals)).toFixed(0);
                                         }else if (new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                                             depositedcouncilvotes = +(Number(memberItem.account.governingTokenDepositAmount));
                                         }
@@ -565,7 +568,7 @@ function RenderVoterRecordTable(props:any) {
                 for (var member_item of memberMap){
                     if (realm.account.config?.councilMint){
                         if (new PublicKey(member_item.account?.governingTokenMint).toBase58() !== new PublicKey(realm.account.config?.councilMint).toBase58()){
-                            tStakedVotes += Number(member_item.account.governingTokenDepositAmount);//record.account.totalVotesCount;
+                            tStakedVotes += Number("0x"+member_item.account.governingTokenDepositAmount);//record.account.totalVotesCount;
                             tVotesCasted += member_item.account.totalVotesCount;//record.account.governingTokenDepositAmount.toNumber();
                             tParticipants++;
                         } else{
@@ -573,7 +576,7 @@ function RenderVoterRecordTable(props:any) {
                             tDepositedCouncilVotesCasted += Number(member_item.account.governingTokenDepositAmount);
                         }
                     } else{
-                        tStakedVotes += Number(member_item.account.governingTokenDepositAmount);//record.account.totalVotesCount;
+                        tStakedVotes += Number("0x"+member_item.account.governingTokenDepositAmount);//record.account.totalVotesCount;
                         tVotesCasted += member_item.account.totalVotesCount;//record.account.governingTokenDepositAmount.toNumber();
                         tParticipants++;
                     }
@@ -600,8 +603,8 @@ function RenderVoterRecordTable(props:any) {
 
         }
 
+        setVoterRecordRows(voterArray);
         try{
-
             console.log(tParticipants+"("+memberMap.length+"): "+tStakedVotes+ " (decimals: "+governingTokenDecimals+")")
             if (tStakedVotes > 0)
                 setMetricsTotalStaked(Number((tStakedVotes/Math.pow(10, +governingTokenDecimals)).toFixed(0)))
@@ -632,26 +635,24 @@ function RenderVoterRecordTable(props:any) {
         }catch(e){
             console.log("ERR: "+e);
         }
-        setVoterRecordRows(voterArray);
-        endTime();
-        setLoading(false);
+        
+        endTimer();
+        setLoadingTable(false);
     }
 
     React.useEffect(() => { 
-        if (!voterRecordRows){
-            if (cachedGovernance){
-                if (!loading){
-                    console.log("Rendering voter records")
-                    renderVoterRecords();
-                }
-            }
+        if (!voterRecordRows && cachedGovernance && !loadingTable){
+            console.log("Rendering voter records " + renderCount)
+            setRenderCount(renderCount+1);
+            renderVoterRecords();
         }
     }, []);
 
     React.useEffect(() => { 
         if (governanceStartDate && governanceEndDate){
-            if (!loading)
+            if (!loadingTable){
                 renderVoterRecords();
+            }
         }
     }, [governanceStartDate, governanceEndDate]);
 
@@ -682,7 +683,7 @@ function RenderVoterRecordTable(props:any) {
 
                 
             }
-
+            
         {voterRecordRows ?
             <div style={{ height: 600, width: '100%' }}>
                 <div style={{ display: 'flex', height: '100%' }}>
@@ -721,7 +722,7 @@ export function GovernanceMetricsView(props: any) {
     const [startTime, setStartTime] = React.useState(null);
     const [endTime, setEndTime] = React.useState(null);
     const governanceAddress = urlParams;
-
+    const [renderCount, setRenderCount] = React.useState(0);
     //const governanceAddress = props.governanceAddress;
     const [loading, setLoading] = React.useState(false);
     const [memberMap, setMemberMap] = React.useState(null);
@@ -838,7 +839,7 @@ export function GovernanceMetricsView(props: any) {
         } catch(e){console.log("ERR: "+e)}
     }
 
-    const getGovernance = async (cached_governance:any) => {
+    const getGovernance = async (cached_governance:any, cached_member_map: any) => {
         if (!loading){
             startTimer();
             setLoading(true);
@@ -863,15 +864,16 @@ export function GovernanceMetricsView(props: any) {
                 //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
                 
                 let rawTokenOwnerRecords = null;
-                if (cachedMemberMap){
+                if (cached_member_map){
                     console.log("Using Cached Member Map")
-                    rawTokenOwnerRecords = cachedMemberMap;
+                    rawTokenOwnerRecords = cached_member_map;
                 } else{
+                    console.log("RPC Member Map");
                     rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
                 }
-                
-                setMemberMap(rawTokenOwnerRecords);
 
+                setMemberMap(rawTokenOwnerRecords);
+                
                 let gTD = null;
                 if (tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58())){
                     setGovernanceType(0);
@@ -1027,20 +1029,20 @@ export function GovernanceMetricsView(props: any) {
     }, [tokenMap]);
 
     React.useEffect(() => {
-        if (governanceLookup){
+        if (governanceLookup && !loading){
             getCachedGovernanceFromLookup();
         }
     }, [governanceLookup, governanceAddress]);
     
     React.useEffect(() => {
         if (cachedGovernance && governanceAddress && !loading){
-            getGovernance(cachedGovernance);
+            getGovernance(cachedGovernance, cachedMemberMap);
         }
     }, [cachedGovernance]);
     
     const getCachedGovernanceFromLookup = async () => {
-        
         let cached_governance = new Array();
+        let cached_member_map = null;
         if (governanceLookup){
             for (let glitem of governanceLookup){
                 if (glitem.governanceAddress === governanceAddress){
@@ -1049,8 +1051,9 @@ export function GovernanceMetricsView(props: any) {
                         setCachedRealm(glitem?.realm);
                     }
                     if (glitem?.memberFilename){
-                        const cached_members = await getFileFromLookup(glitem.memberFilename, storagePool);
-                        setCachedMemberMap(cached_members);
+                        cached_member_map = await getFileFromLookup(glitem.memberFilename, storagePool);
+                        if (cached_member_map)
+                            setCachedMemberMap(cached_member_map);
                     }
 
                     cached_governance = await getFileFromLookup(glitem.filename, storagePool);
@@ -1112,7 +1115,7 @@ export function GovernanceMetricsView(props: any) {
         }
         
         setCachedGovernance(cached_governance);
-        getGovernance(cached_governance);
+        getGovernance(cached_governance, cached_member_map);
     }
 
     const startTimer = () => {
@@ -1149,7 +1152,8 @@ export function GovernanceMetricsView(props: any) {
                 </Box>
             )
         } else{
-            if (realm && proposals && memberMap && tokenMap){
+            if (realm && proposals && memberMap && tokenMap && !loading){
+            //if (proposals){
                 return (
                     <Box
                         sx={{
@@ -1227,7 +1231,7 @@ export function GovernanceMetricsView(props: any) {
                             </div>
 
                         </Box>
-
+                        
                         {governanceChartData &&
                                 <Box>
                                     <Chart
@@ -1741,7 +1745,9 @@ export function GovernanceMetricsView(props: any) {
                             nftBasedGovernance={nftBasedGovernance} 
                             governanceAddress={governanceAddress}
                             governanceStartDate={governanceStartDate}
-                            governanceEndDate={governanceEndDate} />
+                            governanceEndDate={governanceEndDate}
+                            setRenderCount={setRenderCount}
+                            renderCount={renderCount} />
                         
                         {endTime &&
                             <Typography 
