@@ -570,29 +570,31 @@ function RenderVoterRecordTable(props:any) {
                     tParticipants++;
                 }
 
-                var counter = 0;
-                tParticipants = 0;
-                tStakedVotes = 0;
-                tVotesCasted = 0;
-                tCouncilVotes = 0;
-                tDepositedCouncilVotesCasted = 0;
-                for (var member_item of memberMap){
-                    if (realm.account.config?.councilMint){
-                        if (new PublicKey(member_item.account?.governingTokenMint).toBase58() !== new PublicKey(realm.account.config?.councilMint).toBase58()){
-                            tStakedVotes += Number("0x"+member_item.account.governingTokenDepositAmount);//record.account.totalVotesCount;
-                            tVotesCasted += member_item.account.totalVotesCount;//record.account.governingTokenDepositAmount.toNumber();
-                            tParticipants++;
-                        } else{
-                            tCouncilVotes += member_item.account.totalVotesCount;
-                            tDepositedCouncilVotesCasted += Number(member_item.account.governingTokenDepositAmount);
-                        }
-                    } else{
+                
+
+            }
+
+            var counter = 0;
+            tParticipants = 0;
+            tStakedVotes = 0;
+            tVotesCasted = 0;
+            tCouncilVotes = 0;
+            tDepositedCouncilVotesCasted = 0;
+            for (var member_item of memberMap){
+                if (realm.account.config?.councilMint){
+                    if (new PublicKey(member_item.account?.governingTokenMint).toBase58() !== new PublicKey(realm.account.config?.councilMint).toBase58()){
                         tStakedVotes += Number("0x"+member_item.account.governingTokenDepositAmount);//record.account.totalVotesCount;
                         tVotesCasted += member_item.account.totalVotesCount;//record.account.governingTokenDepositAmount.toNumber();
                         tParticipants++;
+                    } else{
+                        tCouncilVotes += member_item.account.totalVotesCount;
+                        tDepositedCouncilVotesCasted += Number(member_item.account.governingTokenDepositAmount);
                     }
+                } else{
+                    tStakedVotes += Number("0x"+member_item.account.governingTokenDepositAmount);//record.account.totalVotesCount;
+                    tVotesCasted += member_item.account.totalVotesCount;//record.account.governingTokenDepositAmount.toNumber();
+                    tParticipants++;
                 }
-
             }
 
             exportFile(csvFile, governanceAddress+'_metrics.csv')
