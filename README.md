@@ -69,7 +69,7 @@ Wallet Adapter:
 - Solana Wallet Adapter (https://github.com/solana-labs/wallet-adapter)
 
 Storage Pools:
-- Genesysgo Shadow Drive (https://github.com/GenesysGo/shadow-drive)
+- GenesysGo Shadow Drive (https://github.com/GenesysGo/shadow-drive)
 
 Identity:
 - Cardinal (https://github.com/cardinal-labs)
