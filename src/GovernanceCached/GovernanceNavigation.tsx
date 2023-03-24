@@ -28,6 +28,7 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import GroupIcon from '@mui/icons-material/Group';
+import MilitaryTechIcon from '@mui/icons-material/MilitaryTech';
 
 export default function GovernanceNavigation(props: any){
     const governanceAddress = props.governanceAddress;
@@ -77,6 +78,13 @@ export default function GovernanceNavigation(props: any){
                         <Button
                             sx={{color:'#999', ml:1}}
                         ><AccountBalanceIcon /></Button>
+                    </Tooltip>
+                    <Tooltip title={
+                        <><strong>Reputation</strong><br/> (coming soon)</>
+                        }>
+                        <Button
+                            sx={{color:'#999', ml:1}}
+                        ><MilitaryTechIcon /></Button>
                     </Tooltip>
 
                 </ButtonGroup>
