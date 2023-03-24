@@ -905,7 +905,7 @@ export function GovernanceMetricsView(props: any) {
                         setGoverningTokenDecimals(gTD)
                     } else{
                         setGovernanceType(2);
-                        gTD = 0;
+                        gTD = 6;
                         setGoverningTokenDecimals(gTD);
                     }
                 }
