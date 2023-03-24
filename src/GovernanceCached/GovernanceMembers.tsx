@@ -1035,7 +1035,20 @@ export function GovernanceMembersView(props: any) {
                     );
                 } else {
                     */
-                return (<></>);
+                return (
+                    <Box
+                        sx={{
+                            mt:6,
+                            background: 'rgba(0, 0, 0, 0.5)',
+                            borderRadius: '17px',
+                            p:4,
+                            alignItems: 'center', textAlign: 'center'
+                        }} 
+                    > 
+                        <Typography variant="caption">Governance Members {governanceAddress}</Typography>
+                        
+                    </Box>
+                );
                 
             }
             

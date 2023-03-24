@@ -1163,7 +1163,7 @@ export function GovernanceMetricsView(props: any) {
                         alignItems: 'center', textAlign: 'center'
                     }} 
                 > 
-                    <Typography variant="caption">Crunching All Governance Metrics {governanceAddress}</Typography>
+                    <Typography variant="caption">Loading Governance Metrics {governanceAddress}</Typography>
                     
                     <LinearProgress color="inherit" />
                     
@@ -1790,21 +1790,7 @@ export function GovernanceMetricsView(props: any) {
                                 
                 );
             }else{
-                return (
-                
-                    <Box
-                        sx={{
-                            mt:6,
-                            background: 'rgba(0, 0, 0, 0.5)',
-                            borderRadius: '17px',
-                            p:4,
-                            alignItems: 'center', textAlign: 'center'
-                        }} 
-                    > 
-                        <Typography variant="caption">Governance Metrics {governanceAddress}</Typography>
-                        
-                    </Box>
-                );
+                return (<></>);
             }
             
         }
