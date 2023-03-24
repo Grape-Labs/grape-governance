@@ -25,6 +25,7 @@ import {
     Menu,
     MenuItem,
     ListItemIcon,
+    Grid,
     ListItemText,
     Typography,
     Paper,
@@ -60,6 +61,15 @@ export interface DialogTitleProps {
     children?: React.ReactNode;
     onClose: () => void;
   }
+
+  const BootstrapDialog = styled(Dialog)(({ theme }) => ({
+    '& .MuDialogContent-root': {
+      padding: theme.spacing(2),
+    },
+    '& .MuDialogActions-root': {
+      padding: theme.spacing(1),
+    },
+  }));
   
   const BootstrapDialogTitle = (props: DialogTitleProps) => {
     const { children, onClose, ...other } = props;
@@ -364,12 +374,18 @@ export default function ExplorerView(props:any){
                                 QR Code
                         </MenuItem>
                         
-                        <Dialog
-                            open={openDialog}
+                        <BootstrapDialog 
+                            open={openDialog} 
                             onClose={handleCloseDialog}
-                            aria-labelledby="alert-dialog-title"
-                            aria-describedby="alert-dialog-description"
-                        >
+                            PaperProps={{
+                                style: {
+                                    background: '#13151C',
+                                    border: '1px solid rgba(255,255,255,0.05)',
+                                    borderTop: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '20px'
+                                }
+                                }}
+                            >
                             <BootstrapDialogTitle id="customized-dialog-title" onClose={handleCloseDialog}>
                             {"Send to this address"}
                             </BootstrapDialogTitle>
@@ -383,13 +399,13 @@ export default function ExplorerView(props:any){
                                         viewBox={`0 0 256 256`}
                                         />
                                     </div>
-
-                                    <Typography variant='caption'>SOL Address</Typography>
-                                    <Typography variant='body2'>{address}</Typography>
+                                    <Grid sx={{textAlign:'center'}}>
+                                        <Typography variant='caption'>{address}</Typography>
+                                    </Grid>
                                     
                                 </DialogContentText>
                             </DialogContent>
-                        </Dialog>
+                        </BootstrapDialog>
                         </>
                     }
                     <Divider />
