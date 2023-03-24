@@ -623,7 +623,7 @@ function RenderVoterRecordTable(props:any) {
                 setMetricsTotalStaked(Number((tStakedVotes/Math.pow(10, +governingTokenDecimals)).toFixed(0)))
 
             setMetricsHighestParticipationProposalName(highestParticipationProposalName);
-            console.log("highest participation: "+highestParticipation)
+            //console.log("highest participation: "+highestParticipation)
             setMetricsHighestParticipation(highestParticipation);
 
             setGovernnaceChartData(propsByMonth);
