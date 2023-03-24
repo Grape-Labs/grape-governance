@@ -87,7 +87,7 @@
         "@types/react-copy-to-clipboard": "^5.0.3",
         "@types/react-helmet": "^6.1.6",
         "@types/react-router-dom": "^5.1.6",
-        "@vercel/analytics": "^0.1.8",
+        "@vercel/analytics": "^0.1.11",
         "@vercel/edge-config": "^0.1.1",
         "add": "^2.0.6",
         "axios": "^1.2.1",

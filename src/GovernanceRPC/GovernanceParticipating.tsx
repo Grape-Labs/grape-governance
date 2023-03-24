@@ -21,7 +21,7 @@ import {
     LinearProgress
 } from '@mui/material';
 
-import { GRAPE_RPC_ENDPOINT, 
+import { RPC_CONNECTION, 
     TX_RPC_ENDPOINT
 } from '../utils/grapeTools/constants';
 
@@ -67,8 +67,8 @@ export function GovernanceView(props: any){
     const setLoadingPosition = props.setLoadingPosition;
     const pubkey = props.pubkey;
     const tokenMap = props.tokenMap;
-    const ggoconnection = new Connection(GRAPE_RPC_ENDPOINT);
-    const txonnection = new Connection(TX_RPC_ENDPOINT);
+    const ggoconnection = RPC_CONNECTION;
+    const txonnection = RPC_CONNECTION;
     const [realms, setRealms] = React.useState(null);
     const [governanceRecord, setGovernanceRecord] = React.useState(null);
     const [governanceRecordRows, setGovernanceRecordRows] = React.useState(null);

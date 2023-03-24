@@ -8,6 +8,7 @@ import { GovernanceMetricsView } from "./GovernanceCached/GovernanceMetrics";
 import { GovernanceMembersView } from "./GovernanceCached/GovernanceMembers";
 import { GovernanceDirectoryView } from "./GovernanceCached/GovernanceDirectory";
 import CssBaseline from '@mui/material/CssBaseline';
+import { inject } from '@vercel/analytics';
 
 import {
   Box,
@@ -140,6 +141,10 @@ function DashboardContent() {
   ], [network]);
   
   const renderLoader = () => <p>Loading</p>;
+
+  React.useEffect(() => {
+    inject();
+}, []);
 
   return (
     <>

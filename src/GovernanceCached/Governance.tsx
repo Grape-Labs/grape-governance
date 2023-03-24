@@ -80,7 +80,12 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 
 import PropTypes from 'prop-types';
-import { PROXY, GRAPE_RPC_ENDPOINT, TX_RPC_ENDPOINT, GGAPI_STORAGE_POOL, GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
+import { 
+    PROXY, 
+    RPC_CONNECTION,
+    TX_RPC_ENDPOINT, 
+    GGAPI_STORAGE_POOL, 
+    GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
@@ -225,7 +230,7 @@ function TablePaginationActions(props) {
 function GetParticipants(props: any){
     const cachedGovernance = props.cachedGovernance;
     const governanceLookup = props.governanceLookup;
-    const connection = new Connection(GRAPE_RPC_ENDPOINT);
+    const connection = RPC_CONNECTION;
     const tokenMap = props.tokenMap;
     const memberMap = props.memberMap;
     const governanceAddress = props.governanceAddress;
@@ -1364,7 +1369,6 @@ function RenderGovernanceTable(props:any) {
     const proposals = props.proposals;
     const nftBasedGovernance = props.nftBasedGovernance;
     const token = props.token;
-    const connection = new Connection(GRAPE_RPC_ENDPOINT);
     const { publicKey } = useWallet();
     const [propTokenDecimals, setPropTokenDecimals] = React.useState(token?.decimals || 6);
     const [page, setPage] = React.useState(0);
@@ -1736,7 +1740,7 @@ export function GovernanceCachedView(props: any) {
     const [realmName, setRealmName] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(null);
     const [tokenArray, setTokenArray] = React.useState(null);
-    const connection = new Connection(GRAPE_RPC_ENDPOINT);
+    const connection = RPC_CONNECTION;
     const { publicKey, wallet } = useWallet();
     const [proposals, setProposals] = React.useState(null);
     const [participating, setParticipating] = React.useState(false)
@@ -1817,14 +1821,13 @@ export function GovernanceCachedView(props: any) {
                 //console.log("cached_governance: "+JSON.stringify(cached_governance));
                 
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
-                //const grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
                 let grealm = null;
                 if (cachedRealm){
                     console.log("Realm from cache");
                     //console.log("cacheRealm: "+JSON.stringify(cachedRealm))
                     grealm = cachedRealm;    
                 } else{
-                    grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
+                    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
                 }
                 setRealm(grealm);
                 setRealmName(grealm.account.name);
@@ -1837,7 +1840,7 @@ export function GovernanceCachedView(props: any) {
                     console.log("Using Cached Member Map")
                     rawTokenOwnerRecords = cachedMemberMap;
                 } else{
-                    rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
+                    rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, grealm.owner, realmPk)
                 }
 
                 setMemberMap(rawTokenOwnerRecords);
@@ -1968,17 +1971,8 @@ export function GovernanceCachedView(props: any) {
                             console.log("ERR: "+errs)
                         }
                     }
-
-                    //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
-                    //setMemberMap(rawTokenOwnerRecords);
-
-                    //const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
-
-                    //const gpbgprops = await getProposalsByGovernance(new Connection(THEINDEX_RPC_ENDPOINT), programId, new PublicKey(collectionAuthority.governancePublicKey || collectionAuthority.governance));
-                    //console.log("gpbgprops: "+JSON.stringify(gpbgprops));
                     
-                    
-                    const gprops = await getAllProposals(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk);
+                    const gprops = await getAllProposals(RPC_CONNECTION, grealm.owner, realmPk);
                     const allprops: any[] = [];
                     let passed = 0;
                     let defeated = 0;

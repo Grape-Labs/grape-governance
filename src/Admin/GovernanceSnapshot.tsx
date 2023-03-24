@@ -35,7 +35,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletError } from '@solana/wallet-adapter-base';
 
 import { 
-    GRAPE_RPC_ENDPOINT,
+    RPC_CONNECTION,
     PROXY,
     HELIUS_API,
     GGAPI_STORAGE_POOL,
@@ -74,7 +74,8 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
 
 export function GovernanceSnapshotView (this: any, props: any) {
 	const wallet = useWallet();
-    const connection = new Connection(GRAPE_RPC_ENDPOINT);
+    const connection = RPC_CONNECTION;
+    
     const [progress, setProgress] = React.useState(0);
     const [status, setStatus] = React.useState(null);
     const [primaryStatus, setPrimaryStatus] = React.useState(null);
@@ -166,9 +167,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
         setLoading(true);
         setProposals(null);
         setStatus("Fetching Governance - Source: Q");
-        const connection = new Connection(GRAPE_RPC_ENDPOINT);
+        const connection = RPC_CONNECTION;//new Connection(GRAPE_RPC_ENDPOINT);
         //console.log("Fetching governance "+address);
-        const grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(address))
+        const grealm = await getRealm(RPC_CONNECTION, new PublicKey(address))
         setRealm(grealm);
 
         setPrimaryStatus("Governance Fetched");
@@ -235,7 +236,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             setPrimaryStatus("Fetching Token Owner Records");
 
             // to do get member map
-            const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
+            const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, grealm.owner, realmPk)
             // check #tokens deposited
             setMemberMap(rawTokenOwnerRecords);
             // get unique members
@@ -243,7 +244,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
             setPrimaryStatus("Fetching All Proposals");
 
-            const gprops = await getAllProposals(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk);
+            const gprops = await getAllProposals(RPC_CONNECTION, grealm.owner, realmPk);
                     
             const allprops: any[] = [];
             let passed = 0;
@@ -780,7 +781,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
     const processGovernance = async(updateAuthority:string) => {
         // Second drive creation (otherwise wallet is not connected when done earlier)
-        const drive = await new ShdwDrive(new Connection(GRAPE_RPC_ENDPOINT), wallet).init();
+        const drive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
         setThisDrive(drive);
 
         if (governanceAddress){
@@ -995,7 +996,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         //exportJSON(fileGenerated, fileName);
         console.log("preparing to upload: "+fileName);
         if (!thisDrive){
-            const drive = await new ShdwDrive(new Connection(GRAPE_RPC_ENDPOINT), wallet).init();
+            const drive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
             //console.log("drive: "+JSON.stringify(drive));
             setThisDrive(drive);
             alert("Drive not initialized, initializing now...");
@@ -1065,7 +1066,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
 
     const initStorage  = async () => {
-        const drive = await new ShdwDrive(new Connection(GRAPE_RPC_ENDPOINT), wallet).init();
+        const drive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
         //console.log("drive: "+JSON.stringify(drive));
         setThisDrive(drive);
 

@@ -60,7 +60,7 @@ import IconButton from '@mui/material/IconButton';
 
 import PropTypes from 'prop-types';
 import { 
-    GRAPE_RPC_ENDPOINT, 
+    RPC_CONNECTION, 
     GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
 
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
@@ -160,7 +160,7 @@ function RenderGovernanceMembersTable(props:any) {
     const members = props.members;
     const circulatingSupply = props.circulatingSupply;
     const totalDepositedVotes = props.totalDepositedVotes;
-    const connection = new Connection(GRAPE_RPC_ENDPOINT);//useConnection();
+    const connection = RPC_CONNECTION;
     const { publicKey } = useWallet();
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
@@ -352,7 +352,7 @@ export function GovernanceMembersView(props: any) {
     
     const [loading, setLoading] = React.useState(false);
     const [members, setMembers] = React.useState(null);
-    const connection = new Connection(GRAPE_RPC_ENDPOINT)//useConnection();
+    const connection = RPC_CONNECTION;
     const { publicKey, wallet } = useWallet();
     const [realm, setRealm] = React.useState(null);
     const [realmName, setRealmName] = React.useState(null);
@@ -422,7 +422,7 @@ export function GovernanceMembersView(props: any) {
                     console.log("Realm from cache")
                     grealm = cachedRealm;
                 } else{
-                    grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
+                    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
                 }
                 const realmPk = new PublicKey(grealm.pubkey);
                 setRealm(grealm);
@@ -456,7 +456,7 @@ export function GovernanceMembersView(props: any) {
                     trecords = cachedMemberMap;
                 } else{
 
-                    trecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(grealm.owner), realmPk)
+                    trecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
                 }
 
                 //console.log("trecords: "+JSON.stringify(trecords));

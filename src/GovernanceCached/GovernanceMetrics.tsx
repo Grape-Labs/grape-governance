@@ -102,7 +102,10 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 
 import PropTypes from 'prop-types';
-import { PROXY, GRAPE_RPC_ENDPOINT, TX_RPC_ENDPOINT, GGAPI_STORAGE_POOL, GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
+import { 
+    PROXY, 
+    RPC_CONNECTION,
+    GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
@@ -330,41 +333,6 @@ function RenderVoterRecordTable(props:any) {
                         }
                     }
 
-                    // item.account.governingTokenOwner.toBase58()
-                    if (realm.account.config?.councilMint && (new PublicKey(realm.account.config?.councilMint).toBase58() === item.account.governingTokenMint.toBase58())){
-                        // council stats
-                    } else{
-                        totalCommunityProposals++;
-                        if (item.account.state === 3 || item.account.state === 5)
-                            totalCommunityPassed++;
-                        else if (item.account.state === 7)
-                            totalCommunityDefeated++;
-                        // set the date array
-
-                        //let monthts = moment.unix(Number(item.account?.votingAt)).format("YYYY-MM");
-                        let monthts = moment.unix(Number(item.account?.draftAt)).format("YYYY-MM");
-                        let pbi_found = false;
-                        for (var pbi of propsByMonth){
-                            if (pbi.date === monthts){
-                                pbi_found = true;
-                                pbi.count++;
-                                if (item.account.state === 3 || item.account.state === 5) 
-                                    pbi.cpassing++
-                                if (item.account.state === 7)
-                                    pbi.cdefeated++
-                            }
-                        }
-
-                        if (!pbi_found){
-                            propsByMonth.push({
-                                'date':monthts,
-                                'cpassing':(item.account.state === 3 || item.account.state === 5) ? 1 : 0,
-                                'cdefeated':(item.account.state === 7) ? 1 :0,
-                                'count':1
-                            });
-                        }
-                    }
-
                     if (item?.votingResults){
                         participationCount = 0;
                         for (var inner_item of item.votingResults){
@@ -538,6 +506,43 @@ function RenderVoterRecordTable(props:any) {
                                 highestParticipation = participationCount;
                                 highestParticipationProposalName = item.account?.name + ' on ' + moment.unix(Number(item.account?.draftAt)).format("YYYY-MM-DD") + ' '+GOVERNANNCE_STATE[item.account.state];
                             }
+                        }
+                    }
+
+                    // item.account.governingTokenOwner.toBase58()
+                    if (realm.account.config?.councilMint && (new PublicKey(realm.account.config?.councilMint).toBase58() === item.account.governingTokenMint.toBase58())){
+                        // council stats
+                    } else{
+                        totalCommunityProposals++;
+                        if (item.account.state === 3 || item.account.state === 5)
+                            totalCommunityPassed++;
+                        else if (item.account.state === 7)
+                            totalCommunityDefeated++;
+                        // set the date array
+
+                        //let monthts = moment.unix(Number(item.account?.votingAt)).format("YYYY-MM");
+                        let monthts = moment.unix(Number(item.account?.draftAt)).format("YYYY-MM");
+                        let pbi_found = false;
+                        for (var pbi of propsByMonth){
+                            if (pbi.date === monthts){
+                                pbi_found = true;
+                                pbi.count++;
+                                if (item.account.state === 3 || item.account.state === 5) 
+                                    pbi.cpassing++
+                                if (item.account.state === 7)
+                                    pbi.cdefeated++
+                            }
+                        }
+
+                        if (!pbi_found){
+                            propsByMonth.push({
+                                'date':monthts,
+                                'cpassing':(item.account.state === 3 || item.account.state === 5) ? 1 : 0,
+                                'cdefeated':(item.account.state === 7) ? 1 :0,
+
+                                //'cparticipating':,
+                                'count':1
+                            });
                         }
                     }
                     
@@ -740,7 +745,7 @@ export function GovernanceMetricsView(props: any) {
     const [realm, setRealm] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(null);
     const [tokenArray, setTokenArray] = React.useState(null);
-    const connection = new Connection(GRAPE_RPC_ENDPOINT);
+    const connection = RPC_CONNECTION;
     const { publicKey, wallet } = useWallet();
     const [proposals, setProposals] = React.useState(null);
     const [participating, setParticipating] = React.useState(false)
@@ -868,12 +873,11 @@ export function GovernanceMetricsView(props: any) {
                     console.log("Realm from cache")
                     grealm = cachedRealm;
                 } else{
-                    grealm = await getRealm(new Connection(GRAPE_RPC_ENDPOINT), new PublicKey(governanceAddress))
+                    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
                 }
                 setRealm(grealm);
                 //setRealmName(grealm?.account?.name);
                 const realmPk = grealm.pubkey;
-                //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
                 
                 let rawTokenOwnerRecords = null;
                 if (cached_member_map){
@@ -881,7 +885,7 @@ export function GovernanceMetricsView(props: any) {
                     rawTokenOwnerRecords = cached_member_map;
                 } else{
                     console.log("RPC Member Map");
-                    rawTokenOwnerRecords = await getAllTokenOwnerRecords(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk)
+                    rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, grealm.owner, realmPk)
                 }
 
                 setMemberMap(rawTokenOwnerRecords);
@@ -982,7 +986,7 @@ export function GovernanceMetricsView(props: any) {
                         }
                     }
 
-                    const gprops = await getAllProposals(new Connection(GRAPE_RPC_ENDPOINT), grealm.owner, realmPk);
+                    const gprops = await getAllProposals(RPC_CONNECTION, grealm.owner, realmPk);
                     const allprops: any[] = [];
                     let passed = 0;
                     let defeated = 0;
