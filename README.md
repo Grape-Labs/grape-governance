@@ -42,11 +42,11 @@ Next Steps...
 
 Time taken on Realms UI for SPL Governance https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE is roughly 25-35s
 
-Time taken for load via Cache (Governance: Mango https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
+Time taken for load via Cache ~35ms (Governance: Mango https://spl-governance-caching.vercel.app/cachedgovernance/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
 <img width="543" alt="Screenshot 2023-03-22 at 11 56 46 PM" src="https://user-images.githubusercontent.com/13381905/227047694-0d793e26-c49f-4ae3-87fa-c7767076555a.png">
 
 
-Time taken to load via Indexed RPC calls (Governance: Mango https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
+Time taken to load via Indexed RPC calls ~10s (Governance: Mango https://spl-governance-caching.vercel.app/rpcgovernance/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
 <img width="861" alt="Screenshot 2023-03-15 at 2 46 11 PM" src="https://user-images.githubusercontent.com/13381905/225312925-7557e495-859e-46ac-9b85-86dd481893f2.png">
 
 
