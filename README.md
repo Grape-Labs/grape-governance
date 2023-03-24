@@ -5,8 +5,8 @@ An increbibly fast DAO Tooling infrastrastructure to improve the experience of S
 "Building the Web3 infrustructure at Web2 Native Speeds!"
 
 What we built:
-- UI Interfaces for simulating RPC/Cached experience for realms (created)
-- Administrator UI for for fetching historical and up to date SPL Governance proposals along with participation (created)
+- New UI Interfaces for simulating both RPC and Cached experiences of SPL Governance/Realms
+- Administrator UI for for fetching historical and up to date SPL Governance proposals along with participation
 - Proof of speed improvements in the respective UIs (cached storage can be fetched in less than 1 second)
 
 
