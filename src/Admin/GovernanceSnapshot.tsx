@@ -167,7 +167,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         setLoading(true);
         setProposals(null);
         setStatus("Fetching Governance - Source: Q");
-        const connection = RPC_CONNECTION;//new Connection(GRAPE_RPC_ENDPOINT);
+        const connection = RPC_CONNECTION;
         //console.log("Fetching governance "+address);
         const grealm = await getRealm(RPC_CONNECTION, new PublicKey(address))
         setRealm(grealm);
@@ -259,7 +259,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     
                     /*
                     if (count < 1){
-                        const prop_details = await getProposal(new Connection(GRAPE_RPC_ENDPOINT), prop.pubkey);
+                        const prop_details = await getProposal(RPC_CONNECTION, prop.pubkey);
                         console.log("prop_details: "+JSON.stringify(prop_details))
                     }*/
 

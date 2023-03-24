@@ -26,7 +26,8 @@ import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { Helmet } from 'react-helmet';
 
 import { 
-  CREATOR_LOGO
+  CREATOR_LOGO,
+  RPC_ENDPOINT
 } from './utils/grapeTools/constants';
 
 import { useTranslation } from 'react-i18next';
@@ -116,9 +117,8 @@ function DashboardContent() {
   // You can also provide a custom RPC endpoint
   const network = WalletAdapterNetwork.Devnet; //.Devnet; //.Mainnet;
   // You can also provide a custom RPC endpoint
-  //const endpoint =  useMemo(() => clusterApiUrl(network), [network]); // GRAPE_RPC_ENDPOINT;
-  //const endpoint =  GRAPE_RPC_ENDPOINT;
-  const endpoint =  'https://api.devnet.solana.com';
+  //const endpoint =  useMemo(() => clusterApiUrl(network), [network]);
+  const endpoint =  RPC_ENDPOINT || 'https://api.devnet.solana.com';
   const wallets = useMemo(() => [
     new SolflareWalletAdapter(),
     new PhantomWalletAdapter(),

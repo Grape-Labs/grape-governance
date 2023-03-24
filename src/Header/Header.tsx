@@ -63,7 +63,6 @@ import SearchIcon from '@mui/icons-material/Search';
 
 import AboutDialog from '../About/AboutDialog';
 
-import { GRAPE_RPC_ENDPOINT } from '../utils/grapeTools/constants';
 import { ValidateAddress } from '../utils/grapeTools/WalletAddress'; // global key handling
 
 import { useTranslation } from 'react-i18next';
