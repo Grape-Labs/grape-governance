@@ -1389,7 +1389,7 @@ function RenderGovernanceTable(props:any) {
     function GetProposalStatus(props: any){
         const thisitem = props.item;
         const [thisGovernance, setThisGovernance] = React.useState(props.cachedGovernnace);
-        
+
         React.useEffect(() => { 
             if (thisitem.account?.state === 2){ // if voting state
                 if (!thisGovernance){
@@ -1859,9 +1859,9 @@ export function GovernanceCachedView(props: any) {
                                 setGovernanceType(1);
                                 gTD = btkn.decimals;
                                 setGoverningTokenDecimals(gTD)
-                            } else{
+                            } else{ 
                                 setGovernanceType(2);
-                                gTD = 0;
+                                gTD = 6;
                                 setGoverningTokenDecimals(gTD);
                             }
                         }
@@ -1878,7 +1878,7 @@ export function GovernanceCachedView(props: any) {
                                 setGoverningTokenDecimals(gTD)
                             } else{
                                 setGovernanceType(2);
-                                gTD = 0;
+                                gTD = 6;
                                 setGoverningTokenDecimals(gTD);
                             }
                         }
