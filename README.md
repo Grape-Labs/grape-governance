@@ -49,6 +49,16 @@ Time taken for load via Cache ~35ms (Governance: Mango https://spl-governance-ca
 Time taken to load via Indexed RPC calls ~10s (Governance: Mango https://spl-governance-caching.vercel.app/rpcgovernance/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
 <img width="861" alt="Screenshot 2023-03-15 at 2 46 11 PM" src="https://user-images.githubusercontent.com/13381905/225312925-7557e495-859e-46ac-9b85-86dd481893f2.png">
 
+Featuring a full active DAO (cached) Directory:
+<img width="1776" alt="Screenshot 2023-03-24 at 11 05 03 PM" src="https://user-images.githubusercontent.com/13381905/227641140-b5763868-0a00-49a4-b018-53d544a30067.png">
+
+Cached Metrics & exportable data:
+<img width="1773" alt="Screenshot 2023-03-24 at 11 06 18 PM" src="https://user-images.githubusercontent.com/13381905/227641408-e541cd2b-f98e-4c5a-8b5f-af2fbe9d63d6.png">
+
+Governance (cached) Member Details (with Solana identity integration composed with Cardinal & Bonfida):
+<img width="1768" alt="Screenshot 2023-03-24 at 11 06 58 PM" src="https://user-images.githubusercontent.com/13381905/227641591-da0fbbaf-a8d9-4cc6-829f-b06ccf04aa4b.png">
+
+
 
 References:
 
