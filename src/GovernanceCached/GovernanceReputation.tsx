@@ -1225,14 +1225,12 @@ export function GovernanceReputationView(props: any) {
                         }
 
                         <Box sx={{ alignItems: 'center', textAlign: 'center',p:1,mt:2}}>
-
                             <Typography variant="h4">
                                 Build &amp; reward your community for historical SPL Governance Participation
                             </Typography>
                             <Typography variant="h6">
                                 coming soon...
                             </Typography>
-
                         </Box>
                         
                         
