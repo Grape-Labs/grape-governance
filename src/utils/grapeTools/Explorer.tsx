@@ -283,7 +283,7 @@ export default function ExplorerView(props:any){
                 onClick={handleClick}
                 variant={buttonStyle}
                 color='inherit'
-                sx={{m:0,borderRadius:'17px',color:`${buttonColor}` }}
+                sx={{m:0,borderRadius:'17px',color:`${buttonColor}`, textTransform:'none' }}
                 startIcon={
                     <>
                         {profilePictureUrl ?
