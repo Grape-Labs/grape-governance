@@ -30,7 +30,7 @@ Next Steps...
 -- Add more decentralized storage pools
 
 **Getting Started**
-- The Administration panel requires the connected wallet to be whitelisted, this provides the fetching tools for fetching and uploading the created files to a decentralized storage pool
+- The Administration panel requires the connected wallet to be whitelisted (https://spl-governance-caching.vercel.app/admin), this provides a GUI for fetching single Governances, Generating cached files and Uploading the created files to a decentralized storage pool
 - <img width="436" alt="Screenshot 2023-03-22 at 11 55 19 PM" src="https://user-images.githubusercontent.com/13381905/227047472-fb31afd1-079b-4b3d-836b-5b0f27d74183.png">
 - <img width="428" alt="Screenshot 2023-03-22 at 11 55 57 PM" src="https://user-images.githubusercontent.com/13381905/227047565-037eb923-e341-4548-857e-80754137f65b.png">
 
