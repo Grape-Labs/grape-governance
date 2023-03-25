@@ -243,7 +243,7 @@ function RenderGovernanceMembersTable(props:any) {
                                                 {governingTokenMint === item.governingTokenMint?.toBase58() ?
                                                     `${getFormattedNumberToLocale(+((Number(item.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0))}`
                                                 :
-                                                    `${getFormattedNumberToLocale(+((Number(item.governingTokenDepositAmount))/Math.pow(10, tokenMap.get(item.governingTokenMint?.toBase58())?.decimals || 0)).toFixed(0))}`
+                                                    `${getFormattedNumberToLocale(+((Number(item.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0))}`
                                                 }
                                                
                                             </Typography>
@@ -433,14 +433,22 @@ export function GovernanceMembersView(props: any) {
                 setGoverningTokenMint(new PublicKey(grealm.account.communityMint).toBase58());
                 // with realm check if this is a backed token
                 let thisTokenDecimals = 0;
-                if (tokenMap.get(new PublicKey(grealm.account.communityMint).toBase58())){
-                    thisTokenDecimals = tokenMap.get(new PublicKey(grealm.account.communityMint).toBase58()).decimals; 
+
+
+                if (tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58())){
+                    thisTokenDecimals = tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58()).decimals;
+                    setGoverningTokenDecimals(thisTokenDecimals);
                 } else{
-                   const btkn = await getBackedTokenMetadata(new PublicKey(grealm.account.communityMint).toBase58(), wallet);
+                    const btkn = await getBackedTokenMetadata(new PublicKey(grealm.account?.communityMint).toBase58(), wallet);
                     if (btkn){
                         thisTokenDecimals = btkn.decimals;
+                        setGoverningTokenDecimals(thisTokenDecimals)
+                    } else{ 
+                        thisTokenDecimals = 6;
+                        setGoverningTokenDecimals(thisTokenDecimals);
                     }
                 }
+                
                 setGoverningTokenDecimals(thisTokenDecimals);
 
                 const tknSupply = await connection.getTokenSupply(new PublicKey(grealm.account.communityMint));
