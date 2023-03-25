@@ -30,7 +30,7 @@ Next Steps...
 -- Add more decentralized storage pools
 
 **Getting Started**
-- The Administration panel requires the connected wallet to be whitelisted, this provides the fetching tools for fetching and uploading the created files to a decentralized storage pool
+- The Administration panel requires the connected wallet to be whitelisted (https://spl-governance-caching.vercel.app/admin), this provides a GUI for fetching single Governances, Generating cached files and Uploading the created files to a decentralized storage pool
 - <img width="436" alt="Screenshot 2023-03-22 at 11 55 19 PM" src="https://user-images.githubusercontent.com/13381905/227047472-fb31afd1-079b-4b3d-836b-5b0f27d74183.png">
 - <img width="428" alt="Screenshot 2023-03-22 at 11 55 57 PM" src="https://user-images.githubusercontent.com/13381905/227047565-037eb923-e341-4548-857e-80754137f65b.png">
 
@@ -40,13 +40,13 @@ Next Steps...
 <img width="1682" alt="Screenshot 2023-03-22 at 11 53 50 PM" src="https://user-images.githubusercontent.com/13381905/227047342-0fd4d7a8-7638-44c2-8d63-1d0fab2a7e4b.png">
 
 
-Time taken on Realms UI for SPL Governance https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE is roughly 25-35s
+Time taken on Realms UI for SPL Governance https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE is roughly **25-35s**
 
-Time taken for load via Cache ~35ms (Governance: Mango https://spl-governance-caching.vercel.app/cachedgovernance/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
+Time taken for load via Cached Storage **<1s (38ms!)** (Governance: Mango https://spl-governance-caching.vercel.app/cachedgovernance/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
 <img width="543" alt="Screenshot 2023-03-22 at 11 56 46 PM" src="https://user-images.githubusercontent.com/13381905/227047694-0d793e26-c49f-4ae3-87fa-c7767076555a.png">
 
 
-Time taken to load via Indexed RPC calls ~10s (Governance: Mango https://spl-governance-caching.vercel.app/rpcgovernance/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
+Time taken to load via Indexed RPC calls **~10s** (Governance: Mango https://spl-governance-caching.vercel.app/rpcgovernance/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
 <img width="861" alt="Screenshot 2023-03-15 at 2 46 11 PM" src="https://user-images.githubusercontent.com/13381905/225312925-7557e495-859e-46ac-9b85-86dd481893f2.png">
 
 Featuring a full active DAO (cached) Directory:
