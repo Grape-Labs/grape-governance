@@ -460,14 +460,17 @@ function GetParticipants(props: any){
                 setTotalSupply(tSupply);
                 
                 const totalVotes =
-                    Number(governingMintDetails.value.data.parsed.info.supply/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals))  *
-                    //Number(communityWeight/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals))  *
-                    (voteThresholdPercentage * 0.01) *
+                    tSupply  *
+                    (voteThresholdPercentage / 100) *
                     (Number(supplyFractionPercentage) / 100);
                 
-                //console.log("totalVotes: "+totalVotes)
+                console.log("tSupply "+tSupply+"*"+voteThresholdPercentage+"*0.01*"+ (Number(supplyFractionPercentage) / 100))
+
+                console.log("totalQuorum: "+totalVotes)
+                //console.log("decimals: "+governingMintDetails.value.data.parsed.info.decimals);
+                //console.log("supply: "+governingMintDetails.value.data.parsed.info.supply);
                 //console.log("voteThresholdPercentage: "+(voteThresholdPercentage * 0.01))
-                //console.log("supplyFractionPercentage: "+(Number(supplyFractionPercentage) / 100))
+                console.log("supplyFractionPercentage: "+(Number(supplyFractionPercentage) / 100))
                 
                 if (totalVotes && totalVotes > 0)
                     setTotalQuorum(totalVotes);
@@ -1048,11 +1051,11 @@ function GetParticipants(props: any){
                                 
                                 { 
                                     <Grid item xs={12}>
-                                        {thisitem.account?.state === 3 ?
+                                        {(thisitem.account?.state === 3 || thisitem.account?.state === 5) ?
                                             <>
                                                  <Box sx={{ width: '100%' }}>
                                                     <BorderLinearProgress variant="determinate" value={100} />
-                                                    <Typography variant='caption'>Passed</Typography>
+                                                    <Typography variant='caption'>{GOVERNANNCE_STATE[thisitem.account.state]}</Typography>
                                                 </Box>
                                             </>
                                         :
@@ -1575,16 +1578,16 @@ function RenderGovernanceTable(props:any) {
                                                             {/*console.log("governingTokenMint: "+item.account.governingTokenMint.toBase58())*/}
                                                             {/*console.log("vote: "+JSON.stringify(item.account))*/}
                                                             
-                                                            <Tooltip title={realm.account.config?.councilMint === item.account?.governingTokenMint?.toBase58() ?
-                                                                    <>{Number(item.account?.options[0].voteWeight)}</>
+                                                            <Tooltip title={new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(item.account?.governingTokenMint).toBase58() ?
+                                                                <>{Number(item.account?.options[0].voteWeight)}</>
                                                                 :
+                                                                
                                                                 <>
-                                                                        <>
-                                                                        {(Number(item.account?.options[0].voteWeight)/Math.pow(10, governingTokenDecimals )).toFixed(0)}</>
-                                                                    
 
-                                                                </>
-                                                                }
+                                                                            {(Number(item.account?.options[0].voteWeight)/Math.pow(10, governingTokenDecimals )).toFixed(0)}
+                                                                            </>
+
+                                                                    }
                                                             >
                                                                 <Button sx={{color:'white',borderRadius:'17px',textTransform:'none'}}>
                                                                     {Number(item.account?.options[0].voteWeight) > 0 ?
@@ -1846,44 +1849,54 @@ export function GovernanceCachedView(props: any) {
 
                 setMemberMap(rawTokenOwnerRecords);
                 
-                let gTD = null;
+
+                let gTD = 0;
+                
+                let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account?.communityMint))
+                gTD = tokenDetails.value.data.parsed.info.decimals;
+                
+                console.log("tokenDetails: "+JSON.stringify(tokenDetails))
+                
+                setGoverningTokenDecimals(gTD);
+
                 if (grealm.account?.communityMint){
                     try{
                         if (tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58())){
                             setGovernanceType(0);
-                            gTD = tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58()).decimals;
-                            setGoverningTokenDecimals(gTD);
+                            //gTD = tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58()).decimals;
+                            //setGoverningTokenDecimals(gTD);
                         } else{
                             const btkn = await getBackedTokenMetadata(new PublicKey(grealm.account?.communityMint).toBase58(), wallet);
-                            if (btkn){
+                            if (btkn){ // Strata backed token
                                 setGovernanceType(1);
-                                gTD = btkn.decimals;
-                                setGoverningTokenDecimals(gTD)
-                            } else{ 
+                                //gTD = btkn.decimals;
+                                //setGoverningTokenDecimals(gTD)
+                            } else{ // NFT
                                 setGovernanceType(2);
-                                gTD = 6;
-                                setGoverningTokenDecimals(gTD);
+                                //gTD = 0;
+                                //setGoverningTokenDecimals(gTD);
                             }
                         }
                     } catch(emt){
                         if (tokenMap.get(grealm.account?.communityMint)){
                             setGovernanceType(0);
-                            gTD = tokenMap.get(grealm.account?.communityMint).decimals;
-                            setGoverningTokenDecimals(gTD);
+                            //gTD = tokenMap.get(grealm.account?.communityMint).decimals;
+                            //setGoverningTokenDecimals(gTD);
                         } else{
                             const btkn = await getBackedTokenMetadata(grealm.account?.communityMint, wallet);
                             if (btkn){
                                 setGovernanceType(1);
-                                gTD = btkn.decimals;
-                                setGoverningTokenDecimals(gTD)
+                                //gTD = btkn.decimals;
+                                //setGoverningTokenDecimals(gTD)
                             } else{
                                 setGovernanceType(2);
-                                gTD = 6;
-                                setGoverningTokenDecimals(gTD);
+                                //gTD = 0;
+                                //setGoverningTokenDecimals(gTD);
                             }
                         }
                     }
                 }
+                
 
                 if (cached_governance){
                     

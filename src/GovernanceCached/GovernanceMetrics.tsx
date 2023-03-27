@@ -893,20 +893,46 @@ export function GovernanceMetricsView(props: any) {
                 setMemberMap(rawTokenOwnerRecords);
                 
                 let gTD = null;
-                if (tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58())){
-                    setGovernanceType(0);
-                    gTD = tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58()).decimals;
-                    setGoverningTokenDecimals(gTD);
-                } else{
-                    const btkn = await getBackedTokenMetadata(new PublicKey(grealm.account?.communityMint).toBase58(), wallet);
-                    if (btkn){
-                        setGovernanceType(1);
-                        gTD = btkn.decimals;
-                        setGoverningTokenDecimals(gTD)
-                    } else{
-                        setGovernanceType(2);
-                        gTD = 6;
-                        setGoverningTokenDecimals(gTD);
+                let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account?.communityMint))
+                //console.log("tokenDetails: "+JSON.stringify(tokenDetails))
+                gTD = tokenDetails.value.data.parsed.info.decimals;
+                setGoverningTokenDecimals(gTD);
+                
+                if (grealm.account?.communityMint){
+                    try{
+                        if (tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58())){
+                            setGovernanceType(0);
+                            //gTD = tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58()).decimals;
+                            //setGoverningTokenDecimals(gTD);
+                        } else{
+                            const btkn = await getBackedTokenMetadata(new PublicKey(grealm.account?.communityMint).toBase58(), wallet);
+                            if (btkn){ // Strata backed token
+                                setGovernanceType(1);
+                                //gTD = btkn.decimals;
+                                //setGoverningTokenDecimals(gTD)
+                            } else{ // NFT
+                                setGovernanceType(2);
+                                //gTD = 0;
+                                //setGoverningTokenDecimals(gTD);
+                            }
+                        }
+                    } catch(emt){
+                        if (tokenMap.get(grealm.account?.communityMint)){
+                            setGovernanceType(0);
+                            //gTD = tokenMap.get(grealm.account?.communityMint).decimals;
+                            //setGoverningTokenDecimals(gTD);
+                        } else{
+                            const btkn = await getBackedTokenMetadata(grealm.account?.communityMint, wallet);
+                            if (btkn){
+                                setGovernanceType(1);
+                                //gTD = btkn.decimals;
+                                //setGoverningTokenDecimals(gTD)
+                            } else{
+                                setGovernanceType(2);
+                                //gTD = 6;
+                                //setGoverningTokenDecimals(gTD);
+                            }
+                        }
                     }
                 }
 

@@ -434,7 +434,7 @@ export function GovernanceMembersView(props: any) {
                 // with realm check if this is a backed token
                 let thisTokenDecimals = 0;
 
-
+                /*
                 if (tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58())){
                     thisTokenDecimals = tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58()).decimals;
                     setGoverningTokenDecimals(thisTokenDecimals);
@@ -448,7 +448,16 @@ export function GovernanceMembersView(props: any) {
                         setGoverningTokenDecimals(thisTokenDecimals);
                     }
                 }
+                */
+
+                let gTD = null;
+                let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account?.communityMint))
+                //console.log("tokenDetails: "+JSON.stringify(tokenDetails))
+                gTD = tokenDetails.value.data.parsed.info.decimals;
+                thisTokenDecimals = gTD;
+                setGoverningTokenDecimals(thisTokenDecimals);
                 
+
                 setGoverningTokenDecimals(thisTokenDecimals);
 
                 const tknSupply = await connection.getTokenSupply(new PublicKey(grealm.account.communityMint));
