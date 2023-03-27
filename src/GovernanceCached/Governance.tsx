@@ -397,9 +397,10 @@ function GetParticipants(props: any){
             }
         }
 
-        if (!governance){
+        //if (!governance){
             governance = await getGovernance(connection, thisitem.account.governance);    
-        }
+        //}
+
         setThisGovernance(governance);
         
         //console.log("realm"+JSON.stringify(realm));
@@ -451,7 +452,7 @@ function GetParticipants(props: any){
                 //const mintDecimals = governingMintPromise.value.data.data.parsed.info.decimals; 
                 
                 const voteThresholdPercentage=
-                    new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint.toBase58()
+                    new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(thisitem.account.governingTokenMint).toBase58()
                     ? councilVoteThreshold.value
                     : communityVoteThreshold.value
                 
@@ -464,13 +465,13 @@ function GetParticipants(props: any){
                     (voteThresholdPercentage / 100) *
                     (Number(supplyFractionPercentage) / 100);
                 
-                console.log("tSupply "+tSupply+"*"+voteThresholdPercentage+"*0.01*"+ (Number(supplyFractionPercentage) / 100))
+                //console.log("tSupply "+tSupply+"*"+voteThresholdPercentage+"*0.01*"+ (Number(supplyFractionPercentage) / 100))
 
-                console.log("totalQuorum: "+totalVotes)
+                //console.log("totalQuorum: "+totalVotes)
                 //console.log("decimals: "+governingMintDetails.value.data.parsed.info.decimals);
                 //console.log("supply: "+governingMintDetails.value.data.parsed.info.supply);
                 //console.log("voteThresholdPercentage: "+(voteThresholdPercentage * 0.01))
-                console.log("supplyFractionPercentage: "+(Number(supplyFractionPercentage) / 100))
+                //console.log("supplyFractionPercentage: "+(Number(supplyFractionPercentage) / 100))
                 
                 if (totalVotes && totalVotes > 0)
                     setTotalQuorum(totalVotes);

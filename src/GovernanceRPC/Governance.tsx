@@ -424,6 +424,14 @@ function GetParticipants(props: any){
                 (voteThresholdPercentage * 0.01) *
                   (Number(supplyFractionPercentage) / 100);
             
+
+            //console.log("tSupply "+tSupply+"*"+voteThresholdPercentage+"*0.01*"+ (Number(supplyFractionPercentage) / 100))
+
+            //console.log("totalQuorum: "+totalVotes)
+            //console.log("decimals: "+governingMintDetails.value.data.parsed.info.decimals);
+            //console.log("supply: "+governingMintDetails.value.data.parsed.info.supply);
+            //console.log("voteThresholdPercentage: "+(voteThresholdPercentage * 0.01))
+            //console.log("supplyFractionPercentage: "+(Number(supplyFractionPercentage) / 100))
             //console.log("totalVotes: "+totalVotes)
             //console.log("voteThresholdPercentage: "+(voteThresholdPercentage * 0.01))
             //console.log("supplyFractionPercentage: "+(Number(supplyFractionPercentage) / 100))
