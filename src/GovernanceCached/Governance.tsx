@@ -1856,7 +1856,7 @@ export function GovernanceCachedView(props: any) {
                 let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account?.communityMint))
                 gTD = tokenDetails.value.data.parsed.info.decimals;
                 
-                console.log("tokenDetails: "+JSON.stringify(tokenDetails))
+                //console.log("tokenDetails: "+JSON.stringify(tokenDetails))
                 
                 setGoverningTokenDecimals(gTD);
 

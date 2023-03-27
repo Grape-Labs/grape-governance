@@ -1,6 +1,24 @@
 import React, { useEffect, useState, useCallback, memo, Suspense } from "react";
 import axios from "axios";
-import { getRealm, getAllProposals, getGovernance, getProposal, getInstructionDataFromBase64, getGovernanceAccounts, getGovernanceChatMessages, getTokenOwnerRecord, getTokenOwnerRecordsByOwner, getAllTokenOwnerRecords, getRealmConfigAddress, getGovernanceAccount, getAccountTypes, GovernanceAccountType, tryGetRealmConfig, getRealmConfig  } from '@solana/spl-governance';
+import { 
+    getRealm, 
+    getAllProposals, 
+    getGovernance, 
+    getProposal, 
+    getInstructionDataFromBase64, 
+    getGovernanceAccounts, 
+    getGovernanceChatMessages, 
+    getTokenOwnerRecord, 
+    getTokenOwnerRecordsByOwner, 
+    getAllTokenOwnerRecords, 
+    getRealmConfigAddress, 
+    getGovernanceAccount, 
+    getAccountTypes, 
+    GovernanceAccountType, 
+    tryGetRealmConfig, 
+    getRealmConfig,
+    ProposalTransaction,
+    pubkeyFilter  } from '@solana/spl-governance';
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
@@ -44,6 +62,9 @@ import {
 
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import CircularProgress from '@mui/material/CircularProgress';
+
+const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
 
 const GOVERNANCE_STATE = {
     0:'Draft',
@@ -197,8 +218,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
         setPrimaryStatus("Governance Type Verified");
 
-        const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-        const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
         const realmPk = grealm.pubkey;
         if (grealm?.account?.config?.useCommunityVoterWeightAddin){
             //{
@@ -294,7 +313,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 }
             }
 
-            const sortedResults = allprops.sort((a:any, b:any) => ((b.account?.votingAt != null ? b.account?.votingAt : 0) - (a.account?.votingAt != null ? a.account?.votingAt : 0)))
+            const sortedResults = allprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
             
             // get first date
             if (sortedResults && sortedResults.length > 0)
@@ -319,7 +338,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         return sortedResults;
     }
 
-    const getGovernanceProps = async (thisitem) => {
+    const getGovernanceProps = async (thisitem: any) => {
         const governance = await getGovernance(connection, thisitem.account.governance);
         setThisGovernance(governance);
         
@@ -359,7 +378,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             //const mintDecimals = governingMintPromise.value.data.data.parsed.info.decimals; 
             
             const voteThresholdPercentage=
-                realm.account.config.councilMint.toBase58() === thisitem.account.governingTokenMint.toBase58()
+                new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint.toBase58()
                 ? councilVoteThreshold.value
                 : communityVoteThreshold.value
             
@@ -466,6 +485,21 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 if (!skip_process){
                     // do magic here...
                     console.log("Fetching proposal details via RPC ("+thisitem.pubkey.toBase58()+")");
+
+                    let instructions = null;
+
+                    if (thisitem.pubkey){
+                        instructions = await getGovernanceAccounts(
+                            connection,
+                            new PublicKey(thisitem.owner),
+                            ProposalTransaction,
+                            [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
+                        );
+                        
+                        //if (instructions)
+                        //    console.log("instructions: "+JSON.stringify(instructions))
+                    }
+
                     //console.log("item: "+JSON.stringify(thisitem));
 
                     //setLoadingParticipants(true);
@@ -480,11 +514,13 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         //console.log("ERR: "+e);
                     }
                     
-                    if (realm.account.config?.councilMint?.toBase58() === thisitem?.account?.governingTokenMint?.toBase58()){
-                        vType = 'Council';
-                        td = 0;
+                    if (realm.account.config?.councilMint){
+                        if (realm.account.config?.councilMint?.toBase58() === thisitem?.account?.governingTokenMint?.toBase58()){
+                            vType = 'Council';
+                            td = 0;
+                        }
                     }
-                    
+
                     if (!vType){
                         // check if backed token
                         // important check if we have already fetched this data already
@@ -560,7 +596,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                     legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
                                     legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
                                     decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
-                                    councilMint:realm.account.config?.councilMint?.toBase58() ,
+                                    councilMint:new PublicKey(realm.account.config?.councilMint).toBase58() ,
                                     governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
                                 }
                             })
@@ -584,7 +620,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 }
                             }
                             
-                            csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
+                            csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
                             //    csvFile += item.pubkey.toBase58();
                         }
                     }
@@ -616,6 +652,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     setUniqueNo(uNo);
                     
                     thisitem.votingResults = vrs;
+                    thisitem.instructions = instructions;
                 }
             } catch (e) { // Handle errors from invalid calls
                 
