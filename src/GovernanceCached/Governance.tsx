@@ -674,21 +674,26 @@ function GetParticipants(props: any){
                                         <OwnerRecord pubkey={item.pubkey} />
                                         
                                         <Typography variant="caption">
-                                        ATA Account {iindex+1}: &nbsp;
-                                        {new PublicKey(item.pubkey).toBase58()} &nbsp;
-                                        {item.isWritable && <>
-                                            <Tooltip title={item.isWritable ? `Writable` : `Writable: false`}>
-                                                <IconButton color='inherit' size='small'
-                                                    sx={{borderRadius:'17px',textTransform:'none'}}
-                                                >
-                                                    {item.isWritable ? 
-                                                        <EditIcon fontSize='small' />
-                                                        :
-                                                        <EditIcon fontSize='small' color='disabled' />
-                                                    }
-                                                </IconButton>
-                                            </Tooltip>
-                                        </>}
+                                            
+                                            
+                                            ATA Account {iindex+1}: &nbsp;
+                                            {item.isWritable && <>
+                                                <Tooltip title={item.isWritable ? `Writable` : `Writable: false`}>
+                                                    <IconButton color='inherit' size='small'
+                                                        sx={{borderRadius:'17px',textTransform:'none'}}
+                                                    >
+                                                        {item.isWritable ? 
+                                                            <EditIcon sx={{fontSize:'12px'}} color='warning' />
+                                                            :
+                                                            <EditIcon sx={{fontSize:'12px'}} color='disabled' />
+                                                        }
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </>}
+
+                                            <ExplorerView showSolanaProfile={false} address={new PublicKey(item.pubkey).toBase58()} type='address' shorten={0} hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                        
+                                        
                                         </Typography>
                                         <br/><br/>
                                     </>
