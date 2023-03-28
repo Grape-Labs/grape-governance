@@ -583,7 +583,8 @@ function GetParticipants(props: any){
                 var index = 0;
                 for (var item of instructionOwnerRecordATA){
                     if (new PublicKey(item).toBase58() === new PublicKey(pubkey).toBase58()){
-                        setOwnerRecord(instructionOwnerRecord[index].data.parsed.info);
+                        if (instructionOwnerRecord[index]?.data?.parsed?.info)
+                            setOwnerRecord(instructionOwnerRecord[index].data.parsed.info);
                     }
                     index++;
                 }
@@ -599,9 +600,13 @@ function GetParticipants(props: any){
                 <>
                     {ownerRecord && 
                         <>
-                    
-                            <ExplorerView showSolanaProfile={true} address={new PublicKey(ownerRecord.owner).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
-                            
+
+                            {ownerRecord?.owner ?
+                                <ExplorerView showSolanaProfile={true} address={new PublicKey(ownerRecord.owner).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
+                            :
+                                <>*RAW: {JSON.stringify(ownerRecord)}<br/></>
+                            }
+
                             {(ownerRecord?.tokenAmount?.amount && +ownerRecord.tokenAmount.amount > 0) ? 
                                 <Grid> 
                                     <Tooltip title="Wallet Balance">
