@@ -619,7 +619,7 @@ function GetParticipants(props: any){
                     <Typography variant="caption">
                     Instruction Accounts: <br/>
                     {instructionDetails?.accounts && (instructionDetails.accounts).map((item: any, iindex:number) => (
-                        <>Account (ATA) {iindex+1}: &nbsp;
+                        <>Account {iindex+1}: &nbsp;
                             {new PublicKey(item.pubkey).toBase58()} &nbsp;
                             <br/>
                             <OwnerRecord pubkey={item.pubkey} />
