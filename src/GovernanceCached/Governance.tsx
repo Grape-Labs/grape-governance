@@ -568,137 +568,142 @@ function GetParticipants(props: any){
         const instructionOwnerRecord = props.instructionOwnerRecord;
         const instructionOwnerRecordATA = props.instructionOwnerRecordATA;
         const instruction = props.instruction;
-        const instructionDetails = instruction.account?.instructions?.[0];
-        const typeOfInstruction = instructionDetails?.data[0];
-        const programId = new PublicKey(instructionDetails?.programId).toBase58();
-        const instructionInfo = InstructionMapping?.[programId]?.[typeOfInstruction];
-        
+        const instructionDetails = instruction.account?.instructions?.[0] || instruction.account?.instruction;
+        if (instructionDetails){
+            const typeOfInstruction = instructionDetails?.data[0];
+            //console.log("instructionDetails "+JSON.stringify(instructionDetails))
+            const programId = new PublicKey(instructionDetails?.programId).toBase58();
+            const instructionInfo = InstructionMapping?.[programId]?.[typeOfInstruction];
+            
 
-        const OwnerRecord = (props:any) => {
-            const pubkey = props.pubkey;
-            const [ownerRecord, setOwnerRecord] = React.useState(null);
+            const OwnerRecord = (props:any) => {
+                const pubkey = props.pubkey;
+                const [ownerRecord, setOwnerRecord] = React.useState(null);
 
-            const fetchOwnerRecord = () => {
-                console.log("instructionOwnerRecord "+JSON.stringify(instructionOwnerRecord))
-                var index = 0;
-                for (var item of instructionOwnerRecordATA){
-                    if (new PublicKey(item).toBase58() === new PublicKey(pubkey).toBase58()){
-                        if (instructionOwnerRecord[index]?.data?.parsed?.info)
-                            setOwnerRecord(instructionOwnerRecord[index].data.parsed.info);
+                const fetchOwnerRecord = () => {
+                    console.log("instructionOwnerRecord "+JSON.stringify(instructionOwnerRecord))
+                    var index = 0;
+                    for (var item of instructionOwnerRecordATA){
+                        if (new PublicKey(item).toBase58() === new PublicKey(pubkey).toBase58()){
+                            if (instructionOwnerRecord[index]?.data?.parsed?.info)
+                                setOwnerRecord(instructionOwnerRecord[index].data.parsed.info);
+                        }
+                        index++;
                     }
-                    index++;
                 }
-            }
 
-            React.useEffect(() => { 
-                if ((!ownerRecord)&&(pubkey)){
-                    fetchOwnerRecord()
-                }
-            }, [pubkey, instructionOwnerRecord]);
-
-            return (
-                <>
-                    {ownerRecord && 
-                        <>
-
-                            {ownerRecord?.owner ?
-                                <ExplorerView showSolanaProfile={true} address={new PublicKey(ownerRecord.owner).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
-                            :
-                                <>*RAW: {JSON.stringify(ownerRecord)}<br/></>
-                            }
-
-                            {(ownerRecord?.tokenAmount?.amount && +ownerRecord.tokenAmount.amount > 0) ? 
-                                <Grid> 
-                                    <Tooltip title="Wallet Balance">
-                                        <Button color='inherit'
-                                            sx={{borderRadius:'17px'}}
-                                        >
-                                        <AccountBalanceWalletIcon fontSize='small' /> &nbsp;
-                                        {getFormattedNumberToLocale(formatAmount(+(ownerRecord.tokenAmount.amount/Math.pow(10, (ownerRecord.tokenAmount?.decimals || 0))).toFixed(0)))}
-                                        </Button>
-                                    </Tooltip>
-                                </Grid>
-                            :<></>
-                            }
-                        </>
+                React.useEffect(() => { 
+                    if ((!ownerRecord)&&(pubkey)){
+                        fetchOwnerRecord()
                     }
-                </>
-            )
-        }
-        
-        
+                }, [pubkey, instructionOwnerRecord]);
 
-        return(
-            <>{index > 0 && <Divider />}
-                
-                <TimelineItem>
-                    
-                    <TimelineOppositeContent
-                        sx={{ m: 'auto 0' }}
-                        align="right"
-                        variant="body2"
-                        color="text.secondary"
-                        >
-                        Instruction: {index+1}
-
-                        <Typography>{instructionInfo?.name || new PublicKey(instructionDetails?.programId).toBase58()}</Typography>
-                        
-                    </TimelineOppositeContent>
-                
-                    <TimelineSeparator>
-                    <TimelineConnector />
-                    <TimelineDot>
-                        <CodeIcon />
-                    </TimelineDot>
-                    <TimelineConnector />
-                    </TimelineSeparator>
-                    <TimelineContent sx={{ py: '12px', px: 2 }}>
-                    <Typography variant="h6" component="span" color="#999">
-                        Instruction Accounts
-                    </Typography>
-                    <Typography>
-
-                        {instructionDetails?.accounts && (instructionDetails.accounts).map((item: any, iindex:number) => (
+                return (
+                    <>
+                        {ownerRecord && 
                             <>
-                                {item.isSigner ? 
-                                    <Grid textAlign='right'>
-                                        <Typography variant="caption">
-                                            Signer: 
-                                            <ExplorerView showSolanaProfile={false} address={new PublicKey(item.pubkey).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
-                                        </Typography>
-                                    </Grid>
+
+                                {ownerRecord?.owner ?
+                                    <ExplorerView showSolanaProfile={true} address={new PublicKey(ownerRecord.owner).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
                                 :
-                                <>
-                                    <OwnerRecord pubkey={item.pubkey} />
-                                    
-                                    <Typography variant="caption">
-                                    ATA Account {iindex+1}: &nbsp;
-                                    {new PublicKey(item.pubkey).toBase58()} &nbsp;
-                                    {item.isWritable && <>
-                                        <Tooltip title={item.isWritable ? `Writable` : `Writable: false`}>
-                                            <IconButton color='inherit' size='small'
-                                                sx={{borderRadius:'17px',textTransform:'none'}}
+                                    <Typography variant='caption'>*Raw Record: <br/>{JSON.stringify(ownerRecord)}<br/></Typography>
+                                }
+
+                                {(ownerRecord?.tokenAmount?.amount && +ownerRecord.tokenAmount.amount > 0) ? 
+                                    <Grid> 
+                                        <Tooltip title="Wallet Balance">
+                                            <Button color='inherit'
+                                                sx={{borderRadius:'17px'}}
                                             >
-                                                {item.isWritable ? 
-                                                    <EditIcon fontSize='small' />
-                                                    :
-                                                    <EditIcon fontSize='small' color='disabled' />
-                                                }
-                                            </IconButton>
+                                            <AccountBalanceWalletIcon fontSize='small' /> &nbsp;
+                                            {getFormattedNumberToLocale(formatAmount(+(ownerRecord.tokenAmount.amount/Math.pow(10, (ownerRecord.tokenAmount?.decimals || 0))).toFixed(0)))}
+                                            </Button>
                                         </Tooltip>
-                                    </>}
-                                    </Typography>
-                                    <br/><br/>
-                                </>
+                                    </Grid>
+                                :<></>
                                 }
                             </>
-                        ))}
+                        }
+                    </>
+                )
+            }
+            
+            
 
-                    </Typography>
-                    </TimelineContent>
-                </TimelineItem>
-            </>
-        );
+            return(
+                <>{index > 0 && <Divider />}
+                    
+                    <TimelineItem>
+                        
+                        <TimelineOppositeContent
+                            sx={{ m: 'auto 0' }}
+                            align="right"
+                            variant="body2"
+                            color="text.secondary"
+                            >
+                            Instruction: {index+1}
+
+                            <Typography>{instructionInfo?.name || new PublicKey(instructionDetails?.programId).toBase58()}</Typography>
+                            
+                        </TimelineOppositeContent>
+                    
+                        <TimelineSeparator>
+                        <TimelineConnector />
+                        <TimelineDot>
+                            <CodeIcon />
+                        </TimelineDot>
+                        <TimelineConnector />
+                        </TimelineSeparator>
+                        <TimelineContent sx={{ py: '12px', px: 2 }}>
+                        <Typography variant="h6" component="span" color="#999">
+                            Instruction Accounts
+                        </Typography>
+                        <Typography>
+
+                            {instructionDetails?.accounts && (instructionDetails.accounts).map((item: any, iindex:number) => (
+                                <>
+                                    {item.isSigner ? 
+                                        <Grid textAlign='right'>
+                                            <Typography variant="caption">
+                                                Signer: 
+                                                <ExplorerView showSolanaProfile={false} address={new PublicKey(item.pubkey).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                            </Typography>
+                                        </Grid>
+                                    :
+                                    <>
+                                        <OwnerRecord pubkey={item.pubkey} />
+                                        
+                                        <Typography variant="caption">
+                                        ATA Account {iindex+1}: &nbsp;
+                                        {new PublicKey(item.pubkey).toBase58()} &nbsp;
+                                        {item.isWritable && <>
+                                            <Tooltip title={item.isWritable ? `Writable` : `Writable: false`}>
+                                                <IconButton color='inherit' size='small'
+                                                    sx={{borderRadius:'17px',textTransform:'none'}}
+                                                >
+                                                    {item.isWritable ? 
+                                                        <EditIcon fontSize='small' />
+                                                        :
+                                                        <EditIcon fontSize='small' color='disabled' />
+                                                    }
+                                                </IconButton>
+                                            </Tooltip>
+                                        </>}
+                                        </Typography>
+                                        <br/><br/>
+                                    </>
+                                    }
+                                </>
+                            ))}
+
+                        </Typography>
+                        </TimelineContent>
+                    </TimelineItem>
+                </>
+            );
+        } else{
+            return <></>
+        }
     }
 
     const getVotingParticipants = async () => {
@@ -778,20 +783,22 @@ function GetParticipants(props: any){
                     var ataArray = new Array();
                     if (thisitem.instructions){
                         for (var instructionItem of thisitem.instructions){
-                            for (var accountInstruction of instructionItem.account.instructions){
-                                for (var account of accountInstruction.accounts){
-                                    var foundAta = false;
-                                    if ((account?.pubkey)&&(!account.isSigner)){
-                                        // check if exists
-                                        for (var existing of ataArray){
-                                            if (new PublicKey(existing).toBase58() === new PublicKey(account.pubkey).toBase58())
-                                                foundAta = true;
-                                        }
+                            if (instructionItem.account?.instructions && instructionItem.account.instructions.length > 0){
+                                for (var accountInstruction of instructionItem.account.instructions){
+                                    for (var account of accountInstruction.accounts){
+                                        var foundAta = false;
+                                        if ((account?.pubkey)&&(!account.isSigner)){
+                                            // check if exists
+                                            for (var existing of ataArray){
+                                                if (new PublicKey(existing).toBase58() === new PublicKey(account.pubkey).toBase58())
+                                                    foundAta = true;
+                                            }
 
-                                        if (!foundAta){
-                                            ataArray.push(new PublicKey(account.pubkey))
+                                            if (!foundAta){
+                                                ataArray.push(new PublicKey(account.pubkey))
+                                            }
+                                        
                                         }
-                                    
                                     }
                                 }
                             }
