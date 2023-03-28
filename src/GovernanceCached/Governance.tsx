@@ -595,14 +595,14 @@ function GetParticipants(props: any){
                     <Typography variant="caption">
                     Instruction Accounts: <br/>
                     {instructionDetails?.accounts && (instructionDetails.accounts).map((item: any, iindex:number) => (
-                        <>Account {iindex+1}: 
-                            {new PublicKey(item.pubkey).toBase58()}
+                        <>Account {iindex+1}: &nbsp;
+                            {new PublicKey(item.pubkey).toBase58()} &nbsp;
                             {/*
                             ***
                             <AccountOwner pubkey={new PublicKey(item.pubkey)} />
                             ***
                             */}
-                            
+
                             {/*
                             <ExplorerView showSolanaProfile={true} address={new PublicKey(item.pubkey).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
                             */}
