@@ -77,6 +77,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoIcon from '@mui/icons-material/Info';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
@@ -281,6 +282,8 @@ function GetParticipants(props: any){
     const [quorumTarget, setQuorumTarget] = React.useState(null);
     const [totalSupply, setTotalSupply] = React.useState(null);
     const [proposalInstructions, setProposalInstructions] = React.useState(null);
+    const [instructionOwnerRecord, setInstructionOwnerRecord] = React.useState(null);
+    const [instructionOwnerRecordATA, setInstructionOwnerRecordATA] = React.useState(null);
     const [exceededQuorum, setExceededQuorum] = React.useState(null);
     const [exceededQuorumPercentage, setExceededQuorumPercentage] = React.useState(null);
     const [selectedDelegate, setSelectedDelegate] = React.useState("");
@@ -441,7 +444,6 @@ function GetParticipants(props: any){
                 );
             }
             
-
             //console.log("communityMintPromise ("+thisitem.account.governingTokenMint+") "+JSON.stringify(governingMintPromise))
             setGoverningMintInfo(governingMintDetails);
             
@@ -549,39 +551,57 @@ function GetParticipants(props: any){
 
     function InstructionView(props: any) {
         const index = props.index;
-        const intruction = props.instruction;
-        const instructionDetails = intruction.account?.instructions?.[0];
+        const instructionOwnerRecord = props.instructionOwnerRecord;
+        const instructionOwnerRecordATA = props.instructionOwnerRecordATA;
+        const instruction = props.instruction;
+        const instructionDetails = instruction.account?.instructions?.[0];
         const typeOfInstruction = instructionDetails?.data[0];
         const programId = new PublicKey(instructionDetails?.programId).toBase58();
         const instructionInfo = InstructionMapping?.[programId]?.[typeOfInstruction];
+        
 
-        function AccountOwner (props:any) {
+        const OwnerRecord = (props:any) => {
             const pubkey = props.pubkey;
-            const [owner, setOwner] = React.useState(null);
+            const [ownerRecord, setOwnerRecord] = React.useState(null);
 
-            const getAccountOwner = async () => {
-                const owner = await getAccount(connection, pubkey);
-                console.log("owner: "+JSON.stringify(owner))
-                setOwner(owner);
+            const fetchOwnerRecord = () => {
+                console.log("instructionOwnerRecord "+JSON.stringify(instructionOwnerRecord))
+                var index = 0;
+                for (var item of instructionOwnerRecordATA){
+                    if (new PublicKey(item).toBase58() === new PublicKey(pubkey).toBase58()){
+                        setOwnerRecord(instructionOwnerRecord[index].data.parsed.info);
+                    }
+                    index++;
+                }
             }
 
             React.useEffect(() => { 
-                if ((!owner) && (pubkey))
-                    getAccountOwner()
-            }, []);
+                if ((!ownerRecord)&&(pubkey)){
+                    fetchOwnerRecord()
+                }
+            }, [pubkey, instructionOwnerRecord]);
 
             return (
                 <>
-                {owner ?
-                    <>
-                        {JSON.stringify(owner)}
-                    </>
-                :
-                    <></>    
-                }
+                    {ownerRecord && 
+                        <>
+                    
+                            <ExplorerView showSolanaProfile={true} address={new PublicKey(ownerRecord.owner).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
+                        
+                        {(ownerRecord?.tokenAmount?.amount && +ownerRecord.tokenAmount.amount > 0) ? 
+                            <>  
+                                <AccountBalanceWalletIcon sx={{fontSize:'10px'}} /> &nbsp;
+                                {getFormattedNumberToLocale(formatAmount(+(ownerRecord.tokenAmount.amount/Math.pow(10, (ownerRecord.tokenAmount?.decimals || 0))).toFixed(0)))}
+                            </>
+                        :<></>
+                        }
+                        </>
+                    }
                 </>
             )
         }
+        
+        
 
         return(
             <>{index > 0 && <Divider />}
@@ -599,19 +619,13 @@ function GetParticipants(props: any){
                     <Typography variant="caption">
                     Instruction Accounts: <br/>
                     {instructionDetails?.accounts && (instructionDetails.accounts).map((item: any, iindex:number) => (
-                        <>Account {iindex+1}: &nbsp;
+                        <>Account (ATA) {iindex+1}: &nbsp;
                             {new PublicKey(item.pubkey).toBase58()} &nbsp;
-                            {/*
-                            ***
-                            <AccountOwner pubkey={new PublicKey(item.pubkey)} />
-                            ***
-                            */}
-
-                            {/*
-                            <ExplorerView showSolanaProfile={true} address={new PublicKey(item.pubkey).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
-                            */}
-                            (Writable: {item.isWritable ? `true` : `false`}) (Signer: {item.isSigner ? `true` : `false`})
                             <br/>
+                            <OwnerRecord pubkey={item.pubkey} />
+                            <br/>
+                            Writable: {item.isWritable ? `true` : `false`} - Signer: {item.isSigner ? `true` : `false`}
+                            <br/><br/>
                         </>
                     ))}
                     </Typography>
@@ -669,11 +683,10 @@ function GetParticipants(props: any){
                 }
             }
         }
-
+        
         //if (thisitem.account?.state === 2){ // if voting state
             getGovernanceProps()
         //}
-
 
         /* RPC
         const voteRecord = await getVoteRecords({
@@ -695,6 +708,38 @@ function GetParticipants(props: any){
                 if (thisitem?.instructions){
                     thisitem.instructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
                     setProposalInstructions(thisitem.instructions);
+                    
+                    var ataArray = new Array();
+                    if (thisitem.instructions){
+                        for (var instructionItem of thisitem.instructions){
+                            for (var accountInstruction of instructionItem.account.instructions){
+                                for (var account of accountInstruction.accounts){
+                                    var foundAta = false;
+                                    if ((account?.pubkey)&&(!account.isSigner)){
+                                        // check if exists
+                                        for (var existing of ataArray){
+                                            if (new PublicKey(existing).toBase58() === new PublicKey(account.pubkey).toBase58())
+                                                foundAta = true;
+                                        }
+
+                                        if (!foundAta){
+                                            ataArray.push(new PublicKey(account.pubkey))
+                                        }
+                                    
+                                    }
+                                }
+                            }
+                        }
+
+                        if (ataArray && ataArray.length <= 100 ){ // to fix add support for over 100 records for gma
+                            const owners = await connection.getMultipleParsedAccounts(ataArray);
+                            setInstructionOwnerRecord(owners.value);
+                            setInstructionOwnerRecordATA(ataArray);
+                        }
+                        
+                    }
+                    
+                    
                 }
             }
         }
@@ -804,7 +849,6 @@ function GetParticipants(props: any){
                 
                 let voteType = 0;
                 let voterWeight = 0;
-
 
                 if (!from_cache){
                     if (item.account?.voterWeight){
@@ -1093,7 +1137,7 @@ function GetParticipants(props: any){
                                         <List>
                                         {proposalInstructions && (proposalInstructions).map((item: any, index:number) => (
                                             
-                                            <InstructionView instruction={item} index={index}/>
+                                            <InstructionView instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
                                                 
                                         ))}
                                         </List>
