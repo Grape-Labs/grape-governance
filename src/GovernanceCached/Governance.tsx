@@ -63,7 +63,18 @@ import {
   ListItem,
   ListItemText,
   Divider,
+  
 } from '@mui/material/';
+
+import {
+    Timeline,
+    TimelineItem,
+    TimelineSeparator,
+    TimelineConnector,
+    TimelineContent,
+    TimelineOppositeContent,
+    TimelineDot,
+} from '@mui/lab'
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
@@ -77,6 +88,9 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import EditIcon from '@mui/icons-material/Edit';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CodeIcon from '@mui/icons-material/Code';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoIcon from '@mui/icons-material/Info';
@@ -587,14 +601,20 @@ function GetParticipants(props: any){
                         <>
                     
                             <ExplorerView showSolanaProfile={true} address={new PublicKey(ownerRecord.owner).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
-                        
-                        {(ownerRecord?.tokenAmount?.amount && +ownerRecord.tokenAmount.amount > 0) ? 
-                            <>  
-                                <AccountBalanceWalletIcon sx={{fontSize:'10px'}} /> &nbsp;
-                                {getFormattedNumberToLocale(formatAmount(+(ownerRecord.tokenAmount.amount/Math.pow(10, (ownerRecord.tokenAmount?.decimals || 0))).toFixed(0)))}
-                            </>
-                        :<></>
-                        }
+                            
+                            {(ownerRecord?.tokenAmount?.amount && +ownerRecord.tokenAmount.amount > 0) ? 
+                                <Grid> 
+                                    <Tooltip title="Wallet Balance">
+                                        <Button color='inherit'
+                                            sx={{borderRadius:'17px'}}
+                                        >
+                                        <AccountBalanceWalletIcon fontSize='small' /> &nbsp;
+                                        {getFormattedNumberToLocale(formatAmount(+(ownerRecord.tokenAmount.amount/Math.pow(10, (ownerRecord.tokenAmount?.decimals || 0))).toFixed(0)))}
+                                        </Button>
+                                    </Tooltip>
+                                </Grid>
+                            :<></>
+                            }
                         </>
                     }
                 </>
@@ -605,32 +625,73 @@ function GetParticipants(props: any){
 
         return(
             <>{index > 0 && <Divider />}
-                <ListItem disablePadding>
-                    <Box>
-                    {index > 0 &&
-                    <>
-                        <br/>
-                        <Typography variant="subtitle1">Instruction: {index+1}</Typography>
-                    </>
-                    }
-                    <br/>
-                    <Typography variant="body2">{instructionInfo?.name || new PublicKey(instructionDetails?.programId).toBase58()}</Typography>
-                    <br />
-                    <Typography variant="caption">
-                    Instruction Accounts: <br/>
-                    {instructionDetails?.accounts && (instructionDetails.accounts).map((item: any, iindex:number) => (
-                        <>Account {iindex+1}: &nbsp;
-                            {new PublicKey(item.pubkey).toBase58()} &nbsp;
-                            <br/>
-                            <OwnerRecord pubkey={item.pubkey} />
-                            <br/>
-                            Writable: {item.isWritable ? `true` : `false`} - Signer: {item.isSigner ? `true` : `false`}
-                            <br/><br/>
-                        </>
-                    ))}
+                
+                <TimelineItem>
+                    
+                    <TimelineOppositeContent
+                        sx={{ m: 'auto 0' }}
+                        align="right"
+                        variant="body2"
+                        color="text.secondary"
+                        >
+                        Instruction: {index+1}
+
+                        <Typography>{instructionInfo?.name || new PublicKey(instructionDetails?.programId).toBase58()}</Typography>
+                        
+                    </TimelineOppositeContent>
+                
+                    <TimelineSeparator>
+                    <TimelineConnector />
+                    <TimelineDot>
+                        <CodeIcon />
+                    </TimelineDot>
+                    <TimelineConnector />
+                    </TimelineSeparator>
+                    <TimelineContent sx={{ py: '12px', px: 2 }}>
+                    <Typography variant="h6" component="span" color="#999">
+                        Instruction Accounts
                     </Typography>
-                    </Box>
-                </ListItem>
+                    <Typography>
+
+                        {instructionDetails?.accounts && (instructionDetails.accounts).map((item: any, iindex:number) => (
+                            <>
+                                {item.isSigner ? 
+                                    <Grid textAlign='right'>
+                                        <Typography variant="caption">
+                                            Signer: 
+                                            <ExplorerView showSolanaProfile={false} address={new PublicKey(item.pubkey).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                        </Typography>
+                                    </Grid>
+                                :
+                                <>
+                                    <OwnerRecord pubkey={item.pubkey} />
+                                    
+                                    <Typography variant="caption">
+                                    ATA Account {iindex+1}: &nbsp;
+                                    {new PublicKey(item.pubkey).toBase58()} &nbsp;
+                                    {item.isWritable && <>
+                                        <Tooltip title={item.isWritable ? `Writable` : `Writable: false`}>
+                                            <IconButton color='inherit' size='small'
+                                                sx={{borderRadius:'17px',textTransform:'none'}}
+                                            >
+                                                {item.isWritable ? 
+                                                    <EditIcon fontSize='small' />
+                                                    :
+                                                    <EditIcon fontSize='small' color='disabled' />
+                                                }
+                                            </IconButton>
+                                        </Tooltip>
+                                    </>}
+                                    </Typography>
+                                    <br/><br/>
+                                </>
+                                }
+                            </>
+                        ))}
+
+                    </Typography>
+                    </TimelineContent>
+                </TimelineItem>
             </>
         );
     }
@@ -1134,13 +1195,14 @@ function GetParticipants(props: any){
                                     
                                 </AccordionSummary>
                                 <AccordionDetails>
-                                        <List>
+                                    <Timeline position="alternate">
+      
                                         {proposalInstructions && (proposalInstructions).map((item: any, index:number) => (
                                             
                                             <InstructionView instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
                                                 
                                         ))}
-                                        </List>
+                                    </Timeline>
                             </AccordionDetails>
                             </Accordion>
                         </Box>
