@@ -587,8 +587,12 @@ function GetParticipants(props: any){
             <>{index > 0 && <Divider />}
                 <ListItem disablePadding>
                     <Box>
-                    <br/>
-                    <Typography variant="subtitle1">Instruction: {index+1}</Typography>
+                    {index > 0 &&
+                    <>
+                        <br/>
+                        <Typography variant="subtitle1">Instruction: {index+1}</Typography>
+                    </>
+                    }
                     <br/>
                     <Typography variant="body2">{instructionInfo?.name || new PublicKey(instructionDetails?.programId).toBase58()}</Typography>
                     <br />
@@ -688,9 +692,10 @@ function GetParticipants(props: any){
                 voteRecord = vresults.votingResults;
                 from_cache = true;
 
-                thisitem.instructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
-
-                setProposalInstructions(thisitem?.instructions);
+                if (thisitem?.instructions){
+                    thisitem.instructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
+                    setProposalInstructions(thisitem.instructions);
+                }
             }
         }
 
@@ -1724,7 +1729,7 @@ function RenderGovernanceTable(props:any) {
                                                             {/*console.log("governingTokenMint: "+item.account.governingTokenMint.toBase58())*/}
                                                             {/*console.log("vote: "+JSON.stringify(item.account))*/}
                                                             
-                                                            <Tooltip title={new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(item.account?.governingTokenMint).toBase58() ?
+                                                            <Tooltip title={(realm.account.config?.councilMint && new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(item.account?.governingTokenMint).toBase58()) ?
                                                                 <>{Number(item.account?.options[0].voteWeight)}</>
                                                                 :
                                                                 
