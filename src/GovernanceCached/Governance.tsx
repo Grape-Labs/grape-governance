@@ -581,7 +581,7 @@ function GetParticipants(props: any){
                 const [ownerRecord, setOwnerRecord] = React.useState(null);
 
                 const fetchOwnerRecord = () => {
-                    console.log("instructionOwnerRecord "+JSON.stringify(instructionOwnerRecord))
+                    //console.log("instructionOwnerRecord "+JSON.stringify(instructionOwnerRecord))
                     var index = 0;
                     for (var item of instructionOwnerRecordATA){
                         if (new PublicKey(item).toBase58() === new PublicKey(pubkey).toBase58()){
