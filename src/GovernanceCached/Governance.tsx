@@ -1,6 +1,22 @@
-import { getRealm, getAllProposals, getGovernance, getGovernanceAccounts, getGovernanceChatMessages, getTokenOwnerRecord, getTokenOwnerRecordsByOwner, getAllTokenOwnerRecords, getRealmConfigAddress, getGovernanceAccount, getAccountTypes, GovernanceAccountType, tryGetRealmConfig, getRealmConfig  } from '@solana/spl-governance';
+import { 
+    getRealm, 
+    getAllProposals, 
+    getGovernance, 
+    getGovernanceAccounts, 
+    getGovernanceChatMessages, 
+    getTokenOwnerRecord, 
+    getTokenOwnerRecordsByOwner, 
+    getAllTokenOwnerRecords, 
+    getRealmConfigAddress, 
+    getGovernanceAccount, 
+    getAccountTypes, 
+    GovernanceAccountType, 
+    tryGetRealmConfig, 
+    getRealmConfig,
+    InstructionData  } from '@solana/spl-governance';
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
+import { getAccount } from '@solana/spl-token-v2'
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletDialogProvider, WalletMultiButton } from "@solana/wallet-adapter-material-ui";
@@ -12,6 +28,7 @@ import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
 import Gist from 'react-gist';
 import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
+import { InstructionMapping } from "../utils/grapeTools/InstructionMapping";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -39,6 +56,13 @@ import {
   ButtonGroup,
   CircularProgress,
   Stack,
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
 } from '@mui/material/';
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
@@ -53,6 +77,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoIcon from '@mui/icons-material/Info';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
 import CheckIcon from '@mui/icons-material/Check';
@@ -255,21 +280,12 @@ function GetParticipants(props: any){
     const [quorumTargetPercentage, setQuorumTargetPercentage] = React.useState(null);
     const [quorumTarget, setQuorumTarget] = React.useState(null);
     const [totalSupply, setTotalSupply] = React.useState(null);
+    const [proposalInstructions, setProposalInstructions] = React.useState(null);
     const [exceededQuorum, setExceededQuorum] = React.useState(null);
     const [exceededQuorumPercentage, setExceededQuorumPercentage] = React.useState(null);
     const [selectedDelegate, setSelectedDelegate] = React.useState("");
     const { publicKey, wallet, sendTransaction, signTransaction } = useWallet();
-    const freeconnection = new Connection(TX_RPC_ENDPOINT);
     const [loadingParticipants, setLoadingParticipants] = React.useState(false);
-
-    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
-    const onError = useCallback(
-        (error: WalletError) => {
-            enqueueSnackbar(error.message ? `${error.name}: ${error.message}` : error.name, { variant: 'error' });
-            console.error(error);
-        },
-        [enqueueSnackbar]
-    );
 
     const votingresultcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
@@ -397,7 +413,7 @@ function GetParticipants(props: any){
             }
         }
 
-        //if (!governance){
+        //if (!governance){ // temporary until we cache all governances for a single realm
             governance = await getGovernance(connection, thisitem.account.governance);    
         //}
 
@@ -425,6 +441,7 @@ function GetParticipants(props: any){
                 );
             }
             
+
             //console.log("communityMintPromise ("+thisitem.account.governingTokenMint+") "+JSON.stringify(governingMintPromise))
             setGoverningMintInfo(governingMintDetails);
             
@@ -502,6 +519,20 @@ function GetParticipants(props: any){
         }
     }
 
+    const [expanded, setExpanded] = React.useState<string | false>(false);
+    const handleChange =
+    (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+        setExpanded(isExpanded ? panel : false);
+    };
+
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+    const onError = useCallback(
+        (error: WalletError) => {
+            enqueueSnackbar(error.message ? `${error.name}: ${error.message}` : error.name, { variant: 'error' });
+            console.error(error);
+        },
+        [enqueueSnackbar]
+    );
 
     const handleCloseDialog = () => {
         setOpen(false);
@@ -515,6 +546,76 @@ function GetParticipants(props: any){
     const handleClose = () => {
         setOpen(false);
     };
+
+    function InstructionView(props: any) {
+        const index = props.index;
+        const intruction = props.instruction;
+        const instructionDetails = intruction.account?.instructions?.[0];
+        const typeOfInstruction = instructionDetails?.data[0];
+        const programId = new PublicKey(instructionDetails?.programId).toBase58();
+        const instructionInfo = InstructionMapping?.[programId]?.[typeOfInstruction];
+
+        function AccountOwner (props:any) {
+            const pubkey = props.pubkey;
+            const [owner, setOwner] = React.useState(null);
+
+            const getAccountOwner = async () => {
+                const owner = await getAccount(connection, pubkey);
+                console.log("owner: "+JSON.stringify(owner))
+                setOwner(owner);
+            }
+
+            React.useEffect(() => { 
+                if ((!owner) && (pubkey))
+                    getAccountOwner()
+            }, []);
+
+            return (
+                <>
+                {owner ?
+                    <>
+                        {JSON.stringify(owner)}
+                    </>
+                :
+                    <></>    
+                }
+                </>
+            )
+        }
+
+        return(
+            <>{index > 0 && <Divider />}
+                <ListItem disablePadding>
+                    <Box>
+                    <br/>
+                    <Typography variant="subtitle1">Instruction: {index+1}</Typography>
+                    <br/>
+                    <Typography variant="body2">{instructionInfo?.name || new PublicKey(instructionDetails?.programId).toBase58()}</Typography>
+                    <br />
+                    <Typography variant="caption">
+                    Instruction Accounts: <br/>
+                    {instructionDetails?.accounts && (instructionDetails.accounts).map((item: any, iindex:number) => (
+                        <>Account {iindex+1}: 
+                            {new PublicKey(item.pubkey).toBase58()}
+                            {/*
+                            ***
+                            <AccountOwner pubkey={new PublicKey(item.pubkey)} />
+                            ***
+                            */}
+                            
+                            {/*
+                            <ExplorerView showSolanaProfile={true} address={new PublicKey(item.pubkey).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
+                            */}
+                            (Writable: {item.isWritable ? `true` : `false`}) (Signer: {item.isSigner ? `true` : `false`})
+                            <br/>
+                        </>
+                    ))}
+                    </Typography>
+                    </Box>
+                </ListItem>
+            </>
+        );
+    }
 
     const getVotingParticipants = async () => {
         setLoadingParticipants(true);
@@ -586,6 +687,10 @@ function GetParticipants(props: any){
             if (thisitem.pubkey === vresults.pubkey){
                 voteRecord = vresults.votingResults;
                 from_cache = true;
+
+                thisitem.instructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
+
+                setProposalInstructions(thisitem?.instructions);
             }
         }
 
@@ -828,7 +933,7 @@ function GetParticipants(props: any){
                 null,
                 isCommunityVote
             );
-
+            /*
             try{
                 enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
                 const signature = await sendTransaction(vvvt, freeconnection, {
@@ -858,6 +963,7 @@ function GetParticipants(props: any){
             }catch(e:any){
                 enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
             } 
+            */
             
 
         }
@@ -951,7 +1057,46 @@ function GetParticipants(props: any){
                                 }
                             </>
                         }
+                    </Box>
+                    
+                    {proposalInstructions &&
+                        <Box sx={{ mt:2,mb:2 }}>
+                            <Accordion 
+                                expanded={expanded === 'panel'+1} 
+                                onChange={handleChange('panel'+1)}
+                                sx={{
+                                    //borderBottomLeftRadius:'17px',
+                                    //borderBottomRightRadius:'17px',
+                                    background:'rgba(0,0,0,0.25)',
+                                    }}>
+                                <AccordionSummary
+                                expandIcon={<ExpandMoreIcon />}
+                                aria-controls="panel1bh-content"
+                                id="panel1bh-header"
+                                    sx={{
+                                        border:'none'
+                                    }}
+                                >
+                                    <Typography sx={{ flexShrink: 0 }}>
+                                        Instructions 
+                                    </Typography>
+                                    
+                                    <Typography sx={{ color: 'text.secondary' }}>&nbsp;{proposalInstructions.length}</Typography>
+                                    
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                        <List>
+                                        {proposalInstructions && (proposalInstructions).map((item: any, index:number) => (
+                                            
+                                            <InstructionView instruction={item} index={index}/>
+                                                
+                                        ))}
+                                        </List>
+                            </AccordionDetails>
+                            </Accordion>
                         </Box>
+                    }
+                        
                     
 
                     {propVoteType &&
