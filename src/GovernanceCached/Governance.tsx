@@ -968,42 +968,24 @@ function GetParticipants(props: any){
         //console.log("votingResults: "+JSON.stringify(votingResults));
 
         votingResults.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
+        
+        try{
+            const url = new URL(thisitem.account?.descriptionLink);
+            const pathname = url.pathname;
+            const parts = pathname.split('/');
+            //console.log("pathname: "+pathname)
+            let tGist = null;
+            if (parts.length > 1)
+                tGist = parts[2];
+            
+            setGist(tGist);
 
-        if (!from_cache){
-            try{
-                const url = new URL(thisitem.account?.descriptionLink);
-                const pathname = url.pathname;
-                const parts = pathname.split('/');
-                //console.log("pathname: "+pathname)
-                let tGist = null;
-                if (parts.length > 1)
-                    tGist = parts[2];
-                
-                setGist(tGist);
-
-                const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
-                setProposalDescription(rpd);
-            } catch(e){
-                console.log("ERR: "+e)
-            }
-        } else {
-            try{
-                const url = new URL(thisitem?.descriptionLink);
-                const pathname = url.pathname;
-                const parts = pathname.split('/');
-                //console.log("pathname: "+pathname)
-                let tGist = null;
-                if (parts.length > 1)
-                    tGist = parts[2];
-                
-                setGist(tGist);
-
-                const rpd = await resolveProposalDescription(thisitem?.descriptionLink);
-                setProposalDescription(rpd);
-            } catch(e){
-                console.log("ERR: "+e)
-            }
+            const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
+            setProposalDescription(rpd);
+        } catch(e){
+            console.log("ERR: "+e)
         }
+    
 
         setUniqueYes(uYes);
         setUniqueNo(uNo);
@@ -1517,7 +1499,7 @@ function GetParticipants(props: any){
                                         sx={{borderRadius:'24px',m:2,p:1}}
                                     >
                                         <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                            {thisitem.account?.votingCompletedAt ?
+                                            {(thisitem.account?.votingCompletedAt && thisitem.account?.votingCompletedAt > 0) ?
                                                 <>Ended At</>
                                             :
                                                 <>Ends At</>
@@ -1558,7 +1540,7 @@ function GetParticipants(props: any){
                                                         {thisitem.account?.draftAt &&
                                                             <>
                                                                 {thisitem.account?.votingCompletedAt ?
-                                                                    `Ended ${moment.unix(Number(thisitem.account?.draftAt)+Number(thisGovernance?.account?.config?.maxVotingTime)).fromNow()}`
+                                                                    `${moment.unix(Number(thisitem.account?.draftAt)+Number(thisGovernance?.account?.config?.maxVotingTime)).fromNow()}`
                                                                 :
                                                                     `Ending ${moment.unix(Number(thisitem.account?.draftAt)+Number(thisGovernance?.account?.config?.maxVotingTime)).fromNow()}`
                                                                 }
