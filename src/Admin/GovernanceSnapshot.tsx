@@ -125,7 +125,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [jsonGenerated, setJSONGenerated] = React.useState(null);
     const [solanaVotingResultRows,setSolanaVotingResultRows] = React.useState(null);
     const [loadingParticipants, setLoadingParticipants] = React.useState(false);
-
+    const [currentUploadInfo, setCurrentUploadInfo] = React.useState(null);
     const [tokenDecimals, setTokenDecimals] = React.useState(null);
     const [voteType, setVoteType] = React.useState(null);
     const [propVoteType, setPropVoteType] = React.useState(null); // 0 council, 1 token, 2 nft
@@ -187,6 +187,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         //const finalList = new Array();
         setLoading(true);
         setProposals(null);
+        setCurrentUploadInfo(null);
         setStatus("Fetching Governance - Source: Q");
         const connection = RPC_CONNECTION;
         //console.log("Fetching governance "+address);
@@ -837,7 +838,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const processProposals = async(finalList:any, forceSkip:boolean) => {
         if (finalList){
             setLoading(true);
-            
+            setCurrentUploadInfo(null);
+
             const finalProposalList = await fetchProposalData(finalList, forceSkip);
             
             if (finalProposalList){
@@ -987,6 +989,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
             
             console.log("Replacing Governance Lookup");
             const uploadFile = await returnJSON(JSON.stringify(governanceLookup), "governance_lookup.json");
+            const fileSize  = uploadFile.size;
+            setCurrentUploadInfo("Replacing "+"governance_lookup.json"+" - "+formatBytes(fileSize));
+            
             const fileStream = blobToFile(uploadFile, "governance_lookup.json");
             const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/governance_lookup.json';
             await uploadReplaceToStoragePool(fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
@@ -1002,8 +1007,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
             console.log("Uploading new Governance Lookup");
             const uploadFile = await returnJSON(JSON.stringify(lookup), "governance_lookup.json");
             const fileStream = blobToFile(uploadFile, "governance_lookup.json");
+            const fileSize  = uploadFile.size;
+            setCurrentUploadInfo("Replacing "+"governance_lookup.json"+" - "+formatBytes(fileSize));
             await uploadToStoragePool(fileStream, new PublicKey(storageAccountPK));
-
             // update autocomplete
             governanceAutocomplete.push({
                 label: governanceName, 
@@ -1070,10 +1076,13 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 console.log("2. Storage Pool: "+storageAccountPK+" | File ("+fileName+") found: "+JSON.stringify(found));
             
                 const fileStream = blobToFile(uploadFile, fileName);
+                const fileSize  = uploadFile.size;
                 if (found){
                     const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+fileName;
+                    setCurrentUploadInfo("Replacing "+fileName+" - "+formatBytes(fileSize));
                     await uploadReplaceToStoragePool(fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
                 }else{
+                    setCurrentUploadInfo("Adding "+fileName+" - "+formatBytes(fileSize));
                     await uploadToStoragePool(fileStream, new PublicKey(storageAccountPK));
                 }
 
@@ -1083,11 +1092,16 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 const membersFileStream = blobToFile(uploadMembersFile, memberFileName);
                 if (foundMembers){
                     const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+memberFileName;
+                    setCurrentUploadInfo("Replacing "+memberFileName+" - "+formatBytes(fileSize));
                     await uploadReplaceToStoragePool(membersFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
                 }else{
+                    setCurrentUploadInfo("Adding "+memberFileName+" - "+formatBytes(fileSize));
                     await uploadToStoragePool(membersFileStream, new PublicKey(storageAccountPK));
                 }
                 
+                // delay a bit and update to show that the files have been added
+                setCurrentUploadInfo(null);
+
             }catch(e){
                 console.log("ERR: "+e);
             }
@@ -1273,6 +1287,11 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 <Typography variant='subtitle1' sx={{textAlign:'center'}}>
                     {status}
                 </Typography>
+                {currentUploadInfo &&
+                    <Typography variant='caption' sx={{textAlign:'center'}}>
+                        {currentUploadInfo}
+                    </Typography>
+                }
 
                 {fileGenerated &&
                     <>
