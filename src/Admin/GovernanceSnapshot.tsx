@@ -462,7 +462,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 (cgov.account.state === 7)||
                                 (cgov.account.state === 8)){
                                     thisitem.votingResults = cgov.votingResults;
-                                    thisitem.instructions = cgov.instructions;
+                                    if (cgov.instructions)
+                                        thisitem.instructions = cgov.instructions;
                                     if (!forceSkip)
                                         skip_process = true;
                                 }
