@@ -1074,7 +1074,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
                 // proceed to add propsals
                 console.log("2. Storage Pool: "+storageAccountPK+" | File ("+fileName+") found: "+JSON.stringify(found));
-            
+                
                 const fileStream = blobToFile(uploadFile, fileName);
                 const fileSize  = uploadFile.size;
                 if (found){
@@ -1100,7 +1100,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 }
                 
                 // delay a bit and update to show that the files have been added
-                setCurrentUploadInfo(null);
+                setCurrentUploadInfo("Governance DSC "+governanceAddress+" updated!");
 
             }catch(e){
                 console.log("ERR: "+e);
