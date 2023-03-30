@@ -1100,7 +1100,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 }
                 
                 // delay a bit and update to show that the files have been added
-                setCurrentUploadInfo("Governance DSC "+governanceAddress+" updated!");
+                setCurrentUploadInfo("SPL Governance DSC "+governanceAddress+" updated!");
 
             }catch(e){
                 console.log("ERR: "+e);
