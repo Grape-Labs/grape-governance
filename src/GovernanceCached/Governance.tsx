@@ -1197,9 +1197,7 @@ function GetParticipants(props: any){
                                     <Timeline position="alternate">
       
                                         {proposalInstructions && (proposalInstructions).map((item: any, index:number) => (
-                                            
                                             <InstructionView instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
-                                                
                                         ))}
                                     </Timeline>
                             </AccordionDetails>
