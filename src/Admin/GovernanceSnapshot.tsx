@@ -563,6 +563,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         proposalPk: new PublicKey(thisitem.pubkey),
                     });
 
+
+
                     const vrs = [];
                     let csvFile = '';
                     let uYes = 0;
@@ -570,9 +572,11 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     if (voteRecord?.value){
                         let counter = 0;
 
+                        
+
                         for (let item of voteRecord.value){
                             counter++;
-                            //console.log("item: "+JSON.stringify(item))
+                            
                             if (item.account?.vote){
                                 if (item.account?.vote?.voteType === 0){
                                     uYes++;
@@ -586,6 +590,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                     uNo++;
                                 }
                             }
+
+                            if (counter === 1)
+                                console.log("item ("+thisitem.pubkey+"): "+JSON.stringify(item))
 
                             vrs.push({
                                 id:counter,
@@ -627,6 +634,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             //    csvFile += item.pubkey.toBase58();
                         }
                     }
+
+                    console.log("vrs len "+vrs.length)
 
                     vrs.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
                     

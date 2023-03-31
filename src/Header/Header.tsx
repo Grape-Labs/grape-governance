@@ -284,11 +284,13 @@ export function Header(props: any) {
                 </Button>
 
                 <>
-                <Tooltip title={`Admin Fetching Tools`}><IconButton sx={{ml:1,borderRadius:'17px'}} 
-                    component={Link}
-                    to={'/admin'}
-                >
-                    <SettingsSuggestIcon /></IconButton>
+                <Tooltip title={`Admin Fetching Tools`}>
+                    <IconButton sx={{ml:1,borderRadius:'17px'}} 
+                        component={Link}
+                        to={'/admin'}
+                    >
+                    <SettingsSuggestIcon />
+                    </IconButton>
                 </Tooltip>
                 </>
 

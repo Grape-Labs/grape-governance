@@ -641,9 +641,14 @@ function GetParticipants(props: any){
                             variant="body2"
                             color="text.secondary"
                             >
-                            Instruction: {index+1}
+                            <Typography variant="subtitle1">
+                                Instruction {index+1} <ExplorerView address={new PublicKey(instruction.pubkey).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
+                            </Typography>
+                            <Typography>
+                                {instructionInfo?.name || <ExplorerView address={new PublicKey(instructionDetails.programId).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px'/>}
+                            </Typography>
+                            
 
-                            <Typography>{instructionInfo?.name || new PublicKey(instructionDetails?.programId).toBase58()}</Typography>
                             
                         </TimelineOppositeContent>
                     
@@ -1194,7 +1199,7 @@ function GetParticipants(props: any){
                                     
                                 </AccordionSummary>
                                 <AccordionDetails>
-                                    <Timeline position="alternate">
+                                    <Timeline>
       
                                         {proposalInstructions && (proposalInstructions).map((item: any, index:number) => (
                                             <InstructionView instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
