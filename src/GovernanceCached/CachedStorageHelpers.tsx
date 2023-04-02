@@ -1,4 +1,4 @@
-
+import pako from 'pako';
 import { GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 
 export const formatBytes = (bytes: any, decimals = 2) => {
@@ -22,8 +22,12 @@ export const fetchGovernanceLookupFile = async(storagePool:string) => {
             }
           });
 
-          const string = await response.text();
-          const json = string === "" ? {} : JSON.parse(string);
+          const compressed = await response.text();
+          const decompressed = compressed;
+          // if compressed we need to decompress:
+          // const decompressed = pako.inflate(compressed, { to: 'string' });
+          const json = decompressed === "" ? {} : JSON.parse(decompressed);
+
           return json;
     } catch(e){
         console.log("ERR: "+e)
@@ -38,10 +42,14 @@ export const fetchLookupFile = async(fileName:string,storagePool:string) => {
             method: 'GET',
             headers: {
             }
-          });
-          const string = await response.text();
-          const json = string === "" ? {} : JSON.parse(string);
-          return json;
+        });
+        const compressed = await response.text();
+        const decompressed = compressed;
+        // if compressed we need to decompress:
+        // const decompressed = pako.inflate(compressed, { to: 'string' });
+        const json = decompressed === "" ? {} : JSON.parse(decompressed);
+
+        return json;
     } catch(e){
         console.log("ERR: "+e)
         return null;

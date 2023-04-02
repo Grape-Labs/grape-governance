@@ -814,11 +814,11 @@ export function GovernanceMembersView(props: any) {
                                                 }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Active/Participating/All Participants</>
+                                                    <>Active/Participating/All Voters</>
                                                 </Typography>
                                                 <Tooltip title={<>
                                                         <strong>Active:</strong> Currently Active Deposited<br/>
-                                                        <strong>Participating:</strong> All time Participating votes<br/>
+                                                        <strong>Participating:</strong> All time Participating voters<br/>
                                                         <strong>All:</strong> Total Lifetime Deposited in Governance</>
                                                     }>
                                                     <Button
