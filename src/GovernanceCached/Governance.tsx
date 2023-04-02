@@ -2095,8 +2095,8 @@ export function GovernanceCachedView(props: any) {
                 setRealm(grealm);
                 setRealmName(grealm.account.name);
                 
-                const realmPk = grealm.pubkey;
-
+                const realmPk = grealm?.pubkey;
+                //console.log("realmPk: "+realmPk)
                 // Check if we have this cached
                 let rawTokenOwnerRecords = null;
                 if (cachedMemberMap){
