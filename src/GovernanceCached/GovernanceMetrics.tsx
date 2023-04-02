@@ -539,7 +539,6 @@ function RenderVoterRecordTable(props:any) {
                                 'date':monthts,
                                 'cpassing':(item.account.state === 3 || item.account.state === 5) ? 1 : 0,
                                 'cdefeated':(item.account.state === 7) ? 1 :0,
-
                                 //'cparticipating':,
                                 'count':1
                             });
@@ -626,7 +625,10 @@ function RenderVoterRecordTable(props:any) {
             //console.log("highest participation: "+highestParticipation)
             setMetricsHighestParticipation(highestParticipation);
 
-            setGovernnaceChartData(propsByMonth);
+            // reverse to show in ascending order:
+            const sortedPropsByMonth = propsByMonth.reverse();
+            
+            setGovernnaceChartData(sortedPropsByMonth);
 
             setMetricsProposalsPerMonth(((totalCommunityProposals/propsByMonth.length)).toFixed(1))
             
