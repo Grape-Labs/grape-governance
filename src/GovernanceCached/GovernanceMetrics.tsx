@@ -627,7 +627,7 @@ function RenderVoterRecordTable(props:any) {
 
             // reverse to show in ascending order:
             const sortedPropsByMonth = propsByMonth.reverse();
-            
+
             setGovernnaceChartData(sortedPropsByMonth);
 
             setMetricsProposalsPerMonth(((totalCommunityProposals/propsByMonth.length)).toFixed(1))
@@ -1284,7 +1284,7 @@ export function GovernanceMetricsView(props: any) {
                                         data={governanceChartData}
                                         >
                                         <ArgumentAxis />
-                                        
+                                        <ValueAxis />
                                             <BarSeries
                                                 name="Proposals"
                                                 valueField="count"
@@ -1303,11 +1303,8 @@ export function GovernanceMetricsView(props: any) {
                                             />
                                         <Title text="Proposals" />
                                         <Legend position="bottom" rootComponent={Root} labelComponent={Label} />
-                                        <Stack
-                                            stacks={[
-                                            { series: ['Proposals', 'Defeated', 'Passed'] },
-                                            ]}
-                                        />
+                                        
+                                        <Stack />
                                         <Animation />
                                     </Chart>
                                 </Box>
