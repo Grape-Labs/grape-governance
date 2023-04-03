@@ -23,6 +23,9 @@ import {
     APP_LOGO
 } from '../utils/grapeTools/constants';
 
+import {
+    fetchGovernanceLookupFile,
+} from '../GovernanceCached/CachedStorageHelpers'; 
 
 import {
     WalletDialogProvider,
@@ -207,38 +210,6 @@ export function Header(props: any) {
 
     const { t, i18n } = useTranslation();
     
-    const fetchGovernanceLookupFile = async() => {
-        try{
-            const url = GGAPI_STORAGE_URI+"/"+GGAPI_STORAGE_POOL+'/governance_lookup.json';
-            const response = await window.fetch(url, {
-                method: 'GET',
-                headers: {
-                }
-              });
-
-              const string = await response.text();
-              const json = string === "" ? {} : JSON.parse(string);
-
-              const sorted = json.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
-
-              const lookupAutocomplete = new Array();
-                for (var item of sorted){
-                    lookupAutocomplete.push({
-                        label: item.governanceName,
-                        value: item.governanceAddress,
-                        totalProposals: item.totalProposals,
-                        totalProposalsVoting: item.totalProposalsVoting,
-                    });
-                }
-                setGovernanceAutocomplete(lookupAutocomplete);
-
-              return json;
-        } catch(e){
-            console.log("ERR: "+e)
-            return null;
-        }
-    }
-
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setFetchType((event.target as HTMLInputElement).value);
       };
@@ -247,9 +218,28 @@ export function Header(props: any) {
         navigate({pathname: "/"+fetchType+"/"+governanceAddress,},{ replace: true });
     }
 
+    const getGovernanceLookupFile = async () => {
+        const fglf = await fetchGovernanceLookupFile(GGAPI_STORAGE_POOL);
+        
+        if (fglf && fglf.length > 0){
+            const sorted = fglf.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
+            
+            const lookupAutocomplete = new Array();
+            for (var item of sorted){
+                lookupAutocomplete.push({
+                    label: item.governanceName,
+                    value: item.governanceAddress,
+                    totalProposals: item.totalProposals,
+                    totalProposalsVoting: item.totalProposalsVoting,
+                });
+            }
+            setGovernanceAutocomplete(lookupAutocomplete);
+        }
+    }
+
     React.useEffect(() => { 
         if (!governanceAutocomplete){
-            fetchGovernanceLookupFile();
+            getGovernanceLookupFile();
         }
     }, []);
 

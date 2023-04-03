@@ -22,13 +22,18 @@ export const fetchGovernanceLookupFile = async(storagePool:string) => {
             }
           });
 
-          const compressed = await response.text();
-          const decompressed = compressed;
+          const compressed = await response.arrayBuffer(); //.text();
+          //const decompressed = compressed;
           // if compressed we need to decompress:
-          // const decompressed = pako.inflate(compressed, { to: 'string' });
-          const json = decompressed === "" ? {} : JSON.parse(decompressed);
-
-          return json;
+        try{
+            const decompressed = pako.inflate(new Uint8Array(compressed), { to: 'string' });
+            //let decompressed:any = pako.ungzip((compressed), {"to": "string"});
+            const json = decompressed === "" ? {} : JSON.parse(decompressed);
+            return json;
+        }catch(err){ 
+            console.log("err decompressed: "+JSON.stringify(compressed))
+            return null;
+        }
     } catch(e){
         console.log("ERR: "+e)
         return null;
@@ -43,13 +48,17 @@ export const fetchLookupFile = async(fileName:string,storagePool:string) => {
             headers: {
             }
         });
-        const compressed = await response.text();
-        const decompressed = compressed;
+        const compressed = await response.arrayBuffer(); //.text();
+        //const decompressed = compressed;
         // if compressed we need to decompress:
-        // const decompressed = pako.inflate(compressed, { to: 'string' });
-        const json = decompressed === "" ? {} : JSON.parse(decompressed);
-
-        return json;
+        try{
+            const decompressed = pako.inflate(new Uint8Array(compressed), { to: 'string' });
+            const json = decompressed === "" ? {} : JSON.parse(decompressed);
+            return json;
+        }catch(e){
+            console.log("err decompressed: "+JSON.stringify(compressed))
+            return null;
+        }
     } catch(e){
         console.log("ERR: "+e)
         return null;

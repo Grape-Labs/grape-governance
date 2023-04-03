@@ -48,6 +48,8 @@ import { LinearProgressProps } from '@mui/material/LinearProgress';
 import { Connection, PublicKey, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { ShdwDrive, ShadowFile } from "@shadow-drive/sdk";
 import {
+    fetchGovernanceLookupFile,
+    fetchLookupFile,
     formatBytes
 } from '../GovernanceCached/CachedStorageHelpers'; 
 import { useSnackbar } from 'notistack';
@@ -167,7 +169,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         },
         [enqueueSnackbar]
     );
-
+    
     const getTokens = async () => {
         const tarray:any[] = [];
         try{
@@ -186,7 +188,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     }
 
     const getGovernanceFromLookup  = async (fileName:string) => {
-        const fgl = await fetchGovernanceFile(fileName);
+        const fgl = await fetchLookupFile(fileName, storagePool);
         return fgl;
     } 
     
@@ -593,7 +595,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             proposalPk: new PublicKey(thisitem.pubkey),
                         });
 
-                        console.log("vrs check 4")
+                        //console.log("vrs check 4")
                         const vrs = [];
                         let csvFile = '';
                         let uYes = 0;
@@ -662,7 +664,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             }
                         }
 
-                        console.log("Participation #"+vrs.length)
+                        console.log("Prop Participation: "+vrs.length)
 
                         vrs.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
                         
@@ -734,6 +736,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const returnJSON = async(generatedString:string, fileName:string) => {
         setStatus("File generated!");
         
+        /*
         const jsonString = `data:text/json;chatset=utf-8,${encodeURIComponent(
             JSON.stringify(generatedString, null, 2)
         )}`;
@@ -743,22 +746,35 @@ export function GovernanceSnapshotView (this: any, props: any) {
         const blob_json = new Blob([bytes], {
             type: "application/json;charset=utf-8"
         });
-
+        */
         const blob = new Blob([generatedString], {
             type: "application/text"
         });
         
-        const text = await new Response(blob).text()
+        //const text = await new Response(blob).text()
         //console.log("text: "+text);
-        console.log("size: "+blob.size);
+        console.log("Original size: "+blob.size);
 
+        
+        // Compress the JSON string using pako
+        const compressed = pako.deflate(generatedString, { to: 'string' });
+        
+        const compressed_blob = new Blob([compressed], {
+            type: "application/octet-stream"
+        });
+        
+        //const compressed_text = await new Response(compressed_blob).text()
+        //console.log("text: "+text);
+        console.log("with compression size (pending): "+compressed_blob.size);
+        
         //const url = URL.createObjectURL(blob);
         //console.log("blob size: "+blob.size);
         //const buff = Buffer.from(jsonString);
         //console.log("jsonString: " + JSON.stringify(jsonString));
         //console.log("blob: " + JSON.stringify(blob));
         //console.log("buff: " + JSON.stringify(buff));
-        return blob;
+        //return blob;
+        return compressed_blob;
     }
 
     const fileToDataUri = (file:any) => new Promise((resolve, reject) => {
@@ -983,54 +999,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
         }
     }
 
-    const fetchGovernanceFile = async(fileName:string) => {
-        try{
-            const url = GGAPI_STORAGE_URI+"/"+storagePool+'/'+fileName+'';
-            const response = await window.fetch(url, {
-                method: 'GET',
-                headers: {
-                }
-              });
-              const string = await response.text();
-              const json = string === "" ? {} : JSON.parse(string);
-              return json;
-        } catch(e){
-            console.log("ERR: "+e)
-            return null;
-        }
-    }
-
-    const fetchGovernanceLookupFile = async() => {
-        try{
-            const url = GGAPI_STORAGE_URI+"/"+storagePool+'/governance_lookup.json';
-            const response = await window.fetch(url, {
-                method: 'GET',
-                headers: {
-                }
-              });
-
-              const string = await response.text();
-              const json = string === "" ? {} : JSON.parse(string);
-
-              const lookupAutocomplete = new Array();
-                for (var item of json){
-                    lookupAutocomplete.push({
-                        label: item.governanceName,
-                        value: item.governanceAddress,
-                        totalProposals: item.totalProposals,
-                        totalProposalsVoting: item.totalProposalsVoting,
-                        lastProposalDate: item.lastProposalDate,
-                    });
-                }
-                setGovernanceAutocomplete(lookupAutocomplete);
-
-              return json;
-        } catch(e){
-            console.log("ERR: "+e)
-            return null;
-        }
-    }
-
     const updateGovernanceLookupFile = async(fileName:string, memberFileName:string, timestamp:number, lookupFound:boolean) => {
         // this should be called each time we update with governance
         const storageAccountPK = storagePool;
@@ -1041,17 +1009,23 @@ export function GovernanceSnapshotView (this: any, props: any) {
         //console.log("this_realm: "+JSON.stringify(this_realm));
         //console.log("governanceLookup: "+JSON.stringify(governanceLookup));
         
+
+
         if (this_realm){
+            //console.log("realm: "+JSON.stringify(realm))
+            const governingMintDetails = 
+                await connection.getParsedAccountInfo(
+                    new PublicKey(this_realm.account.communityMint)
+                );
+
             if (lookupFound){ // update governanceLookup
                 // with the file found, lets generate the lookup as an array
                 var govFound = false;
                 let cntr = 0;
 
                 //console.log("realm: "+JSON.stringify(realm))
-                const governingMintDetails = 
-                    await connection.getParsedAccountInfo(
-                        new PublicKey(this_realm.account.communityMint)
-                    );
+                
+                console.log("governanceLookup: "+JSON.stringify(governanceLookup));
 
                 for (var item of governanceLookup){
                     if (item.governanceAddress === governanceAddress){
@@ -1114,28 +1088,49 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/governance_lookup.json';
                 await uploadReplaceToStoragePool(fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
             } else{ // create governanceLookup
+                
+                let communityFmtSupplyFractionPercentage = null;
+                if (this_realm.account.config?.communityMintMaxVoteWeightSource)
+                    communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
+
                 lookup.push({
                     governanceAddress:governanceAddress,
                     governanceName:governanceName,
                     version:0,
                     timestamp:timestamp,
-                    filename:fileName
+                    filename:fileName,
+                    memberFilename: memberFileName,
+                    realm:this_realm,
+                    communityFmtSupplyFractionPercentage: communityFmtSupplyFractionPercentage,
+                    governance: thisGovernance,
+                    governingMintDetails: governingMintDetails,
+                    totalProposals: totalProposals,
+                    totalProposalsVoting: totalProposalsVoting,
+                    totalCouncilProposals: totalCouncilProposals,
+                    lastProposalDate: lastProposalDate,
+                    //memberCount: memberCount,
+                    tokenSupply: totalSupply,
+                    totalQuorum: totalQuorum,
                 });
                 
                 console.log("Uploading new Governance Lookup");
                 const uploadFile = await returnJSON(JSON.stringify(lookup), "governance_lookup.json");
                 const fileStream = blobToFile(uploadFile, "governance_lookup.json");
                 const fileSize  = uploadFile.size;
-                setCurrentUploadInfo("Replacing "+"governance_lookup.json"+" - "+formatBytes(fileSize));
+                setCurrentUploadInfo("Adding "+"governance_lookup.json"+" - "+formatBytes(fileSize));
                 await uploadToStoragePool(fileStream, new PublicKey(storageAccountPK));
                 // update autocomplete
-                governanceAutocomplete.push({
-                    label: governanceName, 
-                    value: governanceAddress,
-                    totalProposals: totalProposals,
-                    totalProposalsVoting: totalProposalsVoting,
-                    lastProposalDate: lastProposalDate
-                })
+                try{
+                    governanceAutocomplete.push({
+                        label: governanceName, 
+                        value: governanceAddress,
+                        totalProposals: totalProposals,
+                        totalProposalsVoting: totalProposalsVoting,
+                        lastProposalDate: lastProposalDate
+                    })
+                }catch(e){
+                    console.log("ERR: "+e);
+                }
                 
                 setGovernanceLookup(lookup);
             }
@@ -1170,9 +1165,12 @@ export function GovernanceSnapshotView (this: any, props: any) {
             alert("Drive not initialized, initializing now...");
         } else{
             // check if either file is set
+            
             if ((stringGenerated) &&
                 (membersStringGenerated)){
+                    console.log("1...: "+JSON.stringify(storageAccountPK))
                 const uploadProposalFile = await returnJSON(current_proposals_to_use, fileName);
+                console.log("2...: "+JSON.stringify(storageAccountPK))
                 const uploadMembersFile = await returnJSON(current_members_to_use, memberFileName);
                 //const fileBlob = await fileToDataUri(uploadFile);
                 // auto check if this file exists (now we manually do this)
@@ -1180,7 +1178,11 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 let foundMembers = false;
                 let lookupFound = false;
                 try{
+                    console.log("storageAccountPK: "+JSON.stringify(storageAccountPK))
                     const response = await thisDrive.listObjects(new PublicKey(storageAccountPK))
+
+                    console.log("response: "+JSON.stringify(response))
+
 
                     if (response?.keys){
                         for (var item of response.keys){
@@ -1237,22 +1239,35 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 if (!stringGenerated){
 
                 }
-                if (!proposal_file){
+                //if (!proposal_file){
 
-                }
+                //}
                 if (!membersStringGenerated){
 
                 }
-                if (!member_file){
+                //if (!member_file){
                     
-                }
+                //}
             }
         }
     }
 
     const getGovernanceLookup  = async () => {
-        const fgl = await fetchGovernanceLookupFile();
+        const fgl = await fetchGovernanceLookupFile(storagePool);
         if (fgl && fgl.length > 0){
+            const lookupAutocomplete = new Array();
+            for (var item of fgl){
+                lookupAutocomplete.push({
+                    label: item.governanceName,
+                    value: item.governanceAddress,
+                    totalProposals: item.totalProposals,
+                    totalProposalsVoting: item.totalProposalsVoting,
+                    lastProposalDate: item.lastProposalDate,
+                });
+            }
+            setGovernanceAutocomplete(lookupAutocomplete);
+
+
             const sorted = fgl.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
             setGovernanceLookup(sorted);
         }
