@@ -45,7 +45,8 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 import { LinearProgressProps } from '@mui/material/LinearProgress';
 
-import { Connection, PublicKey, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { Connection, PublicKey, TokenAccountsFilter, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
+
 import { ShdwDrive, ShadowFile } from "@shadow-drive/sdk";
 import {
     fetchGovernanceLookupFile,
@@ -275,6 +276,28 @@ export function GovernanceSnapshotView (this: any, props: any) {
             // to do get member map
             const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
             // check #tokens deposited
+
+            // loop all token holders and get the assets they have in their wallet matching the governingtokenmint
+            // grealm.account?.communityMint.toBase58()
+            //console.log("communityMint: "+JSON.stringify(grealm.account?.communityMint.toBase58()))
+            //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
+
+            const newMemberMap = new Array();
+            
+            let mcount = 0;
+            for (const owner of rawTokenOwnerRecords){
+                mcount++;
+                setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance");
+                const tokenOwnerRecord = owner.account.governingTokenOwner;
+                const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account?.communityMint});
+                
+                //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
+                if (balance?.value[0]?.account?.data?.parsed?.info)    
+                    owner.walletBalance = balance.value[0].account.data.parsed.info;
+            }
+
+            console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
+
             setMemberMap(rawTokenOwnerRecords);
             // get unique members
 
@@ -1185,9 +1208,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 try{
                     console.log("storageAccountPK: "+JSON.stringify(storageAccountPK))
                     const response = await thisDrive.listObjects(new PublicKey(storageAccountPK))
-
-                    console.log("response: "+JSON.stringify(response))
-
 
                     if (response?.keys){
                         for (var item of response.keys){

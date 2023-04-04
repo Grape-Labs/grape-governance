@@ -203,7 +203,8 @@ function RenderGovernanceMembersTable(props:any) {
                     <TableHead>
                         <TableRow>
                             <TableCell><Typography variant="caption">Member</Typography></TableCell>
-                            <TableCell><Typography variant="caption">Votes</Typography></TableCell>
+                            <TableCell><Typography variant="caption">Votes Staked</Typography></TableCell>
+                            <TableCell><Typography variant="caption">Not Staked</Typography></TableCell>
                             {/*
                             <TableCell><Typography variant="caption">Votes Casted</Typography></TableCell>
                             <TableCell><Typography variant="caption">Council Votes Casted</Typography></TableCell>
@@ -246,6 +247,11 @@ function RenderGovernanceMembersTable(props:any) {
                                                     `${getFormattedNumberToLocale(+((Number(item.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0))}`
                                                 }
                                                
+                                            </Typography>
+                                        </TableCell>
+                                        <TableCell align="center" >
+                                            <Typography variant="caption">
+                                                {getFormattedNumberToLocale(+item.walletBalanceAmount)}
                                             </Typography>
                                         </TableCell>
                                         
@@ -507,6 +513,9 @@ export function GovernanceMembersView(props: any) {
                             participant.governingTokenDepositAmount = (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number("0x"+record.account.governingTokenDepositAmount) : participant.governingTokenDepositAmount;
                             participant.governingCouncilDepositAmount = (new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number("0x"+record.account.governingTokenDepositAmount) : participant.governingCouncilDepositAmount;
                             
+                            if (record.account.governingTokenMint === record.walletBalance.mint)
+                                participant.walletBalanceAmount = (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null);
+
                             if (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config.councilMint).toBase58()){
                                 tVotes += Number("0x"+record.account.governingTokenDepositAmount);//record.account.totalVotesCount;
                                 tVotesCasted += record.account.totalVotesCount;//record.account.governingTokenDepositAmount.toNumber();
@@ -527,6 +536,7 @@ export function GovernanceMembersView(props: any) {
                                     councilVotesCount:(new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number("0x"+record.account.totalVotesCount) : 0,
                                     governingTokenDepositAmount:(new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account?.config.councilMint).toBase58()) ? Number("0x"+record.account.governingTokenDepositAmount) : new BN(0),
                                     governingCouncilDepositAmount:(new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account?.config.councilMint).toBase58()) ? Number("0x"+record.account.governingTokenDepositAmount) : new BN(0),
+                                    walletBalanceAmount: (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null)
                                 });
 
                                 if (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account?.config.councilMint).toBase58()){
@@ -537,6 +547,9 @@ export function GovernanceMembersView(props: any) {
                                     tDepositedCouncilVotesCasted += Number("0x"+record.account.governingTokenDepositAmount);
                                 }
                             } else{
+
+                                console.log("record.walletBalance: "+JSON.stringify(record.walletBalance));
+
                                 participantArray.push({
                                     governingTokenMint:new PublicKey(record.account.governingTokenMint),
                                     governingTokenOwner:new PublicKey(record.account.governingTokenOwner),
@@ -544,6 +557,7 @@ export function GovernanceMembersView(props: any) {
                                     councilVotesCount:0,
                                     governingTokenDepositAmount:Number("0x"+record.account.governingTokenDepositAmount),
                                     governingCouncilDepositAmount:new BN(0),
+                                    walletBalanceAmount: (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null)
                                 });
                                 tVotes += Number("0x"+record.account.governingTokenDepositAmount);
                                 tVotesCasted += record.account.totalVotesCount;
@@ -654,7 +668,6 @@ export function GovernanceMembersView(props: any) {
             cupdated.owner = new PublicKey(cupdated.owner);
             cupdated.pubkey = new PublicKey(cupdated.pubkey);
 
-            
             if (cupdated.account?.options && cupdated.account?.options[0]?.voteWeight)
                 cupdated.account.options[0].voteWeight = Number("0x"+cupdated.account.options[0].voteWeight)
             if (cupdated.account?.denyVoteWeight)
