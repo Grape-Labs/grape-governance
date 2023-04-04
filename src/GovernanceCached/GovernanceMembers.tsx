@@ -176,7 +176,7 @@ function RenderGovernanceMembersTable(props:any) {
         { field: 'member', headerName: 'Member', width: 170, flex: 1,
             renderCell: (params) => {
                 return(
-                    <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={params.value} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
+                    <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={params.value} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
                 )
             }
         },
