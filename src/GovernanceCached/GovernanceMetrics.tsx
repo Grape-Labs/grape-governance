@@ -247,6 +247,13 @@ function RenderVoterRecordTable(props:any) {
                 )
             }
         },
+        { field: 'currentunstakedvotes', headerName: 'Unstaked Voting Power', width: 120, hide: false, align: 'right',
+            renderCell: (params) => {
+                return(
+                    <>{getFormattedNumberToLocale(Number(params.value))}</>
+                )
+            }
+        },
         { field: 'councilvotes', headerName: 'Council', width: 50, hide: false, align: 'right',},
         { field: 'totalproposalscreated', headerName: 'Proposals Created', width: 140, hide: false, align: 'right',},
         { field: 'totalvotes', headerName: 'Total Votes Casted', width: 140, hide: false, align: 'right',
@@ -369,7 +376,7 @@ function RenderVoterRecordTable(props:any) {
                             var totalcouncilvotes = 0;
                             var totalcouncilvotesfor = 0;
                             var totalcouncilvotesagainst = 0;
-
+                            
                             propcreator = 0;
                             //console.log(author+" v "+inner_item.governingTokenOwner.toBase58())
                             if (authorAddress === inner_item.governingTokenOwner.toBase58()){ // has created this proposal
@@ -472,6 +479,7 @@ function RenderVoterRecordTable(props:any) {
                             if (!foundParticipant){
                                 depositedgovernancevotes = 0;
                                 depositedcouncilvotes = 0;
+                                let unstakedgovernancevotes = 0;
                                 for (var memberItem of memberMap){
                                     if (new PublicKey(memberItem.account.governingTokenOwner).toBase58() === inner_item.governingTokenOwner.toBase58()){
                                         
@@ -484,6 +492,8 @@ function RenderVoterRecordTable(props:any) {
                                         }else if (new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                                             depositedcouncilvotes = +(Number(memberItem.account.governingTokenDepositAmount));
                                         }
+
+                                        unstakedgovernancevotes = (memberItem.walletBalance?.tokenAmount?.amount ? Number((+memberItem.walletBalance.tokenAmount.amount /Math.pow(10, memberItem.walletBalance.tokenAmount.decimals || 0)).toFixed(0)) : 0)
                                     }
                                 }
 
@@ -500,6 +510,7 @@ function RenderVoterRecordTable(props:any) {
                                     pubkey: inner_item.governingTokenOwner.toBase58(),
                                     voter: inner_item.governingTokenOwner.toBase58(),
                                     currentvotes: depositedgovernancevotes,
+                                    currentunstakedvotes: unstakedgovernancevotes,
                                     councilvotes: depositedcouncilvotes,
                                     totalproposalscreated: propcreator,
                                     totalvotes: totalvotes,
