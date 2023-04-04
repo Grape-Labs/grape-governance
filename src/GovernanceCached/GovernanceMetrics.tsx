@@ -255,6 +255,13 @@ function RenderVoterRecordTable(props:any) {
             }
         },
         { field: 'councilvotes', headerName: 'Council', width: 50, hide: false, align: 'right',},
+        { field: 'lastparticipationdate', headerName: 'Last Participating Proposal Date', width: 200, hide: false, align: 'right',
+            renderCell: (params) => {
+                return(
+                    <>{moment.unix(Number(params.value)).format("YYYY-MM-DD HH:mm")}</>
+                )
+            }
+        },
         { field: 'totalproposalscreated', headerName: 'Proposals Created', width: 140, hide: false, align: 'right',},
         { field: 'totalvotes', headerName: 'Total Votes Casted', width: 140, hide: false, align: 'right',
             renderCell: (params) => {
@@ -472,6 +479,9 @@ function RenderVoterRecordTable(props:any) {
                                     participant.totalcouncilvotesfor += totalcouncilvotesfor;
                                     participant.totalcouncilvotesagainst += totalcouncilvotesagainst;
 
+                                    // check date for participant and add if date > current date
+                                    if (+item.account?.draftAt && +item.account?.draftAt > participant.lastparticipation)
+                                        participant.lastparticipationdate = +item.account?.draftAt;
                                 }
                                 
                             }
@@ -523,6 +533,7 @@ function RenderVoterRecordTable(props:any) {
                                     totalcouncilvotes: totalcouncilvotes,
                                     totalcouncilvotesfor: totalcouncilvotesfor,
                                     totalcouncilvotesagainst: totalcouncilvotesagainst,
+                                    lastparticipationdate: +item.account?.draftAt,
                                 })
                                 voter++;
                             }
@@ -586,8 +597,8 @@ function RenderVoterRecordTable(props:any) {
                     if (counter > 0)
                         csvFile += '\r\n';
                     else
-                        csvFile = 'pubkey,totalproposalscreated,depositedvotes,councildepositedvotes,unstakedvotes,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
-                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.currentunstakedvotes+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
+                        csvFile = 'pubkey,totalproposalscreated,depositedvotes,councildepositedvotes,unstakedvotes,lastparticipationdate,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
+                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.currentunstakedvotes+','+voter_item.lastparticipationdate+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
                     counter++;
 
                     tStakedVotes += voter_item.currentvotes;
