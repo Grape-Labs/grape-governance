@@ -162,6 +162,7 @@ function RenderGovernanceMembersTable(props:any) {
     const totalDepositedVotes = props.totalDepositedVotes;
     const connection = RPC_CONNECTION;
     const { publicKey } = useWallet();
+    const [memberVotingResults, setMemberVotingResults] = React.useState(null);
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
     // Avoid a layout jump when reaching the last page with empty rows.
@@ -170,6 +171,54 @@ function RenderGovernanceMembersTable(props:any) {
     const governingTokenMint = props?.governingTokenMint;
     const governingTokenDecimals = props?.governingTokenDecimals || 0;
     
+    const memberresultscolumns: GridColDef[] = [
+        { field: 'id', headerName: 'ID', width: 70, hide: true},
+        { field: 'member', headerName: 'Member', width: 170, flex: 1,
+            renderCell: (params) => {
+                return(
+                    <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={params.value} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
+                )
+            }
+        },
+        { field: 'staked', headerName: 'Votes Staked', width: 170, flex: 1, headerAlign: 'center', align: 'right',
+            renderCell: (params) => {
+                return(
+                    <Typography variant="h6">
+                        {getFormattedNumberToLocale(params.value)}
+                    </Typography>
+                )
+            }
+        },
+        { field: 'unstaked', headerName: 'Not Staked', width: 170, headerAlign: 'center', align: 'right',
+            renderCell: (params) => {
+                return(
+                    <Typography variant="caption">
+                        {getFormattedNumberToLocale(params.value)}
+                    </Typography>
+                )
+            }
+        },
+        { field: 'percentDepositedGovernance', headerName: '% of Deposited Governance', width: 170, headerAlign: 'center', align: 'right',
+            renderCell: (params) => {
+                return(
+                    <Typography variant="h6">
+                        {params.value}%
+                    </Typography>
+                )
+            }
+        },
+        { field: 'percentSupply', headerName: '% of Supply', width: 170, headerAlign: 'center', align: 'right',
+            renderCell: (params) => {
+                return(
+                    <Typography variant="h6">
+                        {params.value}%
+                    </Typography>
+                )
+            }
+        },
+    ];
+
+
     const handleChangePage = (event:any, newPage:number) => {
         setPage(newPage);
     };
@@ -188,6 +237,31 @@ function RenderGovernanceMembersTable(props:any) {
         setLoading(false);
     }*/
 
+    const createMemberTableRows = async() => {
+        const mmbr = new Array();
+        let x = 0;
+        for (const member of members){
+            mmbr.push({
+                id:x+1,
+                member:member.governingTokenOwner.toBase58(),
+                staked:(+((Number(member.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
+                unstaked:Number(member.walletBalanceAmount),
+                percentDepositedGovernance:Number(member.governingTokenDepositAmount) > 0 ? ((+Number(member.governingTokenDepositAmount)/totalDepositedVotes)*100).toFixed(2) : 0,
+                percentSupply:Number(member.governingTokenDepositAmount) > 0 ? ((Number(member.governingTokenDepositAmount)/circulatingSupply.value.amount)*100).toFixed(2) : 0,
+            })
+            x++;
+        }
+
+        console.log("mmbr: "+JSON.stringify(mmbr))
+        setMemberVotingResults(mmbr);
+    }
+
+    React.useEffect(() => {
+        if (members && !memberVotingResults){
+            createMemberTableRows();
+        }
+    }, [members]);
+
     if(loading){
         return (
             <Box sx={{ width: '100%' }}>
@@ -197,6 +271,33 @@ function RenderGovernanceMembersTable(props:any) {
     }
     
     return (
+        
+        <>
+            {memberVotingResults &&
+                <div style={{ height: 600, width: '100%' }}>
+                    <div style={{ display: 'flex', height: '100%' }}>
+                        <div style={{ flexGrow: 1 }}>
+                                
+                                <DataGrid
+                                    rows={memberVotingResults}
+                                    columns={memberresultscolumns}
+                                    pageSize={25}
+                                    rowsPerPageOptions={[]}
+                                    sx={{
+                                        borderRadius:'17px',
+                                        borderColor:'rgba(255,255,255,0.25)',
+                                        '& .MuiDataGrid-cell':{
+                                            borderColor:'rgba(255,255,255,0.25)'
+                                        }}}
+                                    sortingOrder={['asc', 'desc', null]}
+                                    disableSelectionOnClick
+                                />
+                        </div>
+                    </div>
+                </div>
+            }
+        
+        {/*
         <TableContainer component={Paper} sx={{background:'none'}}>
             <Table>
                 <StyledTable sx={{ minWidth: 500 }} size="small" aria-label="Portfolio Table">
@@ -205,17 +306,13 @@ function RenderGovernanceMembersTable(props:any) {
                             <TableCell><Typography variant="caption">Member</Typography></TableCell>
                             <TableCell><Typography variant="caption">Votes Staked</Typography></TableCell>
                             <TableCell><Typography variant="caption">Not Staked</Typography></TableCell>
-                            {/*
-                            <TableCell><Typography variant="caption">Votes Casted</Typography></TableCell>
-                            <TableCell><Typography variant="caption">Council Votes Casted</Typography></TableCell>
-                            */}
+                            
                             <TableCell><Typography variant="caption">% of Deposited Governance</Typography></TableCell>
                             <TableCell><Typography variant="caption">% of Supply</Typography></TableCell>
                             
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {/*proposals && (proposals).map((item: any, index:number) => (*/}
                         {members && 
                         <>  
                             {(rowsPerPage > 0
@@ -262,18 +359,6 @@ function RenderGovernanceMembersTable(props:any) {
                                             </Typography>
                                         </TableCell>
                                         
-                                        {/*
-                                        <TableCell align="center" >
-                                            <Typography variant="h6">
-                                                {item.totalVotesCount}
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell align="center" >
-                                            <Typography variant="h6">
-                                                {item.councilVotesCount}
-                                            </Typography>
-                                        </TableCell>
-                                        */}
 
                                         <TableCell align="center" >
                                             <Typography variant="h6">
@@ -305,13 +390,6 @@ function RenderGovernanceMembersTable(props:any) {
                                             </Typography>
                                         </TableCell>
 
-                                        {/*
-                                        <TableCell align="center" >
-                                            <Typography variant="h6">
-                                                {item.account.outstandingProposalCount}
-                                            </Typography>
-                                        </TableCell>
-                                        */}
                                         
                                     </TableRow>
                                 }
@@ -347,6 +425,8 @@ function RenderGovernanceMembersTable(props:any) {
                 </StyledTable>
             </Table>
         </TableContainer>
+        */}
+        </>
     )
 }
 
