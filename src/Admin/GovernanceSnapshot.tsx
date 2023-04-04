@@ -394,11 +394,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
             //const mintSupply = governingMintPromise.value.data.data.parsed.info.supply;
             //const mintDecimals = governingMintPromise.value.data.data.parsed.info.decimals; 
             
-            const voteThresholdPercentage=
-                new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint.toBase58()
+            const voteThresholdPercentage= 
+                (realm.account.config?.councilMint && new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint.toBase58())
                 ? councilVoteThreshold.value
                 : communityVoteThreshold.value
-            
             
             const tSupply = Number(governingMintPromise.value.data.parsed.info.supply/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals)) 
             
@@ -623,7 +622,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 //if (counter === 1)
                                 //    console.log("item ("+thisitem.pubkey+"): "+JSON.stringify(item))
 
-                                vrs.push({
+                                //console.log("VRS pushing "+counter)
+
+                                const vrs_item = {
                                     id:counter,
                                     pubkey:item.pubkey.toBase58(),
                                     proposal:item.account.proposal.toBase58(),
@@ -634,11 +635,15 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                         voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
                                         legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
                                         legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
-                                        decimals:(realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
-                                        councilMint:new PublicKey(realm.account.config?.councilMint).toBase58() ,
+                                        decimals:((realm.account.config?.councilMint && realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58()) ? 0 : td),
+                                        councilMint:(realm.account.config?.councilMint ? new PublicKey(realm.account.config?.councilMint).toBase58() : null),
                                         governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
                                     }
-                                })
+                                }
+
+                                vrs.push(vrs_item)
+
+                                //console.log("pushed "+JSON.stringify(vrs_item))
                                 if (counter > 1)
                                     csvFile += '\r\n';
                                 else
@@ -659,7 +664,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                     }
                                 }
                                 
-                                csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
+                                //csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
                                 //    csvFile += item.pubkey.toBase58();
                             }
                         }
@@ -1088,7 +1093,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/governance_lookup.json';
                 await uploadReplaceToStoragePool(fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
             } else{ // create governanceLookup
-                
+
                 let communityFmtSupplyFractionPercentage = null;
                 if (this_realm.account.config?.communityMintMaxVoteWeightSource)
                     communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();

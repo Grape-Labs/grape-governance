@@ -752,7 +752,7 @@ function GetParticipants(props: any){
         }
         setTokenDecimals(td);
         setVoteType(vType)
-
+        
         if (vType){
             setPropVoteType(vType);
 
@@ -781,11 +781,13 @@ function GetParticipants(props: any){
         // fetch voting results
         let voteRecord = null;
         let from_cache = false;
+        
+        
         for (var vresults of cachedGovernance){
             if (thisitem.pubkey === vresults.pubkey){
                 voteRecord = vresults.votingResults;
                 from_cache = true;
-
+                //console.log("vresults: " + JSON.stringify(vresults))
                 if (thisitem?.instructions){
                     thisitem.instructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
                     setProposalInstructions(thisitem.instructions);
@@ -828,17 +830,16 @@ function GetParticipants(props: any){
         }
 
         const voteResults = voteRecord;//JSON.parse(JSON.stringify(voteRecord));
-        
+        //console.log("1 here.. " + JSON.stringify(voteResults))
         const votingResults = [];
         let csvFile = '';
         let uYes = 0;
         let uNo = 0;
         if (voteResults){
             let counter = 0;
-
             for (let item of voteResults){
                 counter++;
-                
+                //console.log("counter: "+counter);
                 if (!from_cache){
                     if (item.voteType?.vote){
                         if (item.account?.vote?.voteType === 0){
@@ -2112,9 +2113,8 @@ export function GovernanceCachedView(props: any) {
                 let gTD = 0;
                 
                 let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account?.communityMint))
-                gTD = tokenDetails.value.data.parsed.info.decimals;
-                
                 //console.log("tokenDetails: "+JSON.stringify(tokenDetails))
+                gTD = tokenDetails.value.data.parsed.info.decimals;
                 
                 setGoverningTokenDecimals(gTD);
 
