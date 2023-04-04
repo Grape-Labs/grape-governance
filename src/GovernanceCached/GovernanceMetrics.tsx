@@ -243,15 +243,33 @@ function RenderVoterRecordTable(props:any) {
         { field: 'currentvotes', headerName: 'Current Voting Power', width: 120, hide: false, align: 'right',
             renderCell: (params) => {
                 return(
-                    <>{params.value}</>
+                    <>{getFormattedNumberToLocale(Number(params.value))}</>
                 )
             }
         },
         { field: 'councilvotes', headerName: 'Council', width: 50, hide: false, align: 'right',},
         { field: 'totalproposalscreated', headerName: 'Proposals Created', width: 140, hide: false, align: 'right',},
-        { field: 'totalvotes', headerName: 'Total Votes Casted', width: 140, hide: false, align: 'right',},
-        { field: 'totalvotesfor', headerName: 'Total Votes For', width: 140, hide: false, align: 'right',},
-        { field: 'totalvotesagainst', headerName: 'Total Votes Against', width: 170, hide: false, align: 'right',},
+        { field: 'totalvotes', headerName: 'Total Votes Casted', width: 140, hide: false, align: 'right',
+            renderCell: (params) => {
+                return(
+                    <>{getFormattedNumberToLocale(Number(params.value))}</>
+                )
+            }
+        },
+        { field: 'totalvotesfor', headerName: 'Total Votes For', width: 140, hide: false, align: 'right',
+            renderCell: (params) => {
+                return(
+                    <>{getFormattedNumberToLocale(Number(params.value))}</>
+                )
+            }
+        },
+        { field: 'totalvotesagainst', headerName: 'Total Votes Against', width: 170, hide: false, align: 'right',
+            renderCell: (params) => {
+                return(
+                    <>{getFormattedNumberToLocale(Number(params.value))}</>
+                )
+            }
+        },
         { field: 'totalproposalparticipation', headerName: 'Total Proposal Participation', width: 140, hide: false, align: 'right',},
         { field: 'totalproposalsfor', headerName: 'Total Proposals For', width: 170, hide: false, align: 'right',},
         { field: 'totalproposalsagainst', headerName: 'Total Proposals Against', width: 170, hide: false, align: 'right',},
