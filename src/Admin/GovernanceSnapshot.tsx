@@ -289,6 +289,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 mcount++;
                 setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance");
                 const tokenOwnerRecord = owner.account.governingTokenOwner;
+                
                 const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account?.communityMint});
                 
                 //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));

@@ -522,7 +522,7 @@ export function GovernanceMembersView(props: any) {
                             participant.governingTokenDepositAmount = (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number("0x"+record.account.governingTokenDepositAmount) : participant.governingTokenDepositAmount;
                             participant.governingCouncilDepositAmount = (new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number("0x"+record.account.governingTokenDepositAmount) : participant.governingCouncilDepositAmount;
                             
-                            if (record.account.governingTokenMint === record.walletBalance.mint){
+                            if (record.account.governingTokenMint === record.walletBalance?.mint){
                                 tUnstakedVotes += (record.walletBalance?.tokenAmount?.amount ? +(+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : 0);
                                 participant.walletBalanceAmount = (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null);
                             }
