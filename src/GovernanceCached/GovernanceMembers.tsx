@@ -251,7 +251,14 @@ function RenderGovernanceMembersTable(props:any) {
                                         </TableCell>
                                         <TableCell align="center" >
                                             <Typography variant="caption">
+                                                <Tooltip title={<>Governance Votes not deposited in SPL Governanc<br/>*in wallet</>}>
+                                                <Button
+                                                    color='inherit'
+                                                    sx={{borderRadius:'17px'}}
+                                                >
                                                 {getFormattedNumberToLocale(+item.walletBalanceAmount)}
+                                                </Button>
+                                                </Tooltip>
                                             </Typography>
                                         </TableCell>
                                         
@@ -373,6 +380,7 @@ export function GovernanceMembersView(props: any) {
     const [activeParticipants, setActiveParticipants] = React.useState(null);
     const [votingParticipants, setVotingParticipants] = React.useState(null);
     const [totalVotesCasted, setTotalVotesCasted] = React.useState(null);
+    const [totalUnstakedVotes, setTotalUnstakedVotes] = React.useState(null);
     const [totalDepositedCouncilVotes, setDepositedTotalCouncilVotes] = React.useState(null);
     const [top10Participants, setTop10Participants] = React.useState(null);
     const [governingTokenMint, setGoverningTokenMint] = React.useState(null);
@@ -491,6 +499,7 @@ export function GovernanceMembersView(props: any) {
                 
                 // generate a super array with merged information
                 let participantArray = new Array();
+                let tUnstakedVotes = 0;
                 let tVotes = 0;
                 let tCouncilVotes = 0;
                 let tVotesCasted = 0;
@@ -513,9 +522,10 @@ export function GovernanceMembersView(props: any) {
                             participant.governingTokenDepositAmount = (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number("0x"+record.account.governingTokenDepositAmount) : participant.governingTokenDepositAmount;
                             participant.governingCouncilDepositAmount = (new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number("0x"+record.account.governingTokenDepositAmount) : participant.governingCouncilDepositAmount;
                             
-                            if (record.account.governingTokenMint === record.walletBalance.mint)
+                            if (record.account.governingTokenMint === record.walletBalance.mint){
+                                tUnstakedVotes += (record.walletBalance?.tokenAmount?.amount ? +(+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : 0);
                                 participant.walletBalanceAmount = (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null);
-
+                            }
                             if (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config.councilMint).toBase58()){
                                 tVotes += Number("0x"+record.account.governingTokenDepositAmount);//record.account.totalVotesCount;
                                 tVotesCasted += record.account.totalVotesCount;//record.account.governingTokenDepositAmount.toNumber();
@@ -538,7 +548,8 @@ export function GovernanceMembersView(props: any) {
                                     governingCouncilDepositAmount:(new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account?.config.councilMint).toBase58()) ? Number("0x"+record.account.governingTokenDepositAmount) : new BN(0),
                                     walletBalanceAmount: (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null)
                                 });
-
+                                tUnstakedVotes += (record.walletBalance?.tokenAmount?.amount ? +(+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : 0);
+                                
                                 if (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account?.config.councilMint).toBase58()){
                                     tVotes += Number("0x"+record.account.governingTokenDepositAmount);
                                     tVotesCasted += Number("0x"+record.account.totalVotesCount);
@@ -547,8 +558,6 @@ export function GovernanceMembersView(props: any) {
                                     tDepositedCouncilVotesCasted += Number("0x"+record.account.governingTokenDepositAmount);
                                 }
                             } else{
-
-                                console.log("record.walletBalance: "+JSON.stringify(record.walletBalance));
 
                                 participantArray.push({
                                     governingTokenMint:new PublicKey(record.account.governingTokenMint),
@@ -559,6 +568,8 @@ export function GovernanceMembersView(props: any) {
                                     governingCouncilDepositAmount:new BN(0),
                                     walletBalanceAmount: (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null)
                                 });
+                                
+                                tUnstakedVotes += (record.walletBalance?.tokenAmount?.amount ? +(+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : 0);
                                 tVotes += Number("0x"+record.account.governingTokenDepositAmount);
                                 tVotesCasted += record.account.totalVotesCount;
                             }
@@ -589,6 +600,7 @@ export function GovernanceMembersView(props: any) {
                 
                 setCSVGenerated(jsonCSVString);
                 
+                setTotalUnstakedVotes(tUnstakedVotes > 0 ? tUnstakedVotes : null);
                 setTotalDepositedVotes(tVotes > 0 ? tVotes : null);
                 setTotalVotesCasted(tVotesCasted > 0 ? tVotesCasted : null);
                 setTotalCouncilVotes(tCouncilVotes > 0 ? tCouncilVotes : null);
@@ -872,7 +884,7 @@ export function GovernanceMembersView(props: any) {
                                                                 </Typography>
                                                                 <Typography variant="body2">
                                                                     <ul>
-                                                                        <li>Holders have {top10Participants.votes.toFixed(0)} votes deposited</li>
+                                                                        <li>Holders have {getFormattedNumberToLocale(+(top10Participants.votes.toFixed(0)))} votes deposited</li>
                                                                         <li>Hold {top10Participants.percentageOfGovernanceSupply.toFixed(1)}% of the total deposited in Governance</li>
                                                                         <li>Comprise {top10Participants.percentageOfSupply.toFixed(1)}% of the total token supply</li>
                                                                     </ul>
@@ -947,11 +959,21 @@ export function GovernanceMembersView(props: any) {
                                                     <>Total Votes Deposited</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                            {totalVotesCasted && <>Total Votes Deposited</>}
+                                                        <Typography variant="subtitle2">
+                                                                <strong>Total Not Staked:</strong>
+                                                        </Typography>
+                                                        <Typography variant="body2">
+                                                            
+                                                            <ul>
+                                                            {/*totalVotesCasted && <>Total Votes Deposited</>}
                                                             {(totalVotesCasted && totalDepositedCouncilVotes) &&
                                                                 <>/</>
                                                             }
-                                                            {totalCouncilVotes && <>Total Council Votes Deposited</>}
+                                                            {totalCouncilVotes && <>Total Council Votes Deposited</>*/}
+                                                            
+                                                            {totalUnstakedVotes ? <li>{getFormattedNumberToLocale(totalUnstakedVotes)} held in voter wallets</li> : <li>-</li>}
+                                                            </ul>
+                                                        </Typography>
                                                         </>
                                                     }>
                                                     <Button
