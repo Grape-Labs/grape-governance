@@ -98,6 +98,12 @@ function GovernanceCardView(props:any) {
                             {item.governanceAddress}
                         </Typography>
                     }
+
+                    {(item.totalMembers && item.totalMembers > 0) &&
+                        <Typography variant="body2">
+                            <>All Time Members <strong>{item.totalMembers}</strong></>
+                        </Typography>
+                    }
                     <Typography variant="body2">
                         {item?.totalProposals &&
                             <>Total Proposals <strong>{item.totalProposals}</strong>

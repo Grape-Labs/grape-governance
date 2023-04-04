@@ -1073,6 +1073,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         item.lastProposalDate = lastProposalDate;
                         item.tokenSupply = totalSupply;
                         item.totalQuorum = totalQuorum;
+                        item.totalMembers = memberMap ? memberMap.length : null;
                         govFound = true;
                     }
                     //console.log("size: "+new Set(memberMap).size)
@@ -1086,7 +1087,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     //let memberCount = 0;
                     //if (memberMap)
                     //    memberCount = new Set(memberMap).size; // memberMap.length;
-
                     governanceLookup.push({
                         governanceAddress:governanceAddress,
                         governanceName:governanceName,
@@ -1105,6 +1105,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         //memberCount: memberCount,
                         tokenSupply: totalSupply,
                         totalQuorum: totalQuorum,
+                        totalMembers: memberMap ? memberMap.length : null,
                     });
                 }
                 
