@@ -240,21 +240,21 @@ function RenderVoterRecordTable(props:any) {
                 )
             }
         },
-        { field: 'currentvotes', headerName: 'Current Voting Power', width: 120, hide: false, align: 'right',
+        { field: 'currentvotes', headerName: 'Current Voting Power', width: 200, hide: false, align: 'right',
             renderCell: (params) => {
                 return(
                     <>{getFormattedNumberToLocale(Number(params.value))}</>
                 )
             }
         },
-        { field: 'currentunstakedvotes', headerName: 'Unstaked Voting Power', width: 120, hide: false, align: 'right',
+        { field: 'currentunstakedvotes', headerName: 'Unstaked Voting Power', width: 200, hide: false, align: 'right',
             renderCell: (params) => {
                 return(
                     <>{getFormattedNumberToLocale(Number(params.value))}</>
                 )
             }
         },
-        { field: 'councilvotes', headerName: 'Council', width: 50, hide: false, align: 'right',},
+        { field: 'councilvotes', headerName: 'Council', width: 100, hide: false, align: 'right',},
         { field: 'lastparticipationdate', headerName: 'Last Participating Proposal Date', width: 200, hide: false, align: 'right',
             renderCell: (params) => {
                 return(
@@ -262,15 +262,15 @@ function RenderVoterRecordTable(props:any) {
                 )
             }
         },
-        { field: 'totalproposalscreated', headerName: 'Proposals Created', width: 140, hide: false, align: 'right',},
-        { field: 'totalvotes', headerName: 'Total Votes Casted', width: 140, hide: false, align: 'right',
+        { field: 'totalproposalscreated', headerName: 'Proposals Created', width: 170, hide: false, align: 'right',},
+        { field: 'totalvotes', headerName: 'Total Votes Casted', width: 170, hide: false, align: 'right',
             renderCell: (params) => {
                 return(
                     <>{getFormattedNumberToLocale(Number(params.value))}</>
                 )
             }
         },
-        { field: 'totalvotesfor', headerName: 'Total Votes For', width: 140, hide: false, align: 'right',
+        { field: 'totalvotesfor', headerName: 'Total Votes For', width: 170, hide: false, align: 'right',
             renderCell: (params) => {
                 return(
                     <>{getFormattedNumberToLocale(Number(params.value))}</>
@@ -284,11 +284,11 @@ function RenderVoterRecordTable(props:any) {
                 )
             }
         },
-        { field: 'totalproposalparticipation', headerName: 'Total Proposal Participation', width: 140, hide: false, align: 'right',},
+        { field: 'totalproposalparticipation', headerName: 'Total Proposal Participation', width: 170, hide: false, align: 'right',},
         { field: 'totalproposalsfor', headerName: 'Total Proposals For', width: 170, hide: false, align: 'right',},
         { field: 'totalproposalsagainst', headerName: 'Total Proposals Against', width: 170, hide: false, align: 'right',},
-        { field: 'totalcouncilproposalscreated', headerName: 'Council Props Created', width: 140, hide: false, align: 'right',},
-        { field: 'totalcouncilvotes', headerName: 'Council Participation', width: 140, hide: false, align: 'right',},
+        { field: 'totalcouncilproposalscreated', headerName: 'Council Props Created', width: 170, hide: false, align: 'right',},
+        { field: 'totalcouncilvotes', headerName: 'Council Participation', width: 170, hide: false, align: 'right',},
         { field: 'totalcouncilvotesfor', headerName: 'Council For', width: 170, hide: false, align: 'right',},
         { field: 'totalcouncilvotesagainst', headerName: 'Council Against', width: 170, hide: false, align: 'right',},
     ]

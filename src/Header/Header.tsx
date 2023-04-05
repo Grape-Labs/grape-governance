@@ -288,7 +288,7 @@ export function Header(props: any) {
 
                     {governanceAutocomplete ?
                         <Autocomplete
-                            sx={{ mt:1,ml:2,width: 300 }}
+                            sx={{ mt:1,ml:2, minWidth: 300 }}
                             disablePortal
                             size="small"
                             id="combo-box-demo"
@@ -313,7 +313,7 @@ export function Header(props: any) {
                             fullWidth 
                             size="small"
                             label="Enter a governance address" 
-                            sx={{ mt:1,ml:2,width: 300 }}
+                            sx={{ mt:1,ml:2, width: 300 }}
                             onChange={(e) => setGovernanceAddress(e.target.value)}/>
                         
                     }
@@ -324,7 +324,7 @@ export function Header(props: any) {
                             name="row-radio-buttons-group"
                             value={fetchType}
                             onChange={handleChange}
-                            sx={{ml:2}}
+                            sx={{ml:2,display:'none'}}
                         >
 
                             <FormControlLabel value="cachedgovernance" control={<Radio />} label="Cached" />
