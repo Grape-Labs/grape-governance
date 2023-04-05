@@ -1407,7 +1407,7 @@ export function GovernanceMetricsView(props: any) {
                                                     <>Current Eligible Voters</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        A voter that currently (at the time of snapshot) has great than 0 governance tokens in this Governance
+                                                        A voter that currently maintains voting power in this Governance (+0 votes staked at the time of cached snapshot)
                                                         </>
                                                     }>
                                                     <Button
