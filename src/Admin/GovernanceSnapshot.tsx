@@ -1326,7 +1326,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     console.log("4. Storage Pool: "+storageAccountPK+" | Members ("+governanceTransactionsFileName+") found: "+JSON.stringify(foundTransactions));
                     
                     const transactionsFileStream = blobToFile(uploadTransactionsFile, governanceTransactionsFileName);
-                    const transactionsFileSize  = uploadMembersFile.size;
+                    const transactionsFileSize  = uploadTransactionsFile.size;
                     if (foundTransactions){
                         const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+foundTransactions;
                         setCurrentUploadInfo("Replacing "+governanceTransactionsFileName+" - "+formatBytes(transactionsFileSize));
