@@ -1094,10 +1094,10 @@ function GetParticipants(props: any){
                                             }
                                         </Typography>
                                         <Typography variant="subtitle2">
-                                                {thisGovernance && thisGovernance?.account?.config?.maxVotingTime ?
+                                                {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
                                                     <>
                                                         {thisitem.account?.votingAt &&
-                                                            `${moment.unix(thisitem.account?.votingAt.toNumber()+thisGovernance?.account?.config?.maxVotingTime).format("MMMM Da, YYYY, h:mm a")}`
+                                                            `${moment.unix(thisitem.account?.votingAt.toNumber()+thisGovernance?.account?.config?.baseVotingTime).format("MMMM Da, YYYY, h:mm a")}`
                                                         }
                                                     </>
                                                 :
@@ -1123,14 +1123,14 @@ function GetParticipants(props: any){
                                                 <>Time Left</>
                                             </Typography>
                                             <Typography variant="subtitle2">
-                                                {thisGovernance && thisGovernance?.account?.config?.maxVotingTime ?
+                                                {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
                                                     <>
                                                         {thisitem.account?.votingAt &&
                                                             <>
                                                                 {thisitem.account?.votingCompletedAt ?
-                                                                    `Ended ${moment.unix(thisitem.account?.votingAt.toNumber()+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
+                                                                    `Ended ${moment.unix(thisitem.account?.votingAt.toNumber()+thisGovernance?.account?.config?.baseVotingTime).fromNow()}`
                                                                 :
-                                                                    `Ending ${moment.unix(thisitem.account?.votingAt.toNumber()+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
+                                                                    `Ending ${moment.unix(thisitem.account?.votingAt.toNumber()+thisGovernance?.account?.config?.baseVotingTime).fromNow()}`
                                                                 }
                                                             </>
                                                         }
@@ -1239,8 +1239,8 @@ function RenderGovernanceTable(props:any) {
             const governance = await getGovernance(connection, thisitem.account.governance);
             setThisGovernance(governance);
             //const starts = thisitem.account?.votingAt.toNumber();
-            ///const ends = thisitem.account?.votingAt.toNumber()+governance?.account?.config?.maxVotingTime;
-            //console.log("ending at : " + moment.unix(thisitem.account?.votingAt.toNumber()+governance?.account?.config?.maxVotingTime).format("MMMM Da, YYYY, h:mm a"));
+            ///const ends = thisitem.account?.votingAt.toNumber()+governance?.account?.config?.baseVotingTime;
+            //console.log("ending at : " + moment.unix(thisitem.account?.votingAt.toNumber()+governance?.account?.config?.baseVotingTime).format("MMMM Da, YYYY, h:mm a"));
 
             //console.log("Single governance: "+JSON.stringify(governance));
         }
@@ -1260,8 +1260,8 @@ function RenderGovernanceTable(props:any) {
                     <Typography variant="h6">
                         <Tooltip title={
                             <>
-                            {thisGovernance?.account?.config?.maxVotingTime ?
-                                `Ending ${moment.unix(thisitem.account?.votingAt.toNumber()+thisGovernance?.account?.config?.maxVotingTime).fromNow()}`
+                            {thisGovernance?.account?.config?.baseVotingTime ?
+                                `Ending ${moment.unix(thisitem.account?.votingAt.toNumber()+thisGovernance?.account?.config?.baseVotingTime).fromNow()}`
                             :
                                 <>
                                 {thisitem.account?.votingCompletedAt ?

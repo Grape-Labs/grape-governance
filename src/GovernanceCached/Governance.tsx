@@ -1510,16 +1510,16 @@ function GetParticipants(props: any){
                                             }
                                         </Typography>
                                         <Typography variant="subtitle2">
-                                                {thisGovernance && thisGovernance?.account?.config?.maxVotingTime ?
+                                                {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
                                                     <>
                                                         {thisitem.account?.draftAt &&
-                                                            `${moment.unix(Number(thisitem.account?.draftAt)+thisGovernance?.account?.config?.maxVotingTime).format("MMMM D, YYYY, h:mm a")}`
+                                                            `${moment.unix(Number(thisitem.account.draftAt)+(Number(thisGovernance.account.config.baseVotingTime))).format("MMMM D, YYYY, h:mm a")}`
                                                         }
                                                     </>
                                                 :
                                                     <>
                                                     {thisitem.account?.votingCompletedAt ?
-                                                        `${moment.unix(thisitem.account?.votingCompletedAt).format("MMMM D, YYYY, h:mm a")}`
+                                                        `${moment.unix(thisitem.account.votingCompletedAt).format("MMMM D, YYYY, h:mm a")}`
                                                     :
                                                         `Ended`
                                                     }
@@ -1539,14 +1539,14 @@ function GetParticipants(props: any){
                                                 <>Time Left</>
                                             </Typography>
                                             <Typography variant="subtitle2">
-                                                {thisGovernance && thisGovernance?.account?.config?.maxVotingTime ?
+                                                {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
                                                     <>
                                                         {thisitem.account?.draftAt &&
                                                             <>
                                                                 {thisitem.account?.votingCompletedAt ?
-                                                                    `${moment.unix(Number(thisitem.account?.draftAt)+Number(thisGovernance?.account?.config?.maxVotingTime)).fromNow()}`
+                                                                    `${moment.unix(Number(thisitem.account.draftAt)+Number(thisGovernance.account?.config.baseVotingTime)).fromNow()}`
                                                                 :
-                                                                    `Ending ${moment.unix(Number(thisitem.account?.draftAt)+Number(thisGovernance?.account?.config?.maxVotingTime)).fromNow()}`
+                                                                    `Ending ${moment.unix(Number(thisitem.account.draftAt)+Number(thisGovernance.account.config.baseVotingTime)).fromNow()}`
                                                                 }
                                                             </>
                                                         }
@@ -1672,8 +1672,8 @@ function RenderGovernanceTable(props:any) {
                         <Tooltip title={
                             <>
                                 <>
-                                {thisGovernance?.governance?.account?.config?.maxVotingTime ?
-                                    `Ending ${moment.unix(Number(thisitem.account?.draftAt)+(Number(thisGovernance?.governance?.account?.config?.maxVotingTime))).fromNow()}`
+                                {thisGovernance?.governance?.account?.config?.baseVotingTime ?
+                                    `Ending ${moment.unix(Number(thisitem.account?.draftAt)+(Number(thisGovernance?.governance?.account?.config?.baseVotingTime))).fromNow()}`
                                 :
                                     <>
                                     {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
