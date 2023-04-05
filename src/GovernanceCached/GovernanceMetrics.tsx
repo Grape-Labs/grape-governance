@@ -403,8 +403,8 @@ function RenderVoterRecordTable(props:any) {
             }
         }
 
-        console.log("Inflows: "+inflows);
-        console.log("Outflows: "+inflows);
+        console.log("All Inflows: "+inflows);
+        console.log("All Outflows: "+inflows);
         setMetricsInflows(Number(nowinflows.toFixed(0)));
         setMetricsOutflows(-1*Number(nowoutflows.toFixed(0)));
         setMetricsPreviousInflows(Number(previousinflows.toFixed(0)));
@@ -2026,7 +2026,7 @@ export function GovernanceMetricsView(props: any) {
                                                         <>Current Months Inflows/Outflows</>
                                                     </Typography>
                                                     <Tooltip title={<>
-                                                            Current Months Inflows/Outflows in Governance Votes
+                                                            Current Months Inflows/Outflows in Governance Votes (Community Mint)
                                                             </>
                                                         }>
                                                         <Button
@@ -2073,7 +2073,7 @@ export function GovernanceMetricsView(props: any) {
                                                         <>Previous Month Inflows/Outflows</>
                                                     </Typography>
                                                     <Tooltip title={<>
-                                                            Previous Month Inflows/Outflows in Governance Votes
+                                                            Previous Month Inflows/Outflows in Governance Votes (Community Mint)
                                                             </>
                                                         }>
                                                         <Button
