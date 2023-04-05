@@ -76,6 +76,8 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
 import CheckIcon from '@mui/icons-material/Check';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -188,6 +190,12 @@ const GOVERNANNCE_STATE = {
 function RenderVoterRecordTable(props:any) {
     //const [governanceStartDate, setGovernanceStartDate] = React.useState(props.governanceStartDate);
     //const [governanceEndDate, setGovernanceEndDate] = React.useState(props.governanceEndDate);
+    const cachedTransactionMap = props.cachedTransactionMap;
+    const setMetricsInflows=props.setMetricsInflows;
+    const setMetricsOutflows=props.setMetricsOutflows;
+    const setMetricsPreviousInflows=props.setMetricsPreviousInflows;
+    const setMetricsPreviousOutflows=props.setMetricsPreviousOutflows;
+
     const renderCount = props.renderCount;
     const setRenderCount = props.setRenderCount;
     const governanceStartDate = props.governanceStartDate;
@@ -344,6 +352,63 @@ function RenderVoterRecordTable(props:any) {
             const jsonCSVString = `data:text/csv;chatset=utf-8,${csvFile}`;
             setCSVGenerated(jsonCSVString);
         }
+    }
+
+    const renderGovernanceTransactionRecords = async () => {
+        let count = 0;
+        let inflows = 0;
+        let outflows = 0;
+        let nowinflows = 0;
+        let nowoutflows = 0;
+        let previousinflows = 0;
+        let previousoutflows = 0;
+        const flows = new Array();
+        const nowstamp = moment(new Date()).format("YYYY-MM");
+        const previousstamp = moment(new Date()).subtract(1, 'M').format("YYYY-MM");
+        if (cachedTransactionMap){
+            for (var transaction of cachedTransactionMap){
+                //if (count < 3)
+                //    console.log("transaction: "+JSON.stringify(transaction));
+                    
+                    let timestamp = moment.unix(Number(transaction.blockTime)).format("YYYY-MM-DD HH:ss");
+                    let monthstamp = moment.unix(Number(transaction.blockTime)).format("YYYY-MM");
+                    let address = transaction.change.address;
+                    let changeType = transaction.change.changeType;
+                    let changeAmount = transaction.change.changeAmount/Math.pow(10, (transaction.change?.decimals || 0));
+                    let tokenAddress = transaction.change.tokenAddress;
+                    let tokenName = transaction.change?.tokenName;
+                    let tokenIcon = transaction.change?.tokenIcon;
+
+                    
+                    if (new PublicKey(realm.account.communityMint).toBase58() === tokenAddress){
+                        console.log(count+": "+timestamp+" "+address+" ("+tokenName+") "+tokenAddress+" "+changeType+" "+changeAmount)
+                        if (changeType === "inc"){ // inflow
+                            inflows += changeAmount;
+                            if (nowstamp === monthstamp)
+                                nowinflows += changeAmount;
+                            if (previousstamp === monthstamp)
+                                previousinflows += changeAmount;
+                        } else{ // dec outflow
+                            outflows += changeAmount;
+                            if (nowstamp === monthstamp)
+                                nowoutflows += changeAmount;
+                            if (previousstamp === monthstamp)
+                                previousoutflows += changeAmount;
+                            
+                        }
+                    }
+                
+                    
+                count++;
+            }
+        }
+
+        console.log("Inflows: "+inflows);
+        console.log("Outflows: "+inflows);
+        setMetricsInflows(Number(nowinflows.toFixed(0)));
+        setMetricsOutflows(-1*Number(nowoutflows.toFixed(0)));
+        setMetricsPreviousInflows(Number(previousinflows.toFixed(0)));
+        setMetricsPreviousOutflows(-1*Number(previousoutflows.toFixed(0)));
     }
 
     const renderVoterRecords = async () => {
@@ -847,6 +912,7 @@ function RenderVoterRecordTable(props:any) {
             console.log("Rendering voter records " + renderCount)
             setRenderCount(renderCount+1);
             renderVoterRecords();
+            renderGovernanceTransactionRecords();
         }
     }, []);
 
@@ -929,6 +995,7 @@ export function GovernanceMetricsView(props: any) {
     const [loading, setLoading] = React.useState(false);
     const [memberMap, setMemberMap] = React.useState(null);
     const [cachedMemberMap, setCachedMemberMap] = React.useState(null);
+    const [cachedTransactionMap, setCachedTransactionMap] = React.useState(null);
     const [realm, setRealm] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(null);
     const [tokenArray, setTokenArray] = React.useState(null);
@@ -950,6 +1017,10 @@ export function GovernanceMetricsView(props: any) {
     const [cachedRealm, setCachedRealm] = React.useState(null);
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
+    const [metricsInflows, setMetricsInflows] = React.useState(null);
+    const [metricsOutflows, setMetricsOutflows] = React.useState(null);
+    const [metricsPreviousInflows, setMetricsPreviousInflows] = React.useState(null);
+    const [metricsPreviousOutflows, setMetricsPreviousOutflows] = React.useState(null);
 
     const [metricsVoters, setMetricsVoters] = React.useState(null);
     const [metricsAverageVotesPerParticipant, setMetricsAverageVotesPerParticipant] = React.useState(null);
@@ -1272,6 +1343,7 @@ export function GovernanceMetricsView(props: any) {
     const getCachedGovernanceFromLookup = async () => {
         let cached_governance = new Array();
         let cached_member_map = null;
+        let cached_transaction_map = null;
         if (governanceLookup){
             for (let glitem of governanceLookup){
                 if (glitem.governanceAddress === governanceAddress){
@@ -1284,7 +1356,12 @@ export function GovernanceMetricsView(props: any) {
                         if (cached_member_map)
                             setCachedMemberMap(cached_member_map);
                     }
-
+                    if (glitem?.governanceTransactionsFilename){
+                        cached_transaction_map = await getFileFromLookup(glitem.governanceTransactionsFilename, storagePool);
+                        //console.log("cached_transaction_map "+JSON.stringify(cached_transaction_map))
+                        if (cached_transaction_map)
+                            setCachedTransactionMap(cached_transaction_map);
+                    }
                     cached_governance = await getFileFromLookup(glitem.filename, storagePool);
                 }
             }
@@ -1935,6 +2012,99 @@ export function GovernanceMetricsView(props: any) {
                                             </Box>
                                         </Grid>
  
+                                        {(metricsInflows && metricsOutflows) &&
+                                            <Grid item xs={12} sm={6} md={6} key={1}>
+                                                <Box
+                                                    sx={{
+                                                        borderRadius:'24px',
+                                                        m:2,
+                                                        p:1,
+                                                        background: 'rgba(0, 0, 0, 0.2)'
+                                                    }}
+                                                >
+                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                        <>Current Months Inflows/Outflows</>
+                                                    </Typography>
+                                                    <Tooltip title={<>
+                                                            Current Months Inflows/Outflows in Governance Votes
+                                                            </>
+                                                        }>
+                                                        <Button
+                                                            color='inherit'
+                                                            sx={{
+                                                                borderRadius:'17px'
+                                                            }}
+                                                        >
+                                                            <Grid container
+                                                                sx={{
+                                                                    verticalAlign: 'bottom'}}
+                                                                >
+                                                                <Typography variant="h4">
+                                                                    {metricsInflows && 
+                                                                        <Badge badgeContent={<ArrowUpwardIcon sx={{ fontSize: 10 }} />} color="success">
+                                                                            {getFormattedNumberToLocale(metricsInflows)}
+                                                                        </Badge>
+                                                                    }
+                                                                        /
+                                                                    {metricsOutflows && 
+                                                                        <Badge badgeContent={<ArrowDownwardIcon sx={{ fontSize: 10 }} />} color="error">
+                                                                            {getFormattedNumberToLocale(metricsOutflows)}
+                                                                        </Badge>
+                                                                    }
+                                                                </Typography>
+                                                            </Grid>
+                                                        </Button>
+                                                    </Tooltip>
+                                                </Box>
+                                            </Grid>
+                                        }
+
+                                        {(metricsPreviousInflows && metricsPreviousOutflows) &&
+                                            <Grid item xs={12} sm={6} md={6} key={1}>
+                                                <Box
+                                                    sx={{
+                                                        borderRadius:'24px',
+                                                        m:2,
+                                                        p:1,
+                                                        background: 'rgba(0, 0, 0, 0.2)'
+                                                    }}
+                                                >
+                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                        <>Previous Month Inflows/Outflows</>
+                                                    </Typography>
+                                                    <Tooltip title={<>
+                                                            Previous Month Inflows/Outflows in Governance Votes
+                                                            </>
+                                                        }>
+                                                        <Button
+                                                            color='inherit'
+                                                            sx={{
+                                                                borderRadius:'17px'
+                                                            }}
+                                                        >
+                                                            <Grid container
+                                                                sx={{
+                                                                    verticalAlign: 'bottom'}}
+                                                                >
+                                                                <Typography variant="h4">
+                                                                    {metricsPreviousInflows && 
+                                                                        <Badge badgeContent={<ArrowUpwardIcon sx={{ fontSize: 10 }} />} color="success">
+                                                                            {getFormattedNumberToLocale(metricsPreviousInflows)}
+                                                                        </Badge>
+                                                                    }
+                                                                        /
+                                                                    {metricsPreviousOutflows && 
+                                                                        <Badge badgeContent={<ArrowDownwardIcon sx={{ fontSize: 10 }} />} color="error">
+                                                                            {getFormattedNumberToLocale(metricsPreviousOutflows)}
+                                                                        </Badge>
+                                                                    }
+                                                                </Typography>
+                                                            </Grid>
+                                                        </Button>
+                                                    </Tooltip>
+                                                </Box>
+                                            </Grid>
+                                        }
                                     </Grid>
                                 </Box>
                                 
@@ -1983,7 +2153,12 @@ export function GovernanceMetricsView(props: any) {
                             governanceStartDate={governanceStartDate}
                             governanceEndDate={governanceEndDate}
                             setRenderCount={setRenderCount}
-                            renderCount={renderCount} />
+                            renderCount={renderCount}
+                            cachedTransactionMap={cachedTransactionMap}
+                            setMetricsInflows={setMetricsInflows}
+                            setMetricsOutflows={setMetricsOutflows}
+                            setMetricsPreviousInflows={setMetricsPreviousInflows}
+                            setMetricsPreviousOutflows={setMetricsPreviousOutflows} />
                         
                         {endTime &&
                             <Typography 

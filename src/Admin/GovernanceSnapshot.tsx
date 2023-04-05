@@ -113,6 +113,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [csvGenerated, setCSVGenerated] = React.useState(null);
     const [stringGenerated, setStringGenerated] = React.useState(null);
     const [membersStringGenerated, setMembersStringGenerated] = React.useState(null);
+    const [transactionsStringGenerated, setTransactionsStringGenerated] = React.useState(null);
     const [governanceAddress, setGovernanceAddress] = React.useState(null);
     const [governanceName, setGovernanceName] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(null);
@@ -121,6 +122,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [governanceType, setGovernanceType] = React.useState(0);
     const [nftBasedGovernance, setNftBasedGovernance] = React.useState(false);
     const [memberMap, setMemberMap] = React.useState(null);
+    const [governanceTransactions, setGovernanceTransactions] = React.useState(null);
     const [lastProposalDate, setLastProposalDate] = React.useState(null);
     const [totalCouncilProposals, setTotalCouncilProposals] = React.useState(null);
     const [totalProposals, setTotalProposals] = React.useState(null);
@@ -271,6 +273,54 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 }
             }
 
+
+
+            setPrimaryStatus("Fetching Governance Transactions");
+            // https://api.solscan.io/account/token/txs?address=By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip&offset=0&limit=50&cluster=
+
+            // this will be used to monitor inflows / outflows?
+            // .fetch
+            let hasnext = true;
+            let offset = 0;
+            let limit = 50;
+            let resultcount = 0;
+            const govTx = new Array();
+            while (hasnext){
+                setPrimaryStatus("Fetching Governance Transactions ("+(offset+1)+" - "+(offset+limit)+")");
+                const apiUrl = "https://api.solscan.io/account/token/txs";
+            
+                const response = await axios.get(
+                    apiUrl, {
+                    params: {
+                        address:address,
+                        offset:offset,
+                        limit:limit,
+                        cluster:""
+                    },
+                }).then((res) => {
+                    return res;
+                }).catch((err) => {
+                    return null;  
+                })
+                offset+=limit;
+                
+                if (response){
+                    //console.log("response: "+JSON.stringify(response.data.data.tx.transactions));
+                    //console.log("total: "+JSON.stringify(response.data.data.tx.total));
+                    //console.log("hasnext: "+JSON.stringify(response.data.data.tx.hasNext));
+                    hasnext = response.data.data.tx.hasNext;
+                    // total = response.data.data.total
+                    // hasnext = response.data.data.hasnext
+                    //setGovernanceTransactions(response.data.transactions);
+                    for (var tx of response.data.data.tx.transactions){
+                        govTx.push(tx);
+                    }
+                } else{
+                    hasnext = false;
+                }
+            }
+            setGovernanceTransactions(govTx);
+            
             setPrimaryStatus("Fetching Token Owner Records");
 
             // to do get member map
@@ -1021,6 +1071,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 // do teh following to get the members
                 const membersString = JSON.stringify(memberMap);
                 setMembersStringGenerated(membersString);
+                const governanceTransactionsString = JSON.stringify(governanceTransactions);
+                setTransactionsStringGenerated(governanceTransactionsString);
+
                 return membersString;
             }
             
@@ -1028,7 +1081,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         }
     }
 
-    const updateGovernanceLookupFile = async(fileName:string, memberFileName:string, timestamp:number, lookupFound:boolean) => {
+    const updateGovernanceLookupFile = async(fileName:string, memberFileName:string, governanceTransactionsFileName: string, timestamp:number, lookupFound:boolean) => {
         // this should be called each time we update with governance
         const storageAccountPK = storagePool;
 
@@ -1062,6 +1115,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         item.timestamp = timestamp;
                         item.filename = fileName;
                         item.memberFilename = memberFileName;
+                        item.governanceTransactionsFilename = governanceTransactionsFileName;
                         item.realm = this_realm;
                         if (this_realm.account.config?.communityMintMaxVoteWeightSource)
                             item.communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
@@ -1094,6 +1148,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         timestamp:timestamp,
                         filename:fileName,
                         memberFilename: memberFileName,
+                        governanceTransactionsFilename: governanceTransactionsFileName,
                         realm:this_realm,
                         communityFmtSupplyFractionPercentage: communityFmtSupplyFractionPercentage,
                         governance: thisGovernance,
@@ -1130,6 +1185,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     timestamp:timestamp,
                     filename:fileName,
                     memberFilename: memberFileName,
+                    governanceTransactionsFilename: governanceTransactionsFileName,
                     realm:this_realm,
                     communityFmtSupplyFractionPercentage: communityFmtSupplyFractionPercentage,
                     governance: thisGovernance,
@@ -1181,11 +1237,14 @@ export function GovernanceSnapshotView (this: any, props: any) {
         const timestamp = Math.floor(new Date().getTime() / 1000);
         const fileName = governanceAddress+'_'+timestamp+'.json';
         const memberFileName = governanceAddress+'_members_'+timestamp+'.json';
+        const governanceTransactionsFileName = governanceAddress+'_transactions_'+timestamp+'.json';
+        
         const storageAccountPK = storagePool;
 
         let current_proposals_to_use = stringGenerated;
         let current_members_to_use = membersStringGenerated;
-        
+        let current_transactions_to_use = transactionsStringGenerated;
+
         //exportJSON(fileGenerated, fileName);
         console.log("preparing to upload: "+fileName);
         if (!thisDrive){
@@ -1198,14 +1257,19 @@ export function GovernanceSnapshotView (this: any, props: any) {
             
             if ((stringGenerated) &&
                 (membersStringGenerated)){
-                    console.log("1...: "+JSON.stringify(storageAccountPK))
+                
+                console.log("1: "+JSON.stringify(storageAccountPK))
                 const uploadProposalFile = await returnJSON(current_proposals_to_use, fileName);
-                console.log("2...: "+JSON.stringify(storageAccountPK))
+                console.log("2: "+JSON.stringify(storageAccountPK))
                 const uploadMembersFile = await returnJSON(current_members_to_use, memberFileName);
+                console.log("3: "+JSON.stringify(storageAccountPK))
+                const uploadTransactionsFile = await returnJSON(current_transactions_to_use, governanceTransactionsFileName);
+                
                 //const fileBlob = await fileToDataUri(uploadFile);
                 // auto check if this file exists (now we manually do this)
                 let found = false;
                 let foundMembers = false;
+                let foundTransactions = false;
                 let lookupFound = false;
                 try{
                     console.log("storageAccountPK: "+JSON.stringify(storageAccountPK))
@@ -1217,6 +1281,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 found = true;
                             } else if (item === memberFileName){
                                 foundMembers = true;
+                            } else if (item === governanceTransactionsFileName){
+                                foundTransactions = true;
                             } else if (item === 'governance_lookup.json'){
                                 lookupFound = true;
                             }
@@ -1226,7 +1292,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     // update lookup
                     console.log("1. Storage Pool: "+storageAccountPK+" | Lookup");
                     
-                    await updateGovernanceLookupFile(fileName, memberFileName, timestamp, lookupFound);
+                    await updateGovernanceLookupFile(fileName, memberFileName, governanceTransactionsFileName, timestamp, lookupFound);
 
                     // proceed to add propsals
                     console.log("2. Storage Pool: "+storageAccountPK+" | File ("+fileName+") found: "+JSON.stringify(found));
@@ -1254,6 +1320,20 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     }else{
                         setCurrentUploadInfo("Adding "+memberFileName+" - "+formatBytes(memberFileSize));
                         await uploadToStoragePool(membersFileStream, new PublicKey(storageAccountPK));
+                    }
+
+                    // proceed to add members
+                    console.log("4. Storage Pool: "+storageAccountPK+" | Members ("+governanceTransactionsFileName+") found: "+JSON.stringify(foundTransactions));
+                    
+                    const transactionsFileStream = blobToFile(uploadTransactionsFile, governanceTransactionsFileName);
+                    const transactionsFileSize  = uploadMembersFile.size;
+                    if (foundTransactions){
+                        const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+foundTransactions;
+                        setCurrentUploadInfo("Replacing "+governanceTransactionsFileName+" - "+formatBytes(transactionsFileSize));
+                        await uploadReplaceToStoragePool(transactionsFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+                    }else{
+                        setCurrentUploadInfo("Adding "+governanceTransactionsFileName+" - "+formatBytes(transactionsFileSize));
+                        await uploadToStoragePool(transactionsFileStream, new PublicKey(storageAccountPK));
                     }
                     
                     // delay a bit and update to show that the files have been added
