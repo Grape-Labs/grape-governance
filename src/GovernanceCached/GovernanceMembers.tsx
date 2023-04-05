@@ -176,7 +176,13 @@ function RenderGovernanceMembersTable(props:any) {
         { field: 'member', headerName: 'Member', width: 170, flex: 1,
             renderCell: (params) => {
                 return(
-                    <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={params.value} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
+                    <>
+                    <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={params.value.address} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
+                    {Number(params.value.governingCouncilDepositAmount) > 0 &&
+                        <Grid item>
+                            <Tooltip title={`Council Member - Votes: ${Number(params.value.governingCouncilDepositAmount)}`}><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon /></Button></Tooltip>
+                        </Grid>
+                    }</>
                 )
             }
         },
@@ -184,7 +190,7 @@ function RenderGovernanceMembersTable(props:any) {
             renderCell: (params) => {
                 return(
                     <Typography variant="h6">
-                        {getFormattedNumberToLocale(params.value)}
+                        {getFormattedNumberToLocale(params.value.governingTokenDepositAmount)}
                     </Typography>
                 )
             }
@@ -243,8 +249,15 @@ function RenderGovernanceMembersTable(props:any) {
         for (const member of members){
             mmbr.push({
                 id:x+1,
-                member:member.governingTokenOwner.toBase58(),
-                staked:(+((Number(member.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
+                member:{
+                    address: member.governingTokenOwner.toBase58(),
+                    governingCouncilDepositAmount:((Number(member.governingCouncilDepositAmount) > 0) ? Number(member.governingCouncilDepositAmount) : 0),
+                    },
+                staked:
+                    {
+                        governingTokenDepositAmount:(+((Number(member.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
+                        governingCouncilDepositAmount:((Number(member.governingCouncilDepositAmount) > 0) ? Number(member.governingCouncilDepositAmount) : 0),
+                    },
                 unstaked:Number(member.walletBalanceAmount),
                 percentDepositedGovernance:Number(member.governingTokenDepositAmount) > 0 ? ((+Number(member.governingTokenDepositAmount)/totalDepositedVotes)*100).toFixed(2) : 0,
                 percentSupply:Number(member.governingTokenDepositAmount) > 0 ? ((Number(member.governingTokenDepositAmount)/circulatingSupply.value.amount)*100).toFixed(2) : 0,
