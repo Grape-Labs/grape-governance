@@ -195,7 +195,7 @@ function RenderVoterRecordTable(props:any) {
     const setMetricsOutflows=props.setMetricsOutflows;
     const setMetricsPreviousInflows=props.setMetricsPreviousInflows;
     const setMetricsPreviousOutflows=props.setMetricsPreviousOutflows;
-
+    const setGovernanceTransactionsData=props.setGovernanceTransactionsData;
     const renderCount = props.renderCount;
     const setRenderCount = props.setRenderCount;
     const governanceStartDate = props.governanceStartDate;
@@ -363,6 +363,7 @@ function RenderVoterRecordTable(props:any) {
         let previousinflows = 0;
         let previousoutflows = 0;
         const flows = new Array();
+        const transactionsData = new Array();
         const nowstamp = moment(new Date()).format("YYYY-MM");
         const previousstamp = moment(new Date()).subtract(1, 'M').format("YYYY-MM");
         if (cachedTransactionMap){
@@ -381,20 +382,29 @@ function RenderVoterRecordTable(props:any) {
 
                     
                     if (new PublicKey(realm.account.communityMint).toBase58() === tokenAddress){
-                        console.log(count+": "+timestamp+" "+address+" ("+tokenName+") "+tokenAddress+" "+changeType+" "+changeAmount)
+                        //console.log(count+": "+timestamp+" "+address+" ("+tokenName+") "+tokenAddress+" "+changeType+" "+changeAmount)
                         if (changeType === "inc"){ // inflow
                             inflows += changeAmount;
                             if (nowstamp === monthstamp)
                                 nowinflows += changeAmount;
                             if (previousstamp === monthstamp)
                                 previousinflows += changeAmount;
+                            transactionsData.push({
+                                date:monthstamp,
+                                inflows:changeAmount,
+                                outflows:null,
+                            })
                         } else{ // dec outflow
                             outflows += changeAmount;
                             if (nowstamp === monthstamp)
                                 nowoutflows += changeAmount;
                             if (previousstamp === monthstamp)
                                 previousoutflows += changeAmount;
-                            
+                            transactionsData.push({
+                                date:monthstamp,
+                                inflows:null,
+                                outflows:changeAmount,
+                            })
                         }
                     }
                 
@@ -409,6 +419,8 @@ function RenderVoterRecordTable(props:any) {
         setMetricsOutflows(-1*Number(nowoutflows.toFixed(0)));
         setMetricsPreviousInflows(Number(previousinflows.toFixed(0)));
         setMetricsPreviousOutflows(-1*Number(previousoutflows.toFixed(0)));
+        const sortedTransactionsByMonth = transactionsData.reverse();
+        setGovernanceTransactionsData(sortedTransactionsByMonth);
     }
 
     const renderVoterRecords = async () => {
@@ -1043,7 +1055,7 @@ export function GovernanceMetricsView(props: any) {
     const [governanceStartDate, setGovernanceStartDate] = React.useState(null);
     const [governanceEndDate, setGovernanceEndDate] = React.useState(null);
 
-
+    const [governanceTransactionsData, setGovernanceTransactionsData] = React.useState(null);
     const [governanceChartData, setGovernanceChartData] = React.useState(null);
 
     const handleStartDateChange = (newValue: Dayjs | null) => {
@@ -1565,7 +1577,6 @@ export function GovernanceMetricsView(props: any) {
                                         <Legend position="bottom" rootComponent={Root} labelComponent={Label} />
                                         
                                         <Stack />
-                                        <Animation />
                                     </Chart>
                                 </Box>
                         }
@@ -2012,7 +2023,9 @@ export function GovernanceMetricsView(props: any) {
                                             </Box>
                                         </Grid>
  
-                                        {(metricsInflows && metricsOutflows) &&
+                                        {metricsInflows ?
+                                            <>
+                                            {metricsOutflows ?
                                             <Grid item xs={12} sm={6} md={6} key={1}>
                                                 <Box
                                                     sx={{
@@ -2041,13 +2054,13 @@ export function GovernanceMetricsView(props: any) {
                                                                 >
                                                                 <Typography variant="h4">
                                                                     {metricsInflows && 
-                                                                        <Badge badgeContent={<ArrowUpwardIcon sx={{ fontSize: 10 }} />} color="success">
+                                                                        <Badge badgeContent={<ArrowDownwardIcon sx={{ fontSize: 10 }} />} color="success">
                                                                             {getFormattedNumberToLocale(metricsInflows)}
                                                                         </Badge>
                                                                     }
                                                                         /
                                                                     {metricsOutflows && 
-                                                                        <Badge badgeContent={<ArrowDownwardIcon sx={{ fontSize: 10 }} />} color="error">
+                                                                        <Badge badgeContent={<ArrowUpwardIcon sx={{ fontSize: 10 }} />} color="error">
                                                                             {getFormattedNumberToLocale(metricsOutflows)}
                                                                         </Badge>
                                                                     }
@@ -2057,9 +2070,13 @@ export function GovernanceMetricsView(props: any) {
                                                     </Tooltip>
                                                 </Box>
                                             </Grid>
+                                            :<></>}
+                                            </>:<></>
                                         }
 
-                                        {(metricsPreviousInflows && metricsPreviousOutflows) &&
+                                        {metricsPreviousInflows ?
+                                         <>{metricsPreviousOutflows ?
+
                                             <Grid item xs={12} sm={6} md={6} key={1}>
                                                 <Box
                                                     sx={{
@@ -2088,13 +2105,13 @@ export function GovernanceMetricsView(props: any) {
                                                                 >
                                                                 <Typography variant="h4">
                                                                     {metricsPreviousInflows && 
-                                                                        <Badge badgeContent={<ArrowUpwardIcon sx={{ fontSize: 10 }} />} color="success">
+                                                                        <Badge badgeContent={<ArrowDownwardIcon sx={{ fontSize: 10 }} />} color="success">
                                                                             {getFormattedNumberToLocale(metricsPreviousInflows)}
                                                                         </Badge>
                                                                     }
                                                                         /
                                                                     {metricsPreviousOutflows && 
-                                                                        <Badge badgeContent={<ArrowDownwardIcon sx={{ fontSize: 10 }} />} color="error">
+                                                                        <Badge badgeContent={<ArrowUpwardIcon sx={{ fontSize: 10 }} />} color="error">
                                                                             {getFormattedNumberToLocale(metricsPreviousOutflows)}
                                                                         </Badge>
                                                                     }
@@ -2104,9 +2121,42 @@ export function GovernanceMetricsView(props: any) {
                                                     </Tooltip>
                                                 </Box>
                                             </Grid>
+                                            :<></>}
+                                            </>:<></>
                                         }
                                     </Grid>
                                 </Box>
+
+                                {governanceTransactionsData ?
+                                 <>{governanceTransactionsData.length > 0 ?
+                                    <Box>
+                                        <Chart
+                                            data={governanceTransactionsData}
+                                            >
+                                            <ArgumentAxis />
+                                            <ValueAxis />
+                                                <BarSeries
+                                                    name="Inflows"
+                                                    valueField="inflows"
+                                                    argumentField="date"
+                                                />
+
+                                                <BarSeries
+                                                    name="Outflows"
+                                                    valueField="outflows"
+                                                    argumentField="date"
+                                                />
+                                            <Title text="Inflows/Outflows" />
+                                            <Legend position="bottom" rootComponent={Root} labelComponent={Label} />
+                                            
+                                            <Stack />
+                                        </Chart>
+                                    </Box>
+                                    :<></>
+                                    }
+                                    </>
+                                :<></>
+                                }
                                 
                         {(metricsTotalVotesDeposited <= 0) &&
                             <Box
@@ -2122,6 +2172,7 @@ export function GovernanceMetricsView(props: any) {
                         <RenderVoterRecordTable 
                             setMetricsTotalStaked={setMetricsTotalStaked}
                             setGovernanceChartData={setGovernanceChartData}
+                            setGovernanceTransactionsData={setGovernanceTransactionsData}
                             setMetricsVoters={setMetricsVoters} 
                             setMetricsAverageVotesPerParticipant={setMetricsAverageVotesPerParticipant} 
                             setMetricsEligibleVoters={setMetricsEligibleVoters}
