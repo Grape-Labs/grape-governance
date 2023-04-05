@@ -394,7 +394,7 @@ function RenderVoterRecordTable(props:any) {
                                 inflows:changeAmount,
                                 outflows:null,
                             })
-                        } else{ // dec outflow
+                        } else if (changeType === "dec"){ // dec outflow
                             outflows += changeAmount;
                             if (nowstamp === monthstamp)
                                 nowoutflows += changeAmount;
