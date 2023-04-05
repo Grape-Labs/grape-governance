@@ -1372,7 +1372,7 @@ export function GovernanceMetricsView(props: any) {
                                                     <>All time Governance</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        All time deposited in SPL Governance
+                                                        All time voters that have participated in at least one proposal
                                                         </>
                                                     }>
                                                     <Button
@@ -1407,7 +1407,7 @@ export function GovernanceMetricsView(props: any) {
                                                     <>Current Eligible Voters</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        An eligible voter is a voter that has great than 0 governance tokens in this Governance
+                                                        A voter that currently (at the time of snapshot) has great than 0 governance tokens in this Governance
                                                         </>
                                                     }>
                                                     <Button
@@ -1439,10 +1439,10 @@ export function GovernanceMetricsView(props: any) {
                                                 }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>All Time Voters</>
+                                                    <>All Time Active Voters</>
                                                 </Typography>
                                                 <Tooltip title={<>
-                                                        Participant that has voted at least once
+                                                        Voted at least once & currently maintain voting power
                                                         </>
                                                     }>
                                                     <Button
