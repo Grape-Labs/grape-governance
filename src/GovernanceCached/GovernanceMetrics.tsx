@@ -254,6 +254,13 @@ function RenderVoterRecordTable(props:any) {
                 )
             }
         },
+        { field: 'unstakedpercentage', headerName: 'Unstaked %', width: 125, hide: false, align: 'right',
+            renderCell: (params) => {
+                return(
+                    <>{(params.value*100).toFixed(1)}%</>
+                )
+            }
+        },
         { field: 'councilvotes', headerName: 'Council', width: 100, hide: false, align: 'right',},
         { field: 'lastparticipationdate', headerName: 'Last Participating Proposal Date', width: 200, hide: false, align: 'right',
             renderCell: (params) => {
@@ -521,6 +528,7 @@ function RenderVoterRecordTable(props:any) {
                                     voter: inner_item.governingTokenOwner.toBase58(),
                                     currentvotes: depositedgovernancevotes,
                                     currentunstakedvotes: unstakedgovernancevotes,
+                                    unstakedpercentage: +unstakedgovernancevotes/+depositedgovernancevotes,
                                     councilvotes: depositedcouncilvotes,
                                     totalproposalscreated: propcreator,
                                     totalvotes: totalvotes,
@@ -538,7 +546,6 @@ function RenderVoterRecordTable(props:any) {
                                 voter++;
                             }
                         }
-
                         //let voterCount = voterArray.length;
                         if (participationCount > 0){
                             if (participationCount > highestParticipation){
