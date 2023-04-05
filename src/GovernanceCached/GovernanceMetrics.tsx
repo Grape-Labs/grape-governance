@@ -416,9 +416,9 @@ function RenderVoterRecordTable(props:any) {
         console.log("All Inflows: "+inflows);
         console.log("All Outflows: "+inflows);
         setMetricsInflows(Number(nowinflows.toFixed(0)));
-        setMetricsOutflows(-1*Number(nowoutflows.toFixed(0)));
+        setMetricsOutflows(Number(nowoutflows.toFixed(0)));
         setMetricsPreviousInflows(Number(previousinflows.toFixed(0)));
-        setMetricsPreviousOutflows(-1*Number(previousoutflows.toFixed(0)));
+        setMetricsPreviousOutflows(Number(previousoutflows.toFixed(0)));
         const sortedTransactionsByMonth = transactionsData.reverse();
         setGovernanceTransactionsData(sortedTransactionsByMonth);
     }
