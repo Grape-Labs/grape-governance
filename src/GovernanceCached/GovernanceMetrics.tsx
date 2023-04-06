@@ -394,17 +394,42 @@ function RenderVoterRecordTable(props:any) {
                                 inflows:changeAmount,
                                 outflows:null,
                             })
+
+                            var foundTd = false;
+                            for (var td of transactionsData){
+                                if (td.date === monthstamp){
+                                    foundTd = true;
+                                    td.inflows += changeAmount;
+                                }
+                            }
+                            if (!foundTd){
+                                transactionsData.push({
+                                    date:monthstamp,
+                                    inflows:changeAmount,
+                                    outflows:null,
+                                })
+                            }
                         } else {//if (changeType === "dec"){ // dec outflow - not always accurate
                             outflows += changeAmount;
                             if (nowstamp === monthstamp)
                                 nowoutflows += changeAmount;
                             if (previousstamp === monthstamp)
                                 previousoutflows += changeAmount;
-                            transactionsData.push({
-                                date:monthstamp,
-                                inflows:null,
-                                outflows:changeAmount,
-                            })
+                            
+                            var foundTd = false;
+                            for (var td of transactionsData){
+                                if (td.date === monthstamp){
+                                    foundTd = true;
+                                    td.outflows += changeAmount;
+                                }
+                            }
+                            if (!foundTd){
+                                transactionsData.push({
+                                    date:monthstamp,
+                                    inflows:null,
+                                    outflows:changeAmount,
+                                })
+                            }
                         }
                     }
                 
