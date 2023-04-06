@@ -458,16 +458,6 @@ export default function ExplorerView(props:any){
                     </MenuItem>
                     <MenuItem 
                         component='a'
-                        href={`https://xray.helius.xyz/${type === 'address' ? 'account' : 'tx'}/${address}`}
-                        target='_blank'
-                        onClick={handleClose}>
-                            <ListItemIcon>
-                                <ExploreOutlinedIcon fontSize="small" />
-                            </ListItemIcon>
-                            XRay
-                    </MenuItem>
-                    <MenuItem 
-                        component='a'
                         href={`https://solanabeach.io/${type === 'address' ? 'address' : 'transaction'}/${address}`}
                         target='_blank'
                         onClick={handleClose}>
@@ -475,6 +465,16 @@ export default function ExplorerView(props:any){
                                 <ExploreOutlinedIcon fontSize="small" />
                             </ListItemIcon>
                             Solana Beach
+                    </MenuItem>
+                    <MenuItem 
+                        component='a'
+                        href={`https://xray.helius.xyz/${type === 'address' ? 'account' : 'tx'}/${address}`}
+                        target='_blank'
+                        onClick={handleClose}>
+                            <ListItemIcon>
+                                <ExploreOutlinedIcon fontSize="small" />
+                            </ListItemIcon>
+                            XRay
                     </MenuItem>
                     <MenuItem 
                         component='a'
