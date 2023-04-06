@@ -2204,7 +2204,7 @@ export function GovernanceMetricsView(props: any) {
                                                     valueField="outflows"
                                                     argumentField="date"
                                                 />
-                                            <Title text={`Governance Participation Inflows/Outflows in `+governanceCommunityTokenMintName} />
+                                            <Title text={`Governance Votes Inflows/Outflows in `+governanceCommunityTokenMintName} />
                                             <Legend position="bottom" rootComponent={Root} labelComponent={Label} />
                                             
                                             <Stack />
@@ -2226,7 +2226,7 @@ export function GovernanceMetricsView(props: any) {
                                             <ArgumentAxis />
                                             <ValueAxis />
                                                 <BarSeries
-                                                    name="Balance"
+                                                    name="Staked Votes"
                                                     valueField="postbalance"
                                                     argumentField="date"
                                                 />
