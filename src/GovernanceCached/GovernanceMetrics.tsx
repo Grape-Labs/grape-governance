@@ -202,6 +202,7 @@ function RenderVoterRecordTable(props:any) {
     const governanceEndDate = props.governanceEndDate;
     const [loadingTable, setLoadingTable] = React.useState(false);
     const setGovernnaceChartData = props.setGovernanceChartData;
+    const setGovernanceBalanceOverTimeData = props.setGovernanceBalanceOverTimeData;
     const setMetricsVoters = props.setMetricsVoters;
     const setMetricsAverageVotesPerParticipant = props.setMetricsAverageVotesPerParticipant;
     const setMetricsAverageParticipation = props.setMetricsAverageParticipation;
@@ -364,12 +365,13 @@ function RenderVoterRecordTable(props:any) {
         let previousoutflows = 0;
         const flows = new Array();
         const transactionsData = new Array();
+        const balanceOverTimeData = new Array();
         const nowstamp = moment(new Date()).format("YYYY-MM");
         const previousstamp = moment(new Date()).subtract(1, 'M').format("YYYY-MM");
         if (cachedTransactionMap){
             for (var transaction of cachedTransactionMap){
-                //if (count < 3)
-                //    console.log("transaction: "+JSON.stringify(transaction));
+                if (count < 3)
+                    console.log("transaction: "+JSON.stringify(transaction));
                     
                     let timestamp = moment.unix(Number(transaction.blockTime)).format("YYYY-MM-DD HH:ss");
                     let monthstamp = moment.unix(Number(transaction.blockTime)).format("YYYY-MM");
@@ -379,9 +381,17 @@ function RenderVoterRecordTable(props:any) {
                     let tokenAddress = transaction.change.tokenAddress;
                     let tokenName = transaction.change?.tokenName;
                     let tokenIcon = transaction.change?.tokenIcon;
-
+                    let prebalance = transaction.change?.preBalance/Math.pow(10, (transaction.change?.decimals || 0));;
+                    let postbalance = transaction.change?.postBalance/Math.pow(10, (transaction.change?.decimals || 0));;
                     
                     if (new PublicKey(realm.account.communityMint).toBase58() === tokenAddress){
+                        
+                        balanceOverTimeData.push({
+                            date:monthstamp,
+                            prebalance:prebalance,
+                            postbalance:postbalance,
+                        })
+                        
                         //console.log(count+": "+timestamp+" "+address+" ("+tokenName+") "+tokenAddress+" "+changeType+" "+changeAmount)
                         if (changeAmount > 0){ //((changeType === "inc")||(changeAmount > 0)){ // inflow
                             inflows += changeAmount;
@@ -389,12 +399,7 @@ function RenderVoterRecordTable(props:any) {
                                 nowinflows += changeAmount;
                             if (previousstamp === monthstamp)
                                 previousinflows += changeAmount;
-                            transactionsData.push({
-                                date:monthstamp,
-                                inflows:changeAmount,
-                                outflows:null,
-                            })
-
+                            
                             var foundTd = false;
                             for (var td of transactionsData){
                                 if (td.date === monthstamp){
@@ -446,6 +451,8 @@ function RenderVoterRecordTable(props:any) {
         setMetricsPreviousOutflows(Number(previousoutflows.toFixed(0)));
         const sortedTransactionsByMonth = transactionsData.reverse();
         setGovernanceTransactionsData(sortedTransactionsByMonth);
+        const sortedBalanceByMonth = balanceOverTimeData.reverse();
+        setGovernanceBalanceOverTimeData(balanceOverTimeData);
     }
 
     const renderVoterRecords = async () => {
@@ -1080,6 +1087,7 @@ export function GovernanceMetricsView(props: any) {
     const [governanceStartDate, setGovernanceStartDate] = React.useState(null);
     const [governanceEndDate, setGovernanceEndDate] = React.useState(null);
 
+    const [governanceBalanceOverTimeData, setGovernanceBalanceOverTimeData] = React.useState(null);
     const [governanceTransactionsData, setGovernanceTransactionsData] = React.useState(null);
     const [governanceChartData, setGovernanceChartData] = React.useState(null);
 
@@ -2182,6 +2190,32 @@ export function GovernanceMetricsView(props: any) {
                                     </>
                                 :<></>
                                 }
+
+
+                                {governanceBalanceOverTimeData ?
+                                 <>{governanceBalanceOverTimeData.length > 0 ?
+                                    <Box>
+                                        <Chart
+                                            data={governanceBalanceOverTimeData}
+                                            >
+                                            <ArgumentAxis />
+                                            <ValueAxis />
+                                                <BarSeries
+                                                    name="Balance"
+                                                    valueField="postbalance"
+                                                    argumentField="date"
+                                                />
+                                            <Title text="Governance Deposits (Community Token Mint) Over Time" />
+                                            <Legend position="bottom" rootComponent={Root} labelComponent={Label} />
+                                            
+                                            <Stack />
+                                        </Chart>
+                                    </Box>
+                                    :<></>
+                                    }
+                                    </>
+                                :<></>
+                                }
                                 
                         {(metricsTotalVotesDeposited <= 0) &&
                             <Box
@@ -2234,7 +2268,8 @@ export function GovernanceMetricsView(props: any) {
                             setMetricsInflows={setMetricsInflows}
                             setMetricsOutflows={setMetricsOutflows}
                             setMetricsPreviousInflows={setMetricsPreviousInflows}
-                            setMetricsPreviousOutflows={setMetricsPreviousOutflows} />
+                            setMetricsPreviousOutflows={setMetricsPreviousOutflows}
+                            setGovernanceBalanceOverTimeData={setGovernanceBalanceOverTimeData} />
                         
                         {endTime &&
                             <Typography 

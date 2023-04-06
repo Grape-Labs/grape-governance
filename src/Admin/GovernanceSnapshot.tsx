@@ -19,7 +19,8 @@ import {
     tryGetRealmConfig, 
     getRealmConfig,
     ProposalTransaction,
-    pubkeyFilter  } from '@solana/spl-governance';
+    pubkeyFilter,
+} from '@solana/spl-governance';
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
