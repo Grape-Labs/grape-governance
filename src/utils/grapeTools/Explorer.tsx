@@ -458,13 +458,13 @@ export default function ExplorerView(props:any){
                     </MenuItem>
                     <MenuItem 
                         component='a'
-                        href={`https://xray.helius.xyz.io/${type === 'address' ? 'account' : 'tx'}/${address}`}
+                        href={`https://xray.helius.xyz/${type === 'address' ? 'account' : 'tx'}/${address}`}
                         target='_blank'
                         onClick={handleClose}>
                             <ListItemIcon>
                                 <ExploreOutlinedIcon fontSize="small" />
                             </ListItemIcon>
-                            XRAY
+                            XRay
                     </MenuItem>
                     <MenuItem 
                         component='a'
