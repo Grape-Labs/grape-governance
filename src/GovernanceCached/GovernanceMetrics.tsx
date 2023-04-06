@@ -214,7 +214,9 @@ function RenderVoterRecordTable(props:any) {
     const setMetricsParticipationRate = props.setMetricsParticipationRate;
     const setMetricsHighestParticipation = props.setMetricsHighestParticipation;
     const setMetricsHighestParticipationProposalName = props.setMetricsHighestParticipationProposalName;
-
+    const setGovernanceCommunityTokenMintName = props.setGovernanceCommunityTokenMintName;
+    const setGovernanceCommunityTokenMintLogo = props.setGovernanceCommunityTokenMintLogo;
+    
     const setMetricsCommunityPassed = props.setMetricsCommunityPassed;
     const setMetricsCommunityDefeated = props.setMetricsCommunityDefeated;
     const setMetricsCommunityResultsRate = props.setMetricsCommunityResultsRate;
@@ -363,77 +365,98 @@ function RenderVoterRecordTable(props:any) {
         let nowoutflows = 0;
         let previousinflows = 0;
         let previousoutflows = 0;
-        const flows = new Array();
+        
         const transactionsData = new Array();
         const balanceOverTimeData = new Array();
         const nowstamp = moment(new Date()).format("YYYY-MM");
         const previousstamp = moment(new Date()).subtract(1, 'M').format("YYYY-MM");
         if (cachedTransactionMap){
             for (var transaction of cachedTransactionMap){
-                if (count < 3)
-                    console.log("transaction: "+JSON.stringify(transaction));
-                    
+                //if (count < 3)
+                //    console.log("transaction: "+JSON.stringify(transaction));
+                
                     let timestamp = moment.unix(Number(transaction.blockTime)).format("YYYY-MM-DD HH:ss");
                     let monthstamp = moment.unix(Number(transaction.blockTime)).format("YYYY-MM");
-                    let address = transaction.change.address;
-                    let changeType = transaction.change.changeType;
-                    let changeAmount = transaction.change.changeAmount/Math.pow(10, (transaction.change?.decimals || 0));
-                    let tokenAddress = transaction.change.tokenAddress;
-                    let tokenName = transaction.change?.tokenName;
-                    let tokenIcon = transaction.change?.tokenIcon;
-                    let prebalance = transaction.change?.preBalance/Math.pow(10, (transaction.change?.decimals || 0));;
-                    let postbalance = transaction.change?.postBalance/Math.pow(10, (transaction.change?.decimals || 0));;
-                    
-                    if (new PublicKey(realm.account.communityMint).toBase58() === tokenAddress){
+
+                    var skip = false;
+                    if (governanceStartDate && governanceEndDate){
+                        if (governanceStartDate < governanceEndDate){
+                            skip = true;
+                            if ((Number(transaction.blockTime) >= governanceStartDate) && 
+                                (Number(transaction.blockTime) <= governanceEndDate)){
+                                console.log("Skipping TX")
+                                skip = false;
+                            }
+                        }
+                    }
+
+                    if (!skip){
                         
-                        balanceOverTimeData.push({
-                            date:monthstamp,
-                            prebalance:prebalance,
-                            postbalance:postbalance,
-                        })
+                        let address = transaction.change.address;
+                        let changeType = transaction.change.changeType;
+                        let changeAmount = transaction.change.changeAmount/Math.pow(10, (transaction.change?.decimals || 0));
+                        let tokenAddress = transaction.change.tokenAddress;
+                        let tokenName = transaction.change?.tokenName;
+                        let tokenIcon = transaction.change?.tokenIcon;
+                        let prebalance = transaction.change?.preBalance/Math.pow(10, (transaction.change?.decimals || 0));;
+                        let postbalance = transaction.change?.postBalance/Math.pow(10, (transaction.change?.decimals || 0));;
                         
-                        //console.log(count+": "+timestamp+" "+address+" ("+tokenName+") "+tokenAddress+" "+changeType+" "+changeAmount)
-                        if (changeAmount > 0){ //((changeType === "inc")||(changeAmount > 0)){ // inflow
-                            inflows += changeAmount;
-                            if (nowstamp === monthstamp)
-                                nowinflows += changeAmount;
-                            if (previousstamp === monthstamp)
-                                previousinflows += changeAmount;
+                        if (tokenName)
+                            setGovernanceCommunityTokenMintName(tokenName);
+                        if (tokenIcon)
+                            setGovernanceCommunityTokenMintLogo(tokenIcon);
+                        
+                        if (new PublicKey(realm.account.communityMint).toBase58() === tokenAddress){
                             
-                            var foundTd = false;
-                            for (var td of transactionsData){
-                                if (td.date === monthstamp){
-                                    foundTd = true;
-                                    td.inflows += changeAmount;
-                                }
-                            }
-                            if (!foundTd){
-                                transactionsData.push({
-                                    date:monthstamp,
-                                    inflows:changeAmount,
-                                    outflows:null,
-                                })
-                            }
-                        } else {//if (changeType === "dec"){ // dec outflow - not always accurate
-                            outflows += changeAmount;
-                            if (nowstamp === monthstamp)
-                                nowoutflows += changeAmount;
-                            if (previousstamp === monthstamp)
-                                previousoutflows += changeAmount;
+                            balanceOverTimeData.push({
+                                date:monthstamp,
+                                prebalance:prebalance,
+                                postbalance:postbalance,
+                            })
                             
-                            var foundTd = false;
-                            for (var td of transactionsData){
-                                if (td.date === monthstamp){
-                                    foundTd = true;
-                                    td.outflows += changeAmount;
+                            //console.log(count+": "+timestamp+" "+address+" ("+tokenName+") "+tokenAddress+" "+changeType+" "+changeAmount)
+                            if (changeAmount > 0){ //((changeType === "inc")||(changeAmount > 0)){ // inflow
+                                inflows += changeAmount;
+                                if (nowstamp === monthstamp)
+                                    nowinflows += changeAmount;
+                                if (previousstamp === monthstamp)
+                                    previousinflows += changeAmount;
+                                
+                                var foundTd = false;
+                                for (var td of transactionsData){
+                                    if (td.date === monthstamp){
+                                        foundTd = true;
+                                        td.inflows += changeAmount;
+                                    }
                                 }
-                            }
-                            if (!foundTd){
-                                transactionsData.push({
-                                    date:monthstamp,
-                                    inflows:null,
-                                    outflows:changeAmount,
-                                })
+                                if (!foundTd){
+                                    transactionsData.push({
+                                        date:monthstamp,
+                                        inflows:changeAmount,
+                                        outflows:null,
+                                    })
+                                }
+                            } else {//if (changeType === "dec"){ // dec outflow - not always accurate
+                                outflows += changeAmount;
+                                if (nowstamp === monthstamp)
+                                    nowoutflows += changeAmount;
+                                if (previousstamp === monthstamp)
+                                    previousoutflows += changeAmount;
+                                
+                                var foundTd = false;
+                                for (var td of transactionsData){
+                                    if (td.date === monthstamp){
+                                        foundTd = true;
+                                        td.outflows += changeAmount;
+                                    }
+                                }
+                                if (!foundTd){
+                                    transactionsData.push({
+                                        date:monthstamp,
+                                        inflows:null,
+                                        outflows:changeAmount,
+                                    })
+                                }
                             }
                         }
                     }
@@ -1086,6 +1109,8 @@ export function GovernanceMetricsView(props: any) {
 
     const [governanceStartDate, setGovernanceStartDate] = React.useState(null);
     const [governanceEndDate, setGovernanceEndDate] = React.useState(null);
+    const [governanceCommunityTokenMintLogo,setGovernanceCommunityTokenMintLogo] = React.useState(null);
+    const [governanceCommunityTokenMintName,setGovernanceCommunityTokenMintName] = React.useState(null);
 
     const [governanceBalanceOverTimeData, setGovernanceBalanceOverTimeData] = React.useState(null);
     const [governanceTransactionsData, setGovernanceTransactionsData] = React.useState(null);
@@ -2072,7 +2097,7 @@ export function GovernanceMetricsView(props: any) {
                                                         <>Current Months Inflows/Outflows</>
                                                     </Typography>
                                                     <Tooltip title={<>
-                                                            Current Months Inflows/Outflows in Governance Votes (Community Mint)
+                                                            Current Months Inflows/Outflows in Governance Votes (Community Mint: {governanceCommunityTokenMintName})
                                                             </>
                                                         }>
                                                         <Button
@@ -2123,7 +2148,7 @@ export function GovernanceMetricsView(props: any) {
                                                         <>Previous Month Inflows/Outflows</>
                                                     </Typography>
                                                     <Tooltip title={<>
-                                                            Previous Month Inflows/Outflows in Governance Votes (Community Mint)
+                                                            Previous Month Inflows/Outflows in Governance Votes (Community Mint: {governanceCommunityTokenMintName})
                                                             </>
                                                         }>
                                                         <Button
@@ -2179,7 +2204,7 @@ export function GovernanceMetricsView(props: any) {
                                                     valueField="outflows"
                                                     argumentField="date"
                                                 />
-                                            <Title text="Inflows/Outflows" />
+                                            <Title text={`Governance Participation Inflows/Outflows in `+governanceCommunityTokenMintName} />
                                             <Legend position="bottom" rootComponent={Root} labelComponent={Label} />
                                             
                                             <Stack />
@@ -2205,7 +2230,7 @@ export function GovernanceMetricsView(props: any) {
                                                     valueField="postbalance"
                                                     argumentField="date"
                                                 />
-                                            <Title text="Governance Deposits (Community Token Mint) Over Time" />
+                                            <Title text={`Governance Growth participation in `+governanceCommunityTokenMintName} />
                                             <Legend position="bottom" rootComponent={Root} labelComponent={Label} />
                                             
                                             <Stack />
@@ -2269,7 +2294,9 @@ export function GovernanceMetricsView(props: any) {
                             setMetricsOutflows={setMetricsOutflows}
                             setMetricsPreviousInflows={setMetricsPreviousInflows}
                             setMetricsPreviousOutflows={setMetricsPreviousOutflows}
-                            setGovernanceBalanceOverTimeData={setGovernanceBalanceOverTimeData} />
+                            setGovernanceBalanceOverTimeData={setGovernanceBalanceOverTimeData}
+                            setGovernanceCommunityTokenMintLogo={setGovernanceCommunityTokenMintLogo}
+                            setGovernanceCommunityTokenMintName={setGovernanceCommunityTokenMintName} />
                         
                         {endTime &&
                             <Typography 
