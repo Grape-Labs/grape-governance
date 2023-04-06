@@ -478,10 +478,12 @@ function RenderVoterRecordTable(props:any) {
         
         // we need to make a new object and push the voters
         var voterArray = new Array();
+        let totalCouncilHolders = 0;
         let totalEligibleVoters = 0;
         let totalActiveVoters = 0;
         let totalVotesDeposited = 0;
         let totalCommunityParticipation = 0;
+        let totalCouncilParticipation = 0;
         let totalCommunityProposals = 0;
         let totalCouncilProposals = 0;
         let totalVotesCasted = 0;
@@ -523,6 +525,7 @@ function RenderVoterRecordTable(props:any) {
                     } else if (new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                         depositedcouncilvotes = +(Number(memberItem.account.governingTokenDepositAmount));
                         voterItem.councilvotes = depositedcouncilvotes;
+                        totalCouncilHolders++;
                     }
 
                     totalVotesDeposited += depositedgovernancevotes;
@@ -684,6 +687,8 @@ function RenderVoterRecordTable(props:any) {
                                     
                                     if (realm.account.config?.councilMint && (new PublicKey(realm.account.config?.councilMint).toBase58() === item.account.governingTokenMint.toBase58())){ // Council Votes
                                         //console.log("council vote...")
+                                        totalCouncilParticipation++;
+
                                         if (inner_item?.vote){
                                             if (inner_item?.vote?.vote?.voteType === 0){
                                                 if ((inner_item?.vote?.voterWeight) > 0){
@@ -1033,20 +1038,26 @@ function RenderVoterRecordTable(props:any) {
                 highestParticipationProposalName:highestParticipationProposalName,
                 highestParticipation:highestParticipation,
                 governanceChartData:sortedPropsByMonth,
-                proposalsPerMonth:((totalCommunityProposals/propsByMonth.length)).toFixed(1),
+                proposalsCommunityPerMonth:((totalCommunityProposals/propsByMonth.length)).toFixed(1),
+                proposalsCouncilPerMonth:((totalCouncilProposals/propsByMonth.length)).toFixed(1),
                 voters:voterArray.length,
                 averageVotesPerParticipant:getFormattedNumberToLocale(formatAmount(+(totalVotesCasted/totalActiveVoters/totalCommunityProposals).toFixed(0))),
-                averageParticipation:(totalCommunityParticipation > 0 ? (totalCommunityParticipation/totalCommunityProposals).toFixed(0) : null),
+                communityAverageParticipation:(totalCommunityParticipation > 0 ? (totalCommunityParticipation/totalCommunityProposals).toFixed(0) : null),
+                councilAverageParticipation:(totalCouncilParticipation > 0 ? (totalCouncilParticipation/totalCouncilProposals).toFixed(0) : null),
                 totalActiveVoters:totalActiveVoters,
                 totalEligibleVoters:totalEligibleVoters,
+                totalCouncilHolders:totalCouncilHolders,
                 totalVotesDeposited:(totalVotesDeposited ? totalVotesDeposited : 0),
                 totalVotesCasted:getFormattedNumberToLocale(formatAmount(totalVotesCasted)),
                 totalProposals:totalCommunityProposals+totalCouncilProposals,
                 totalCommunityProposals:totalCommunityProposals,
                 totalCouncilProposals:totalCouncilProposals,
                 communityParticipationRate:((totalEligibleVoters > 0) ? (((totalCommunityParticipation/totalCommunityProposals)/totalEligibleVoters)*100).toFixed(2) : null),
+                councilParticipationRate:((totalCouncilHolders > 0) ? (((totalCouncilParticipation/totalCouncilProposals)/totalCouncilHolders)*100).toFixed(2) : null),
                 totalCommunityPassed:totalCommunityPassed,
                 totalCommunityDefeated:totalCommunityDefeated,
+                totalCouncilPassed:totalCouncilPassed,
+                totalCouncilDefeated:totalCouncilDefeated,
                 totalInstructions:totalInstructions,
                 totalProposalsWithInstructions:totalProposalsWInstructions
             }
@@ -1987,7 +1998,7 @@ export function GovernanceMetricsView(props: any) {
                                                         <>Proposals p/Month</>
                                                     </Typography>
                                                     <Tooltip title={<>
-                                                            Average proposals created per month
+                                                            Community/Council
                                                             </>
                                                         }>
                                                         <Button
@@ -2001,7 +2012,11 @@ export function GovernanceMetricsView(props: any) {
                                                                     verticalAlign: 'bottom'}}
                                                                 >
                                                                 <Typography variant="h4">
-                                                                    {metricsObject?.proposalsPerMonth ? metricsObject.proposalsPerMonth : `-`}
+                                                                    {metricsObject?.proposalsCommunityPerMonth ? metricsObject.proposalsCommunityPerMonth : `-`}
+
+                                                                    {(metricsObject?.proposalsCommunityPerMonth && metricsObject?.proposalsCouncilPerMonth) && <>/</>}
+
+                                                                    {metricsObject?.proposalsCouncilPerMonth ? metricsObject.proposalsCouncilPerMonth : `-`}
                                                                 </Typography>
                                                             </Grid>
                                                         </Button>
@@ -2023,7 +2038,7 @@ export function GovernanceMetricsView(props: any) {
                                                     </Typography>
                                                     <Tooltip title={<>
                                                             Average Participation per Proposal<br/>
-                                                            The rate at which an eligible voter will cast a vote in a proposal
+                                                            The rate at which an eligible voter will cast a vote in a proposal<br/>Community/Council
                                                             </>
                                                         }>
                                                         <Button
@@ -2037,11 +2052,24 @@ export function GovernanceMetricsView(props: any) {
                                                                     verticalAlign: 'bottom'}}
                                                                 >
                                                                 <Typography variant="h4">
-                                                                    {metricsObject?.averageParticipation && metricsObject.averageParticipation}
+                                                                    {metricsObject?.communityAverageParticipation && metricsObject.communityAverageParticipation}
                                                                 </Typography>
                                                                 <Typography variant="h6">
-                                                                {metricsObject.participationRate && 
-                                                                    <>/{metricsObject.participationRate}%</>
+                                                                {metricsObject.communityParticipationRate && 
+                                                                    <>/{metricsObject.communityParticipationRate}%</>
+                                                                }
+                                                                </Typography>
+
+                                                                <Typography variant="h4">
+                                                                {(metricsObject?.communityAverageParticipation && metricsObject?.councilAverageParticipation) && <>&nbsp;-&nbsp;</>}
+                                                                </Typography>
+
+                                                                <Typography variant="h4">
+                                                                    {metricsObject?.councilAverageParticipation && metricsObject.councilAverageParticipation}
+                                                                </Typography>
+                                                                <Typography variant="h6">
+                                                                {metricsObject?.councilParticipationRate && 
+                                                                    <>/{metricsObject.councilParticipationRate}%</>
                                                                 }
                                                                 </Typography>
                                                             </Grid>
@@ -2086,114 +2114,229 @@ export function GovernanceMetricsView(props: any) {
                                                     </Tooltip>
                                                 </Box>
                                             </Grid>
-
-                                            <Grid item xs={12} sm={4} md={4} key={1}>
-                                                <Box
-                                                    sx={{
-                                                        borderRadius:'24px',
-                                                        m:2,
-                                                        p:1,
-                                                        background: 'rgba(0, 0, 0, 0.2)'
-                                                    }}
-                                                >
-                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                        <>Community Proposals</>
-                                                    </Typography>
-                                                    <Tooltip title={<>
-                                                            Total Community Proposals
-                                                            </>
-                                                        }>
-                                                        <Button
-                                                            color='inherit'
-                                                            sx={{
-                                                                borderRadius:'17px'
-                                                            }}
-                                                        >
-                                                            <Grid container
+                                            
+                                            {metricsObject.totalCommunityProposals > 0 &&
+                                                <>
+                                                <Grid item xs={12} sm={4} md={4} key={1}>
+                                                    <Box
+                                                        sx={{
+                                                            borderRadius:'24px',
+                                                            m:2,
+                                                            p:1,
+                                                            background: 'rgba(0, 0, 0, 0.2)'
+                                                        }}
+                                                    >
+                                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                            <>Community Proposals</>
+                                                        </Typography>
+                                                        <Tooltip title={<>
+                                                                Total Community Proposals
+                                                                </>
+                                                            }>
+                                                            <Button
+                                                                color='inherit'
                                                                 sx={{
-                                                                    verticalAlign: 'bottom'}}
-                                                                >
-                                                                <Typography variant="h4">
-                                                                    {metricsObject.totalCommunityProposals && metricsObject.totalCommunityProposals}
-                                                                </Typography>
-                                                            </Grid>
-                                                        </Button>
-                                                    </Tooltip>
-                                                </Box>
-                                            </Grid>
+                                                                    borderRadius:'17px'
+                                                                }}
+                                                            >
+                                                                <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                    >
+                                                                    <Typography variant="h4">
+                                                                        {metricsObject.totalCommunityProposals && metricsObject.totalCommunityProposals}
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Box>
+                                                </Grid>
 
-                                            <Grid item xs={12} sm={4} md={4} key={1}>
-                                                <Box
-                                                    sx={{
-                                                        borderRadius:'24px',
-                                                        m:2,
-                                                        p:1,
-                                                        background: 'rgba(0, 0, 0, 0.2)'
-                                                    }}
-                                                >
-                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                        <>Community Results</>
-                                                    </Typography>
-                                                    <Tooltip title={<>
-                                                            Passing / Defeated
-                                                            </>
-                                                        }>
-                                                        <Button
-                                                            color='inherit'
-                                                            sx={{
-                                                                borderRadius:'17px'
-                                                            }}
-                                                        >
-                                                            <Grid container
+                                                <Grid item xs={12} sm={4} md={4} key={1}>
+                                                    <Box
+                                                        sx={{
+                                                            borderRadius:'24px',
+                                                            m:2,
+                                                            p:1,
+                                                            background: 'rgba(0, 0, 0, 0.2)'
+                                                        }}
+                                                    >
+                                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                            <>Community Results</>
+                                                        </Typography>
+                                                        <Tooltip title={<>
+                                                                Passing / Defeated
+                                                                </>
+                                                            }>
+                                                            <Button
+                                                                color='inherit'
                                                                 sx={{
-                                                                    verticalAlign: 'bottom'}}
-                                                                >
-                                                                <Typography variant="h4">
-                                                                    <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{metricsObject.totalCommunityPassed}</Badge>/
-                                                                    <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{metricsObject.totalCommunityDefeated}</Badge>
-                                                                </Typography>
-                                                            </Grid>
-                                                        </Button>
-                                                    </Tooltip>
-                                                </Box>
-                                            </Grid>
+                                                                    borderRadius:'17px'
+                                                                }}
+                                                            >
+                                                                <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                    >
+                                                                    <Typography variant="h4">
+                                                                        <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{metricsObject.totalCommunityPassed}</Badge>/
+                                                                        <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{metricsObject.totalCommunityDefeated}</Badge>
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Box>
+                                                </Grid>
 
-
-                                            <Grid item xs={12} sm={4} md={4} key={1}>
-                                                <Box
-                                                    sx={{
-                                                        borderRadius:'24px',
-                                                        m:2,
-                                                        p:1,
-                                                        background: 'rgba(0, 0, 0, 0.2)'
-                                                    }}
-                                                >
-                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                        <>Community Success Rate</>
-                                                    </Typography>
-                                                    <Tooltip title={<>
-                                                            Passing / Defeated
-                                                            </>
-                                                        }>
-                                                        <Button
-                                                            color='inherit'
-                                                            sx={{
-                                                                borderRadius:'17px'
-                                                            }}
-                                                        >
-                                                            <Grid container
+                                                <Grid item xs={12} sm={4} md={4} key={1}>
+                                                    <Box
+                                                        sx={{
+                                                            borderRadius:'24px',
+                                                            m:2,
+                                                            p:1,
+                                                            background: 'rgba(0, 0, 0, 0.2)'
+                                                        }}
+                                                    >
+                                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                            <>Community Success Rate</>
+                                                        </Typography>
+                                                        <Tooltip title={<>
+                                                                Passing / Defeated
+                                                                </>
+                                                            }>
+                                                            <Button
+                                                                color='inherit'
                                                                 sx={{
-                                                                    verticalAlign: 'bottom'}}
-                                                                >
-                                                                <Typography variant="h4">
-                                                                    <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{(metricsObject.totalCommunityPassed/metricsObject.totalCommunityProposals*100).toFixed(0)}%</Badge>/
-                                                                    <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{(metricsObject.totalCommunityDefeated/metricsObject.totalCommunityProposals*100).toFixed(0)}%</Badge>
-                                                                </Typography>
-                                                            </Grid>
-                                                        </Button>
-                                                    </Tooltip>
-                                                </Box>
-                                            </Grid>
+                                                                    borderRadius:'17px'
+                                                                }}
+                                                            >
+                                                                <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                    >
+                                                                    <Typography variant="h4">
+                                                                        <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{(metricsObject.totalCommunityPassed/metricsObject.totalCommunityProposals*100).toFixed(0)}%</Badge>/
+                                                                        <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{(metricsObject.totalCommunityDefeated/metricsObject.totalCommunityProposals*100).toFixed(0)}%</Badge>
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Box>
+                                                </Grid>
+                                            </>
+                                            }
+
+                                            {metricsObject.totalCouncilProposals > 0 &&
+                                                <>
+                                                <Grid item xs={12} sm={4} md={4} key={1}>
+                                                    <Box
+                                                        sx={{
+                                                            borderRadius:'24px',
+                                                            m:2,
+                                                            p:1,
+                                                            background: 'rgba(0, 0, 0, 0.2)'
+                                                        }}
+                                                    >
+                                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                            <>Council Proposals</>
+                                                        </Typography>
+                                                        <Tooltip title={<>
+                                                                Total Council Proposals
+                                                                </>
+                                                            }>
+                                                            <Button
+                                                                color='inherit'
+                                                                sx={{
+                                                                    borderRadius:'17px'
+                                                                }}
+                                                            >
+                                                                <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                    >
+                                                                    <Typography variant="h4">
+                                                                        {metricsObject?.totalCouncilProposals && metricsObject.totalCouncilProposals}
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Box>
+                                                </Grid>
+
+                                                <Grid item xs={12} sm={4} md={4} key={1}>
+                                                    <Box
+                                                        sx={{
+                                                            borderRadius:'24px',
+                                                            m:2,
+                                                            p:1,
+                                                            background: 'rgba(0, 0, 0, 0.2)'
+                                                        }}
+                                                    >
+                                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                            <>Council Results</>
+                                                        </Typography>
+                                                        <Tooltip title={<>
+                                                                Passing / Defeated
+                                                                </>
+                                                            }>
+                                                            <Button
+                                                                color='inherit'
+                                                                sx={{
+                                                                    borderRadius:'17px'
+                                                                }}
+                                                            >
+                                                                <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                    >
+                                                                    <Typography variant="h4">
+                                                                        <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{metricsObject.totalCouncilPassed}</Badge>/
+                                                                        <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{metricsObject.totalCouncilDefeated}</Badge>
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Box>
+                                                </Grid>
+
+
+                                                <Grid item xs={12} sm={4} md={4} key={1}>
+                                                    <Box
+                                                        sx={{
+                                                            borderRadius:'24px',
+                                                            m:2,
+                                                            p:1,
+                                                            background: 'rgba(0, 0, 0, 0.2)'
+                                                        }}
+                                                    >
+                                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                            <>Council Success Rate</>
+                                                        </Typography>
+                                                        <Tooltip title={<>
+                                                                Passing / Defeated
+                                                                </>
+                                                            }>
+                                                            <Button
+                                                                color='inherit'
+                                                                sx={{
+                                                                    borderRadius:'17px'
+                                                                }}
+                                                            >
+                                                                <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                    >
+                                                                    <Typography variant="h4">
+                                                                        <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{(metricsObject.totalCouncilPassed/metricsObject.totalCouncilProposals*100).toFixed(0)}%</Badge>/
+                                                                        <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{(metricsObject.totalCouncilDefeated/metricsObject.totalCouncilProposals*100).toFixed(0)}%</Badge>
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Box>
+                                                </Grid>
+                                            </>
+                                            }
     
                                             {metricsObject?.totalInstructions ?
                                                 <Grid item xs={12} sm={6} md={6} key={1}>
