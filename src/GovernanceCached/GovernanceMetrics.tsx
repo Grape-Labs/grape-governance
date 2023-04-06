@@ -1822,11 +1822,9 @@ export function GovernanceMetricsView(props: any) {
                                                                         </Typography>  
                                                                     :
                                                                         <Typography variant="h4">
-                                                                            {metricsObject?.totalEligibleVoters && metricsObject.totalEligibleVoters}
-
-                                                                            {(metricsObject.totalCouncilHolders && metricsObject.totalEligibleVoters) && <>/</>}
-                                                                            
-                                                                            {metricsObject.totalCouncilHolders}
+                                                                            {metricsObject?.totalEligibleVoters > 0 && metricsObject.totalEligibleVoters}
+                                                                            {(metricsObject?.totalCouncilHolders > 0 && metricsObject?.totalEligibleVoters > 0) && <>/</>}
+                                                                            {metricsObject?.totalCouncilHolders > 0 && metricsObject?.totalCouncilHolders}
                                                                         </Typography>
                                                                 }
                                                             </Grid>
