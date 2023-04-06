@@ -2138,7 +2138,7 @@ export function GovernanceMetricsView(props: any) {
                                                         <>Instructions</>
                                                     </Typography>
                                                     <Tooltip title={<>
-                                                            Total Instructions
+                                                            Total Instructions from a total of {metricsTotalProposals} proposals
                                                             </>
                                                         }>
                                                         <Button
