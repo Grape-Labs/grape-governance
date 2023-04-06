@@ -1931,7 +1931,7 @@ export function GovernanceMetricsView(props: any) {
                                                 </Grid>
                                             }
 
-                                            {(metricsObject?.totalVotesCasted && metricsObject.totalVotesCasted > 0) &&
+                                            {metricsObject?.totalVotesCasted &&
                                                 <Grid item xs={12} sm={4} md={4} key={1}>
                                                     <Box
                                                         sx={{
@@ -1968,7 +1968,7 @@ export function GovernanceMetricsView(props: any) {
                                                 </Grid>
                                             }
                                             
-                                            {(metricsObject?.averageVotesPerParticipant && metricsObject.averageVotesPerParticipant > 0) &&
+                                            {metricsObject?.averageVotesPerParticipant &&
                                                 <Grid item xs={12} sm={4} md={4} key={1}>
                                                     <Box
                                                         sx={{
