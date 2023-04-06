@@ -427,11 +427,12 @@ function RenderVoterRecordTable(props:any) {
                         
                         if (new PublicKey(realm.account.communityMint).toBase58() === tokenAddress){
                             
-                            balanceOverTimeData.push({
-                                date:monthstamp,
-                                prebalance:prebalance,
-                                postbalance:postbalance,
-                            })
+                            if (prebalance > 0 && postbalance > 0)
+                                balanceOverTimeData.push({
+                                    date:monthstamp,
+                                    prebalance:prebalance,
+                                    postbalance:postbalance,
+                                })
                             
                             //console.log(count+": "+timestamp+" "+address+" ("+tokenName+") "+tokenAddress+" "+changeType+" "+changeAmount)
                             if (changeAmount > 0){ //((changeType === "inc")||(changeAmount > 0)){ // inflow
@@ -449,11 +450,12 @@ function RenderVoterRecordTable(props:any) {
                                     }
                                 }
                                 if (!foundTd){
-                                    transactionsData.push({
-                                        date:monthstamp,
-                                        inflows:changeAmount,
-                                        outflows:null,
-                                    })
+                                    if (changeAmount > 0)
+                                        transactionsData.push({
+                                            date:monthstamp,
+                                            inflows:changeAmount,
+                                            outflows:0,
+                                        })
                                 }
                             } else {//if (changeType === "dec"){ // dec outflow - not always accurate
                                 outflows += changeAmount;
@@ -470,11 +472,12 @@ function RenderVoterRecordTable(props:any) {
                                     }
                                 }
                                 if (!foundTd){
-                                    transactionsData.push({
-                                        date:monthstamp,
-                                        inflows:null,
-                                        outflows:changeAmount,
-                                    })
+                                    if (changeAmount > 0)
+                                        transactionsData.push({
+                                            date:monthstamp,
+                                            inflows:0,
+                                            outflows:changeAmount,
+                                        })
                                 }
                             }
                         }
@@ -491,10 +494,14 @@ function RenderVoterRecordTable(props:any) {
         setMetricsOutflows(Number(nowoutflows.toFixed(0)));
         setMetricsPreviousInflows(Number(previousinflows.toFixed(0)));
         setMetricsPreviousOutflows(Number(previousoutflows.toFixed(0)));
-        const sortedTransactionsByMonth = transactionsData.reverse();
-        setGovernanceTransactionsData(sortedTransactionsByMonth);
-        const sortedBalanceByMonth = balanceOverTimeData.reverse();
-        setGovernanceBalanceOverTimeData(balanceOverTimeData);
+        if (transactionsData.length > 0){
+            const sortedTransactionsByMonth = transactionsData.reverse();
+            setGovernanceTransactionsData(sortedTransactionsByMonth);
+        }
+        if (balanceOverTimeData.length){
+            const sortedBalanceByMonth = balanceOverTimeData.reverse();
+            setGovernanceBalanceOverTimeData(sortedBalanceByMonth);
+        }
     }
 
     const renderVoterRecords = async () => {
