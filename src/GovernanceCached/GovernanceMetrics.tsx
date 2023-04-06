@@ -882,7 +882,7 @@ function RenderVoterRecordTable(props:any) {
                                     pbi.councildefeated++
                             }
                         }
-                        
+
                         if (!pbi_found){
                             propsByMonth.push({
                                 'date':monthts,
@@ -979,10 +979,13 @@ function RenderVoterRecordTable(props:any) {
 
         }
 
-        const sortedResults = voterArray.sort((a,b) => (Number(a.currentvotes) < Number(b.currentvotes)) ? 1 : -1);
+        const sortedResultsA = voterArray.sort((a,b) => (Number(b.councilvotes) < Number(a.councilvotes)) ? 1 : -1);
+        const sortedResultsB = sortedResultsA.sort((a,b) => (Number(a.currentvotes) < Number(b.currentvotes)) ? 1 : -1);
+
+        setVoterRecordRows(sortedResultsB);
+
         const sortedPropsByMonth = propsByMonth.reverse();
 
-        setVoterRecordRows(voterArray);
         try{
             /*
             console.log(tParticipants+"("+memberMap.length+"): "+tStakedVotes+ " (decimals: "+governingTokenDecimals+")")
