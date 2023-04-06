@@ -514,6 +514,13 @@ function RenderVoterRecordTable(props:any) {
         
         for (var memberItem of memberMap){
             foundVoter = false;
+
+            if (new PublicKey(memberItem.account?.governingTokenMint).toBase58() == new PublicKey(realm.account.config?.councilMint).toBase58()){
+                let tmp = +(Number("0x"+memberItem.account.governingTokenDepositAmount));
+                if (tmp > 0)
+                    totalCouncilHolders++;
+            }
+
             for (var voterItem of voterArray){
                 if (memberItem.account.governingTokenOwner === voterItem.pubkey){
                     foundVoter = true;
@@ -523,10 +530,8 @@ function RenderVoterRecordTable(props:any) {
                         depositedgovernancevotes = +((Number("0x"+memberItem.account.governingTokenDepositAmount)/Math.pow(10, +governingTokenDecimals)).toFixed(0));
                         voterItem.currentvotes = depositedgovernancevotes;
                     } else if (new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
-                        depositedcouncilvotes = +(Number(memberItem.account.governingTokenDepositAmount));
+                        depositedcouncilvotes = +(Number("0x"+memberItem.account.governingTokenDepositAmount));
                         voterItem.councilvotes = depositedcouncilvotes;
-                        totalCouncilHolders+=depositedcouncilvotes;
-                        
                     }
 
                     totalVotesDeposited += depositedgovernancevotes;
@@ -560,8 +565,7 @@ function RenderVoterRecordTable(props:any) {
                     if (new PublicKey(realm.account.communityMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                         depositedgovernancevotes = +(Number("0x"+memberItem.account.governingTokenDepositAmount)/Math.pow(10, +governingTokenDecimals)).toFixed(0);
                     }else if (new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
-                        depositedcouncilvotes = (Number(memberItem.account.governingTokenDepositAmount));
-                        totalCouncilHolders+=depositedcouncilvotes;
+                        depositedcouncilvotes = (Number("0x"+memberItem.account.governingTokenDepositAmount));
                     }
                     
                     unstakedgovernancevotes = (memberItem.walletBalance?.tokenAmount?.amount ? Number((+memberItem.walletBalance.tokenAmount.amount /Math.pow(10, memberItem.walletBalance.tokenAmount.decimals || 0)).toFixed(0)) : 0)
@@ -1860,93 +1864,13 @@ export function GovernanceMetricsView(props: any) {
                                                                     verticalAlign: 'bottom'}}
                                                                 >
                                                                 <Typography variant="h4">
-                                                                    {metricsObject?.totalActiveVoters && metricsObject.totalActiveVoters}
-                                                                </Typography>
-                                                            </Grid>
-                                                        </Button>
-                                                    </Tooltip>
-                                                </Box>
-                                            </Grid>
-
-                                            <Grid item xs={12} sm={4} md={4} key={1}>
-                                                <Box
-                                                    sx={{
-                                                        borderRadius:'24px',
-                                                        m:2,
-                                                        p:1,
-                                                        background: 'rgba(0, 0, 0, 0.2)'
-                                                    }}
-                                                >
-                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                        <>Total Votes Staked</>
-                                                    </Typography>
-                                                    <Tooltip title={<>
-                                                            The sum of all votes staked & that have participated in this Governance
-                                                            {metricsObject?.totalStakedVotes && 
-                                                                <><br/><b>{getFormattedNumberToLocale(metricsObject.totalStakedVotes)}</b> staked & voted at least once</>
-                                                            }
-                                                            </>
-                                                        }>
-                                                        <Button
-                                                            color='inherit'
-                                                            sx={{
-                                                                borderRadius:'17px'
-                                                            }}
-                                                        >
-                                                            <Grid container
-                                                                sx={{
-                                                                    verticalAlign: 'bottom'}}
-                                                                >
-                                                                    {nftBasedGovernance ?
-                                                                        <Typography variant="h4">
-                                                                            NFT Based Governance
-                                                                        </Typography>  
+                                                                    {(metricsObject?.totalActiveVoters && metricsObject.totalActiveVoters > 0) ? 
+                                                                        metricsObject.totalActiveVoters
                                                                     :
                                                                         <>
-                                                                        <Typography variant="h4">
-                                                                            {metricsObject?.totalVotesDeposited && getFormattedNumberToLocale(formatAmount(metricsObject.totalVotesDeposited))}
-                                                                        </Typography>    
-                                                                        {metricsObject?.totalVotesDeposited && 
-                                                                            <Typography variant="h6">
-                                                                                /{((metricsObject.totalStakedVotes/metricsObject.totalVotesDeposited)*100).toFixed(1)}%
-                                                                            </Typography>
-                                                                        }
+                                                                             {metricsObject?.totalCouncilHolders > 0 && <>{metricsObject?.totalCouncilHolders}</>}
                                                                         </>
                                                                     }
-                                                            </Grid>
-                                                        </Button>
-                                                    </Tooltip>
-                                                </Box>
-                                            </Grid>
-
-                                            <Grid item xs={12} sm={4} md={4} key={1}>
-                                                <Box
-                                                    sx={{
-                                                        borderRadius:'24px',
-                                                        m:2,
-                                                        p:1,
-                                                        background: 'rgba(0, 0, 0, 0.2)'
-                                                    }}
-                                                >
-                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                        <>Total Votes Casted</>
-                                                    </Typography>
-                                                    <Tooltip title={<>
-                                                            Total all time votes casted for all proposals in this Governnace
-                                                            </>
-                                                        }>
-                                                        <Button
-                                                            color='inherit'
-                                                            sx={{
-                                                                borderRadius:'17px'
-                                                            }}
-                                                        >
-                                                            <Grid container
-                                                                sx={{
-                                                                    verticalAlign: 'bottom'}}
-                                                                >
-                                                                <Typography variant="h4">
-                                                                    {metricsObject?.totalVotesCasted && metricsObject.totalVotesCasted}
                                                                 </Typography>
                                                             </Grid>
                                                         </Button>
@@ -1954,40 +1878,132 @@ export function GovernanceMetricsView(props: any) {
                                                 </Box>
                                             </Grid>
                                             
-                                            <Grid item xs={12} sm={4} md={4} key={1}>
-                                                <Box
-                                                    sx={{
-                                                        borderRadius:'24px',
-                                                        m:2,
-                                                        p:1,
-                                                        background: 'rgba(0, 0, 0, 0.2)'
-                                                    }}
-                                                >
-                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                        <>Average Votes Casted Per Participant</>
-                                                    </Typography>
-                                                    <Tooltip title={<>
-                                                            The average votes casted per participant/per proposal
-                                                            </>
-                                                        }>
-                                                        <Button
-                                                            color='inherit'
-                                                            sx={{
-                                                                borderRadius:'17px'
-                                                            }}
-                                                        >
-                                                            <Grid container
+                                            {(metricsObject?.totalStakedVotes && metricsObject.totalStakedVotes > 0) &&
+                                                <Grid item xs={12} sm={4} md={4} key={1}>
+                                                    <Box
+                                                        sx={{
+                                                            borderRadius:'24px',
+                                                            m:2,
+                                                            p:1,
+                                                            background: 'rgba(0, 0, 0, 0.2)'
+                                                        }}
+                                                    >
+                                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                            <>Total Votes Staked</>
+                                                        </Typography>
+                                                        <Tooltip title={<>
+                                                                The sum of all votes staked & that have participated in this Governance
+                                                                {metricsObject?.totalStakedVotes && 
+                                                                    <><br/><b>{getFormattedNumberToLocale(metricsObject.totalStakedVotes)}</b> staked & voted at least once</>
+                                                                }
+                                                                </>
+                                                            }>
+                                                            <Button
+                                                                color='inherit'
                                                                 sx={{
-                                                                    verticalAlign: 'bottom'}}
-                                                                >
-                                                                <Typography variant="h4">
-                                                                    {metricsObject.averageVotesPerParticipant && metricsObject.averageVotesPerParticipant}
-                                                                </Typography>
-                                                            </Grid>
-                                                        </Button>
-                                                    </Tooltip>
-                                                </Box>
-                                            </Grid>
+                                                                    borderRadius:'17px'
+                                                                }}
+                                                            >
+                                                                <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                    >
+                                                                        {nftBasedGovernance ?
+                                                                            <Typography variant="h4">
+                                                                                NFT Based Governance
+                                                                            </Typography>  
+                                                                        :
+                                                                            <>
+                                                                            <Typography variant="h4">
+                                                                                {metricsObject?.totalVotesDeposited && getFormattedNumberToLocale(formatAmount(metricsObject.totalVotesDeposited))}
+                                                                            </Typography>    
+                                                                            {metricsObject?.totalVotesDeposited && 
+                                                                                <Typography variant="h6">
+                                                                                    /{((metricsObject.totalStakedVotes/metricsObject.totalVotesDeposited)*100).toFixed(1)}%
+                                                                                </Typography>
+                                                                            }
+                                                                            </>
+                                                                        }
+                                                                </Grid>
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Box>
+                                                </Grid>
+                                            }
+
+                                            {(metricsObject?.totalVotesCasted && metricsObject.totalVotesCasted > 0) &&
+                                                <Grid item xs={12} sm={4} md={4} key={1}>
+                                                    <Box
+                                                        sx={{
+                                                            borderRadius:'24px',
+                                                            m:2,
+                                                            p:1,
+                                                            background: 'rgba(0, 0, 0, 0.2)'
+                                                        }}
+                                                    >
+                                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                            <>Total Votes Casted</>
+                                                        </Typography>
+                                                        <Tooltip title={<>
+                                                                Total all time votes casted for all proposals in this Governnace
+                                                                </>
+                                                            }>
+                                                            <Button
+                                                                color='inherit'
+                                                                sx={{
+                                                                    borderRadius:'17px'
+                                                                }}
+                                                            >
+                                                                <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                    >
+                                                                    <Typography variant="h4">
+                                                                        {metricsObject?.totalVotesCasted && metricsObject.totalVotesCasted}
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Box>
+                                                </Grid>
+                                            }
+                                            
+                                            {(metricsObject?.averageVotesPerParticipant && metricsObject.averageVotesPerParticipant > 0) &&
+                                                <Grid item xs={12} sm={4} md={4} key={1}>
+                                                    <Box
+                                                        sx={{
+                                                            borderRadius:'24px',
+                                                            m:2,
+                                                            p:1,
+                                                            background: 'rgba(0, 0, 0, 0.2)'
+                                                        }}
+                                                    >
+                                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                            <>Average Votes Casted Per Participant</>
+                                                        </Typography>
+                                                        <Tooltip title={<>
+                                                                The average votes casted per participant/per proposal
+                                                                </>
+                                                            }>
+                                                            <Button
+                                                                color='inherit'
+                                                                sx={{
+                                                                    borderRadius:'17px'
+                                                                }}
+                                                            >
+                                                                <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                    >
+                                                                    <Typography variant="h4">
+                                                                        {metricsObject.averageVotesPerParticipant && metricsObject.averageVotesPerParticipant}
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Box>
+                                                </Grid>
+                                            }
 
                                             <Grid item xs={12} sm={4} md={4} key={1}>
                                                 <Box
