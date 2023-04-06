@@ -211,6 +211,8 @@ function RenderVoterRecordTable(props:any) {
     const setMetricsTotalVotesDeposited = props.setMetricsTotalVotesDeposited;
     const setMetricsTotalVotesCasted = props.setMetricsTotalVotesCasted;
     const setMetricsTotalProposals = props.setMetricsTotalProposals;
+    const setMetricsTotalCommunityProposals = props.setMetricsTotalCommunityProposals;
+    const setMetricsTotalCouncilProposals = props.setMetricsTotalCouncilProposals;
     const setMetricsParticipationRate = props.setMetricsParticipationRate;
     const setMetricsHighestParticipation = props.setMetricsHighestParticipation;
     const setMetricsHighestParticipationProposalName = props.setMetricsHighestParticipationProposalName;
@@ -224,6 +226,8 @@ function RenderVoterRecordTable(props:any) {
     const setMetricsRetention = props.setMetricsRetention;
     const setMetricsActiveRetention = props.setMetricsActiveRetention;
     const setMetricsTotalStaked = props.setMetricsTotalStaked;
+    const setMetricsTotalInstructions = props.setMetricsTotalInstructions;
+    const setMetricsTotalProposalsWithInstructions = props.setMetricsTotalProposalsWithInstructions;
 
     const endTimer = props.endTimer;
     const cachedGovernance = props.cachedGovernance;
@@ -502,6 +506,7 @@ function RenderVoterRecordTable(props:any) {
         let totalVotesDeposited = 0;
         let totalCommunityParticipation = 0;
         let totalCommunityProposals = 0;
+        let totalCouncilProposals = 0;
         let totalVotesCasted = 0;
         let totalProposals = 0;
         let totalCommunityPassed = 0;
@@ -518,6 +523,8 @@ function RenderVoterRecordTable(props:any) {
         let lParticipants = 0;
         var highestParticipation = 0;
         var highestParticipationProposalName = null;
+        var totalInstructions = 0;
+        var totalProposalsWInstructions = 0;
         setLoadingTable(true);
         
         var foundVoter = false;
@@ -647,6 +654,12 @@ function RenderVoterRecordTable(props:any) {
                             }
                             
                         }
+                    }
+
+                    if (item?.instructions && item?.instructions.length > 0){
+                        totalProposalsWInstructions++;
+                        totalInstructions+=item.instructions.length;
+                        
                     }
 
                     if (item?.votingResults){
@@ -865,6 +878,7 @@ function RenderVoterRecordTable(props:any) {
                     // item.account.governingTokenOwner.toBase58()
                     if (realm.account.config?.councilMint && (new PublicKey(realm.account.config?.councilMint).toBase58() === item.account.governingTokenMint.toBase58())){
                         // council stats
+                        totalCouncilProposals++;
                     } else{
                         totalCommunityProposals++;
                         if (item.account.state === 3 || item.account.state === 5)
@@ -899,7 +913,7 @@ function RenderVoterRecordTable(props:any) {
                     }
                     
                 }
-                
+
                 var counter = 0;
                 tParticipants = 0;
                 tStakedVotes = 0;
@@ -978,13 +992,19 @@ function RenderVoterRecordTable(props:any) {
             else
                 setMetricsTotalVotesDeposited(null);
             setMetricsTotalVotesCasted(getFormattedNumberToLocale(formatAmount(totalVotesCasted)));
-            setMetricsTotalProposals(totalCommunityProposals);
+            setMetricsTotalProposals(totalCommunityProposals+totalCouncilProposals);
+            setMetricsTotalCommunityProposals(totalCommunityProposals);
+            setMetricsTotalCouncilProposals(totalCouncilProposals)
+
             if (totalEligibleVoters > 0)
                 setMetricsParticipationRate((((totalCommunityParticipation/totalCommunityProposals)/totalEligibleVoters)*100).toFixed(2));
             else
                 setMetricsParticipationRate(null);
             setMetricsCommunityPassed(totalCommunityPassed);
             setMetricsCommunityDefeated(totalCommunityDefeated);
+
+            setMetricsTotalInstructions(totalInstructions);
+            setMetricsTotalProposalsWithInstructions(totalProposalsWInstructions);
             
         }catch(e){
             console.log("ERR: "+e);
@@ -1108,6 +1128,8 @@ export function GovernanceMetricsView(props: any) {
     const [metricsOutflows, setMetricsOutflows] = React.useState(null);
     const [metricsPreviousInflows, setMetricsPreviousInflows] = React.useState(null);
     const [metricsPreviousOutflows, setMetricsPreviousOutflows] = React.useState(null);
+    const [metricsTotalInstructions, setMetricsTotalInstructions] = React.useState(null);
+    const [metricsTotalProposalsWithInstructions, setMetricsTotalProposalsWithInstructions] = React.useState(null);
 
     const [metricsVoters, setMetricsVoters] = React.useState(null);
     const [metricsAverageVotesPerParticipant, setMetricsAverageVotesPerParticipant] = React.useState(null);
@@ -1116,6 +1138,8 @@ export function GovernanceMetricsView(props: any) {
     const [metricsTotalVotesDeposited, setMetricsTotalVotesDeposited] = React.useState(null);
     const [metricsTotalVotesCasted, setMetricsTotalVotesCasted] = React.useState(null);
     const [metricsTotalProposals, setMetricsTotalProposals] = React.useState(null);
+    const [metricsTotalCommunityProposals, setMetricsTotalCommunityProposals] = React.useState(null);
+    const [metricsTotalCouncilProposals, setMetricsTotalCouncilProposals] = React.useState(null);
     const [metricsParticipationRate, setMetricsParticipationRate] = React.useState(null);
 
     const [metricsCommunityPassed, setMetricsCommunityPassed] = React.useState(null);
@@ -1803,8 +1827,6 @@ export function GovernanceMetricsView(props: any) {
                                                                     /{((metricsTotalStaked/metricsTotalVotesDeposited)*100).toFixed(1)}%
                                                                 </Typography>
                                                             }
-
-                                                            
                                                         </Grid>
                                                     </Button>
                                                 </Tooltip>
@@ -2021,7 +2043,7 @@ export function GovernanceMetricsView(props: any) {
                                                                 verticalAlign: 'bottom'}}
                                                             >
                                                             <Typography variant="h4">
-                                                                {metricsTotalProposals && metricsTotalProposals}
+                                                                {metricsTotalCommunityProposals && metricsTotalCommunityProposals}
                                                             </Typography>
                                                         </Grid>
                                                     </Button>
@@ -2092,8 +2114,8 @@ export function GovernanceMetricsView(props: any) {
                                                                 verticalAlign: 'bottom'}}
                                                             >
                                                             <Typography variant="h4">
-                                                                <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{(metricsCommunityPassed/metricsTotalProposals*100).toFixed(0)}%</Badge>/
-                                                                <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{(metricsCommunityDefeated/metricsTotalProposals*100).toFixed(0)}%</Badge>
+                                                                <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{(metricsCommunityPassed/metricsTotalCommunityProposals*100).toFixed(0)}%</Badge>/
+                                                                <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{(metricsCommunityDefeated/metricsTotalCommunityProposals*100).toFixed(0)}%</Badge>
                                                             </Typography>
                                                         </Grid>
                                                     </Button>
@@ -2101,6 +2123,88 @@ export function GovernanceMetricsView(props: any) {
                                             </Box>
                                         </Grid>
  
+                                        {metricsTotalInstructions ?
+                                            
+                                            <Grid item xs={12} sm={6} md={6} key={1}>
+                                                <Box
+                                                    sx={{
+                                                        borderRadius:'24px',
+                                                        m:2,
+                                                        p:1,
+                                                        background: 'rgba(0, 0, 0, 0.2)'
+                                                    }}
+                                                >
+                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                        <>Instructions</>
+                                                    </Typography>
+                                                    <Tooltip title={<>
+                                                            Total Instructions
+                                                            </>
+                                                        }>
+                                                        <Button
+                                                            color='inherit'
+                                                            sx={{
+                                                                borderRadius:'17px'
+                                                            }}
+                                                        >
+                                                            <Grid container
+                                                                sx={{
+                                                                    verticalAlign: 'bottom'}}
+                                                                >
+                                                                <Typography variant="h4">
+                                                                    {metricsTotalInstructions}
+                                                                </Typography>
+                                                            </Grid>
+                                                        </Button>
+                                                    </Tooltip>
+                                                </Box>
+                                            </Grid>
+                                            :<></>
+                                        }
+
+                                        {metricsTotalProposalsWithInstructions ?
+                                            
+                                            <Grid item xs={12} sm={6} md={6} key={1}>
+                                                <Box
+                                                    sx={{
+                                                        borderRadius:'24px',
+                                                        m:2,
+                                                        p:1,
+                                                        background: 'rgba(0, 0, 0, 0.2)'
+                                                    }}
+                                                >
+                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                        <>Proposal with Instructions</>
+                                                    </Typography>
+                                                    <Tooltip title={<>
+                                                            Proposals with Instructions/Average Instructions per Proposal
+                                                            </>
+                                                        }>
+                                                        <Button
+                                                            color='inherit'
+                                                            sx={{
+                                                                borderRadius:'17px'
+                                                            }}
+                                                        >
+                                                            <Grid container
+                                                                sx={{
+                                                                    verticalAlign: 'bottom'}}
+                                                                >
+                                                                <Typography variant="h4">
+                                                                    {metricsTotalProposalsWithInstructions}
+                                                                
+                                                                </Typography>
+                                                                    <Typography variant="h6">
+                                                                    /{((metricsTotalProposalsWithInstructions/metricsTotalProposals)).toFixed(1)}
+                                                                    </Typography>
+                                                            </Grid>
+                                                        </Button>
+                                                    </Tooltip>
+                                                </Box>
+                                            </Grid>
+                                            :<></>
+                                        }
+
                                         {metricsInflows ?
                                             <>
                                             {metricsOutflows ?
@@ -2204,7 +2308,7 @@ export function GovernanceMetricsView(props: any) {
                                         }
                                     </Grid>
                                 </Box>
-
+                                
                                 {governanceTransactionsData ?
                                  <>{governanceTransactionsData.length > 0 ?
                                     <Box>
@@ -2235,7 +2339,6 @@ export function GovernanceMetricsView(props: any) {
                                     </>
                                 :<></>
                                 }
-
 
                                 {governanceBalanceOverTimeData ?
                                  <>{governanceBalanceOverTimeData.length > 0 ?
@@ -2285,6 +2388,8 @@ export function GovernanceMetricsView(props: any) {
                             setMetricsTotalVotesDeposited={setMetricsTotalVotesDeposited}
                             setMetricsTotalVotesCasted={setMetricsTotalVotesCasted}
                             setMetricsTotalProposals={setMetricsTotalProposals}
+                            setMetricsTotalCommunityProposals={setMetricsTotalCommunityProposals}
+                            setMetricsTotalCouncilProposals={setMetricsTotalCouncilProposals}
                             setMetricsParticipationRate={setMetricsParticipationRate}
                             setMetricsCommunityPassed={setMetricsCommunityPassed}
                             setMetricsCommunityDefeated={setMetricsCommunityDefeated}
@@ -2316,7 +2421,9 @@ export function GovernanceMetricsView(props: any) {
                             setMetricsPreviousOutflows={setMetricsPreviousOutflows}
                             setGovernanceBalanceOverTimeData={setGovernanceBalanceOverTimeData}
                             setGovernanceCommunityTokenMintLogo={setGovernanceCommunityTokenMintLogo}
-                            setGovernanceCommunityTokenMintName={setGovernanceCommunityTokenMintName} />
+                            setGovernanceCommunityTokenMintName={setGovernanceCommunityTokenMintName}
+                            setMetricsTotalInstructions={setMetricsTotalInstructions}
+                            setMetricsTotalProposalsWithInstructions={setMetricsTotalProposalsWithInstructions} />
                         
                         {endTime &&
                             <Typography 
