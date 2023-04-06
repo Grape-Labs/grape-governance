@@ -2194,13 +2194,13 @@ export function GovernanceMetricsView(props: any) {
                                             <ArgumentAxis />
                                             <ValueAxis />
                                                 <BarSeries
-                                                    name="Inflows"
+                                                    name="Vote Inflow"
                                                     valueField="inflows"
                                                     argumentField="date"
                                                 />
 
                                                 <BarSeries
-                                                    name="Outflows"
+                                                    name="Vote Outflow"
                                                     valueField="outflows"
                                                     argumentField="date"
                                                 />
