@@ -383,7 +383,7 @@ function RenderVoterRecordTable(props:any) {
                     
                     if (new PublicKey(realm.account.communityMint).toBase58() === tokenAddress){
                         //console.log(count+": "+timestamp+" "+address+" ("+tokenName+") "+tokenAddress+" "+changeType+" "+changeAmount)
-                        if ((changeType === "inc")||(changeAmount > 0)){ // inflow
+                        if (changeAmount > 0){ //((changeType === "inc")||(changeAmount > 0)){ // inflow
                             inflows += changeAmount;
                             if (nowstamp === monthstamp)
                                 nowinflows += changeAmount;
@@ -394,7 +394,7 @@ function RenderVoterRecordTable(props:any) {
                                 inflows:changeAmount,
                                 outflows:null,
                             })
-                        } else {//if (changeType === "dec"){ // dec outflow
+                        } else {//if (changeType === "dec"){ // dec outflow - not always accurate
                             outflows += changeAmount;
                             if (nowstamp === monthstamp)
                                 nowoutflows += changeAmount;
