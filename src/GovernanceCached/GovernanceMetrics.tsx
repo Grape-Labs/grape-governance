@@ -488,6 +488,8 @@ function RenderVoterRecordTable(props:any) {
         let totalProposals = 0;
         let totalCommunityPassed = 0;
         let totalCommunityDefeated = 0;
+        let totalCouncilPassed = 0;
+        let totalCouncilDefeated = 0;
         let propsByMonth = new Array();
         
         let participantArray = new Array();
@@ -861,7 +863,38 @@ function RenderVoterRecordTable(props:any) {
                     // item.account.governingTokenOwner.toBase58()
                     if (realm.account.config?.councilMint && (new PublicKey(realm.account.config?.councilMint).toBase58() === item.account.governingTokenMint.toBase58())){
                         // council stats
+                        
                         totalCouncilProposals++;
+                        if (item.account.state === 3 || item.account.state === 5)
+                            totalCouncilPassed++;
+                        else if (item.account.state === 7)
+                            totalCouncilDefeated++;
+                        
+                        let monthts = moment.unix(Number(item.account?.draftAt)).format("YYYY-MM");
+                        let pbi_found = false;
+                        for (var pbi of propsByMonth){
+                            if (pbi.date === monthts){
+                                pbi_found = true;
+                                pbi.councilcount++;
+                                if (item.account.state === 3 || item.account.state === 5) 
+                                    pbi.councilpassing++
+                                if (item.account.state === 7)
+                                    pbi.councildefeated++
+                            }
+                        }
+                        
+                        if (!pbi_found){
+                            propsByMonth.push({
+                                'date':monthts,
+                                'councilpassing':(item.account.state === 3 || item.account.state === 5) ? 1 : 0,
+                                'councildefeated':(item.account.state === 7) ? 1 :0,
+                                'communitypassing':0,
+                                'communitydefeated':0,
+                                'communitycount':0,
+                                'councilcount':1
+                            });
+                        }
+                        
                     } else{
                         totalCommunityProposals++;
                         if (item.account.state === 3 || item.account.state === 5)
@@ -876,21 +909,23 @@ function RenderVoterRecordTable(props:any) {
                         for (var pbi of propsByMonth){
                             if (pbi.date === monthts){
                                 pbi_found = true;
-                                pbi.count++;
+                                pbi.communitycount++;
                                 if (item.account.state === 3 || item.account.state === 5) 
-                                    pbi.cpassing++
+                                    pbi.communitypassing++
                                 if (item.account.state === 7)
-                                    pbi.cdefeated++
+                                    pbi.communitydefeated++
                             }
                         }
 
                         if (!pbi_found){
                             propsByMonth.push({
                                 'date':monthts,
-                                'cpassing':(item.account.state === 3 || item.account.state === 5) ? 1 : 0,
-                                'cdefeated':(item.account.state === 7) ? 1 :0,
-                                //'cparticipating':,
-                                'count':1
+                                'councilpassing':0,
+                                'councildefeated':0,
+                                'communitypassing':(item.account.state === 3 || item.account.state === 5) ? 1 : 0,
+                                'communitydefeated':(item.account.state === 7) ? 1 :0,
+                                'communitycount':1,
+                                'councilcount':0
                             });
                         }
                     }
@@ -1660,22 +1695,40 @@ export function GovernanceMetricsView(props: any) {
                                             >
                                             <ArgumentAxis />
                                             <ValueAxis />
-                                                <BarSeries
-                                                    name="Proposals"
-                                                    valueField="count"
-                                                    argumentField="date"
-                                                />
-
-                                                <BarSeries
-                                                    name="Defeated"
-                                                    valueField="cdefeated"
-                                                    argumentField="date"
-                                                />
-                                                <BarSeries
-                                                    name="Passed"
-                                                    valueField="cpassing"
-                                                    argumentField="date"
-                                                />
+                                                
+                                                
+                                                    <BarSeries
+                                                        name="Community Proposals"
+                                                        valueField="communitycount"
+                                                        argumentField="date"
+                                                    />
+                                                    <BarSeries
+                                                        name="Community Defeated"
+                                                        valueField="communitydefeated"
+                                                        argumentField="date"
+                                                    />
+                                                    <BarSeries
+                                                        name="Community Passed"
+                                                        valueField="communitypassing"
+                                                        argumentField="date"
+                                                    />
+                                                
+                                                    <BarSeries 
+                                                        name="Council Proposals"
+                                                        valueField="councilcount"
+                                                        argumentField="date"
+                                                    />
+                                                    <BarSeries
+                                                        name="Council Passed"
+                                                        valueField="councilpassing"
+                                                        argumentField="date"
+                                                    />
+                                                    <BarSeries
+                                                        name="Council Defeated"
+                                                        valueField="councildefeated"
+                                                        argumentField="date"
+                                                    />
+                                                
                                             <Title text="Proposals" />
                                             <Legend position="bottom" rootComponent={Root} labelComponent={Label} />
                                             

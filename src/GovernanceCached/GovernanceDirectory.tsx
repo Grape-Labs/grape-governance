@@ -167,10 +167,36 @@ export function GovernanceDirectoryView() {
     const callGovernanceLookup = async() => {
         const fglf = await fetchGovernanceLookupFile(storagePool);
         // pre sort
+        const exportFglf = new Array();
         if (fglf && fglf.length > 0){
             const sorted = fglf.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
             setGovernanceLookup(sorted);
+            // export
+            /*
+            for (let item of sorted){
+                exportFglf.push(
+                    {
+                        governanceAddress:item.governanceAddress,
+                        governanceName:item.governanceName,
+                        version:item.version,
+                        timestamp:moment.unix(Number(item.timestamp)).format("YYYY-MM-DD HH:mm"),
+                        filename:item.filename,
+                        memberFilename:item.filename,
+                        governanceTransactionsFilename:item.governanceTransactionsFilename,
+                        totalMembers:item.totalMembers,
+                        totalQuorum:item.totalQuorum,
+                        communityTokenSupply:item.tokenSupply,
+                        lastProposalDate:moment.unix(Number("0x"+item.lastProposalDate)).format("YYYY-MM-DD HH:mm"),
+                        totalCouncilProposals:item.totalCouncilProposals,
+                        totalProposalsVoting:item.totalProposalsVoting,
+                        totalProposals:item.totalProposals,
+                    }
+                )
+            }
+            */
         }
+
+        console.log("exportable: "+JSON.stringify(exportFglf));
         setLoading(false);
     }
 
