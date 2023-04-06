@@ -273,6 +273,21 @@ function RenderVoterRecordTable(props:any) {
             }
         },
         { field: 'councilvotes', headerName: 'Council', width: 100, hide: false, align: 'right',},
+        { field: 'firstparticipationdate', headerName: 'First Participating Proposal Date', width: 200, hide: false, align: 'right',
+        renderCell: (params) => {
+            return(
+                <>
+                    {params.value ?
+                        <>
+                            {moment.unix(Number(params.value)).format("YYYY-MM-DD HH:mm")}
+                        </>
+                    :
+                        <>No Participation</>
+                    }
+                </>
+            )
+        }
+        },
         { field: 'lastparticipationdate', headerName: 'Last Participating Proposal Date', width: 200, hide: false, align: 'right',
             renderCell: (params) => {
                 return(
@@ -589,6 +604,7 @@ function RenderVoterRecordTable(props:any) {
                     totalcouncilvotesfor: 0,
                     totalcouncilvotesagainst: 0,
                     lastparticipationdate: null,
+                    firstparticipationdate: null,
                     successfullcasts: 0
                 })
                 voterCount++;
@@ -767,6 +783,10 @@ function RenderVoterRecordTable(props:any) {
                                         participant.lastparticipationdate = +item.account?.draftAt;
                                     else if (+item.account?.draftAt && +item.account?.draftAt > participant.lastparticipation)
                                         participant.lastparticipationdate = +item.account?.draftAt;
+                                    if (!participant.firstparticipationdate)
+                                        participant.firstparticipationdate = +item.account?.draftAt;
+                                    else if (+item.account?.draftAt && +item.account?.draftAt < participant.firstparticipationdate)
+                                        participant.firstparticipationdate = +item.account?.draftAt;
                                 }
 
                                 
@@ -879,7 +899,7 @@ function RenderVoterRecordTable(props:any) {
                     }
                     
                 }
-
+                
                 var counter = 0;
                 tParticipants = 0;
                 tStakedVotes = 0;
@@ -890,8 +910,8 @@ function RenderVoterRecordTable(props:any) {
                     if (counter > 0)
                         csvFile += '\r\n';
                     else
-                        csvFile = 'pubkey,totalproposalscreated,depositedvotes,councildepositedvotes,unstakedvotes,lastparticipationdate,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
-                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.currentunstakedvotes+','+voter_item.lastparticipationdate+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
+                        csvFile = 'pubkey,totalproposalscreated,depositedvotes,councildepositedvotes,unstakedvotes,firstparticipationdate,lastparticipationdate,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
+                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.currentunstakedvotes+','+voter_item.firstparticipationdate+','+voter_item.lastparticipationdate+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
                     counter++;
 
                     //tStakedVotes += voter_item.currentvotes;
