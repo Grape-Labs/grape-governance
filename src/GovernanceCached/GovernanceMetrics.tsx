@@ -525,7 +525,8 @@ function RenderVoterRecordTable(props:any) {
                     } else if (new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                         depositedcouncilvotes = +(Number(memberItem.account.governingTokenDepositAmount));
                         voterItem.councilvotes = depositedcouncilvotes;
-                        totalCouncilHolders++;
+                        totalCouncilHolders+=depositedcouncilvotes;
+                        
                     }
 
                     totalVotesDeposited += depositedgovernancevotes;
@@ -560,6 +561,7 @@ function RenderVoterRecordTable(props:any) {
                         depositedgovernancevotes = +(Number("0x"+memberItem.account.governingTokenDepositAmount)/Math.pow(10, +governingTokenDecimals)).toFixed(0);
                     }else if (new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                         depositedcouncilvotes = (Number(memberItem.account.governingTokenDepositAmount));
+                        totalCouncilHolders+=depositedcouncilvotes;
                     }
                     
                     unstakedgovernancevotes = (memberItem.walletBalance?.tokenAmount?.amount ? Number((+memberItem.walletBalance.tokenAmount.amount /Math.pow(10, memberItem.walletBalance.tokenAmount.decimals || 0)).toFixed(0)) : 0)
@@ -1781,7 +1783,7 @@ export function GovernanceMetricsView(props: any) {
                                                                 >
                                                                     <Typography variant="h4">
                                                                     {metricsObject.voters}
-                                                                </Typography>
+                                                                    </Typography>
                                                             </Grid>
                                                         </Button>
                                                     </Tooltip>
@@ -1801,7 +1803,7 @@ export function GovernanceMetricsView(props: any) {
                                                         <>Current Eligible Voters</>
                                                     </Typography>
                                                     <Tooltip title={<>
-                                                            A voter that currently maintains voting power in this Governance (+0 votes staked at the time of cached snapshot)
+                                                            A voter that currently maintains voting power in this Governance (+0 votes staked at the time of cached snapshot)<br/>Community/Council
                                                             </>
                                                         }>
                                                         <Button
@@ -1821,6 +1823,10 @@ export function GovernanceMetricsView(props: any) {
                                                                     :
                                                                         <Typography variant="h4">
                                                                             {metricsObject?.totalEligibleVoters && metricsObject.totalEligibleVoters}
+
+                                                                            {(metricsObject.totalCouncilHolders && metricsObject.totalEligibleVoters) && <>/</>}
+                                                                            
+                                                                            {metricsObject.totalCouncilHolders}
                                                                         </Typography>
                                                                 }
                                                             </Grid>
