@@ -1322,17 +1322,19 @@ export function GovernanceMetricsView(props: any) {
                         programId,
                         realmPk
                     )
-                    const realmConfig = await getRealmConfig(
-                        connection,
-                        realmConfigPk
-                    )
+                    try{
+                        const realmConfig = await getRealmConfig(
+                            connection,
+                            realmConfigPk
+                        )
 
-                    if (realmConfig && realmConfig?.account && realmConfig?.account?.communityTokenConfig.maxVoterWeightAddin){
-                        //console.log("maxVoterWeightAddinConfig: "+JSON.stringify(realmConfig?.account?.communityTokenConfig.maxVoterWeightAddin));
-                        if (realmConfig?.account?.communityTokenConfig.maxVoterWeightAddin.toBase58() === 'GnftV5kLjd67tvHpNGyodwWveEKivz3ZWvvE3Z4xi2iw'){ // NFT based community
-                            setNftBasedGovernance(true);
+                        if (realmConfig && realmConfig?.account && realmConfig?.account?.communityTokenConfig.maxVoterWeightAddin){
+                            //console.log("maxVoterWeightAddinConfig: "+JSON.stringify(realmConfig?.account?.communityTokenConfig.maxVoterWeightAddin));
+                            if (realmConfig?.account?.communityTokenConfig.maxVoterWeightAddin.toBase58() === 'GnftV5kLjd67tvHpNGyodwWveEKivz3ZWvvE3Z4xi2iw'){ // NFT based community
+                                setNftBasedGovernance(true);
+                            }
                         }
-                    }
+                    }catch(errs){console.log("ERR: "+errs)}
 
                     setTotalDefeated(defeated);
                     setTotalPassed(passed);
@@ -1759,7 +1761,7 @@ export function GovernanceMetricsView(props: any) {
                                                     </Tooltip>
                                                 </Box>
                                             </Grid>
-                                            
+
                                             <Grid item xs={12} sm={4} md={4} key={1}>
                                                 <Box
                                                     sx={{
