@@ -2616,7 +2616,7 @@ export function GovernanceMetricsView(props: any) {
                                     <Alert 
                                         
                                         severity="info"
-                                        sx={{borderRadius:'17px',m:2}}>*** Currently displaying DAO Community Token Governance metrics, Council/NFT voter metrics will be displayed soon ***</Alert>
+                                        sx={{borderRadius:'17px',m:2}}>*** Currently displaying DAO Community Token & Council Governance metrics, VSR/NFT voter metrics will be displayed soon ***</Alert>
                                 </Box>
                             }
 
