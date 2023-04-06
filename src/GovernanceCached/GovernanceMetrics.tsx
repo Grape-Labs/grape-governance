@@ -2230,7 +2230,7 @@ export function GovernanceMetricsView(props: any) {
                                                     valueField="postbalance"
                                                     argumentField="date"
                                                 />
-                                            <Title text={`Governance Growth participation in `+governanceCommunityTokenMintName} />
+                                            <Title text={`Governance Growth in `+governanceCommunityTokenMintName} />
                                             <Legend position="bottom" rootComponent={Root} labelComponent={Label} />
                                             
                                             <Stack />
