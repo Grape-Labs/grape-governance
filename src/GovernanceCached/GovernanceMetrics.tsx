@@ -388,8 +388,8 @@ function RenderVoterRecordTable(props:any) {
                         let changeType = transaction.change.changeType;
                         let changeAmount = transaction.change.changeAmount/Math.pow(10, (transaction.change?.decimals || 0));
                         let tokenAddress = transaction.change.tokenAddress;
-                        let prebalance = transaction.change?.preBalance/Math.pow(10, (transaction.change?.decimals || 0));;
-                        let postbalance = transaction.change?.postBalance/Math.pow(10, (transaction.change?.decimals || 0));;
+                        let prebalance = transaction.change?.preBalance/Math.pow(10, (transaction.change?.decimals || 0));
+                        let postbalance = transaction.change?.postBalance/Math.pow(10, (transaction.change?.decimals || 0));
                         
                         tokenName = transaction.change?.tokenName;
                         tokenIcon = transaction.change?.tokenIcon;
@@ -515,10 +515,12 @@ function RenderVoterRecordTable(props:any) {
         for (var memberItem of memberMap){
             foundVoter = false;
 
-            if (new PublicKey(memberItem.account?.governingTokenMint).toBase58() == new PublicKey(realm.account.config?.councilMint).toBase58()){
-                let tmp = +(Number("0x"+memberItem.account.governingTokenDepositAmount));
-                if (tmp > 0)
-                    totalCouncilHolders++;
+            if (realm.account.config?.councilMint){
+                if (new PublicKey(memberItem.account?.governingTokenMint).toBase58() == new PublicKey(realm.account.config?.councilMint).toBase58()){
+                    let tmp = +(Number("0x"+memberItem.account.governingTokenDepositAmount));
+                    if (tmp > 0)
+                        totalCouncilHolders++;
+                }
             }
 
             for (var voterItem of voterArray){

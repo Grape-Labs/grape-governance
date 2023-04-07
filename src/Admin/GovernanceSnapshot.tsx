@@ -15,8 +15,10 @@ import {
     getRealmConfigAddress, 
     getGovernanceAccount, 
     getAccountTypes, 
-    GovernanceAccountType, 
     tryGetRealmConfig, 
+    getNativeTreasuryAddress,
+    getAllGovernances,
+    GovernanceAccountType,
     getRealmConfig,
     ProposalTransaction,
     pubkeyFilter,
@@ -164,6 +166,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [governanceAutocomplete, setGovernanceAutocomplete] = React.useState(null);
     const [storageAutocomplete, setStorageAutocomplete] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
+    const [governanceVaults, setGovernanceVaults] = React.useState(null);
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
@@ -204,6 +207,18 @@ export function GovernanceSnapshotView (this: any, props: any) {
         return grealm;
     }
 
+    const fetchGovernanceVaults = async(grealm:any) => {
+        const connection = RPC_CONNECTION;
+
+        const rawGovernances = await getAllGovernances(
+            connection,
+            new PublicKey(grealm.owner),
+            new PublicKey(grealm.pubkey)
+        );
+        
+        return rawGovernances;
+    }
+
     const fetchGovernance = async(address:string, grealm:any) => {
         //const finalList = new Array();
         setLoading(true);
@@ -241,6 +256,60 @@ export function GovernanceSnapshotView (this: any, props: any) {
         setPrimaryStatus("Governance Type Verified");
 
         const realmPk = grealm.pubkey;
+
+        //const treasury = await getNativeTreasuryAddress(programId, realmPk);
+        let fgv = await fetchGovernanceVaults(grealm);
+        
+        setGovernanceVaults(fgv);
+        // should we do a deep dive at this level with the vaults?
+        // absolutely 
+
+        for (var gv of fgv){
+            //console.log('VAULT: '+JSON.stringify(gv))
+
+            let balance = connection.getBalance(new PublicKey(gv.pubkey))
+
+            console.log('SOL BALANCE: '+gv.pubkey.toBase58()+ " - " +JSON.stringify(balance));
+
+            const resp = await connection.getParsedTokenAccountsByOwner(gv.pubkey, {programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")});
+            const resultValues = resp.value;
+            
+            const holdings: any[] = [];
+            for (const item of resultValues){
+                //let buf = Buffer.from(item.account, 'base64');
+                //console.log("item: "+JSON.stringify(item));
+                if (item.account.data.parsed.info.tokenAmount.amount > 0)
+                    holdings.push(item);
+                // consider using https://raw.githubusercontent.com/solana-labs/token-list/main/src/tokens/solana.tokenlist.json to view more details on the tokens held
+            } 
+
+            const sortedholdings = JSON.parse(JSON.stringify(holdings));
+            sortedholdings.sort((a:any,b:any) => (b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount));
+
+            console.log('***');
+            console.log('*** TOKEN BALANCE: '+gv.pubkey.toBase58())+" ***";
+
+            var assetsIdentified = 0;
+            var assetsNotIdentified = 0;
+            for (const thisitem of sortedholdings){
+                const ta = thisitem.account.data.parsed.info.tokenAmount.amount;
+                const td = thisitem.account.data.parsed.info.tokenAmount.decimals;
+                const tf = thisitem.account.data.parsed.info.tokenAmount.amount/Math.pow(10, (thisitem.account.data.parsed.info.tokenAmount.decimals || 0));;
+                const tn = tokenMap.get(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58())?.name;
+                const tl = tokenMap.get(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58())?.logoURI;
+
+                if ((ta > 0)&&(tn)){
+                    assetsIdentified++;
+                    console.log(tn+": "+tf+" "+tl);
+                } else{
+                    assetsNotIdentified++;
+                }
+            }
+            if (assetsNotIdentified > 0)
+                console.log("Assets not identified (possibly NFTs or not mapped tokens): "+assetsNotIdentified)
+            console.log("Total Tokens: "+(assetsIdentified+assetsNotIdentified));
+        }
+        
         if (grealm?.account?.config?.useCommunityVoterWeightAddin){
             //{
                 const realmConfigPk = await getRealmConfigAddress(
@@ -253,13 +322,13 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         connection,
                         realmConfigPk
                     )
-                    //console.log("realmConfig: "+JSON.stringify(realmConfig));
                     
+                    /*
                     const tryRealmConfig = await tryGetRealmConfig(
                         connection,
                         programId,
                         realmPk
-                    )
+                    )*/
                     
                     //console.log("tryRealmConfig: "+JSON.stringify(tryRealmConfig));
                     //setRealmConfig(realmConfigPK)
@@ -348,7 +417,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     owner.walletBalance = balance.value[0].account.data.parsed.info;
             }
 
-            console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
+            //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
 
             setMemberMap(rawTokenOwnerRecords);
             // get unique members
@@ -432,6 +501,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
     const getGovernanceProps = async (thisitem: any) => {
         const governance = await getGovernance(connection, thisitem.account.governance);
+        
+        //getGovernanceAccounts();
+        
         setThisGovernance(governance);
         
         //console.log("realm"+JSON.stringify(realm));
@@ -1108,7 +1180,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
                 //console.log("realm: "+JSON.stringify(realm))
                 
-                console.log("governanceLookup: "+JSON.stringify(governanceLookup));
+                //console.log("governanceLookup: "+JSON.stringify(governanceLookup));
 
                 for (var item of governanceLookup){
                     if (item.governanceAddress === governanceAddress){
@@ -1121,6 +1193,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         if (this_realm.account.config?.communityMintMaxVoteWeightSource)
                             item.communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
                         item.governance = thisGovernance;
+                        item.governanceVaults = governanceVaults;
                         item.governingMintDetails = governingMintDetails;
                         item.totalProposals = totalProposals;
                         item.totalProposalsVoting = totalProposalsVoting;
