@@ -97,15 +97,24 @@ function GovernanceCardView(props:any) {
                     }}
                 >
 
-                    {(item?.totalVaultValue && item.totalVaultValue > 0) &&
+                    {item?.totalVaultValue?
+                        <>{item.totalVaultValue > 0 ?
                         <Typography variant="body2">
                             <>Treasury <strong>{getFormattedNumberToLocale(Number(item.totalVaultValue).toFixed(2))} USD</strong></>
                         </Typography>
+                        :<></>}
+                        </>
+                        :<></>
                     }
-                    {(item?.totalVaultStableCoinValue && item.totalVaultStableCoinValue > 0) &&
+
+                    {item?.totalVaultStableCoinValue?
+                        <>{item.totalVaultStableCoinValue > 0 ?
                         <Typography variant="body2">
                             <>Treasury in Stable Coin <strong>{getFormattedNumberToLocale(Number(item.totalVaultStableCoinValue).toFixed(2))} USD</strong></>
                         </Typography>
+                        :<></>}
+                        </>
+                        :<></>
                     }
 
                     {(item.totalMembers && item.totalMembers > 0) &&
