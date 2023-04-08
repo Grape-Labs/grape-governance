@@ -321,11 +321,12 @@ export function GovernanceDirectoryView() {
                                     sx={{
                                         borderRadius:'24px',
                                         m:2,
+                                        ml:0,
                                         p:1,
                                         background: 'rgba(0, 0, 0, 0.2)',
                                     }}
                                 >
-                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
                                         <>Total Treasury Value</>
                                     </Typography>
                                     <Tooltip title={<>
@@ -356,10 +357,11 @@ export function GovernanceDirectoryView() {
                                     sx={{
                                         borderRadius:'24px',
                                         m:2,
+                                        p:1,
                                         background: 'rgba(0, 0, 0, 0.2)',
                                     }}
                                 >
-                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
                                         <>Total in Stable Coins</>
                                     </Typography>
                                     <Tooltip title={<>
@@ -394,7 +396,7 @@ export function GovernanceDirectoryView() {
                                         background: 'rgba(0, 0, 0, 0.2)',
                                     }}
                                 >
-                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
                                         <>Members</>
                                     </Typography>
                                     <Tooltip title={<>
@@ -425,11 +427,12 @@ export function GovernanceDirectoryView() {
                                     sx={{
                                         borderRadius:'24px',
                                         m:2,
+                                        mr:0,
                                         p:1,
                                         background: 'rgba(0, 0, 0, 0.2)',
                                     }}
                                 >
-                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
                                         <>Proposals</>
                                     </Typography>
                                     <Tooltip title={<>
