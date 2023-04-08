@@ -181,6 +181,10 @@ export function GovernanceDirectoryView() {
     const [loading, setLoading] = React.useState(false);
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [searchFilter, setSearchFilter] = React.useState(null);
+    const [governanceTotalVaultValue, setGovernanceTotalVaultValue] = React.useState(null);
+    const [governanceTotalVaultStableCoinValue, setGovernanceTotalVaultStableCoinValue] = React.useState(null);
+    const [governanceTotalMembers, setGovernanceTotalMembers] = React.useState(null);
+    const [governanceTotalProposals, setGovernanceTotalProposals] = React.useState(null);
 
     const callGovernanceLookup = async() => {
         const fglf = await fetchGovernanceLookupFile(storagePool);
@@ -189,6 +193,26 @@ export function GovernanceDirectoryView() {
         if (fglf && fglf.length > 0){
             const sorted = fglf.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
             setGovernanceLookup(sorted);
+            
+            // fetch some summary data
+            let totalVaultValue = 0;
+            let totalVaultStableCoinValue = 0;
+            let totalGovernanceProposals = 0;
+            let totalGovernanceMembers = 0;
+            for (let item of sorted){
+                if (item?.totalVaultValue)
+                    totalVaultValue += item.totalVaultValue;
+                if (item?.totalVaultStableCoinValue)
+                    totalVaultStableCoinValue += item.totalVaultStableCoinValue;
+                totalGovernanceMembers += item.totalMembers;
+                totalGovernanceProposals += item.totalProposals;
+            }
+            setGovernanceTotalVaultValue(totalVaultValue);
+            setGovernanceTotalVaultStableCoinValue(totalVaultStableCoinValue);
+            setGovernanceTotalMembers(totalGovernanceMembers);
+            setGovernanceTotalProposals(totalGovernanceProposals);
+
+            
             // export
             /*
             for (let item of sorted){
@@ -288,6 +312,152 @@ export function GovernanceDirectoryView() {
                             </Grid>
                         </Grid>
                     </Grid>
+
+                    <Box sx={{ 
+                        p:1}}>
+                        <Grid container spacing={0}>
+                            <Grid item xs={12} sm={3} md={3} key={1}>
+                                <Box
+                                    sx={{
+                                        borderRadius:'24px',
+                                        m:2,
+                                        p:1,
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                    }}
+                                >
+                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                        <>Total Treasury Value</>
+                                    </Typography>
+                                    <Tooltip title={<>
+                                            ...
+                                            </>
+                                        }>
+                                        <Button
+                                            color='inherit'
+                                            sx={{
+                                                borderRadius:'17px',
+                                            }}
+                                        >   
+                                            <Grid container
+                                                sx={{
+                                                    verticalAlign: 'bottom'}}
+                                            >
+                                                <Typography variant="h4">
+                                                    {governanceTotalVaultValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultValue.toFixed(2)))}` : 0}
+                                                </Typography>
+                                            </Grid>
+                                        </Button>
+                                    </Tooltip>
+                                </Box>
+                            </Grid>
+
+                            <Grid item xs={12} sm={3} md={3} key={1}>
+                                <Box
+                                    sx={{
+                                        borderRadius:'24px',
+                                        m:2,
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                    }}
+                                >
+                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                        <>Stable Coins</>
+                                    </Typography>
+                                    <Tooltip title={<>
+                                            ...
+                                            </>
+                                        }>
+                                        <Button
+                                            color='inherit'
+                                            sx={{
+                                                borderRadius:'17px',
+                                            }}
+                                        >   
+                                            <Grid container
+                                                sx={{
+                                                    verticalAlign: 'bottom'}}
+                                            >
+                                                <Typography variant="h4">
+                                                    {governanceTotalVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultStableCoinValue.toFixed(2)))}` : 0}
+                                                </Typography>
+                                            </Grid>
+                                        </Button>
+                                    </Tooltip>
+                                </Box>
+                            </Grid>
+
+                            <Grid item xs={12} sm={3} md={3} key={1}>
+                                <Box
+                                    sx={{
+                                        borderRadius:'24px',
+                                        m:2,
+                                        p:1,
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                    }}
+                                >
+                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                        <>Members</>
+                                    </Typography>
+                                    <Tooltip title={<>
+                                            ...
+                                            </>
+                                        }>
+                                        <Button
+                                            color='inherit'
+                                            sx={{
+                                                borderRadius:'17px',
+                                            }}
+                                        >   
+                                            <Grid container
+                                                sx={{
+                                                    verticalAlign: 'bottom'}}
+                                            >
+                                                <Typography variant="h4">
+                                                    {governanceTotalMembers ? getFormattedNumberToLocale(governanceTotalMembers) : 0}
+                                                </Typography>
+                                            </Grid>
+                                        </Button>
+                                    </Tooltip>
+                                </Box>
+                            </Grid>
+
+                            <Grid item xs={12} sm={3} md={3} key={1}>
+                                <Box
+                                    sx={{
+                                        borderRadius:'24px',
+                                        m:2,
+                                        p:1,
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                    }}
+                                >
+                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                        <>Proposals</>
+                                    </Typography>
+                                    <Tooltip title={<>
+                                            ...
+                                            </>
+                                        }>
+                                        <Button
+                                            color='inherit'
+                                            sx={{
+                                                borderRadius:'17px',
+                                            }}
+                                        >   
+                                            <Grid container
+                                                sx={{
+                                                    verticalAlign: 'bottom'}}
+                                            >
+                                                <Typography variant="h4">
+                                                    {governanceTotalProposals ? getFormattedNumberToLocale(governanceTotalProposals) : 0}
+                                                </Typography>
+                                            </Grid>
+                                        </Button>
+                                    </Tooltip>
+                                </Box>
+                            </Grid>
+                        
+                        
+                        </Grid>
+                    </Box>
 
                     
                     <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
