@@ -169,7 +169,7 @@ function GovernanceCardView(props:any) {
                     sx={{borderRadius:'17px',textTransform:'none'}}>via RPC</Button>
                 </Tooltip>
             {item.timestamp &&
-                <Typography marginLeft='auto' variant='caption'>Fetched: {moment.unix(Number(item.timestamp)).format("MMMM D, YYYY, h:mm a") }</Typography>
+                <Typography marginLeft='auto' variant='caption'>Cached: {moment.unix(Number(item.timestamp)).format("MMMM D, YYYY, h:mm a") }</Typography>
             }
         </CardActions>
         </Card>
