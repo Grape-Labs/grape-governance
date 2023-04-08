@@ -316,7 +316,7 @@ export function GovernanceDirectoryView() {
                     <Box sx={{ 
                         p:1}}>
                         <Grid container spacing={0}>
-                            <Grid item xs={12} sm={3} md={3} key={1}>
+                            <Grid item xs={12} sm={6} md={3} key={1}>
                                 <Box
                                     sx={{
                                         borderRadius:'24px',
@@ -329,7 +329,7 @@ export function GovernanceDirectoryView() {
                                         <>Total Treasury Value</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            ...
+                                            The total deposited in all SPL Governance accounts
                                             </>
                                         }>
                                         <Button
@@ -351,7 +351,7 @@ export function GovernanceDirectoryView() {
                                 </Box>
                             </Grid>
 
-                            <Grid item xs={12} sm={3} md={3} key={1}>
+                            <Grid item xs={12} sm={6} md={3} key={1}>
                                 <Box
                                     sx={{
                                         borderRadius:'24px',
@@ -360,10 +360,10 @@ export function GovernanceDirectoryView() {
                                     }}
                                 >
                                     <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                        <>Stable Coins</>
+                                        <>Total in Stable Coins</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            ...
+                                            The total value of stable coins deposited in SPL Governance (USDC, USDT, PAI)
                                             </>
                                         }>
                                         <Button
@@ -385,7 +385,7 @@ export function GovernanceDirectoryView() {
                                 </Box>
                             </Grid>
 
-                            <Grid item xs={12} sm={3} md={3} key={1}>
+                            <Grid item xs={12} sm={6} md={3} key={1}>
                                 <Box
                                     sx={{
                                         borderRadius:'24px',
@@ -398,7 +398,7 @@ export function GovernanceDirectoryView() {
                                         <>Members</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            ...
+                                            All time members throughout all governances
                                             </>
                                         }>
                                         <Button
@@ -433,7 +433,7 @@ export function GovernanceDirectoryView() {
                                         <>Proposals</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            ...
+                                            All time proposals from all governances
                                             </>
                                         }>
                                         <Button
