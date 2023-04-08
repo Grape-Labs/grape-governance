@@ -74,11 +74,15 @@ export default function GovernanceNavigation(props: any){
                         ><GroupIcon /></Button>
                     </Tooltip>
                     <Tooltip title={
-                        <><strong>Treasury</strong><br/> (coming soon)</>
+                        <><strong>Treasury</strong><br/>* Via Cached Storage</>
                         }>
                         <Button
                             sx={{color:'#999', ml:1}}
-                        ><AccountBalanceIcon /></Button>
+                        >{/*
+                        <Button
+                            component={Link}
+                            to={'/treasury/'+governanceAddress}
+                        >*/}<AccountBalanceIcon /></Button>
                     </Tooltip>
                     <Tooltip title={
                         <><strong>Reputation</strong><br/> (coming soon)</>

@@ -104,8 +104,46 @@ export function getRemainingDays(targetDate?: string): number {
   return time.getDate() > date.getDate() ? time.getDate() - date.getDate() : 0;
 }
 
+export async function getJupiterPrices(tokens:string[]) {
+  const body = {
+    ids: tokens,
+  }
+  const apiUrl = "https://price.jup.ag/v4/price?ids="+tokens;
+  const resp = await window.fetch(apiUrl, {
+    //method:'GET',
+    //body: JSON.stringify(body)
+  })
+  const json = await resp.json(); 
+  return json.data;
+}
+
+export async function getCoinGeckoPrices(tokens:string[]) {
+  let tknString = '';
+  let cnt = 0;
+  for (var item of tokens){
+    if (cnt > 0)
+      tknString += ',';   
+    tknString += item;
+    cnt++;
+  }
+  const response = await fetch(PROXY+"https://api.coingecko.com/api/v3/simple/price?include_24hr_change=true&ids="+tknString+"&vs_currencies=usd",{
+    method: "GET",
+    //body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json",
+                "Cache-Control": "s-maxage=8640" }
+  }).catch((error)=>{
+    console.log("ERROR GETTING CG DATA!");
+    return null;
+  });
+  
+  try{
+    const json = await response.json();
+    return json;
+  }catch(e){return null;}
+}
 //Get Prices RPC
 export async function getCoinGeckoPrice(token:string) {
+
   const response = await fetch(PROXY+"https://api.coingecko.com/api/v3/simple/price?include_24hr_change=true&ids="+token+"&vs_currencies=usd",{
     method: "GET",
     //body: JSON.stringify(body),

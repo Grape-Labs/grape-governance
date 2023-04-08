@@ -26,6 +26,7 @@ import {
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
+import { getJupiterPrices } from '../utils/grapeTools/helpers';
 import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
 
 import {
@@ -117,6 +118,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [stringGenerated, setStringGenerated] = React.useState(null);
     const [membersStringGenerated, setMembersStringGenerated] = React.useState(null);
     const [transactionsStringGenerated, setTransactionsStringGenerated] = React.useState(null);
+    const [vaultsStringGenerated, setVaultsStringGenerated] = React.useState(null);
+    const [vaultValueUsdc, setVaultValueUsdc] = React.useState(null);
+    const [vaultVaultCount, setVaultCount] = React.useState(null);
+    const [vaultVaultAssetCount, setVaultAssetCount] = React.useState(null);
     const [governanceAddress, setGovernanceAddress] = React.useState(null);
     const [governanceName, setGovernanceName] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(null);
@@ -167,7 +172,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [storageAutocomplete, setStorageAutocomplete] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
     const [governanceVaults, setGovernanceVaults] = React.useState(null);
-
+    const [governanceVaultsDetails, setGovernanceVaultsDetails] = React.useState(null);
+    const [governanceVaultTotalValue, setGovernanceVaultTotalValue] = React.useState(0);
+    
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
         (error: WalletError) => {
@@ -258,57 +265,203 @@ export function GovernanceSnapshotView (this: any, props: any) {
         const realmPk = grealm.pubkey;
 
         //const treasury = await getNativeTreasuryAddress(programId, realmPk);
-        let fgv = await fetchGovernanceVaults(grealm);
+        let rawGovernances = await fetchGovernanceVaults(grealm);
         
-        setGovernanceVaults(fgv);
-        // should we do a deep dive at this level with the vaults?
-        // absolutely 
+        const rawFilteredVaults = rawGovernances.filter(
+            (gov) =>
+              gov.account.accountType === GovernanceAccountType.TokenGovernanceV1 ||
+              gov.account.accountType === GovernanceAccountType.TokenGovernanceV2
+        );
+        
+        setGovernanceVaults(rawFilteredVaults);
+        
+        
+        const vaultsInfo = rawFilteredVaults.map((governance) => {
+            return {
+                pubkey: governance.pubkey.toBase58(), // program that controls vault/token account
+                vaultId: governance.account?.governedAccount.toBase58(), // vault/token account where tokens are held
+                isGovernanceVault: true,
+            };
+        });
 
-        for (var gv of fgv){
+        console.log("vaultsInfo: "+JSON.stringify(vaultsInfo))
+
+        const rawNativeSolAddresses = await Promise.all(
+            rawGovernances.map((x) =>
+                getNativeTreasuryAddress(
+                //@ts-ignore
+                new PublicKey(grealm.owner),
+                x!.pubkey
+                )
+            )
+        );
+
+        //console.log("rawNativeSolAddresses: "+JSON.stringify(rawNativeSolAddresses))
+
+        rawNativeSolAddresses.forEach((rawAddress, index) => {
+            vaultsInfo.push({
+              pubkey: rawAddress.toBase58(), // program that controls vault/token account
+              vaultId: index.toString(), // vault/token account where tokens are held
+              isGovernanceVault: false,
+            });
+        });
+
+        console.log("rawNativeSolAddresses: "+JSON.stringify(rawNativeSolAddresses))
+
+
+        const vaultSolBalancesPromise = await Promise.all(
+            vaultsInfo.map((vault) =>
+              connection.getBalance(new PublicKey(vault?.pubkey))
+            )
+        );
+
+        const vaultsWithTokensPromise = await Promise.all(
+            vaultsInfo.map((vault) =>
+              connection.getParsedTokenAccountsByOwner(
+                new PublicKey(vault.pubkey),
+                {
+                  programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+                }
+              )
+            )
+        );
+
+        //console.log("vaultSolBalancesPromise "+JSON.stringify(vaultSolBalancesPromise));
+        //console.log("vaultsWithTokensPromise "+JSON.stringify(vaultsWithTokensPromise));
+        
+        // loop through all tokens to get their respective values
+
+        
+        const vaultsInflated = new Array();
+        let x = 0;
+        for (var gv of vaultsInfo){ // reformat to something pretty ;)
+            console.log("vault: "+JSON.stringify(gv));
+            vaultsInflated.push({
+                vault:gv,
+                solBalance:vaultSolBalancesPromise[x],
+                tokens:vaultsWithTokensPromise[x]
+            })
+            x++;
+        }
+
+        //console.log("vaultsInflated: "+JSON.stringify(vaultsInflated))
+
+        let totalVaultValue = 0;
+        const treasuryAssets = new Array();
+        const cgArray = ["solana"]//new Array();
+        const cgMintArray = ["So11111111111111111111111111111111111111112"];
+
+        for (var vi of vaultsInflated){
             //console.log('VAULT: '+JSON.stringify(gv))
 
-            let balance = connection.getBalance(new PublicKey(gv.pubkey))
-
-            console.log('SOL BALANCE: '+gv.pubkey.toBase58()+ " - " +JSON.stringify(balance));
-
-            const resp = await connection.getParsedTokenAccountsByOwner(gv.pubkey, {programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")});
-            const resultValues = resp.value;
-            
-            const holdings: any[] = [];
-            for (const item of resultValues){
-                //let buf = Buffer.from(item.account, 'base64');
-                //console.log("item: "+JSON.stringify(item));
-                if (item.account.data.parsed.info.tokenAmount.amount > 0)
-                    holdings.push(item);
-                // consider using https://raw.githubusercontent.com/solana-labs/token-list/main/src/tokens/solana.tokenlist.json to view more details on the tokens held
-            } 
-
-            const sortedholdings = JSON.parse(JSON.stringify(holdings));
-            sortedholdings.sort((a:any,b:any) => (b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount));
-
-            console.log('***');
-            console.log('*** TOKEN BALANCE: '+gv.pubkey.toBase58())+" ***";
+            console.log('***************************************************');
+            console.log('*** TOKEN BALANCE: '+new PublicKey(vi.vault.pubkey).toBase58())+" ***";
 
             var assetsIdentified = 0;
             var assetsNotIdentified = 0;
-            for (const thisitem of sortedholdings){
-                const ta = thisitem.account.data.parsed.info.tokenAmount.amount;
-                const td = thisitem.account.data.parsed.info.tokenAmount.decimals;
-                const tf = thisitem.account.data.parsed.info.tokenAmount.amount/Math.pow(10, (thisitem.account.data.parsed.info.tokenAmount.decimals || 0));;
-                const tn = tokenMap.get(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58())?.name;
-                const tl = tokenMap.get(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58())?.logoURI;
+            const identifiedAssets = new Array();
+            const notIdentifiedAssets = new Array();
+            
+            //console.log("SOL Balance: "+vi.solBalance);
 
-                if ((ta > 0)&&(tn)){
-                    assetsIdentified++;
-                    console.log(tn+": "+tf+" "+tl);
-                } else{
-                    assetsNotIdentified++;
+            //console.log("vi.tokens:" + JSON.stringify(vi.tokens))
+
+            if (vi?.tokens){
+                for (const thisitem of vi.tokens.value){
+                    const ta = thisitem.account.data.parsed.info.tokenAmount.amount;
+                    const td = thisitem.account.data.parsed.info.tokenAmount.decimals;
+                    const tf = thisitem.account.data.parsed.info.tokenAmount.amount/Math.pow(10, (thisitem.account.data.parsed.info.tokenAmount.decimals || 0));;
+                    const tn = tokenMap.get(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58())?.name;
+                    const tl = tokenMap.get(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58())?.logoURI;
+                    const cgid = tokenMap.get(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58())?.extensions?.coingeckoId;
+
+                    if ((ta > 0)&&(tn)){
+                        assetsIdentified++;
+                        
+                        //console.log(tn+": "+tf);
+                        
+                        thisitem.account.tokenMap = {
+                            tokenAddress:new PublicKey(thisitem.account.data.parsed.info.mint).toBase58(),
+                            tokenAmount:ta,
+                            tokenDecimals:td,
+                            tokenUiAmount:tf,
+                            tokenName:tn,
+                            tokenLogo:tl,
+                            tokenCgId:cgid
+                        }
+                        
+                        var cgFound = false;
+                        for (var cgitem of cgArray){ // only fetch this ones
+                            if (cgitem === cgid)
+                                cgFound;
+                        }
+                        if ((!cgFound) && (cgid)){
+                            cgArray.push(cgid);
+                        }
+                        cgMintArray.push(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58());
+                    } else{
+                        // these could be NFTs or other assets not in the tokenMap
+                        //console.log("-------:::::: "+tn+": "+tf);
+                        assetsNotIdentified++;
+                        notIdentifiedAssets.push({
+                            tokenAddress:new PublicKey(thisitem.account.data.parsed.info.mint).toBase58(),
+                            tokenAmount:ta,
+                            tokenDecimals:td,
+                            tokenUiAmount:tf,
+                        })
+                    }
                 }
             }
             if (assetsNotIdentified > 0)
                 console.log("Assets not identified (possibly NFTs or not mapped tokens): "+assetsNotIdentified)
             console.log("Total Tokens: "+(assetsIdentified+assetsNotIdentified));
         }
+
+        
+        // consider jupiter as a backup... (per token address)
+        const cgp = await getJupiterPrices(cgMintArray);
+        for (var ia of vaultsInflated){
+            let vaultValue = 0;
+            
+            console.log("*********** "+new PublicKey(ia.vault.pubkey).toBase58()+ " ***********");
+            for (var iat of ia?.tokens.value){
+                if (iat.account?.tokenMap){
+                    if (cgp[iat.account.tokenMap.tokenAddress]){
+                        ia.cgInfo = cgp[iat.account.tokenMap.tokenAddress]
+                        vaultValue += cgp[iat.account.tokenMap.tokenAddress].price*iat.account.tokenMap.tokenUiAmount;
+                        totalVaultValue += cgp[iat.account.tokenMap.tokenAddress].price*iat.account.tokenMap.tokenUiAmount;
+                    }
+
+                    /*
+                    if (cgp[iat.account.tokenMap.tokenAddress]){
+                        console.log("tokenAddress: "+iat.account.tokenMap.tokenAddress);
+                        console.log("tokenUiAmount: "+iat.account.tokenMap.tokenUiAmount);
+                        console.log("convertedValue: "+cgp[iat.account.tokenMap.tokenAddress].price*iat.account.tokenMap.tokenUiAmount);
+                    }*/
+                    
+                
+                }
+            }
+            //ia.solToUsd = cgp['solana'].usd;
+            ia.solToUsd = cgp['So11111111111111111111111111111111111111112'].price;
+            ia.solUsdValue = (ia.solBalance > 0 ? cgp['So11111111111111111111111111111111111111112'].price*(ia.solBalance/(10 ** 9)) : 0);
+            vaultValue += ia.solUsdValue;
+            totalVaultValue += ia.solUsdValue;
+            console.log(new PublicKey(ia.vault.pubkey).toBase58()+" vaultSolValue ("+(ia.solBalance/(10 ** 9))+"): "+ia.solUsdValue);
+            console.log(new PublicKey(ia.vault.pubkey).toBase58()+" vaultValue: "+vaultValue);
+        
+        }
+        //console.log("vaultsInflated: "+JSON.stringify(vaultsInflated));
+        
+        // using the same order we can push the results accordingly
+        
+        console.log("total value: "+totalVaultValue); 
+        setGovernanceVaultTotalValue(totalVaultValue);
+
+        //console.log("Vaults: "+JSON.stringify(treasuryAssets));
+        setGovernanceVaultsDetails(treasuryAssets);
+        const governanceVaultsString = JSON.stringify(treasuryAssets);
+        setVaultsStringGenerated(governanceVaultsString);
         
         if (grealm?.account?.config?.useCommunityVoterWeightAddin){
             //{
@@ -730,7 +883,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
                         //console.log("vrs check 3")
 
-                        
                         //if (thisitem.account?.state === 2){ // if voting state
                             await getGovernanceProps(thisitem)
                         //}
@@ -964,7 +1116,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             enqueueSnackbar(`${JSON.stringify(e)}`,{ variant: 'error' });
             console.log("Error: "+JSON.stringify(e));
             //console.log("Error: "+JSON.stringify(e));
-        } 
+        }
     }
 
     const uploadReplaceToStoragePool = async (newFile: File, existingFileUrl: string, storagePublicKey: PublicKey, version: string) => { 
@@ -1154,7 +1306,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         }
     }
 
-    const updateGovernanceLookupFile = async(fileName:string, memberFileName:string, governanceTransactionsFileName: string, timestamp:number, lookupFound:boolean) => {
+    const updateGovernanceLookupFile = async(fileName:string, memberFileName:string, governanceTransactionsFileName: string, governanceVaultsFileName: string, timestamp:number, lookupFound:boolean) => {
         // this should be called each time we update with governance
         const storageAccountPK = storagePool;
 
@@ -1189,11 +1341,11 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         item.filename = fileName;
                         item.memberFilename = memberFileName;
                         item.governanceTransactionsFilename = governanceTransactionsFileName;
+                        item.governanceVaultsFilename = governanceVaultsFileName;
                         item.realm = this_realm;
                         if (this_realm.account.config?.communityMintMaxVoteWeightSource)
                             item.communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
                         item.governance = thisGovernance;
-                        item.governanceVaults = governanceVaults;
                         item.governingMintDetails = governingMintDetails;
                         item.totalProposals = totalProposals;
                         item.totalProposalsVoting = totalProposalsVoting;
@@ -1202,6 +1354,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         item.tokenSupply = totalSupply;
                         item.totalQuorum = totalQuorum;
                         item.totalMembers = memberMap ? memberMap.length : null;
+                        item.totalVaultValue = governanceVaultTotalValue;
                         govFound = true;
                     }
                     //console.log("size: "+new Set(memberMap).size)
@@ -1223,9 +1376,11 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         filename:fileName,
                         memberFilename: memberFileName,
                         governanceTransactionsFilename: governanceTransactionsFileName,
+                        governanceVaultsFilename: governanceVaultsFileName,
                         realm:this_realm,
                         communityFmtSupplyFractionPercentage: communityFmtSupplyFractionPercentage,
                         governance: thisGovernance,
+                        governances: governanceVaults,
                         governingMintDetails: governingMintDetails,
                         totalProposals: totalProposals,
                         totalProposalsVoting: totalProposalsVoting,
@@ -1235,6 +1390,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         tokenSupply: totalSupply,
                         totalQuorum: totalQuorum,
                         totalMembers: memberMap ? memberMap.length : null,
+                        totalVaultValue: governanceVaultTotalValue,
                     });
                 }
                 
@@ -1263,6 +1419,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     realm:this_realm,
                     communityFmtSupplyFractionPercentage: communityFmtSupplyFractionPercentage,
                     governance: thisGovernance,
+                    governances: governanceVaults,
                     governingMintDetails: governingMintDetails,
                     totalProposals: totalProposals,
                     totalProposalsVoting: totalProposalsVoting,
@@ -1312,12 +1469,14 @@ export function GovernanceSnapshotView (this: any, props: any) {
         const fileName = governanceAddress+'_'+timestamp+'.json';
         const memberFileName = governanceAddress+'_members_'+timestamp+'.json';
         const governanceTransactionsFileName = governanceAddress+'_transactions_'+timestamp+'.json';
+        const governanceVaultsFileName = governanceAddress+'_vaults_'+timestamp+'.json';
         
         const storageAccountPK = storagePool;
 
         let current_proposals_to_use = stringGenerated;
         let current_members_to_use = membersStringGenerated;
         let current_transactions_to_use = transactionsStringGenerated;
+        let current_vaults_to_use = vaultsStringGenerated;
 
         //exportJSON(fileGenerated, fileName);
         console.log("preparing to upload: "+fileName);
@@ -1338,12 +1497,15 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 const uploadMembersFile = await returnJSON(current_members_to_use, memberFileName);
                 console.log("3: "+JSON.stringify(storageAccountPK))
                 const uploadTransactionsFile = await returnJSON(current_transactions_to_use, governanceTransactionsFileName);
+                console.log("4: "+JSON.stringify(storageAccountPK))
+                const uploadVaultsFile = await returnJSON(current_vaults_to_use, governanceVaultsFileName);
                 
                 //const fileBlob = await fileToDataUri(uploadFile);
                 // auto check if this file exists (now we manually do this)
                 let found = false;
                 let foundMembers = false;
                 let foundTransactions = false;
+                let foundVaults = false;
                 let lookupFound = false;
                 try{
                     console.log("storageAccountPK: "+JSON.stringify(storageAccountPK))
@@ -1357,6 +1519,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 foundMembers = true;
                             } else if (item === governanceTransactionsFileName){
                                 foundTransactions = true;
+                            } else if (item === governanceVaultsFileName){
+                                foundVaults = true;
                             } else if (item === 'governance_lookup.json'){
                                 lookupFound = true;
                             }
@@ -1366,7 +1530,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     // update lookup
                     console.log("1. Storage Pool: "+storageAccountPK+" | Lookup");
                     
-                    await updateGovernanceLookupFile(fileName, memberFileName, governanceTransactionsFileName, timestamp, lookupFound);
+                    await updateGovernanceLookupFile(fileName, memberFileName, governanceTransactionsFileName, governanceVaultsFileName, timestamp, lookupFound);
 
                     // proceed to add propsals
                     console.log("2. Storage Pool: "+storageAccountPK+" | File ("+fileName+") found: "+JSON.stringify(found));
@@ -1396,8 +1560,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         await uploadToStoragePool(membersFileStream, new PublicKey(storageAccountPK));
                     }
 
-                    // proceed to add members
-                    console.log("4. Storage Pool: "+storageAccountPK+" | Members ("+governanceTransactionsFileName+") found: "+JSON.stringify(foundTransactions));
+                    // proceed to add transactions
+                    console.log("4. Storage Pool: "+storageAccountPK+" | Transactions ("+governanceTransactionsFileName+") found: "+JSON.stringify(foundTransactions));
                     
                     const transactionsFileStream = blobToFile(uploadTransactionsFile, governanceTransactionsFileName);
                     const transactionsFileSize  = uploadTransactionsFile.size;
@@ -1408,6 +1572,20 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     }else{
                         setCurrentUploadInfo("Adding "+governanceTransactionsFileName+" - "+formatBytes(transactionsFileSize));
                         await uploadToStoragePool(transactionsFileStream, new PublicKey(storageAccountPK));
+                    }
+
+                    // proceed to add vaults
+                    console.log("5. Storage Pool: "+storageAccountPK+" | Vaults ("+governanceVaultsFileName+") found: "+JSON.stringify(foundVaults));
+                    
+                    const vaultsFileStream = blobToFile(uploadVaultsFile, governanceVaultsFileName);
+                    const vaultsFileSize  = uploadVaultsFile.size;
+                    if (foundVaults){
+                        const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+foundVaults;
+                        setCurrentUploadInfo("Replacing "+governanceVaultsFileName+" - "+formatBytes(vaultsFileSize));
+                        await uploadReplaceToStoragePool(vaultsFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+                    }else{
+                        setCurrentUploadInfo("Adding "+governanceVaultsFileName+" - "+formatBytes(vaultsFileSize));
+                        await uploadToStoragePool(vaultsFileStream, new PublicKey(storageAccountPK));
                     }
                     
                     // delay a bit and update to show that the files have been added
