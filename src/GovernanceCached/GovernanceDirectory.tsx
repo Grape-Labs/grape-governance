@@ -57,8 +57,10 @@ function GovernanceCardView(props:any) {
         <CardContent>
             <Grid container>
                 <Grid item xs={12} sm={8} container justifyContent="flex-start">
-                    <Typography sx={{ fontSize: 14, color:'rgba(255,255,255,0.1)' }} gutterBottom>
-                        Governance
+                    <Typography sx={{ fontSize: 10, color:'rgba(255,255,255,0.1)' }} gutterBottom>
+                        Governance {item?.governanceAddress &&
+                            <>{item.governanceAddress}</>
+                        }
                     </Typography>
                 </Grid>
                 <Grid item xs={12} sm={4} container justifyContent="flex-end">
@@ -94,12 +96,6 @@ function GovernanceCardView(props:any) {
                         background: 'rgba(0, 0, 0, 0.2)'
                     }}
                 >
-
-                    {item?.governanceAddress &&
-                        <Typography variant='caption' color="text.secondary">
-                            {item.governanceAddress}
-                        </Typography>
-                    }
 
                     {(item?.totalVaultValue && item.totalVaultValue > 0) &&
                         <Typography variant="body2">
