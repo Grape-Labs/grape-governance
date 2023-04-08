@@ -174,6 +174,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [governanceVaults, setGovernanceVaults] = React.useState(null);
     const [governanceVaultsDetails, setGovernanceVaultsDetails] = React.useState(null);
     const [governanceVaultTotalValue, setGovernanceVaultTotalValue] = React.useState(0);
+    const [governanceVaultStableCoinValue, setGovernanceVaultStableCoinValue] = React.useState(0);
     
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
@@ -375,7 +376,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     const tl = tokenMap.get(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58())?.logoURI;
                     const cgid = tokenMap.get(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58())?.extensions?.coingeckoId;
 
-                    if ((ta > 0)&&(tn)){
+                    if ((ta > 0) && (ta !== 1 && td !== 0)){
                         assetsIdentified++;
                         
                         //console.log(tn+": "+tf);
@@ -420,6 +421,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         
         // consider jupiter as a backup... (per token address)
         const cgp = await getJupiterPrices(cgMintArray);
+        let totalVaultStableCoinValue = 0;
         for (var ia of vaultsInflated){
             let vaultValue = 0;
             
@@ -430,6 +432,15 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         ia.cgInfo = cgp[iat.account.tokenMap.tokenAddress]
                         vaultValue += cgp[iat.account.tokenMap.tokenAddress].price*iat.account.tokenMap.tokenUiAmount;
                         totalVaultValue += cgp[iat.account.tokenMap.tokenAddress].price*iat.account.tokenMap.tokenUiAmount;
+
+                        // check if stable coin?
+                        if ((iat.account.tokenMap.tokenAddress === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")||
+                            (iat.account.tokenMap.tokenAddress === "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB")||
+                            (iat.account.tokenMap.tokenAddress === "BQcdHdAQW1hczDbBi9hiegXAR7A98Q9jx3X3iBBBDiq4")||
+                            (iat.account.tokenMap.tokenAddress === "D3KdBta3p53RV5FoahnJM5tP45h6Fd3AyFYgXTJvGCaK")||
+                            (iat.account.tokenMap.tokenAddress === "Ea5SjE2Y6yvCeW5dYTn7PYMuW5ikXkvbGdcmSnXeaLjS")){
+                            totalVaultStableCoinValue += cgp[iat.account.tokenMap.tokenAddress].price*iat.account.tokenMap.tokenUiAmount
+                        }
                     }
 
                     /*
@@ -457,10 +468,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
         
         console.log("total value: "+totalVaultValue); 
         setGovernanceVaultTotalValue(totalVaultValue);
-
+        setGovernanceVaultStableCoinValue(totalVaultStableCoinValue);
         //console.log("Vaults: "+JSON.stringify(treasuryAssets));
-        setGovernanceVaultsDetails(treasuryAssets);
-        const governanceVaultsString = JSON.stringify(treasuryAssets);
+        setGovernanceVaultsDetails(vaultsInflated);
+        const governanceVaultsString = JSON.stringify(vaultsInflated);
         setVaultsStringGenerated(governanceVaultsString);
         
         if (grealm?.account?.config?.useCommunityVoterWeightAddin){
@@ -1315,8 +1326,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
         console.log("Storage Pool: "+storagePool+" | Lookup File found: "+JSON.stringify(lookupFound))
         //console.log("this_realm: "+JSON.stringify(this_realm));
         //console.log("governanceLookup: "+JSON.stringify(governanceLookup));
-        
-
 
         if (this_realm){
             //console.log("realm: "+JSON.stringify(realm))
@@ -1355,6 +1364,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         item.totalQuorum = totalQuorum;
                         item.totalMembers = memberMap ? memberMap.length : null;
                         item.totalVaultValue = governanceVaultTotalValue;
+                        item.totalVaultStableCoinValue = governanceVaultStableCoinValue;
                         govFound = true;
                     }
                     //console.log("size: "+new Set(memberMap).size)
@@ -1391,6 +1401,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         totalQuorum: totalQuorum,
                         totalMembers: memberMap ? memberMap.length : null,
                         totalVaultValue: governanceVaultTotalValue,
+                        totalVaultStableCoinValue: governanceVaultStableCoinValue,
                     });
                 }
                 
@@ -1416,6 +1427,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     filename:fileName,
                     memberFilename: memberFileName,
                     governanceTransactionsFilename: governanceTransactionsFileName,
+                    governanceVaultsFilename: governanceVaultsFileName,
                     realm:this_realm,
                     communityFmtSupplyFractionPercentage: communityFmtSupplyFractionPercentage,
                     governance: thisGovernance,
@@ -1428,6 +1440,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     //memberCount: memberCount,
                     tokenSupply: totalSupply,
                     totalQuorum: totalQuorum,
+                    totalMembers: memberMap ? memberMap.length : null,
+                    totalVaultValue: governanceVaultTotalValue,
+                    totalVaultStableCoinValue: governanceVaultStableCoinValue,
                 });
                 
                 console.log("Uploading new Governance Lookup");
