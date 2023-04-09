@@ -9,6 +9,7 @@ import {
     CardActions,
     CardContent,
     Button,
+    ButtonGroup,
     TextField,
     Tooltip,
     Typography,
@@ -16,6 +17,10 @@ import {
     linearProgressClasses
 } from '@mui/material/';
 
+import BallotIcon from '@mui/icons-material/Ballot';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import GroupIcon from '@mui/icons-material/Group';
+import SortIcon from '@mui/icons-material/Sort';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
@@ -185,6 +190,100 @@ export function GovernanceDirectoryView() {
     const [governanceTotalVaultStableCoinValue, setGovernanceTotalVaultStableCoinValue] = React.useState(null);
     const [governanceTotalMembers, setGovernanceTotalMembers] = React.useState(null);
     const [governanceTotalProposals, setGovernanceTotalProposals] = React.useState(null);
+    const [sortingType, setSortingType] = React.useState(null);
+    const [sortingDirection, setSortingDirection] = React.useState(null);
+
+    const sortGovernance = (type:number) => {
+        let sorted = governanceLookup; 
+
+        let direction = sortingDirection;
+        if (direction === 0) direction = 1;
+        else direction = 0;
+        console.log("type: " + type+ " direction: "+direction)
+        if (type === 1 && direction === 0){ // by members:
+            sorted = governanceLookup.sort((a:any, b:any) => a?.totalMembers < b?.totalMembers ? 1 : -1); 
+        } else if (type === 1 && direction === 1){ // by members:
+            sorted = governanceLookup.sort((a:any, b:any) => b?.totalMembers < a?.totalMembers ? 1 : -1); 
+        } else if (type === 2 && direction === 0){ // by props:
+            sorted = governanceLookup.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
+        } else if (type === 2 && direction === 1){ // by props:
+            sorted = governanceLookup.sort((a:any, b:any) => b?.totalProposals < a?.totalProposals ? 1 : -1); 
+        } else if (type === 3 && direction === 0){ // by voting props:
+            sorted = governanceLookup.sort((a:any, b:any) => a?.totalProposalsVoting < b?.totalProposalsVoting ? 1 : -1); 
+        } else if (type === 3 && direction === 1){ // by voting props:
+            sorted = governanceLookup.sort((a:any, b:any) => b?.totalProposalsVoting < a?.totalProposalsVoting ? 1 : -1); 
+        } else if (type === 4 && direction === 0){ // by treasury:
+            sorted = governanceLookup.sort((a:any, b:any) => a?.totalVaultValue < b?.totalVaultValue ? 1 : -1); 
+        } else if (type === 4 && direction === 1){ // by treasury:
+            sorted = governanceLookup.sort((a:any, b:any) => b?.totalVaultValue < a?.totalVaultValue ? 1 : -1); 
+        } 
+
+        setSortingType(type);
+        setSortingDirection(direction);
+
+        setGovernanceLookup(sorted);
+    }
+
+    function GovernanceDirectorySorting(props: any){
+        
+        return(
+            <Box
+                m={1}
+                //margin
+                display="flex"
+                justifyContent="flex-end"
+                alignItems="flex-end"
+                >
+                    <ButtonGroup
+                        color='inherit'
+                        size='small'
+                        variant='outlined'
+                        sx={{borderRadius:'17px'}}
+                    >
+                        <Tooltip title={
+                                <>Sort by Members {sortingType === 1 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
+                                </>
+                            }>
+                            <Button
+                                onClick={e => sortGovernance(1)}
+                            > <GroupIcon /> {sortingType === 1 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
+                            </Button>
+                        </Tooltip>
+
+                        <Tooltip title={
+                                <>Sort by Proposals {sortingType === 3 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
+                                </>
+                            }>
+                            <Button
+                                onClick={e => sortGovernance(3)}
+                            > <BallotIcon /> {sortingType === 3 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
+                            </Button>
+                        </Tooltip>
+                        <Tooltip title={
+                                <>Sort by Voting Proposals {sortingType === 2 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
+                                </>
+                            }>
+                            <Button
+                                onClick={e => sortGovernance(2)}
+                            > <HowToVoteIcon /> {sortingType === 2 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
+                            </Button>
+                        </Tooltip>
+                        
+                        <Tooltip title={
+                                <>Sort by Treasury {sortingType === 4 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
+                                </>
+                            }>
+                            <Button
+                                onClick={e => sortGovernance(4)}
+                            > <AccountBalanceIcon /> {sortingType === 4 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
+                            </Button>
+                        </Tooltip>
+                        
+                    </ButtonGroup>
+                    
+            </Box>
+        );
+    }
 
     const callGovernanceLookup = async() => {
         const fglf = await fetchGovernanceLookupFile(storagePool);
@@ -465,7 +564,8 @@ export function GovernanceDirectoryView() {
                         
                         </Grid>
                     </Box>
-
+                    
+                    <GovernanceDirectorySorting />
                     
                     <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
                         {governanceLookup.map((item: any,key:number) => (
