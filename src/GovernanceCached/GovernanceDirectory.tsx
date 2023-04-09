@@ -130,7 +130,7 @@ function GovernanceCardView(props:any) {
                     {item?.totalVaultNftValue?
                         <>{item.totalVaultStableCoinValue > 1 ?
                         <Typography variant="body2">
-                            <>Treasury in NFT Floor Price <strong>{getFormattedNumberToLocale(Number(item.totalVaultNftValue).toFixed(2))} USD</strong></>
+                            <>Treasury NFT Floor Price <strong>{getFormattedNumberToLocale(Number(item.totalVaultNftValue).toFixed(2))} USD</strong></>
                         </Typography>
                         :<></>}
                         </>
