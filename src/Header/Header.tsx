@@ -241,7 +241,8 @@ export function Header(props: any) {
         const fglf = await fetchGovernanceLookupFile(GGAPI_STORAGE_POOL);
         
         if (fglf && fglf.length > 0){
-            const sorted = fglf.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
+            //const sorted = fglf.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
+            const sorted = fglf.sort((a:any, b:any) => (a?.totalVaultValue < b?.totalVaultValue && b?.totalVaultValue > 1) ? 1 : -1); 
             
             const lookupAutocomplete = new Array();
             for (var item of sorted){

@@ -1628,7 +1628,13 @@ export function GovernanceSnapshotView (this: any, props: any) {
         const fgl = await fetchGovernanceLookupFile(storagePool);
         if (fgl && fgl.length > 0){
             const lookupAutocomplete = new Array();
-            for (var item of fgl){
+
+            //const sorted = fgl.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
+            const presorted = fgl.sort((a:any, b:any) => (b?.totalVaultValue < a?.totalVaultValue && a?.totalVaultValue > 1) ? 1 : -1); 
+            const sorted = presorted.sort((a:any, b:any) => (a?.totalProposalsVoting < b?.totalProposalsVoting) ? 1 : -1); 
+            
+
+            for (var item of sorted){
                 lookupAutocomplete.push({
                     label: item.governanceName,
                     value: item.governanceAddress,
@@ -1639,8 +1645,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
             }
             setGovernanceAutocomplete(lookupAutocomplete);
 
-
-            const sorted = fgl.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
             setGovernanceLookup(sorted);
         }
     }      
