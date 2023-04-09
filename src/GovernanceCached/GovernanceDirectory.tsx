@@ -264,8 +264,8 @@ export function GovernanceDirectoryView() {
                                 </>
                             }>
                             <Button
-                                onClick={e => sortGovernance(3)}
-                            > <BallotIcon /> {sortingType === 3 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
+                                onClick={e => sortGovernance(2)}
+                            > <BallotIcon /> {sortingType === 2 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
                             </Button>
                         </Tooltip>
                         <Tooltip title={
@@ -273,8 +273,8 @@ export function GovernanceDirectoryView() {
                                 </>
                             }>
                             <Button
-                                onClick={e => sortGovernance(2)}
-                            > <HowToVoteIcon /> {sortingType === 2 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
+                                onClick={e => sortGovernance(3)}
+                            > <HowToVoteIcon /> {sortingType === 3 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
                             </Button>
                         </Tooltip>
 
