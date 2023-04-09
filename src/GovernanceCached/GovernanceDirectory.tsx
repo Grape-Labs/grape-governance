@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import {
     Box,
+    Badge,
     Grid,
     Card,
     CardActions,
@@ -75,7 +76,10 @@ function GovernanceCardView(props:any) {
                             <Button
                                 color='inherit'
                                 sx={{borderRadius:'17px'}}
-                            ><HowToVoteIcon /></Button>
+                            >
+                                <Badge badgeContent={item.totalProposalsVoting} color="success"><HowToVoteIcon /></Badge>
+                                
+                            </Button>
                         </Tooltip>
                     :
                         <></>
@@ -260,7 +264,7 @@ export function GovernanceDirectoryView() {
                             </Button>
                         </Tooltip>
                         <Tooltip title={
-                                <>Sort by Voting Proposals {sortingType === 2 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
+                                <>Sort by Currently Voting Proposals {sortingType === 2 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
                                 </>
                             }>
                             <Button
