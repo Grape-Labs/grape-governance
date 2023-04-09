@@ -18,6 +18,7 @@ import {
     linearProgressClasses
 } from '@mui/material/';
 
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import BallotIcon from '@mui/icons-material/Ballot';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import GroupIcon from '@mui/icons-material/Group';
@@ -220,6 +221,10 @@ export function GovernanceDirectoryView() {
             sorted = governanceLookup.sort((a:any, b:any) => a?.totalVaultValue < b?.totalVaultValue ? 1 : -1); 
         } else if (type === 4 && direction === 1){ // by treasury:
             sorted = governanceLookup.sort((a:any, b:any) => b?.totalVaultValue < a?.totalVaultValue ? 1 : -1); 
+        }  else if (type === 5 && direction === 0){ // by last proposal date:
+            sorted = governanceLookup.sort((a:any, b:any) => Number("0x"+a.lastProposalDate) < Number("0x"+b.lastProposalDate) ? 1 : -1); 
+        } else if (type === 5 && direction === 1){ // by last proposal data:
+            sorted = governanceLookup.sort((a:any, b:any) => Number("0x"+b.lastProposalDate) < Number("0x"+a.lastProposalDate) ? 1 : -1); 
         } 
 
         setSortingType(type);
@@ -270,6 +275,16 @@ export function GovernanceDirectoryView() {
                             <Button
                                 onClick={e => sortGovernance(2)}
                             > <HowToVoteIcon /> {sortingType === 2 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
+                            </Button>
+                        </Tooltip>
+
+                        <Tooltip title={
+                                <>Sort by Most Recent Proposals {sortingType === 2 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
+                                </>
+                            }>
+                            <Button
+                                onClick={e => sortGovernance(5)}
+                            > <AccessTimeIcon /> {sortingType === 5 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
                             </Button>
                         </Tooltip>
                         
