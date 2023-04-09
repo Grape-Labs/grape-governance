@@ -425,6 +425,7 @@ export function GovernanceDirectoryView() {
                             <Grid container>
                                 <Grid item xs={12}>
                                     <TextField 
+                                        size="small"
                                         id="search-governances" 
                                         label="Search" 
                                         variant="outlined"
