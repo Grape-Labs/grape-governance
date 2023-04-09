@@ -29,7 +29,7 @@ export default function AboutDialog() {
   return (
     <>
        <Tooltip title={`About`}>
-            <IconButton sx={{borderRadius:'17px'}} onClick={handleClickOpen}>
+            <IconButton sx={{mt:1,mb:1,borderRadius:'17px'}} onClick={handleClickOpen}>
                 <InfoIcon />
             </IconButton>
       </Tooltip>
