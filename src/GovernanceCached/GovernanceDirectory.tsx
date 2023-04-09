@@ -127,6 +127,16 @@ function GovernanceCardView(props:any) {
                         :<></>
                     }
 
+                    {item?.totalVaultNftValue?
+                        <>{item.totalVaultStableCoinValue > 1 ?
+                        <Typography variant="body2">
+                            <>Treasury in NFT Floor Price <strong>{getFormattedNumberToLocale(Number(item.totalVaultNftValue).toFixed(2))} USD</strong></>
+                        </Typography>
+                        :<></>}
+                        </>
+                        :<></>
+                    }
+
                     {(item.totalMembers && item.totalMembers > 0) &&
                         <Typography variant="body2">
                             <>All Time Members <strong>{item.totalMembers}</strong></>

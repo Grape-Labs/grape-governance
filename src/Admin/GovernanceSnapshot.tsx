@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, memo, Suspense } from "react";
 import pako from 'pako';
 import axios from "axios";
+import { RestClient, NftMintsByOwnerRequest, NftMintPriceByCreatorAvgRequest, CollectionFloorpriceRequest } from '@hellomoon/api';
 import { 
     getRealm, 
     getAllProposals, 
@@ -66,6 +67,7 @@ import {
     RPC_CONNECTION,
     PROXY,
     HELIUS_API,
+    HELLO_MOON_BEARER,
     GGAPI_STORAGE_POOL,
     GGAPI_STORAGE_URI,
 } from '../utils/grapeTools/constants';
@@ -175,6 +177,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [governanceVaultsDetails, setGovernanceVaultsDetails] = React.useState(null);
     const [governanceVaultTotalValue, setGovernanceVaultTotalValue] = React.useState(0);
     const [governanceVaultStableCoinValue, setGovernanceVaultStableCoinValue] = React.useState(0);
+    const [governanceVaultNftValue, setGovernanceVaultNftValue] = React.useState(0);
     
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
@@ -298,7 +301,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         );
 
         //console.log("rawNativeSolAddresses: "+JSON.stringify(rawNativeSolAddresses))
-
+       
         rawNativeSolAddresses.forEach((rawAddress, index) => {
             vaultsInfo.push({
               pubkey: rawAddress.toBase58(), // program that controls vault/token account
@@ -308,13 +311,14 @@ export function GovernanceSnapshotView (this: any, props: any) {
         });
 
         console.log("rawNativeSolAddresses: "+JSON.stringify(rawNativeSolAddresses))
-
+        setPrimaryStatus("Fething Treasury Sol Balance");
 
         const vaultSolBalancesPromise = await Promise.all(
             vaultsInfo.map((vault) =>
               connection.getBalance(new PublicKey(vault?.pubkey))
             )
         );
+        setPrimaryStatus("Fething Treasury Token Accounts");
 
         const vaultsWithTokensPromise = await Promise.all(
             vaultsInfo.map((vault) =>
@@ -327,8 +331,21 @@ export function GovernanceSnapshotView (this: any, props: any) {
             )
         );
 
+        setPrimaryStatus("Fething Treasury NFTs");
+
+        const client = new RestClient(HELLO_MOON_BEARER);
+        const vaultsWithNftsPromise = await Promise.all(
+            vaultsInfo.map((vault) =>
+                client.send(new NftMintsByOwnerRequest({
+                    ownerAccount: vault.pubkey,
+                    limit: 1000
+                }))
+            )
+        );
+
         //console.log("vaultSolBalancesPromise "+JSON.stringify(vaultSolBalancesPromise));
         //console.log("vaultsWithTokensPromise "+JSON.stringify(vaultsWithTokensPromise));
+        console.log("vaultsWithNftsPromise "+JSON.stringify(vaultsWithNftsPromise));
         
         // loop through all tokens to get their respective values
 
@@ -340,7 +357,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
             vaultsInflated.push({
                 vault:gv,
                 solBalance:vaultSolBalancesPromise[x],
-                tokens:vaultsWithTokensPromise[x]
+                tokens:vaultsWithTokensPromise[x],
+                nfts:vaultsWithNftsPromise[x].data,
             })
             x++;
         }
@@ -348,6 +366,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
         //console.log("vaultsInflated: "+JSON.stringify(vaultsInflated))
 
         let totalVaultValue = 0;
+        let totalVaultNftValue = 0;
+        let totalVaultNftValueSol = 0;
         const treasuryAssets = new Array();
         const cgArray = ["solana"]//new Array();
         const cgMintArray = ["So11111111111111111111111111111111111111112"];
@@ -360,6 +380,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
             var assetsIdentified = 0;
             var assetsNotIdentified = 0;
+            var nftsIdentified = 0;
             const identifiedAssets = new Array();
             const notIdentifiedAssets = new Array();
             
@@ -410,7 +431,69 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             tokenDecimals:td,
                             tokenUiAmount:tf,
                         })
+
+                        // try hellomoon?
+                        //const client = new RestClient(HELLO_MOON_BEARER);
+
                     }
+                }
+            }
+
+            setPrimaryStatus("Fething Treasury NFT AVG Prices");
+
+            if (vi?.nfts){
+                for (const thisitem of vi.nfts){
+                    console.log("Getting floor price for: "+thisitem.nftMint)
+                    console.log("HM: "+thisitem.helloMoonCollectionId)
+                    
+                    if (thisitem.helloMoonCollectionId){
+                        const results = await client.send(new CollectionFloorpriceRequest({
+                            helloMoonCollectionId: thisitem.helloMoonCollectionId,
+                            limit: 1000
+                        }))
+                            .then(x => {
+                                //console.log; 
+                                return x;})
+                            .catch(console.error);
+
+                            if (results?.data){
+                                for (var resitem of results.data){
+                                    console.log("FLR price for: "+resitem.floorPriceLamports)
+                                    if (+resitem.floorPriceLamports > 0){
+                                        thisitem.listingCount = resitem.listing_count;
+                                        thisitem.floorPriceLamports = resitem.floorPriceLamports;
+                                        nftsIdentified++;
+                                        totalVaultNftValueSol += +resitem.floorPriceLamports
+                                        //totalVaultNftValue += resitem.floorPriceLamports
+                                    }
+                                    
+                                }
+                            }
+                    } /*else{
+                        const results = await client.send(new NftMintPriceByCreatorAvgRequest({
+                            nftMint: thisitem.nftMint,
+                            limit: 1000
+                        }))
+                            .then(x => {
+                                //console.log; 
+                                return x;})
+                            .catch(console.error);
+                        
+                        //console.log("results: "+JSON.stringify(results));
+                        
+                        if (results?.data){
+                            for (var resitem of results.data){
+                                console.log("AVG price for: "+resitem.avg_usd_price)
+                                if (+resitem.avg_usd_price > 0){
+                                    thisitem.numSales = resitem.num_sales;
+                                    thisitem.avgUsdPrice = resitem.avg_usd_price;
+                                    nftsIdentified++;
+                                    totalVaultNftValue += resitem.avg_usd_price
+                                }
+                                
+                            }
+                        }
+                    }*/
                 }
             }
             if (assetsNotIdentified > 0)
@@ -456,6 +539,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             //ia.solToUsd = cgp['solana'].usd;
             ia.solToUsd = cgp['So11111111111111111111111111111111111111112'].price;
             ia.solUsdValue = (ia.solBalance > 0 ? cgp['So11111111111111111111111111111111111111112'].price*(ia.solBalance/(10 ** 9)) : 0);
+            totalVaultNftValue = (totalVaultNftValueSol > 0 ? cgp['So11111111111111111111111111111111111111112'].price*(totalVaultNftValueSol/(10 ** 9)) : 0);
             vaultValue += ia.solUsdValue;
             totalVaultValue += ia.solUsdValue;
             console.log(new PublicKey(ia.vault.pubkey).toBase58()+" vaultSolValue ("+(ia.solBalance/(10 ** 9))+"): "+ia.solUsdValue);
@@ -469,6 +553,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         console.log("total value: "+totalVaultValue); 
         setGovernanceVaultTotalValue(totalVaultValue);
         setGovernanceVaultStableCoinValue(totalVaultStableCoinValue);
+        setGovernanceVaultNftValue(totalVaultNftValue);
         //console.log("Vaults: "+JSON.stringify(treasuryAssets));
         setGovernanceVaultsDetails(vaultsInflated);
         const governanceVaultsString = JSON.stringify(vaultsInflated);
@@ -1365,6 +1450,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         item.totalMembers = memberMap ? memberMap.length : null;
                         item.totalVaultValue = governanceVaultTotalValue;
                         item.totalVaultStableCoinValue = governanceVaultStableCoinValue;
+                        item.totalVaultNftValue = governanceVaultNftValue;
                         govFound = true;
                     }
                     //console.log("size: "+new Set(memberMap).size)
@@ -1401,6 +1487,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         totalMembers: memberMap ? memberMap.length : null,
                         totalVaultValue: governanceVaultTotalValue,
                         totalVaultStableCoinValue: governanceVaultStableCoinValue,
+                        totalVaultNftValue: governanceVaultNftValue,
                     });
                 }
                 
@@ -1441,6 +1528,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     totalMembers: memberMap ? memberMap.length : null,
                     totalVaultValue: governanceVaultTotalValue,
                     totalVaultStableCoinValue: governanceVaultStableCoinValue,
+                    totalVaultNftValue: governanceVaultNftValue,
                 });
                 
                 console.log("Uploading new Governance Lookup");
@@ -1633,7 +1721,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
             const presorted = fgl.sort((a:any, b:any) => (b?.totalVaultValue < a?.totalVaultValue && a?.totalVaultValue > 1) ? 1 : -1); 
             const sorted = presorted.sort((a:any, b:any) => (a?.totalProposalsVoting < b?.totalProposalsVoting) ? 1 : -1); 
             
-
             for (var item of sorted){
                 lookupAutocomplete.push({
                     label: item.governanceName,
@@ -1674,7 +1761,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 });
             
                 const json = await response.json();
-
 
                 strgAccounts.push({
                     label: item.account.identifier,
