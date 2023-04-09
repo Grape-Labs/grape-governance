@@ -2089,7 +2089,7 @@ export function GovernanceCachedView(props: any) {
                 let grealm = null;
                 if (cachedRealm){
                     console.log("Realm from cache");
-                    //console.log("cacheRealm: "+JSON.stringify(cachedRealm))
+                    console.log("cacheRealm: "+JSON.stringify(cachedRealm))
                     grealm = cachedRealm;    
                 } else{
                     grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
@@ -2097,17 +2097,18 @@ export function GovernanceCachedView(props: any) {
                 setRealm(grealm);
                 setRealmName(grealm.account.name);
                 
-                const realmPk = grealm?.pubkey;
+                const realmPk = new PublicKey(grealm?.pubkey);
                 //console.log("realmPk: "+realmPk)
                 // Check if we have this cached
+                console.log("cachedMemberMap "+JSON.stringify(cachedMemberMap));
                 let rawTokenOwnerRecords = null;
                 if (cachedMemberMap){
-                    console.log("Using Cached Member Map")
                     rawTokenOwnerRecords = cachedMemberMap;
                 } else{
-                    rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, grealm.owner, realmPk)
+                    rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+                    
                 }
-
+                
                 setMemberMap(rawTokenOwnerRecords);
                 
 

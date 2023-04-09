@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, memo, Suspense } from "react";
 import pako from 'pako';
 import axios from "axios";
+import moment from "moment";
 import { RestClient, NftMintsByOwnerRequest, NftMintPriceByCreatorAvgRequest, CollectionFloorpriceRequest } from '@hellomoon/api';
 import { 
     getRealm, 
@@ -72,6 +73,7 @@ import {
     GGAPI_STORAGE_URI,
 } from '../utils/grapeTools/constants';
 
+import WarningIcon from '@mui/icons-material/Warning';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import CircularProgress from '@mui/material/CircularProgress';
 import Bolt from "@mui/icons-material/Bolt";
@@ -112,6 +114,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     
     const [progress, setProgress] = React.useState(0);
     const [status, setStatus] = React.useState(null);
+    const [batchStatus, setBatchStatus] = React.useState(null);
     const [primaryStatus, setPrimaryStatus] = React.useState(null);
     const [helperText, setHelperText] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
@@ -141,17 +144,13 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [totalDefeated, setTotalDefeated] = React.useState(null);
     const [totalVotesCasted, setTotalTotalVotesCasted] = React.useState(null);
     const [proposals, setProposals] = React.useState(null);
-    const [jsonGenerated, setJSONGenerated] = React.useState(null);
     const [solanaVotingResultRows,setSolanaVotingResultRows] = React.useState(null);
-    const [loadingParticipants, setLoadingParticipants] = React.useState(false);
     const [currentUploadInfo, setCurrentUploadInfo] = React.useState(null);
     const [tokenDecimals, setTokenDecimals] = React.useState(null);
     const [voteType, setVoteType] = React.useState(null);
     const [propVoteType, setPropVoteType] = React.useState(null); // 0 council, 1 token, 2 nft
     const [uniqueYes, setUniqueYes] = React.useState(0);
     const [uniqueNo, setUniqueNo] = React.useState(0);
-    const [gist, setGist] = React.useState(null);
-    const [proposalDescription, setProposalDescription] = React.useState(null);
     const [processCron, setProcessCron] = React.useState(false);
     const [snapshotJob, setSnapshotJob] = React.useState(false);
     const [forceFetch, setForceFetch] = React.useState(false);
@@ -164,7 +163,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [totalSupply, setTotalSupply] = React.useState(null);
     const [exceededQuorum, setExceededQuorum] = React.useState(null);
     const [exceededQuorumPercentage, setExceededQuorumPercentage] = React.useState(null);
-    const [selectedDelegate, setSelectedDelegate] = React.useState("");
     const [realm, setRealm] = React.useState(null);
     const [MAX, setMax] = React.useState(100);
     const MIN = 0;
@@ -178,7 +176,13 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [governanceVaultTotalValue, setGovernanceVaultTotalValue] = React.useState(0);
     const [governanceVaultStableCoinValue, setGovernanceVaultStableCoinValue] = React.useState(0);
     const [governanceVaultNftValue, setGovernanceVaultNftValue] = React.useState(0);
-    
+    const [cronBookmark, setCronBookmark] = React.useState(null);
+    const [cronMode, setCronMode] = React.useState(false);
+    //const [startTime, setStartTime] = React.useState(null);
+    //const [endTime, setEndTime] = React.useState(null);
+    //const [ellapsedTime, setEllapsedTime] = React.useState(null);
+    const [processingPosition, setProcessingPosition] = React.useState(0);
+
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
         (error: WalletError) => {
@@ -206,8 +210,12 @@ export function GovernanceSnapshotView (this: any, props: any) {
     }
 
     const getGovernanceFromLookup  = async (fileName:string) => {
-        const fgl = await fetchLookupFile(fileName, storagePool);
-        return fgl;
+        try{
+            const fgl = await fetchLookupFile(fileName, storagePool);
+            return fgl;
+        }catch(e){
+            return null;
+        }
     } 
     
     const fetchRealm = async(address:string) => {
@@ -262,7 +270,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 setGoverningTokenDecimals(gTD);
             }
         }
-
 
         setPrimaryStatus("Governance Type Verified");
 
@@ -439,7 +446,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 }
             }
 
-            setPrimaryStatus("Fething Treasury NFT AVG Prices");
+            setPrimaryStatus("Fething Treasury NFT Floor Prices");
 
             if (vi?.nfts){
                 for (const thisitem of vi.nfts){
@@ -592,8 +599,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 }
             }
 
-
-
             setPrimaryStatus("Fetching Governance Transactions");
             // https://api.solscan.io/account/token/txs?address=By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip&offset=0&limit=50&cluster=
 
@@ -643,13 +648,19 @@ export function GovernanceSnapshotView (this: any, props: any) {
             setPrimaryStatus("Fetching Token Owner Records");
 
             // to do get member map
-            const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+            
             // check #tokens deposited
 
             // loop all token holders and get the assets they have in their wallet matching the governingtokenmint
             // grealm.account?.communityMint.toBase58()
             //console.log("communityMint: "+JSON.stringify(grealm.account?.communityMint.toBase58()))
             //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
+
+
+            //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
+            // get unique members
+            const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+            setMemberMap(rawTokenOwnerRecords);
 
             const newMemberMap = new Array();
             
@@ -665,11 +676,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 if (balance?.value[0]?.account?.data?.parsed?.info)    
                     owner.walletBalance = balance.value[0].account.data.parsed.info;
             }
-
-            //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
-
-            setMemberMap(rawTokenOwnerRecords);
-            // get unique members
 
             setPrimaryStatus("Fetching All Proposals");
 
@@ -726,31 +732,56 @@ export function GovernanceSnapshotView (this: any, props: any) {
             const sortedResults = allprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
             
             // get first date
+            let lastpropdate = null
             if (sortedResults && sortedResults.length > 0)
                 if (sortedResults[0].account?.draftAt)
-                    setLastProposalDate(sortedResults[0].account?.draftAt)
+                    lastpropdate = sortedResults[0].account?.draftAt
+            
+            setLastProposalDate(lastpropdate)
             
             setPrimaryStatus("Fetched Governance: "+grealm.account.name+" "+address+" with "+sortedResults.length+" proposals");
-            setGovernanceName(grealm.account.name);
+        setGovernanceName(grealm.account.name);
 
-            //console.log("proposals: "+JSON.stringify(sortedResults));
-            setTotalCouncilProposals(council);
-            setTotalDefeated(defeated);
-            setTotalPassed(passed);
-            setTotalProposalsVoting(voting);
-            setTotalProposals(sortedResults.length);
-            setTotalTotalVotesCasted(ttvc);
+        //console.log("proposals: "+JSON.stringify(sortedResults));
+        setTotalCouncilProposals(council);
+        setTotalDefeated(defeated);
+        setTotalPassed(passed);
+        setTotalProposalsVoting(voting);
+        setTotalProposals(sortedResults.length);
+        setTotalTotalVotesCasted(ttvc);
 
-            setProposals(sortedResults);
+        setProposals(sortedResults);
 
         setMax(sortedResults.length);
         setLoading(false);
-        return sortedResults;
+        
+        const governanceDetails = {
+            address: address,
+            totalVaultValue:totalVaultValue,
+            totalVaultStableCoinValue:totalVaultStableCoinValue,
+            totalVaultNftValue:totalVaultNftValue,
+            vaultsInflated:vaultsInflated,
+            governanceVaultsString: governanceVaultsString,
+            governanceVaults: rawFilteredVaults,
+            memberMap: rawTokenOwnerRecords,
+            proposals: sortedResults,
+            totalProposals: sortedResults.length,
+            totalProposalsVoting: voting,
+            totalPassed: passed,
+            totalDefeated: defeated,
+            totalCouncilProposals: council,
+            governanceName: grealm.account.name,
+            lastProposalDate: lastpropdate,
+            transactions: govTx
+        }
+
+        return governanceDetails;
     }
 
-    const getGovernanceProps = async (thisitem: any) => {
+    const getGovernanceProps = async (thisitem: any, this_realm: any) => {
         const governance = await getGovernance(connection, thisitem.account.governance);
         
+        //console.log("FETCHING THIS GOV")
         //getGovernanceAccounts();
         
         setThisGovernance(governance);
@@ -775,10 +806,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
             //console.log("communityMintPromise ("+thisitem.account.governingTokenMint+") "+JSON.stringify(governingMintPromise))
             setGoverningMintInfo(governingMintPromise);
             
-            const communityWeight = governingMintPromise.value.data.parsed.info.supply - realm.account.config.minCommunityTokensToCreateGovernance.toNumber();
+            const communityWeight = governingMintPromise.value.data.parsed.info.supply - this_realm.account.config.minCommunityTokensToCreateGovernance.toNumber();
             //console.log("communityWeight: "+communityWeight);
             
-            const communityMintMaxVoteWeightSource = realm.account.config.communityMintMaxVoteWeightSource
+            const communityMintMaxVoteWeightSource = this_realm.account.config.communityMintMaxVoteWeightSource
             const supplyFractionPercentage = communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
             const communityVoteThreshold = governance.account.config.communityVoteThreshold
             const councilVoteThreshold = governance.account.config.councilVoteThreshold
@@ -791,7 +822,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             //const mintDecimals = governingMintPromise.value.data.data.parsed.info.decimals; 
             
             const voteThresholdPercentage= 
-                (realm.account.config?.councilMint && new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint.toBase58())
+                (this_realm.account.config?.councilMint && new PublicKey(this_realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint.toBase58())
                 ? councilVoteThreshold.value
                 : communityVoteThreshold.value
             
@@ -832,12 +863,28 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 setQuorumTarget(totalVotesNeeded);
             }
 
+            let ggv = {
+                governance:governance,
+                governanceMintInfo:governingMintPromise,
+            }
+
+            //console.log("source ggv: "+JSON.stringify(ggv))
+
+            return ggv;
+
         }catch(e){
             console.log('ERR: '+e)
+
+            return null;
         }
     }
 
-    const fetchProposalData = async(finalList:any, forceSkip:boolean, this_realm: any) => {
+    const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean, this_realm: any) => {
+
+        let govAddress = address;
+        if (!govAddress)
+            govAddress = governanceAddress;
+
         setSolanaVotingResultRows(null);
         let x=0;
         let length = finalList.length;
@@ -847,266 +894,264 @@ export function GovernanceSnapshotView (this: any, props: any) {
         let cached_governance = new Array();
         if (governanceLookup){
             for (let glitem of governanceLookup){
-                
-                if (new PublicKey(glitem.governanceAddress).toBase58() === new PublicKey(governanceAddress).toBase58()){
+                if (new PublicKey(glitem.governanceAddress).toBase58() === new PublicKey(govAddress).toBase58()){
                     //console.log(glitem.governanceAddress + " vs " + new PublicKey(governanceAddress).toBase58())
                     cached_governance = await getGovernanceFromLookup(glitem.filename);
                 }
             }
         }
-        
-        if (cached_governance){
-            for (var thisitem of finalList){
-                x++;
-                if (forceSkip)
-                    setStatus("Fetching "+x+" of "+length);
-                else
-                    setStatus("Smart Fetching "+x+" of "+length);
-                
-                setProgress((prevProgress) => (prevProgress >= 100 ? 0 : normalise(x)));
-                
-                try {
-                    let skip_process = false;
-                    if (cached_governance.length > 0){
-                        for (let cgov of cached_governance){
-                            if (cgov.pubkey === thisitem.pubkey.toBase58()){
-                                if ((cgov.account.state === 1)||
-                                    (cgov.account.state === 3)||
-                                    (cgov.account.state === 4)||
-                                    (cgov.account.state === 5)||
-                                    (cgov.account.state === 6)||
-                                    (cgov.account.state === 7)||
-                                    (cgov.account.state === 8)){
-                                        thisitem.votingResults = cgov.votingResults;
-                                        if (cgov?.instructions)
-                                            thisitem.instructions = cgov.instructions;
-                                        if (!forceSkip)
-                                            skip_process = true;
-                                    }
 
-                                    /*
-                                        const GOVERNANCE_STATE = {
-                                            0:'Draft',
-                                            1:'Signing Off',
-                                            2:'Voting',
-                                            3:'Succeeded',
-                                            4:'Executing',
-                                            5:'Completed',
-                                            6:'Cancelled',
-                                            7:'Defeated',
-                                            8:'Executing w/errors!',
-                                        }
-                                    */
-                            }
+        let ggv = null;
+        for (var thisitem of finalList){
+            x++;
+            if (forceSkip)
+                setStatus("Fetching "+x+" of "+length);
+            else
+                setStatus("Smart Fetching "+x+" of "+length);
+            
+            setProgress((prevProgress) => (prevProgress >= 100 ? 0 : normalise(x)));
+            
+            try {
+                let skip_process = false;
+                if (cached_governance.length > 0){
+                    for (let cgov of cached_governance){
+                        if (cgov.pubkey === thisitem.pubkey.toBase58()){
+                            if ((cgov.account.state === 1)||
+                                (cgov.account.state === 3)||
+                                (cgov.account.state === 4)||
+                                (cgov.account.state === 5)||
+                                (cgov.account.state === 6)||
+                                (cgov.account.state === 7)||
+                                (cgov.account.state === 8)){
+                                    thisitem.votingResults = cgov.votingResults;
+                                    if (cgov?.instructions)
+                                        thisitem.instructions = cgov.instructions;
+                                    if (!forceSkip)
+                                        skip_process = true;
+                                }
+
+                                /*
+                                    const GOVERNANCE_STATE = {
+                                        0:'Draft',
+                                        1:'Signing Off',
+                                        2:'Voting',
+                                        3:'Succeeded',
+                                        4:'Executing',
+                                        5:'Completed',
+                                        6:'Cancelled',
+                                        7:'Defeated',
+                                        8:'Executing w/errors!',
+                                    }
+                                */
                         }
                     }
-
-                    //console.log("******* PROP ("+x+") FETCH *******")
-                    //console.log("status ("+thisitem.pubkey.toBase58()+"): "+skip_process);
-                    if (!skip_process){
-                        // do magic here...
-                        console.log("Fetching proposal details via RPC ("+thisitem.pubkey.toBase58()+")");
-
-                        let instructions = null;
-                        
-                        if (thisitem.pubkey){
-                            instructions = await getGovernanceAccounts(
-                                connection,
-                                new PublicKey(thisitem.owner),
-                                ProposalTransaction,
-                                [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
-                            );
-                            
-                            //if (instructions)
-                            //    console.log("instructions: "+JSON.stringify(instructions))
-                        }
-
-                        //console.log("item: "+JSON.stringify(thisitem));
-
-                        //setLoadingParticipants(true);
-
-                        let td = 6; // this is the default for NFT mints
-                        let vType = null;
-                        try{
-                            td = tokenMap.get(thisitem.account.governingTokenMint?.toBase58()).decimals;
-                            vType = 'Token';
-                            //console.log("tokenMap: "+tokenMap.get(thisitem.account.governingTokenMint?.toBase58()).decimals);
-                        }catch(e){
-                            //console.log("ERR: "+e);
-                        }
-                        
-                        //console.log("vrs check 0 "+JSON.stringify(this_realm));
-
-                        if (this_realm.account.config?.councilMint){
-                            if (this_realm.account.config?.councilMint?.toBase58() === thisitem?.account?.governingTokenMint?.toBase58()){
-                                vType = 'Council';
-                                td = 0;
-                            }
-                        }
-
-                        //console.log("vrs check 1")
-
-                        if (!vType){
-                            // check if backed token
-                            // important check if we have already fetched this data already
-                            const btkn = await getBackedTokenMetadata(thisitem.account.governingTokenMint?.toBase58(), wallet);
-                            if (btkn){
-                                // get parent token name
-                                const parentToken = tokenMap.get(btkn.parentToken);
-                                vType = parentToken ? `${parentToken.name} Backed Token` : `Backed Token`;
-                                td = btkn.decimals;
-                            } else{
-                                vType = 'NFT';
-                                td = 6;
-                            }
-                        }
-                        setTokenDecimals(td);
-                        setVoteType(vType)
-
-                        //console.log("vrs check 2 m:"+JSON.stringify(memberMap))
-
-                        if (vType){
-                            setPropVoteType(vType);
-                            
-                            //thisitem.account.tokenOwnerRecord;
-                            for (const item of memberMap){
-                                if (item.pubkey.toBase58() === thisitem.account.tokenOwnerRecord.toBase58()){
-                                    setProposalAuthor(item.account.governingTokenOwner.toBase58())
-                                    //console.log("member:" + JSON.stringify(item));
-                                }
-                            }
-                        }
-
-                        //console.log("vrs check 3")
-
-                        //if (thisitem.account?.state === 2){ // if voting state
-                            await getGovernanceProps(thisitem)
-                        //}
-
-                        const voteRecord = await getVoteRecords({
-                            connection: connection,
-                            programId: new PublicKey(thisitem.owner),
-                            proposalPk: new PublicKey(thisitem.pubkey),
-                        });
-
-                        //console.log("vrs check 4")
-                        const vrs = [];
-                        let csvFile = '';
-                        let uYes = 0;
-                        let uNo = 0;
-                        if (voteRecord?.value){
-                            let counter = 0;
-
-                            for (let item of voteRecord.value){
-                                counter++;
-                                
-                                if (item.account?.vote){
-                                    if (item.account?.vote?.voteType === 0){
-                                        uYes++;
-                                    }else{
-                                        uNo++;
-                                    }
-                                } else{
-                                    if (item.account.voteWeight.yes && item.account.voteWeight.yes > 0){
-                                        uYes++;
-                                    } else{
-                                        uNo++;
-                                    }
-                                }
-
-                                //if (counter === 1)
-                                //    console.log("item ("+thisitem.pubkey+"): "+JSON.stringify(item))
-
-                                //console.log("VRS pushing "+counter)
-
-                                const vrs_item = {
-                                    id:counter,
-                                    pubkey:item.pubkey.toBase58(),
-                                    proposal:item.account.proposal.toBase58(),
-                                    governingTokenOwner:item.account.governingTokenOwner.toBase58(),
-                                    voteAddress:item.pubkey.toBase58(),
-                                    vote:{
-                                        vote:item.account.vote,
-                                        voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
-                                        legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
-                                        legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
-                                        decimals:((realm.account.config?.councilMint && realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58()) ? 0 : td),
-                                        councilMint:(realm.account.config?.councilMint ? new PublicKey(realm.account.config?.councilMint).toBase58() : null),
-                                        governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
-                                    }
-                                }
-
-                                vrs.push(vrs_item)
-
-                                //console.log("pushed "+JSON.stringify(vrs_item))
-                                if (counter > 1)
-                                    csvFile += '\r\n';
-                                else
-                                    csvFile = 'tokenOwner,uiVotes,voterWeight,tokenDecimals,voteType,proposal\r\n';
-                                
-                                let voteType = 0;
-                                let voterWeight = 0;
-                                if (item.account?.voterWeight){
-                                    voteType = item.account?.vote?.voteType;
-                                    voterWeight = item.account?.voterWeight.toNumber();
-                                } else{
-                                    if (item.account?.voteWeight?.yes && item.account?.voteWeight?.yes > 0){
-                                        voteType = 0
-                                        voterWeight = item.account?.voteWeight?.yes
-                                    }else{
-                                        voteType = 1
-                                        voterWeight = item.account?.voteWeight?.no
-                                    }
-                                }
-                                
-                                //csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
-                                //    csvFile += item.pubkey.toBase58();
-                            }
-                        }
-
-                        console.log("Prop Participation: "+vrs.length)
-
-                        vrs.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
-                        
-                        /*
-                        if (thisitem.account?.descriptionLink){
-                            try{
-                                const url = new URL(thisitem.account?.descriptionLink);
-                                const pathname = url.pathname;
-                                const parts = pathname.split('/');
-                                //console.log("pathname: "+pathname)
-                                let tGist = null;
-                                if (parts.length > 1)
-                                    tGist = parts[2];
-                                
-                                setGist(tGist);
-
-                                const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
-                                setProposalDescription(rpd);
-                            } catch(e){
-                                console.log("ERR: "+e)
-                            }
-                        }
-                        */
-
-                        setUniqueYes(uYes);
-                        setUniqueNo(uNo);
-                        
-                        thisitem.votingResults = vrs;
-                        thisitem.instructions = instructions;
-                    }
-                } catch (e) { // Handle errors from invalid calls
-                    
                 }
+
+                console.log("******* PROP ("+x+") FETCH *******")
+                //console.log("status ("+thisitem.pubkey.toBase58()+"): "+skip_process);
+                if (!skip_process){
+                    // do magic here...
+                    console.log("Fetching proposal details via RPC ("+thisitem.pubkey.toBase58()+")");
+
+                    let instructions = null;
+                    
+                    if (thisitem.pubkey){
+                        instructions = await getGovernanceAccounts(
+                            connection,
+                            new PublicKey(thisitem.owner),
+                            ProposalTransaction,
+                            [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
+                        );
+                        
+                        //if (instructions)
+                        //    console.log("instructions: "+JSON.stringify(instructions))
+                    }
+
+                    //console.log("item: "+JSON.stringify(thisitem));
+                    //console.log("vrs check 0 "+JSON.stringify(this_realm));
+                    //setLoadingParticipants(true);
+
+                    let td = 6; // this is the default for NFT mints
+                    let vType = null;
+                    try{
+                        td = tokenMap.get(thisitem?.account?.governingTokenMint?.toBase58()).decimals;
+                        vType = 'Token';
+                        //console.log("tokenMap: "+tokenMap.get(thisitem.account.governingTokenMint?.toBase58()).decimals);
+                    }catch(e){
+                        //console.log("ERR: "+e);
+                    }
+                    
+                    //console.log("vrs check 0 "+JSON.stringify(this_realm));
+
+                    if (this_realm?.account?.config?.councilMint){
+                        if (this_realm.account.config.councilMint?.toBase58() === thisitem?.account?.governingTokenMint?.toBase58()){
+                            vType = 'Council';
+                            td = 0;
+                        }
+                    }
+
+                    //console.log("vrs check 1")
+
+                    if (!vType){
+                        // check if backed token
+                        // important check if we have already fetched this data already
+                        const btkn = await getBackedTokenMetadata(thisitem?.account?.governingTokenMint?.toBase58(), wallet);
+                        if (btkn){
+                            // get parent token name
+                            const parentToken = tokenMap.get(btkn.parentToken);
+                            vType = parentToken ? `${parentToken.name} Backed Token` : `Backed Token`;
+                            td = btkn.decimals;
+                        } else{
+                            vType = 'NFT';
+                            td = 6;
+                        }
+                    }
+                    setTokenDecimals(td);
+                    setVoteType(vType)
+
+                    //console.log("vrs check 2 m:"+JSON.stringify(memberMap))
+
+                    if (vType){
+                        setPropVoteType(vType);
+                        /*
+                        for (const item of memberMap){
+                            if (item.pubkey.toBase58() === thisitem.account.tokenOwnerRecord.toBase58()){
+                                setProposalAuthor(item.account.governingTokenOwner.toBase58())
+                                //console.log("member:" + JSON.stringify(item));
+                            }
+                        }*/
+                    }
+
+                    //console.log("vrs check 3")
+
+                    //console.log("CALLING getGovernanceProps ********************--------------------------------")
+                    ggv = await getGovernanceProps(thisitem, this_realm);
+                    //console.log("CALLED ggv ********************--------------------------------"+ggv)
+                    
+                    const voteRecord = await getVoteRecords({
+                        connection: connection,
+                        programId: new PublicKey(thisitem.owner),
+                        proposalPk: new PublicKey(thisitem.pubkey),
+                    });
+
+                    //console.log("vrs check 4")
+                    const vrs = [];
+                    let csvFile = '';
+                    let uYes = 0;
+                    let uNo = 0;
+                    if (voteRecord?.value){
+                        let counter = 0;
+
+                        for (let item of voteRecord.value){
+                            counter++;
+                            
+                            if (item.account?.vote){
+                                if (item.account?.vote?.voteType === 0){
+                                    uYes++;
+                                }else{
+                                    uNo++;
+                                }
+                            } else{
+                                if (item.account.voteWeight.yes && item.account.voteWeight.yes > 0){
+                                    uYes++;
+                                } else{
+                                    uNo++;
+                                }
+                            }
+
+                            //if (counter === 1)
+                            //    console.log("item ("+thisitem.pubkey+"): "+JSON.stringify(item))
+
+                            //console.log("VRS pushing "+counter)
+
+                            const vrs_item = {
+                                id:counter,
+                                pubkey:item.pubkey.toBase58(),
+                                proposal:item.account.proposal.toBase58(),
+                                governingTokenOwner:item.account.governingTokenOwner.toBase58(),
+                                voteAddress:item.pubkey.toBase58(),
+                                vote:{
+                                    vote:item.account.vote,
+                                    voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
+                                    legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
+                                    legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
+                                    decimals:((realm.account.config?.councilMint && realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58()) ? 0 : td),
+                                    councilMint:(realm.account.config?.councilMint ? new PublicKey(realm.account.config?.councilMint).toBase58() : null),
+                                    governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
+                                }
+                            }
+
+                            vrs.push(vrs_item)
+
+                            //console.log("pushed "+JSON.stringify(vrs_item))
+                            if (counter > 1)
+                                csvFile += '\r\n';
+                            else
+                                csvFile = 'tokenOwner,uiVotes,voterWeight,tokenDecimals,voteType,proposal\r\n';
+                            
+                            let voteType = 0;
+                            let voterWeight = 0;
+                            if (item.account?.voterWeight){
+                                voteType = item.account?.vote?.voteType;
+                                voterWeight = item.account?.voterWeight.toNumber();
+                            } else{
+                                if (item.account?.voteWeight?.yes && item.account?.voteWeight?.yes > 0){
+                                    voteType = 0
+                                    voterWeight = item.account?.voteWeight?.yes
+                                }else{
+                                    voteType = 1
+                                    voterWeight = item.account?.voteWeight?.no
+                                }
+                            }
+                            
+                            //csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
+                            //    csvFile += item.pubkey.toBase58();
+                        }
+                    }
+
+                    console.log("Prop Participation: "+vrs.length)
+
+                    vrs.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
+                    
+                    /*
+                    if (thisitem.account?.descriptionLink){
+                        try{
+                            const url = new URL(thisitem.account?.descriptionLink);
+                            const pathname = url.pathname;
+                            const parts = pathname.split('/');
+                            //console.log("pathname: "+pathname)
+                            let tGist = null;
+                            if (parts.length > 1)
+                                tGist = parts[2];
+                            
+                            setGist(tGist);
+
+                            const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
+                            setProposalDescription(rpd);
+                        } catch(e){
+                            console.log("ERR: "+e)
+                        }
+                    }
+                    */
+
+                    setUniqueYes(uYes);
+                    setUniqueNo(uNo);
+                    
+                    thisitem.votingResults = vrs;
+                    thisitem.instructions = instructions;
+                }
+            } catch (e) { // Handle errors from invalid calls
+                
             }
-
-            //console.log("finalList: "+JSON.stringify(finalList))
-            setSolanaVotingResultRows(finalList)
-
-            return finalList;
-        } else{
-            return null;
         }
+
+        //console.log("finalList: "+JSON.stringify(finalList))
+        setSolanaVotingResultRows(finalList)
+
+        return {
+            ggv:ggv,
+            finalList:finalList};
+        
     }
     
     const exportFile = async(finalList:string, csvFile:string, fileName:string) => {
@@ -1185,14 +1230,15 @@ export function GovernanceSnapshotView (this: any, props: any) {
         reader.readAsDataURL(file);
         })
     
-    const uploadToStoragePool = async (files: File, storagePublicKey: PublicKey) => { 
+    const uploadToStoragePool = async (drive: any, files: File, storagePublicKey: PublicKey) => { 
         try{
             enqueueSnackbar(`Preparing to upload some files to ${storagePublicKey.toString()}`,{ variant: 'info' });
             const snackprogress = (key:any) => (
                 <CircularProgress sx={{padding:'10px'}} />
             );
             const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
-            const signedTransaction = await thisDrive.uploadMultipleFiles(storagePublicKey, [files]);
+            
+            const signedTransaction = await drive.uploadMultipleFiles(storagePublicKey, [files]);
             let count = 0;
             for (var file of signedTransaction){
                 if (file.status === "Uploaded."){
@@ -1215,15 +1261,17 @@ export function GovernanceSnapshotView (this: any, props: any) {
         }
     }
 
-    const uploadReplaceToStoragePool = async (newFile: File, existingFileUrl: string, storagePublicKey: PublicKey, version: string) => { 
+    const uploadReplaceToStoragePool = async (drive:any, newFile: File, existingFileUrl: string, storagePublicKey: PublicKey, version: string) => { 
+        console.log("HERE!!!");
         try{
+            
             enqueueSnackbar(`Preparing to upload/replace some files to ${storagePublicKey.toString()}`,{ variant: 'info' });
             const snackprogress = (key:any) => (
                 <CircularProgress sx={{padding:'10px'}} />
             );
             const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
             
-            const signedTransaction = await thisDrive.editFile(new PublicKey(storagePublicKey), existingFileUrl, newFile, version || 'v2');
+            const signedTransaction = await drive.editFile(new PublicKey(storagePublicKey), existingFileUrl, newFile, version || 'v2');
             
             if (signedTransaction?.finalized_location){
                 closeSnackbar(cnfrmkey);
@@ -1246,6 +1294,11 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
     const deleteStoragePoolFile = async (storagePublicKey: PublicKey, file: string, version: string) => { 
         try{
+            let usingDrive = thisDrive;
+            if (!thisDrive){
+                usingDrive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
+            }
+
             enqueueSnackbar(`Preparing to delete ${file}`,{ variant: 'info' });
             const snackprogress = (key:any) => (
                 <CircularProgress sx={{padding:'10px'}} />
@@ -1253,7 +1306,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             //console.log(storagePublicKey + "/"+storageAccount+" - file: "+file);
             const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
             
-            const signedTransaction = await thisDrive.deleteFile(storagePublicKey, 'https://shdw-drive.genesysgo.net/'+storagePublicKey.toBase58()+'/'+file, version || 'v2');
+            const signedTransaction = await usingDrive.deleteFile(storagePublicKey, 'https://shdw-drive.genesysgo.net/'+storagePublicKey.toBase58()+'/'+file, version || 'v2');
             console.log("signedTransaction; "+JSON.stringify(signedTransaction))
             
             closeSnackbar(cnfrmkey);
@@ -1276,9 +1329,42 @@ export function GovernanceSnapshotView (this: any, props: any) {
         } 
     }
 
+    const processGovernanceUploadSnapshotAll = async(force:boolean) => {
+        if (governanceLookup){
+            setBatchStatus("Ready to fetch all...");
+            //setStartTime(moment(new Date()))
+            //setCronMode(true);
+            let startTime = moment(new Date());
+            let count = 0;
+            for (var item of governanceLookup){
+                if (count === 0){
+                    setGovernanceAddress(item.governanceAddress);
+                    let elapsedTime = moment(new Date());
+                    let elapsedDuration = moment.duration(elapsedTime.diff(startTime));
+                    console.log("Fetching Governance ("+(count+1)+" of "+governanceLookup.length+"): "+item.governanceName+" "+item.governanceAddress+" ("+elapsedDuration.asMinutes().toFixed(1)+")")
+                    setBatchStatus("Fetching Governance ("+(count+1)+" of "+governanceLookup.length+"): "+item.governanceName+" "+item.governanceAddress+" ("+elapsedDuration.asMinutes().toFixed(1)+")");
+                    
+                    const grealm = await fetchRealm(item.governanceAddress);
+
+                    const governanceData = await processGovernance(item.governanceAddress, grealm);
+                    const finalList = governanceData.proposals;
+
+                    const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, forceFetch, grealm);
+
+                    await handleUploadToStoragePool(grealm, item.governanceAddress, processedFiles.proposalsString, processedFiles.membersString, processedFiles.governanceTransactionsString, governanceData.governanceVaultsString, governanceData, processedFiles.ggv);
+                    // Second drive creation (otherwise wallet is not connected when done earlier)
+                }
+                count++;
+            }   
+            let endTime = moment(new Date());
+            let elapsedDuration = moment.duration(endTime.diff(startTime));
+            setBatchStatus("Batch completed in ("+elapsedDuration.asMinutes().toFixed(1)+")")
+            
+        }    
+    }
 
     // CRON STEP! Handled fetching and uploading in one go
-    const processGovernanceUploadSnapshotJobStep1 = async(updateAuthority:string, force:boolean) => {
+    const processGovernanceUploadSnapshotJobStep1 = async(address:string, force:boolean) => {
         setSnapshotJob(false);
         setProcessCron(false);
         setForceFetch(force);
@@ -1288,17 +1374,19 @@ export function GovernanceSnapshotView (this: any, props: any) {
         setSolanaVotingResultRows(null);
         console.log("******* CALLING FETCH *******")
         if (governanceAddress){
-            const grealm = await fetchRealm(updateAuthority)
+            const grealm = await fetchRealm(address)
             setRealm(grealm);
             console.log("******* REALM FETCHED *******")
-            const finalList = await processGovernance(updateAuthority, grealm);
+            const governanceData = await processGovernance(address, grealm);
+            const finalList = governanceData.proposals;
             console.log("******* GOVERNANCE FETCHED *******")
+            
             setSnapshotJob(true);
         }
     }
     const processGovernanceUploadSnapshotJobStep2 = async() => {
         if (proposals && realm){
-            const membersString = await processProposals(proposals, forceFetch, realm); // set to true if we want to force fetch all
+            const processedFiles = await processProposals(null, proposals, forceFetch, realm); // set to true if we want to force fetch all
             console.log("******* PROPOSALS FETCHED *******")
             setProcessCron(true);
             setLoading(false);
@@ -1318,16 +1406,18 @@ export function GovernanceSnapshotView (this: any, props: any) {
     React.useEffect(() => { 
         if (processCron){
             console.log("process cron "+processCron)
-            //console.log("thisGovernance "+JSON.stringify(thisGovernance))
-            //console.log("solanaVotingResultRows "+JSON.stringify(solanaVotingResultRows))
+            console.log("proposals "+JSON.stringify(proposals))
+            console.log("solanaVotingResultRows "+JSON.stringify(solanaVotingResultRows))
+            console.log("realm "+JSON.stringify(realm))
+            console.log("solanaVotingResultRows "+JSON.stringify(solanaVotingResultRows))
             if (realm &&
                 proposals &&
                 memberMap &&
                 solanaVotingResultRows){
-                    
+                
                 console.log("process cron & realms data loaded")
 
-                handleUploadToStoragePool();
+                handleUploadToStoragePool(null, null, null, null, null, null, null, null);
                 setProcessCron(false);
             }
         }
@@ -1335,42 +1425,40 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
 
     // STEP 1.
-    const processGovernance = async(updateAuthority:string, sent_realm:any) => {
+    const processGovernance = async(address:string, sent_realm:any) => {
         // Second drive creation (otherwise wallet is not connected when done earlier)
-        const drive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
-        setThisDrive(drive);
-
-        if (governanceAddress){
-            let finalList = null;
+        if (address){
+            let fgovernance = null;
             setFileGenerated(null);
             
             setLoading(true);
             
             let grealm = sent_realm;
             if (!grealm) 
-                grealm = await fetchRealm(governanceAddress);
+                grealm = await fetchRealm(address);
 
-            finalList = await fetchGovernance(governanceAddress, grealm);
+            fgovernance = await fetchGovernance(address, grealm);
             
-            return finalList;
+            return fgovernance;
 
             setLoading(false);
         }
     }
 
     // STEP 2.
-    const processProposals = async(finalList:any, forceSkip:boolean, this_realm: any) => {
+    const processProposals = async(address:string, finalList:any, forceSkip:boolean, this_realm: any) => {
         if (finalList){
             setLoading(true);
             setCurrentUploadInfo(null);
 
             let using_realm = this_realm;
             if (!using_realm)
-                using_realm;
+                using_realm = realm;
 
             
-            const finalProposalList = await fetchProposalData(finalList, forceSkip, using_realm);
-            if (finalProposalList){
+            const fpd = await fetchProposalData(address, finalList, forceSkip, using_realm);
+            
+            if (fpd.finalList){
                 
                 const csvArrayFile = new Array();
                 
@@ -1386,27 +1474,40 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 //setCSVGenerated(csvFile);
                 setCSVGenerated(null);
                 
-                const fileName = governanceAddress+'.json';
+                const fileName = (address || governanceAddress)+'.json';
 
                 exportFile(finalList, null, fileName);
+                const proposalsString = JSON.stringify(finalList);
+                
                 // do teh following to get the members
                 const membersString = JSON.stringify(memberMap);
                 setMembersStringGenerated(membersString);
                 const governanceTransactionsString = JSON.stringify(governanceTransactions);
                 setTransactionsStringGenerated(governanceTransactionsString);
 
-                return membersString;
+                const propFiles = {
+                    proposalsString: proposalsString,
+                    membersString: membersString,
+                    governanceTransactionsString: governanceTransactionsString,
+                    ggv: fpd.ggv
+                }
+
+
+                return propFiles;
             }
             
             setLoading(false);
         }
     }
 
-    const updateGovernanceLookupFile = async(fileName:string, memberFileName:string, governanceTransactionsFileName: string, governanceVaultsFileName: string, timestamp:number, lookupFound:boolean) => {
+    const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: string, governanceFetchedDetails: any, ggv:any, fileName:string, memberFileName:string, governanceTransactionsFileName: string, governanceVaultsFileName: string, timestamp:number, lookupFound:boolean) => {
         // this should be called each time we update with governance
         const storageAccountPK = storagePool;
+        let govAddress = address;
+        if (!govAddress)
+            govAddress = governanceAddress;
 
-        let this_realm = realm;
+        let this_realm = sentRealm || realm;
         const lookup = new Array();
         console.log("Storage Pool: "+storagePool+" | Lookup File found: "+JSON.stringify(lookupFound))
         //console.log("this_realm: "+JSON.stringify(this_realm));
@@ -1423,13 +1524,11 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 // with the file found, lets generate the lookup as an array
                 var govFound = false;
                 let cntr = 0;
-
-                //console.log("realm: "+JSON.stringify(realm))
-                
-                //console.log("governanceLookup: "+JSON.stringify(governanceLookup));
-
                 for (var item of governanceLookup){
-                    if (item.governanceAddress === governanceAddress){
+                    //if (cntr === 0)
+                    //console.log("governanceFetchedDetails: "+JSON.stringify(governanceFetchedDetails));
+
+                    if (item.governanceAddress === address){
                         item.version++;
                         item.timestamp = timestamp;
                         item.filename = fileName;
@@ -1439,20 +1538,22 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         item.realm = this_realm;
                         if (this_realm.account.config?.communityMintMaxVoteWeightSource)
                             item.communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
-                        item.governance = thisGovernance;
-                        item.governingMintDetails = governingMintDetails;
-                        item.totalProposals = totalProposals;
-                        item.totalProposalsVoting = totalProposalsVoting;
-                        item.totalCouncilProposals = totalCouncilProposals;
-                        item.lastProposalDate = lastProposalDate;
-                        item.tokenSupply = totalSupply;
-                        item.totalQuorum = totalQuorum;
-                        item.totalMembers = memberMap ? memberMap.length : null;
-                        item.totalVaultValue = governanceVaultTotalValue;
-                        item.totalVaultStableCoinValue = governanceVaultStableCoinValue;
-                        item.totalVaultNftValue = governanceVaultNftValue;
+                        item.governance = ggv?.governance || thisGovernance;
+                        item.governances = governanceFetchedDetails?.governanceVaults || governanceVaults,
+                        item.governingMintDetails = ggv?.governanceMintInfo || governingMintDetails;
+                        item.totalProposals = governanceFetchedDetails?.totalProposals || totalProposals;
+                        item.totalProposalsVoting = governanceFetchedDetails?.totalProposalsVoting || totalProposalsVoting;
+                        item.totalCouncilProposals = governanceFetchedDetails?.totalCouncilProposals || totalCouncilProposals;
+                        item.lastProposalDate = governanceFetchedDetails?.lastProposalDate || lastProposalDate;
+                        //item.tokenSupply = ggv?.totalSupply || totalSupply;
+                        //item.totalQuorum = ggv?.totalQuorum || totalQuorum;
+                        item.totalMembers = governanceFetchedDetails?.memberMap.length || null;
+                        item.totalVaultValue = governanceFetchedDetails?.totalVaultValue || governanceVaultTotalValue;
+                        item.totalVaultStableCoinValue = governanceFetchedDetails?.totalVaultStableCoinValue || governanceVaultStableCoinValue;
+                        item.totalVaultNftValue = governanceFetchedDetails?.totalVaultNftValue || governanceVaultNftValue;
                         govFound = true;
                     }
+
                     //console.log("size: "+new Set(memberMap).size)
                     cntr++;
                 }
@@ -1464,9 +1565,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     //let memberCount = 0;
                     //if (memberMap)
                     //    memberCount = new Set(memberMap).size; // memberMap.length;
+                    
                     governanceLookup.push({
-                        governanceAddress:governanceAddress,
-                        governanceName:governanceName,
+                        governanceAddress:govAddress,
+                        governanceName:governanceFetchedDetails?.governanceName,
                         version:0,
                         timestamp:timestamp,
                         filename:fileName,
@@ -1475,22 +1577,24 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         governanceVaultsFilename: governanceVaultsFileName,
                         realm:this_realm,
                         communityFmtSupplyFractionPercentage: communityFmtSupplyFractionPercentage,
-                        governance: thisGovernance,
-                        governances: governanceVaults,
-                        governingMintDetails: governingMintDetails,
-                        totalProposals: totalProposals,
-                        totalProposalsVoting: totalProposalsVoting,
-                        totalCouncilProposals: totalCouncilProposals,
-                        lastProposalDate: lastProposalDate,
-                        tokenSupply: totalSupply,
-                        totalQuorum: totalQuorum,
-                        totalMembers: memberMap ? memberMap.length : null,
-                        totalVaultValue: governanceVaultTotalValue,
-                        totalVaultStableCoinValue: governanceVaultStableCoinValue,
-                        totalVaultNftValue: governanceVaultNftValue,
+                        governance: ggv?.governance || thisGovernance,
+                        governances: governanceFetchedDetails?.governanceVaults || governanceVaults,
+                        governingMintDetails: ggv?.governanceMintInfo || governingMintDetails,
+                        totalProposals: governanceFetchedDetails?.totalProposals || totalProposals,
+                        totalProposalsVoting: governanceFetchedDetails?.totalProposalsVoting || totalProposalsVoting,
+                        totalCouncilProposals: governanceFetchedDetails?.totalCouncilProposals || totalCouncilProposals,
+                        lastProposalDate: governanceFetchedDetails?.lastProposalDate || lastProposalDate,
+                        //tokenSupply: ggv?.totalSupply || totalSupply,
+                        //totalQuorum: ggv?.totalQuorum || totalQuorum,
+                        totalMembers: governanceFetchedDetails?.memberMap.length || memberMap ? memberMap.length : null,
+                        totalVaultValue: governanceFetchedDetails?.totalVaultValue || governanceVaultTotalValue,
+                        totalVaultStableCoinValue: governanceFetchedDetails?.totalVaultStableCoinValue || governanceVaultStableCoinValue,
+                        totalVaultNftValue: governanceFetchedDetails?.totalVaultNftValue || governanceVaultNftValue,
                     });
                 }
                 
+                //console.log("lookup: "+JSON.stringify(lookup))
+
                 console.log("Replacing Governance Lookup");
                 const uploadFile = await returnJSON(JSON.stringify(governanceLookup), "governance_lookup.json");
                 const fileSize  = uploadFile.size;
@@ -1498,7 +1602,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 
                 const fileStream = blobToFile(uploadFile, "governance_lookup.json");
                 const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/governance_lookup.json';
-                await uploadReplaceToStoragePool(fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+                console.log("storageAccountFile "+storageAccountFile);
+                console.log("storageAccountPK "+storageAccountPK);
+                await uploadReplaceToStoragePool(drive, fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
             } else{ // create governanceLookup
 
                 let communityFmtSupplyFractionPercentage = null;
@@ -1506,8 +1612,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
 
                 lookup.push({
-                    governanceAddress:governanceAddress,
-                    governanceName:governanceName,
+                    governanceAddress:govAddress,
+                    governanceName:governanceFetchedDetails?.governanceName,
                     version:0,
                     timestamp:timestamp,
                     filename:fileName,
@@ -1516,19 +1622,19 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     governanceVaultsFilename: governanceVaultsFileName,
                     realm:this_realm,
                     communityFmtSupplyFractionPercentage: communityFmtSupplyFractionPercentage,
-                    governance: thisGovernance,
-                    governances: governanceVaults,
-                    governingMintDetails: governingMintDetails,
-                    totalProposals: totalProposals,
-                    totalProposalsVoting: totalProposalsVoting,
-                    totalCouncilProposals: totalCouncilProposals,
-                    lastProposalDate: lastProposalDate,
-                    tokenSupply: totalSupply,
-                    totalQuorum: totalQuorum,
-                    totalMembers: memberMap ? memberMap.length : null,
-                    totalVaultValue: governanceVaultTotalValue,
-                    totalVaultStableCoinValue: governanceVaultStableCoinValue,
-                    totalVaultNftValue: governanceVaultNftValue,
+                    governance: ggv?.governance || thisGovernance,
+                    governances: governanceFetchedDetails?.governanceVaults || governanceVaults,
+                    governingMintDetails: ggv?.governanceMintInfo || governingMintDetails,
+                    totalProposals: governanceFetchedDetails?.totalProposals || totalProposals,
+                    totalProposalsVoting: governanceFetchedDetails?.totalProposalsVoting || totalProposalsVoting,
+                    totalCouncilProposals: governanceFetchedDetails?.totalCouncilProposals || totalCouncilProposals,
+                    lastProposalDate: governanceFetchedDetails?.lastProposalDate || lastProposalDate,
+                    //tokenSupply: ggv?.totalSupply || totalSupply,
+                    //totalQuorum: ggv?.totalQuorum || totalQuorum,
+                    totalMembers: governanceFetchedDetails?.memberMap.length || memberMap ? memberMap.length : null,
+                    totalVaultValue: governanceFetchedDetails?.totalVaultValue || governanceVaultTotalValue,
+                    totalVaultStableCoinValue: governanceFetchedDetails?.totalVaultStableCoinValue || governanceVaultStableCoinValue,
+                    totalVaultNftValue: governanceFetchedDetails?.totalVaultNftValue || governanceVaultNftValue,
                 });
                 
                 console.log("Uploading new Governance Lookup");
@@ -1536,12 +1642,12 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 const fileStream = blobToFile(uploadFile, "governance_lookup.json");
                 const fileSize  = uploadFile.size;
                 setCurrentUploadInfo("Adding "+"governance_lookup.json"+" - "+formatBytes(fileSize));
-                await uploadToStoragePool(fileStream, new PublicKey(storageAccountPK));
+                await uploadToStoragePool(drive, fileStream, new PublicKey(storageAccountPK));
                 // update autocomplete
                 try{
                     governanceAutocomplete.push({
                         label: governanceName, 
-                        value: governanceAddress,
+                        value: govAddress,
                         totalProposals: totalProposals,
                         totalProposalsVoting: totalProposalsVoting,
                         lastProposalDate: lastProposalDate
@@ -1565,12 +1671,16 @@ export function GovernanceSnapshotView (this: any, props: any) {
         // deleteStoragePoolFile()
     }
 
-    const handleUploadToStoragePool = async () => {
+    const handleUploadToStoragePool = async (sentRealm: any, address: string, passedProposalsString: string,passedMembersString: string,passedTransactionsString: string,passedVaultsString: string, governanceFetchedDetails: any, ggv: any) => {
         const timestamp = Math.floor(new Date().getTime() / 1000);
-        const fileName = governanceAddress+'_'+timestamp+'.json';
-        const memberFileName = governanceAddress+'_members_'+timestamp+'.json';
-        const governanceTransactionsFileName = governanceAddress+'_transactions_'+timestamp+'.json';
-        const governanceVaultsFileName = governanceAddress+'_vaults_'+timestamp+'.json';
+        let govAddress = governanceAddress;
+        if (address)
+            govAddress = address;
+
+        const fileName = govAddress+'_'+timestamp+'.json';
+        const memberFileName = govAddress+'_members_'+timestamp+'.json';
+        const governanceTransactionsFileName = govAddress+'_transactions_'+timestamp+'.json';
+        const governanceVaultsFileName = govAddress+'_vaults_'+timestamp+'.json';
         
         const storageAccountPK = storagePool;
 
@@ -1579,18 +1689,31 @@ export function GovernanceSnapshotView (this: any, props: any) {
         let current_transactions_to_use = transactionsStringGenerated;
         let current_vaults_to_use = vaultsStringGenerated;
 
+        if (passedProposalsString)
+            current_proposals_to_use = passedProposalsString
+        if (passedMembersString)
+            current_members_to_use = passedMembersString
+        if (passedTransactionsString)
+            current_transactions_to_use = passedTransactionsString
+        if (passedVaultsString)
+            current_vaults_to_use = passedVaultsString
+        
+
+
         //exportJSON(fileGenerated, fileName);
         console.log("preparing to upload: "+fileName);
-        if (!thisDrive){
+        //if (!thisDrive){
             const drive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
             //console.log("drive: "+JSON.stringify(drive));
-            setThisDrive(drive);
-            alert("Drive not initialized, initializing now...");
-        } else{
+            //setThisDrive(drive);
+            //alert("Drive not initialized, initializing now...");
+        //} 
+        
+        {
             // check if either file is set
             
-            if ((stringGenerated) &&
-                (membersStringGenerated)){
+            if ((current_proposals_to_use) &&
+                (current_members_to_use)){
                 
                 console.log("1: "+JSON.stringify(storageAccountPK))
                 const uploadProposalFile = await returnJSON(current_proposals_to_use, fileName);
@@ -1631,20 +1754,26 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     // update lookup
                     console.log("1. Storage Pool: "+storageAccountPK+" | Lookup");
                     
-                    await updateGovernanceLookupFile(fileName, memberFileName, governanceTransactionsFileName, governanceVaultsFileName, timestamp, lookupFound);
+                    await updateGovernanceLookupFile(drive, sentRealm, address, governanceFetchedDetails, ggv, fileName, memberFileName, governanceTransactionsFileName, governanceVaultsFileName, timestamp, lookupFound);
 
                     // proceed to add propsals
                     console.log("2. Storage Pool: "+storageAccountPK+" | File ("+fileName+") found: "+JSON.stringify(found));
                     
                     const proposalFileStream = blobToFile(uploadProposalFile, fileName);
                     const proposalFileSize  = uploadProposalFile.size;
+
+                    //const allFileStreams = new Array();
+                    //allFileStreams.push(proposalFileStream)
+
+
                     if (found){
                         const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+fileName;
                         setCurrentUploadInfo("Replacing "+fileName+" - "+formatBytes(proposalFileSize));
-                        await uploadReplaceToStoragePool(proposalFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+                        await uploadReplaceToStoragePool(drive, proposalFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
                     }else{
                         setCurrentUploadInfo("Adding "+fileName+" - "+formatBytes(proposalFileSize));
-                        await uploadToStoragePool(proposalFileStream, new PublicKey(storageAccountPK));
+                        await uploadToStoragePool(drive, proposalFileStream, new PublicKey(storageAccountPK));
+                        //await uploadToStoragePool([proposalFileStream,membersFileStream,governanceTransactionsFileName,governanceVaultsFileName], new PublicKey(storageAccountPK));
                     }
 
                     // proceed to add members
@@ -1655,10 +1784,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     if (foundMembers){
                         const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+memberFileName;
                         setCurrentUploadInfo("Replacing "+memberFileName+" - "+formatBytes(memberFileSize));
-                        await uploadReplaceToStoragePool(membersFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+                        await uploadReplaceToStoragePool(drive, membersFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
                     }else{
                         setCurrentUploadInfo("Adding "+memberFileName+" - "+formatBytes(memberFileSize));
-                        await uploadToStoragePool(membersFileStream, new PublicKey(storageAccountPK));
+                        await uploadToStoragePool(drive, membersFileStream, new PublicKey(storageAccountPK));
                     }
 
                     // proceed to add transactions
@@ -1669,10 +1798,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     if (foundTransactions){
                         const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+foundTransactions;
                         setCurrentUploadInfo("Replacing "+governanceTransactionsFileName+" - "+formatBytes(transactionsFileSize));
-                        await uploadReplaceToStoragePool(transactionsFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+                        await uploadReplaceToStoragePool(drive, transactionsFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
                     }else{
                         setCurrentUploadInfo("Adding "+governanceTransactionsFileName+" - "+formatBytes(transactionsFileSize));
-                        await uploadToStoragePool(transactionsFileStream, new PublicKey(storageAccountPK));
+                        await uploadToStoragePool(drive, transactionsFileStream, new PublicKey(storageAccountPK));
                     }
 
                     // proceed to add vaults
@@ -1683,14 +1812,17 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     if (foundVaults){
                         const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+foundVaults;
                         setCurrentUploadInfo("Replacing "+governanceVaultsFileName+" - "+formatBytes(vaultsFileSize));
-                        await uploadReplaceToStoragePool(vaultsFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+                        await uploadReplaceToStoragePool(drive, vaultsFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
                     }else{
                         setCurrentUploadInfo("Adding "+governanceVaultsFileName+" - "+formatBytes(vaultsFileSize));
-                        await uploadToStoragePool(vaultsFileStream, new PublicKey(storageAccountPK));
+                        await uploadToStoragePool(drive, vaultsFileStream, new PublicKey(storageAccountPK));
                     }
                     
                     // delay a bit and update to show that the files have been added
                     setCurrentUploadInfo("SPL Governance DSC "+governanceAddress+" updated!");
+
+                    //setEllapsedTime(moment(new Date()))
+                    setCronBookmark(governanceAddress);
 
                 }catch(e){
                     console.log("ERR: "+e);
@@ -1777,7 +1909,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     }      
 
     React.useEffect(() => { 
-        if (!tokenMap){
+        if (!tokenMap && wallet){
             initStorage();
             getTokens();
             getGovernanceLookup();
@@ -1841,6 +1973,22 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     
                 }
 
+                    <Tooltip title="Process all Governances this is quite a heavy call consider using the bottom one to fetch a specific governance">
+                        <Button 
+                            onClick ={() => processGovernanceUploadSnapshotAll(false)} 
+                            disabled={(!storagePool && governanceLookup) || (!wallet)}
+                            variant='contained'
+                            color='error'
+                            sx={{color:'black'}}
+                        >
+                            Fetch it All!!! <WarningIcon sx={{ml:1}} />
+                        </Button>
+                    </Tooltip>
+
+                    <Typography variant="body2" sx={{textAlign:'center'}}>
+                        {batchStatus}
+                    </Typography>
+
                 
                 {governanceAutocomplete ?
                     <Autocomplete
@@ -1871,7 +2019,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     
                 }
                 
-
                 <ButtonGroup
                     fullWidth
                 >
@@ -1883,7 +2030,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             color='inherit'
                             sx={{color:'black'}}
                         >
-                            Fetch Governance <BoltIcon />
+                            Fetch Governance <BoltIcon sx={{ml:1}} />
                         </Button>
                     </Tooltip>
                     <Tooltip title="WARNING: This will refetch/force fetch all governance proposals & proposal participation again regardless of cache">
@@ -1893,7 +2040,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             variant='contained'
                             color='warning'
                         >
-                            Refetch <HourglassBottomIcon />
+                            Refetch <HourglassBottomIcon sx={{ml:1}} />
                         </Button>
                     </Tooltip>
                 </ButtonGroup>
@@ -1975,7 +2122,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 <Button
                                     color="inherit"
                                     disabled={!storageAutocomplete ? true : false}
-                                    onClick={e => handleUploadToStoragePool()}
+                                    onClick={e => handleUploadToStoragePool(null, null, null, null, null, null, null, null)}
                                     sx={{ml:1,borderRadius:'17px'}}
                                 >
                                     <CloudUploadIcon />
