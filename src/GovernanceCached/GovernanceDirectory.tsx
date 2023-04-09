@@ -191,7 +191,11 @@ export function GovernanceDirectoryView() {
         // pre sort
         const exportFglf = new Array();
         if (fglf && fglf.length > 0){
-            const sorted = fglf.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
+            //const sorted = fglf.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
+
+            
+            const sorted = fglf.sort((a:any, b:any) => (a?.totalVaultValue < b?.totalVaultValue && b?.totalVaultValue > 1) ? 1 : -1); 
+            //const sorted = fglf.sort((a:any, b:any) => (a.totalVaultStableCoinValue != null ? a.totalVaultStableCoinValue : Infinity) - (b.totalVaultStableCoinValue != null ? b.totalVaultStableCoinValue : Infinity)); 
             setGovernanceLookup(sorted);
             
             // fetch some summary data

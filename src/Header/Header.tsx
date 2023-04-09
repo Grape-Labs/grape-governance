@@ -34,6 +34,7 @@ import {
 } from '@solana/wallet-adapter-material-ui';
 
 import {
+    AppBar,
     Box,
     Toolbar,
     MenuItem,
@@ -57,6 +58,7 @@ import {
     FormControlLabel
 } from '@mui/material';
 
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import BurstModeIcon from '@mui/icons-material/BurstMode';
 
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -85,23 +87,19 @@ interface HeaderProps{
 
 const Search = styled('div')(({ theme }) => ({
     position: 'relative',
-    border: '1px solid rgba(255,255,255,0.25)',
-    borderRadius: '17px',
-    backgroundColor: alpha(theme.palette.common.white, 0.015),
+    borderRadius: theme.shape.borderRadius,
+    backgroundColor: alpha(theme.palette.common.white, 0.15),
     '&:hover': {
-        border: '1px solid rgba(255,255,255,0.75)',
-        backgroundColor: alpha(theme.palette.common.white, 0.1),
+      backgroundColor: alpha(theme.palette.common.white, 0.25),
     },
-    marginRight: theme.spacing(2),
     marginLeft: 0,
-    marginTop: 5,
     width: '100%',
     [theme.breakpoints.up('sm')]: {
-        width: 'auto',
-        marginLeft: 5,
+      marginLeft: theme.spacing(1),
+      width: 'auto',
     },
   }));
-
+  
   const SearchIconWrapper = styled('div')(({ theme }) => ({
     padding: theme.spacing(0, 2),
     height: '100%',
@@ -110,9 +108,8 @@ const Search = styled('div')(({ theme }) => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: alpha(theme.palette.common.white, 0.25),
   }));
-  
+
   const StyledInputBase = styled(InputBase)(({ theme }) => ({
     color: 'inherit',
     '& .MuiInputBase-input': {
@@ -121,8 +118,30 @@ const Search = styled('div')(({ theme }) => ({
       paddingLeft: `calc(1em + ${theme.spacing(4)})`,
       transition: theme.transitions.create('width'),
       width: '100%',
-      [theme.breakpoints.up('md')]: {
-        width: '100%',
+      [theme.breakpoints.up('sm')]: {
+        width: '12ch',
+        '&:focus': {
+          width: '20ch',
+        },
+      },
+    },
+  }));
+
+  const StyledTextField = styled(TextField)(({ theme }) => ({
+    color: 'inherit',
+    border:'none',
+    '& .MuiInputBase-input': {
+      border: 'none',
+        padding: theme.spacing(1, 1, 1, 0),
+      // vertical padding + font size from searchIcon
+      paddingLeft: `calc(1em + ${theme.spacing(4)})`,
+      transition: theme.transitions.create('width'),
+      width: '100%',
+      [theme.breakpoints.up('sm')]: {
+        width: '20ch',
+        '&:focus': {
+          width: '25ch',
+        },
       },
     },
   }));
@@ -250,102 +269,145 @@ export function Header(props: any) {
     }, [governanceAddress]);
 
     return (
-        <Toolbar
-            color="inherit"
-            className="app-header"
-            >
-
-            <Box display='flex' flexGrow={1}>
-                <Button
-                    variant="text"
-                    color="inherit" 
-                    href='/'
-                    sx={{borderRadius:'17px',pl:1,pr:1}}
+        <AppBar position="static"
+            className="app-header">
+            <Toolbar
+                color="inherit"
                 >
-                    <Typography
-                        component="h1"
-                        variant="h6"
-                        color="inherit"
-                        display='flex'
-                        sx={{ml:1,mr:1}}
+
+                <Box display='flex' flexGrow={1}>
+                    <Button
+                        variant="text"
+                        color="inherit" 
+                        href='/'
+                        sx={{borderRadius:'17px',pl:1,pr:1}}
                     >
-                        <img src={APP_LOGO} height="40px" width="137px" className="header-logo" alt="SPL Governance | Powered by Solana" />
-                    </Typography>
-                </Button>
-
-                <>
-                <Tooltip title={`Admin Fetching Tools`}>
-                    <IconButton sx={{ml:1,borderRadius:'17px'}} 
-                        component={Link}
-                        to={'/admin'}
-                    >
-                    <SettingsSuggestIcon />
-                    </IconButton>
-                </Tooltip>
-                </>
-
-                <AboutDialog />
-
-                    {governanceAutocomplete ?
-                        <Autocomplete
-                            sx={{ mt:1,ml:2, minWidth: 300 }}
-                            disablePortal
-                            size="small"
-                            id="combo-box-demo"
-                            options={governanceAutocomplete}
-                            getOptionLabel={(option) => option.value}
-                            renderOption={(props, option) => (
-                                <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
-                                {option.label}
-                                &nbsp;
-                                <small>(
-                                    {option.totalProposalsVoting ? <><strong>{option.totalProposalsVoting} voting</strong> of </> : ``}
-                                    {option.totalProposals})
-                                </small>
-                                
-                                </Box>
-                            )}
-                            onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
-                            renderInput={(params) => <TextField {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="Governance" />}
-                        />
-                    :
-                        <TextField 
-                            fullWidth 
-                            size="small"
-                            label="Enter a governance address" 
-                            sx={{ mt:1,ml:2, width: 300 }}
-                            onChange={(e) => setGovernanceAddress(e.target.value)}/>
-                        
-                    }
-
-                    <RadioGroup
-                            row
-                            aria-labelledby="demo-row-radio-buttons-group-label"
-                            name="row-radio-buttons-group"
-                            value={fetchType}
-                            onChange={handleChange}
-                            sx={{ml:2,display:'none'}}
+                        <Typography
+                            component="h1"
+                            variant="h6"
+                            color="inherit"
+                            display='flex'
+                            sx={{ml:1,mr:1}}
                         >
+                            <img src={APP_LOGO} height="40px" width="137px" className="header-logo" alt="SPL Governance | Powered by Solana" />
+                        </Typography>
+                    </Button>
 
-                            <FormControlLabel value="cachedgovernance" control={<Radio />} label="Cached" />
-                            <FormControlLabel value="rpcgovernance" control={<Radio />} label="RPC" />
-                            {/*
-                            <FormControlLabel value="metrics" control={<Radio />} label="Metrics" />
-                            <FormControlLabel value="members" control={<Radio />} label="Members" disabled={true} />
-                            <FormControlLabel value="treasury" control={<Radio />} label="Treasury" disabled={true} />
-                            */}
-                    </RadioGroup>
+                    <>
+                    <Tooltip title={`Admin Fetching Tools`}>
+                        <IconButton sx={{ml:1,borderRadius:'17px'}} 
+                            component={Link}
+                            to={'/admin'}
+                        >
+                        <SettingsSuggestIcon />
+                        </IconButton>
+                    </Tooltip>
+                    </>
 
-                {/*
-                <Tooltip title={`Go to SPL Governance`}><IconButton sx={{borderRadius:'17px'}} component="a" href='https://realms.today/realms'><DashboardOutlinedIcon/></IconButton></Tooltip>
-                */}
-            </Box>
-            <div className="grape-wallet-adapter">
-                <WalletDialogProvider className="grape-wallet-provider">
-                    <WalletMultiButton className="grape-wallet-button" />
-                </WalletDialogProvider>
-            </div>
-        </Toolbar>
+                    <AboutDialog />
+
+                        {governanceAutocomplete ?
+                            
+                            <>
+                                <Search
+                                    sx={{ mt:1,ml:2,mb:1, backgroundColor:'rgba(255,255,255,0.05)' }}
+                                >
+                                    <Autocomplete
+                                        sx={{ minWidth:'25ch',border:'none' }}
+                                        disablePortal
+                                        size="small"
+                                        id="combo-box-demo"
+                                        options={governanceAutocomplete}
+                                        getOptionLabel={(option) => option.value}
+                                        renderOption={(props, option) => (
+                                            <Box sx={{border:'none'}} component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                            {option.label}
+                                            &nbsp;
+                                            <small>(
+                                                {option.totalProposalsVoting ? <><HowToVoteIcon sx={{fontSize:10}} /> <strong>{option.totalProposalsVoting}</strong> of </> : ``}
+                                                {option.totalProposals})
+                                            </small>
+                                            
+                                            </Box>
+                                        )}
+                                        onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
+                                        renderInput={(params) => 
+                                            <TextField 
+                                                {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="" 
+                                            />
+                                        }
+                                    />
+                                </Search>
+                                {/*
+                                <Autocomplete
+                                    sx={{ mt:1,ml:2, minWidth: 300 }}
+                                    disablePortal
+                                    size="small"
+                                    id="combo-box-demo"
+                                    options={governanceAutocomplete}
+                                    getOptionLabel={(option) => option.value}
+                                    renderOption={(props, option) => (
+                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                        {option.label}
+                                        &nbsp;
+                                        <small>(
+                                            {option.totalProposalsVoting ? <><strong>{option.totalProposalsVoting} voting</strong> of </> : ``}
+                                            {option.totalProposals})
+                                        </small>
+                                        
+                                        </Box>
+                                    )}
+                                    onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
+                                    renderInput={(params) => 
+                                        <TextField {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="Governance" />
+                                    }
+                                />
+                                */}
+                            </>
+                        :
+                            <Search
+                                sx={{ mt:1,ml:2,mb:1 }}
+                            >
+                                <SearchIconWrapper>
+                                <SearchIcon />
+                                </SearchIconWrapper>
+                                <StyledInputBase
+                                    placeholder="Enter a governance address"
+                                    inputProps={{ 'aria-label': 'search' }}
+                                    onChange={(e) => setGovernanceAddress(e.target.value)}
+                                />
+                            </Search>
+                        }
+
+                        <RadioGroup
+                                row
+                                aria-labelledby="demo-row-radio-buttons-group-label"
+                                name="row-radio-buttons-group"
+                                value={fetchType}
+                                onChange={handleChange}
+                                sx={{ml:2,display:'none'}}
+                            >
+
+                                <FormControlLabel value="cachedgovernance" control={<Radio />} label="Cached" />
+                                <FormControlLabel value="rpcgovernance" control={<Radio />} label="RPC" />
+                                {/*
+                                <FormControlLabel value="metrics" control={<Radio />} label="Metrics" />
+                                <FormControlLabel value="members" control={<Radio />} label="Members" disabled={true} />
+                                <FormControlLabel value="treasury" control={<Radio />} label="Treasury" disabled={true} />
+                                */}
+                        </RadioGroup>
+
+                    {/*
+                    <Tooltip title={`Go to SPL Governance`}><IconButton sx={{borderRadius:'17px'}} component="a" href='https://realms.today/realms'><DashboardOutlinedIcon/></IconButton></Tooltip>
+                    */}
+                </Box>
+                <div className="grape-wallet-adapter">
+                    <WalletDialogProvider className="grape-wallet-provider">
+                        <WalletMultiButton className="grape-wallet-button" />
+                    </WalletDialogProvider>
+                </div>
+            </Toolbar>
+        </AppBar>
         
     );
 }
