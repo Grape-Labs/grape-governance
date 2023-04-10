@@ -110,6 +110,10 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
     );
   }
 
+export const cronFetch = async() => {
+    // do something
+}
+
 export function GovernanceSnapshotView (this: any, props: any) {
 	const wallet = useWallet();
     const connection = RPC_CONNECTION;
@@ -184,6 +188,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     //const [endTime, setEndTime] = React.useState(null);
     //const [ellapsedTime, setEllapsedTime] = React.useState(null);
     const [processingPosition, setProcessingPosition] = React.useState(0);
+    const [cronBatch, setCronBatch] = React.useState(false);
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
@@ -320,14 +325,14 @@ export function GovernanceSnapshotView (this: any, props: any) {
         });
 
         console.log("rawNativeSolAddresses: "+JSON.stringify(rawNativeSolAddresses))
-        setPrimaryStatus("Fething Treasury Sol Balance");
+        setPrimaryStatus("Fetching Treasury Sol Balance");
 
         const vaultSolBalancesPromise = await Promise.all(
             vaultsInfo.map((vault) =>
               connection.getBalance(new PublicKey(vault?.pubkey))
             )
         );
-        setPrimaryStatus("Fething Treasury Token Accounts");
+        setPrimaryStatus("Fetching Treasury Token Accounts");
 
         const vaultsWithTokensPromise = await Promise.all(
             vaultsInfo.map((vault) =>
@@ -340,7 +345,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             )
         );
 
-        setPrimaryStatus("Fething Treasury NFTs");
+        setPrimaryStatus("Fetching Treasury NFTs");
 
         const client = new RestClient(HELLO_MOON_BEARER);
         const vaultsWithNftsPromise = await Promise.all(
@@ -448,7 +453,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 }
             }
 
-            setPrimaryStatus("Fething Treasury NFT Floor Prices");
+            setPrimaryStatus("Fetching Treasury NFT Floor Prices");
 
             if (vi?.nfts){
                 for (const thisitem of vi.nfts){
@@ -456,6 +461,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     console.log("HM: "+thisitem.helloMoonCollectionId)
                     
                     if (thisitem.helloMoonCollectionId){
+                        setPrimaryStatus("Fetching Treasury NFT Floor Prices ("+thisitem.nftMint+")");
                         const results = await client.send(new CollectionFloorpriceRequest({
                             helloMoonCollectionId: thisitem.helloMoonCollectionId,
                             limit: 1000
@@ -472,8 +478,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                         thisitem.listingCount = resitem.listing_count;
                                         thisitem.floorPriceLamports = resitem.floorPriceLamports;
                                         nftsIdentified++;
-                                        totalVaultNftValueSol += +resitem.floorPriceLamports
+                                        totalVaultNftValueSol += +resitem.floorPriceLamports,
                                         //totalVaultNftValue += resitem.floorPriceLamports
+
+                                        setPrimaryStatus("Fetching Treasury NFT Floor Prices ("+thisitem.nftMint+" floor at "+resitem.floorPriceLamports+" lamports)");
                                     }
                                     
                                 }
@@ -512,7 +520,12 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
         
         // consider jupiter as a backup... (per token address)
+
+        setPrimaryStatus("Fetching Prices from Jupiter");
+
         const cgp = await getJupiterPrices(cgMintArray);
+
+        setPrimaryStatus("Associating Fetched Prices from Jupiter");
         let totalVaultStableCoinValue = 0;
         for (var ia of vaultsInflated){
             let vaultValue = 0;
@@ -1042,6 +1055,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     if (voteRecord?.value){
                         let counter = 0;
 
+                        //console.log("vrs check inner 1")
                         for (let item of voteRecord.value){
                             counter++;
                             
@@ -1063,6 +1077,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             //    console.log("item ("+thisitem.pubkey+"): "+JSON.stringify(item))
 
                             //console.log("VRS pushing "+counter)
+                            //console.log("VRS pushing item "+JSON.stringify(item))
 
                             const vrs_item = {
                                 id:counter,
@@ -1075,15 +1090,15 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                     voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
                                     legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
                                     legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
-                                    decimals:((realm.account.config?.councilMint && realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58()) ? 0 : td),
-                                    councilMint:(realm.account.config?.councilMint ? new PublicKey(realm.account.config?.councilMint).toBase58() : null),
+                                    decimals:((this_realm.account.config?.councilMint && this_realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58()) ? 0 : td),
+                                    councilMint:(this_realm.account.config?.councilMint ? new PublicKey(this_realm.account.config?.councilMint).toBase58() : null),
                                     governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
                                 }
                             }
 
                             vrs.push(vrs_item)
 
-                            //console.log("pushed "+JSON.stringify(vrs_item))
+                            //console.log("PUSHED "+JSON.stringify(vrs_item))
                             if (counter > 1)
                                 csvFile += '\r\n';
                             else
@@ -1145,13 +1160,12 @@ export function GovernanceSnapshotView (this: any, props: any) {
             }
         }
 
-        //console.log("finalList: "+JSON.stringify(finalList))
+        //console.log("setting finalList: "+JSON.stringify(finalList))
         setSolanaVotingResultRows(finalList)
 
         return {
             ggv:ggv,
             finalList:finalList};
-        
     }
     
     const exportFile = async(finalList:string, csvFile:string, fileName:string) => {
@@ -1327,12 +1341,14 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const processGovernanceUploadSnapshotAll = async(force:boolean) => {
         if (governanceLookup){
             setBatchStatus("Ready to fetch all...");
+            setCronBatch(true);
             //setStartTime(moment(new Date()))
             //setCronMode(true);
             let startTime = moment(new Date());
             let count = 0;
             for (var item of governanceLookup){
-                if (count > 0){ // process 1 for now to verify it works
+                //if (count > 15){ // process 1 for now to verify it works
+                {
                     setGovernanceAddress(item.governanceAddress);
                     let elapsedTime = moment(new Date());
                     let elapsedDuration = moment.duration(elapsedTime.diff(startTime));
@@ -1342,9 +1358,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     const grealm = await fetchRealm(item.governanceAddress);
 
                     const governanceData = await processGovernance(item.governanceAddress, grealm);
-                    const finalList = governanceData.proposals;
+                    const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData);
 
-                    const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, forceFetch, grealm, governanceData);
+                    console.log("processedFiles.proposalsString "+JSON.stringify(processedFiles.proposalsString))
 
                     await handleUploadToStoragePool(grealm, item.governanceAddress, processedFiles.proposalsString, processedFiles.membersString, processedFiles.governanceTransactionsString, governanceData.governanceVaultsString, governanceData, processedFiles.ggv);
                     // Second drive creation (otherwise wallet is not connected when done earlier)
@@ -1354,8 +1370,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
             let endTime = moment(new Date());
             let elapsedDuration = moment.duration(endTime.diff(startTime));
             setBatchStatus("Batch completed in ("+elapsedDuration.asMinutes().toFixed(1)+")")
-            
-        }    
+            setCronBatch(false);
+        } 
+        
+        return null;
     }
 
     // CRON STEP! Handled fetching and uploading in one go
@@ -1401,10 +1419,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
     React.useEffect(() => { 
         if (processCron){
             console.log("process cron "+processCron)
-            console.log("proposals "+JSON.stringify(proposals))
-            console.log("solanaVotingResultRows "+JSON.stringify(solanaVotingResultRows))
-            console.log("realm "+JSON.stringify(realm))
-            console.log("solanaVotingResultRows "+JSON.stringify(solanaVotingResultRows))
+            //console.log("proposals "+JSON.stringify(proposals))
+            //console.log("solanaVotingResultRows "+JSON.stringify(solanaVotingResultRows))
+            //console.log("realm "+JSON.stringify(realm))
+            //console.log("solanaVotingResultRows "+JSON.stringify(solanaVotingResultRows))
             if (realm &&
                 proposals &&
                 memberMap &&
@@ -1471,8 +1489,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 
                 const fileName = (address || governanceAddress)+'.json';
 
-                exportFile(finalList, null, fileName);
-                const proposalsString = JSON.stringify(finalList);
+                exportFile(fpd.finalList, null, fileName);
+                const proposalsString = JSON.stringify(fpd.finalList);
                 
                 // do teh following to get the members
 
@@ -1748,7 +1766,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
             const isBrowser = process.env.BROWSER || (typeof window !== "undefined" && !window.process?.hasOwnProperty("type"));
 
-            if (fetchedKeypair && !isBrowser){
+            if (fetchedKeypair){
                 console.log("Using soft wallet")
                 //process.env.BROWSER = null;
                 const fromKeypair = Keypair.fromSecretKey(
@@ -1757,7 +1775,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 
                 /*
                 const anchorKeypair = new anchor.web3.Keypair({publicKey:Uint8Array.from(fetchedKeypair),secretKey:fromKeypair.secretKey})
-                
+
                 console.log(anchorKeypair.publicKey.toBase58());
                 console.log(anchorKeypair.secretKey.toString());
                 */
@@ -2050,7 +2068,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
                     <Tooltip title="Process all Governances this is quite a heavy call consider using the bottom one to fetch a specific governance">
                         <Button 
-                            onClick ={() => processGovernanceUploadSnapshotAll(false)} 
+                            onClick ={() => processGovernanceUploadSnapshotAll(true)} 
                             disabled={(!storagePool && governanceLookup) || (!wallet)}
                             variant='contained'
                             color='error'
@@ -2065,60 +2083,65 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     </Typography>
 
                 
-                {governanceAutocomplete ?
-                    <Autocomplete
-                        freeSolo
-                        disablePortal
-                        id="combo-box-demo"
-                        options={governanceAutocomplete}
-                        getOptionLabel={(option) => option.value}
-                        renderOption={(props, option) => (
-                            <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
-                              {option.label}
-                              &nbsp;
-                              <small>(
-                                {option.totalProposalsVoting ? <><strong>{option.totalProposalsVoting} voting</strong> of </> : ``}
-                                {option.totalProposals})
-                              </small>
-                              
-                            </Box>
-                        )}
-                        onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
-                        renderInput={(params) => <TextField {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="Governance" />}
-                    />
-                :
-                    <TextField 
-                        fullWidth 
-                        label="Enter a governance address" 
-                        onChange={(e) => setGovernanceAddress(e.target.value)}/>
+                {!cronBatch &&
+                    <>
+                    {governanceAutocomplete ?
+                        <Autocomplete
+                            freeSolo
+                            disablePortal
+                            id="combo-box-demo"
+                            options={governanceAutocomplete}
+                            getOptionLabel={(option) => option.value}
+                            renderOption={(props, option) => (
+                                <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                {option.label}
+                                &nbsp;
+                                <small>(
+                                    {option.totalProposalsVoting ? <><strong>{option.totalProposalsVoting} voting</strong> of </> : ``}
+                                    {option.totalProposals})
+                                </small>
+                                
+                                </Box>
+                            )}
+                            onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
+                            renderInput={(params) => <TextField {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="Governance" />}
+                        />
+                    :
+                        <TextField 
+                            fullWidth 
+                            label="Enter a governance address" 
+                            onChange={(e) => setGovernanceAddress(e.target.value)}/>
+                        
+                    }
                     
+                    <ButtonGroup
+                        fullWidth
+                    >
+                        <Tooltip title="Process selected Governance & upload to selected storage pool">
+                            <Button 
+                                onClick ={() => processGovernanceUploadSnapshotJobStep1(governanceAddress, false)} 
+                                disabled={(!governanceAddress) || (!storagePool)}
+                                variant='contained'
+                                color='inherit'
+                                sx={{color:'black'}}
+                            >
+                                Fetch Governance <BoltIcon sx={{ml:1}} />
+                            </Button>
+                        </Tooltip>
+                        <Tooltip title="WARNING: This will refetch/force fetch all governance proposals & proposal participation again regardless of cache">
+                            <Button 
+                                onClick ={() => processGovernanceUploadSnapshotJobStep1(governanceAddress, true)} 
+                                disabled={(!governanceAddress) || (!storagePool)}
+                                variant='contained'
+                                color='warning'
+                            >
+                                Refetch <HourglassBottomIcon sx={{ml:1}} />
+                            </Button>
+                        </Tooltip>
+                    </ButtonGroup>
+
+                    </>
                 }
-                
-                <ButtonGroup
-                    fullWidth
-                >
-                    <Tooltip title="Process selected Governance & upload to selected storage pool">
-                        <Button 
-                            onClick ={() => processGovernanceUploadSnapshotJobStep1(governanceAddress, false)} 
-                            disabled={(!governanceAddress) || (!storagePool)}
-                            variant='contained'
-                            color='inherit'
-                            sx={{color:'black'}}
-                        >
-                            Fetch Governance <BoltIcon sx={{ml:1}} />
-                        </Button>
-                    </Tooltip>
-                    <Tooltip title="WARNING: This will refetch/force fetch all governance proposals & proposal participation again regardless of cache">
-                        <Button 
-                            onClick ={() => processGovernanceUploadSnapshotJobStep1(governanceAddress, true)} 
-                            disabled={(!governanceAddress) || (!storagePool)}
-                            variant='contained'
-                            color='warning'
-                        >
-                            Refetch <HourglassBottomIcon sx={{ml:1}} />
-                        </Button>
-                    </Tooltip>
-                </ButtonGroup>
 
                 {/*
                 <ButtonGroup

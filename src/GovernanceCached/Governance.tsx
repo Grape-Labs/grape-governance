@@ -787,7 +787,6 @@ function GetParticipants(props: any){
             if (thisitem.pubkey === vresults.pubkey){
                 voteRecord = vresults.votingResults;
                 from_cache = true;
-                //console.log("vresults: " + JSON.stringify(vresults))
                 if (thisitem?.instructions){
                     thisitem.instructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
                     setProposalInstructions(thisitem.instructions);
