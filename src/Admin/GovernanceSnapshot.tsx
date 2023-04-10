@@ -51,7 +51,7 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
 import { LinearProgressProps } from '@mui/material/LinearProgress';
 
-import { Connection, PublicKey, TokenAccountsFilter, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, TokenAccountsFilter, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 import { ShdwDrive, ShadowFile } from "@shadow-drive/sdk";
 import {
@@ -662,8 +662,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
             const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
             setMemberMap(rawTokenOwnerRecords);
 
-            const newMemberMap = new Array();
-            
             let mcount = 0;
             for (const owner of rawTokenOwnerRecords){
                 mcount++;
@@ -1262,7 +1260,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
     }
 
     const uploadReplaceToStoragePool = async (drive:any, newFile: File, existingFileUrl: string, storagePublicKey: PublicKey, version: string) => { 
-        console.log("HERE!!!");
         try{
             
             enqueueSnackbar(`Preparing to upload/replace some files to ${storagePublicKey.toString()}`,{ variant: 'info' });
@@ -1292,13 +1289,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
         } 
     }
 
-    const deleteStoragePoolFile = async (storagePublicKey: PublicKey, file: string, version: string) => { 
+    const deleteStoragePoolFile = async (drive:any, storagePublicKey: PublicKey, file: string, version: string) => { 
         try{
-            let usingDrive = thisDrive;
-            if (!thisDrive){
-                usingDrive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
-            }
-
+            
             enqueueSnackbar(`Preparing to delete ${file}`,{ variant: 'info' });
             const snackprogress = (key:any) => (
                 <CircularProgress sx={{padding:'10px'}} />
@@ -1306,7 +1299,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             //console.log(storagePublicKey + "/"+storageAccount+" - file: "+file);
             const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
             
-            const signedTransaction = await usingDrive.deleteFile(storagePublicKey, 'https://shdw-drive.genesysgo.net/'+storagePublicKey.toBase58()+'/'+file, version || 'v2');
+            const signedTransaction = await drive.deleteFile(storagePublicKey, 'https://shdw-drive.genesysgo.net/'+storagePublicKey.toBase58()+'/'+file, version || 'v2');
             console.log("signedTransaction; "+JSON.stringify(signedTransaction))
             
             closeSnackbar(cnfrmkey);
@@ -1337,7 +1330,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             let startTime = moment(new Date());
             let count = 0;
             for (var item of governanceLookup){
-                if (count === 0){
+                if (count === 0){ // process 1 for now to verify it works
                     setGovernanceAddress(item.governanceAddress);
                     let elapsedTime = moment(new Date());
                     let elapsedDuration = moment.duration(elapsedTime.diff(startTime));
@@ -1349,7 +1342,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     const governanceData = await processGovernance(item.governanceAddress, grealm);
                     const finalList = governanceData.proposals;
 
-                    const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, forceFetch, grealm);
+                    const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, forceFetch, grealm, governanceData);
 
                     await handleUploadToStoragePool(grealm, item.governanceAddress, processedFiles.proposalsString, processedFiles.membersString, processedFiles.governanceTransactionsString, governanceData.governanceVaultsString, governanceData, processedFiles.ggv);
                     // Second drive creation (otherwise wallet is not connected when done earlier)
@@ -1386,7 +1379,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     }
     const processGovernanceUploadSnapshotJobStep2 = async() => {
         if (proposals && realm){
-            const processedFiles = await processProposals(null, proposals, forceFetch, realm); // set to true if we want to force fetch all
+            const processedFiles = await processProposals(null, proposals, forceFetch, realm, null); // set to true if we want to force fetch all
             console.log("******* PROPOSALS FETCHED *******")
             setProcessCron(true);
             setLoading(false);
@@ -1446,7 +1439,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     }
 
     // STEP 2.
-    const processProposals = async(address:string, finalList:any, forceSkip:boolean, this_realm: any) => {
+    const processProposals = async(address:string, finalList:any, forceSkip:boolean, this_realm: any, governanceData: any) => {
         if (finalList){
             setLoading(true);
             setCurrentUploadInfo(null);
@@ -1480,9 +1473,12 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 const proposalsString = JSON.stringify(finalList);
                 
                 // do teh following to get the members
-                const membersString = JSON.stringify(memberMap);
+
+                const usingMemberMap = governanceData?.memberMap || memberMap;
+                const membersString = JSON.stringify(usingMemberMap);
                 setMembersStringGenerated(membersString);
-                const governanceTransactionsString = JSON.stringify(governanceTransactions);
+                const usingTransactions = governanceData?.transactions || governanceTransactions;
+                const governanceTransactionsString = JSON.stringify(usingTransactions);
                 setTransactionsStringGenerated(governanceTransactionsString);
 
                 const propFiles = {
@@ -1595,8 +1591,18 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 
                 //console.log("lookup: "+JSON.stringify(lookup))
 
+                const cleanLookup = new Array();
+                for (var item of governanceLookup){ // cleanup lookup!
+                    if (item.governanceName){
+                        cleanLookup.push(item);
+                    }
+                }
+
+                console.log("Original: "+governanceLookup.length);
+                console.log("Cleaned: "+cleanLookup.length);
+
                 console.log("Replacing Governance Lookup");
-                const uploadFile = await returnJSON(JSON.stringify(governanceLookup), "governance_lookup.json");
+                const uploadFile = await returnJSON(JSON.stringify(cleanLookup), "governance_lookup.json");
                 const fileSize  = uploadFile.size;
                 setCurrentUploadInfo("Replacing "+"governance_lookup.json"+" - "+formatBytes(fileSize));
                 
@@ -1703,6 +1709,12 @@ export function GovernanceSnapshotView (this: any, props: any) {
         //exportJSON(fileGenerated, fileName);
         console.log("preparing to upload: "+fileName);
         //if (!thisDrive){
+            
+            //const fromKeypair = Keypair.generate();
+            //const test_drive = await new ShdwDrive(RPC_CONNECTION, fromKeypair).init();
+            //const testing = test_drive.userInfo;
+            //console.log("test_drive: "+JSON.stringify(testing));
+
             const drive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
             //console.log("drive: "+JSON.stringify(drive));
             //setThisDrive(drive);
@@ -1715,6 +1727,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
             if ((current_proposals_to_use) &&
                 (current_members_to_use)){
                 
+                    console.log("current_members_to_use "+JSON.stringify(current_members_to_use));
+
                 console.log("1: "+JSON.stringify(storageAccountPK))
                 const uploadProposalFile = await returnJSON(current_proposals_to_use, fileName);
                 console.log("2: "+JSON.stringify(storageAccountPK))
@@ -1909,7 +1923,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     }      
 
     React.useEffect(() => { 
-        if (!tokenMap && wallet){
+        if (!tokenMap){
             initStorage();
             getTokens();
             getGovernanceLookup();
