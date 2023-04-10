@@ -1679,6 +1679,29 @@ export function GovernanceSnapshotView (this: any, props: any) {
         // deleteStoragePoolFile()
     }
 
+    class MyWallet implements anchor.Wallet {
+
+        constructor(readonly payer: Keypair) {
+            this.payer = payer
+        }
+    
+        async signTransaction(tx: Transaction): Promise<Transaction> {
+            tx.partialSign(this.payer);
+            return tx;
+        }
+    
+        async signAllTransactions(txs: Transaction[]): Promise<Transaction[]> {
+            return txs.map((t) => {
+                t.partialSign(this.payer);
+                return t;
+            });
+        }
+    
+        get publicKey(): PublicKey {
+            return this.payer.publicKey;
+        }
+    }
+
     const handleUploadToStoragePool = async (sentRealm: any, address: string, passedProposalsString: string,passedMembersString: string,passedTransactionsString: string,passedVaultsString: string, governanceFetchedDetails: any, ggv: any) => {
         const timestamp = Math.floor(new Date().getTime() / 1000);
         let govAddress = governanceAddress;
@@ -1738,8 +1761,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 console.log(anchorKeypair.publicKey.toBase58());
                 console.log(anchorKeypair.secretKey.toString());
                 */
-                const kpwallet = new anchor.Wallet(fromKeypair);
+                //const kpwallet = new anchor.Wallet(fromKeypair);
                 //const kpwallet = new Wallet(fromKeypair)
+                const kpwallet = new MyWallet(fromKeypair);
+                
                 console.log("settings up shdw")
                 drive = await new ShdwDrive(RPC_CONNECTION, kpwallet).init();
                 const testing = drive.userInfo;
