@@ -1,5 +1,7 @@
 import pako from 'pako';
 import { GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
+import { Keypair } from "@solana/web3.js";
+import * as fs from "fs";
 
 export const formatBytes = (bytes: any, decimals = 2) => {
     if (bytes === 0) return '0 Bytes';
@@ -38,6 +40,17 @@ export const fetchGovernanceLookupFile = async(storagePool:string) => {
         console.log("ERR: "+e)
         return null;
     }
+}
+
+export function loadWalletKey(keypair: string): Keypair {
+    if (!keypair || keypair == "") {
+        throw new Error("Keypair is required!");
+    }
+    const loaded = Keypair.fromSecretKey(
+        new Uint8Array(JSON.parse(fs.readFileSync(keypair).toString()))
+    );
+    //log.debug(`Wallet public key: ${loaded.publicKey}`);
+    return loaded;
 }
 
 export const fetchLookupFile = async(fileName:string,storagePool:string) => {

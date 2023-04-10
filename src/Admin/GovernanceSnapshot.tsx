@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, memo, Suspense } from "react";
 import pako from 'pako';
 import axios from "axios";
 import moment from "moment";
+import * as anchor from "@project-serum/anchor";
 import { RestClient, NftMintsByOwnerRequest, NftMintPriceByCreatorAvgRequest, CollectionFloorpriceRequest } from '@hellomoon/api';
 import { 
     getRealm, 
@@ -57,7 +58,8 @@ import { ShdwDrive, ShadowFile } from "@shadow-drive/sdk";
 import {
     fetchGovernanceLookupFile,
     fetchLookupFile,
-    formatBytes
+    formatBytes,
+    loadWalletKey
 } from '../GovernanceCached/CachedStorageHelpers'; 
 import { useSnackbar } from 'notistack';
 
@@ -911,7 +913,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             
             try {
                 let skip_process = false;
-                if (cached_governance.length > 0){
+                if (cached_governance && cached_governance.length > 0){
                     for (let cgov of cached_governance){
                         if (cgov.pubkey === thisitem.pubkey.toBase58()){
                             if ((cgov.account.state === 1)||
@@ -1330,7 +1332,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             let startTime = moment(new Date());
             let count = 0;
             for (var item of governanceLookup){
-                if (count === 0){ // process 1 for now to verify it works
+                if (count > 0){ // process 1 for now to verify it works
                     setGovernanceAddress(item.governanceAddress);
                     let elapsedTime = moment(new Date());
                     let elapsedDuration = moment.duration(elapsedTime.diff(startTime));
@@ -1709,13 +1711,47 @@ export function GovernanceSnapshotView (this: any, props: any) {
         //exportJSON(fileGenerated, fileName);
         console.log("preparing to upload: "+fileName);
         //if (!thisDrive){
-            
-            //const fromKeypair = Keypair.generate();
-            //const test_drive = await new ShdwDrive(RPC_CONNECTION, fromKeypair).init();
-            //const testing = test_drive.userInfo;
-            //console.log("test_drive: "+JSON.stringify(testing));
 
-            const drive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
+            //const fromKeypair = Keypair.generate();
+            let drive = null;
+            var fetchedKeypair = null;
+            
+            try{
+                //fetchedKeypair = await loadWalletKey('./keypair.json')
+                fetchedKeypair = require('./keypair.json');
+            }catch (ferr){
+                console.log("ERR: "+ferr);
+            }
+
+            const isBrowser = process.env.BROWSER || (typeof window !== "undefined" && !window.process?.hasOwnProperty("type"));
+
+            if (fetchedKeypair && !isBrowser){
+                console.log("Using soft wallet")
+                //process.env.BROWSER = null;
+                const fromKeypair = Keypair.fromSecretKey(
+                    Uint8Array.from(fetchedKeypair)
+                );
+                
+                /*
+                const anchorKeypair = new anchor.web3.Keypair({publicKey:Uint8Array.from(fetchedKeypair),secretKey:fromKeypair.secretKey})
+                
+                console.log(anchorKeypair.publicKey.toBase58());
+                console.log(anchorKeypair.secretKey.toString());
+                */
+                const kpwallet = new anchor.Wallet(fromKeypair);
+                //const kpwallet = new Wallet(fromKeypair)
+                console.log("settings up shdw")
+                drive = await new ShdwDrive(RPC_CONNECTION, kpwallet).init();
+                const testing = drive.userInfo;
+                console.log("drive: "+JSON.stringify(testing));
+            } else{
+
+                console.log("Browser: "+isBrowser);
+
+                console.log("Could not find/use soft wallet, using adapter")
+                drive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
+            }
+
             //console.log("drive: "+JSON.stringify(drive));
             //setThisDrive(drive);
             //alert("Drive not initialized, initializing now...");
