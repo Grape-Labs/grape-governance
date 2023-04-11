@@ -213,6 +213,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     //const [ellapsedTime, setEllapsedTime] = React.useState(null);
     const [processingPosition, setProcessingPosition] = React.useState(0);
     const [cronBatch, setCronBatch] = React.useState(false);
+    const [currentWallet, setCurrentWallet] = React.useState(null);
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
@@ -1787,7 +1788,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
             const isBrowser = process.env.BROWSER || (typeof window !== "undefined" && !window.process?.hasOwnProperty("type"));
 
             if (secretKey){
-                console.log("Using soft wallet")
                 const fromKeypair = Keypair.fromSecretKey(
                     Uint8Array.from(secretKey)
                 );
@@ -1993,7 +1993,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
         const isBrowser = process.env.BROWSER || (typeof window !== "undefined" && !window.process?.hasOwnProperty("type"));
 
         if (secretKey){
-            console.log("Using soft wallet")
             const fromKeypair = Keypair.fromSecretKey(
                 Uint8Array.from(secretKey)
             );
@@ -2004,12 +2003,16 @@ export function GovernanceSnapshotView (this: any, props: any) {
             //const testing = drive.userInfo;
             //console.log("drive: "+JSON.stringify(testing));
             setThisDrive(drive);
+
+            setCurrentWallet(kpwallet.publicKey.toBase58());
         } else{
             if (wallet){
                 console.log("Initializing SHDW wallet adapter "+wallet.publicKey.toBase58())
                 const drive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
                 //console.log("drive: "+JSON.stringify(drive));
                 setThisDrive(drive);
+
+                setCurrentWallet(wallet.publicKey.toBase58());
             }
         }
         try{
@@ -2079,7 +2082,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 >
                 
                 <Typography variant="h6" sx={{textAlign:'center'}}>
-                    SPL Governance<br/>Decentralized Caching
+                    SPL Governance<br/>Decentralized Caching<br/>
+                    {currentWallet && <Typography variant="caption">Storage Wallet: {currentWallet}</Typography>}
                 </Typography>
 
                 {storageAutocomplete ?
