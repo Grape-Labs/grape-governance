@@ -1785,11 +1785,11 @@ function RenderGovernanceTable(props:any) {
                                                             </>
                                                         }
 
-                                                        {realm.account.config?.councilMint === item.account?.governingTokenMint?.toBase58() ?
+                                                        {realm.account.config?.councilMint === new PublicKey(item.account?.governingTokenMint).toBase58() ?
                                                             <Tooltip title='Council Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon sx={{ fontSize:16 }} /></Button></Tooltip>
                                                             :
                                                             <>
-                                                            {tokenMap.get(item.account.governingTokenMint.toBase58()) ?
+                                                            {governanceType === 0 ?
                                                                 <></>
                                                             :
                                                                 <>
@@ -2145,28 +2145,20 @@ export function GovernanceCachedView(props: any) {
                                 //gTD = btkn.decimals;
                                 //setGoverningTokenDecimals(gTD)
                             } else{ // NFT
-                                setGovernanceType(2);
+                                const token = await connection.getParsedAccountInfo(new PublicKey(thisitem.account.governingTokenMint)) //await getMint(connection, new PublicKey(thisitem.account.governingTokenMint));
+                                console.log("found: "+JSON.stringify(token.value.data.parsed.info.decimals))
+                                if (token.value.data.parsed.info.decimals > 0)
+                                    setGovernanceType(0);
+                                else
+                                    setGovernanceType(2);
                                 //gTD = 0;
                                 //setGoverningTokenDecimals(gTD);
                             }
                         }
                     } catch(emt){
-                        if (tokenMap.get(grealm.account?.communityMint)){
-                            setGovernanceType(0);
-                            //gTD = tokenMap.get(grealm.account?.communityMint).decimals;
-                            //setGoverningTokenDecimals(gTD);
-                        } else{
-                            const btkn = await getBackedTokenMetadata(grealm.account?.communityMint, wallet);
-                            if (btkn){
-                                setGovernanceType(1);
-                                //gTD = btkn.decimals;
-                                //setGoverningTokenDecimals(gTD)
-                            } else{
-                                setGovernanceType(2);
-                                //gTD = 0;
-                                //setGoverningTokenDecimals(gTD);
-                            }
-                        }
+                        //const token = await connection.getParsedAccountInfo(new PublicKey(thisitem.account.governingTokenMint)) //await getMint(connection, new PublicKey(thisitem.account.governingTokenMint));
+                        //console.log("found: "+JSON.stringify(token.value.data.parsed.info.decimals))
+                        setGovernanceType(0);
                     }
                 }
                 
