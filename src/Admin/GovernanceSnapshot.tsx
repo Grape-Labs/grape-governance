@@ -1280,7 +1280,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     
     const uploadToStoragePool = async (drive: any, files: File, storagePublicKey: PublicKey, fileName: string) => { 
         try{
-            enqueueSnackbar(`Preparing to upload some ${fileName} to ${storagePublicKey.toString()}`,{ variant: 'info' });
+            enqueueSnackbar(`Preparing to upload ${fileName} to ${storagePublicKey.toString()}`,{ variant: 'info' });
             const snackprogress = (key:any) => (
                 <CircularProgress sx={{padding:'10px'}} />
             );
@@ -1414,10 +1414,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
             // if we have not found this governance
             if (address && !processedGovernance){
                 setGovernanceAddress(address);
-                let elapsedTime = moment(new Date());
-                let elapsedDuration = moment.duration(elapsedTime.diff(startTime));
-                console.log("Adding Governance: "+address+" ("+elapsedDuration.humanize()+")")
-                setBatchStatus("Adding Governance: "+address+" "+elapsedDuration.humanize()+"");
+                console.log("Adding Governance: "+address+"")
+                setBatchStatus("Adding Governance: "+address+"");
                 
                 const grealm = await fetchRealm(address);
 
@@ -1585,6 +1583,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         // this should be called each time we update with governance
         const storageAccountPK = storagePool;
         let govAddress = address;
+        const govFileName = fileName;
         if (!govAddress)
             govAddress = governanceAddress;
 
@@ -1612,7 +1611,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     if (item.governanceAddress === address){
                         item.version++;
                         item.timestamp = timestamp;
-                        item.filename = fileName;
+                        item.filename = govFileName;
                         item.memberFilename = memberFileName;
                         item.governanceTransactionsFilename = governanceTransactionsFileName;
                         item.governanceVaultsFilename = governanceVaultsFileName;
@@ -1654,7 +1653,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         governanceName:governanceFetchedDetails?.governanceName || governanceName,
                         version:0,
                         timestamp:timestamp,
-                        filename:fileName,
+                        filename:govFileName,
                         memberFilename: memberFileName,
                         governanceTransactionsFilename: governanceTransactionsFileName,
                         governanceVaultsFilename: governanceVaultsFileName,
@@ -1669,7 +1668,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         lastProposalDate: governanceFetchedDetails?.lastProposalDate || lastProposalDate,
                         //tokenSupply: ggv?.totalSupply || totalSupply,
                         //totalQuorum: ggv?.totalQuorum || totalQuorum,
-                        totalMembers: governanceFetchedDetails?.memberMap.length || memberMap ? memberMap.length : null,
+                        totalMembers: governanceFetchedDetails?.memberMap.length || null,
                         totalVaultValue: governanceFetchedDetails?.totalVaultValue || governanceVaultTotalValue,
                         totalVaultStableCoinValue: governanceFetchedDetails?.totalVaultStableCoinValue || governanceVaultStableCoinValue,
                         totalVaultNftValue: governanceFetchedDetails?.totalVaultNftValue || governanceVaultNftValue,
@@ -1709,7 +1708,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     governanceName:governanceFetchedDetails?.governanceName,
                     version:0,
                     timestamp:timestamp,
-                    filename:fileName,
+                    filename:govFileName,
                     memberFilename: memberFileName,
                     governanceTransactionsFilename: governanceTransactionsFileName,
                     governanceVaultsFilename: governanceVaultsFileName,
