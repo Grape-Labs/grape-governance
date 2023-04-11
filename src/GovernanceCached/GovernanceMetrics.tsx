@@ -1260,7 +1260,8 @@ export function GovernanceMetricsView(props: any) {
     const [cachedRealm, setCachedRealm] = React.useState(null);
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
-     
+    const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
+
     const [metricsObject, setMetricsObject] = React.useState(null);
     const [metricsFlowsObject, setMetricsFlowsObject] = React.useState(null);
     const [governanceStartDate, setGovernanceStartDate] = React.useState(null);
@@ -1603,6 +1604,7 @@ export function GovernanceMetricsView(props: any) {
                             setCachedTransactionMap(cached_transaction_map);
                     }
                     cached_governance = await getFileFromLookup(glitem.filename, storagePool);
+                    setCachedTimestamp(glitem.timestamp);
                 }
             }
         }
@@ -2721,6 +2723,9 @@ export function GovernanceMetricsView(props: any) {
                                     sx={{textAlign:'center'}}
                                 >
                                     Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Cached<br/>
+                                    {cachedTimestamp &&
+                                        <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
+                                    }
                                     Cache Node: {storagePool}
                                 </Typography>
                             }

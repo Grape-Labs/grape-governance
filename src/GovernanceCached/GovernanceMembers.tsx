@@ -4,6 +4,7 @@ import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import axios from "axios";
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
+import moment from 'moment';
 
 import { 
     tryGetName,
@@ -480,6 +481,8 @@ export function GovernanceMembersView(props: any) {
     const [governingTokenDecimals, setGoverningTokenDecimals] = React.useState(null);
     const [circulatingSupply, setCirculatingSupply] = React.useState(null);
     const [csvGenerated, setCSVGenerated] = React.useState(null);
+    const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
+
     const getTokens = async () => {
         const tarray:any[] = [];
         try{
@@ -759,6 +762,7 @@ export function GovernanceMembersView(props: any) {
                     }
 
                     cached_governance = await getFileFromLookup(glitem.filename, storagePool);
+                    setCachedTimestamp(glitem.timestamp);
                 }
             }
         }
@@ -1156,6 +1160,9 @@ export function GovernanceMembersView(props: any) {
                                 sx={{textAlign:'center'}}
                             >
                                 Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Cached<br/>
+                                {cachedTimestamp &&
+                                    <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
+                                }
                                 Cache Node: {storagePool}
                             </Typography>
                         }

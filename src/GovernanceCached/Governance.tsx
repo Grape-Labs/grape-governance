@@ -2033,6 +2033,7 @@ export function GovernanceCachedView(props: any) {
     const [governingTokenDecimals, setGoverningTokenDecimals] = React.useState(null);
     const [governanceType, setGovernanceType] = React.useState(0);
     const [cachedGovernance, setCachedGovernance] = React.useState(null);
+    const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
 
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
@@ -2353,6 +2354,8 @@ export function GovernanceCachedView(props: any) {
                     if (glitem?.totalVaultValue)
                         setTotalVaultValue(glitem.totalVaultValue);
                     cached_governance = await getFileFromLookup(glitem.filename, storagePool);
+
+                    setCachedTimestamp(glitem.timestamp);
                 }
             }
         }
@@ -2698,7 +2701,10 @@ export function GovernanceCachedView(props: any) {
                                 sx={{textAlign:'center'}}
                             >
                                 Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Cached<br/>
-                                Cache Node: {storagePool}
+                                {cachedTimestamp &&
+                                    <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
+                                }
+                                Cache Node: {storagePool}<br/>
                                 <br/>* This is the time taken to capture all proposals & proposal details
                             </Typography>
                         }

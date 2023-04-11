@@ -172,6 +172,7 @@ function GovernanceCardView(props:any) {
                 </Box>
         </CardContent>
         <CardActions>
+            {/*
             <Tooltip title="Cached method will fetch Governance will load all proposals & proposal details">
                 <Button 
                     component={Link}
@@ -181,14 +182,17 @@ function GovernanceCardView(props:any) {
                     sx={{borderRadius:'17px',textTransform:'none'}}
                     >View Governance via Cache</Button>
             </Tooltip>
+            */}
+            {/*
             <Tooltip title="RPC method will fetch Governance via RPC calls (additional RPC calls are needed per proposal, significantly increasing the load time)">
                 <Button 
                     component={Link}
                     to={'/rpcgovernance/'+item.governanceAddress}
                     size="small"
                     color='inherit'
-                    sx={{borderRadius:'17px',textTransform:'none'}}>via RPC</Button>
+                    sx={{borderRadius:'17px',textTransform:'none'}}>View via RPC</Button>
                 </Tooltip>
+            */}
             {item.timestamp &&
                 <Typography marginLeft='auto' variant='caption'>Cached: {moment.unix(Number(item.timestamp)).format("MMMM D, YYYY, h:mm a") }</Typography>
             }
