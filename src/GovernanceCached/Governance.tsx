@@ -450,13 +450,13 @@ function GetParticipants(props: any){
             //);
 
             let governingMintDetails = null;
-            if (governance_item?.governingMintDetails){ // save even more RPC calls
-                governingMintDetails = governance_item.governingMintDetails;
-            }else{
-                await connection.getParsedAccountInfo(
+            //if (governance_item?.governingMintDetails){ // save even more RPC calls
+            //    governingMintDetails = governance_item.governingMintDetails;
+            //}else{
+                governingMintDetails = await connection.getParsedAccountInfo(
                     new PublicKey(thisitem.account.governingTokenMint)
                 );
-            }
+            //}
             
             //console.log("communityMintPromise ("+thisitem.account.governingTokenMint+") "+JSON.stringify(governingMintPromise))
             setGoverningMintInfo(governingMintDetails);
