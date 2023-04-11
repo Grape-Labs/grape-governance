@@ -16,7 +16,7 @@ import {
     InstructionData  } from '@solana/spl-governance';
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
-import { getAccount } from '@solana/spl-token-v2'
+import { getAccount, getMint } from '@solana/spl-token-v2'
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletDialogProvider, WalletMultiButton } from "@solana/wallet-adapter-material-ui";
@@ -371,9 +371,9 @@ function GetParticipants(props: any){
                                     <ThumbDownIcon fontSize='small' sx={{color:'red',ml:1}}/>
                                 }
                                 label={params.value?.voterWeight > 1 ?
-                                    `${getFormattedNumberToLocale(formatAmount(+(parseInt(params.value.voterWeight)/Math.pow(10, params.value.decimals)).toFixed(0)))} votes` 
+                                    `${getFormattedNumberToLocale(formatAmount(+(Number(params.value.voterWeight)/Math.pow(10, +params.value.decimals)).toFixed(0)))} votes` 
                                     :
-                                    `${getFormattedNumberToLocale(formatAmount(+(parseInt(params.value.voterWeight)/Math.pow(10, params.value.decimals)).toFixed(0)))} vote` 
+                                    `${getFormattedNumberToLocale(formatAmount(+(Number(params.value.voterWeight)/Math.pow(10, +params.value.decimals)).toFixed(0)))} vote` 
                                 }
                             />
                         :
@@ -392,18 +392,18 @@ function GetParticipants(props: any){
                                 label={params.value?.legacyYes > 0 ? 
                                         <>
                                         {params.value?.legacyYes > 1 ?
-                                            `${getFormattedNumberToLocale(formatAmount(+(parseInt(params.value?.legacyYes)/Math.pow(10, params.value.decimals)).toFixed(0)))} votes` 
+                                            `${getFormattedNumberToLocale(formatAmount(+(Number(params.value?.legacyYes)/Math.pow(10, params.value.decimals)).toFixed(0)))} votes` 
                                         :
-                                            `${getFormattedNumberToLocale(formatAmount(+(parseInt(params.value?.legacyYes)/Math.pow(10, params.value.decimals)).toFixed(0)))} vote` 
+                                            `${getFormattedNumberToLocale(formatAmount(+(Number(params.value?.legacyYes)/Math.pow(10, params.value.decimals)).toFixed(0)))} vote` 
                                         }
                                         </>
                                     :
                                         <>
 
                                         {params.value?.legacyNo > 1 ?
-                                            `${getFormattedNumberToLocale(formatAmount(+(parseInt(params.value?.legacyNo)/Math.pow(10, params.value.decimals)).toFixed(0)))} votes` 
+                                            `${getFormattedNumberToLocale(formatAmount(+(Number(params.value?.legacyNo)/Math.pow(10, params.value.decimals)).toFixed(0)))} votes` 
                                         :
-                                            `${getFormattedNumberToLocale(formatAmount(+(parseInt(params.value?.legacyNo)/Math.pow(10, params.value.decimals)).toFixed(0)))} vote` 
+                                            `${getFormattedNumberToLocale(formatAmount(+(Number(params.value?.legacyNo)/Math.pow(10, params.value.decimals)).toFixed(0)))} vote` 
                                         }
                                         </>
                                     }
@@ -719,37 +719,44 @@ function GetParticipants(props: any){
     const getVotingParticipants = async () => {
         setLoadingParticipants(true);
 
-        let td = 6; // this is the default for NFT mints
+        let td = 0; // this is the default for NFT mints
         let vType = null;
-        try{
-            td = tokenMap.get(thisitem.account.governingTokenMint?.toBase58()).decimals;
-            vType = 'Token';
-            //console.log("tokenMap: "+tokenMap.get(thisitem.account.governingTokenMint?.toBase58()).decimals);
-        }catch(e){
-            //console.log("ERR: "+e);
-        }
-        
-        if (realm.account.config?.councilMint){
-            if (new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem?.account?.governingTokenMint?.toBase58()){
-                vType = 'Council';
-                td = 0;
+
+            try{
+                console.log("checking token: "+new PublicKey(thisitem.account.governingTokenMint).toBase58());
+                td = tokenMap.get(new PublicKey(thisitem.account.governingTokenMint).toBase58()).decimals;
+                vType = 'Token';
+                console.log("tokenMap: "+td);
+            }catch(e){
+                const token = await connection.getParsedAccountInfo(new PublicKey(thisitem.account.governingTokenMint)) //await getMint(connection, new PublicKey(thisitem.account.governingTokenMint));
+                console.log("found: "+JSON.stringify(token.value.data.parsed.info.decimals))
+                td = await token.value.data.parsed.info.decimals;
+                vType = 'Token';
+                console.log("ERR: "+e);
             }
-        }
-        
-        if (!vType){
-            // check if backed token
-            // important check if we have already fetched this data already
-            const btkn = await getBackedTokenMetadata(thisitem.account.governingTokenMint?.toBase58(), wallet);
-            if (btkn){
-                // get parent token name
-                const parentToken = tokenMap.get(btkn.parentToken);
-                vType = parentToken ? `${parentToken.name} Backed Token` : `Backed Token`;
-                td = btkn.decimals;
-            } else{
-                vType = 'NFT';
-                td = 6;
+            
+            if (realm.account.config?.councilMint){
+                if (new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(thisitem.account.governingTokenMint).toBase58()){
+                    vType = 'Council';
+                    //td = 0;
+                }
             }
-        }
+            
+
+            if (!vType){
+                // check if backed token
+                // important check if we have already fetched this data already
+                const btkn = await getBackedTokenMetadata(new PublicKey(thisitem.account.governingTokenMint).toBase58(), wallet);
+                if (btkn){
+                    // get parent token name
+                    const parentToken = tokenMap.get(btkn.parentToken);
+                    vType = parentToken ? `${parentToken.name} Backed Token` : `Backed Token`;
+                    td = btkn.decimals;
+                } else{
+                    vType = 'NFT';
+                    td = 6;
+                }
+            }
         setTokenDecimals(td);
         setVoteType(vType)
         
@@ -758,7 +765,7 @@ function GetParticipants(props: any){
 
             //thisitem.account.tokenOwnerRecord;
             for (const item of memberMap){
-                if (item.pubkey === thisitem.account.tokenOwnerRecord.toBase58()){
+                if (item.pubkey === new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()){
                     setProposalAuthor(item.account.governingTokenOwner)
                     //console.log("member:" + JSON.stringify(item));
                 }
@@ -853,7 +860,7 @@ function GetParticipants(props: any){
                             uNo++;
                         }
                     }
-                    
+
                     votingResults.push({
                         id:counter,
                         pubkey:item.pubkey.toBase58(),
@@ -865,7 +872,7 @@ function GetParticipants(props: any){
                             voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
                             legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
                             legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
-                            decimals:(new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
+                            decimals:td,
                             councilMint:new PublicKey(realm.account.config?.councilMint).toBase58() ,
                             governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
                         },
@@ -874,7 +881,7 @@ function GetParticipants(props: any){
                             voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
                             legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
                             legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
-                            decimals:(new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td),
+                            decimals:td,
                             councilMint:new PublicKey(realm.account.config?.councilMint).toBase58() ,
                             governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
                         }
@@ -908,7 +915,7 @@ function GetParticipants(props: any){
                             voterWeight:(item.vote?.voterWeight ?  (item.vote.voterWeight) : null),
                             legacyYes:(item.vote.legacyYes ?  (item.vote.legacyYes) : null),
                             legacyNo:(item.vote.legacyNo ?  (item.vote.legacyNo) : null),
-                            decimals:(item.vote.decimals ?  (item.vote.decimals) : 0),
+                            decimals:td,
                             councilMint:(realm.account.config?.councilMint ? new PublicKey(realm.account.config?.councilMint).toBase58() : null),
                             governingTokenMint:thisitem.vote?.governingTokenMint.toBase58() 
                         },
@@ -917,7 +924,7 @@ function GetParticipants(props: any){
                             voterWeight:(item.vote?.voterWeight ?  (item.vote.voterWeight) : null),
                             legacyYes:(item.vote.legacyYes ?  (item.vote.legacyYes) : null),
                             legacyNo:(item.vote.legacyNo ?  (item.vote.legacyNo) : null),
-                            decimals:(item.vote.decimals ?  (item.vote.decimals) : 0),
+                            decimals:td,
                             councilMint:(realm.account.config?.councilMint ? new PublicKey(realm.account.config?.councilMint).toBase58() : null),
                             governingTokenMint:thisitem.vote?.governingTokenMint.toBase58() 
                         }
@@ -2122,6 +2129,11 @@ export function GovernanceCachedView(props: any) {
 
                 if (grealm.account?.communityMint){
                     try{
+                        
+                        //const token = await connection.getParsedAccountInfo(new PublicKey(thisitem.account.governingTokenMint)) //await getMint(connection, new PublicKey(thisitem.account.governingTokenMint));
+                        //td = await token.value.data.parsed.info.decimals;
+                        //setGovernanceType(0);
+                        
                         if (tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58())){
                             setGovernanceType(0);
                             //gTD = tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58()).decimals;

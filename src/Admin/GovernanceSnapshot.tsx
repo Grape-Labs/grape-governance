@@ -288,11 +288,18 @@ export function GovernanceSnapshotView (this: any, props: any) {
         const rawFilteredVaults = rawGovernances.filter(
             (gov) =>
               gov.account.accountType === GovernanceAccountType.TokenGovernanceV1 ||
-              gov.account.accountType === GovernanceAccountType.TokenGovernanceV2
+              gov.account.accountType === GovernanceAccountType.TokenGovernanceV2 ||
+              gov.account.accountType === GovernanceAccountType.MintGovernanceV1 ||
+              gov.account.accountType === GovernanceAccountType.MintGovernanceV2 ||
+              gov.account.accountType === GovernanceAccountType.ProgramGovernanceV1 ||
+              gov.account.accountType === GovernanceAccountType.ProgramGovernanceV2 ||
+              gov.account.accountType === GovernanceAccountType.ProposalV1 ||
+              gov.account.accountType === GovernanceAccountType.ProposalV2 ||
+              gov.account.accountType === GovernanceAccountType.GovernanceV1 ||
+              gov.account.accountType === GovernanceAccountType.GovernanceV2
         );
         
         setGovernanceVaults(rawFilteredVaults);
-        
         
         const vaultsInfo = rawFilteredVaults.map((governance) => {
             return {
@@ -333,7 +340,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             )
         );
         setPrimaryStatus("Fetching Treasury Token Accounts");
-
+        
         const vaultsWithTokensPromise = await Promise.all(
             vaultsInfo.map((vault) =>
               connection.getParsedTokenAccountsByOwner(
@@ -344,6 +351,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
               )
             )
         );
+
+        console.log("vaultsWithTokensPromise: "+JSON.stringify(vaultsWithTokensPromise))
 
         setPrimaryStatus("Fetching Treasury NFTs");
 
@@ -481,7 +490,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                         totalVaultNftValueSol += +resitem.floorPriceLamports,
                                         //totalVaultNftValue += resitem.floorPriceLamports
 
-                                        setPrimaryStatus("Fetching Treasury NFT Floor Prices ("+thisitem.nftMint+" floor at "+resitem.floorPriceLamports+" lamports)");
+                                        setPrimaryStatus("Treasury NFT Floor Prices ("+thisitem.nftMint+" floor at "+resitem.floorPriceLamports+" lamports)");
                                     }
                                     
                                 }
@@ -1338,29 +1347,34 @@ export function GovernanceSnapshotView (this: any, props: any) {
         } 
     }
 
-    const processGovernanceUploadSnapshotAll = async(force:boolean) => {
+    const processGovernanceUploadSnapshotAll = async(force:boolean, address: string) => {
         if (governanceLookup){
             setBatchStatus("Ready to fetch all...");
             setCronBatch(true);
-            //setStartTime(moment(new Date()))
-            //setCronMode(true);
             let startTime = moment(new Date());
             let count = 0;
             for (var item of governanceLookup){
-                //if (count > 15){ // process 1 for now to verify it works
-                {
+                var skip = false;
+                if (address){
+                    setBatchStatus("Fetching single Governance: "+address);
+                    if (item.governanceAddress !== address)
+                        skip = true;
+                }
+
+                //if (count === 0){ // process 1 for now to verify it works
+                if (!skip){
                     setGovernanceAddress(item.governanceAddress);
                     let elapsedTime = moment(new Date());
                     let elapsedDuration = moment.duration(elapsedTime.diff(startTime));
-                    console.log("Fetching Governance ("+(count+1)+" of "+governanceLookup.length+"): "+item.governanceName+" "+item.governanceAddress+" ("+elapsedDuration.asMinutes().toFixed(1)+")")
-                    setBatchStatus("Fetching Governance ("+(count+1)+" of "+governanceLookup.length+"): "+item.governanceName+" "+item.governanceAddress+" ("+elapsedDuration.asMinutes().toFixed(1)+")");
+                    console.log("Fetching Governance ("+(count+1)+" of "+governanceLookup.length+"): "+item.governanceName+" "+item.governanceAddress+" ("+elapsedDuration.humanize()+")")
+                    setBatchStatus("Fetching Governance ("+(count+1)+" of "+governanceLookup.length+"): "+item.governanceName+" "+item.governanceAddress+" "+elapsedDuration.humanize()+"");
                     
                     const grealm = await fetchRealm(item.governanceAddress);
 
                     const governanceData = await processGovernance(item.governanceAddress, grealm);
                     const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData);
 
-                    console.log("processedFiles.proposalsString "+JSON.stringify(processedFiles.proposalsString))
+                    //console.log("processedFiles.proposalsString "+JSON.stringify(processedFiles.proposalsString))
 
                     await handleUploadToStoragePool(grealm, item.governanceAddress, processedFiles.proposalsString, processedFiles.membersString, processedFiles.governanceTransactionsString, governanceData.governanceVaultsString, governanceData, processedFiles.ggv);
                     // Second drive creation (otherwise wallet is not connected when done earlier)
@@ -1369,7 +1383,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             }   
             let endTime = moment(new Date());
             let elapsedDuration = moment.duration(endTime.diff(startTime));
-            setBatchStatus("Batch completed in ("+elapsedDuration.asMinutes().toFixed(1)+")")
+            setBatchStatus("Batch completed in "+elapsedDuration.humanize()+"")
             setCronBatch(false);
         } 
         
@@ -1377,6 +1391,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     }
 
     // CRON STEP! Handled fetching and uploading in one go
+    /*
     const processGovernanceUploadSnapshotJobStep1 = async(address:string, force:boolean) => {
         setSnapshotJob(false);
         setProcessCron(false);
@@ -1405,7 +1420,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             setLoading(false);
         }
     }
-
+    
     React.useEffect(() => {
         if (snapshotJob &&
             proposals && 
@@ -1414,7 +1429,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             processGovernanceUploadSnapshotJobStep2();     
         }
     }, [snapshotJob, proposals, realm]);
-
+    
     // use an effect to properly upload
     React.useEffect(() => { 
         if (processCron){
@@ -1435,6 +1450,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             }
         }
     }, [processCron, realm, proposals, solanaVotingResultRows, memberMap]);
+    */
 
 
     // STEP 1.
@@ -1575,6 +1591,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 }
                 console.log("Lookup has "+cntr+" entries");
                 if (!govFound){
+                    console.log("Adding new Governance to Lookup");
+                    //console.log("governanceFetchedDetails "+JSON.stringify(governanceFetchedDetails))
                     let communityFmtSupplyFractionPercentage = null;
                     if (this_realm.account.config?.communityMintMaxVoteWeightSource)
                         communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
@@ -1584,7 +1602,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     
                     governanceLookup.push({
                         governanceAddress:govAddress,
-                        governanceName:governanceFetchedDetails?.governanceName,
+                        governanceName:governanceFetchedDetails?.governanceName || governanceName,
                         version:0,
                         timestamp:timestamp,
                         filename:fileName,
@@ -1619,7 +1637,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 }
 
                 console.log("Original: "+governanceLookup.length);
-                console.log("Cleaned: "+cleanLookup.length);
+                console.log("Cleaned: "+(governanceLookup.length-cleanLookup.length)+" New Total: "+cleanLookup.length);
 
                 console.log("Replacing Governance Lookup");
                 const uploadFile = await returnJSON(JSON.stringify(cleanLookup), "governance_lookup.json");
@@ -1806,7 +1824,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
             if ((current_proposals_to_use) &&
                 (current_members_to_use)){
                 
-                    console.log("current_members_to_use "+JSON.stringify(current_members_to_use));
+                //console.log("current_members_to_use "+JSON.stringify(current_members_to_use));
 
                 console.log("1: "+JSON.stringify(storageAccountPK))
                 const uploadProposalFile = await returnJSON(current_proposals_to_use, fileName);
@@ -2066,9 +2084,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     
                 }
 
-                    <Tooltip title="Process all Governances this is quite a heavy call consider using the bottom one to fetch a specific governance">
+                    <Tooltip title="Process all Governances this will loop through all cached governances and fetch all props respectively, to add a Governance manually add the governance address in the bottom and fetch using the bottom fetch button">
                         <Button 
-                            onClick ={() => processGovernanceUploadSnapshotAll(true)} 
+                            onClick ={() => processGovernanceUploadSnapshotAll(false, null)} 
                             disabled={(!storagePool && governanceLookup) || (!wallet)}
                             variant='contained'
                             color='error'
@@ -2116,21 +2134,22 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     
                     <ButtonGroup
                         fullWidth
+                        size='small'
                     >
                         <Tooltip title="Process selected Governance & upload to selected storage pool">
                             <Button 
-                                onClick ={() => processGovernanceUploadSnapshotJobStep1(governanceAddress, false)} 
+                                onClick ={() =>  processGovernanceUploadSnapshotAll(false, governanceAddress)} //processGovernanceUploadSnapshotJobStep1(governanceAddress, false)} 
                                 disabled={(!governanceAddress) || (!storagePool)}
                                 variant='contained'
                                 color='inherit'
                                 sx={{color:'black'}}
                             >
-                                Fetch Governance <BoltIcon sx={{ml:1}} />
+                                Fetch <BoltIcon sx={{ml:1}} />
                             </Button>
                         </Tooltip>
                         <Tooltip title="WARNING: This will refetch/force fetch all governance proposals & proposal participation again regardless of cache">
                             <Button 
-                                onClick ={() => processGovernanceUploadSnapshotJobStep1(governanceAddress, true)} 
+                                onClick ={() => processGovernanceUploadSnapshotAll(true, governanceAddress)}
                                 disabled={(!governanceAddress) || (!storagePool)}
                                 variant='contained'
                                 color='warning'
@@ -2193,6 +2212,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 {fileGenerated &&
                     <>
                         <ButtonGroup>                    
+                            {/*
                             <Tooltip title="Download SPL Governance Cached JSON file">
                                 <Button
                                     color="inherit"
@@ -2215,7 +2235,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                     </Button>
                                 </Tooltip>
                             }
-
+                            */}
+                            
+                            {/*
                             <Tooltip title="Upload to your selected storage pool - *SHDW Storage Pool will need to be created for adding to your decentralized storage pool">
                                 <Button
                                     color="inherit"
@@ -2226,6 +2248,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                     <CloudUploadIcon />
                                 </Button>
                             </Tooltip>
+                            */}
                             {/*
                             <Tooltip title="Purge historical files">
                                 <Button
