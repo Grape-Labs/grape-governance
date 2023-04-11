@@ -1823,7 +1823,7 @@ export function GovernanceMetricsView(props: any) {
                                                                     verticalAlign: 'bottom'}}
                                                                 >
                                                                 {nftBasedGovernance ?
-                                                                        <Typography variant="h4">
+                                                                        <Typography variant="caption">
                                                                             NFT Based Governance
                                                                         </Typography>  
                                                                     :
@@ -1911,7 +1911,7 @@ export function GovernanceMetricsView(props: any) {
                                                                         verticalAlign: 'bottom'}}
                                                                     >
                                                                         {nftBasedGovernance ?
-                                                                            <Typography variant="h4">
+                                                                            <Typography variant="caption">
                                                                                 NFT Based Governance
                                                                             </Typography>  
                                                                         :
