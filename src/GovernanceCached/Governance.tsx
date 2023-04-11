@@ -729,16 +729,16 @@ function GetParticipants(props: any){
         let vType = null;
 
             try{
-                console.log("checking token: "+new PublicKey(thisitem.account.governingTokenMint).toBase58());
+                //console.log("checking token: "+new PublicKey(thisitem.account.governingTokenMint).toBase58());
                 td = tokenMap.get(new PublicKey(thisitem.account.governingTokenMint).toBase58()).decimals;
                 vType = 'Token';
-                console.log("tokenMap: "+td);
+                //console.log("tokenMap: "+td);
             }catch(e){
                 const token = await connection.getParsedAccountInfo(new PublicKey(thisitem.account.governingTokenMint)) //await getMint(connection, new PublicKey(thisitem.account.governingTokenMint));
                 console.log("found: "+JSON.stringify(token.value.data.parsed.info.decimals))
                 td = await token.value.data.parsed.info.decimals;
                 vType = 'Token';
-                console.log("ERR: "+e);
+                //console.log("ERR: "+e);
             }
             
             if (realm.account.config?.councilMint){
@@ -894,7 +894,7 @@ function GetParticipants(props: any){
                     })
                 } else {   
                     
-                    console.log(item.governingTokenOwner.toBase58() + ": "+item?.vote.voterWeight);
+                    //console.log(item.governingTokenOwner.toBase58() + ": "+item?.vote.voterWeight);
                     
                     if (item.vote?.vote){
                         if (item.vote?.vote?.voteType === 0){
@@ -1041,9 +1041,9 @@ function GetParticipants(props: any){
                 governingTokenMint: thisitem.account.governingTokenMint
             }
             const transactionData = {proposal:proposal,action:0}
-            console.log("realm: "+JSON.stringify(realm));
-            console.log("thisitem/proposal: "+JSON.stringify(thisitem));
-            console.log("thisGovernance: "+JSON.stringify(thisGovernance));
+            //console.log("realm: "+JSON.stringify(realm));
+            //console.log("thisitem/proposal: "+JSON.stringify(thisitem));
+            //console.log("thisGovernance: "+JSON.stringify(thisGovernance));
             
             const realmData = {
                 pubKey:thisGovernance.pubkey,
