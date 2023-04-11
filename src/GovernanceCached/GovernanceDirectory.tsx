@@ -88,17 +88,20 @@ function GovernanceCardView(props:any) {
                     }
                 </Grid>
             </Grid>
-            <Button 
-                component={Link}
-                to={'/cachedgovernance/'+item.governanceAddress}
-                size="large"
-                color='inherit'
-                sx={{borderRadius:'17px',textTransform:'none'}}
-                >
-                <Typography variant="h4" component="div">
-                    {item.governanceName}
-                </Typography></Button>
-
+                <Tooltip title={`View ${item.governanceName} Governance`}>
+                    <Button 
+                        component={Link}
+                        to={'/cachedgovernance/'+item.governanceAddress}
+                        size="large"
+                        color='inherit'
+                        sx={{borderRadius:'17px',textTransform:'none'}}
+                        >
+                        <Typography variant="h4" component="div">
+                            {item.governanceName}
+                        </Typography>
+                    </Button>
+                </Tooltip>
+                
                 <Box
                     sx={{
                         borderRadius:'24px',

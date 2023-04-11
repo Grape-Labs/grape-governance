@@ -1373,21 +1373,25 @@ export function GovernanceSnapshotView (this: any, props: any) {
     }
 
     const processGovernanceUploadSnapshotAll = async(force:boolean, address: string) => {
+
+        console.log("here...")
         if (governanceLookup){
-            setBatchStatus("Ready to fetch all...");
             setCronBatch(true);
             let startTime = moment(new Date());
             let count = 0;
+            let processedGovernance = false;
             for (var item of governanceLookup){
                 var skip = false;
+                
                 if (address){
-                    setBatchStatus("Fetching single Governance: "+address);
-                    if (item.governanceAddress !== address)
+                    setBatchStatus("Fetching an existing Governance: "+address);
+                    if (item.governanceAddress === address)
                         skip = true;
                 }
 
                 //if (count > 20){ // process 1 for now to verify it works
                 if (!skip){
+                    processedGovernance = true;
                     setGovernanceAddress(item.governanceAddress);
                     let elapsedTime = moment(new Date());
                     let elapsedDuration = moment.duration(elapsedTime.diff(startTime));
@@ -1406,6 +1410,26 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 }
                 count++;
             }   
+
+            // if we have not found this governance
+            if (address && !processedGovernance){
+                setGovernanceAddress(address);
+                let elapsedTime = moment(new Date());
+                let elapsedDuration = moment.duration(elapsedTime.diff(startTime));
+                console.log("Adding Governance: "+item.governanceName+" "+address+" ("+elapsedDuration.humanize()+")")
+                setBatchStatus("Adding Governance: "+item.governanceName+" "+address+" "+elapsedDuration.humanize()+"");
+                
+                const grealm = await fetchRealm(address);
+
+                const governanceData = await processGovernance(address, grealm);
+                const processedFiles = await processProposals(address, governanceData.proposals, force, grealm, governanceData);
+
+                //console.log("processedFiles.proposalsString "+JSON.stringify(processedFiles.proposalsString))
+
+                await handleUploadToStoragePool(grealm, address, processedFiles.proposalsString, processedFiles.membersString, processedFiles.governanceTransactionsString, governanceData.governanceVaultsString, governanceData, processedFiles.ggv);
+                
+            }
+
             let endTime = moment(new Date());
             let elapsedDuration = moment.duration(endTime.diff(startTime));
             setBatchStatus("Batch completed in "+elapsedDuration.humanize()+"")
