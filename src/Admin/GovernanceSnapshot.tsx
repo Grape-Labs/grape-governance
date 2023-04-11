@@ -140,6 +140,18 @@ export const cronFetch = async(
     enqueueSnackbar:any, 
     closeSnackbar:any) => {
     
+    // STEP 1 call and load all variables needed
+    //const storageSettings = await initStorage(setThisDrive, setCurrentWallet, wallet, setStorageAutocomplete);
+    //const tokensMapped = await getTokens();
+    //const lookupSettings = await getGovernanceLookup(setGovernanceAutocomplete, setGovernanceLookup, storagePool);
+
+    // STEP 2 call and process snapshot
+    //    processGovernanceUploadSnapshotAll(
+    //        false, 
+    //        null,
+    //        governanceLookup, tokenMap, currentWallet, connection, storagePool, governanceAutocomplete, thisDrive, setLoading, setBatchStatus, setPrimaryStatus, setStatus, setProgress, setCurrentUploadInfo, setCronBookmark, enqueueSnackbar, closeSnackbar, setGovernanceLookup)} 
+    
+
     console.log("HELLO SPL CRON!");
 
 
@@ -1344,11 +1356,12 @@ const getGovernanceLookup  = async (setGovernanceAutocomplete:any, setGovernance
 
 const uploadToStoragePool = async (drive: any, files: File, storagePublicKey: PublicKey, fileName: string, enqueueSnackbar: any, closeSnackbar:any) => { 
     try{
-        enqueueSnackbar(`Preparing to upload ${fileName} to ${storagePublicKey.toString()}`,{ variant: 'info' });
+        if (enqueueSnackbar) enqueueSnackbar(`Preparing to upload ${fileName} to ${storagePublicKey.toString()}`,{ variant: 'info' });
         const snackprogress = (key:any) => (
             <CircularProgress sx={{padding:'10px'}} />
         );
-        const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
+        let cnfrmkey = null;
+        if (enqueueSnackbar){ cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });}
         
         const signedTransaction = await drive.uploadMultipleFiles(storagePublicKey, [files]);
         let count = 0;
@@ -1358,16 +1371,16 @@ const uploadToStoragePool = async (drive: any, files: File, storagePublicKey: Pu
             }
         }
         
-        closeSnackbar(cnfrmkey);
+        if (closeSnackbar) closeSnackbar(cnfrmkey);
         const snackaction = (key:any) => (
             <>
                 Uploaded {count} files
             </>
         );
-        enqueueSnackbar(`Transaction Confirmed`,{ variant: 'success', action:snackaction });
+        if (enqueueSnackbar) enqueueSnackbar(`Transaction Confirmed`,{ variant: 'success', action:snackaction });
     }catch(e){
-        closeSnackbar();
-        enqueueSnackbar(`${JSON.stringify(e)}`,{ variant: 'error' });
+        if (closeSnackbar) closeSnackbar();
+        if (enqueueSnackbar) enqueueSnackbar(`${JSON.stringify(e)}`,{ variant: 'error' });
         console.log("Error: "+JSON.stringify(e));
         //console.log("Error: "+JSON.stringify(e));
     }
@@ -1376,28 +1389,30 @@ const uploadToStoragePool = async (drive: any, files: File, storagePublicKey: Pu
 const uploadReplaceToStoragePool = async (drive:any, newFile: File, existingFileUrl: string, storagePublicKey: PublicKey, version: string, fileName: string, enqueueSnackbar: any, closeSnackbar:any) => { 
     try{
         
-        enqueueSnackbar(`Preparing to upload/replace ${fileName} to ${storagePublicKey.toString()}`,{ variant: 'info' });
+        if (enqueueSnackbar) enqueueSnackbar(`Preparing to upload/replace ${fileName} to ${storagePublicKey.toString()}`,{ variant: 'info' });
         const snackprogress = (key:any) => (
             <CircularProgress sx={{padding:'10px'}} />
         );
-        const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
+        let cnfrmkey = null;
+        if (enqueueSnackbar){ cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });}
         
         const signedTransaction = await drive.editFile(new PublicKey(storagePublicKey), existingFileUrl, newFile, version || 'v2');
         
         if (signedTransaction?.finalized_location){
-            closeSnackbar(cnfrmkey);
+            
+            if (closeSnackbar) closeSnackbar(cnfrmkey);
             const snackaction = (key:any) => (
                 <Button>
                     File replaced
                 </Button>
             );
-            enqueueSnackbar(`Transaction Confirmed`,{ variant: 'success', action:snackaction });
+            if (enqueueSnackbar) enqueueSnackbar(`Transaction Confirmed`,{ variant: 'success', action:snackaction });
         } else{
 
         }
     }catch(e){
-        closeSnackbar();
-        enqueueSnackbar(`${JSON.stringify(e)}`,{ variant: 'error' });
+        if (closeSnackbar) closeSnackbar();
+        if (enqueueSnackbar) enqueueSnackbar(`${JSON.stringify(e)}`,{ variant: 'error' });
         console.log("Error: "+JSON.stringify(e));
         //console.log("Error: "+JSON.stringify(e));
     } 
@@ -1405,31 +1420,32 @@ const uploadReplaceToStoragePool = async (drive:any, newFile: File, existingFile
 
 const deleteStoragePoolFile = async (drive:any, storagePublicKey: PublicKey, file: string, version: string, enqueueSnackbar: any, closeSnackbar:any) => { 
     try{
-        enqueueSnackbar(`Preparing to delete ${file}`,{ variant: 'info' });
+        if (enqueueSnackbar) enqueueSnackbar(`Preparing to delete ${file}`,{ variant: 'info' });
         const snackprogress = (key:any) => (
             <CircularProgress sx={{padding:'10px'}} />
         );
         //console.log(storagePublicKey + "/"+storageAccount+" - file: "+file);
-        const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
+        let cnfrmkey = null;
+        if (enqueueSnackbar) { cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });}
         
         const signedTransaction = await drive.deleteFile(storagePublicKey, 'https://shdw-drive.genesysgo.net/'+storagePublicKey.toBase58()+'/'+file, version || 'v2');
         console.log("signedTransaction; "+JSON.stringify(signedTransaction))
         
-        closeSnackbar(cnfrmkey);
+        if (closeSnackbar) closeSnackbar(cnfrmkey);
         const snackaction = (key:any) => (
             <Button href={`https://explorer.solana.com/tx/${signedTransaction.txid}`} target='_blank'  sx={{color:'white'}}>
                 {signedTransaction.message}
             </Button>
         );
-        enqueueSnackbar(`Transaction Confirmed`,{ variant: 'success', action:snackaction });
+        if (enqueueSnackbar) enqueueSnackbar(`Transaction Confirmed`,{ variant: 'success', action:snackaction });
         /*
         setTimeout(function() {
             getStorageFiles(storageAccount.publicKey);
         }, 2000);
         */
     }catch(e){
-        closeSnackbar();
-        enqueueSnackbar(`${e}`,{ variant: 'error' });
+        if (closeSnackbar) closeSnackbar();
+        if (enqueueSnackbar) enqueueSnackbar(`${e}`,{ variant: 'error' });
         console.log("Error: "+e);
         //console.log("Error: "+JSON.stringify(e));
     } 
