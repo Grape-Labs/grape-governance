@@ -661,6 +661,7 @@ function RenderVoterRecordTable(props:any) {
                             var foundParticipant = false;
                             var propcreator = 0;
                             var totalvotes = 0;
+                            var lastvotes = 0;
                             var totalvotesfor = 0;
                             var totalvotesagainst = 0;
                             var totalproposalparticipation = 1;
@@ -771,11 +772,24 @@ function RenderVoterRecordTable(props:any) {
                                     
                                     // if the voter is an NFT participant...
                                     console.log("nftBasedGovernance: "+nftBasedGovernance);
-                                    if (nftBasedGovernance){ // set votes that this voter has used
-                                        participant.currentvotes = totalvotes;
+                                    
+                                    
+                                    if (!participant.lastparticipationdate){
+                                        participant.lastparticipationdate = +item.account?.draftAt;
+                                        lastvotes = totalvotes;
+                                    }else if (+item.account?.draftAt && +item.account?.draftAt > participant.lastparticipation){
+                                        participant.lastparticipationdate = +item.account?.draftAt;
+                                        lastvotes = totalvotes;
                                     }
-                    
-
+                                    if (!participant.firstparticipationdate)
+                                        participant.firstparticipationdate = +item.account?.draftAt;
+                                    else if (+item.account?.draftAt && +item.account?.draftAt < participant.firstparticipationdate)
+                                        participant.firstparticipationdate = +item.account?.draftAt;
+                                    
+                                    if (nftBasedGovernance){ // set votes that this voter has used
+                                        participant.currentvotes = lastvotes;//totalvotes;
+                                    }
+                                    
                                     participant.totalproposalscreated += propcreator;
                                     participant.totalvotes += totalvotes;
                                     participant.totalvotesfor += totalvotesfor;
@@ -790,14 +804,7 @@ function RenderVoterRecordTable(props:any) {
                                     participant.successfullcasts += votersuccess;
                                     participant.successfullcastrate = participant.successfullcasts/participant.totalproposalparticipation;
                                     // check date for participant and add if date > current date
-                                    if (!participant.lastparticipationdate)
-                                        participant.lastparticipationdate = +item.account?.draftAt;
-                                    else if (+item.account?.draftAt && +item.account?.draftAt > participant.lastparticipation)
-                                        participant.lastparticipationdate = +item.account?.draftAt;
-                                    if (!participant.firstparticipationdate)
-                                        participant.firstparticipationdate = +item.account?.draftAt;
-                                    else if (+item.account?.draftAt && +item.account?.draftAt < participant.firstparticipationdate)
-                                        participant.firstparticipationdate = +item.account?.draftAt;
+                                    
                                 }
 
                                 
