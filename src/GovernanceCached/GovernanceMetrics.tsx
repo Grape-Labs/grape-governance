@@ -278,6 +278,8 @@ function RenderVoterRecordTable(props:any) {
             }
         },
         { field: 'totalproposalscreated', headerName: 'Proposals Created', width: 170, hide: false, align: 'right',},
+        { field: 'communitypropcreatorpassed', headerName: 'Community Proposals Created & Passed', width: 170, hide: false, align: 'right',},
+        { field: 'councilpropcreatorpassed', headerName: 'Council Proposals Created & Passed', width: 170, hide: false, align: 'right',},
         { field: 'totalvotes', headerName: 'Total Votes Casted', width: 170, hide: false, align: 'right',
             renderCell: (params) => {
                 return(
@@ -601,7 +603,10 @@ function RenderVoterRecordTable(props:any) {
                     totalcouncilvotesagainst: 0,
                     lastparticipationdate: null,
                     firstparticipationdate: null,
-                    successfullcasts: 0
+                    successfullcasts: 0,
+                    councilpropcreatorpassed: 0,
+                    communitypropcreatorpassed: 0,
+                                    
                 })
                 voterCount++;
             }
@@ -656,6 +661,9 @@ function RenderVoterRecordTable(props:any) {
                         participationCount = 0;
                         
                         for (var inner_item of item.votingResults){
+
+                            var councilpropcreatorpassed = 0;
+                            var communitypropcreatorpassed = 0;
                             var councilpropcreator = 0;
                             var depositedgovernancevotes = 0;
                             var depositedcouncilvotes = 0;
@@ -767,6 +775,16 @@ function RenderVoterRecordTable(props:any) {
 
                                     //totalVotesDeposited+=depositedgovernancevotes;
 
+                                    if (votersuccess === 1){
+                                        if (authorAddress === inner_item.governingTokenOwner.toBase58()){ // has created this proposal
+                                            if (realm.account.config?.councilMint && (new PublicKey(realm.account.config?.councilMint).toBase58() === item.account.governingTokenMint.toBase58())){ 
+                                                councilpropcreatorpassed = 1;
+                                            } else{
+                                                communitypropcreatorpassed = 1;
+                                            }
+                                        }
+                                    }
+
                                     if ((totalvotes > 0)&&(participant.totalvotes <= 0))
                                         totalActiveVoters++;
                                     totalVotesCasted+=totalvotes;
@@ -788,7 +806,6 @@ function RenderVoterRecordTable(props:any) {
                                     else if (+item.account?.draftAt && +item.account?.draftAt < participant.firstparticipationdate)
                                         participant.firstparticipationdate = +item.account?.draftAt;
                                     
-                                    
                                     participant.totalproposalscreated += propcreator;
                                     participant.totalvotes += totalvotes;
                                     participant.totalvotesfor += totalvotesfor;
@@ -802,6 +819,8 @@ function RenderVoterRecordTable(props:any) {
                                     participant.totalcouncilvotesagainst += totalcouncilvotesagainst;
                                     participant.successfullcasts += votersuccess;
                                     participant.successfullcastrate = participant.successfullcasts/participant.totalproposalparticipation;
+                                    participant.councilpropcreatorpassed += councilpropcreatorpassed;
+                                    participant.communitypropcreatorpassed += communitypropcreatorpassed;
                                     // check date for participant and add if date > current date
                                     
                                 }
@@ -961,8 +980,8 @@ function RenderVoterRecordTable(props:any) {
                     if (counter > 0)
                         csvFile += '\r\n';
                     else
-                        csvFile = 'pubkey,totalproposalscreated,depositedvotes,councildepositedvotes,unstakedvotes,firstparticipationdate,lastparticipationdate,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
-                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.currentunstakedvotes+','+voter_item.firstparticipationdate+','+voter_item.lastparticipationdate+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
+                        csvFile = 'pubkey,totalproposalscreated,communitypropcreatorpassed,depositedvotes,councildepositedvotes,unstakedvotes,firstparticipationdate,lastparticipationdate,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,councilpropcreatorpassed,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
+                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.communitypropcreatorpassed+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.currentunstakedvotes+','+voter_item.firstparticipationdate+','+voter_item.lastparticipationdate+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.councilpropcreatorpassed+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
                     counter++;
 
                     //tStakedVotes += voter_item.currentvotes;
