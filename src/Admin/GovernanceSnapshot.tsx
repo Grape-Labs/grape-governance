@@ -2074,7 +2074,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 component="form"
                 m={2}
                 sx={{
-                    width: '35ch',
+                    maxWidth: '100ch',
                 }}
                 spacing={2}
                 noValidate
