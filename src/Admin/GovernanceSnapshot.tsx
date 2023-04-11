@@ -73,6 +73,7 @@ import {
     HELLO_MOON_BEARER,
     GGAPI_STORAGE_POOL,
     GGAPI_STORAGE_URI,
+    PRIMARY_STORAGE_WALLET
 } from '../utils/grapeTools/constants';
 
 import WarningIcon from '@mui/icons-material/Warning';
@@ -1361,7 +1362,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         skip = true;
                 }
 
-                //if (count > 18){ // process 1 for now to verify it works
+                //if (count > 20){ // process 1 for now to verify it works
                 if (!skip){
                     setGovernanceAddress(item.governanceAddress);
                     let elapsedTime = moment(new Date());
@@ -1777,7 +1778,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
             
             try{
                 //fetchedKeypair = await loadWalletKey('./keypair.json')
-                fetchedKeypair = require('./keypair.json');
+                if (PRIMARY_STORAGE_WALLET)
+                    fetchedKeypair = PRIMARY_STORAGE_WALLET;
+                //else
+                //    fetchedKeypair = require('./keypair.json');
             }catch (ferr){
                 console.log("ERR: "+ferr);
             }
