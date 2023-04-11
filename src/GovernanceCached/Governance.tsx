@@ -491,13 +491,19 @@ function GetParticipants(props: any){
                 
                 const tSupply = Number(governingMintDetails.value.data.parsed.info.supply/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals)) 
                 
+                console.log("tSupply: "+tSupply)
+                console.log("voteThresholdPercentage: "+voteThresholdPercentage)
+                console.log("supplyFractionPercentage: "+supplyFractionPercentage)
+
                 setTotalSupply(tSupply);
                 
-                const totalVotes =
+                let totalVotes = new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(thisitem.account.governingTokenMint).toBase58() ?
+                    tSupply  *
+                    (voteThresholdPercentage / 100)
+                    :
                     tSupply  *
                     (voteThresholdPercentage / 100) *
                     (Number(supplyFractionPercentage) / 100);
-                
                 //console.log("tSupply "+tSupply+"*"+voteThresholdPercentage+"*0.01*"+ (Number(supplyFractionPercentage) / 100))
 
                 //console.log("totalQuorum: "+totalVotes)
