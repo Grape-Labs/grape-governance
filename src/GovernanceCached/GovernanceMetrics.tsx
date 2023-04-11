@@ -277,6 +277,36 @@ function RenderVoterRecordTable(props:any) {
                 )
             }
         },
+        { field: 'lastcommunityproposalcreated', headerName: 'Last Community Proposal Created Date', width: 200, hide: false, align: 'right',
+            renderCell: (params) => {
+                return(
+                    <>
+                        {params.value ?
+                            <>
+                                {moment.unix(Number(params.value)).format("YYYY-MM-DD HH:mm")}
+                            </>
+                        :
+                            <>-</>
+                        }
+                    </>
+                )
+            }
+        },
+        { field: 'lastcouncilproposalcreated', headerName: 'Last Council Proposal Created Date', width: 200, hide: false, align: 'right',
+            renderCell: (params) => {
+                return(
+                    <>
+                        {params.value ?
+                            <>
+                                {moment.unix(Number(params.value)).format("YYYY-MM-DD HH:mm")}
+                            </>
+                        :
+                            <>-</>
+                        }
+                    </>
+                )
+            }
+        },
         { field: 'totalproposalscreated', headerName: 'Proposals Created', width: 170, hide: false, align: 'right',},
         { field: 'communitypropcreatorpassed', headerName: 'Community Proposals Created & Passed', width: 170, hide: false, align: 'right',},
         { field: 'councilpropcreatorpassed', headerName: 'Council Proposals Created & Passed', width: 170, hide: false, align: 'right',},
@@ -603,6 +633,8 @@ function RenderVoterRecordTable(props:any) {
                     totalcouncilvotesagainst: 0,
                     lastparticipationdate: null,
                     firstparticipationdate: null,
+                    lastcommunityproposalcreated: null,
+                    lastcouncilproposalcreated: null,
                     successfullcasts: 0,
                     councilpropcreatorpassed: 0,
                     communitypropcreatorpassed: 0,
@@ -782,6 +814,20 @@ function RenderVoterRecordTable(props:any) {
                                             } else{
                                                 communitypropcreatorpassed = 1;
                                             }
+                                        }
+                                    }
+
+                                    if (authorAddress === inner_item.governingTokenOwner.toBase58()){ // has created this proposal
+                                        if (realm.account.config?.councilMint && (new PublicKey(realm.account.config?.councilMint).toBase58() === item.account.governingTokenMint.toBase58())){ 
+                                            if (!participant.lastcouncilproposalcreated)
+                                                participant.lastcouncilproposalcreated = +item.account?.draftAt
+                                            else if (+item.account?.draftAt && +item.account?.draftAt < participant.lastcouncilproposalcreated)
+                                                participant.lastcouncilproposalcreated = +item.account?.draftAt
+                                        } else{
+                                            if (!participant.lastcommunityproposalcreated)
+                                                participant.lastcommunityproposalcreated = +item.account?.draftAt
+                                            else if (+item.account?.draftAt && +item.account?.draftAt < participant.lastcouncilproposalcreated)
+                                                participant.lastcommunityproposalcreated = +item.account?.draftAt
                                         }
                                     }
 
