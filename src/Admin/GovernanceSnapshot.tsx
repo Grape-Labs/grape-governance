@@ -1766,33 +1766,31 @@ export function GovernanceSnapshotView (this: any, props: any) {
         if (passedVaultsString)
             current_vaults_to_use = passedVaultsString
         
-
-
         //exportJSON(fileGenerated, fileName);
         console.log("preparing to upload: "+fileName);
         //if (!thisDrive){
 
             //const fromKeypair = Keypair.generate();
             let drive = null;
-            var fetchedKeypair = null;
+            var secretKey = null;
             
             try{
                 //fetchedKeypair = await loadWalletKey('./keypair.json')
                 if (PRIMARY_STORAGE_WALLET)
-                    fetchedKeypair = PRIMARY_STORAGE_WALLET;
-                //else
-                //    fetchedKeypair = require('./keypair.json');
+                    secretKey = JSON.parse(PRIMARY_STORAGE_WALLET);
+                //else // this is no longer needed
+                //    secretKey = require('./keypair.json');
             }catch (ferr){
                 console.log("ERR: "+ferr);
             }
 
             const isBrowser = process.env.BROWSER || (typeof window !== "undefined" && !window.process?.hasOwnProperty("type"));
 
-            if (fetchedKeypair){
+            if (secretKey){
                 console.log("Using soft wallet")
                 //process.env.BROWSER = null;
                 const fromKeypair = Keypair.fromSecretKey(
-                    Uint8Array.from(fetchedKeypair)
+                    Uint8Array.from(secretKey)
                 );
                 
                 /*
