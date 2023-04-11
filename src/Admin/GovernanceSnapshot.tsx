@@ -1278,9 +1278,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
         reader.readAsDataURL(file);
         })
     
-    const uploadToStoragePool = async (drive: any, files: File, storagePublicKey: PublicKey) => { 
+    const uploadToStoragePool = async (drive: any, files: File, storagePublicKey: PublicKey, fileName: string) => { 
         try{
-            enqueueSnackbar(`Preparing to upload some files to ${storagePublicKey.toString()}`,{ variant: 'info' });
+            enqueueSnackbar(`Preparing to upload some ${fileName} to ${storagePublicKey.toString()}`,{ variant: 'info' });
             const snackprogress = (key:any) => (
                 <CircularProgress sx={{padding:'10px'}} />
             );
@@ -1309,10 +1309,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
         }
     }
 
-    const uploadReplaceToStoragePool = async (drive:any, newFile: File, existingFileUrl: string, storagePublicKey: PublicKey, version: string) => { 
+    const uploadReplaceToStoragePool = async (drive:any, newFile: File, existingFileUrl: string, storagePublicKey: PublicKey, version: string, fileName: string) => { 
         try{
             
-            enqueueSnackbar(`Preparing to upload/replace some files to ${storagePublicKey.toString()}`,{ variant: 'info' });
+            enqueueSnackbar(`Preparing to upload/replace ${fileName} to ${storagePublicKey.toString()}`,{ variant: 'info' });
             const snackprogress = (key:any) => (
                 <CircularProgress sx={{padding:'10px'}} />
             );
@@ -1673,7 +1673,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/governance_lookup.json';
                 console.log("storageAccountFile "+storageAccountFile);
                 console.log("storageAccountPK "+storageAccountPK);
-                await uploadReplaceToStoragePool(drive, fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+                await uploadReplaceToStoragePool(drive, fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2', fileName);
             } else{ // create governanceLookup
 
                 let communityFmtSupplyFractionPercentage = null;
@@ -1707,11 +1707,13 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 });
                 
                 console.log("Uploading new Governance Lookup");
-                const uploadFile = await returnJSON(JSON.stringify(lookup), "governance_lookup.json");
-                const fileStream = blobToFile(uploadFile, "governance_lookup.json");
+
+                let fileName = "governance_lookup.json";
+                const uploadFile = await returnJSON(JSON.stringify(lookup),fileName);
+                const fileStream = blobToFile(uploadFile, fileName);
                 const fileSize  = uploadFile.size;
-                setCurrentUploadInfo("Adding "+"governance_lookup.json"+" - "+formatBytes(fileSize));
-                await uploadToStoragePool(drive, fileStream, new PublicKey(storageAccountPK));
+                setCurrentUploadInfo("Adding "+fileName+" - "+formatBytes(fileSize));
+                await uploadToStoragePool(drive, fileStream, new PublicKey(storageAccountPK), fileName);
                 // update autocomplete
                 try{
                     governanceAutocomplete.push({
@@ -1872,10 +1874,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     if (found){
                         const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+fileName;
                         setCurrentUploadInfo("Replacing "+fileName+" - "+formatBytes(proposalFileSize));
-                        await uploadReplaceToStoragePool(drive, proposalFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+                        await uploadReplaceToStoragePool(drive, proposalFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2', fileName);
                     }else{
                         setCurrentUploadInfo("Adding "+fileName+" - "+formatBytes(proposalFileSize));
-                        await uploadToStoragePool(drive, proposalFileStream, new PublicKey(storageAccountPK));
+                        await uploadToStoragePool(drive, proposalFileStream, new PublicKey(storageAccountPK), fileName);
                         //await uploadToStoragePool([proposalFileStream,membersFileStream,governanceTransactionsFileName,governanceVaultsFileName], new PublicKey(storageAccountPK));
                     }
 
@@ -1887,10 +1889,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     if (foundMembers){
                         const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+memberFileName;
                         setCurrentUploadInfo("Replacing "+memberFileName+" - "+formatBytes(memberFileSize));
-                        await uploadReplaceToStoragePool(drive, membersFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+                        await uploadReplaceToStoragePool(drive, membersFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2', fileName);
                     }else{
                         setCurrentUploadInfo("Adding "+memberFileName+" - "+formatBytes(memberFileSize));
-                        await uploadToStoragePool(drive, membersFileStream, new PublicKey(storageAccountPK));
+                        await uploadToStoragePool(drive, membersFileStream, new PublicKey(storageAccountPK), fileName);
                     }
 
                     // proceed to add transactions
@@ -1901,10 +1903,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     if (foundTransactions){
                         const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+foundTransactions;
                         setCurrentUploadInfo("Replacing "+governanceTransactionsFileName+" - "+formatBytes(transactionsFileSize));
-                        await uploadReplaceToStoragePool(drive, transactionsFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+                        await uploadReplaceToStoragePool(drive, transactionsFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2', fileName);
                     }else{
                         setCurrentUploadInfo("Adding "+governanceTransactionsFileName+" - "+formatBytes(transactionsFileSize));
-                        await uploadToStoragePool(drive, transactionsFileStream, new PublicKey(storageAccountPK));
+                        await uploadToStoragePool(drive, transactionsFileStream, new PublicKey(storageAccountPK), fileName);
                     }
 
                     // proceed to add vaults
@@ -1915,10 +1917,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     if (foundVaults){
                         const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+foundVaults;
                         setCurrentUploadInfo("Replacing "+governanceVaultsFileName+" - "+formatBytes(vaultsFileSize));
-                        await uploadReplaceToStoragePool(drive, vaultsFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2');
+                        await uploadReplaceToStoragePool(drive, vaultsFileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2', fileName);
                     }else{
                         setCurrentUploadInfo("Adding "+governanceVaultsFileName+" - "+formatBytes(vaultsFileSize));
-                        await uploadToStoragePool(drive, vaultsFileStream, new PublicKey(storageAccountPK));
+                        await uploadToStoragePool(drive, vaultsFileStream, new PublicKey(storageAccountPK), fileName);
                     }
                     
                     // delay a bit and update to show that the files have been added
