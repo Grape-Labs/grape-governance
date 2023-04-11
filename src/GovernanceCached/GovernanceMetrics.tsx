@@ -613,6 +613,7 @@ function RenderVoterRecordTable(props:any) {
             var voter = 0;
             let csvFile = '';
             let participationCount = 0;
+
             for (var item of cachedGovernance){
 
                 let skipProp = false;
@@ -653,15 +654,15 @@ function RenderVoterRecordTable(props:any) {
 
                     if (item?.votingResults){
                         participationCount = 0;
+                        
                         for (var inner_item of item.votingResults){
-
                             var councilpropcreator = 0;
                             var depositedgovernancevotes = 0;
                             var depositedcouncilvotes = 0;
                             var foundParticipant = false;
                             var propcreator = 0;
                             var totalvotes = 0;
-                            var lastvotes = 0;
+                            
                             var totalvotesfor = 0;
                             var totalvotesagainst = 0;
                             var totalproposalparticipation = 1;
@@ -773,22 +774,20 @@ function RenderVoterRecordTable(props:any) {
                                     // if the voter is an NFT participant...
                                     console.log("nftBasedGovernance: "+nftBasedGovernance);
                                     
-                                    
                                     if (!participant.lastparticipationdate){
                                         participant.lastparticipationdate = +item.account?.draftAt;
-                                        lastvotes = totalvotes;
+                                        if (nftBasedGovernance) 
+                                            participant.currentvotes = totalvotes;
                                     }else if (+item.account?.draftAt && +item.account?.draftAt > participant.lastparticipation){
                                         participant.lastparticipationdate = +item.account?.draftAt;
-                                        lastvotes = totalvotes;
+                                        if (nftBasedGovernance) 
+                                            participant.currentvotes = totalvotes;
                                     }
                                     if (!participant.firstparticipationdate)
                                         participant.firstparticipationdate = +item.account?.draftAt;
                                     else if (+item.account?.draftAt && +item.account?.draftAt < participant.firstparticipationdate)
                                         participant.firstparticipationdate = +item.account?.draftAt;
                                     
-                                    if (nftBasedGovernance){ // set votes that this voter has used
-                                        participant.currentvotes = lastvotes;//totalvotes;
-                                    }
                                     
                                     participant.totalproposalscreated += propcreator;
                                     participant.totalvotes += totalvotes;
@@ -2625,7 +2624,7 @@ export function GovernanceMetricsView(props: any) {
                                     <Alert 
                                         
                                         severity="info"
-                                        sx={{borderRadius:'17px',m:2}}>*** Currently displaying DAO Community Token & Council Governance metrics, VSR/NFT voter metrics will be displayed soon ***</Alert>
+                                        sx={{borderRadius:'17px',m:2}}>*** NFT Voting Power Reflecting last participating proposal, more VSR/NFT voter metrics will be displayed soon ***</Alert>
                                 </Box>
                             }
 
