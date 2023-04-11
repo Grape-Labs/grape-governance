@@ -1361,7 +1361,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                         skip = true;
                 }
 
-                //if (count === 0){ // process 1 for now to verify it works
+                //if (count > 18){ // process 1 for now to verify it works
                 if (!skip){
                     setGovernanceAddress(item.governanceAddress);
                     let elapsedTime = moment(new Date());
