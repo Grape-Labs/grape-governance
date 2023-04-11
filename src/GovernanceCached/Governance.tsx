@@ -491,9 +491,9 @@ function GetParticipants(props: any){
                 
                 const tSupply = Number(governingMintDetails.value.data.parsed.info.supply/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals)) 
                 
-                console.log("tSupply: "+tSupply)
-                console.log("voteThresholdPercentage: "+voteThresholdPercentage)
-                console.log("supplyFractionPercentage: "+supplyFractionPercentage)
+                //console.log("tSupply: "+tSupply)
+                //console.log("voteThresholdPercentage: "+voteThresholdPercentage)
+                //console.log("supplyFractionPercentage: "+supplyFractionPercentage)
 
                 setTotalSupply(tSupply);
                 
