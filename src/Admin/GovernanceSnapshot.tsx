@@ -1374,7 +1374,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
     const processGovernanceUploadSnapshotAll = async(force:boolean, address: string) => {
 
-        console.log("here...")
         if (governanceLookup){
             setCronBatch(true);
             let startTime = moment(new Date());
@@ -1384,9 +1383,10 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 var skip = false;
                 
                 if (address){
+                    skip = true;
                     setBatchStatus("Fetching an existing Governance: "+address);
                     if (item.governanceAddress === address)
-                        skip = true;
+                        skip = false;
                 }
 
                 //if (count > 20){ // process 1 for now to verify it works
@@ -1416,8 +1416,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 setGovernanceAddress(address);
                 let elapsedTime = moment(new Date());
                 let elapsedDuration = moment.duration(elapsedTime.diff(startTime));
-                console.log("Adding Governance: "+item.governanceName+" "+address+" ("+elapsedDuration.humanize()+")")
-                setBatchStatus("Adding Governance: "+item.governanceName+" "+address+" "+elapsedDuration.humanize()+"");
+                console.log("Adding Governance: "+address+" ("+elapsedDuration.humanize()+")")
+                setBatchStatus("Adding Governance: "+address+" "+elapsedDuration.humanize()+"");
                 
                 const grealm = await fetchRealm(address);
 
