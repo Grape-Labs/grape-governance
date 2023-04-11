@@ -96,6 +96,29 @@ const GOVERNANCE_STATE = {
     8:'Executing w/errors!',
 }
 
+class MyWallet implements anchor.Wallet {
+
+    constructor(readonly payer: Keypair) {
+        this.payer = payer
+    }
+
+    async signTransaction(tx: Transaction): Promise<Transaction> {
+        tx.partialSign(this.payer);
+        return tx;
+    }
+
+    async signAllTransactions(txs: Transaction[]): Promise<Transaction[]> {
+        return txs.map((t) => {
+            t.partialSign(this.payer);
+            return t;
+        });
+    }
+
+    get publicKey(): PublicKey {
+        return this.payer.publicKey;
+    }
+}
+
 function LinearProgressWithLabel(props: LinearProgressProps & { value: number }) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -1716,29 +1739,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
         // deleteStoragePoolFile()
     }
 
-    class MyWallet implements anchor.Wallet {
-
-        constructor(readonly payer: Keypair) {
-            this.payer = payer
-        }
-    
-        async signTransaction(tx: Transaction): Promise<Transaction> {
-            tx.partialSign(this.payer);
-            return tx;
-        }
-    
-        async signAllTransactions(txs: Transaction[]): Promise<Transaction[]> {
-            return txs.map((t) => {
-                t.partialSign(this.payer);
-                return t;
-            });
-        }
-    
-        get publicKey(): PublicKey {
-            return this.payer.publicKey;
-        }
-    }
-
     const handleUploadToStoragePool = async (sentRealm: any, address: string, passedProposalsString: string,passedMembersString: string,passedTransactionsString: string,passedVaultsString: string, governanceFetchedDetails: any, ggv: any) => {
         const timestamp = Math.floor(new Date().getTime() / 1000);
         let govAddress = governanceAddress;
@@ -1788,22 +1788,12 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
             if (secretKey){
                 console.log("Using soft wallet")
-                //process.env.BROWSER = null;
                 const fromKeypair = Keypair.fromSecretKey(
                     Uint8Array.from(secretKey)
                 );
-                
-                /*
-                const anchorKeypair = new anchor.web3.Keypair({publicKey:Uint8Array.from(fetchedKeypair),secretKey:fromKeypair.secretKey})
-
-                console.log(anchorKeypair.publicKey.toBase58());
-                console.log(anchorKeypair.secretKey.toString());
-                */
-                //const kpwallet = new anchor.Wallet(fromKeypair);
-                //const kpwallet = new Wallet(fromKeypair)
                 const kpwallet = new MyWallet(fromKeypair);
                 
-                console.log("settings up shdw")
+                console.log("Initializing SHDW with soft wallet "+kpwallet.publicKey.toBase58())
                 drive = await new ShdwDrive(RPC_CONNECTION, kpwallet).init();
                 const testing = drive.userInfo;
                 console.log("drive: "+JSON.stringify(testing));
@@ -1811,7 +1801,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
                 console.log("Browser: "+isBrowser);
 
-                console.log("Could not find/use soft wallet, using adapter")
+                console.log("Initializing SHDW with wallet adapter "+kpwallet.publicKey.toBase58())
                 drive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
             }
 
@@ -1983,10 +1973,45 @@ export function GovernanceSnapshotView (this: any, props: any) {
 
 
     const initStorage  = async () => {
-        const drive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
-        //console.log("drive: "+JSON.stringify(drive));
-        setThisDrive(drive);
 
+        // use soft wallet...
+
+        //const fromKeypair = Keypair.generate();
+        let drive = null;
+        var secretKey = null;
+        
+        try{
+            //fetchedKeypair = await loadWalletKey('./keypair.json')
+            if (PRIMARY_STORAGE_WALLET)
+                secretKey = JSON.parse(PRIMARY_STORAGE_WALLET);
+            //else // this is no longer needed
+            //    secretKey = require('./keypair.json');
+        }catch (ferr){
+            console.log("ERR: "+ferr);
+        }
+
+        const isBrowser = process.env.BROWSER || (typeof window !== "undefined" && !window.process?.hasOwnProperty("type"));
+
+        if (secretKey){
+            console.log("Using soft wallet")
+            const fromKeypair = Keypair.fromSecretKey(
+                Uint8Array.from(secretKey)
+            );
+            const kpwallet = new MyWallet(fromKeypair);
+            
+            console.log("Initializing SHDW with soft wallet "+kpwallet.publicKey.toBase58())
+            drive = await new ShdwDrive(RPC_CONNECTION, kpwallet).init();
+            //const testing = drive.userInfo;
+            //console.log("drive: "+JSON.stringify(testing));
+            setThisDrive(drive);
+        } else{
+            if (wallet){
+                console.log("Initializing SHDW wallet adapter "+wallet.publicKey.toBase58())
+                const drive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
+                //console.log("drive: "+JSON.stringify(drive));
+                setThisDrive(drive);
+            }
+        }
         try{
             const response = await drive.getStorageAccounts("v2");
             //console.log("Storage Accounts: "+JSON.stringify(response))
