@@ -181,14 +181,19 @@ export const cronFetch = async(
     const lookupSettings = await getGovernanceLookup(null, null, GGAPI_STORAGE_POOL);
 
     // STEP 2 call and process snapshot
-    //    processGovernanceUploadSnapshotAll(
-    //        false, 
-    //        null,
-    //        governanceLookup, 
-    //tokensMapped, currentWallet, connection, 
-    //GGAPI_STORAGE_POOL, governanceAutocomplete, thisDrive, setLoading, setBatchStatus, setPrimaryStatus, setStatus, setProgress, setCurrentUploadInfo, setCronBookmark, enqueueSnackbar, closeSnackbar, setGovernanceLookup)} 
-    
-
+    /*
+    await processGovernanceUploadSnapshotAll(
+            false, 
+            null,
+            lookupSettings.lookup, 
+            tokensMapped, 
+            storageSettings.wallet, 
+            RPC_CONNECTION, 
+            GGAPI_STORAGE_POOL, 
+            storageSettings.autocomplete,
+            storageSettings.drive,
+            null, null, null, null, null, null, null, null, null, null);
+    */
     console.log("HELLO SPL CRON!");
 
 
@@ -1660,7 +1665,7 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                 console.log("ERR: "+e);
             }
             
-            setGovernanceLookup(lookup);
+            if (setGovernanceLookup) setGovernanceLookup(lookup);
         }
     } else{
         console.log("ERR: realm could not be loaded - "+JSON.stringify(this_realm))
