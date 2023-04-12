@@ -2065,7 +2065,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             color='error'
                             sx={{color:'black'}}
                         >
-                            Fetch it All!!! <WarningIcon sx={{ml:1}} />
+                            Fetch All! <WarningIcon sx={{ml:1}} />
                         </Button>
                     </Tooltip>
 
