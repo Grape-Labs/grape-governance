@@ -133,8 +133,8 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
       </Box>
     );
   }
-
-  const getTokens = async () => {
+/*
+  const getTokens = async (setTokenMap:any) => {
     const tarray:any[] = [];
     try{
         const tlp = await new TokenListProvider().resolve().then(tokens => {
@@ -144,11 +144,11 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
                 map.set(item.address, item);
                 return map;
             },new Map())
-            
+            if (setTokenMap) setTokenMap(tmap);
             return tmap;
         });
 } catch(e){console.log("ERR: "+e)}
-}
+}*/
 
 export const cronFetch = async(
     setStatus:any, 
@@ -158,7 +158,7 @@ export const cronFetch = async(
     
     // STEP 1 call and load all variables needed
     const storageSettings = await initStorage(null, null, null, null);
-    const tokensMapped = await getTokens();
+    //const tokensMapped = await getTokens();
     const lookupSettings = await getGovernanceLookup(null, null, GGAPI_STORAGE_POOL);
 
     // STEP 2 call and process snapshot
@@ -1961,10 +1961,27 @@ export function GovernanceSnapshotView (this: any, props: any) {
         // deleteStoragePoolFile()
     }
 
+    const getTokens = async () => {
+        const tarray:any[] = [];
+        try{
+            const tlp = await new TokenListProvider().resolve().then(tokens => {
+                const tokenList = tokens.filterByChainId(ENV.MainnetBeta).getList();
+                const tmap = tokenList.reduce((map, item) => {
+                    tarray.push({address:item.address, decimals:item.decimals})
+                    map.set(item.address, item);
+                    return map;
+                },new Map())
+                setTokenMap(tmap);
+                return tmap;
+            });
+        } catch(e){console.log("ERR: "+e)}
+    }
+
     const initCachingSystem = async () => {
         const storageSettings = await initStorage(setThisDrive, setCurrentWallet, wallet, setStorageAutocomplete);
         const tokensMapped = await getTokens();
-        setTokenMap(tokensMapped);
+        //setTokenMap(tokensMapped);
+        console.log("here!!! "+JSON.stringify(tokensMapped))
         const lookupSettings = await getGovernanceLookup(setGovernanceAutocomplete, setGovernanceLookup, storagePool);
     }
 
@@ -2055,7 +2072,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     </Typography>
 
                 
-                {!loading &&
+                {(!loading && tokenMap) &&
                     <>
                     {governanceAutocomplete ?
                         <Autocomplete
