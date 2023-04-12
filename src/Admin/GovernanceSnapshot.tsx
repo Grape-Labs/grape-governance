@@ -134,6 +134,22 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
     );
   }
 
+  const getTokens = async () => {
+    const tarray:any[] = [];
+    try{
+        const tlp = await new TokenListProvider().resolve().then(tokens => {
+            const tokenList = tokens.filterByChainId(ENV.MainnetBeta).getList();
+            const tmap = tokenList.reduce((map, item) => {
+                tarray.push({address:item.address, decimals:item.decimals})
+                map.set(item.address, item);
+                return map;
+            },new Map())
+            
+            return tmap;
+        });
+} catch(e){console.log("ERR: "+e)}
+}
+
 export const cronFetch = async(
     setStatus:any, 
     setPrimaryStatus:any, 
@@ -141,15 +157,17 @@ export const cronFetch = async(
     closeSnackbar:any) => {
     
     // STEP 1 call and load all variables needed
-    //const storageSettings = await initStorage(setThisDrive, setCurrentWallet, wallet, setStorageAutocomplete);
-    //const tokensMapped = await getTokens();
-    //const lookupSettings = await getGovernanceLookup(setGovernanceAutocomplete, setGovernanceLookup, storagePool);
+    const storageSettings = await initStorage(null, null, null, null);
+    const tokensMapped = await getTokens();
+    const lookupSettings = await getGovernanceLookup(null, null, GGAPI_STORAGE_POOL);
 
     // STEP 2 call and process snapshot
     //    processGovernanceUploadSnapshotAll(
     //        false, 
     //        null,
-    //        governanceLookup, tokenMap, currentWallet, connection, storagePool, governanceAutocomplete, thisDrive, setLoading, setBatchStatus, setPrimaryStatus, setStatus, setProgress, setCurrentUploadInfo, setCronBookmark, enqueueSnackbar, closeSnackbar, setGovernanceLookup)} 
+    //        governanceLookup, 
+    //tokensMapped, currentWallet, connection, 
+    //GGAPI_STORAGE_POOL, governanceAutocomplete, thisDrive, setLoading, setBatchStatus, setPrimaryStatus, setStatus, setProgress, setCurrentUploadInfo, setCronBookmark, enqueueSnackbar, closeSnackbar, setGovernanceLookup)} 
     
 
     console.log("HELLO SPL CRON!");
@@ -1266,18 +1284,18 @@ const initStorage  = async (setThisDrive: any, setCurrentWallet: any, wallet: an
         drive = await new ShdwDrive(RPC_CONNECTION, kpwallet).init();
         //const testing = drive.userInfo;
         //console.log("drive: "+JSON.stringify(testing));
-        setThisDrive(drive);
+        if (setThisDrive) setThisDrive(drive);
 
-        setCurrentWallet(kpwallet.publicKey.toBase58());
+        if (setCurrentWallet) setCurrentWallet(kpwallet.publicKey.toBase58());
 
     } else{
         if (wallet){
             console.log("Initializing SHDW wallet adapter "+wallet.publicKey.toBase58())
             const drive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
             //console.log("drive: "+JSON.stringify(drive));
-            setThisDrive(drive);
+            if (setThisDrive) setThisDrive(drive);
 
-            setCurrentWallet(wallet.publicKey.toBase58());
+            if (setCurrentWallet) setCurrentWallet(wallet.publicKey.toBase58());
         }
     }
     try{
@@ -1317,6 +1335,7 @@ const initStorage  = async (setThisDrive: any, setCurrentWallet: any, wallet: an
         }
     }catch(e){
         console.log("ERR: "+e);
+        return null;
     }
 }     
 
@@ -1342,9 +1361,9 @@ const getGovernanceLookup  = async (setGovernanceAutocomplete:any, setGovernance
                 lastProposalDate: item.lastProposalDate,
             });
         }
-        setGovernanceAutocomplete(lookupAutocomplete);
+        if (setGovernanceAutocomplete) setGovernanceAutocomplete(lookupAutocomplete);
 
-        setGovernanceLookup(sorted);
+        if (setGovernanceLookup) setGovernanceLookup(sorted);
 
         return {
             lookup: lookupAutocomplete,
@@ -1938,22 +1957,6 @@ export function GovernanceSnapshotView (this: any, props: any) {
         [enqueueSnackbar]
     );
     
-    const getTokens = async () => {
-        const tarray:any[] = [];
-        try{
-            const tlp = await new TokenListProvider().resolve().then(tokens => {
-                const tokenList = tokens.filterByChainId(ENV.MainnetBeta).getList();
-                const tmap = tokenList.reduce((map, item) => {
-                    tarray.push({address:item.address, decimals:item.decimals})
-                    map.set(item.address, item);
-                    return map;
-                },new Map())
-                setTokenMap(tmap);
-                return tmap;
-            });
-        } catch(e){console.log("ERR: "+e)}
-    }
-
     const handleStoragePoolPurge = async () => {
         // deleteStoragePoolFile()
     }
@@ -1961,6 +1964,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const initCachingSystem = async () => {
         const storageSettings = await initStorage(setThisDrive, setCurrentWallet, wallet, setStorageAutocomplete);
         const tokensMapped = await getTokens();
+        setTokenMap(tokensMapped);
         const lookupSettings = await getGovernanceLookup(setGovernanceAutocomplete, setGovernanceLookup, storagePool);
     }
 
