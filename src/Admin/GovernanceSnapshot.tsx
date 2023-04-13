@@ -1545,6 +1545,12 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                     item.lastProposalDate = governanceFetchedDetails?.lastProposalDate;
                     //item.tokenSupply = ggv?.totalSupply || totalSupply;
                     //item.totalQuorum = ggv?.totalQuorum || totalQuorum;
+                    item.lastFetch = freshGovernanceLookup.timestamp;
+                    item.lastMembers = freshGovernanceLookup.totalMembers;
+                    item.totalProposals = freshGovernanceLookup.totalProposals;
+                    item.lastVaultValue = freshGovernanceLookup.totalVaultValue;
+                    item.lastVaultStableCoinValue = freshGovernanceLookup.totalVaultStableCoinValue;
+                    item.lastVaultNftValue = freshGovernanceLookup.totalVaultNftValue;
                     item.totalMembers = governanceFetchedDetails?.memberMap.length || null;
                     item.totalVaultValue = governanceFetchedDetails?.totalVaultValue;
                     item.totalVaultStableCoinValue = governanceFetchedDetails?.totalVaultStableCoinValue;
@@ -1590,6 +1596,7 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                     totalVaultValue: governanceFetchedDetails?.totalVaultValue,
                     totalVaultStableCoinValue: governanceFetchedDetails?.totalVaultStableCoinValue,
                     totalVaultNftValue: governanceFetchedDetails?.totalVaultNftValue,
+
                 });
             }
             
@@ -1999,6 +2006,17 @@ export function GovernanceSnapshotView (this: any, props: any) {
         if (!tokenMap){
             initCachingSystem();  
         }
+
+        /* CHECK FOR GOVERNANCE PROGRAM CHANGES */
+        console.log("Program Listener: "+programId)
+        const subscriptionId = connection.onAccountChange(programId, (accountInfo) => {
+            console.log('Program account changed:', accountInfo);
+            // Handle the account change here
+        });
+
+        return () => {
+            connection.removeAccountChangeListener(subscriptionId);
+        };
     }, []);
 
 
