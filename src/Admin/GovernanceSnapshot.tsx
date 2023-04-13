@@ -230,13 +230,13 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet:
     //setLoading(true);
     //setProposals(null);
     //setCurrentUploadInfo(null);
-    setStatus("Fetching Governance - Source: Q");
+    if (setStatus) setStatus("Fetching Governance - Source: Q");
     const connection = RPC_CONNECTION;
     //console.log("Fetching governance "+address);
     //const grealm = await getRealm(RPC_CONNECTION, new PublicKey(address))
     //setRealm(grealm);
 
-    setPrimaryStatus("Governance Fetched");
+    if (setPrimaryStatus) setPrimaryStatus("Governance Fetched");
     
     //console.log("Governance: "+JSON.stringify(grealm));
 
@@ -258,7 +258,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet:
         }
     }
 
-    setPrimaryStatus("Governance Type Verified");
+    if (setPrimaryStatus) setPrimaryStatus("Governance Type Verified");
 
     const realmPk = grealm.pubkey;
 
@@ -312,14 +312,14 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet:
     });
 
     console.log("rawNativeSolAddresses: "+JSON.stringify(rawNativeSolAddresses))
-    setPrimaryStatus("Fetching Treasury Sol Balance");
+    if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury Sol Balance");
 
     const vaultSolBalancesPromise = await Promise.all(
         vaultsInfo.map((vault) =>
           connection.getBalance(new PublicKey(vault?.pubkey))
         )
     );
-    setPrimaryStatus("Fetching Treasury Token Accounts");
+    if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury Token Accounts");
     
     const vaultsWithTokensPromise = await Promise.all(
         vaultsInfo.map((vault) =>
@@ -334,7 +334,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet:
 
     console.log("vaultsWithTokensPromise: "+JSON.stringify(vaultsWithTokensPromise))
 
-    setPrimaryStatus("Fetching Treasury NFTs");
+    if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury NFTs");
 
     const client = new RestClient(HELLO_MOON_BEARER);
     const vaultsWithNftsPromise = await Promise.all(
@@ -442,7 +442,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet:
             }
         }
 
-        setPrimaryStatus("Fetching Treasury NFT Floor Prices");
+        if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury NFT Floor Prices");
 
         if (vi?.nfts){
             for (const thisitem of vi.nfts){
@@ -450,7 +450,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet:
                 console.log("HM: "+thisitem.helloMoonCollectionId)
                 
                 if (thisitem.helloMoonCollectionId){
-                    setPrimaryStatus("Fetching Treasury NFT Floor Prices ("+thisitem.nftMint+")");
+                    if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury NFT Floor Prices ("+thisitem.nftMint+")");
                     const results = await client.send(new CollectionFloorpriceRequest({
                         helloMoonCollectionId: thisitem.helloMoonCollectionId,
                         limit: 1000
@@ -510,11 +510,11 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet:
     
     // consider jupiter as a backup... (per token address)
 
-    setPrimaryStatus("Fetching Prices from Jupiter");
+    if (setPrimaryStatus) setPrimaryStatus("Fetching Prices from Jupiter");
 
     const cgp = await getJupiterPrices(cgMintArray);
 
-    setPrimaryStatus("Associating Fetched Prices from Jupiter");
+    if (setPrimaryStatus) setPrimaryStatus("Associating Fetched Prices from Jupiter");
     let totalVaultStableCoinValue = 0;
     for (var ia of vaultsInflated){
         let vaultValue = 0;
@@ -603,7 +603,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet:
             }
         }
 
-        setPrimaryStatus("Fetching Governance Transactions");
+        if (setPrimaryStatus) setPrimaryStatus("Fetching Governance Transactions");
         // https://api.solscan.io/account/token/txs?address=By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip&offset=0&limit=50&cluster=
 
         // this will be used to monitor inflows / outflows?
@@ -614,7 +614,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet:
         let resultcount = 0;
         const govTx = new Array();
         while (hasnext){
-            setPrimaryStatus("Fetching Governance Transactions ("+(offset+1)+" - "+(offset+limit)+")");
+            if (setPrimaryStatus) setPrimaryStatus("Fetching Governance Transactions ("+(offset+1)+" - "+(offset+limit)+")");
             const apiUrl = "https://api.solscan.io/account/token/txs";
         
             const response = await axios.get(
@@ -649,7 +649,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet:
         }
         //setGovernanceTransactions(govTx);
         
-        setPrimaryStatus("Fetching Token Owner Records");
+        if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records");
 
         // to do get member map
         
@@ -669,7 +669,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet:
         let mcount = 0;
         for (const owner of rawTokenOwnerRecords){
             mcount++;
-            setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance");
+            if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance");
             const tokenOwnerRecord = owner.account.governingTokenOwner;
             
             const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account?.communityMint});
@@ -679,7 +679,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet:
                 owner.walletBalance = balance.value[0].account.data.parsed.info;
         }
 
-        setPrimaryStatus("Fetching All Proposals");
+        if (setPrimaryStatus) setPrimaryStatus("Fetching All Proposals");
 
         const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
                 
@@ -805,11 +805,11 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
     for (var thisitem of finalList){
         x++;
         if (forceSkip)
-            setStatus("Fetching "+x+" of "+length);
+            if (setStatus) setStatus("Fetching "+x+" of "+length);
         else
-            setStatus("Smart Fetching "+x+" of "+length);
+            if (setStatus) setStatus("Smart Fetching "+x+" of "+length);
         
-        setProgress((prevProgress:any) => (prevProgress >= 100 ? 0 : normalise(x)));
+        if (setProgress) setProgress((prevProgress:any) => (prevProgress >= 100 ? 0 : normalise(x)));
         
         try {
             let skip_process = false;
@@ -1350,7 +1350,7 @@ const initStorage  = async (setThisDrive: any, setCurrentWallet: any, wallet: an
             });
         }
         if (strgAccounts.length > 0)
-            setStorageAutocomplete(strgAccounts);
+            if (setStorageAutocomplete) setStorageAutocomplete(strgAccounts);
 
         return {
             autocomplete: strgAccounts,
@@ -1501,12 +1501,15 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
     const govFileName = fileName;
     //if (!govAddress)
     //    govAddress = governanceAddress;
-
     let this_realm = sentRealm;// || realm;
     const lookup = new Array();
     console.log("Storage Pool: "+storagePool+" | Lookup File found: "+JSON.stringify(lookupFound))
     //console.log("this_realm: "+JSON.stringify(this_realm));
     //console.log("governanceLookup: "+JSON.stringify(governanceLookup));
+
+    // we are refetching the lookup prior to pushing to avoid any intermediated changes
+    // this should be handled with a locking mechanism
+    const freshGovernanceLookup = await fetchGovernanceLookupFile(storagePool);
 
     if (this_realm){
         //console.log("realm: "+JSON.stringify(realm))
@@ -1519,7 +1522,7 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
             // with the file found, lets generate the lookup as an array
             var govFound = false;
             let cntr = 0;
-            for (var item of governanceLookup){
+            for (var item of freshGovernanceLookup){
                 //if (cntr === 0)
                 //console.log("governanceFetchedDetails: "+JSON.stringify(governanceFetchedDetails));
 
@@ -1563,7 +1566,7 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                 //if (memberMap)
                 //    memberCount = new Set(memberMap).size; // memberMap.length;
                 
-                governanceLookup.push({
+                freshGovernanceLookup.push({
                     governanceAddress:govAddress,
                     governanceName:governanceFetchedDetails?.governanceName,
                     version:0,
@@ -1593,19 +1596,19 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
             //console.log("lookup: "+JSON.stringify(lookup))
 
             const cleanLookup = new Array();
-            for (var item of governanceLookup){ // cleanup lookup!
+            for (var item of freshGovernanceLookup){ // cleanup lookup!
                 if (item.governanceName){
                     cleanLookup.push(item);
                 }
             }
 
-            console.log("Original: "+governanceLookup.length);
-            console.log("Cleaned: "+(governanceLookup.length-cleanLookup.length)+" New Total: "+cleanLookup.length);
+            console.log("Original: "+freshGovernanceLookup.length);
+            console.log("Cleaned: "+(freshGovernanceLookup.length-cleanLookup.length)+" New Total: "+cleanLookup.length);
 
             console.log("Replacing Governance Lookup");
             const uploadFile = await returnJSON(JSON.stringify(cleanLookup), "governance_lookup.json");
             const fileSize  = uploadFile.size;
-            setCurrentUploadInfo("Replacing "+"governance_lookup.json"+" - "+formatBytes(fileSize));
+            if (setCurrentUploadInfo) setCurrentUploadInfo("Replacing "+"governance_lookup.json"+" - "+formatBytes(fileSize));
             
             const fileStream = blobToFile(uploadFile, "governance_lookup.json");
             const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/governance_lookup.json';
@@ -1650,7 +1653,7 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
             const uploadFile = await returnJSON(JSON.stringify(lookup),fileName);
             const fileStream = blobToFile(uploadFile, fileName);
             const fileSize  = uploadFile.size;
-            setCurrentUploadInfo("Adding "+fileName+" - "+formatBytes(fileSize));
+            if (setCurrentUploadInfo) setCurrentUploadInfo("Adding "+fileName+" - "+formatBytes(fileSize));
             await uploadToStoragePool(drive, fileStream, new PublicKey(storageAccountPK), fileName, enqueueSnackbar, closeSnackbar);
             // update autocomplete
             try{
@@ -1879,7 +1882,7 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
 }
 
 const processGovernanceUploadSnapshotAll = async(force:boolean, address: string, governanceLookup: any, tokenMap: any, currentWallet: any, connection: Connection, storagePool: any, governanceAutocomplete: any, thisDrive: any, setLoading: any, setBatchStatus: any, setPrimaryStatus: any, setStatus: any, setProgress: any, setCurrentUploadInfo: any, setCronBookmark: any, enqueueSnackbar: any, closeSnackbar: any, setGovernanceLookup: any) => {
-    setLoading(true);
+    if (setLoading) setLoading(true);
     if (governanceLookup){
         let startTime = moment(new Date());
         let count = 0;
@@ -1889,7 +1892,7 @@ const processGovernanceUploadSnapshotAll = async(force:boolean, address: string,
             
             if (address){
                 skip = true;
-                setBatchStatus("Fetching an existing Governance: "+address);
+                if (setBatchStatus) setBatchStatus("Fetching an existing Governance: "+address);
                 if (item.governanceAddress === address)
                     skip = false;
             }
@@ -1900,7 +1903,7 @@ const processGovernanceUploadSnapshotAll = async(force:boolean, address: string,
                 let elapsedTime = moment(new Date());
                 let elapsedDuration = moment.duration(elapsedTime.diff(startTime));
                 console.log("Fetching Governance ("+(count+1)+" of "+governanceLookup.length+"): "+item.governanceName+" "+item.governanceAddress+" ("+elapsedDuration.humanize()+")")
-                setBatchStatus("Fetching Governance ("+(count+1)+" of "+governanceLookup.length+"): "+item.governanceName+" "+item.governanceAddress+" "+elapsedDuration.humanize()+"");
+                if (setBatchStatus) setBatchStatus("Fetching Governance ("+(count+1)+" of "+governanceLookup.length+"): "+item.governanceName+" "+item.governanceAddress+" "+elapsedDuration.humanize()+"");
                 
                 const grealm = await fetchRealm(item.governanceAddress);
                 const governanceData = await processGovernance(item.governanceAddress, grealm, tokenMap, currentWallet, setPrimaryStatus, setStatus);
@@ -1917,7 +1920,7 @@ const processGovernanceUploadSnapshotAll = async(force:boolean, address: string,
         // if we have not found this governance
         if (address && !processedGovernance){
             console.log("Adding Governance: "+address+"")
-            setBatchStatus("Adding Governance: "+address+"");
+            if (setBatchStatus) setBatchStatus("Adding Governance: "+address+"");
             
             const grealm = await fetchRealm(address);
             const governanceData = await processGovernance(address, grealm, tokenMap, currentWallet, setPrimaryStatus, setStatus);
@@ -1931,10 +1934,10 @@ const processGovernanceUploadSnapshotAll = async(force:boolean, address: string,
 
         let endTime = moment(new Date());
         let elapsedDuration = moment.duration(endTime.diff(startTime));
-        setBatchStatus("Batch completed in "+elapsedDuration.humanize()+"")
+        if (setBatchStatus) setBatchStatus("Batch completed in "+elapsedDuration.humanize()+"")
         
     } 
-    setLoading(false);
+    if (setLoading) setLoading(false);
     return null;
 }
 
