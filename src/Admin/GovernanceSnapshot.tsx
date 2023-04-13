@@ -1545,6 +1545,8 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                     item.lastProposalDate = governanceFetchedDetails?.lastProposalDate;
                     //item.tokenSupply = ggv?.totalSupply || totalSupply;
                     //item.totalQuorum = ggv?.totalQuorum || totalQuorum;
+                    //item.tokenCouncilSupply = ggv?.totalCouncilSupply || totalSupply;
+                    //item.totalCouncilQuorum = ggv?.totalCouncilQuorum || totalQuorum;
                     item.lastTimestamp = freshGovernanceLookup.timestamp;
                     item.lastMembers = freshGovernanceLookup.totalMembers;
                     item.totalProposals = freshGovernanceLookup.totalProposals;
@@ -1592,6 +1594,8 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                     lastProposalDate: governanceFetchedDetails?.lastProposalDate,
                     //tokenSupply: ggv?.totalSupply || totalSupply,
                     //totalQuorum: ggv?.totalQuorum || totalQuorum,
+                    //tokenCouncilSupply: ggv?.totalCouncilSupply || totalSupply,
+                    //totalCouncilQuorum: ggv?.totalCouncilQuorum || totalQuorum,
                     totalMembers: governanceFetchedDetails?.memberMap.length || null,
                     totalVaultValue: governanceFetchedDetails?.totalVaultValue,
                     totalVaultStableCoinValue: governanceFetchedDetails?.totalVaultStableCoinValue,
