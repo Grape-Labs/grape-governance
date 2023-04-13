@@ -361,7 +361,7 @@ export function GovernanceDirectoryView() {
                 if (item?.totalVaultStableCoinValue)
                     totalVaultStableCoinValue += item.totalVaultStableCoinValue;
                 totalGovernanceMembers += item.totalMembers;
-                totalGovernanceProposals += item.totalProposals;
+                totalGovernanceProposals += item?.totalProposals ? item.totalProposals : 0;
             }
             setGovernanceTotalVaultValue(totalVaultValue);
             setGovernanceTotalVaultStableCoinValue(totalVaultStableCoinValue);

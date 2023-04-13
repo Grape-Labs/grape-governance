@@ -1156,6 +1156,22 @@ const getGovernanceProps = async (thisitem: any, this_realm: any, connection: Co
     }
 }
 
+const getFirstTransactionDate = async(walletAddress:string) => {
+    const connection = RPC_CONNECTION;
+    const publicKey = new PublicKey(walletAddress);
+    const transactionHistory = await connection.getConfirmedSignaturesForAddress2(publicKey);
+  
+    if (transactionHistory.length === 0) {
+      return null;
+    }
+  
+    const firstTransactionSignature = transactionHistory[transactionHistory.length - 1].signature;
+    const transactionDetails = await connection.getConfirmedTransaction(firstTransactionSignature);
+  
+    return new Date(transactionDetails.slot * 1000);
+  }
+  
+
 // STEP 1.
 const processGovernance = async(address:string, sent_realm:any, tokenMap: any, currentWallet: any, setPrimaryStatus: any, setStatus: any) => {
     // Second drive creation (otherwise wallet is not connected when done earlier)
@@ -1549,7 +1565,6 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                     //item.totalCouncilQuorum = ggv?.totalCouncilQuorum || totalQuorum;
                     item.lastTimestamp = freshGovernanceLookup.timestamp;
                     item.lastMembers = freshGovernanceLookup.totalMembers;
-                    item.totalProposals = freshGovernanceLookup.totalProposals;
                     item.lastVaultValue = freshGovernanceLookup.totalVaultValue;
                     item.lastVaultStableCoinValue = freshGovernanceLookup.totalVaultStableCoinValue;
                     item.lastVaultNftValue = freshGovernanceLookup.totalVaultNftValue;
