@@ -1,5 +1,5 @@
 
-import cronFetch from '../../src/Admin/Admin';
+//import cronFetch from '../../src/Admin/Admin';
 
 export default function handler(req, res) {
     // call only if we have a soft wallet
