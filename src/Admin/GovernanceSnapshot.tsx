@@ -692,7 +692,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
             var hasFtd = false;
             for (const cachedOwner of cached_members){ // smart fetching so we do not query this call again
-                if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord){
+                if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord.toBase58()){
                     if (cachedOwner?.firstTransactionDate)
                         hasFtd = true;
                 }
@@ -702,7 +702,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 let ftd = await getFirstTransactionDate(tokenOwnerRecord.toBase58());
                 if (ftd){
                     const txBlockTime = moment.unix(ftd)
-                    console.log("First Transaction Date "+tokenOwnerRecord.toBase58()+": "+txBlockTime.format(''));
+                    console.log("First Transaction Date for "+tokenOwnerRecord.toBase58()+": "+txBlockTime.format(''));
                     owner.firstTransactionDate = ftd;
                 }
             }
