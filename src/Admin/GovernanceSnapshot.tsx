@@ -73,7 +73,9 @@ import {
     HELLO_MOON_BEARER,
     GGAPI_STORAGE_POOL,
     GGAPI_STORAGE_URI,
-    PRIMARY_STORAGE_WALLET
+    PRIMARY_STORAGE_WALLET,
+    RPC_ENDPOINT,
+    WS_ENDPOINT
 } from '../utils/grapeTools/constants';
 
 import WarningIcon from '@mui/icons-material/Warning';
@@ -2027,15 +2029,21 @@ export function GovernanceSnapshotView (this: any, props: any) {
         }
 
         /* CHECK FOR GOVERNANCE PROGRAM CHANGES */
-        console.log("Program Listener: "+programId)
-        const subscriptionId = connection.onAccountChange(programId, (accountInfo) => {
+        //const thisProgram = programId;
+        
+        const wssconnection = new Connection(RPC_ENDPOINT, {wsEndpoint:'WS_ENDPOINT'});
+        const thisProgram = programId; //new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+        console.log("Program Listener: "+thisProgram)
+        
+        const subscriptionId = wssconnection.onAccountChange(thisProgram, (accountInfo) => {
             console.log('Program account changed:', accountInfo);
             // Handle the account change here
         });
 
         return () => {
-            connection.removeAccountChangeListener(subscriptionId);
+            wssconnection.removeAccountChangeListener(subscriptionId);
         };
+        
     }, []);
 
 

@@ -209,6 +209,12 @@ export function GovernanceDirectoryView() {
     const [loading, setLoading] = React.useState(false);
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [searchFilter, setSearchFilter] = React.useState(null);
+    const [governanceTotalLastVaultValue, setGovernanceTotalLastVaultValue] = React.useState(null);
+    const [governanceTotalLastVaultStableCoinValue, setGovernanceTotalLastVaultStableCoinValue] = React.useState(null);
+    const [governanceTotalLastMembers, setGovernanceTotalLastMembers] = React.useState(null);
+    const [governanceTotalLastProposals, setGovernanceTotalLastProposals] = React.useState(null);
+    
+    
     const [governanceTotalVaultValue, setGovernanceTotalVaultValue] = React.useState(null);
     const [governanceTotalVaultStableCoinValue, setGovernanceTotalVaultStableCoinValue] = React.useState(null);
     const [governanceTotalMembers, setGovernanceTotalMembers] = React.useState(null);
@@ -355,6 +361,10 @@ export function GovernanceDirectoryView() {
             let totalVaultStableCoinValue = 0;
             let totalGovernanceProposals = 0;
             let totalGovernanceMembers = 0;
+            let lastVaultValue = 0;
+            let lastVaultStableCoinValue = 0;
+            let lastGovernanceProposals = 0;
+            let lastGovernanceMembers = 0;
             for (let item of sorted){
                 if (item?.totalVaultValue)
                     totalVaultValue += item.totalVaultValue;
@@ -362,7 +372,24 @@ export function GovernanceDirectoryView() {
                     totalVaultStableCoinValue += item.totalVaultStableCoinValue;
                 totalGovernanceMembers += item.totalMembers;
                 totalGovernanceProposals += item?.totalProposals ? item.totalProposals : 0;
+
+                if (item?.lastVaultValue)
+                    lastVaultValue += item.lastVaultValue;
+                if (item?.lastVaultStableCoinValue)
+                    lastVaultStableCoinValue += item.lastVaultStableCoinValue;
+                if (item?.lastMembers)
+                    lastGovernanceMembers += item.lastMembers;
+                if (item?.lastProposals)
+                    lastGovernanceProposals += item.lastProposals;
+                
             }
+
+            setGovernanceTotalLastVaultValue(lastVaultValue);
+            setGovernanceTotalLastVaultStableCoinValue(lastVaultStableCoinValue);
+            setGovernanceTotalLastMembers(lastGovernanceMembers);
+            setGovernanceTotalLastProposals(lastGovernanceProposals);
+
+
             setGovernanceTotalVaultValue(totalVaultValue);
             setGovernanceTotalVaultStableCoinValue(totalVaultStableCoinValue);
             setGovernanceTotalMembers(totalGovernanceMembers);
@@ -487,7 +514,7 @@ export function GovernanceDirectoryView() {
                                         <>Total Treasury Value</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            The total deposited in all SPL Governance accounts
+                                            The total deposited in all SPL Governance accounts<br/>Last Fetch: {governanceTotalLastVaultValue ? `$${getFormattedNumberToLocale(Number(governanceTotalLastVaultValue.toFixed(2)))}` : 0}
                                             </>
                                         }>
                                         <Button
@@ -522,7 +549,7 @@ export function GovernanceDirectoryView() {
                                         <>Total in Stable Coins</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            The total value of stable coins deposited in SPL Governance (USDC, USDT, PAI)
+                                            The total value of stable coins deposited in SPL Governance (USDC, USDT, PAI)<br/>Last Fetch: {governanceTotalLastVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceTotalLastVaultStableCoinValue.toFixed(2)))}` : 0}
                                             </>
                                         }>
                                         <Button
@@ -557,7 +584,7 @@ export function GovernanceDirectoryView() {
                                         <>Members</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            All time members throughout all governances
+                                            All time members throughout all governances<br/>Last Fetch: {governanceTotalLastMembers ? getFormattedNumberToLocale(governanceTotalLastMembers) : 0}
                                             </>
                                         }>
                                         <Button
@@ -593,7 +620,7 @@ export function GovernanceDirectoryView() {
                                         <>Proposals</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            All time proposals from all governances
+                                            All time proposals from all governances<br/>Last Fetch: {governanceTotalLastProposals ? getFormattedNumberToLocale(governanceTotalLastProposals) : 0}
                                             </>
                                         }>
                                         <Button
