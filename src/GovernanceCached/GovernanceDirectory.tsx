@@ -373,14 +373,16 @@ export function GovernanceDirectoryView() {
                 totalGovernanceMembers += item.totalMembers;
                 totalGovernanceProposals += item?.totalProposals ? item.totalProposals : 0;
 
+                console.log("item "+JSON.stringify(item));
+
                 if (item?.lastVaultValue)
-                    lastVaultValue += item.lastVaultValue;
+                    lastVaultValue += +item.lastVaultValue;
                 if (item?.lastVaultStableCoinValue)
-                    lastVaultStableCoinValue += item.lastVaultStableCoinValue;
+                    lastVaultStableCoinValue += +item.lastVaultStableCoinValue;
                 if (item?.lastMembers)
-                    lastGovernanceMembers += item.lastMembers;
+                    lastGovernanceMembers += +item.lastMembers;
                 if (item?.lastProposals)
-                    lastGovernanceProposals += item.lastProposals;
+                    lastGovernanceProposals += +item.lastProposals;
                 
             }
 
