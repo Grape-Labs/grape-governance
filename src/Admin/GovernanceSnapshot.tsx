@@ -703,6 +703,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 if (ftd){
                     const txBlockTime = moment.unix(ftd)
                     console.log("First Transaction Date for "+tokenOwnerRecord.toBase58()+": "+txBlockTime.format(''));
+                    if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance - "+tokenOwnerRecord.toBase58()+" "+txBlockTime.format(''));
+                    
                     owner.firstTransactionDate = ftd;
                 }
             }
@@ -1194,11 +1196,11 @@ const getFirstTransactionDate = async(walletAddress:string) => {
     if (transactionHistory.length === 0) {
       return null;
     }
-  
-    const firstTransactionSignature = transactionHistory[transactionHistory.length - 1].signature;
-    const transactionDetails = await connection.getConfirmedTransaction(firstTransactionSignature);
-    
 
+    const firstTransactionSignature = transactionHistory[transactionHistory.length - 1].signature;
+    //const transactionDetails = await connection.getConfirmedTransaction(firstTransactionSignature);
+    const transactionDetails = (await connection.getParsedTransaction(firstTransactionSignature, 'confirmed'));
+    
     //const txBlockTime = moment.unix(transactionDetails.blockTime);
     //console.log("txBlockTime: "+txBlockTime.format('YYYY-MM-DD HH:mm'))
     //const txSlot = moment.unix(transactionDetails.slot);
