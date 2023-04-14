@@ -1199,7 +1199,7 @@ const getFirstTransactionDate = async(walletAddress:string) => {
 
     const firstTransactionSignature = transactionHistory[transactionHistory.length - 1].signature;
     //const transactionDetails = await connection.getConfirmedTransaction(firstTransactionSignature);
-    const transactionDetails = (await connection.getParsedTransaction(firstTransactionSignature, 'confirmed'));
+    const transactionDetails = (await connection.getParsedTransaction(firstTransactionSignature, {"commitment":"confirmed","maxSupportedTransactionVersion":0}));
     
     //const txBlockTime = moment.unix(transactionDetails.blockTime);
     //console.log("txBlockTime: "+txBlockTime.format('YYYY-MM-DD HH:mm'))
