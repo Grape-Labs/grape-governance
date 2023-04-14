@@ -307,7 +307,7 @@ function RenderVoterRecordTable(props:any) {
                 )
             }
         },
-        { field: 'firstwallettransactiondate', headerName: 'Age of Wallet', width: 200, hide: false, align: 'right',
+        { field: 'firstwallettransactiondate', headerName: 'Wallet Age', width: 200, hide: false, align: 'right',
             renderCell: (params) => {
                 return(
                     <>
