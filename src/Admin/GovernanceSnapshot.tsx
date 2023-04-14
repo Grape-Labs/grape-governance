@@ -58,6 +58,7 @@ import { ShdwDrive, ShadowFile } from "@shadow-drive/sdk";
 import {
     fetchGovernanceLookupFile,
     fetchLookupFile,
+    getFileFromLookup,
     formatBytes,
     loadWalletKey
 } from '../GovernanceCached/CachedStorageHelpers'; 
@@ -227,7 +228,7 @@ const fetchGovernanceVaults = async(grealm:any) => {
     return rawGovernances;
 }
 
-const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet: any, setPrimaryStatus: any, setStatus: any) => {
+const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, wallet: any, setPrimaryStatus: any, setStatus: any) => {
     //const finalList = new Array();
     //setLoading(true);
     //setProposals(null);
@@ -667,7 +668,14 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet:
         // get unique members
         const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
         //setMemberMap(rawTokenOwnerRecords);
+        // fetch current records if available
+        let cached_members = new Array();
+        if (governanceLookupItem?.memberFilename){
+            cached_members = await getFileFromLookup(governanceLookupItem.memberFilename, storagePool);
+        }
 
+
+        // check token owner records
         let mcount = 0;
         for (const owner of rawTokenOwnerRecords){
             mcount++;
@@ -675,10 +683,30 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, wallet:
             const tokenOwnerRecord = owner.account.governingTokenOwner;
             
             const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account?.communityMint});
-            
+
             //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
             if (balance?.value[0]?.account?.data?.parsed?.info)    
                 owner.walletBalance = balance.value[0].account.data.parsed.info;
+
+            // IMPORTANT to speed this up check first tx for mmember wallet...
+
+            var hasFtd = false;
+            for (const cachedOwner of cached_members){ // smart fetching so we do not query this call again
+                if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord){
+                    if (cachedOwner?.firstTransactionDate)
+                        hasFtd = true;
+                }
+            }
+
+            if (!hasFtd){
+                let ftd = await getFirstTransactionDate(tokenOwnerRecord.toBase58());
+                if (ftd){
+                    const txBlockTime = moment.unix(ftd)
+                    console.log("First Transaction Date "+tokenOwnerRecord.toBase58()+": "+txBlockTime.format(''));
+                    owner.firstTransactionDate = ftd;
+                }
+            }
+
         }
 
         if (setPrimaryStatus) setPrimaryStatus("Fetching All Proposals");
@@ -1169,13 +1197,20 @@ const getFirstTransactionDate = async(walletAddress:string) => {
   
     const firstTransactionSignature = transactionHistory[transactionHistory.length - 1].signature;
     const transactionDetails = await connection.getConfirmedTransaction(firstTransactionSignature);
-  
-    return new Date(transactionDetails.slot * 1000);
+    
+
+    //const txBlockTime = moment.unix(transactionDetails.blockTime);
+    //console.log("txBlockTime: "+txBlockTime.format('YYYY-MM-DD HH:mm'))
+    //const txSlot = moment.unix(transactionDetails.slot);
+    //console.log("txSlot: "+txSlot.format('YYYY-MM-DD HH:mm'))
+
+    //return new Date(transactionDetails.slot * 1000);
+    return transactionDetails.blockTime;
   }
   
 
 // STEP 1.
-const processGovernance = async(address:string, sent_realm:any, tokenMap: any, currentWallet: any, setPrimaryStatus: any, setStatus: any) => {
+const processGovernance = async(address:string, sent_realm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, currentWallet: any, setPrimaryStatus: any, setStatus: any) => {
     // Second drive creation (otherwise wallet is not connected when done earlier)
     if (address){
         let fgovernance = null;
@@ -1185,7 +1220,7 @@ const processGovernance = async(address:string, sent_realm:any, tokenMap: any, c
             grealm = await fetchRealm(address);
 
             
-        fgovernance = await fetchGovernance(address, grealm, tokenMap, currentWallet, setPrimaryStatus, setStatus);
+        fgovernance = await fetchGovernance(address, grealm, tokenMap, governanceLookupItem, storagePool, currentWallet, setPrimaryStatus, setStatus);
         
         return fgovernance;
     }
@@ -1221,7 +1256,7 @@ const processProposals = async(address:string, finalList:any, forceSkip:boolean,
             exportFile(fpd.finalList, null, fileName);
             const proposalsString = JSON.stringify(fpd.finalList);
             
-            // do teh following to get the members
+            // do following to get the members
 
             const usingMemberMap = governanceData?.memberMap;
             const membersString = JSON.stringify(usingMemberMap);
@@ -1936,7 +1971,7 @@ const processGovernanceUploadSnapshotAll = async(force:boolean, address: string,
                 if (setBatchStatus) setBatchStatus("Fetching Governance ("+(count+1)+" of "+governanceLookup.length+"): "+item.governanceName+" "+item.governanceAddress+" "+elapsedDuration.humanize()+"");
                 
                 const grealm = await fetchRealm(item.governanceAddress);
-                const governanceData = await processGovernance(item.governanceAddress, grealm, tokenMap, currentWallet, setPrimaryStatus, setStatus);
+                const governanceData = await processGovernance(item.governanceAddress, grealm, tokenMap, item, storagePool, currentWallet, setPrimaryStatus, setStatus);
                 const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData, connection, tokenMap, storagePool, governanceLookup, setStatus, setProgress);
 
                 //console.log("processedFiles.proposalsString "+JSON.stringify(processedFiles.proposalsString))
@@ -1953,7 +1988,7 @@ const processGovernanceUploadSnapshotAll = async(force:boolean, address: string,
             if (setBatchStatus) setBatchStatus("Adding Governance: "+address+"");
             
             const grealm = await fetchRealm(address);
-            const governanceData = await processGovernance(address, grealm, tokenMap, currentWallet, setPrimaryStatus, setStatus);
+            const governanceData = await processGovernance(address, grealm, tokenMap, null, storagePool, currentWallet, setPrimaryStatus, setStatus);
             const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData, connection, tokenMap, storagePool, governanceLookup, setStatus, setProgress);
 
             //console.log("processedFiles.proposalsString "+JSON.stringify(processedFiles.proposalsString))
@@ -1982,21 +2017,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [primaryStatus, setPrimaryStatus] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
     const [fileGenerated, setFileGenerated] = React.useState(null);
-    const [stringGenerated, setStringGenerated] = React.useState(null);
-    const [membersStringGenerated, setMembersStringGenerated] = React.useState(null);
-    const [transactionsStringGenerated, setTransactionsStringGenerated] = React.useState(null);
-    const [vaultsStringGenerated, setVaultsStringGenerated] = React.useState(null);
     const [governanceAddress, setGovernanceAddress] = React.useState(null);
-    const [governanceName, setGovernanceName] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(null);
-    const [memberMap, setMemberMap] = React.useState(null);
-    const [governanceTransactions, setGovernanceTransactions] = React.useState(null);
-    const [lastProposalDate, setLastProposalDate] = React.useState(null);
-    const [totalProposals, setTotalProposals] = React.useState(null);
-    const [totalProposalsVoting, setTotalProposalsVoting] = React.useState(null);
     const [currentUploadInfo, setCurrentUploadInfo] = React.useState(null);
-    const [realm, setRealm] = React.useState(null);
-    const MIN = 0;
     const [thisDrive, setThisDrive] = React.useState(null);
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [governanceAutocomplete, setGovernanceAutocomplete] = React.useState(null);
