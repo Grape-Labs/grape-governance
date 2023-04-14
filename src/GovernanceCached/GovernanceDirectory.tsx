@@ -209,10 +209,10 @@ export function GovernanceDirectoryView() {
     const [loading, setLoading] = React.useState(false);
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [searchFilter, setSearchFilter] = React.useState(null);
-    const [governanceTotalLastVaultValue, setGovernanceTotalLastVaultValue] = React.useState(null);
-    const [governanceTotalLastVaultStableCoinValue, setGovernanceTotalLastVaultStableCoinValue] = React.useState(null);
-    const [governanceTotalLastMembers, setGovernanceTotalLastMembers] = React.useState(null);
-    const [governanceTotalLastProposals, setGovernanceTotalLastProposals] = React.useState(null);
+    const [governanceLastVaultValue, setGovernanceLastVaultValue] = React.useState(null);
+    const [governanceLastVaultStableCoinValue, setGovernanceLastVaultStableCoinValue] = React.useState(null);
+    const [governanceLastMembers, setGovernanceLastMembers] = React.useState(null);
+    const [governanceLastProposals, setGovernanceLastProposals] = React.useState(null);
     
     
     const [governanceTotalVaultValue, setGovernanceTotalVaultValue] = React.useState(null);
@@ -384,10 +384,10 @@ export function GovernanceDirectoryView() {
                 
             }
 
-            setGovernanceTotalLastVaultValue(lastVaultValue);
-            setGovernanceTotalLastVaultStableCoinValue(lastVaultStableCoinValue);
-            setGovernanceTotalLastMembers(lastGovernanceMembers);
-            setGovernanceTotalLastProposals(lastGovernanceProposals);
+            setGovernanceLastVaultValue(lastVaultValue);
+            setGovernanceLastVaultStableCoinValue(lastVaultStableCoinValue);
+            setGovernanceLastMembers(lastGovernanceMembers);
+            setGovernanceLastProposals(lastGovernanceProposals);
 
 
             setGovernanceTotalVaultValue(totalVaultValue);
@@ -514,7 +514,7 @@ export function GovernanceDirectoryView() {
                                         <>Total Treasury Value</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            The total deposited in all SPL Governance accounts<br/>Last Fetch: {governanceTotalLastVaultValue ? `$${getFormattedNumberToLocale(Number(governanceTotalLastVaultValue.toFixed(2)))}` : 0}
+                                            The total deposited in all SPL Governance accounts<br/>Last Fetch: {governanceLastVaultValue ? `$${getFormattedNumberToLocale(Number(governanceLastVaultValue.toFixed(2)))}` : 0}
                                             </>
                                         }>
                                         <Button
@@ -549,7 +549,7 @@ export function GovernanceDirectoryView() {
                                         <>Total in Stable Coins</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            The total value of stable coins deposited in SPL Governance (USDC, USDT, PAI)<br/>Last Fetch: {governanceTotalLastVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceTotalLastVaultStableCoinValue.toFixed(2)))}` : 0}
+                                            The total value of stable coins deposited in SPL Governance (USDC, USDT, PAI)<br/>Last Fetch: {governanceLastVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceLastVaultStableCoinValue.toFixed(2)))}` : 0}
                                             </>
                                         }>
                                         <Button
@@ -584,7 +584,7 @@ export function GovernanceDirectoryView() {
                                         <>Members</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            All time members throughout all governances<br/>Last Fetch: {governanceTotalLastMembers ? getFormattedNumberToLocale(governanceTotalLastMembers) : 0}
+                                            All time members throughout all governances<br/>Last Fetch: {governanceLastMembers ? getFormattedNumberToLocale(governanceLastMembers) : 0}
                                             </>
                                         }>
                                         <Button
@@ -620,7 +620,7 @@ export function GovernanceDirectoryView() {
                                         <>Proposals</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            All time proposals from all governances<br/>Last Fetch: {governanceTotalLastProposals ? getFormattedNumberToLocale(governanceTotalLastProposals) : 0}
+                                            All time proposals from all governances<br/>Last Fetch: {governanceLastProposals ? getFormattedNumberToLocale(governanceLastProposals) : 0}
                                             </>
                                         }>
                                         <Button

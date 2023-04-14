@@ -1546,7 +1546,6 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
 
                 if (item.governanceAddress === address){
                     item.version++;
-                    item.timestamp = timestamp;
                     item.filename = govFileName;
                     item.memberFilename = memberFileName;
                     item.governanceTransactionsFilename = governanceTransactionsFileName;
@@ -1570,6 +1569,7 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                     item.lastVaultValue = freshGovernanceLookup.totalVaultValue;
                     item.lastVaultStableCoinValue = freshGovernanceLookup.totalVaultStableCoinValue;
                     item.lastVaultNftValue = freshGovernanceLookup.totalVaultNftValue;
+                    item.timestamp = timestamp;
                     item.totalMembers = governanceFetchedDetails?.memberMap.length || null;
                     item.totalVaultValue = governanceFetchedDetails?.totalVaultValue;
                     item.totalVaultStableCoinValue = governanceFetchedDetails?.totalVaultStableCoinValue;
