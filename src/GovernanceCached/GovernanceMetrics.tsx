@@ -307,6 +307,21 @@ function RenderVoterRecordTable(props:any) {
                 )
             }
         },
+        { field: 'firstwallettransactiondate', headerName: 'Age of Wallet', width: 200, hide: false, align: 'right',
+            renderCell: (params) => {
+                return(
+                    <>
+                        {params.value ?
+                            <>
+                                {moment.unix(Number(params.value)).format("YYYY-MM-DD HH:mm")}
+                            </>
+                        :
+                            <>-</>
+                        }
+                    </>
+                )
+            }
+        },
         { field: 'totalproposalscreated', headerName: 'Proposals Created', width: 170, hide: false, align: 'right',},
         { field: 'communitypropcreatorpassed', headerName: 'Community Proposals Created & Passed', width: 170, hide: false, align: 'right',},
         { field: 'councilpropcreatorpassed', headerName: 'Council Proposals Created & Passed', width: 170, hide: false, align: 'right',},
@@ -635,6 +650,7 @@ function RenderVoterRecordTable(props:any) {
                     firstparticipationdate: null,
                     lastcommunityproposalcreated: null,
                     lastcouncilproposalcreated: null,
+                    firstwallettransactiondate: memberItem?.firstTransactionDate ? memberItem.firstTransactionDate : null,
                     successfullcasts: 0,
                     councilpropcreatorpassed: 0,
                     communitypropcreatorpassed: 0,
