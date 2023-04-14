@@ -699,6 +699,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             }
 
             if (!hasFtd){
+            //{
                 let ftd = await getFirstTransactionDate(tokenOwnerRecord.toBase58());
                 if (ftd){
                     const txBlockTime = moment.unix(ftd)
@@ -1191,23 +1192,55 @@ const getGovernanceProps = async (thisitem: any, this_realm: any, connection: Co
 const getFirstTransactionDate = async(walletAddress:string) => {
     const connection = RPC_CONNECTION;
     const publicKey = new PublicKey(walletAddress);
-    const transactionHistory = await connection.getConfirmedSignaturesForAddress2(publicKey);
+    //const transactionHistory = await connection.getConfirmedSignaturesForAddress2(publicKey, { limit: 1 });
   
-    if (transactionHistory.length === 0) {
+    let signaturesArray = [];
+    let pullAttempts = 0;
+    let isEmpty = false;
+    while (!isEmpty) {
+        try {
+            const lastSignature = signaturesArray[signaturesArray.length - 1];
+            const requestSignatures = await connection.getConfirmedSignaturesForAddress2(publicKey, {
+                before: lastSignature,
+                limit: 1000
+            });
+
+            if (!(requestSignatures.length > 0)) {
+                //pullAttempts++;
+                //if (pullAttempts >= 3) {
+                    isEmpty = true;
+                //}
+            } else {
+                const newlyFetchedSignatureArray = requestSignatures.map(data => data.signature);
+                signaturesArray = signaturesArray.concat(newlyFetchedSignatureArray);
+            }
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
+
+    if (signaturesArray.length === 0) {
       return null;
     }
 
-    const firstTransactionSignature = transactionHistory[transactionHistory.length - 1].signature;
+    //console.log("signaturesArray: "+JSON.stringify(signaturesArray))
+    const firstTransactionSignature = signaturesArray[signaturesArray.length - 1];
+    //console.log("firstTransactionSignature: "+JSON.stringify(firstTransactionSignature))
     //const transactionDetails = await connection.getConfirmedTransaction(firstTransactionSignature);
-    const transactionDetails = (await connection.getParsedTransaction(firstTransactionSignature, {"commitment":"confirmed","maxSupportedTransactionVersion":0}));
-    
-    //const txBlockTime = moment.unix(transactionDetails.blockTime);
-    //console.log("txBlockTime: "+txBlockTime.format('YYYY-MM-DD HH:mm'))
-    //const txSlot = moment.unix(transactionDetails.slot);
-    //console.log("txSlot: "+txSlot.format('YYYY-MM-DD HH:mm'))
+    if (firstTransactionSignature){    
+        const transactionDetails = (await connection.getParsedTransaction(firstTransactionSignature, {"commitment":"confirmed","maxSupportedTransactionVersion":0}));
+        
+        const txBlockTime = moment.unix(transactionDetails.blockTime);
+        //console.log("txBlockTime: "+txBlockTime.format('YYYY-MM-DD HH:mm'))
+        //const txSlot = moment(new Date(transactionDetails.slot * 1000));
+        //console.log("txSlot: "+txSlot.format('YYYY-MM-DD HH:mm'))
 
-    //return new Date(transactionDetails.slot * 1000);
-    return transactionDetails.blockTime;
+        //return new Date(transactionDetails.slot * 1000);
+        return transactionDetails.blockTime;
+    } else{
+        return null;
+    }
   }
   
 
