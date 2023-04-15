@@ -695,10 +695,12 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
             var hasFtd = false;
             if (cached_members && cached_members.length > 0){
-                for (const cachedOwner of cached_members){ // smart fetching so we do not query this call again
+                for (let cachedOwner of cached_members){ // smart fetching so we do not query this call again
                     if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord.toBase58()){
-                        if (cachedOwner?.firstTransactionDate)
+                        if (cachedOwner?.firstTransactionDate){
+                            owner.firstTransactionDate = cachedOwner.firstTransactionDate;
                             hasFtd = true;
+                        }
                         console.log("Found record: "+cachedOwner.account.governingTokenOwner + " - "+cachedOwner?.firstTransactionDate)
                     }
                 }
@@ -709,10 +711,9 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 let ftd = await getFirstTransactionDate(tokenOwnerRecord.toBase58());
                 if (ftd){
                     const txBlockTime = moment.unix(ftd)
-                    console.log("First Transaction Date for "+tokenOwnerRecord.toBase58()+": "+txBlockTime.format(''));
-                    if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance - "+tokenOwnerRecord.toBase58()+" "+txBlockTime.format(''));
-                    
                     owner.firstTransactionDate = ftd;
+                    console.log("First Transaction Date for "+tokenOwnerRecord.toBase58()+": "+txBlockTime.format('llll'));
+                    if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance - "+tokenOwnerRecord.toBase58()+" "+txBlockTime.format(''));
                 }
             }
 
