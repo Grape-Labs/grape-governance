@@ -30,6 +30,7 @@ import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/he
 
 import {
     fetchGovernanceLookupFile,
+    fetchGovernanceMasterMembersFile,
     getFileFromLookup
 } from './CachedStorageHelpers'; 
 
@@ -218,6 +219,7 @@ export function GovernanceDirectoryView() {
     const [governanceTotalVaultValue, setGovernanceTotalVaultValue] = React.useState(null);
     const [governanceTotalVaultStableCoinValue, setGovernanceTotalVaultStableCoinValue] = React.useState(null);
     const [governanceTotalMembers, setGovernanceTotalMembers] = React.useState(null);
+    const [governanceTotalVotingRecordMembers, setGovernanceTotalVotingRecordMembers] = React.useState(null);
     const [governanceTotalProposals, setGovernanceTotalProposals] = React.useState(null);
     const [sortingType, setSortingType] = React.useState(null);
     const [sortingDirection, setSortingDirection] = React.useState(null);
@@ -346,6 +348,12 @@ export function GovernanceDirectoryView() {
 
     const callGovernanceLookup = async() => {
         const fglf = await fetchGovernanceLookupFile(storagePool);
+
+        const fgmmf = await fetchGovernanceMasterMembersFile(storagePool);
+
+        if (fgmmf && fgmmf.length > 0)
+            console.log("Master Members ("+fgmmf.length+"): "+JSON.stringify(fgmmf));
+
         // pre sort
         const exportFglf = new Array();
         if (fglf && fglf.length > 0){
@@ -373,7 +381,7 @@ export function GovernanceDirectoryView() {
                 totalGovernanceMembers += item.totalMembers;
                 totalGovernanceProposals += item?.totalProposals ? item.totalProposals : 0;
 
-                console.log("item "+JSON.stringify(item));
+                //console.log("item "+JSON.stringify(item));
 
                 if (item?.lastVaultValue)
                     lastVaultValue += +item.lastVaultValue;
@@ -391,11 +399,15 @@ export function GovernanceDirectoryView() {
             setGovernanceLastMembers(lastGovernanceMembers);
             setGovernanceLastProposals(lastGovernanceProposals);
 
-
             setGovernanceTotalVaultValue(totalVaultValue);
             setGovernanceTotalVaultStableCoinValue(totalVaultStableCoinValue);
-            setGovernanceTotalMembers(totalGovernanceMembers);
+            setGovernanceTotalVotingRecordMembers(totalGovernanceMembers);
             setGovernanceTotalProposals(totalGovernanceProposals);
+
+            if (fgmmf && fgmmf.length > 0)
+                setGovernanceTotalMembers(fgmmf.length)
+            else
+                setGovernanceTotalMembers(totalGovernanceMembers)
 
             
             // export
@@ -423,14 +435,13 @@ export function GovernanceDirectoryView() {
             */
         }
 
-        console.log("exportable: "+JSON.stringify(exportFglf));
+        //console.log("exportable: "+JSON.stringify(exportFglf));
         setLoading(false);
     }
 
     React.useEffect(() => {
         if (!governanceLookup){
             setLoading(true);
-            console.log("Step 1.")
             callGovernanceLookup();
         }
     }, []);
@@ -583,10 +594,12 @@ export function GovernanceDirectoryView() {
                                     }}
                                 >
                                     <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
-                                        <>Members</>
+                                        <>Unique Voters</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            All time members throughout all governances<br/>Last Fetch: {governanceLastMembers ? getFormattedNumberToLocale(governanceLastMembers) : 0}
+                                            All time members throughout all governances
+                                            <br/>Voting Records: {governanceTotalVotingRecordMembers ? getFormattedNumberToLocale(governanceTotalVotingRecordMembers) : 0}
+                                            <br/>Last Fetch Voting Records: {governanceLastMembers ? getFormattedNumberToLocale(governanceLastMembers) : 0}
                                             </>
                                         }>
                                         <Button
@@ -601,6 +614,7 @@ export function GovernanceDirectoryView() {
                                             >
                                                 <Typography variant="h4">
                                                     {governanceTotalMembers ? getFormattedNumberToLocale(governanceTotalMembers) : 0}
+
                                                 </Typography>
                                             </Grid>
                                         </Button>

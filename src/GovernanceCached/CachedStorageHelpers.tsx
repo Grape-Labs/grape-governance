@@ -15,6 +15,33 @@ export const formatBytes = (bytes: any, decimals = 2) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
+export const fetchGovernanceMasterMembersFile = async(storagePool:string) => {
+    try{
+        const url = GGAPI_STORAGE_URI+"/"+storagePool+'/governance_mastermembers.json';
+        const response = await window.fetch(url, {
+            method: 'GET',
+            headers: {
+            }
+          });
+          
+          const compressed = await response.arrayBuffer(); //.text();
+          //const decompressed = compressed;
+          // if compressed we need to decompress:
+        try{
+            const decompressed = pako.inflate(new Uint8Array(compressed), { to: 'string' });
+            //let decompressed:any = pako.ungzip((compressed), {"to": "string"});
+            const json = decompressed === "" ? {} : JSON.parse(decompressed);
+            return json;
+        }catch(err){ 
+            console.log("err decompressed: "+JSON.stringify(compressed))
+            return null;
+        }
+    } catch(e){
+        console.log("ERR: "+e)
+        return null;
+    }
+}
+
 export const fetchGovernanceLookupFile = async(storagePool:string) => {
     try{
         const url = GGAPI_STORAGE_URI+"/"+storagePool+'/governance_lookup.json';

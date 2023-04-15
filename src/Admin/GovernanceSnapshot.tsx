@@ -359,7 +359,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     console.log("vaultsWithNftsPromise "+JSON.stringify(vaultsWithNftsPromise));
     
     // loop through all tokens to get their respective values
-
     
     const vaultsInflated = new Array();
     let x = 0;
@@ -679,7 +678,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             cached_members = await getFileFromLookup(governanceLookupItem.memberFilename, storagePool);
         }
 
-
         // check token owner records
         let mcount = 0;
         for (const owner of rawTokenOwnerRecords){
@@ -696,13 +694,16 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             // IMPORTANT to speed this up check first tx for mmember wallet...
 
             var hasFtd = false;
-            for (const cachedOwner of cached_members){ // smart fetching so we do not query this call again
-                if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord.toBase58()){
-                    if (cachedOwner?.firstTransactionDate)
-                        hasFtd = true;
+            if (cached_members && cached_members.length > 0){
+                for (const cachedOwner of cached_members){ // smart fetching so we do not query this call again
+                    if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord.toBase58()){
+                        if (cachedOwner?.firstTransactionDate)
+                            hasFtd = true;
+                        console.log("Found record: "+cachedOwner.account.governingTokenOwner + " - "+cachedOwner?.firstTransactionDate)
+                    }
                 }
             }
-            
+
             if (!hasFtd){
             //{
                 let ftd = await getFirstTransactionDate(tokenOwnerRecord.toBase58());
@@ -1199,6 +1200,7 @@ const getFirstTransactionDate = async(walletAddress:string) => {
     const publicKey = new PublicKey(walletAddress);
     //const transactionHistory = await connection.getConfirmedSignaturesForAddress2(publicKey, { limit: 1 });
     const pullLimit = 100; // this is a hard limit for now so we do not stall our requests
+    // wallet would be limited to 100k tx if more we should boost this
     let signaturesArray = [];
     let pullAttempts = 0;
     let pullRequests = 0;
@@ -1241,20 +1243,23 @@ const getFirstTransactionDate = async(walletAddress:string) => {
     //const transactionDetails = await connection.getConfirmedTransaction(firstTransactionSignature);
     if (firstTransactionSignature){    
         const transactionDetails = (await connection.getParsedTransaction(firstTransactionSignature, {"commitment":"confirmed","maxSupportedTransactionVersion":0}));
-        
-        const txBlockTime = moment.unix(transactionDetails.blockTime);
-        //console.log("txBlockTime: "+txBlockTime.format('YYYY-MM-DD HH:mm'))
-        //const txSlot = moment(new Date(transactionDetails.slot * 1000));
-        //console.log("txSlot: "+txSlot.format('YYYY-MM-DD HH:mm'))
+        if (transactionDetails?.blockTime){
+            const txBlockTime = moment.unix(transactionDetails.blockTime);
+            //console.log("txBlockTime: "+txBlockTime.format('YYYY-MM-DD HH:mm'))
+            //const txSlot = moment(new Date(transactionDetails.slot * 1000));
+            //console.log("txSlot: "+txSlot.format('YYYY-MM-DD HH:mm'))
 
-        //return new Date(transactionDetails.slot * 1000);
-        return transactionDetails.blockTime;
+            //return new Date(transactionDetails.slot * 1000);
+            return transactionDetails.blockTime;
+        } else{
+            return null;
+        }
     } else{
         return null;
     }
 }
 
-const generateMasterVoterRecord = async(connection: Connection, governanceLookup: any, storagePool: any) => {
+const generateMasterVoterRecord = async(connection: Connection, governanceLookup: any, storagePool: any, sentRealm: any) => {
 
     // 1. loop through all governances
     // 2. for each governance fetch the membersMap
@@ -1262,15 +1267,20 @@ const generateMasterVoterRecord = async(connection: Connection, governanceLookup
     // 4. this list will be used for global reporting
     const masterVoterRecord = new Array();
     for (const governance of governanceLookup){
-        if (governance?.address){
+        if (governance?.governanceAddress){
+
             // fetch governance file
             //getFileFromLookup
             let cached_members = new Array();
             if (governance?.memberFilename){
                 cached_members = await getFileFromLookup(governance.memberFilename, storagePool);
 
-                const grealm = await fetchRealm(governance.governanceAddress);
+                let grealm = sentRealm;
+                if (!grealm)
+                    grealm = await fetchRealm(governance.governanceAddress);
                 let governingTokenDecimals = 0;
+
+                //console.log("grealm: "+JSON.stringify(grealm));
                 
                 if (grealm.account?.communityMint){
                     let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account.communityMint))
@@ -1279,54 +1289,66 @@ const generateMasterVoterRecord = async(connection: Connection, governanceLookup
                 }
 
                 if (cached_members){ // check what to push
+                    
                     for (const cachedOwner of cached_members){
                         let firstTransactionDate = null;
                         let walletBalance = null;
-                        let address = cachedOwner.account.governingTokenOwner
+                        let address = cachedOwner.account.governingTokenOwner;
+                        let masterRecordFound = false;
                         if (cachedOwner?.firstTransactionDate)
                             firstTransactionDate = cachedOwner.firstTransactionDate;
-                        if (cachedOwner?.firstTransactionDate)
+                        if (cachedOwner?.walletBalance)
                             walletBalance = cachedOwner.walletBalance;
-                            
+                        
                         // check if master member exists
-                        for (const masterOwner of masterVoterRecord){
-                            if (masterOwner.address === address){
-                                masterOwner.participating.push({
-                                    governanceAddress: governance.governanceAddress,
-                                    governanceName: governance.governanceName,
-                                    staked:
-                                    {
-                                        governingTokenDepositAmount:(+((Number(cachedOwner.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
-                                        governingCouncilDepositAmount:((Number(cachedOwner.governingCouncilDepositAmount) > 0) ? Number(cachedOwner.governingCouncilDepositAmount) : 0),
-                                    },
-                                    unstaked:Number(walletBalance),
-                                })
-                            } else{
-                                masterOwner.push({
-                                    address:address,
-                                    firstTransactionDate:firstTransactionDate,
-                                    walletBalance:walletBalance,
-                                    participating:{
+                        if (masterVoterRecord && masterVoterRecord.length > 0){
+                            for (const masterOwner of masterVoterRecord){
+                                if (masterOwner.address === address){
+                                    masterRecordFound = true;
+                                    
+                                    masterOwner.participating.push({
                                         governanceAddress: governance.governanceAddress,
                                         governanceName: governance.governanceName,
                                         staked:
                                         {
-                                            governingTokenDepositAmount:(+((Number(cachedOwner.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
-                                            governingCouncilDepositAmount:((Number(cachedOwner.governingCouncilDepositAmount) > 0) ? Number(cachedOwner.governingCouncilDepositAmount) : 0),
+                                            governingTokenDepositAmount:(+((Number("0x"+cachedOwner.account.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
+                                            governingCouncilDepositAmount:((Number("0x"+cachedOwner.account.governingCouncilDepositAmount) > 0) ? Number(cachedOwner.account.governingCouncilDepositAmount) : 0),
                                         },
                                         unstaked:Number(walletBalance),
-                                    }
-                                })
+                                        rawRecord:cachedOwner
+                                    })
+
+                                }
                             }
+                        }
+                        if (!masterRecordFound){
+                            masterVoterRecord.push({
+                                address:address,
+                                firstTransactionDate:firstTransactionDate,
+                                walletBalance:walletBalance,
+                                participating:[{
+                                    governanceAddress: governance.governanceAddress,
+                                    governanceName: governance.governanceName,
+                                    staked:
+                                    {
+                                        governingTokenDepositAmount:(+((Number("0x"+cachedOwner.account.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
+                                        governingCouncilDepositAmount:((Number("0x"+cachedOwner.account.governingCouncilDepositAmount) > 0) ? Number(cachedOwner.account.governingCouncilDepositAmount) : 0),
+                                    },
+                                    unstaked:Number(walletBalance),
+                                    rawRecord:cachedOwner
+                                }]
+                            })
                         }
                     }
                 }
             }
         }
+        
     }
 
+    //console.log("masterVoterRecord: "+JSON.stringify(masterVoterRecord));
 
-    return null;
+    return masterVoterRecord;
 }
   
 
@@ -1668,6 +1690,30 @@ const deleteStoragePoolFile = async (drive:any, storagePublicKey: PublicKey, fil
     } 
 }
 
+const updateGovernanceMasterMembersFile = async(drive: any, connection: Connection, governanceLookup: any, storagePool: string, sentRealm: any, masterMembersFound: boolean, setCurrentUploadInfo: any, enqueueSnackbar:any, closeSnackbar:any) => {
+    const storageAccountPK = storagePool;
+    const masterVoterRecordArray = await generateMasterVoterRecord(connection, governanceLookup, storagePool, sentRealm);
+    //console.log("masterVoterRecordArray: "+JSON.stringify(masterVoterRecordArray));
+    const fileName = "governance_mastermembers.json";
+    const uploadFile = await returnJSON(JSON.stringify(masterVoterRecordArray), fileName);
+    console.log("upload ("+masterMembersFound+"): "+JSON.stringify(uploadFile));
+
+    const fileSize  = uploadFile.size;
+    const fileStream = blobToFile(uploadFile, fileName);
+    
+    if (masterMembersFound){ // replace
+        console.log("Replacing Governance Master Members");
+        if (setCurrentUploadInfo) setCurrentUploadInfo("Replacing "+fileName+" - "+formatBytes(fileSize));
+        const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+fileName;
+        console.log("storageAccountFile "+storageAccountFile);
+        console.log("storageAccountPK "+storageAccountPK);
+        await uploadReplaceToStoragePool(drive, fileStream, storageAccountFile, new PublicKey(storageAccountPK), 'v2', fileName, enqueueSnackbar, closeSnackbar);
+    }else{ // add
+        if (setCurrentUploadInfo) setCurrentUploadInfo("Adding "+fileName+" - "+formatBytes(fileSize));
+        await uploadToStoragePool(drive, fileStream, new PublicKey(storageAccountPK), fileName, enqueueSnackbar, closeSnackbar);
+    }
+}
+
 const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: string, governanceFetchedDetails: any, ggv:any, fileName:string, memberFileName:string, governanceTransactionsFileName: string, governanceVaultsFileName: string, timestamp:number, lookupFound:boolean, storagePool: any, connection: Connection, governanceLookup: any, setCurrentUploadInfo: any, governanceAutocomplete: any, setGovernanceLookup: any, enqueueSnackbar: any, closeSnackbar: any) => {
     // this should be called each time we update with governance
     const storageAccountPK = storagePool;
@@ -1954,6 +2000,7 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
             let foundTransactions = false;
             let foundVaults = false;
             let lookupFound = false;
+            let masterMembersFound = false;
             try{
                 console.log("storageAccountPK: "+JSON.stringify(storageAccountPK))
                 const response = await thisDrive.listObjects(new PublicKey(storageAccountPK))
@@ -1970,6 +2017,8 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
                             foundVaults = true;
                         } else if (item === 'governance_lookup.json'){
                             lookupFound = true;
+                        } else if (item === 'governance_mastermembers.json'){
+                            masterMembersFound = true;
                         }
                     }
                 }
@@ -1979,8 +2028,12 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
                 
                 await updateGovernanceLookupFile(drive, sentRealm, address, governanceFetchedDetails, ggv, fileName, memberFileName, governanceTransactionsFileName, governanceVaultsFileName, timestamp, lookupFound, storagePool, connection, governanceLookup, setCurrentUploadInfo, governanceAutocomplete, setGovernanceLookup, enqueueSnackbar, closeSnackbar);
 
+                // update master members
+                console.log("2. Storage Pool: "+storageAccountPK+" | MasterMembers");
+                await updateGovernanceMasterMembersFile(drive, connection, governanceLookup, storagePool, sentRealm, masterMembersFound, setCurrentUploadInfo, enqueueSnackbar, closeSnackbar);
+                
                 // proceed to add propsals
-                console.log("2. Storage Pool: "+storageAccountPK+" | File ("+fileName+") found: "+JSON.stringify(found));
+                console.log("3. Storage Pool: "+storageAccountPK+" | File ("+fileName+") found: "+JSON.stringify(found));
                 
                 const proposalFileStream = blobToFile(uploadProposalFile, fileName);
                 const proposalFileSize  = uploadProposalFile.size;
@@ -1999,7 +2052,7 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
                 }
 
                 // proceed to add members
-                console.log("3. Storage Pool: "+storageAccountPK+" | Members ("+memberFileName+") found: "+JSON.stringify(foundMembers));
+                console.log("4. Storage Pool: "+storageAccountPK+" | Members ("+memberFileName+") found: "+JSON.stringify(foundMembers));
                 
                 const membersFileStream = blobToFile(uploadMembersFile, memberFileName);
                 const memberFileSize  = uploadMembersFile.size;
@@ -2013,7 +2066,7 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
                 }
 
                 // proceed to add transactions
-                console.log("4. Storage Pool: "+storageAccountPK+" | Transactions ("+governanceTransactionsFileName+") found: "+JSON.stringify(foundTransactions));
+                console.log("5. Storage Pool: "+storageAccountPK+" | Transactions ("+governanceTransactionsFileName+") found: "+JSON.stringify(foundTransactions));
                 
                 const transactionsFileStream = blobToFile(uploadTransactionsFile, governanceTransactionsFileName);
                 const transactionsFileSize  = uploadTransactionsFile.size;
@@ -2027,7 +2080,7 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
                 }
 
                 // proceed to add vaults
-                console.log("5. Storage Pool: "+storageAccountPK+" | Vaults ("+governanceVaultsFileName+") found: "+JSON.stringify(foundVaults));
+                console.log("6. Storage Pool: "+storageAccountPK+" | Vaults ("+governanceVaultsFileName+") found: "+JSON.stringify(foundVaults));
                 
                 const vaultsFileStream = blobToFile(uploadVaultsFile, governanceVaultsFileName);
                 const vaultsFileSize  = uploadVaultsFile.size;
