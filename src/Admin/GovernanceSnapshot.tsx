@@ -244,20 +244,25 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     //console.log("Governance: "+JSON.stringify(grealm));
 
     let gTD = null;
-    if (tokenMap.get(grealm.account?.communityMint.toBase58())){
-        //setGovernanceType(0);
-        gTD = tokenMap.get(grealm.account?.communityMint.toBase58()).decimals;
-        //setGoverningTokenDecimals(gTD);
-    } else{
-        const btkn = await getBackedTokenMetadata(grealm.account?.communityMint.toBase58(), wallet);
-        if (btkn){
-            //setGovernanceType(1);
-            gTD = btkn.decimals;
-            //setGoverningTokenDecimals(gTD)
-        } else{
-            //setGovernanceType(2);
-            gTD = 0;
+    let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account?.communityMint))
+    //console.log("tokenDetails: "+JSON.stringify(tokenDetails))
+    gTD = tokenDetails.value.data.parsed.info.decimals;
+    if (!gTD){
+        if (tokenMap.get(grealm.account?.communityMint.toBase58())){
+            //setGovernanceType(0);
+            gTD = tokenMap.get(grealm.account?.communityMint.toBase58()).decimals;
             //setGoverningTokenDecimals(gTD);
+        } else{
+            const btkn = await getBackedTokenMetadata(grealm.account?.communityMint.toBase58(), wallet);
+            if (btkn){
+                //setGovernanceType(1);
+                gTD = btkn.decimals;
+                //setGoverningTokenDecimals(gTD)
+            } else{
+                //setGovernanceType(2);
+                gTD = 0;
+                //setGoverningTokenDecimals(gTD);
+            }
         }
     }
 
@@ -697,7 +702,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         hasFtd = true;
                 }
             }
-
+            
             if (!hasFtd){
             //{
                 let ftd = await getFirstTransactionDate(tokenOwnerRecord.toBase58());
@@ -1193,9 +1198,10 @@ const getFirstTransactionDate = async(walletAddress:string) => {
     const connection = RPC_CONNECTION;
     const publicKey = new PublicKey(walletAddress);
     //const transactionHistory = await connection.getConfirmedSignaturesForAddress2(publicKey, { limit: 1 });
-  
+    const pullLimit = 100; // this is a hard limit for now so we do not stall our requests
     let signaturesArray = [];
     let pullAttempts = 0;
+    let pullRequests = 0;
     let isEmpty = false;
     while (!isEmpty) {
         try {
@@ -1204,16 +1210,21 @@ const getFirstTransactionDate = async(walletAddress:string) => {
                 before: lastSignature,
                 limit: 1000
             });
+            
 
+            if (pullRequests > pullLimit) {
+                isEmpty = true;
+            }
+            
+            console.log("pullRequests: "+pullRequests);
             if (!(requestSignatures.length > 0)) {
-                //pullAttempts++;
-                //if (pullAttempts >= 3) {
-                    isEmpty = true;
-                //}
+                pullAttempts++;
+                isEmpty = true;
             } else {
                 const newlyFetchedSignatureArray = requestSignatures.map(data => data.signature);
                 signaturesArray = signaturesArray.concat(newlyFetchedSignatureArray);
             }
+            pullRequests++;
         }
         catch (e) {
             console.log(e);
@@ -1241,7 +1252,82 @@ const getFirstTransactionDate = async(walletAddress:string) => {
     } else{
         return null;
     }
-  }
+}
+
+const generateMasterVoterRecord = async(connection: Connection, governanceLookup: any, storagePool: any) => {
+
+    // 1. loop through all governances
+    // 2. for each governance fetch the membersMap
+    // 3. Append to a new array of members and add if member is not present
+    // 4. this list will be used for global reporting
+    const masterVoterRecord = new Array();
+    for (const governance of governanceLookup){
+        if (governance?.address){
+            // fetch governance file
+            //getFileFromLookup
+            let cached_members = new Array();
+            if (governance?.memberFilename){
+                cached_members = await getFileFromLookup(governance.memberFilename, storagePool);
+
+                const grealm = await fetchRealm(governance.governanceAddress);
+                let governingTokenDecimals = 0;
+                
+                if (grealm.account?.communityMint){
+                    let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account.communityMint))
+                    //console.log("tokenDetails: "+JSON.stringify(tokenDetails))
+                    governingTokenDecimals = tokenDetails.value.data.parsed.info.decimals;
+                }
+
+                if (cached_members){ // check what to push
+                    for (const cachedOwner of cached_members){
+                        let firstTransactionDate = null;
+                        let walletBalance = null;
+                        let address = cachedOwner.account.governingTokenOwner
+                        if (cachedOwner?.firstTransactionDate)
+                            firstTransactionDate = cachedOwner.firstTransactionDate;
+                        if (cachedOwner?.firstTransactionDate)
+                            walletBalance = cachedOwner.walletBalance;
+                            
+                        // check if master member exists
+                        for (const masterOwner of masterVoterRecord){
+                            if (masterOwner.address === address){
+                                masterOwner.participating.push({
+                                    governanceAddress: governance.governanceAddress,
+                                    governanceName: governance.governanceName,
+                                    staked:
+                                    {
+                                        governingTokenDepositAmount:(+((Number(cachedOwner.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
+                                        governingCouncilDepositAmount:((Number(cachedOwner.governingCouncilDepositAmount) > 0) ? Number(cachedOwner.governingCouncilDepositAmount) : 0),
+                                    },
+                                    unstaked:Number(walletBalance),
+                                })
+                            } else{
+                                masterOwner.push({
+                                    address:address,
+                                    firstTransactionDate:firstTransactionDate,
+                                    walletBalance:walletBalance,
+                                    participating:{
+                                        governanceAddress: governance.governanceAddress,
+                                        governanceName: governance.governanceName,
+                                        staked:
+                                        {
+                                            governingTokenDepositAmount:(+((Number(cachedOwner.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
+                                            governingCouncilDepositAmount:((Number(cachedOwner.governingCouncilDepositAmount) > 0) ? Number(cachedOwner.governingCouncilDepositAmount) : 0),
+                                        },
+                                        unstaked:Number(walletBalance),
+                                    }
+                                })
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    return null;
+}
   
 
 // STEP 1.
@@ -1901,7 +1987,6 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
 
                 //const allFileStreams = new Array();
                 //allFileStreams.push(proposalFileStream)
-
 
                 if (found){
                     const storageAccountFile = 'https://shdw-drive.genesysgo.net/'+storageAccountPK+'/'+fileName;
