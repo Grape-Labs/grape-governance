@@ -348,11 +348,7 @@ export function GovernanceDirectoryView() {
 
     const callGovernanceLookup = async() => {
         const fglf = await fetchGovernanceLookupFile(storagePool);
-
         const fgmmf = await fetchGovernanceMasterMembersFile(storagePool);
-
-        if (fgmmf && fgmmf.length > 0)
-            console.log("Master Members ("+fgmmf.length+"): "+JSON.stringify(fgmmf));
 
         // pre sort
         const exportFglf = new Array();
