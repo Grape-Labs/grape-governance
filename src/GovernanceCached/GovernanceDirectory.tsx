@@ -594,7 +594,7 @@ export function GovernanceDirectoryView() {
                                     </Typography>
                                     <Tooltip title={<>
                                             All time members throughout all governances
-                                            <br/>Voting Records: {governanceTotalVotingRecordMembers ? getFormattedNumberToLocale(governanceTotalVotingRecordMembers) : 0}
+                                            <br/>Current Voting Records: {governanceTotalVotingRecordMembers ? getFormattedNumberToLocale(governanceTotalVotingRecordMembers) : 0}
                                             <br/>Last Fetch Voting Records: {governanceLastMembers ? getFormattedNumberToLocale(governanceLastMembers) : 0}
                                             </>
                                         }>
