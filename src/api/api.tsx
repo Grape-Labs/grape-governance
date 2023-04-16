@@ -61,10 +61,6 @@ export function ApiView(props: any){
     const urlParams = searchParams.get("address") || handlekey;
     const governanceAddress = urlParams;
 
-    
-    console.log("handlekey "+handlekey)
-    console.log("governanceAddress "+governanceAddress)
-
     let governanceFilterType = querytype || 2;
     let daysAgo = +queryvar1 || 60;
     let startDate = moment(new Date()).subtract(daysAgo, "days");
@@ -74,6 +70,7 @@ export function ApiView(props: any){
     const governancePropsToUse = +queryvar1 || 2;
 
     const callGovernanceProposalswithLookup = async() => {
+        setLoading(true);
         const fglf = await fetchGovernanceLookupFile(storagePool);
         const withProp = new Array();
 
@@ -135,9 +132,8 @@ export function ApiView(props: any){
             }
             count++;
         }
-
-        
         setAddresses(particantAddresses)
+        setLoading(false);
     }
 
 
@@ -149,16 +145,21 @@ export function ApiView(props: any){
 
     return (
         <>
-        {addresses ?
+        {!loading ?
             <>
-                {addresses.map((item: any, index:number) => (
-                    <>{index>0 && `,`}{item}</>
-                ))}
+            {addresses ?
+                <>
+                    {addresses.map((item: any, index:number) => (
+                        <>{index>0 && `,`}{item}</>
+                    ))}
+                </>
+            :
+                <>
+                </>
+            }
             </>
-        :
-            <>
-            </>
-        }
+            :<>Loading</>
+            }
         </>
     );
 
