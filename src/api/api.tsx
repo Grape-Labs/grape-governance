@@ -56,10 +56,14 @@ export function ApiView(props: any){
     const {handlekey} = useParams<{ handlekey: string }>();
     const {querytype} = useParams<{ querytype: string }>();
     const {queryvar1} = useParams<{ queryvar1: string }>();
-    const {queryvar2} = useParams<{ queryvar2: string }>();
+    //const {queryvar2} = useParams<{ queryvar2: string }>();
 
-    const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
+    const urlParams = searchParams.get("address") || handlekey;
     const governanceAddress = urlParams;
+
+    
+    console.log("handlekey "+handlekey)
+    console.log("governanceAddress "+governanceAddress)
 
     let governanceFilterType = querytype || 2;
     let daysAgo = +queryvar1 || 60;
