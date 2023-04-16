@@ -161,7 +161,7 @@ function DashboardContent() {
               <Route path="/" element={
                 <Suspense fallback={renderLoader()}>
                   <ThemeProvider theme={grapeTheme}>
-                      <div className="">
+                      <div className="app-body">
                       <SnackbarProvider>
                           <ConnectionProvider endpoint={endpoint}>
                               <WalletProvider wallets={wallets} autoConnect>

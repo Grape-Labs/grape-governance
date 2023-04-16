@@ -13,7 +13,7 @@
 }
 
 
-html, body {
+html, body, .app-body {
   margin: 0;
   font-size-adjust: none;
   font-family: GrapeFont, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
