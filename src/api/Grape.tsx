@@ -68,7 +68,7 @@ export function ApiView(props: any){
         const fglf = await fetchGovernanceLookupFile(storagePool);
         const withProp = new Array();
 
-        let particantAddresses = "";
+        let particantAddresses = null;
         let governanceProposals = null;
         let cached_governance = null;
         let cached_members = null;
@@ -111,9 +111,7 @@ export function ApiView(props: any){
                 withProp.push(proposal);
                 
                 for (let votingResults of proposal.votingResults){
-                    if (particantAddresses && particantAddresses.length > 0)
-                        particantAddresses += ",";
-                    particantAddresses += new PublicKey(votingResults.governingTokenOwner).toBase58()
+                    particantAddresses.push(new PublicKey(votingResults.governingTokenOwner).toBase58())
                 //    console.log("results: "+JSON.stringify(votingResults))
                 }
             }
@@ -136,7 +134,7 @@ export function ApiView(props: any){
         {addresses ?
             <>
                 {addresses.map((item: any, index:number) => (
-                    <>{item}</>
+                    <>{index>0 && `,`}{item}</>
                 ))}
             </>
         :
