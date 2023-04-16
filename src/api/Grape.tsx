@@ -114,8 +114,14 @@ export function ApiView(props: any){
                 withProp.push(proposal);
                 
                 for (let votingResults of proposal.votingResults){
-                    particantAddresses.push(new PublicKey(votingResults.governingTokenOwner).toBase58())
-                //    console.log("results: "+JSON.stringify(votingResults))
+                    var found = false;
+                    for (let existingVoter of particantAddresses){ // supress duplicates
+                        if (existingVoter === new PublicKey(votingResults.governingTokenOwner).toBase58())
+                            found = true;
+                    }
+
+                    if (!found)
+                        particantAddresses.push(new PublicKey(votingResults.governingTokenOwner).toBase58())
                 }
             }
             count++;
