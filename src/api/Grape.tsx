@@ -67,7 +67,7 @@ export function ApiView(props: any){
     const callGovernanceProposalswithLookup = async() => {
         const fglf = await fetchGovernanceLookupFile(storagePool);
         const withProp = new Array();
-        
+
         let particantAddresses = "";
         let governanceProposals = null;
         let cached_governance = null;
@@ -135,7 +135,9 @@ export function ApiView(props: any){
         <>
         {addresses ?
             <>
-                {JSON.stringify(addresses)}
+                {addresses.map((item: any, index:number) => (
+                    <>{item}</>
+                ))}
             </>
         :
             <>

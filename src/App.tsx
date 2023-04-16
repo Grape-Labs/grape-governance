@@ -153,15 +153,15 @@ function DashboardContent() {
     <>
         <Router>
             <Routes>
+              
               <Route path="api/*" element={<ApiView />} >
                   <Route path=":handlekey" element={<ApiView />} />
               </Route>
 
-
               <Route path="/" element={
                 <Suspense fallback={renderLoader()}>
                   <ThemeProvider theme={grapeTheme}>
-                      <div className="grape-gradient-background">
+                      <div className="">
                       <SnackbarProvider>
                           <ConnectionProvider endpoint={endpoint}>
                               <WalletProvider wallets={wallets} autoConnect>
