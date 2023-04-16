@@ -9,7 +9,7 @@ import { GovernanceMetricsView } from "./GovernanceCached/GovernanceMetrics";
 import { GovernanceMembersView } from "./GovernanceCached/GovernanceMembers";
 import { GovernanceDirectoryView } from "./GovernanceCached/GovernanceDirectory";
 import { GovernanceReputationView } from "./GovernanceCached/GovernanceReputation";
-import { ApiView } from "./api/Grape";
+import { ApiView } from "./api/api";
 import CssBaseline from '@mui/material/CssBaseline';
 import { inject } from '@vercel/analytics';
 
@@ -155,7 +155,7 @@ function DashboardContent() {
             <Routes>
               
               <Route path="api/*" element={<ApiView />} >
-                  <Route path=":handlekey" element={<ApiView />} />
+                  <Route path=":handlekey/:querytype/:queryvar1/:queryvar2" element={<ApiView />} />
               </Route>
 
               <Route path="/*" element={

@@ -54,15 +54,20 @@ export function ApiView(props: any){
     const storagePool = GGAPI_STORAGE_POOL;
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
+    const {querytype} = useParams<{ querytype: string }>();
+    const {queryvar1} = useParams<{ queryvar1: string }>();
+    const {queryvar2} = useParams<{ queryvar2: string }>();
+
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
     const governanceAddress = urlParams;
 
-    let governanceFilterType = 2;
-    const startDate = moment(new Date()).subtract(60, "days");
-    const endDate = moment(new Date());
+    let governanceFilterType = querytype || 2;
+    let daysAgo = +queryvar1 || 60;
+    let startDate = moment(new Date()).subtract(daysAgo, "days");
+    let endDate = moment(new Date());
     const governanceStartDate = startDate.unix();
     const governanceEndDate = endDate.unix();
-    const governancePropsToUse = 2;
+    const governancePropsToUse = +queryvar1 || 2;
 
     const callGovernanceProposalswithLookup = async() => {
         const fglf = await fetchGovernanceLookupFile(storagePool);
