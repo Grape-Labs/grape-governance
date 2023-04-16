@@ -345,7 +345,7 @@ export function GovernanceDirectoryView() {
             </Box>
         );
     }
-
+    
     const callGovernanceLookup = async() => {
         const fglf = await fetchGovernanceLookupFile(storagePool);
         const fgmmf = await fetchGovernanceMasterMembersFile(storagePool);

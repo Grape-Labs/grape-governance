@@ -1,5 +1,6 @@
 import React, { useMemo, Suspense } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
+//import {  } from "react-router";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AdminView } from "./Admin/Admin";
 import { GovernanceRPCView } from "./GovernanceRPC/Governance";
@@ -8,6 +9,7 @@ import { GovernanceMetricsView } from "./GovernanceCached/GovernanceMetrics";
 import { GovernanceMembersView } from "./GovernanceCached/GovernanceMembers";
 import { GovernanceDirectoryView } from "./GovernanceCached/GovernanceDirectory";
 import { GovernanceReputationView } from "./GovernanceCached/GovernanceReputation";
+import { ApiView } from "./api/Grape";
 import CssBaseline from '@mui/material/CssBaseline';
 import { inject } from '@vercel/analytics';
 
@@ -149,75 +151,88 @@ function DashboardContent() {
 
   return (
     <>
-      <Suspense fallback={renderLoader()}>
-          <ThemeProvider theme={grapeTheme}>
-              <div className="grape-gradient-background">
-              <SnackbarProvider>
-                  <ConnectionProvider endpoint={endpoint}>
-                      <WalletProvider wallets={wallets} autoConnect>
-                      
-                      <Grid 
-                          sx={{ 
-                            flex: 1
-                          }}>
-                          <CssBaseline />
-                          <Router>
-                          <AppBar position="fixed" color="primary" style={{ background: 'rgba(0,0,0,0.75)' }}>
-                              <Header
-                                  open={open} 
-                                  toggleDrawer={toggleDrawer}
-                              />
-                          </AppBar>
-                          
-                            <Grid
-                              component="main"
-                              sx={{
-                                  mt: 6,
-                                  display: 'flex',
-                                  flexGrow: 1
-                              }}
-                              >
-                              <Container maxWidth="xl" sx={{ mb: 4 }}>
-                                  <Routes>
-                                    
-                                    <Route path="rpcgovernance/*" element={<GovernanceRPCView />} >
-                                        <Route path=":handlekey" element={<GovernanceRPCView />} />
-                                    </Route>
+        <Router>
+            <Routes>
+              <Route path="api/*" element={<ApiView />} >
+                  <Route path=":handlekey" element={<ApiView />} />
+              </Route>
 
-                                    <Route path="cachedgovernance/*" element={<GovernanceCachedView />} >
-                                        <Route path=":handlekey" element={<GovernanceCachedView />} />
-                                    </Route>
 
-                                    <Route path="metrics/*" element={<GovernanceMetricsView />} >
-                                        <Route path=":handlekey" element={<GovernanceMetricsView />} />
-                                    </Route>
-                                    <Route path="members/*" element={<GovernanceMembersView />} >
-                                        <Route path=":handlekey" element={<GovernanceMembersView />} />
-                                    </Route>
-                                    <Route path="reputation/*" element={<GovernanceReputationView />} >
-                                        <Route path=":handlekey" element={<GovernanceReputationView />} />
-                                    </Route>
-                                    
-
-                                    <Route path="admin/*" element={<AdminView />} >
-                                        <Route path=":handlekey" element={<AdminView />} />
-                                    </Route>
-                                    
-                                    <Route path="*" element={<NotFound />} />
-                                  </Routes>
+              <Route path="/" element={
+                <Suspense fallback={renderLoader()}>
+                  <ThemeProvider theme={grapeTheme}>
+                      <div className="grape-gradient-background">
+                      <SnackbarProvider>
+                          <ConnectionProvider endpoint={endpoint}>
+                              <WalletProvider wallets={wallets} autoConnect>
+                              
+                              <Grid 
+                                  sx={{ 
+                                    flex: 1
+                                  }}>
+                                  <CssBaseline />
                                   
-                                  <Copyright sx={{ mt: 4 }} />
-                              </Container>
-                            </Grid>
-                          </Router>
-                      </Grid>
-                      
-                      </WalletProvider>
-                  </ConnectionProvider>
-              </SnackbarProvider>
-              </div>
-          </ThemeProvider>
-        </Suspense>
+                                  <AppBar position="fixed" color="primary" style={{ background: 'rgba(0,0,0,0.75)' }}>
+                                      <Header
+                                          open={open} 
+                                          toggleDrawer={toggleDrawer}
+                                      />
+                                  </AppBar>
+                                  
+                                    <Grid
+                                      component="main"
+                                      sx={{
+                                          mt: 6,
+                                          display: 'flex',
+                                          flexGrow: 1
+                                      }}
+                                      >
+                                      <Container maxWidth="xl" sx={{ mb: 4 }}>
+                                        <Routes>
+                                            {/*
+                                            <Route path="api/*" element={<ApiView />} >
+                                                <Route path=":handlekey" element={<ApiView />} />
+                                            </Route>
+                                            */}
+                                              <Route path="rpcgovernance/*" element={<GovernanceRPCView />} >
+                                                  <Route path=":handlekey" element={<GovernanceRPCView />} />
+                                              </Route>
+
+                                              <Route path="cachedgovernance/*" element={<GovernanceCachedView />} >
+                                                  <Route path=":handlekey" element={<GovernanceCachedView />} />
+                                              </Route>
+
+                                              <Route path="metrics/*" element={<GovernanceMetricsView />} >
+                                                  <Route path=":handlekey" element={<GovernanceMetricsView />} />
+                                              </Route>
+                                              <Route path="members/*" element={<GovernanceMembersView />} >
+                                                  <Route path=":handlekey" element={<GovernanceMembersView />} />
+                                              </Route>
+                                              <Route path="reputation/*" element={<GovernanceReputationView />} >
+                                                  <Route path=":handlekey" element={<GovernanceReputationView />} />
+                                              </Route>
+
+                                              <Route path="admin/*" element={<AdminView />} >
+                                                  <Route path=":handlekey" element={<AdminView />} />
+                                              </Route>
+                                              
+                                              <Route path="*" element={<NotFound />} />
+                                            </Routes>
+                                          <Copyright sx={{ mt: 4 }} />
+                                      </Container>
+                                    </Grid>
+                              </Grid>
+                              
+                              </WalletProvider>
+                          </ConnectionProvider>
+                      </SnackbarProvider>
+                      </div>
+                  </ThemeProvider>
+                </Suspense>
+            }>
+            </Route>
+          </Routes>
+        </Router>
     </>
   );
 }
