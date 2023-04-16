@@ -57,7 +57,7 @@ export function ApiView(props: any){
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
     const governanceAddress = urlParams;
 
-    const governanceFilterType = 1;
+    let governanceFilterType = 2;
     const startDate = moment(new Date()).subtract(60, "days");
     const endDate = moment(new Date());
     const governanceStartDate = startDate.unix();
