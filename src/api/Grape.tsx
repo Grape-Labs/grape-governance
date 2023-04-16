@@ -96,12 +96,15 @@ export function ApiView(props: any){
                     if (governanceStartDate < governanceEndDate){
                         skipProp = true;
                         // check if proposal draft date is within start/end
-                        //console.log("draft at "+Number(item.account?.draftAt))
-                        if ((Number(proposal.account?.draftAt) >= governanceStartDate) && 
-                            (Number(proposal.account?.draftAt) <= governanceEndDate)){
-                                console.log("Skipping Prop "+proposal.pubkey)
-                                skipProp = false;
-                            }
+                        if (proposal.account?.draftAt){
+                            //console.log("date: "+proposal.account.draftAt)
+                            //console.log("draft at "+moment.unix(Number("0x"+proposal.account.draftAt)).format("YYYY-MM-DD") + " vs "+moment.unix(governanceStartDate).format("YYYY-MM-DD")+" > "+moment.unix(governanceEndDate).format("YYYY-MM-DD"))
+                            if ((Number("0x"+proposal.account?.draftAt) >= Number(governanceStartDate)) && 
+                                (Number("0x"+proposal.account?.draftAt) <= Number(governanceEndDate))){
+                                    console.log("Skipping Prop "+proposal.pubkey)
+                                    skipProp = false;
+                                }
+                        }
                     }
                 }
             }
