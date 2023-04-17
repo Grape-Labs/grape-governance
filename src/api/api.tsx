@@ -56,19 +56,31 @@ export function ApiView(props: any){
     const {handlekey} = useParams<{ handlekey: string }>();
     const {querytype} = useParams<{ querytype: string }>();
     const {queryvar1} = useParams<{ queryvar1: string }>();
-    //const {queryvar2} = useParams<{ queryvar2: string }>();
+    const {queryvar2} = useParams<{ queryvar2: string }>();
 
     const urlParams = searchParams.get("address") || handlekey;
     const governanceAddress = urlParams;
 
-    let governanceFilterType = +querytype || 2;
-    let daysAgo = +queryvar1 || 60;
+    let governanceFilterType = querytype ? +querytype : 2;
+    let daysAgo = queryvar1 ? +queryvar1 : 60;
+    
+    let governancePropsToUse = 2;
+    if (governanceFilterType === 1)
+        governancePropsToUse = queryvar1 ? +queryvar1 : 2;
+    
+    let votingPowerRequired = queryvar2 ? +queryvar2 : 0;
+
+    //console.log("governanceAddress "+governanceAddress)
+    //console.log("handlekey "+handlekey)
+    //console.log("querytype "+querytype)
+    //console.log("queryvar1 "+queryvar1)
+    //console.log("queryvar2 "+queryvar2)
+
     let startDate = moment(new Date()).subtract(daysAgo, "days");
     let endDate = moment(new Date());
     const governanceStartDate = startDate.unix();
     const governanceEndDate = endDate.unix();
-    const governancePropsToUse = +queryvar1 || 2;
-
+    
     const callGovernanceProposalswithLookup = async() => {
         setLoading(true);
         const fglf = await fetchGovernanceLookupFile(storagePool);
@@ -105,9 +117,10 @@ export function ApiView(props: any){
                         if (proposal.account?.draftAt){
                             //console.log("date: "+proposal.account.draftAt)
                             //console.log("draft at "+moment.unix(Number("0x"+proposal.account.draftAt)).format("YYYY-MM-DD") + " vs "+moment.unix(governanceStartDate).format("YYYY-MM-DD")+" < "+moment.unix(governanceEndDate).format("YYYY-MM-DD"))
+                            //console.log("draft at "+(Number("0x"+proposal.account.draftAt)) + " vs "+(governanceStartDate)+" < "+(governanceEndDate))
                             if ((Number("0x"+proposal.account?.draftAt) >= Number(governanceStartDate)) && 
                                 (Number("0x"+proposal.account?.draftAt) <= Number(governanceEndDate))){
-                                    console.log("Skipping Prop "+proposal.pubkey)
+                                    //console.log("Using Prop "+proposal.pubkey)
                                     skipProp = false;
                                 }
                         }
@@ -116,18 +129,33 @@ export function ApiView(props: any){
             }
             
             if (!skipProp){
-                console.log("Proposal "+proposal.pubkey)
+                //console.log("Proposal "+proposal.pubkey)
                 withProp.push(proposal);
                 
                 for (let votingResults of proposal.votingResults){
-                    var found = false;
-                    for (let existingVoter of particantAddresses){ // supress duplicates
-                        if (existingVoter === new PublicKey(votingResults.governingTokenOwner).toBase58())
-                            found = true;
+                    let skipRecord = false;
+                    if (votingPowerRequired > 0){ 
+                        let voterWeight = votingResults.vote.voterWeight/Math.pow(10, votingResults.vote.decimals);
+                        if (voterWeight >= votingPowerRequired){
+                            skipRecord = false;
+                            //console.log("Pushing ("+votingResults.governingTokenOwner+"): "+voterWeight)    
+                        } else{
+                            skipRecord = true;
+                            //console.log("Skipping ("+votingResults.governingTokenOwner+"): "+voterWeight)    
+                        }
+                        
                     }
 
-                    if (!found)
-                        particantAddresses.push(new PublicKey(votingResults.governingTokenOwner).toBase58())
+                    if (!skipRecord){
+                        var found = false;
+                        for (let existingVoter of particantAddresses){ // supress duplicates
+                            if (existingVoter === new PublicKey(votingResults.governingTokenOwner).toBase58())
+                                found = true;
+                        }
+
+                        if (!found)
+                            particantAddresses.push(new PublicKey(votingResults.governingTokenOwner).toBase58())
+                    }
                 }
             }
             count++;

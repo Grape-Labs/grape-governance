@@ -155,7 +155,7 @@ function DashboardContent() {
             <Routes>
               
               <Route path="api/*" element={<ApiView />} >
-                  <Route path=":handlekey/:querytype/:queryvar1" element={<ApiView />} />
+                  <Route path=":handlekey/:querytype/:queryvar1/:queryvar2" element={<ApiView />} />
               </Route>
 
               <Route path="/*" element={
