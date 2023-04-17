@@ -104,7 +104,7 @@ export function ApiView(props: any){
                         // check if proposal draft date is within start/end
                         if (proposal.account?.draftAt){
                             //console.log("date: "+proposal.account.draftAt)
-                            //console.log("draft at "+moment.unix(Number("0x"+proposal.account.draftAt)).format("YYYY-MM-DD") + " vs "+moment.unix(governanceStartDate).format("YYYY-MM-DD")+" > "+moment.unix(governanceEndDate).format("YYYY-MM-DD"))
+                            //console.log("draft at "+moment.unix(Number("0x"+proposal.account.draftAt)).format("YYYY-MM-DD") + " vs "+moment.unix(governanceStartDate).format("YYYY-MM-DD")+" < "+moment.unix(governanceEndDate).format("YYYY-MM-DD"))
                             if ((Number("0x"+proposal.account?.draftAt) >= Number(governanceStartDate)) && 
                                 (Number("0x"+proposal.account?.draftAt) <= Number(governanceEndDate))){
                                     console.log("Skipping Prop "+proposal.pubkey)
