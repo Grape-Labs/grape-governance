@@ -50,7 +50,7 @@ import {
 
 export function ApiView(props: any){
     const [loading, setLoading] = React.useState(false);
-    const [addresses, setAddresses] = React.useState(null);
+    const [addresses, setAddresses] = React.useState([]);
     const storagePool = GGAPI_STORAGE_POOL;
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
@@ -61,7 +61,7 @@ export function ApiView(props: any){
     const urlParams = searchParams.get("address") || handlekey;
     const governanceAddress = urlParams;
 
-    let governanceFilterType = querytype || 2;
+    let governanceFilterType = +querytype || 2;
     let daysAgo = +queryvar1 || 60;
     let startDate = moment(new Date()).subtract(daysAgo, "days");
     let endDate = moment(new Date());
@@ -145,6 +145,12 @@ export function ApiView(props: any){
 
     return (
         <>
+        {addresses.map((item: any, index:number) => (
+            <>{index>0 && `,`}{item}</>
+        ))}
+        
+        {/*
+        <>
         {!loading ?
             <>
             {addresses ?
@@ -160,6 +166,7 @@ export function ApiView(props: any){
             </>
             :<>Loading</>
             }
+        </>*/}
         </>
     );
 
