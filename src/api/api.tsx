@@ -1,47 +1,15 @@
-import { 
-    getRealm, 
-    getAllProposals, 
-    getGovernance, 
-    getGovernanceAccounts, 
-    getGovernanceChatMessages, 
-    getTokenOwnerRecord, 
-    getTokenOwnerRecordsByOwner, 
-    getAllTokenOwnerRecords, 
-    getRealmConfigAddress, 
-    getGovernanceAccount, 
-    getAccountTypes, 
-    GovernanceAccountType, 
-    tryGetRealmConfig, 
-    getRealmConfig,
-    InstructionData  } from '@solana/spl-governance';
-import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
-import { getAccount, getMint } from '@solana/spl-token-v2'
-import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { WalletDialogProvider, WalletMultiButton } from "@solana/wallet-adapter-material-ui";
-import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
-import React, { useCallback } from 'react';
+import React from 'react';
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { styled, useTheme } from '@mui/material/styles';
-import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
-import Gist from 'react-gist';
-import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
-import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
-import { InstructionMapping } from "../utils/grapeTools/InstructionMapping";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
 import moment from 'moment';
 
-import PropTypes from 'prop-types';
 import { 
     PROXY, 
     RPC_CONNECTION,
     TX_RPC_ENDPOINT, 
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
-import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 
 import {
     fetchGovernanceLookupFile,

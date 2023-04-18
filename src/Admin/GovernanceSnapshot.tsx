@@ -2024,17 +2024,12 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
                     }
                 }
 
-                // update lookup
-                console.log("1. Storage Pool: "+storageAccountPK+" | Lookup");
-                
-                await updateGovernanceLookupFile(drive, sentRealm, address, governanceFetchedDetails, ggv, fileName, memberFileName, governanceTransactionsFileName, governanceVaultsFileName, timestamp, lookupFound, storagePool, connection, governanceLookup, setCurrentUploadInfo, governanceAutocomplete, setGovernanceLookup, enqueueSnackbar, closeSnackbar);
-
                 // update master members
-                console.log("2. Storage Pool: "+storageAccountPK+" | MasterMembers");
+                console.log("1 of 6. Storage Pool: "+storageAccountPK+" | MasterMembers found: "+JSON.stringify(masterMembersFound));
                 await updateGovernanceMasterMembersFile(drive, connection, governanceLookup, storagePool, sentRealm, masterMembersFound, setCurrentUploadInfo, enqueueSnackbar, closeSnackbar);
                 
                 // proceed to add propsals
-                console.log("3. Storage Pool: "+storageAccountPK+" | File ("+fileName+") found: "+JSON.stringify(found));
+                console.log("2 of 6. Storage Pool: "+storageAccountPK+" | File ("+fileName+") found: "+JSON.stringify(found));
                 
                 const proposalFileStream = blobToFile(uploadProposalFile, fileName);
                 const proposalFileSize  = uploadProposalFile.size;
@@ -2053,7 +2048,7 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
                 }
 
                 // proceed to add members
-                console.log("4. Storage Pool: "+storageAccountPK+" | Members ("+memberFileName+") found: "+JSON.stringify(foundMembers));
+                console.log("3 of 6. Storage Pool: "+storageAccountPK+" | Members ("+memberFileName+") found: "+JSON.stringify(foundMembers));
                 
                 const membersFileStream = blobToFile(uploadMembersFile, memberFileName);
                 const memberFileSize  = uploadMembersFile.size;
@@ -2067,7 +2062,7 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
                 }
 
                 // proceed to add transactions
-                console.log("5. Storage Pool: "+storageAccountPK+" | Transactions ("+governanceTransactionsFileName+") found: "+JSON.stringify(foundTransactions));
+                console.log("4 of 6. Storage Pool: "+storageAccountPK+" | Transactions ("+governanceTransactionsFileName+") found: "+JSON.stringify(foundTransactions));
                 
                 const transactionsFileStream = blobToFile(uploadTransactionsFile, governanceTransactionsFileName);
                 const transactionsFileSize  = uploadTransactionsFile.size;
@@ -2081,7 +2076,7 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
                 }
 
                 // proceed to add vaults
-                console.log("6. Storage Pool: "+storageAccountPK+" | Vaults ("+governanceVaultsFileName+") found: "+JSON.stringify(foundVaults));
+                console.log("5 of 6. Storage Pool: "+storageAccountPK+" | Vaults ("+governanceVaultsFileName+") found: "+JSON.stringify(foundVaults));
                 
                 const vaultsFileStream = blobToFile(uploadVaultsFile, governanceVaultsFileName);
                 const vaultsFileSize  = uploadVaultsFile.size;
@@ -2094,6 +2089,14 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
                     await uploadToStoragePool(drive, vaultsFileStream, new PublicKey(storageAccountPK), fileName, enqueueSnackbar, closeSnackbar);
                 }
                 
+
+                // update lookup
+                console.log("6 of 6. Storage Pool: "+storageAccountPK+" | Lookup");
+                
+                await updateGovernanceLookupFile(drive, sentRealm, address, governanceFetchedDetails, ggv, fileName, memberFileName, governanceTransactionsFileName, governanceVaultsFileName, timestamp, lookupFound, storagePool, connection, governanceLookup, setCurrentUploadInfo, governanceAutocomplete, setGovernanceLookup, enqueueSnackbar, closeSnackbar);
+
+
+
                 // delay a bit and update to show that the files have been added
                 setCurrentUploadInfo("SPL Governance DSC "+address+" updated!");
 
