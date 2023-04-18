@@ -7,6 +7,7 @@ import { GovernanceRPCView } from "./GovernanceRPC/Governance";
 import { GovernanceCachedView } from "./GovernanceCached/Governance";
 import { GovernanceMetricsView } from "./GovernanceCached/GovernanceMetrics";
 import { GovernanceMembersView } from "./GovernanceCached/GovernanceMembers";
+import { GovernanceTreasuryView } from "./GovernanceCached/GovernanceTreasury";
 import { GovernanceDirectoryView } from "./GovernanceCached/GovernanceDirectory";
 import { GovernanceReputationView } from "./GovernanceCached/GovernanceReputation";
 import { ApiView } from "./api/api";
@@ -207,6 +208,9 @@ function DashboardContent() {
                                               </Route>
                                               <Route path="members/*" element={<GovernanceMembersView />} >
                                                   <Route path=":handlekey" element={<GovernanceMembersView />} />
+                                              </Route>
+                                              <Route path="treasury/*" element={<GovernanceTreasuryView />} >
+                                                  <Route path=":handlekey" element={<GovernanceTreasuryView />} />
                                               </Route>
                                               <Route path="reputation/*" element={<GovernanceReputationView />} >
                                                   <Route path=":handlekey" element={<GovernanceReputationView />} />
