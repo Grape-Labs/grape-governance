@@ -66,6 +66,7 @@ import {
 import GovernanceNavigation from './GovernanceNavigation'; 
 import {
     fetchGovernanceLookupFile,
+    fetchGovernanceMasterMembersFile,
     getFileFromLookup
 } from './CachedStorageHelpers'; 
 
@@ -202,6 +203,7 @@ function RenderVoterRecordTable(props:any) {
     const endTimer = props.endTimer;
     const cachedGovernance = props.cachedGovernance;
     const memberMap = props.memberMap;
+    const governanceMasterMembers = props.governanceMasterMembers;
     const governanceType = props.governanceType;
     const governingTokenDecimals = props.governingTokenDecimals;
     const governaningTokenMint = props.governingTokenMint;
@@ -377,6 +379,30 @@ function RenderVoterRecordTable(props:any) {
                                 :
                                 <>0</>
                             }%</>
+                        }
+                    </>
+                )
+            }
+        },
+        { field: 'ecosystemparticipation', headerName: 'Ecosystem DAO Participation', width: 170, hide: false, align: 'right',
+            renderCell: (params) => {
+                return(
+                    <>
+                        {params.value &&
+                            <>
+                            <Tooltip title={
+                                <ul>
+                                    {params.value.map((item: any, index:number) => (
+                                        <li>
+                                            {item.governanceName} {item.staked.governingTokenDepositAmount > 0 && ` - Community`} {item.staked.governingCouncilDepositAmount > 0 && ` - Council`}
+                                        </li>)
+                                    )}
+                                </ul>}>
+                                <Button color='inherit' sx={{borderRadius:'17px'}}>
+                                    {params.value.length}
+                                </Button>
+                            </Tooltip>
+                            </>
                         }
                     </>
                 )
@@ -559,6 +585,24 @@ function RenderVoterRecordTable(props:any) {
         var voterCount = 0;
         var counter = 0;
         
+        
+        const govmastermembermap = governanceMasterMembers.reduce((map:any, item:any) => {
+            //tarray.push({address:item.address, decimals:item.decimals})
+            map.set(item.address, item);
+            return map;
+        },new Map())
+
+        //console.log("govmastermembermap: "+govmastermembermap);
+        console.log("govmastermembermap: "+JSON.stringify(govmastermembermap.get('KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT')));
+
+        const govmembermap = memberMap.reduce((map:any, item:any) => {
+            //tarray.push({address:item.address, decimals:item.decimals})
+            map.set(item.pubkey, item);
+            return map;
+        },new Map())
+
+        //console.log("govmembermap: "+JSON.stringify(govmembermap));
+
         for (var memberItem of memberMap){
             foundVoter = false;
 
@@ -627,6 +671,8 @@ function RenderVoterRecordTable(props:any) {
 
                 totalVotesDeposited += +depositedgovernancevotes;
                 
+                let participation = govmastermembermap.get(new PublicKey(memberItem.account.governingTokenOwner).toBase58()).participating;
+                
                 voterArray.push({
                     id: voterCount+1,
                     pubkey: new PublicKey(memberItem.account.governingTokenOwner).toBase58(),
@@ -654,6 +700,7 @@ function RenderVoterRecordTable(props:any) {
                     successfullcasts: 0,
                     councilpropcreatorpassed: 0,
                     communitypropcreatorpassed: 0,
+                    ecosystemparticipation: participation,
                                     
                 })
                 voterCount++;
@@ -690,11 +737,13 @@ function RenderVoterRecordTable(props:any) {
                     if (authorPk){
                         if (memberMap){
 
-                            for (var memberItem of memberMap){
-                                if (new PublicKey(memberItem.pubkey).toBase58() === authorPk.toBase58()){
-                                    authorAddress = new PublicKey(memberItem.account.governingTokenOwner).toBase58()
-                                }
-                            }
+                            //for (var memberItem of memberMap){
+                            //    if (new PublicKey(memberItem.pubkey).toBase58() === authorPk.toBase58()){
+                                //console.log("member author 1: "+JSON.stringify((new PublicKey(authorPk).toBase58())));
+                                //console.log("member author 2: "+JSON.stringify(govmembermap.get(new PublicKey(authorPk).toBase58())));
+                                authorAddress = new PublicKey(govmembermap.get(new PublicKey(authorPk).toBase58())?.account.governingTokenOwner).toBase58()
+                            //    }
+                            //}
                             
                         }
                     }
@@ -868,6 +917,16 @@ function RenderVoterRecordTable(props:any) {
                                     else if (+item.account?.draftAt && +item.account?.draftAt < participant.firstparticipationdate)
                                         participant.firstparticipationdate = +item.account?.draftAt;
                                     
+
+                                    /*
+                                    for (var masterMember of governanceMasterMembers){
+                                        console.log("checking in mastermembers")
+                                        if (participant.pubkey === masterMember.pubkey){
+                                            if (totalActiveVoters < 2)
+                                                console.log("masterMember: "+JSON.stringify(masterMember));
+                                        }
+                                    }*/
+
                                     participant.totalproposalscreated += propcreator;
                                     participant.totalvotes += totalvotes;
                                     participant.totalvotesfor += totalvotesfor;
@@ -1275,6 +1334,7 @@ export function GovernanceMetricsView(props: any) {
     const [cachedGovernance, setCachedGovernance] = React.useState(null);
     const [cachedRealm, setCachedRealm] = React.useState(null);
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
+    const [governanceMasterMembers, setGovernanceMasterMembers] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
     const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
 
@@ -1579,9 +1639,15 @@ export function GovernanceMetricsView(props: any) {
         setGovernanceLookup(fglf);
     }
 
+    const callGovernanceMasterMembers = async() => {
+        const fgmmf = await fetchGovernanceMasterMembersFile(storagePool);
+        setGovernanceMasterMembers(fgmmf);
+    }
+
     React.useEffect(() => {
         if (tokenMap){
             callGovernanceLookup();
+            callGovernanceMasterMembers();
         }
     }, [tokenMap]);
 
@@ -2714,6 +2780,7 @@ export function GovernanceMetricsView(props: any) {
 
                             <RenderVoterRecordTable 
                                 memberMap={memberMap} 
+                                governanceMasterMembers={governanceMasterMembers}
                                 endTimer={endTimer} 
                                 cachedGovernance={cachedGovernance} 
                                 governanceType={governanceType} 
