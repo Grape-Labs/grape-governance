@@ -581,7 +581,7 @@ export function GovernanceTreasuryView(props: any) {
                         
                         <TreeView
                             aria-label="treasury"
-                            defaultExpanded={['2']}
+                            //defaultExpanded={['2']}
                             //expanded={true}
                             defaultCollapseIcon={<ArrowDropDownIcon />}
                             defaultExpandIcon={<ArrowRightIcon />}
@@ -593,6 +593,14 @@ export function GovernanceTreasuryView(props: any) {
                                 <>
                                     <StyledTreeItem nodeId={key.toString()} labelText={<>
                                         <ExplorerView address={item.vault.pubkey} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
+                                        SOL Balance: {(item.solBalance /(10 ** 9))}
+                                        &nbsp;-&nbsp;
+                                        All: {item?.tokens?.value.length}
+                                        &nbsp;-&nbsp;
+                                        Tokens: {(item?.tokens?.value.length - item?.nfts?.length)}
+                                        &nbsp;-&nbsp;
+                                        NFTs: {item?.nfts?.length}
+
                                         </>}> 
                                         
                                         <StyledTreeItem
@@ -603,43 +611,71 @@ export function GovernanceTreasuryView(props: any) {
                                             color="#1a73e8"
                                             bgColor="#e8f0fe"
                                             />
-                                        <StyledTreeItem
-                                            nodeId={key.toString()+"-2"}
-                                            labelText="Tokens"
-                                            labelIcon={AccountBalanceIcon}
-                                            labelInfo={(item?.tokens?.value.length - item?.nfts?.length).toString()}
-                                            color="#1a73e8"
-                                            bgColor="#e8f0fe"
-                                            />
-                                        <StyledTreeItem
-                                            nodeId={key.toString()+"-3"}
-                                            labelText="NFTs"
-                                            labelIcon={ImageIcon}
-                                            labelInfo={item?.nfts?.length}
-                                            color="#1a73e8"
-                                            bgColor="#e8f0fe"
+                                        
+                                        {(item?.tokens?.value && item.tokens.value.length > 0) &&
+                                            <StyledTreeItem
+                                                nodeId={key.toString()+"-2"}
+                                                labelText="Tokens"
+                                                labelIcon={AccountBalanceIcon}
+                                                labelInfo={(item?.tokens?.value.length - item?.nfts?.length).toString()}
+                                                color="#1a73e8"
+                                                bgColor="#e8f0fe"
                                             >
-                                            {item?.nfts &&
-                                            <>
-                                                {item.nfts.map((inneritem: any,innerkey:number) => (
-                                                    <StyledTreeItem
-                                                        nodeId={key.toString()+"-3-"+innerkey.toString()}
-                                                        labelText={
-                                                            <>
-                                                            <ExplorerView address={inneritem.nftMint} title={inneritem.metadataJson.name} type='address' shorten={8} hideTitle={false} showAddress={true} style='text' color='white' fontSize='14px' />
-                                                            
-                                                            </>
-                                                        }
-                                                        labelInfo={<>
-                                                            {+inneritem.floorPriceLamports > 0 ? <><strong>Floor Price:  {+inneritem.floorPriceLamports/(10 ** 9)} sol</strong><br/></> : ``} {+inneritem.listingCount > 0 && <>Collection Listing Count: {inneritem.listingCount}</>}
-                                                            </>
-                                                        }
-                                                        color="#1a73e8"
-                                                        bgColor="#e8f0fe"
-                                                        />
-                                                ))}
-                                            </>}
-                                        </StyledTreeItem>
+                                                
+                                                {(item?.tokens?.value && item.tokens.value.length > 0) &&
+                                                <>
+                                                
+                                                    {item.tokens.value.map((inneritem: any,innerkey:number) => (
+                                                        <StyledTreeItem
+                                                            nodeId={key.toString()+"-2-"+innerkey.toString()}
+                                                            labelText={
+                                                                <>
+                                                                    <ExplorerView address={inneritem.account.data.parsed.info.mint} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
+                                                                </>
+                                                            }
+                                                            labelInfo={<>
+                                                                    UI Amount: {inneritem.account.data.parsed.info.tokenAmount.uiAmountString}
+                                                                    <br/>Token Decimals: {inneritem.account.data.parsed.info.tokenAmount.decimals}
+                                                                </>
+                                                            }
+                                                            color="#1a73e8"
+                                                            bgColor="#e8f0fe"
+                                                            />
+                                                    ))}
+                                                </>}
+                                            </StyledTreeItem>
+                                        }
+                                        {(item?.nfts && item?.nfts?.length > 0) &&
+                                            <StyledTreeItem
+                                                nodeId={key.toString()+"-3"}
+                                                labelText="NFTs"
+                                                labelIcon={ImageIcon}
+                                                labelInfo={item?.nfts?.length}
+                                                color="#1a73e8"
+                                                bgColor="#e8f0fe"
+                                                >
+                                                {item?.nfts &&
+                                                <>
+                                                    {item.nfts.map((inneritem: any,innerkey:number) => (
+                                                        <StyledTreeItem
+                                                            nodeId={key.toString()+"-3-"+innerkey.toString()}
+                                                            labelText={
+                                                                <>
+                                                                <ExplorerView address={inneritem.nftMint} title={inneritem.metadataJson.name} type='address' shorten={8} hideTitle={false} showAddress={true} style='text' color='white' fontSize='14px' />
+                                                                
+                                                                </>
+                                                            }
+                                                            labelInfo={<>
+                                                                {+inneritem.floorPriceLamports > 0 ? <><strong>Floor Price:  {+inneritem.floorPriceLamports/(10 ** 9)} sol</strong><br/></> : ``} {+inneritem.listingCount > 0 && <>Collection Listing Count: {inneritem.listingCount}</>}
+                                                                </>
+                                                            }
+                                                            color="#1a73e8"
+                                                            bgColor="#e8f0fe"
+                                                            />
+                                                    ))}
+                                                </>}
+                                            </StyledTreeItem>
+                                        }
                                     </StyledTreeItem>
                                 </>
                             ))}
