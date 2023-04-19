@@ -722,14 +722,13 @@ export function GovernanceTreasuryView(props: any) {
                                     <>
                                         <StyledTreeItem nodeId={key.toString()} labelText={<>
                                             <ExplorerView address={item.vault.pubkey} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
-                                            SOL Balance: {(item.solBalance /(10 ** 9))}
+                                            SOL Balance: <strong>{(item.solBalance /(10 ** 9))}</strong>
                                             &nbsp;-&nbsp;
-                                            All: {item?.tokens?.value.length}
+                                            All: <strong>{item?.tokens?.value.length}</strong>
                                             &nbsp;-&nbsp;
-                                            Tokens: {(item?.tokens?.value.length - item?.nfts?.length)}
+                                            Tokens: <strong>{(item?.tokens?.value.length - item?.nfts?.length)}</strong>
                                             &nbsp;-&nbsp;
-                                            NFTs: {item?.nfts?.length}
-
+                                            NFTs: <strong>{item?.nfts?.length}</strong>
                                             </>}> 
                                             
                                             <StyledTreeItem
@@ -754,7 +753,9 @@ export function GovernanceTreasuryView(props: any) {
                                                     {(item?.tokens?.value && item.tokens.value.length > 0) &&
                                                     <>
                                                     
-                                                        {item.tokens.value.map((inneritem: any,innerkey:number) => (
+                                                        {item.tokens.value
+                                                        .sort((a:any,b:any) => (b.account.data.parsed.info.tokenAmount.uiAmountString - a.account.data.parsed.info.tokenAmount.uiAmountString))
+                                                        .map((inneritem: any,innerkey:number) => (
                                                             <StyledTreeItem
                                                                 nodeId={key.toString()+"-2-"+innerkey.toString()}
                                                                 labelText={
@@ -785,7 +786,9 @@ export function GovernanceTreasuryView(props: any) {
                                                     >
                                                     {item?.nfts &&
                                                     <>
-                                                        {item.nfts.map((inneritem: any,innerkey:number) => (
+                                                        {item.nfts
+                                                        .sort((a:any,b:any) => (b.floorPriceLamports - a.floorPriceLamports))                                                        
+                                                        .map((inneritem: any,innerkey:number) => (
                                                             <StyledTreeItem
                                                                 nodeId={key.toString()+"-3-"+innerkey.toString()}
                                                                 labelText={
