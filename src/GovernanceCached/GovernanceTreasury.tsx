@@ -793,7 +793,7 @@ export function GovernanceTreasuryView(props: any) {
                                                             color="#1a73e8"
                                                             bgColor="#e8f0fe"
                                                             />
-                                                    ))}
+                                                    )).sort((a:any,b:any) => (+a.floorPriceLamports > +b.floorPriceLamports) ? 1 : -1)}
                                                 </>}
                                             </StyledTreeItem>
                                         }
