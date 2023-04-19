@@ -793,7 +793,7 @@ export function GovernanceTreasuryView(props: any) {
                                                                 nodeId={key.toString()+"-3-"+innerkey.toString()}
                                                                 labelText={
                                                                     <>
-                                                                        <ExplorerView address={inneritem.nftMint} title={inneritem.metadataJson.name} useLogo={inneritem?.nftImage} type='address' shorten={8} hideTitle={false} showAddress={true} style='text' color='white' fontSize='14px' />
+                                                                        <ExplorerView address={inneritem.nftMint} title={inneritem.metadataJson.name} useLogo={inneritem?.metadataImage} type='address' shorten={8} hideTitle={false} showAddress={true} style='text' color='white' fontSize='14px' />
                                                                     </>
                                                                 }
                                                                 labelInfo={<>

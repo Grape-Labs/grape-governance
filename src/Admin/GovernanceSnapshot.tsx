@@ -456,10 +456,13 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 console.log("Getting floor price for: "+thisitem.nftMint)
                 console.log("HM: "+thisitem.helloMoonCollectionId)
                 
-                if (thisitem?.nftMetadataJson?.uri){
-                    const metadata = await window.fetch(thisitem.nftMetadataJson.uri).then(
+                //console.log("URI: "+JSON.stringify(thisitem?.metadataJson?.uri))
+                
+                if (thisitem?.metadataJson?.uri){
+                    const metadata = await window.fetch(thisitem.metadataJson.uri).then(
                         (res: any) => res.json());
-                    thisitem.nftImage = metadata?.image;
+                    if (metadata?.image)
+                        thisitem.metadataImage = metadata.image;
                 }
 
                 if (thisitem.helloMoonCollectionId){
