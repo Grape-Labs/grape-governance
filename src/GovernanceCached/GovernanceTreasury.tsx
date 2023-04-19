@@ -630,7 +630,7 @@ export function GovernanceTreasuryView(props: any) {
                                                             nodeId={key.toString()+"-2-"+innerkey.toString()}
                                                             labelText={
                                                                 <>
-                                                                    <ExplorerView address={inneritem.account.data.parsed.info.mint} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
+                                                                    <ExplorerView address={inneritem.account.data.parsed.info.mint} title={tokenMap.get(inneritem.account.data.parsed.info.mint)?.name || inneritem.account.data.parsed.info.mint} useLogo={tokenMap.get(inneritem.account.data.parsed.info.mint)?.logoURI} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
                                                                 </>
                                                             }
                                                             labelInfo={<>
