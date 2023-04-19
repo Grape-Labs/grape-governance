@@ -755,7 +755,7 @@ export function GovernanceTreasuryView(props: any) {
                                                                 </>
                                                             }
                                                             labelInfo={<>
-                                                                    UI Amount: {inneritem.account.data.parsed.info.tokenAmount.uiAmountString}
+                                                                    UI Amount: {getFormattedNumberToLocale(inneritem.account.data.parsed.info.tokenAmount.uiAmountString)}
                                                                     <br/>Token Decimals: {inneritem.account.data.parsed.info.tokenAmount.decimals}
                                                                 </>
                                                             }
@@ -799,7 +799,8 @@ export function GovernanceTreasuryView(props: any) {
                                         }
                                     </StyledTreeItem>
                                 </>
-                            ))}
+                            ))
+                            .sort((a:any,b:any) => (a.solBalance > b.solBalance) ? 1 : -1)}
 
                         </TreeView>
 
