@@ -77,12 +77,9 @@ export default function GovernanceNavigation(props: any){
                         <><strong>Treasury</strong><br/>* Via Cached Storage</>
                         }>
                         <Button
-                            sx={{color:'#999', ml:1}}
-                        >{/*
-                        <Button
                             component={Link}
                             to={'/treasury/'+governanceAddress}
-                        >*/}<AccountBalanceIcon /></Button>
+                        ><AccountBalanceIcon /></Button>
                     </Tooltip>
                     <Tooltip title={
                         <><strong>Reputation</strong><br/> (coming soon)</>

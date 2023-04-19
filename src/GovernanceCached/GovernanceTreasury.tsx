@@ -571,7 +571,109 @@ export function GovernanceTreasuryView(props: any) {
 
 
                         <Box sx={{ p:1}}>
-                            summary will go here
+                            <Grid container spacing={0}>
+                                <Grid item xs={12} md={6} lg={4} key={1}>
+                                    <Box
+                                        sx={{
+                                            borderRadius:'24px',
+                                            m:2,
+                                            p:1,
+                                            background: 'rgba(0, 0, 0, 0.2)'
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                            <>Treasury</>
+                                        </Typography>
+                                        <Tooltip title={<>
+                                                Total Token Value (value does not include NFT floor prices)</>
+                                            }>
+                                            <Button
+                                                color='inherit'
+                                                sx={{
+                                                    borderRadius:'17px'
+                                                }}
+                                            >
+                                                <Grid container
+                                                    sx={{
+                                                        verticalAlign: 'bottom'}}
+                                                    >
+                                                    <Typography variant="h4">
+                                                        -
+                                                    </Typography>
+                                                </Grid>
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                </Grid>
+
+                                <Grid item xs={12} md={6} lg={4} key={1}>
+                                    <Box
+                                        sx={{
+                                            borderRadius:'24px',
+                                            m:2,
+                                            p:1,
+                                            background: 'rgba(0, 0, 0, 0.2)'
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                            <>Stable Coin Treasury</>
+                                        </Typography>
+                                        <Tooltip title={<>
+                                                Total Treasury in Stable Coins</>
+                                            }>
+                                            <Button
+                                                color='inherit'
+                                                sx={{
+                                                    borderRadius:'17px'
+                                                }}
+                                            >
+                                                <Grid container
+                                                    sx={{
+                                                        verticalAlign: 'bottom'}}
+                                                    >
+                                                    <Typography variant="h4">
+                                                        -
+                                                    </Typography>
+                                                </Grid>
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                </Grid>
+
+                                <Grid item xs={12} md={6} lg={4} key={1}>
+                                    <Box
+                                        sx={{
+                                            borderRadius:'24px',
+                                            m:2,
+                                            p:1,
+                                            background: 'rgba(0, 0, 0, 0.2)'
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                            <>NFT Treasury</>
+                                        </Typography>
+                                        <Tooltip title={<>
+                                                Total Floor Value of NFTs held in this Governance</>
+                                            }>
+                                            <Button
+                                                color='inherit'
+                                                sx={{
+                                                    borderRadius:'17px'
+                                                }}
+                                            >
+                                                <Grid container
+                                                    sx={{
+                                                        verticalAlign: 'bottom'}}
+                                                    >
+                                                    <Typography variant="h4">
+                                                        -
+                                                    </Typography>
+                                                </Grid>
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                </Grid>
+                            </Grid>
                         </Box>
                             
 
