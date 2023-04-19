@@ -433,6 +433,19 @@ export function GovernanceTreasuryView(props: any) {
         } catch(e){console.log("ERR: "+e); return null;}
     }
 
+    const getRealmDetails = async () => {
+        let grealm = null;
+        if (cachedRealm){
+            console.log("Realm from cache")
+            grealm = cachedRealm;
+        } else{
+            grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
+        }
+        const realmPk = new PublicKey(grealm.pubkey);
+        setRealm(grealm);
+        setRealmName(grealm.account.name);
+    }
+
     const getCachedGovernanceFromLookup = async () => {
         
         let cached_governance = new Array();
@@ -448,6 +461,8 @@ export function GovernanceTreasuryView(props: any) {
                         const cached_treasury = await getFileFromLookup(glitem.governanceVaultsFilename, storagePool);
                         setCachedTreasury(cached_treasury);
                     }
+
+                    setRealmName(glitem.governanceName);
 
                     cached_governance = await getFileFromLookup(glitem.filename, storagePool);
                     setCachedTimestamp(glitem.timestamp);
@@ -523,7 +538,7 @@ export function GovernanceTreasuryView(props: any) {
                             p:4
                         }} 
                     > 
-                        {realm &&
+                        {realmName &&
                             <>
                                 <Grid container>
                                     <Grid item xs={12} sm={6} container justifyContent="flex-start">
