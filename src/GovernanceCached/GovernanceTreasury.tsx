@@ -787,7 +787,7 @@ export function GovernanceTreasuryView(props: any) {
                                                     {item?.nfts &&
                                                     <>
                                                         {item.nfts
-                                                        .sort((a:any,b:any) => (b.floorPriceLamports - a.floorPriceLamports))                                                        
+                                                        .sort((a:any,b:any) => ((a.floorPriceLamports > b.floorPriceLamports) ? 1 : -1))                                                        
                                                         .map((inneritem: any,innerkey:number) => (
                                                             <StyledTreeItem
                                                                 nodeId={key.toString()+"-3-"+innerkey.toString()}
