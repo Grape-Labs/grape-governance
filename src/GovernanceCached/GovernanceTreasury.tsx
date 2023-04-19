@@ -414,6 +414,10 @@ export function GovernanceTreasuryView(props: any) {
     const [tokenArray, setTokenArray] = React.useState(null);
     const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
 
+    const [totalGovernanceValue, setTotalGovernanceValue] = React.useState(null);
+    const [totalGovernanceNftFloorValue, setTotalGovernanceNftFloorValue] = React.useState(null);
+    const [totalGovernanceStableCoinValue, setTotalGovernanceStableCoinValue] = React.useState(null);
+
     const getTokens = async () => {
         const tarray:any[] = [];
         try{
@@ -463,6 +467,10 @@ export function GovernanceTreasuryView(props: any) {
                     }
 
                     setRealmName(glitem.governanceName);
+
+                    setTotalGovernanceValue(glitem?.totalVaultValue);
+                    setTotalGovernanceNftFloorValue(glitem?.totalVaultNftValue);
+                    setTotalGovernanceStableCoinValue(glitem?.totalVaultStableCoinValue);
 
                     cached_governance = await getFileFromLookup(glitem.filename, storagePool);
                     setCachedTimestamp(glitem.timestamp);
@@ -598,7 +606,10 @@ export function GovernanceTreasuryView(props: any) {
                                                         verticalAlign: 'bottom'}}
                                                     >
                                                     <Typography variant="h4">
-                                                        -
+                                                        {totalGovernanceValue ? 
+                                                        <>${getFormattedNumberToLocale(totalGovernanceValue.toFixed(2))}</>
+                                                        :
+                                                        <>-</>}
                                                     </Typography>
                                                 </Grid>
                                             </Button>
@@ -632,7 +643,11 @@ export function GovernanceTreasuryView(props: any) {
                                                         verticalAlign: 'bottom'}}
                                                     >
                                                     <Typography variant="h4">
-                                                        -
+                                                    {totalGovernanceStableCoinValue ? 
+                                                        <>
+                                                        ${getFormattedNumberToLocale(totalGovernanceStableCoinValue.toFixed(2))}</>
+                                                        :
+                                                        <>-</>}
                                                     </Typography>
                                                 </Grid>
                                             </Button>
@@ -666,7 +681,11 @@ export function GovernanceTreasuryView(props: any) {
                                                         verticalAlign: 'bottom'}}
                                                     >
                                                     <Typography variant="h4">
-                                                        -
+                                                        {totalGovernanceNftFloorValue ? 
+                                                        <>
+                                                        ${getFormattedNumberToLocale(totalGovernanceNftFloorValue.toFixed(2))}</>
+                                                        :
+                                                        <>-</>}
                                                     </Typography>
                                                 </Grid>
                                             </Button>
