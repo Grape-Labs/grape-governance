@@ -456,6 +456,12 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 console.log("Getting floor price for: "+thisitem.nftMint)
                 console.log("HM: "+thisitem.helloMoonCollectionId)
                 
+                if (thisitem?.nftMetadataJson?.uri){
+                    const metadata = await window.fetch(thisitem.nftMetadataJson.uri).then(
+                        (res: any) => res.json());
+                    thisitem.nftImage = metadata?.image;
+                }
+
                 if (thisitem.helloMoonCollectionId){
                     if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury NFT Floor Prices ("+thisitem.nftMint+")");
                     const results = await client.send(new CollectionFloorpriceRequest({
@@ -2158,7 +2164,7 @@ const processGovernanceUploadSnapshotAll = async(force:boolean, address: string,
             }
             count++;
         }   
-        
+
         // if we have not found this governance
         if (address && !processedGovernance){
             console.log("Adding Governance: "+address+"")
