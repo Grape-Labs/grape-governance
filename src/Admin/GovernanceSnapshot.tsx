@@ -454,7 +454,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         if (vi?.nfts){
             for (const thisitem of vi.nfts){
                 console.log("Getting floor price for: "+thisitem.nftMint)
-                console.log("HM: "+thisitem.helloMoonCollectionId)
+                console.log("HM: "+thisitem?.helloMoonCollectionId)
                 
                 //console.log("URI: "+JSON.stringify(thisitem?.metadataJson?.uri))
                 
@@ -465,7 +465,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         thisitem.metadataImage = metadata.image;
                 }
 
-                if (thisitem.helloMoonCollectionId){
+                if (thisitem?.helloMoonCollectionId){
                     if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury NFT Floor Prices ("+thisitem.nftMint+")");
                     const results = await client.send(new CollectionFloorpriceRequest({
                         helloMoonCollectionId: thisitem.helloMoonCollectionId,
