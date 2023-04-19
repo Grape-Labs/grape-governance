@@ -2158,7 +2158,7 @@ const processGovernanceUploadSnapshotAll = async(force:boolean, address: string,
             }
             count++;
         }   
-
+        
         // if we have not found this governance
         if (address && !processedGovernance){
             console.log("Adding Governance: "+address+"")
@@ -2439,6 +2439,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 <Typography variant='subtitle1' sx={{textAlign:'center'}}>
                     {status}
                 </Typography>
+                
                 {currentUploadInfo &&
                     <Typography variant='caption' sx={{textAlign:'center'}}>
                         {currentUploadInfo}

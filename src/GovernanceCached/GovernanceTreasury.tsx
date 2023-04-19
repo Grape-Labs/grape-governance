@@ -599,7 +599,7 @@ export function GovernanceTreasuryView(props: any) {
                                             nodeId={key.toString()+"-1"}
                                             labelText="Sol"
                                             labelIcon={Label}
-                                            labelInfo={item.solBalance}
+                                            labelInfo={(item.solBalance /(10 ** 9)).toString()}
                                             color="#1a73e8"
                                             bgColor="#e8f0fe"
                                             />
@@ -626,11 +626,12 @@ export function GovernanceTreasuryView(props: any) {
                                                         nodeId={key.toString()+"-3-"+innerkey.toString()}
                                                         labelText={
                                                             <>
-                                                            <ExplorerView address={inneritem.nftMint} title={inneritem.metadataJson.name} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
+                                                            <ExplorerView address={inneritem.nftMint} title={inneritem.metadataJson.name} type='address' shorten={8} hideTitle={false} showAddress={true} style='text' color='white' fontSize='14px' />
+                                                            
                                                             </>
                                                         }
                                                         labelInfo={<>
-                                                            <ExplorerView address={inneritem.nftMint} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='10px' />
+                                                            {+inneritem.floorPriceLamports > 0 ? <><strong>Floor Price:  {+inneritem.floorPriceLamports/(10 ** 9)} sol</strong><br/></> : ``} {+inneritem.listingCount > 0 && <>Collection Listing Count: {inneritem.listingCount}</>}
                                                             </>
                                                         }
                                                         color="#1a73e8"
