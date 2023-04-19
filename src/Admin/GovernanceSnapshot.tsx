@@ -456,13 +456,17 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 console.log("Getting floor price for: "+thisitem.nftMint)
                 console.log("HM: "+thisitem?.helloMoonCollectionId)
                 
-                //console.log("URI: "+JSON.stringify(thisitem?.metadataJson?.uri))
+                console.log("URI: "+JSON.stringify(thisitem?.metadataJson?.uri))
                 
                 if (thisitem?.metadataJson?.uri){
-                    const metadata = await window.fetch(thisitem.metadataJson.uri).then(
-                        (res: any) => res.json());
-                    if (metadata?.image)
-                        thisitem.metadataImage = metadata.image;
+                    try{
+                        const metadata = await window.fetch(thisitem.metadataJson.uri).then(
+                            (res: any) => res.json());
+                        if (metadata?.image)
+                            thisitem.metadataImage = metadata.image;
+                    }catch(merr){
+                        console.log("ERR: "+merr);
+                    }
                 }
 
                 if (thisitem?.helloMoonCollectionId){
@@ -491,7 +495,9 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                                 
                             }
                         }
-                } /*else{
+                } // use Helius or traditional RPC as an alternative 
+                
+                /*else{
                     const results = await client.send(new NftMintPriceByCreatorAvgRequest({
                         nftMint: thisitem.nftMint,
                         limit: 1000
