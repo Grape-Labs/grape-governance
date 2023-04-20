@@ -42,6 +42,11 @@ import {
   Grid,
   Box,
   Paper,
+  Avatar,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
   Table,
   TableContainer,
   TableCell,
@@ -63,6 +68,8 @@ import {
   TextField
 } from '@mui/material/';
 
+import { TooltipProps, tooltipClasses } from '@mui/material/Tooltip';
+
 import GovernanceNavigation from './GovernanceNavigation'; 
 import {
     fetchGovernanceLookupFile,
@@ -77,6 +84,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import HubIcon from '@mui/icons-material/Hub';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
@@ -119,6 +127,18 @@ const Root = props => (
     <Legend.Label {...props} sx={{ whiteSpace: 'nowrap' }} />
   );
 
+  const BootstrapTooltip = styled(({ className, ...props }: TooltipProps) => (
+    <Tooltip {...props} arrow classes={{ popper: className }} />
+  ))(({ theme }) => ({
+    [`& .${tooltipClasses.arrow}`]: {
+      color: theme.palette.common.black,
+    },
+    [`& .${tooltipClasses.tooltip}`]: {
+      backgroundColor: 'rgba(0,0,0,0.9)',
+      borderRadius: '17px'
+    },
+  }));
+  
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
     height: 15,
     borderRadius: '17px',
@@ -414,10 +434,14 @@ function RenderVoterRecordTable(props:any) {
                     <>
                         {params.value &&
                             <>
-                            <Tooltip title={
-                                <ul>
+                            <BootstrapTooltip 
+                                sx={{bgcolor:'none'}}
+                                title={
+                                <List
+                                    sx={{borderRadius:'17px',width: '100%',bgcolor:'rgba(0,0,0,0.25)'}}
+                                >
                                     {params.value.multisigs && params.value.multisigs.length > 0 && params.value.multisigs.map((item: any, index:number) => (
-                                        <li>
+                                        <ListItem>
                                             <Button
                                                 color='inherit' 
                                                 sx={{borderRadius:'17px',textTransform:'none'}}
@@ -425,25 +449,35 @@ function RenderVoterRecordTable(props:any) {
                                                 target='_blank'
                                                 component={Link}
                                             >
-                                                <strong>{item.metadata.name} <OpenInNewIcon sx={{fontSize:'12px'}} /></strong>
+                                                <ListItemAvatar>
+                                                {item.metadata?.image && item.metadata.image.length > 0 ?
+                                                    <Avatar alt={item.address} src={item.metadata.image} />
+                                                :
+                                                    <Avatar alt={item.address} ><HubIcon /></Avatar>
+                                                }
+                                                    
+                                                
+                                                </ListItemAvatar>
+                                                <ListItemText primary={<>{item.metadata.name} <OpenInNewIcon sx={{fontSize:'12px'}} /></>} secondary={<>
+                                                    <Typography variant="caption">
+                                                        Participants: <strong>{item.account.keys.length}</strong><br/>
+                                                        {item.metadata.createdTime.toString().length > 10 ? moment(item.metadata.createdTime).format("YYYY-MM-DD HH:mm") : moment.unix(item.metadata.createdTime).format("YYYY-MM-DD HH:mm")}<br/>
+                                                        <Typography sx={{fontSize:'7px'}}>{item.address}</Typography>
+                                                        </Typography>
+                                                </>} />
                                            </Button>
-                                            <br/>
-                                            Participants: <strong>{item.account.keys.length}</strong>
-                                            <br/>
-                                            <small>{item.address}</small>
-                                            <br/>
-                                            <small>{item.metadata.createdTime.toString().length > 10 ? moment(item.metadata.createdTime).format("YYYY-MM-DD HH:mm") : moment.unix(item.metadata.createdTime).format("YYYY-MM-DD HH:mm")}</small>
+                                            
                                         
-                                        </li>)
+                                        </ListItem>)
                                     )}
-                                </ul>}>
+                                </List>}>
                                 <Button 
                                     color='inherit' 
                                     sx={{borderRadius:'17px'}}
                                     >
                                     {params.value.multisigs.length}
                                 </Button>
-                            </Tooltip>
+                            </BootstrapTooltip>
                             </>
                         }
                     </>
