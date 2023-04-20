@@ -420,7 +420,7 @@ function RenderVoterRecordTable(props:any) {
                                         <li>
                                             <Button
                                                 color='inherit' 
-                                                sx={{borderRadius:'17px',}}
+                                                sx={{borderRadius:'17px',textTransform:'none'}}
                                                 to={`https://v3.squads.so/dashboard/${Buffer.from(item.address).toString('base64')}`}
                                                 target='_blank'
                                                 component={Link}
