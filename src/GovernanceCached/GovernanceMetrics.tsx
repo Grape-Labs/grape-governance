@@ -418,11 +418,14 @@ function RenderVoterRecordTable(props:any) {
                                 <ul>
                                     {params.value.multisigs && params.value.multisigs.length > 0 && params.value.multisigs.map((item: any, index:number) => (
                                         <li>
-                                            <strong>{item.metadata.name}</strong><br/><small>{item.address}</small>
+                                            <strong>{item.metadata.name}</strong><br/><small>{item.address}</small><br/><small>{item.metadata.createdTime.toString().length > 10 ? moment(item.metadata.createdTime).format("YYYY-MM-DD HH:mm") : moment.unix(item.metadata.createdTime).format("YYYY-MM-DD HH:mm")}</small>
                                         </li>)
                                     )}
                                 </ul>}>
-                                <Button color='inherit' sx={{borderRadius:'17px'}}>
+                                <Button 
+                                    color='inherit' 
+                                    sx={{borderRadius:'17px'}}
+                                    >
                                     {params.value.multisigs.length}
                                 </Button>
                             </Tooltip>
