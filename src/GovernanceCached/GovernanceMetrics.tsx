@@ -418,7 +418,20 @@ function RenderVoterRecordTable(props:any) {
                                 <ul>
                                     {params.value.multisigs && params.value.multisigs.length > 0 && params.value.multisigs.map((item: any, index:number) => (
                                         <li>
-                                            <strong>{item.metadata.name}</strong><br/><small>{item.address}</small><br/><small>{item.metadata.createdTime.toString().length > 10 ? moment(item.metadata.createdTime).format("YYYY-MM-DD HH:mm") : moment.unix(item.metadata.createdTime).format("YYYY-MM-DD HH:mm")}</small>
+                                            <Button
+                                                color='inherit' 
+                                                sx={{borderRadius:'17px'}}
+                                                to={`https://v3.squads.so/dashboard/${Buffer.from(item.address).toString('base64')}`}
+                                                target='_blank'
+                                                component={Link}
+                                            >
+                                                <strong>{item.metadata.name} <OpenInNewIcon sx={{fontSize:'12px'}} /></strong>
+                                           </Button>
+                                           <br/>
+                                            <small>{item.address}</small>
+                                            <br/>
+                                            <small>{item.metadata.createdTime.toString().length > 10 ? moment(item.metadata.createdTime).format("YYYY-MM-DD HH:mm") : moment.unix(item.metadata.createdTime).format("YYYY-MM-DD HH:mm")}</small>
+                                        
                                         </li>)
                                     )}
                                 </ul>}>
