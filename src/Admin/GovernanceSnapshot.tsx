@@ -1326,13 +1326,16 @@ const generateMasterVoterRecord = async(connection: Connection, governanceLookup
                     for (const cachedOwner of cached_members){
                         let firstTransactionDate = null;
                         let walletBalance = null;
+                        let multisigs = null;
                         let address = cachedOwner.account.governingTokenOwner;
                         let masterRecordFound = false;
                         if (cachedOwner?.firstTransactionDate)
                             firstTransactionDate = cachedOwner.firstTransactionDate;
                         if (cachedOwner?.walletBalance)
                             walletBalance = cachedOwner.walletBalance;
-                        
+                        if (cachedOwner?.multisigs)
+                            multisigs = cachedOwner.multisigs;
+
                         // check if master member exists
                         if (masterVoterRecord && masterVoterRecord.length > 0){
                             for (const masterOwner of masterVoterRecord){
@@ -1359,6 +1362,7 @@ const generateMasterVoterRecord = async(connection: Connection, governanceLookup
                                 address:address,
                                 firstTransactionDate:firstTransactionDate,
                                 walletBalance:walletBalance,
+                                multisigs:multisigs,
                                 participating:[{
                                     governanceAddress: governance.governanceAddress,
                                     governanceName: governance.governanceName,

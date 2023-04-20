@@ -418,7 +418,7 @@ function RenderVoterRecordTable(props:any) {
                                 <ul>
                                     {params.value.multisigs && params.value.multisigs.length > 0 && params.value.multisigs.map((item: any, index:number) => (
                                         <li>
-                                            {item.metadata.name}<br/>{item.address}
+                                            <strong>{item.metadata.name}</strong><br/><small>{item.address}</small>
                                         </li>)
                                     )}
                                 </ul>}>
