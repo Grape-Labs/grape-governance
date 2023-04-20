@@ -420,14 +420,16 @@ function RenderVoterRecordTable(props:any) {
                                         <li>
                                             <Button
                                                 color='inherit' 
-                                                sx={{borderRadius:'17px'}}
+                                                sx={{borderRadius:'17px',}}
                                                 to={`https://v3.squads.so/dashboard/${Buffer.from(item.address).toString('base64')}`}
                                                 target='_blank'
                                                 component={Link}
                                             >
                                                 <strong>{item.metadata.name} <OpenInNewIcon sx={{fontSize:'12px'}} /></strong>
                                            </Button>
-                                           <br/>
+                                            <br/>
+                                            Participants: <strong>{item.account.keys.length}</strong>
+                                            <br/>
                                             <small>{item.address}</small>
                                             <br/>
                                             <small>{item.metadata.createdTime.toString().length > 10 ? moment(item.metadata.createdTime).format("YYYY-MM-DD HH:mm") : moment.unix(item.metadata.createdTime).format("YYYY-MM-DD HH:mm")}</small>
