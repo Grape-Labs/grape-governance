@@ -408,6 +408,30 @@ function RenderVoterRecordTable(props:any) {
                 )
             }
         },
+        { field: 'multisigs', headerName: 'Other Multisig Participation', width: 170, hide: false, align: 'right',
+            renderCell: (params) => {
+                return(
+                    <>
+                        {params.value &&
+                            <>
+                            <Tooltip title={
+                                <ul>
+                                    {params.value.multisigs && params.value.multisigs.length > 0 && params.value.multisigs.map((item: any, index:number) => (
+                                        <li>
+                                            {item.metadata.name}<br/>{item.address}
+                                        </li>)
+                                    )}
+                                </ul>}>
+                                <Button color='inherit' sx={{borderRadius:'17px'}}>
+                                    {params.value.multisigs.length}
+                                </Button>
+                            </Tooltip>
+                            </>
+                        }
+                    </>
+                )
+            }
+        },
     ]
 
     const exportFile = async(csvFile:string, fileName:string) => {
@@ -701,6 +725,7 @@ function RenderVoterRecordTable(props:any) {
                     councilpropcreatorpassed: 0,
                     communitypropcreatorpassed: 0,
                     ecosystemparticipation: participation,
+                    multisigs: memberItem?.multisigs,
                                     
                 })
                 voterCount++;
@@ -1104,7 +1129,7 @@ function RenderVoterRecordTable(props:any) {
                         csvFile = 'pubkey,totalproposalscreated,communitypropcreatorpassed,depositedvotes,councildepositedvotes,unstakedvotes,firstparticipationdate,lastparticipationdate,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,councilpropcreatorpassed,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
                     csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.communitypropcreatorpassed+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.currentunstakedvotes+','+voter_item.firstparticipationdate+','+voter_item.lastparticipationdate+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.councilpropcreatorpassed+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
                     counter++;
-                    
+
                     //tStakedVotes += voter_item.currentvotes;
                     if (voter_item.totalvotes > 0)
                         tStakedVotes += voter_item.currentvotes

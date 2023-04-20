@@ -709,6 +709,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             // IMPORTANT to speed this up check first tx for mmember wallet...
 
             var hasFtd = false;
+            var hasMltsg = false;
             if (cached_members && cached_members.length > 0){
                 for (let cachedOwner of cached_members){ // smart fetching so we do not query this call again
                     if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord.toBase58()){
@@ -716,8 +717,24 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                             owner.firstTransactionDate = cachedOwner.firstTransactionDate;
                             hasFtd = true;
                         }
+                        if (cachedOwner?.multisigs){
+                            owner.multisigs = cachedOwner?.multisigs;
+                            hasMltsg = true;
+                        }
                         console.log("Found record: "+cachedOwner.account.governingTokenOwner + " - "+cachedOwner?.firstTransactionDate)
                     }
+                }
+            }
+
+            if (!hasMltsg){
+                try{
+                    const squadsMultisigs = "https://rust-api-sd2oj.ondigitalocean.app/multisig?address="+tokenOwnerRecord.toBase58()+"&useProd=true"
+                    const multisigs = await window.fetch(squadsMultisigs).then(
+                        (res: any) => res.json());
+                    if (multisigs?.multisigs && multisigs.multisigs.length > 0)
+                        owner.multisigs = multisigs;
+                }catch(merr){
+                    console.log("ERR: "+merr);
                 }
             }
 
