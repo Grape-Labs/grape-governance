@@ -2199,19 +2199,20 @@ const processGovernanceUploadSnapshotAll = async(
         for (var item of governanceLookup){
             var skip = false;
             
+            const lookupTimestamp = moment.unix(Number(item.timestamp));
+            const nowTimestamp = moment();
+            const hoursDiff = nowTimestamp.diff(lookupTimestamp, 'hours');
+            console.log("hrs diff: "+hoursDiff);
+            if (hoursDiff < 6) // don't process if less than 6 hrs of last fetch
+                skip = true;
+            
             if (address){
                 skip = true;
                 if (setBatchStatus) setBatchStatus("Fetching an existing Governance: "+address);
                 if (item.governanceAddress === address)
                     skip = false;
-
-
-                const lookupTimestamp = moment.unix(Number(item.timestamp));
-                const nowTimestamp = moment();
-                const hoursDiff = nowTimestamp.diff(lookupTimestamp, 'hours');
-                if (hoursDiff < 6) // don't process if less than 6 hrs of last fetch
-                    skip = true;
             }
+
             //if (count > 20){ // process 1 for now to verify it works
             if (!skip){
                 processedGovernance = true;
@@ -2225,7 +2226,7 @@ const processGovernanceUploadSnapshotAll = async(
                 const governanceData = await processGovernance(item.governanceAddress, grealm, tokenMap, item, storagePool, currentWallet, setPrimaryStatus, setSecondaryStatus);
                 if (setSecondaryStatus) setSecondaryStatus("Processing Proposals");
                 const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData, connection, tokenMap, storagePool, governanceLookup, setSecondaryStatus, setProgress);
-                
+
                 //console.log("processedFiles.proposalsString "+JSON.stringify(processedFiles.proposalsString))
                 if (setSecondaryStatus) setSecondaryStatus("Uploading to Storage Pool");
                 await handleUploadToStoragePool(grealm, item.governanceAddress, processedFiles.proposalsString, processedFiles.membersString, processedFiles.governanceTransactionsString, governanceData.governanceVaultsString, governanceData, processedFiles.ggv, thisDrive, storagePool, setCurrentUploadInfo, setCronBookmark, enqueueSnackbar, closeSnackbar, connection, governanceLookup, governanceAutocomplete, setGovernanceLookup);
