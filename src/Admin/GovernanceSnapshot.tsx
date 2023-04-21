@@ -241,10 +241,13 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
     if (setPrimaryStatus) setPrimaryStatus("Governance Fetched");
     
-    const lookupTimestamp = moment.unix(Number(governanceLookupItem.timestamp));
-    const nowTimestamp = moment();
-    const hoursDiff = nowTimestamp.diff(lookupTimestamp, 'hours');
-    console.log("Governance Cache Hours Ago: "+JSON.stringify(hoursDiff));
+    let hoursDiff = 0;
+    if (governanceLookupItem?.timestamp){
+        const lookupTimestamp = moment.unix(Number(governanceLookupItem.timestamp));
+        const nowTimestamp = moment();
+        hoursDiff = nowTimestamp.diff(lookupTimestamp, 'hours');
+        console.log("Governance Cache Hours Ago: "+JSON.stringify(hoursDiff));
+    }
 
     //console.log("Governance: "+JSON.stringify(grealm));
 

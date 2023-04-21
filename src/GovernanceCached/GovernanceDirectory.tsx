@@ -603,8 +603,8 @@ export function GovernanceDirectoryView() {
                                         <>Unique Voters</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            {governanceTotalParticipatingMultisigs && <>Total Participating in Multisigs {governanceTotalParticipatingMultisigs  ? getFormattedNumberToLocale(governanceTotalParticipatingMultisigs) : 0}</>}
-                                            <br/>All time members throughout all governances:
+                                            {governanceTotalParticipatingMultisigs && <>Voters in Squads Multisigs {governanceTotalParticipatingMultisigs  ? getFormattedNumberToLocale(governanceTotalParticipatingMultisigs) : 0}</>}
+                                            <br/><br/>All time members throughout all governances:
                                             <br/>Current Voting Records: {governanceTotalVotingRecordMembers ? getFormattedNumberToLocale(governanceTotalVotingRecordMembers) : 0}
                                             <br/>Last Fetch Voting Records: {governanceLastMembers ? getFormattedNumberToLocale(governanceLastMembers) : 0}
                                             </>
