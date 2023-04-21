@@ -241,11 +241,10 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
     if (setPrimaryStatus) setPrimaryStatus("Governance Fetched");
     
-    
     const lookupTimestamp = moment.unix(Number(governanceLookupItem.timestamp));
     const nowTimestamp = moment();
-    const dayDiff = nowTimestamp.diff(lookupTimestamp, 'days');
-    console.log("Governance Cache Days Ago: "+JSON.stringify(dayDiff));
+    const hoursDiff = nowTimestamp.diff(lookupTimestamp, 'hours');
+    console.log("Governance Cache Hours Ago: "+JSON.stringify(hoursDiff));
 
     //console.log("Governance: "+JSON.stringify(grealm));
 
@@ -719,32 +718,35 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         if (cachedOwner?.multisigs){
                             owner.multisigs = cachedOwner?.multisigs;
                             hasMltsg = true;
+
                         }
                         if (cachedOwner?.walletBalance){
                             owner.walletBalance = cachedOwner.walletBalance;
                             hasWalletBalance = true;
                         }
 
-                        console.log("Found record: "+cachedOwner.account.governingTokenOwner + " - "+cachedOwner?.firstTransactionDate)
+                        console.log("Found record: "+cachedOwner.account.governingTokenOwner + " - "+cachedOwner?.firstTransactionDate + " msig: "+hasMltsg+" ftd: "+hasFtd)
                     }
 
                 }
             }
 
-            if (!hasWalletBalance || dayDiff > 3){
+            if (!hasWalletBalance || hoursDiff > (24*3)){
                 const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account?.communityMint});
                 //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
                 if (balance?.value[0]?.account?.data?.parsed?.info)    
                     owner.walletBalance = balance.value[0].account.data.parsed.info;
             }
 
-            if (!hasMltsg || dayDiff > 15){
+            if (!hasMltsg || hoursDiff > (24*15)){
                 try{
                     const squadsMultisigs = "https://rust-api-sd2oj.ondigitalocean.app/multisig?address="+tokenOwnerRecord.toBase58()+"&useProd=true"
                     const multisigs = await window.fetch(squadsMultisigs).then(
                         (res: any) => res.json());
                     if (multisigs?.multisigs && multisigs.multisigs.length > 0)
                         owner.multisigs = multisigs;
+                    else
+                        owner.multisigs = [];
                 }catch(merr){
                     console.log("ERR: "+merr);
                 }
