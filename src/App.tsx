@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AdminView } from "./Admin/Admin";
 import { GovernanceRPCView } from "./GovernanceRPC/Governance";
 import { GovernanceCachedView } from "./GovernanceCached/Governance";
+import { PremiumView } from "./GovernanceCached/Premium";
 import { GovernanceMetricsView } from "./GovernanceCached/GovernanceMetrics";
 import { GovernanceMembersView } from "./GovernanceCached/GovernanceMembers";
 import { GovernanceTreasuryView } from "./GovernanceCached/GovernanceTreasury";
@@ -203,6 +204,9 @@ function DashboardContent() {
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                               </Route>
 
+                                              <Route path="premium/*" element={<PremiumView />} >
+                                                  <Route path=":handlekey" element={<PremiumView />} />
+                                              </Route>
                                               <Route path="metrics/*" element={<GovernanceMetricsView />} >
                                                   <Route path=":handlekey" element={<GovernanceMetricsView />} />
                                               </Route>

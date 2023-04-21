@@ -58,7 +58,7 @@ export default function GovernanceNavigation(props: any){
                         ><HowToVoteIcon /></Button>
                     </Tooltip>
                     <Tooltip title={
-                        <><strong>Metrics</strong><br/>* Via Cached Storage
+                        <><strong>Metrics</strong><br/>* Via Cached Storage<br/>** Premium Feature
                         </>}>
                         <Button
                             component={Link}

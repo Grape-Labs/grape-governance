@@ -1382,7 +1382,7 @@ function RenderVoterRecordTable(props:any) {
 export function GovernanceMetricsView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
-    const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
+    const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey || props?.handlekey;
     const [startTime, setStartTime] = React.useState(null);
     const [endTime, setEndTime] = React.useState(null);
     const governanceAddress = urlParams;
