@@ -220,6 +220,7 @@ export function GovernanceDirectoryView() {
     const [governanceTotalVaultStableCoinValue, setGovernanceTotalVaultStableCoinValue] = React.useState(null);
     const [governanceTotalMembers, setGovernanceTotalMembers] = React.useState(null);
     const [governanceTotalVotingRecordMembers, setGovernanceTotalVotingRecordMembers] = React.useState(null);
+    const [governanceTotalParticipatingMultisigs, setGovernanceTotalParticipatingMultisigs] = React.useState(null);
     const [governanceTotalProposals, setGovernanceTotalProposals] = React.useState(null);
     const [sortingType, setSortingType] = React.useState(null);
     const [sortingDirection, setSortingDirection] = React.useState(null);
@@ -404,6 +405,15 @@ export function GovernanceDirectoryView() {
                 setGovernanceTotalMembers(fgmmf.length)
             else
                 setGovernanceTotalMembers(totalGovernanceMembers)
+
+            let multisigParticipation = 0;
+            for (var masterMember of fgmmf){
+                //console.log("masterMember: "+JSON.stringify(masterMember))
+                if (masterMember?.multisigs?.multisigs && masterMember.multisigs.multisigs.length > 0)
+                    multisigParticipation += 1;//masterMember.multisigs.length; 
+            }
+
+            setGovernanceTotalParticipatingMultisigs(multisigParticipation);
 
             
             // export
@@ -593,7 +603,8 @@ export function GovernanceDirectoryView() {
                                         <>Unique Voters</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            All time members throughout all governances
+                                            {governanceTotalParticipatingMultisigs && <>Total Participating in Multisigs {governanceTotalParticipatingMultisigs  ? getFormattedNumberToLocale(governanceTotalParticipatingMultisigs) : 0}</>}
+                                            <br/>All time members throughout all governances:
                                             <br/>Current Voting Records: {governanceTotalVotingRecordMembers ? getFormattedNumberToLocale(governanceTotalVotingRecordMembers) : 0}
                                             <br/>Last Fetch Voting Records: {governanceLastMembers ? getFormattedNumberToLocale(governanceLastMembers) : 0}
                                             </>
@@ -653,7 +664,6 @@ export function GovernanceDirectoryView() {
                                     </Tooltip>
                                 </Box>
                             </Grid>
-                        
                         
                         </Grid>
                     </Box>
