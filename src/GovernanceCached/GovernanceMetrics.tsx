@@ -475,7 +475,7 @@ function RenderVoterRecordTable(props:any) {
                                     color='inherit' 
                                     sx={{borderRadius:'17px'}}
                                     >
-                                    {params.value.multisigs.length}
+                                    {params.value.multisigs && params.value.multisigs.length}
                                 </Button>
                             </BootstrapTooltip>
                             </>
