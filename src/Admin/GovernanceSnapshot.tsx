@@ -241,6 +241,11 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
     if (setPrimaryStatus) setPrimaryStatus("Governance Fetched");
     
+    
+    const lookupTimestamp = moment.unix(Number(governanceLookupItem.timestamp));
+    const nowTimestamp = moment();
+    const dayDiff = nowTimestamp.diff(lookupTimestamp, 'days');
+
     //console.log("Governance: "+JSON.stringify(grealm));
 
     let gTD = null;
@@ -444,7 +449,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
                     // try hellomoon?
                     //const client = new RestClient(HELLO_MOON_BEARER);
-
                 }
             }
         }
@@ -529,7 +533,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         console.log("Total Tokens: "+(assetsIdentified+assetsNotIdentified));
     }
 
-    
     // consider jupiter as a backup... (per token address)
 
     if (setPrimaryStatus) setPrimaryStatus("Fetching Prices from Jupiter");
@@ -700,16 +703,11 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance");
             const tokenOwnerRecord = owner.account.governingTokenOwner;
             
-            const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account?.communityMint});
-
-            //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
-            if (balance?.value[0]?.account?.data?.parsed?.info)    
-                owner.walletBalance = balance.value[0].account.data.parsed.info;
-
             // IMPORTANT to speed this up check first tx for mmember wallet...
 
             var hasFtd = false;
             var hasMltsg = false;
+            var hasWalletBalance = false;
             if (cached_members && cached_members.length > 0){
                 for (let cachedOwner of cached_members){ // smart fetching so we do not query this call again
                     if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord.toBase58()){
@@ -721,12 +719,25 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                             owner.multisigs = cachedOwner?.multisigs;
                             hasMltsg = true;
                         }
+                        if (cachedOwner?.walletBalance){
+                            owner.walletBalance = cachedOwner.walletBalance;
+                            hasWalletBalance = true;
+                        }
+
                         console.log("Found record: "+cachedOwner.account.governingTokenOwner + " - "+cachedOwner?.firstTransactionDate)
                     }
+
                 }
             }
 
-            if (!hasMltsg){
+            if (!hasWalletBalance || dayDiff > 3){
+                const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account?.communityMint});
+                //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
+                if (balance?.value[0]?.account?.data?.parsed?.info)    
+                    owner.walletBalance = balance.value[0].account.data.parsed.info;
+            }
+
+            if (!hasMltsg || dayDiff > 15){
                 try{
                     const squadsMultisigs = "https://rust-api-sd2oj.ondigitalocean.app/multisig?address="+tokenOwnerRecord.toBase58()+"&useProd=true"
                     const multisigs = await window.fetch(squadsMultisigs).then(
@@ -739,7 +750,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             }
 
             if (!hasFtd){
-            //{
                 let ftd = await getFirstTransactionDate(tokenOwnerRecord.toBase58());
                 if (ftd){
                     const txBlockTime = moment.unix(ftd)
@@ -852,7 +862,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     return governanceDetails;
 }
 
-const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean, this_realm: any, connection: Connection, wallet: any, tokenMap: any, storagePool: any, governanceLookup: any, setStatus: any, setProgress: any) => {
+const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean, this_realm: any, connection: Connection, wallet: any, tokenMap: any, storagePool: any, governanceLookup: any, setSecondaryStatus: any, setProgress: any) => {
 
     let govAddress = address;
     
@@ -877,9 +887,9 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
     for (var thisitem of finalList){
         x++;
         if (forceSkip)
-            if (setStatus) setStatus("Fetching "+x+" of "+length);
+            if (setSecondaryStatus) setSecondaryStatus("Fetching "+x+" of "+length);
         else
-            if (setStatus) setStatus("Smart Fetching "+x+" of "+length);
+            if (setSecondaryStatus) setSecondaryStatus("Smart Fetching "+x+" of "+length);
         
         if (setProgress) setProgress((prevProgress:any) => (prevProgress >= 100 ? 0 : normalise(x)));
         
@@ -1407,14 +1417,14 @@ const processGovernance = async(address:string, sent_realm:any, tokenMap: any, g
 }
 
 // STEP 2.
-const processProposals = async(address:string, finalList:any, forceSkip:boolean, this_realm: any, governanceData: any, connection: Connection, tokenMap: any, storagePool: any, governanceLookup: any, setStatus: any, setProgress: any) => {
+const processProposals = async(address:string, finalList:any, forceSkip:boolean, this_realm: any, governanceData: any, connection: Connection, tokenMap: any, storagePool: any, governanceLookup: any, setSecondaryStatus: any, setProgress: any) => {
     if (finalList){
         
         let using_realm = this_realm;
         //if (!using_realm)
         //    using_realm = realm;
 
-        const fpd = await fetchProposalData(address, finalList, forceSkip, using_realm, connection, useWallet, tokenMap, storagePool, governanceLookup, setStatus, setProgress);
+        const fpd = await fetchProposalData(address, finalList, forceSkip, using_realm, connection, useWallet, tokenMap, storagePool, governanceLookup, setSecondaryStatus, setProgress);
         
         if (fpd.finalList){
             
@@ -2131,8 +2141,6 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
                 
                 await updateGovernanceLookupFile(drive, sentRealm, address, governanceFetchedDetails, ggv, fileName, memberFileName, governanceTransactionsFileName, governanceVaultsFileName, timestamp, lookupFound, storagePool, connection, governanceLookup, setCurrentUploadInfo, governanceAutocomplete, setGovernanceLookup, enqueueSnackbar, closeSnackbar);
 
-
-
                 // delay a bit and update to show that the files have been added
                 setCurrentUploadInfo("SPL Governance DSC "+address+" updated!");
 
@@ -2159,8 +2167,31 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
     }
 }
 
-const processGovernanceUploadSnapshotAll = async(force:boolean, address: string, governanceLookup: any, tokenMap: any, currentWallet: any, connection: Connection, storagePool: any, governanceAutocomplete: any, thisDrive: any, setLoading: any, setBatchStatus: any, setPrimaryStatus: any, setStatus: any, setProgress: any, setCurrentUploadInfo: any, setCronBookmark: any, enqueueSnackbar: any, closeSnackbar: any, setGovernanceLookup: any) => {
+const processGovernanceUploadSnapshotAll = async(
+    force:boolean, 
+    address: string, 
+    governanceLookup: any, 
+    tokenMap: any, 
+    currentWallet: any, 
+    connection: Connection, 
+    storagePool: any, 
+    governanceAutocomplete: any, 
+    thisDrive: any, 
+    setLoading: any, 
+    setBatchStatus: any, 
+    setPrimaryStatus: any, 
+    setSecondaryStatus: any, 
+    setProgress: any, 
+    setCurrentUploadInfo: any, 
+    setCronBookmark: any, 
+    enqueueSnackbar: any, 
+    closeSnackbar: any, 
+    setGovernanceLookup: any) => {
+
     if (setLoading) setLoading(true);
+
+    if (setSecondaryStatus) setSecondaryStatus("Starting...")
+
     if (governanceLookup){
         let startTime = moment(new Date());
         let count = 0;
@@ -2174,7 +2205,6 @@ const processGovernanceUploadSnapshotAll = async(force:boolean, address: string,
                 if (item.governanceAddress === address)
                     skip = false;
             }
-
             //if (count > 20){ // process 1 for now to verify it works
             if (!skip){
                 processedGovernance = true;
@@ -2184,8 +2214,10 @@ const processGovernanceUploadSnapshotAll = async(force:boolean, address: string,
                 if (setBatchStatus) setBatchStatus("Fetching Governance ("+(count+1)+" of "+governanceLookup.length+"): "+item.governanceName+" "+item.governanceAddress+" "+elapsedDuration.humanize()+"");
                 
                 const grealm = await fetchRealm(item.governanceAddress);
-                const governanceData = await processGovernance(item.governanceAddress, grealm, tokenMap, item, storagePool, currentWallet, setPrimaryStatus, setStatus);
-                const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData, connection, tokenMap, storagePool, governanceLookup, setStatus, setProgress);
+                if (setSecondaryStatus) setSecondaryStatus("Processing Governance");
+                const governanceData = await processGovernance(item.governanceAddress, grealm, tokenMap, item, storagePool, currentWallet, setPrimaryStatus, setSecondaryStatus);
+                if (setSecondaryStatus) setSecondaryStatus("Processing Proposals");
+                const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData, connection, tokenMap, storagePool, governanceLookup, setSecondaryStatus, setProgress);
 
                 //console.log("processedFiles.proposalsString "+JSON.stringify(processedFiles.proposalsString))
 
@@ -2201,8 +2233,8 @@ const processGovernanceUploadSnapshotAll = async(force:boolean, address: string,
             if (setBatchStatus) setBatchStatus("Adding Governance: "+address+"");
             
             const grealm = await fetchRealm(address);
-            const governanceData = await processGovernance(address, grealm, tokenMap, null, storagePool, currentWallet, setPrimaryStatus, setStatus);
-            const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData, connection, tokenMap, storagePool, governanceLookup, setStatus, setProgress);
+            const governanceData = await processGovernance(address, grealm, tokenMap, null, storagePool, currentWallet, setPrimaryStatus, setSecondaryStatus);
+            const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData, connection, tokenMap, storagePool, governanceLookup, setSecondaryStatus, setProgress);
 
             //console.log("processedFiles.proposalsString "+JSON.stringify(processedFiles.proposalsString))
 
@@ -2225,7 +2257,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const connection = RPC_CONNECTION;
     
     const [progress, setProgress] = React.useState(0);
-    const [status, setStatus] = React.useState(null);
+    const [secondaryStatus, setSecondaryStatus] = React.useState(null);
     const [batchStatus, setBatchStatus] = React.useState(null);
     const [primaryStatus, setPrimaryStatus] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
@@ -2350,7 +2382,23 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                 processGovernanceUploadSnapshotAll(
                                     false, 
                                     null,
-                                    governanceLookup, tokenMap, currentWallet, connection, storagePool, governanceAutocomplete, thisDrive, setLoading, setBatchStatus, setPrimaryStatus, setStatus, setProgress, setCurrentUploadInfo, setCronBookmark, enqueueSnackbar, closeSnackbar, setGovernanceLookup)} 
+                                    governanceLookup, 
+                                    tokenMap, 
+                                    currentWallet, 
+                                    connection, 
+                                    storagePool, 
+                                    governanceAutocomplete, 
+                                    thisDrive, 
+                                    setLoading, 
+                                    setBatchStatus, 
+                                    setPrimaryStatus, 
+                                    setSecondaryStatus, 
+                                    setProgress, 
+                                    setCurrentUploadInfo,
+                                    setCronBookmark, 
+                                    enqueueSnackbar, 
+                                    closeSnackbar, 
+                                    setGovernanceLookup)} 
                             disabled={(!storagePool && governanceLookup) || (!wallet) || loading || (!tokenMap)}
                             variant='contained'
                             color='error'
@@ -2406,7 +2454,23 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                     processGovernanceUploadSnapshotAll(
                                         false, 
                                         governanceAddress,
-                                        governanceLookup, tokenMap, currentWallet, connection, storagePool, governanceAutocomplete, thisDrive, setLoading, setBatchStatus, setPrimaryStatus, setStatus, setProgress, setCurrentUploadInfo, setCronBookmark, enqueueSnackbar, closeSnackbar, setGovernanceLookup)} //processGovernanceUploadSnapshotJobStep1(governanceAddress, false)} 
+                                        governanceLookup, 
+                                        tokenMap, 
+                                        currentWallet, 
+                                        connection, 
+                                        storagePool, 
+                                        governanceAutocomplete, 
+                                        thisDrive, 
+                                        setLoading, 
+                                        setBatchStatus, 
+                                        setPrimaryStatus, 
+                                        setSecondaryStatus, 
+                                        setProgress, 
+                                        setCurrentUploadInfo, 
+                                        setCronBookmark, 
+                                        enqueueSnackbar, 
+                                        closeSnackbar, 
+                                        setGovernanceLookup)} //processGovernanceUploadSnapshotJobStep1(governanceAddress, false)} 
                                 disabled={(!governanceAddress) || (!storagePool || loading)}
                                 variant='contained'
                                 color='inherit'
@@ -2421,7 +2485,23 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                     processGovernanceUploadSnapshotAll(
                                         true, 
                                         governanceAddress,
-                                        governanceLookup, tokenMap, currentWallet, connection, storagePool, governanceAutocomplete, thisDrive, setLoading, setBatchStatus, setPrimaryStatus, setStatus, setProgress, setCurrentUploadInfo, setCronBookmark, enqueueSnackbar, closeSnackbar, setGovernanceLookup)}
+                                        governanceLookup, 
+                                        tokenMap, 
+                                        currentWallet, 
+                                        connection, 
+                                        storagePool, 
+                                        governanceAutocomplete, 
+                                        thisDrive, 
+                                        setLoading, 
+                                        setBatchStatus, 
+                                        setPrimaryStatus, 
+                                        setSecondaryStatus, 
+                                        setProgress, 
+                                        setCurrentUploadInfo, 
+                                        setCronBookmark, 
+                                        enqueueSnackbar, 
+                                        closeSnackbar, 
+                                        setGovernanceLookup)}
                                 disabled={(!governanceAddress) || (!storagePool || loading)}
                                 variant='contained'
                                 color='warning'
@@ -2473,7 +2553,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 */}
 
                 <Typography variant='subtitle1' sx={{textAlign:'center'}}>
-                    {status}
+                    {secondaryStatus}
                 </Typography>
                 
                 {currentUploadInfo &&
