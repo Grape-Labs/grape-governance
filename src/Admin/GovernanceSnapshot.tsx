@@ -245,6 +245,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     const lookupTimestamp = moment.unix(Number(governanceLookupItem.timestamp));
     const nowTimestamp = moment();
     const dayDiff = nowTimestamp.diff(lookupTimestamp, 'days');
+    console.log("Governance Cache Days Ago: "+JSON.stringify(dayDiff));
 
     //console.log("Governance: "+JSON.stringify(grealm));
 
