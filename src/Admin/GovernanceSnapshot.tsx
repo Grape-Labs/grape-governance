@@ -2204,6 +2204,13 @@ const processGovernanceUploadSnapshotAll = async(
                 if (setBatchStatus) setBatchStatus("Fetching an existing Governance: "+address);
                 if (item.governanceAddress === address)
                     skip = false;
+
+
+                const lookupTimestamp = moment.unix(Number(item.timestamp));
+                const nowTimestamp = moment();
+                const hoursDiff = nowTimestamp.diff(lookupTimestamp, 'hours');
+                if (hoursDiff < 6) // don't process if less than 6 hrs of last fetch
+                    skip = true;
             }
             //if (count > 20){ // process 1 for now to verify it works
             if (!skip){
