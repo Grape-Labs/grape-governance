@@ -2225,10 +2225,12 @@ const processGovernanceUploadSnapshotAll = async(
                 const governanceData = await processGovernance(item.governanceAddress, grealm, tokenMap, item, storagePool, currentWallet, setPrimaryStatus, setSecondaryStatus);
                 if (setSecondaryStatus) setSecondaryStatus("Processing Proposals");
                 const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData, connection, tokenMap, storagePool, governanceLookup, setSecondaryStatus, setProgress);
-
+                
                 //console.log("processedFiles.proposalsString "+JSON.stringify(processedFiles.proposalsString))
-
+                if (setSecondaryStatus) setSecondaryStatus("Uploading to Storage Pool");
                 await handleUploadToStoragePool(grealm, item.governanceAddress, processedFiles.proposalsString, processedFiles.membersString, processedFiles.governanceTransactionsString, governanceData.governanceVaultsString, governanceData, processedFiles.ggv, thisDrive, storagePool, setCurrentUploadInfo, setCronBookmark, enqueueSnackbar, closeSnackbar, connection, governanceLookup, governanceAutocomplete, setGovernanceLookup);
+                if (setSecondaryStatus) setSecondaryStatus("Processing Complete!");
+                
                 // Second drive creation (otherwise wallet is not connected when done earlier)
             }
             count++;
