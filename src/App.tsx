@@ -204,12 +204,14 @@ function DashboardContent() {
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                               </Route>
 
-                                              <Route path="premium/*" element={<PremiumView />} >
+                                              <Route path="metrics/*" element={<PremiumView />} >
                                                   <Route path=":handlekey" element={<PremiumView />} />
                                               </Route>
+                                              {/*
                                               <Route path="metrics/*" element={<GovernanceMetricsView />} >
                                                   <Route path=":handlekey" element={<GovernanceMetricsView />} />
                                               </Route>
+                                              */}
                                               <Route path="members/*" element={<GovernanceMembersView />} >
                                                   <Route path=":handlekey" element={<GovernanceMembersView />} />
                                               </Route>
