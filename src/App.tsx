@@ -218,10 +218,11 @@ function DashboardContent() {
                                               <Route path="treasury/*" element={<GovernanceTreasuryView />} >
                                                   <Route path=":handlekey" element={<GovernanceTreasuryView />} />
                                               </Route>
+                                              {/*
                                               <Route path="reputation/*" element={<GovernanceReputationView />} >
                                                   <Route path=":handlekey" element={<GovernanceReputationView />} />
                                               </Route>
-
+                                              */}
                                               <Route path="admin/*" element={<AdminView />} >
                                                   <Route path=":handlekey" element={<AdminView />} />
                                               </Route>

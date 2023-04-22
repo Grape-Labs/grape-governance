@@ -710,7 +710,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
             var hasFtd = false;
             var hasMltsg = false;
-            var hasWalletBalance = false;
+            var hasWalletCommunityBalance = false;
+            var hasWalletCouncilBalance = false;
             if (cached_members && cached_members.length > 0){
                 for (let cachedOwner of cached_members){ // smart fetching so we do not query this call again
                     if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord.toBase58()){
@@ -725,20 +726,33 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         }
                         if (cachedOwner?.walletBalance){
                             owner.walletBalance = cachedOwner.walletBalance;
-                            hasWalletBalance = true;
+                            hasWalletCommunityBalance = true;
                         }
-
+                        if (cachedOwner?.walletCouncilBalance){
+                            owner.walletCouncilBalance = cachedOwner.walletCouncilBalance;
+                            hasWalletCouncilBalance = true;
+                        }
                         console.log("Found record: "+cachedOwner.account.governingTokenOwner + " - "+cachedOwner?.firstTransactionDate + " msig: "+hasMltsg+" ftd: "+hasFtd)
                     }
 
                 }
             }
 
-            if (!hasWalletBalance || hoursDiff > (24*3)){
-                const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account?.communityMint});
-                //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
-                if (balance?.value[0]?.account?.data?.parsed?.info)    
+            if (!hasWalletCommunityBalance || hoursDiff > (24*3)){
+                if (grealm.account?.communityMint){
+                    const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.communityMint});
+                    //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
+                    if (balance?.value[0]?.account?.data?.parsed?.info)    
                     owner.walletBalance = balance.value[0].account.data.parsed.info;
+                }
+            }
+            if (!hasWalletCouncilBalance || hoursDiff > (24*3)){
+                if (grealm.account?.councilMint){
+                    const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.councilMint});
+                    //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
+                    if (balance?.value[0]?.account?.data?.parsed?.info)    
+                        owner.walletCouncilBalance = balance.value[0].account.data.parsed.info;
+                }
             }
 
             if (!hasMltsg || hoursDiff > (24*15)){

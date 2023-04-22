@@ -2941,7 +2941,7 @@
 
 "@metaplex/js@^4.12.0":
   version "4.12.0"
-  resolved "https://registry.npmjs.org/@metaplex/js/-/js-4.12.0.tgz"
+  resolved "https://registry.yarnpkg.com/@metaplex/js/-/js-4.12.0.tgz#1190767a4e69d4e5613002aab3f4c1fb8de07896"
   integrity sha512-rIUTMXo5gIXFIZt08AEHyqH4oVoLL2dMYiNePQluw9pydesRym4jDayJ5POxEmKmyc6KGqVKw/YWUIivmUY5zg==
   dependencies:
     "@metaplex-foundation/mpl-auction" "^0.0.2"

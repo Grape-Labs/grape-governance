@@ -269,6 +269,7 @@ function RenderVoterRecordTable(props:any) {
             }
         },
         { field: 'councilvotes', headerName: 'Council', width: 100, hide: false, align: 'right',},
+        { field: 'councilunstakedvotes', headerName: 'Unstaked Council Votes', width: 100, hide: false, align: 'right',},
         { field: 'firstparticipationdate', headerName: 'First Participating Proposal Date', width: 200, hide: false, align: 'right',
         renderCell: (params) => {
             return(
@@ -724,13 +725,10 @@ function RenderVoterRecordTable(props:any) {
                 depositedgovernancevotes = 0;
                 depositedcouncilvotes = 0;
                 let unstakedgovernancevotes = 0;
+                let unstakedcouncilvotes = 0;
                 
                 //if (new PublicKey(memberItem.account.governingTokenOwner).toBase58() === inner_item.governingTokenOwner.toBase58()){
-                    
-                    // check if council member
-                    //realm.account.communityMint
-                    //realm.account.config.councilMint
-
+                
                     if (new PublicKey(realm.account.communityMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                         depositedgovernancevotes = +(Number("0x"+memberItem.account.governingTokenDepositAmount)/Math.pow(10, +governingTokenDecimals)).toFixed(0);
                     }else if (new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
@@ -738,8 +736,9 @@ function RenderVoterRecordTable(props:any) {
                     }
                     
                     unstakedgovernancevotes = (memberItem.walletBalance?.tokenAmount?.amount ? Number((+memberItem.walletBalance.tokenAmount.amount /Math.pow(10, memberItem.walletBalance.tokenAmount.decimals || 0)).toFixed(0)) : 0)
-                //}
                 
+                    unstakedcouncilvotes = (memberItem?.walletCouncilBalance?.tokenAmount?.amount ? Number((+memberItem.walletCouncilBalance.tokenAmount.amount /Math.pow(10, memberItem.walletCouncilBalance.tokenAmount.decimals || 0)).toFixed(0)) : 0)
+                //}
                 if (depositedgovernancevotes>0)
                     totalEligibleVoters++;
                 if (totalvotes>0)
@@ -757,6 +756,7 @@ function RenderVoterRecordTable(props:any) {
                     currentunstakedvotes: unstakedgovernancevotes,
                     unstakedpercentage: (+unstakedgovernancevotes > 0 && +depositedgovernancevotes > 0) ? (+unstakedgovernancevotes/+depositedgovernancevotes > 0.01) ?  +unstakedgovernancevotes/+depositedgovernancevotes : 0 : 0,
                     councilvotes: depositedcouncilvotes,
+                    councilunstakedvotes: unstakedcouncilvotes,
                     totalproposalscreated: 0,
                     totalvotes: 0,
                     totalvotesfor: 0,
