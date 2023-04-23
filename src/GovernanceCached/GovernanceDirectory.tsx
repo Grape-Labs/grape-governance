@@ -732,7 +732,7 @@ export function GovernanceDirectoryView(props: Props) {
                                                     verticalAlign: 'bottom'}}
                                             >
                                                 <Typography variant="h4">
-                                                    {governanceTotalVaultSol ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultSol.toFixed(2)))}` : 0}
+                                                    {governanceTotalVaultSol ? <>{getFormattedNumberToLocale(Number(governanceTotalVaultSol.toFixed(2)))}<Typography variant="caption">Sol</Typography></> : 0}
                                                 </Typography>
                                             </Grid>
                                         </Button>
