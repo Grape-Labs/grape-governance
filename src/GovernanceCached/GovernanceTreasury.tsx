@@ -415,6 +415,8 @@ export function GovernanceTreasuryView(props: any) {
     const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
 
     const [totalGovernanceValue, setTotalGovernanceValue] = React.useState(null);
+    const [totalGovernanceSolValue, setTotalGovernanceSolValue] = React.useState(null);
+    const [totalGovernanceSol, setTotalGovernanceSol] = React.useState(null);
     const [totalGovernanceNftFloorValue, setTotalGovernanceNftFloorValue] = React.useState(null);
     const [totalGovernanceStableCoinValue, setTotalGovernanceStableCoinValue] = React.useState(null);
 
@@ -469,6 +471,8 @@ export function GovernanceTreasuryView(props: any) {
                     setRealmName(glitem.governanceName);
 
                     setTotalGovernanceValue(glitem?.totalVaultValue);
+                    setTotalGovernanceSolValue(glitem?.totalVaultSolValue);
+                    setTotalGovernanceSol(glitem?.totalVaultSol);
                     setTotalGovernanceNftFloorValue(glitem?.totalVaultNftValue);
                     setTotalGovernanceStableCoinValue(glitem?.totalVaultStableCoinValue);
 
@@ -580,7 +584,7 @@ export function GovernanceTreasuryView(props: any) {
 
                         <Box sx={{ p:1}}>
                             <Grid container spacing={0}>
-                                <Grid item xs={12} md={6} lg={4} key={1}>
+                                <Grid item xs={12} md={6} lg={3} key={1}>
                                     <Box
                                         sx={{
                                             borderRadius:'24px',
@@ -616,8 +620,46 @@ export function GovernanceTreasuryView(props: any) {
                                         </Tooltip>
                                     </Box>
                                 </Grid>
+                                
+                                <Grid item xs={12} md={6} lg={3} key={1}>
+                                    <Box
+                                        sx={{
+                                            borderRadius:'24px',
+                                            m:2,
+                                            p:1,
+                                            background: 'rgba(0, 0, 0, 0.2)'
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                            <>Solana Treasury</>
+                                        </Typography>
+                                        <Tooltip title={<>
+                                                Total Value in {totalGovernanceSol && <><strong>{totalGovernanceSol.toFixed(2)}</strong></>}sol held</>
+                                            }>
+                                            <Button
+                                                color='inherit'
+                                                sx={{
+                                                    borderRadius:'17px'
+                                                }}
+                                            >
+                                                <Grid container
+                                                    sx={{
+                                                        verticalAlign: 'bottom'}}
+                                                    >
+                                                    <Typography variant="h4">
+                                                        {totalGovernanceSolValue ? 
+                                                        <>
+                                                        ${getFormattedNumberToLocale(totalGovernanceSolValue.toFixed(2))}</>
+                                                        :
+                                                        <>-</>}
+                                                    </Typography>
+                                                </Grid>
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                </Grid>
 
-                                <Grid item xs={12} md={6} lg={4} key={1}>
+                                <Grid item xs={12} md={6} lg={3} key={1}>
                                     <Box
                                         sx={{
                                             borderRadius:'24px',
@@ -655,7 +697,7 @@ export function GovernanceTreasuryView(props: any) {
                                     </Box>
                                 </Grid>
 
-                                <Grid item xs={12} md={6} lg={4} key={1}>
+                                <Grid item xs={12} md={6} lg={3} key={1}>
                                     <Box
                                         sx={{
                                             borderRadius:'24px',
