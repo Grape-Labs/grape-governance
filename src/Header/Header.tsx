@@ -417,7 +417,7 @@ export function Header(props: any) {
                         <Tooltip title={`back to Directory`} placement="right">
                             <ListItemButton 
                                 component={Link}
-                                to={'/admin'}
+                                to={'/'}
                             >
                             <ListItemIcon><HomeIcon/></ListItemIcon>
                             <Typography variant="h6">Directory</Typography>
