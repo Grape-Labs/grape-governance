@@ -63,6 +63,7 @@ import {
 
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 
+import HomeIcon from '@mui/icons-material/Home';
 import MenuIcon from '@mui/icons-material/Menu';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import BurstModeIcon from '@mui/icons-material/BurstMode';
@@ -411,12 +412,27 @@ export function Header(props: any) {
 
 
                     <ListItem disablePadding>
-                        <Tooltip title={`Admin Fetching Tools`}>
-                            <IconButton sx={{mt:1,mb:1,borderRadius:'17px'}} 
+                        <Tooltip title={`back to Directory`}>
+                            <IconButton 
+                                sx={{m:1,borderRadius:'17px',width:'90%'}} 
                                 component={Link}
                                 to={'/admin'}
                             >
-                            <SettingsSuggestIcon sx={{mr:1}} /> Admin Tools
+                            <HomeIcon sx={{mr:1}} /> 
+                            <Typography variant="h6">Directory</Typography>
+                            </IconButton>
+                        </Tooltip>
+                    </ListItem>
+
+                    <ListItem disablePadding>
+                        <Tooltip title={`Admin Fetching Tools`}>
+                            <IconButton 
+                                sx={{m:1,borderRadius:'17px',width:'90%'}} 
+                                component={Link}
+                                to={'/admin'}
+                            >
+                            <SettingsSuggestIcon sx={{mr:1}} /> 
+                            <Typography variant="h6">Admin Tools</Typography>
                             </IconButton>
                         </Tooltip>
                     </ListItem>
