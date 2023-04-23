@@ -746,7 +746,7 @@ function RenderVoterRecordTable(props:any) {
 
                 totalVotesDeposited += +depositedgovernancevotes;
                 
-                let participation = govmastermembermap.get(new PublicKey(memberItem.account.governingTokenOwner).toBase58()).participating;
+                let participation = govmastermembermap.get(new PublicKey(memberItem.account.governingTokenOwner).toBase58())?.participating;
                 
                 voterArray.push({
                     id: voterCount+1,
