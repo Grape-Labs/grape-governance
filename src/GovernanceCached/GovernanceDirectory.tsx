@@ -753,8 +753,7 @@ export function GovernanceDirectoryView(props: Props) {
                                         <>Unique Voters</>
                                     </Typography>
                                     <Tooltip title={<>
-                                            {governanceTotalParticipatingMultisigs && <>Voters in Squads Multisigs {governanceTotalParticipatingMultisigs  ? getFormattedNumberToLocale(governanceTotalParticipatingMultisigs) : 0}</>}
-                                            <br/><br/>All time members throughout all governances:
+                                            All time members throughout all governances:
                                             <br/>Current Voting Records: {governanceTotalVotingRecordMembers ? getFormattedNumberToLocale(governanceTotalVotingRecordMembers) : 0}
                                             <br/>Last Fetch Voting Records: {governanceLastMembers ? getFormattedNumberToLocale(governanceLastMembers) : 0}
                                             </>
