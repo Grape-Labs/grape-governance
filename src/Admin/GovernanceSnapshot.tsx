@@ -2331,6 +2331,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         /* CHECK FOR GOVERNANCE PROGRAM CHANGES */
         //const thisProgram = programId;
         
+        /*
         const wssconnection = new Connection(RPC_ENDPOINT, {wsEndpoint:'WS_ENDPOINT'});
         const thisProgram = programId; //new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
         console.log("Program Listener: "+thisProgram)
@@ -2343,7 +2344,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
         return () => {
             wssconnection.removeAccountChangeListener(subscriptionId);
         };
-        
+        */
     }, []);
 
 
