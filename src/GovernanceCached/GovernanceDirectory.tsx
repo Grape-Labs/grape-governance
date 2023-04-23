@@ -638,6 +638,41 @@ export function GovernanceDirectoryView(props: Props) {
                                     sx={{
                                         borderRadius:'24px',
                                         m:2,
+                                        p:1,
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                    }}
+                                >
+                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                        <>Total in Stable Coins</>
+                                    </Typography>
+                                    <Tooltip title={<>
+                                            The total value of stable coins deposited in SPL Governance (USDC, USDT, PAI)<br/>Last Fetch: {governanceLastVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceLastVaultStableCoinValue.toFixed(2)))}` : 0}
+                                            </>
+                                        }>
+                                        <Button
+                                            color='inherit'
+                                            sx={{
+                                                borderRadius:'17px',
+                                            }}
+                                        >   
+                                            <Grid container
+                                                sx={{
+                                                    verticalAlign: 'bottom'}}
+                                            >
+                                                <Typography variant="h4">
+                                                    {governanceTotalVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultStableCoinValue.toFixed(2)))}` : 0}
+                                                </Typography>
+                                            </Grid>
+                                        </Button>
+                                    </Tooltip>
+                                </Box>
+                            </Grid>
+                            
+                            <Grid item xs={12} md={6} lg={3} key={1}>
+                                <Box
+                                    sx={{
+                                        borderRadius:'24px',
+                                        m:2,
                                         ml:0,
                                         p:1,
                                         background: 'rgba(0, 0, 0, 0.2)',
@@ -662,41 +697,6 @@ export function GovernanceDirectoryView(props: Props) {
                                             >
                                                 <Typography variant="h4">
                                                     {governanceTotalVaultSolValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultSolValue.toFixed(2)))}` : 0}
-                                                </Typography>
-                                            </Grid>
-                                        </Button>
-                                    </Tooltip>
-                                </Box>
-                            </Grid>
-
-                            <Grid item xs={12} md={6} lg={3} key={1}>
-                                <Box
-                                    sx={{
-                                        borderRadius:'24px',
-                                        m:2,
-                                        p:1,
-                                        background: 'rgba(0, 0, 0, 0.2)',
-                                    }}
-                                >
-                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
-                                        <>Total in Stable Coins</>
-                                    </Typography>
-                                    <Tooltip title={<>
-                                            The total value of stable coins deposited in SPL Governance (USDC, USDT, PAI)<br/>Last Fetch: {governanceLastVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceLastVaultStableCoinValue.toFixed(2)))}` : 0}
-                                            </>
-                                        }>
-                                        <Button
-                                            color='inherit'
-                                            sx={{
-                                                borderRadius:'17px',
-                                            }}
-                                        >   
-                                            <Grid container
-                                                sx={{
-                                                    verticalAlign: 'bottom'}}
-                                            >
-                                                <Typography variant="h4">
-                                                    {governanceTotalVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultStableCoinValue.toFixed(2)))}` : 0}
                                                 </Typography>
                                             </Grid>
                                         </Button>
