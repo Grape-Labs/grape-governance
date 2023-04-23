@@ -164,8 +164,10 @@ function RenderGovernanceMembersTable(props:any) {
     const governingTokenMint = props?.governingTokenMint;
     const governingTokenDecimals = props?.governingTokenDecimals || 0;
     
+    
     const memberresultscolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
+        { field: 'address', headerName: 'Address', width: 70, hide: true},
         { field: 'member', headerName: 'Member', width: 170, flex: 1,
             renderCell: (params) => {
                 return(
@@ -242,6 +244,7 @@ function RenderGovernanceMembersTable(props:any) {
         for (const member of members){
             mmbr.push({
                 id:x+1,
+                address: member.governingTokenOwner.toBase58(),
                 member:{
                     address: member.governingTokenOwner.toBase58(),
                     governingCouncilDepositAmount:((Number(member.governingCouncilDepositAmount) > 0) ? Number(member.governingCouncilDepositAmount) : 0),
@@ -285,8 +288,10 @@ function RenderGovernanceMembersTable(props:any) {
                         <div style={{ flexGrow: 1 }}>
                                 
                                 <DataGrid
+                                    //rows={mapMemberObject(memberVotingResults)}
                                     rows={memberVotingResults}
                                     columns={memberresultscolumns}
+                                    disableColumnFilter
                                     pageSize={25}
                                     rowsPerPageOptions={[]}
                                     sx={{
@@ -297,6 +302,7 @@ function RenderGovernanceMembersTable(props:any) {
                                         }}}
                                     sortingOrder={['asc', 'desc', null]}
                                     disableSelectionOnClick
+                                
                                 />
                         </div>
                     </div>

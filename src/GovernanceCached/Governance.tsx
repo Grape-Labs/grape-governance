@@ -748,7 +748,6 @@ function GetParticipants(props: any){
                 }
             }
             
-
             if (!vType){
                 // check if backed token
                 // important check if we have already fetched this data already
@@ -1060,10 +1059,10 @@ function GetParticipants(props: any){
                 null,
                 isCommunityVote
             );
-            /*
+            
             try{
                 enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
-                const signature = await sendTransaction(vvvt, freeconnection, {
+                const signature = await sendTransaction(vvvt, connection, {
                     skipPreflight: true,
                     preflightCommitment: "confirmed",
                 });
@@ -1090,9 +1089,7 @@ function GetParticipants(props: any){
             }catch(e:any){
                 enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
             } 
-            */
             
-
         }
 
         return (
@@ -1109,7 +1106,7 @@ function GetParticipants(props: any){
                         >Vote NO</Button>
                     }
                 </>
-            */}
+                */}
         </>);
     }
 

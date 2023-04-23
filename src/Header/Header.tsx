@@ -33,8 +33,9 @@ import {
     WalletMultiButton
 } from '@solana/wallet-adapter-material-ui';
 
+import { useTheme } from '@mui/material/styles';
+
 import {
-    AppBar,
     Box,
     Toolbar,
     MenuItem,
@@ -42,8 +43,10 @@ import {
     Button,
     Menu,
     Tooltip,
+    Drawer,
     Dialog,
     DialogTitle,
+    Divider,
     InputBase,
     Paper,
     Container,
@@ -58,13 +61,17 @@ import {
     FormControlLabel
 } from '@mui/material';
 
+import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
+
+import MenuIcon from '@mui/icons-material/Menu';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import BurstModeIcon from '@mui/icons-material/BurstMode';
-
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import SearchIcon from '@mui/icons-material/Search';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 import AboutDialog from '../About/AboutDialog';
 
@@ -84,6 +91,57 @@ function getParam(param: string) {
 interface HeaderProps{
     children?:React.ReactNode;
 }
+
+const drawerWidth = 275;
+
+const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
+  open?: boolean;
+}>(({ theme, open }) => ({
+  flexGrow: 1,
+  padding: theme.spacing(3),
+  transition: theme.transitions.create('margin', {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
+  marginLeft: `-${drawerWidth}px`,
+  ...(open && {
+    transition: theme.transitions.create('margin', {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+    marginLeft: 0,
+  }),
+}));
+
+interface AppBarProps extends MuiAppBarProps {
+    open?: boolean;
+}
+
+const AppBar = styled(MuiAppBar, {
+    shouldForwardProp: (prop) => prop !== 'open',
+  })<AppBarProps>(({ theme, open }) => ({
+    transition: theme.transitions.create(['margin', 'width'], {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.leavingScreen,
+    }),
+    ...(open && {
+      width: `calc(100% - ${drawerWidth}px)`,
+      marginLeft: `${drawerWidth}px`,
+      transition: theme.transitions.create(['margin', 'width'], {
+        easing: theme.transitions.easing.easeOut,
+        duration: theme.transitions.duration.enteringScreen,
+      }),
+    }),
+}));
+
+const DrawerHeader = styled('div')(({ theme }) => ({
+    display: 'flex',
+    alignItems: 'center',
+    padding: theme.spacing(0, 1),
+    // necessary for content to be below app bar
+    ...theme.mixins.toolbar,
+    justifyContent: 'flex-end',
+}));
 
 const Search = styled('div')(({ theme }) => ({
     position: 'relative',
@@ -181,6 +239,17 @@ export function Header(props: any) {
     const menuId = 'primary-wallet-account-menu';
     const menuWalletId = 'primary-fullwallet-account-menu';
 
+    const [open, setOpen] = React.useState(false);
+
+    const handleDrawerOpen = () => {
+        setOpen(true);
+    };
+
+    const handleDrawerClose = () => {
+        setOpen(false);
+    };
+
+
     const handleProfileMenuOpen = (event: any) => {
         setAnchorEl(event.currentTarget);
     };
@@ -270,89 +339,111 @@ export function Header(props: any) {
     }, [governanceAddress]);
 
     return (
-        <AppBar position="static"
-            className="app-header">
-            <Toolbar
-                color="inherit"
-                >
-
-                <Box display='flex' flexGrow={1}>
-                    <Button
-                        variant="text"
-                        color="inherit" 
-                        href='/'
-                        sx={{borderRadius:'17px',pl:1,pr:1}}
+        <Box sx={{ display: 'flex' }}>
+            <AppBar position="fixed" 
+                open={open}
+                className="app-header"
+                sx={{background:'rgba(0,0,0,0.25)'}}>
+                <Toolbar
+                    color="inherit"
                     >
-                        <Typography
-                            component="h1"
-                            variant="h6"
-                            color="inherit"
-                            display='flex'
-                            sx={{ml:1,mr:1}}
+                    
+                    <IconButton
+                        color="inherit"
+                        aria-label="open drawer"
+                        onClick={handleDrawerOpen}
+                        edge="start"
+                        sx={{ mr: 2, ...(open && { display: 'none' }) }}
+                    >
+                        <MenuIcon />
+                    </IconButton>
+
+                    <Box display='flex' flexGrow={1}>
+                        <Button
+                            variant="text"
+                            color="inherit" 
+                            href='/'
+                            sx={{borderRadius:'17px',pl:1,pr:1}}
                         >
-                            <img src={APP_LOGO} height="40px" width="137px" className="header-logo" alt="SPL Governance | Powered by Solana" />
-                        </Typography>
-                    </Button>
+                            <Typography
+                                component="h1"
+                                variant="h6"
+                                color="inherit"
+                                display='flex'
+                                sx={{ml:1,mr:1}}
+                            >
+                                <img src={APP_LOGO} height="40px" width="137px" className="header-logo" alt="SPL Governance | Powered by Solana" />
+                            </Typography>
+                        </Button>
+                    
+                        {/*
+                        <Tooltip title={`Go to SPL Governance`}><IconButton sx={{borderRadius:'17px'}} component="a" href='https://realms.today/realms'><DashboardOutlinedIcon/></IconButton></Tooltip>
+                        */}
+                    </Box>
+                    <div className="grape-wallet-adapter">
+                        <WalletDialogProvider className="grape-wallet-provider">
+                            <WalletMultiButton className="grape-wallet-button" />
+                        </WalletDialogProvider>
+                    </div>
+                </Toolbar>
+            </AppBar>
+            <Drawer
+                sx={{
+                width: drawerWidth,
+                flexShrink: 0,
+                '& .MuiDrawer-paper': {
+                    width: drawerWidth,
+                    boxSizing: 'border-box',
+                },
+                }}
+                variant="persistent"
+                anchor="left"
+                open={open}
+            >
+                <DrawerHeader>
+                    <IconButton onClick={handleDrawerClose}>
+                        {/*theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />*/}
+                        <ChevronLeftIcon />
+                    </IconButton>
+                    </DrawerHeader>
+                    <Divider />
+                    <List>
 
-                    <>
-                    <Tooltip title={`Admin Fetching Tools`}>
-                        <IconButton sx={{ml:1,mt:1,mb:1,borderRadius:'17px'}} 
-                            component={Link}
-                            to={'/admin'}
-                        >
-                        <SettingsSuggestIcon />
-                        </IconButton>
-                    </Tooltip>
-                    </>
 
-                    <AboutDialog />
+                    <ListItem disablePadding>
+                        <Tooltip title={`Admin Fetching Tools`}>
+                            <IconButton sx={{mt:1,mb:1,borderRadius:'17px'}} 
+                                component={Link}
+                                to={'/admin'}
+                            >
+                            <SettingsSuggestIcon sx={{mr:1}} /> Admin Tools
+                            </IconButton>
+                        </Tooltip>
+                    </ListItem>
 
-                        {governanceAutocomplete ?
-                            
-                            <>
-                                <Search
-                                    sx={{ mt:1,ml:2,mb:1, backgroundColor:'rgba(255,255,255,0.05)' }}
-                                >
-                                    <Autocomplete
-                                        sx={{ minWidth:'25ch',border:'none' }}
-                                        disablePortal
-                                        size="small"
-                                        id="combo-box-demo"
-                                        options={governanceAutocomplete}
-                                        getOptionLabel={(option) => option.value}
-                                        renderOption={(props, option) => (
-                                            <Box sx={{border:'none'}} component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
-                                            {option.label}
-                                            &nbsp;
-                                            <small>(
-                                                {option.totalProposalsVoting ? <><HowToVoteIcon sx={{fontSize:10}} /> <strong>{option.totalProposalsVoting}</strong> of </> : ``}
-                                                {option.totalProposals})
-                                            </small>
-                                            
-                                            </Box>
-                                        )}
-                                        onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
-                                        renderInput={(params) => 
-                                            <TextField 
-                                                {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="" 
-                                            />
-                                        }
-                                    />
-                                </Search>
-                                {/*
+                    <ListItem disablePadding>
+                        <AboutDialog /> 
+                    </ListItem>
+
+                    {governanceAutocomplete ?
+                        
+                        <ListItem disablePadding>
+                            <Search
+                                sx={{ mt:1,mb:1, backgroundColor:'rgba(255,255,255,0.05)' }}
+                            >
                                 <Autocomplete
-                                    sx={{ mt:1,ml:2, minWidth: 300 }}
+                                    sx={{ minWidth:'25ch',border:'none' }}
                                     disablePortal
                                     size="small"
                                     id="combo-box-demo"
                                     options={governanceAutocomplete}
                                     getOptionLabel={(option) => option.value}
                                     renderOption={(props, option) => (
-                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                        <Box sx={{border:'none'}} component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                                         {option.label}
                                         &nbsp;
                                         <small>(
-                                            {option.totalProposalsVoting ? <><strong>{option.totalProposalsVoting} voting</strong> of </> : ``}
+                                            {option.totalProposalsVoting ? <><HowToVoteIcon sx={{fontSize:10}} /> <strong>{option.totalProposalsVoting}</strong> of </> : ``}
                                             {option.totalProposals})
                                         </small>
                                         
@@ -360,12 +451,40 @@ export function Header(props: any) {
                                     )}
                                     onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
                                     renderInput={(params) => 
-                                        <TextField {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="Governance" />
+                                        <TextField 
+                                            {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="" 
+                                        />
                                     }
                                 />
-                                */}
-                            </>
-                        :
+                            </Search>
+                            {/*
+                            <Autocomplete
+                                sx={{ mt:1,ml:2, minWidth: 300 }}
+                                disablePortal
+                                size="small"
+                                id="combo-box-demo"
+                                options={governanceAutocomplete}
+                                getOptionLabel={(option) => option.value}
+                                renderOption={(props, option) => (
+                                    <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                    {option.label}
+                                    &nbsp;
+                                    <small>(
+                                        {option.totalProposalsVoting ? <><strong>{option.totalProposalsVoting} voting</strong> of </> : ``}
+                                        {option.totalProposals})
+                                    </small>
+                                    
+                                    </Box>
+                                )}
+                                onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
+                                renderInput={(params) => 
+                                    <TextField {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="Governance" />
+                                }
+                            />
+                            */}
+                        </ListItem>
+                    :
+                        <ListItem disablePadding>
                             <Search
                                 sx={{ mt:1,ml:2,mb:1 }}
                             >
@@ -378,38 +497,27 @@ export function Header(props: any) {
                                     onChange={(e) => setGovernanceAddress(e.target.value)}
                                 />
                             </Search>
-                        }
+                        </ListItem>
+                    }
+                        {/*
+                        <ListItem disablePadding>
+                            <RadioGroup
+                                    row
+                                    aria-labelledby="demo-row-radio-buttons-group-label"
+                                    name="row-radio-buttons-group"
+                                    value={fetchType}
+                                    onChange={handleChange}
+                                    sx={{ml:2,display:'none'}}
+                                >
 
-                        <RadioGroup
-                                row
-                                aria-labelledby="demo-row-radio-buttons-group-label"
-                                name="row-radio-buttons-group"
-                                value={fetchType}
-                                onChange={handleChange}
-                                sx={{ml:2,display:'none'}}
-                            >
-
-                                <FormControlLabel value="cachedgovernance" control={<Radio />} label="Cached" />
-                                <FormControlLabel value="rpcgovernance" control={<Radio />} label="RPC" />
-                                {/*
-                                <FormControlLabel value="metrics" control={<Radio />} label="Metrics" />
-                                <FormControlLabel value="members" control={<Radio />} label="Members" disabled={true} />
-                                <FormControlLabel value="treasury" control={<Radio />} label="Treasury" disabled={true} />
-                                */}
-                        </RadioGroup>
-
-                    {/*
-                    <Tooltip title={`Go to SPL Governance`}><IconButton sx={{borderRadius:'17px'}} component="a" href='https://realms.today/realms'><DashboardOutlinedIcon/></IconButton></Tooltip>
-                    */}
-                </Box>
-                <div className="grape-wallet-adapter">
-                    <WalletDialogProvider className="grape-wallet-provider">
-                        <WalletMultiButton className="grape-wallet-button" />
-                    </WalletDialogProvider>
-                </div>
-            </Toolbar>
-        </AppBar>
-        
+                                    <FormControlLabel value="cachedgovernance" control={<Radio />} label="Cached" />
+                                    <FormControlLabel value="rpcgovernance" control={<Radio />} label="RPC" />
+                            </RadioGroup>
+                        </ListItem>
+                        */}
+                    </List>
+            </Drawer>
+        </Box>
     );
 }
 

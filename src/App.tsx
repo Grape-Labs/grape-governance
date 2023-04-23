@@ -174,12 +174,10 @@ function DashboardContent() {
                                   }}>
                                   <CssBaseline />
                                   
-                                  <AppBar position="fixed" color="primary" style={{ background: 'rgba(0,0,0,0.75)' }}>
-                                      <Header
-                                          open={open} 
-                                          toggleDrawer={toggleDrawer}
-                                      />
-                                  </AppBar>
+                                  <Header
+                                      open={open} 
+                                      toggleDrawer={toggleDrawer}
+                                  />
                                   
                                     <Grid
                                       component="main"
