@@ -335,6 +335,34 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
           connection.getBalance(new PublicKey(vault?.pubkey))
         )
     );
+
+
+    /*
+    const STAKING_PROGRAM_ID = new PublicKey('Stake11111111111111111111111111111111111111');
+    
+    const vaultStakeBalancesPromise = await Promise.all(
+        vaultsInfo.map((vault) =>
+            connection.getProgramAccounts(STAKING_PROGRAM_ID, {
+                filters: [
+                { dataSize: 200 }, // make sure to filter for only stake accounts
+                { memcmp: { offset: 32, bytes: new PublicKey(vault?.pubkey).toBase58() } }, // filter for stake accounts associated with the wallet address
+                ],
+            })
+        )
+    );
+
+    const mystake = await connection.getProgramAccounts(STAKING_PROGRAM_ID, {
+        filters: [
+        { dataSize: 200 }, // make sure to filter for only stake accounts
+        { memcmp: { offset: 32, bytes: new PublicKey("---").toBase58() } }, // filter for stake accounts associated with the wallet address
+        ],
+    })
+
+
+    console.log("Staked: "+JSON.stringify(vaultStakeBalancesPromise));
+    console.log("My Staked: "+JSON.stringify(mystake));
+    */
+
     if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury Token Accounts");
     
     const vaultsWithTokensPromise = await Promise.all(
@@ -765,10 +793,10 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     const squadsMultisigs = "https://rust-api-sd2oj.ondigitalocean.app/multisig?address="+tokenOwnerRecord.toBase58()+"&useProd=true"
                     const multisigs = await window.fetch(squadsMultisigs).then(
                         (res: any) => res.json());
-                    if (multisigs?.multisigs && multisigs.multisigs.length > 0)
+                    if (multisigs?.multisigs)
                         owner.multisigs = multisigs;
                     else
-                        owner.multisigs = [];
+                        owner.multisigs = {multisigs:[]};
                 }catch(merr){
                     console.log("ERR: "+merr);
                 }

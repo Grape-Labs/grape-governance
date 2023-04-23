@@ -60,6 +60,7 @@ import {
 //import { mainListItems, secondaryListItems } from './components/SidebarList/SidebarList';
 import grapeTheme from  './utils/config/theme'
 import { borderRadius } from '@mui/system';
+import { migrate } from '@shadow-drive/sdk/dist/methods';
 //import "./App.less";
 
 function Copyright(props: any): JSX.Element {
