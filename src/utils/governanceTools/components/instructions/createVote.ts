@@ -43,9 +43,7 @@ import { RPC_CONNECTION } from '../../../../utils/grapeTools/constants';
     const walletPubkey = new PublicKey(walletPublicKey);
     let tokenOwnerRecord;
     const governanceAuthority = walletPubkey;
-  
-    console.log('membersMap: '+JSON.stringify(membersMap))
-
+    
     if (membersMap[walletPublicKey] && !selectedDelegate) {
       tokenOwnerRecord = membersMap[walletPublicKey];
     } else {
@@ -61,14 +59,17 @@ import { RPC_CONNECTION } from '../../../../utils/grapeTools/constants';
     let programVersion;
   
     // for whatever reason, metaplex dao fails this and needs to be harcoded
+
+    console.log("realm: "+JSON.stringify(selectedRealm));
+
     if (
-      selectedRealm.realmId === "DA5G7QQbFioZ6K33wQcH8fVdgFcnaDjLD7DLQkapZg5X"
+      new PublicKey(selectedRealm.pubkey).toBase58() === "DA5G7QQbFioZ6K33wQcH8fVdgFcnaDjLD7DLQkapZg5X"
     ) {
       programVersion = 2;
     } else {
       programVersion = await getGovernanceProgramVersion(
         connection,
-        new PublicKey(selectedRealm.governanceId)
+        new PublicKey(selectedRealm.owner)
       );
     }
   
@@ -90,9 +91,9 @@ import { RPC_CONNECTION } from '../../../../utils/grapeTools/constants';
     
     await withCastVote(
       instructions,
-      new PublicKey(selectedRealm.governanceId), //  realm/governance PublicKey
+      new PublicKey(selectedRealm.owner), //  realm/governance PublicKey
       programVersion, // version object, version of realm
-      new PublicKey(selectedRealm.pubKey), // realms publicKey
+      new PublicKey(selectedRealm.pubkey), // realms publicKey
       new PublicKey(proposal.governanceId), // proposal governance Public key
       new PublicKey(proposal.proposalId), // proposal public key
       new PublicKey(proposal.tokenOwnerRecord), // proposal token owner record, publicKey

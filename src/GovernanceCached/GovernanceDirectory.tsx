@@ -260,12 +260,16 @@ export function GovernanceDirectoryView(props: Props) {
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [searchFilter, setSearchFilter] = React.useState(null);
     const [governanceLastVaultValue, setGovernanceLastVaultValue] = React.useState(null);
+    const [governanceLastVaultSolValue, setGovernanceLastVaultSolValue] = React.useState(null);
+    const [governanceLastVaultSol, setGovernanceLastVaultSol] = React.useState(null);
     const [governanceLastVaultStableCoinValue, setGovernanceLastVaultStableCoinValue] = React.useState(null);
     const [governanceLastMembers, setGovernanceLastMembers] = React.useState(null);
     const [governanceLastProposals, setGovernanceLastProposals] = React.useState(null);
     
     
     const [governanceTotalVaultValue, setGovernanceTotalVaultValue] = React.useState(null);
+    const [governanceTotalVaultSolValue, setGovernanceTotalVaultSolValue] = React.useState(null);
+    const [governanceTotalVaultSol, setGovernanceTotalVaultSol] = React.useState(null);
     const [governanceTotalVaultStableCoinValue, setGovernanceTotalVaultStableCoinValue] = React.useState(null);
     const [governanceTotalMembers, setGovernanceTotalMembers] = React.useState(null);
     const [governanceTotalVotingRecordMembers, setGovernanceTotalVotingRecordMembers] = React.useState(null);
@@ -319,79 +323,85 @@ export function GovernanceDirectoryView(props: Props) {
             <Box
                 m={1}
                 //margin
-                display="flex"
-                justifyContent="flex-end"
-                alignItems="flex-end"
+                sx={{alignItems: 'center', textAlign: 'center',p:2,borderRadius:'17px',background:'rgba(0,0,0,0.025)'}}
                 >
-                    <ButtonGroup
-                        color='inherit'
-                        size='small'
-                        variant='outlined'
-                        sx={{borderRadius:'17px'}}
-                    >
-                        <Tooltip title={
-                                <>Sort by Members {sortingType === 1 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
-                                </>
-                            }>
-                            <Button
-                                onClick={e => sortGovernance(1)}
-                            > <GroupIcon /> {sortingType === 1 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
-                            </Button>
-                        </Tooltip>
-
-                        <Tooltip title={
-                                <>Sort by Proposals {sortingType === 3 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
-                                </>
-                            }>
-                            <Button
-                                onClick={e => sortGovernance(2)}
-                            > <BallotIcon /> {sortingType === 2 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
-                            </Button>
-                        </Tooltip>
-                        <Tooltip title={
-                                <>Sort by Currently Voting Proposals {sortingType === 2 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
-                                </>
-                            }>
-                            <Button
-                                onClick={e => sortGovernance(3)}
-                            > <HowToVoteIcon /> {sortingType === 3 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
-                            </Button>
-                        </Tooltip>
-
-                        <Tooltip title={
-                                <>Sort by Most Recent Proposals {sortingType === 2 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
-                                </>
-                            }>
-                            <Button
-                                onClick={e => sortGovernance(5)}
-                            > <AccessTimeIcon /> {sortingType === 5 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
-                            </Button>
-                        </Tooltip>
-                        
-                        <Tooltip title={
-                                <>Sort by Treasury {sortingType === 4 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
-                                </>
-                            }>
-                            <Button
-                                onClick={e => sortGovernance(4)}
-                            > <AccountBalanceIcon /> {sortingType === 4 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
-                            </Button>
-                            
-                        </Tooltip>
-
-                        <Tooltip title={
-                                <>Sort by Total Stable Coin in Treasury {sortingType === 6 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
-                                </>
-                            }>
-                            <Button
-                                onClick={e => sortGovernance(6)}
-                            > <AttachMoneyIcon /> {sortingType === 6 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
-                            </Button>
-                            
-                        </Tooltip>
-                        
-                    </ButtonGroup>
                     
+                    <Box
+                        display="flex"
+                        justifyContent="flex-end"
+                        sx={{
+                            alignItems:"right"
+                        }}
+                    >      
+                            <ButtonGroup
+                                color='inherit'
+                                size='small'
+                                variant='outlined'
+                                sx={{borderRadius:'17px'}}
+                            >
+                                <Tooltip title={
+                                        <>Sort by Members {sortingType === 1 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
+                                        </>
+                                    }>
+                                    <Button
+                                        onClick={e => sortGovernance(1)}
+                                    > <GroupIcon /> {sortingType === 1 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
+                                    </Button>
+                                </Tooltip>
+
+                                <Tooltip title={
+                                        <>Sort by Proposals {sortingType === 3 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
+                                        </>
+                                    }>
+                                    <Button
+                                        onClick={e => sortGovernance(2)}
+                                    > <BallotIcon /> {sortingType === 2 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
+                                    </Button>
+                                </Tooltip>
+                                <Tooltip title={
+                                        <>Sort by Currently Voting Proposals {sortingType === 2 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
+                                        </>
+                                    }>
+                                    <Button
+                                        onClick={e => sortGovernance(3)}
+                                    > <HowToVoteIcon /> {sortingType === 3 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
+                                    </Button>
+                                </Tooltip>
+
+                                <Tooltip title={
+                                        <>Sort by Most Recent Proposals {sortingType === 2 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
+                                        </>
+                                    }>
+                                    <Button
+                                        onClick={e => sortGovernance(5)}
+                                    > <AccessTimeIcon /> {sortingType === 5 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
+                                    </Button>
+                                </Tooltip>
+                                
+                                <Tooltip title={
+                                        <>Sort by Treasury {sortingType === 4 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
+                                        </>
+                                    }>
+                                    <Button
+                                        onClick={e => sortGovernance(4)}
+                                    > <AccountBalanceIcon /> {sortingType === 4 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
+                                    </Button>
+                                    
+                                </Tooltip>
+
+                                <Tooltip title={
+                                        <>Sort by Total Stable Coin in Treasury {sortingType === 6 ? <>{sortingDirection === 0 ? `Ascending` : `Descending`}</>:<></>}
+                                        </>
+                                    }>
+                                    <Button
+                                        onClick={e => sortGovernance(6)}
+                                    > <AttachMoneyIcon /> {sortingType === 6 ? <>{sortingDirection === 0 ? <SortIcon /> : <SortIcon sx={{transform: 'scaleX(-1)'}} />}</>:<></>}
+                                    </Button>
+                                    
+                                </Tooltip>
+                                
+                            </ButtonGroup> 
+                    </Box>
             </Box>
         );
     }
@@ -412,10 +422,14 @@ export function GovernanceDirectoryView(props: Props) {
             
             // fetch some summary data
             let totalVaultValue = 0;
+            let totalVaultSolValue = 0;
+            let totalVaultSol = 0;
             let totalVaultStableCoinValue = 0;
             let totalGovernanceProposals = 0;
             let totalGovernanceMembers = 0;
             let lastVaultValue = 0;
+            let lastVaultSolValue = 0;
+            let lastVaultSol = 0;
             let lastVaultStableCoinValue = 0;
             let lastGovernanceProposals = 0;
             let lastGovernanceMembers = 0;
@@ -424,6 +438,12 @@ export function GovernanceDirectoryView(props: Props) {
                     totalVaultValue += item.totalVaultValue;
                 if (item?.totalVaultStableCoinValue)
                     totalVaultStableCoinValue += item.totalVaultStableCoinValue;
+                if (item?.totalVaultSol){
+                    totalVaultSol += item.totalVaultSol;
+                }
+                if (item?.totalVaultSolValue){
+                    totalVaultSolValue += item.totalVaultSolValue;
+                }
                 totalGovernanceMembers += item.totalMembers;
                 totalGovernanceProposals += item?.totalProposals ? item.totalProposals : 0;
 
@@ -431,6 +451,10 @@ export function GovernanceDirectoryView(props: Props) {
 
                 if (item?.lastVaultValue)
                     lastVaultValue += +item.lastVaultValue;
+                if (item?.lastVaultSolValue)
+                    lastVaultSolValue += +item.lastVaultSolValue;
+                if (item?.lastVaultSol)
+                    lastVaultSol += +item.lastVaultSol;
                 if (item?.lastVaultStableCoinValue)
                     lastVaultStableCoinValue += +item.lastVaultStableCoinValue;
                 if (item?.lastMembers)
@@ -441,9 +465,14 @@ export function GovernanceDirectoryView(props: Props) {
             }
 
             setGovernanceLastVaultValue(lastVaultValue);
+            setGovernanceLastVaultSolValue(lastVaultSolValue);
+            setGovernanceLastVaultSol(lastVaultSol);
             setGovernanceLastVaultStableCoinValue(lastVaultStableCoinValue);
             setGovernanceLastMembers(lastGovernanceMembers);
             setGovernanceLastProposals(lastGovernanceProposals);
+
+            setGovernanceTotalVaultSolValue(totalVaultSolValue);
+            setGovernanceTotalVaultSol(totalVaultSol);
 
             setGovernanceTotalVaultValue(totalVaultValue);
             setGovernanceTotalVaultStableCoinValue(totalVaultStableCoinValue);
@@ -568,7 +597,7 @@ export function GovernanceDirectoryView(props: Props) {
                     <Box sx={{ 
                         p:1}}>
                         <Grid container spacing={0}>
-                            <Grid item xs={12} md={6} lg={3} key={1}>
+                            <Grid item xs={12} md={6} lg={6} key={1}>
                                 <Box
                                     sx={{
                                         borderRadius:'24px',
@@ -609,6 +638,42 @@ export function GovernanceDirectoryView(props: Props) {
                                     sx={{
                                         borderRadius:'24px',
                                         m:2,
+                                        ml:0,
+                                        p:1,
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                    }}
+                                >
+                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                        <>Total Treasury Sol Value</>
+                                    </Typography>
+                                    <Tooltip title={<>
+                                            The total value of deposited Solana in all SPL Governance accounts<br/>Last Fetch: {governanceLastVaultSolValue ? `$${getFormattedNumberToLocale(Number(governanceLastVaultSolValue.toFixed(2)))}` : 0}
+                                            </>
+                                        }>
+                                        <Button
+                                            color='inherit'
+                                            sx={{
+                                                borderRadius:'17px',
+                                            }}
+                                        >   
+                                            <Grid container
+                                                sx={{
+                                                    verticalAlign: 'bottom'}}
+                                            >
+                                                <Typography variant="h4">
+                                                    {governanceTotalVaultSolValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultSolValue.toFixed(2)))}` : 0}
+                                                </Typography>
+                                            </Grid>
+                                        </Button>
+                                    </Tooltip>
+                                </Box>
+                            </Grid>
+
+                            <Grid item xs={12} md={6} lg={3} key={1}>
+                                <Box
+                                    sx={{
+                                        borderRadius:'24px',
+                                        m:2,
                                         p:1,
                                         background: 'rgba(0, 0, 0, 0.2)',
                                     }}
@@ -632,6 +697,42 @@ export function GovernanceDirectoryView(props: Props) {
                                             >
                                                 <Typography variant="h4">
                                                     {governanceTotalVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultStableCoinValue.toFixed(2)))}` : 0}
+                                                </Typography>
+                                            </Grid>
+                                        </Button>
+                                    </Tooltip>
+                                </Box>
+                            </Grid>
+
+                            <Grid item xs={12} md={6} lg={3} key={1}>
+                                <Box
+                                    sx={{
+                                        borderRadius:'24px',
+                                        m:2,
+                                        ml:0,
+                                        p:1,
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                    }}
+                                >
+                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                        <>Total Treasury Sol</>
+                                    </Typography>
+                                    <Tooltip title={<>
+                                            The total Solana deposited in all SPL Governance accounts<br/>Last Fetch: {governanceLastVaultSol ? `$${getFormattedNumberToLocale(Number(governanceLastVaultSol.toFixed(2)))}` : 0}
+                                            </>
+                                        }>
+                                        <Button
+                                            color='inherit'
+                                            sx={{
+                                                borderRadius:'17px',
+                                            }}
+                                        >   
+                                            <Grid container
+                                                sx={{
+                                                    verticalAlign: 'bottom'}}
+                                            >
+                                                <Typography variant="h4">
+                                                    {governanceTotalVaultSol ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultSol.toFixed(2)))}` : 0}
                                                 </Typography>
                                             </Grid>
                                         </Button>
@@ -707,6 +808,41 @@ export function GovernanceDirectoryView(props: Props) {
                                             >
                                                 <Typography variant="h4">
                                                     {governanceTotalProposals ? getFormattedNumberToLocale(governanceTotalProposals) : 0}
+                                                </Typography>
+                                            </Grid>
+                                        </Button>
+                                    </Tooltip>
+                                </Box>
+                            </Grid>
+
+                            <Grid item xs={12} md={6} lg={3} key={1}>
+                                <Box
+                                    sx={{
+                                        borderRadius:'24px',
+                                        m:2,
+                                        p:1,
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                    }}
+                                >
+                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                        <>Voters Participating in Multisigs</>
+                                    </Typography>
+                                    <Tooltip title={<>
+                                            Voters that are also participating in Squads Multisigs
+                                            </>
+                                        }>
+                                        <Button
+                                            color='inherit'
+                                            sx={{
+                                                borderRadius:'17px',
+                                            }}
+                                        >   
+                                            <Grid container
+                                                sx={{
+                                                    verticalAlign: 'bottom'}}
+                                            >
+                                                <Typography variant="h4">
+                                                    {governanceTotalParticipatingMultisigs && <>{governanceTotalParticipatingMultisigs  ? getFormattedNumberToLocale(governanceTotalParticipatingMultisigs) : 0}</>}
                                                 </Typography>
                                             </Grid>
                                         </Button>

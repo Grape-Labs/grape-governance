@@ -384,6 +384,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     //console.log("vaultsInflated: "+JSON.stringify(vaultsInflated))
 
     let totalVaultValue = 0;
+    let totalVaultSol = 0;
+    let totalVaultSolValue = 0;
     let totalVaultNftValue = 0;
     let totalVaultNftValueSol = 0;
     const treasuryAssets = new Array();
@@ -580,8 +582,11 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         ia.solUsdValue = (ia.solBalance > 0 ? cgp['So11111111111111111111111111111111111111112'].price*(ia.solBalance/(10 ** 9)) : 0);
         totalVaultNftValue = (totalVaultNftValueSol > 0 ? cgp['So11111111111111111111111111111111111111112'].price*(totalVaultNftValueSol/(10 ** 9)) : 0);
         vaultValue += ia.solUsdValue;
+        totalVaultSolValue += ia.solUsdValue;
+        totalVaultSol += ia.solBalance > 0 ? ia.solBalance/(10 ** 9) : 0;
         totalVaultValue += ia.solUsdValue;
         console.log(new PublicKey(ia.vault.pubkey).toBase58()+" vaultSolValue ("+(ia.solBalance/(10 ** 9))+"): "+ia.solUsdValue);
+        
         console.log(new PublicKey(ia.vault.pubkey).toBase58()+" vaultValue: "+vaultValue);
     
     }
@@ -862,6 +867,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     const governanceDetails = {
         address: address,
         totalVaultValue:totalVaultValue,
+        totalVaultSol: totalVaultSol,
+        totalVaultSolValue: totalVaultSolValue,
         totalVaultStableCoinValue:totalVaultStableCoinValue,
         totalVaultNftValue:totalVaultNftValue,
         vaultsInflated:vaultsInflated,
@@ -1835,6 +1842,7 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                     item.lastProposals = item.totalProposals;
                     item.lastCouncilProposals = item.totalCouncilProposals;
                     item.lastVaultValue = item.totalVaultValue;
+                    item.lastVaultSolValue = item.totalVaultSolValue;
                     item.lastVaultStableCoinValue = item.totalVaultStableCoinValue;
                     item.lastVaultNftValue = item.totalVaultNftValue;
                     item.totalProposals = governanceFetchedDetails?.totalProposals;
@@ -1843,6 +1851,8 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                     item.timestamp = timestamp;
                     item.totalMembers = governanceFetchedDetails?.memberMap.length || null;
                     item.totalVaultValue = governanceFetchedDetails?.totalVaultValue;
+                    item.totalVaultSol = governanceFetchedDetails?.totalVaultSol;
+                    item.totalVaultSolValue = governanceFetchedDetails?.totalVaultSolValue;
                     item.totalVaultStableCoinValue = governanceFetchedDetails?.totalVaultStableCoinValue;
                     item.totalVaultNftValue = governanceFetchedDetails?.totalVaultNftValue;
                     govFound = true;
@@ -1886,6 +1896,8 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                     //totalCouncilQuorum: ggv?.totalCouncilQuorum || totalQuorum,
                     totalMembers: governanceFetchedDetails?.memberMap.length || null,
                     totalVaultValue: governanceFetchedDetails?.totalVaultValue,
+                    totalVaultSolValue: governanceFetchedDetails?.totalVaultSolValue,
+                    totalVaultSol: governanceFetchedDetails?.totalVaultSol,
                     totalVaultStableCoinValue: governanceFetchedDetails?.totalVaultStableCoinValue,
                     totalVaultNftValue: governanceFetchedDetails?.totalVaultNftValue,
 
@@ -1942,6 +1954,8 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                 //totalQuorum: ggv?.totalQuorum || totalQuorum,
                 totalMembers: governanceFetchedDetails?.memberMap.length || null,
                 totalVaultValue: governanceFetchedDetails?.totalVaultValue,
+                totalVaultSolValue: governanceFetchedDetails?.totalVaultSolValue,
+                totalVaultSol: governanceFetchedDetails?.totalVaultSol,
                 totalVaultStableCoinValue: governanceFetchedDetails?.totalVaultStableCoinValue,
                 totalVaultNftValue: governanceFetchedDetails?.totalVaultNftValue,
             });

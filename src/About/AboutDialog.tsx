@@ -30,7 +30,7 @@ export default function AboutDialog() {
 
   return (
     <>
-       <Tooltip title={`About`} placement="right">
+       <Tooltip title={`About`} placement="right" arrow>
           <ListItemButton
               sx={{}} 
               onClick={handleClickOpen}>

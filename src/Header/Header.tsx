@@ -411,10 +411,9 @@ export function Header(props: any) {
                     </DrawerHeader>
                     <Divider />
                     <List>
-
-
+                        
                     <ListItem disablePadding>
-                        <Tooltip title={`back to Directory`} placement="right">
+                        <Tooltip title={`back to Directory`} placement="right" arrow>
                             <ListItemButton 
                                 component={Link}
                                 to={'/'}
@@ -426,7 +425,7 @@ export function Header(props: any) {
                     </ListItem>
 
                     <ListItem disablePadding>
-                        <Tooltip title={`*tools for whitelisted addresses`} placement="right">
+                        <Tooltip title={`*tools for whitelisted addresses`} placement="right" arrow>
                             <ListItemButton 
                                 component={Link}
                                 to={'/admin'}
