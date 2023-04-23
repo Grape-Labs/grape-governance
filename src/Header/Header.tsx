@@ -414,7 +414,7 @@ export function Header(props: any) {
 
 
                     <ListItem disablePadding>
-                        <Tooltip title={`back to Directory`}>
+                        <Tooltip title={`back to Directory`} placement="right">
                             <ListItemButton 
                                 component={Link}
                                 to={'/admin'}
@@ -426,7 +426,7 @@ export function Header(props: any) {
                     </ListItem>
 
                     <ListItem disablePadding>
-                        <Tooltip title={`Admin Fetching Tools`}>
+                        <Tooltip title={`*tools for whitelisted addresses`} placement="right">
                             <ListItemButton 
                                 component={Link}
                                 to={'/admin'}
