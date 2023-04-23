@@ -5,6 +5,8 @@ import {
     Typography,
     Button,
     IconButton,
+    ListItemButton,
+    ListItemIcon,
     Tooltip,
     Dialog,
     DialogTitle,
@@ -29,12 +31,12 @@ export default function AboutDialog() {
   return (
     <>
        <Tooltip title={`About`}>
-            <IconButton 
-              sx={{m:1,borderRadius:'17px',width:'90%'}} 
+          <ListItemButton
+              sx={{}} 
               onClick={handleClickOpen}>
-                <InfoIcon sx={{mr:1}} /> 
+                <ListItemIcon><InfoIcon /> </ListItemIcon>
                 <Typography variant="h6">About</Typography>
-            </IconButton>
+            </ListItemButton>
       </Tooltip>
       <Dialog
         open={open}

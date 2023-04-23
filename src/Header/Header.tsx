@@ -52,6 +52,8 @@ import {
     Container,
     List,
     ListItem,
+    ListItemButton,
+    ListItemIcon,
     ListItemText,
     IconButton,
     Autocomplete,
@@ -413,27 +415,25 @@ export function Header(props: any) {
 
                     <ListItem disablePadding>
                         <Tooltip title={`back to Directory`}>
-                            <IconButton 
-                                sx={{m:1,borderRadius:'17px',width:'90%'}} 
+                            <ListItemButton 
                                 component={Link}
                                 to={'/admin'}
                             >
-                            <HomeIcon sx={{mr:1}} /> 
+                            <ListItemIcon><HomeIcon/></ListItemIcon>
                             <Typography variant="h6">Directory</Typography>
-                            </IconButton>
+                            </ListItemButton>
                         </Tooltip>
                     </ListItem>
 
                     <ListItem disablePadding>
                         <Tooltip title={`Admin Fetching Tools`}>
-                            <IconButton 
-                                sx={{m:1,borderRadius:'17px',width:'90%'}} 
+                            <ListItemButton 
                                 component={Link}
                                 to={'/admin'}
                             >
-                            <SettingsSuggestIcon sx={{mr:1}} /> 
+                            <ListItemIcon><SettingsSuggestIcon /></ListItemIcon>
                             <Typography variant="h6">Admin Tools</Typography>
-                            </IconButton>
+                            </ListItemButton>
                         </Tooltip>
                     </ListItem>
 
