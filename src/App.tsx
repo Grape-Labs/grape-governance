@@ -15,7 +15,7 @@ import { ApiView } from "./api/api";
 import CssBaseline from '@mui/material/CssBaseline';
 import { inject } from '@vercel/analytics';
 
-import ReactXnft, { AnchorDom, View, Text } from "react-xnft";
+//import ReactXnft, { AnchorDom, View, Text } from "react-xnft";
 
 import {
   Box,
@@ -261,9 +261,9 @@ export const NotFound = () => {
 export default function Dashboard() {
   return <DashboardContent />;
 }
-
+/*
 ReactXnft.render(
   <AnchorDom>
     <DashboardContent />
   </AnchorDom>
-);
+);*/

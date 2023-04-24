@@ -31,8 +31,7 @@
         "nuke": "shx rm -rf node_modules yarn.lock",
         "xnft-build": "xnft build",
         "xnft-start": "xnft watch",
-        "xnft-dev": "xnft dev",
-        "dev": "expo start --web & npx xnft --iframe http://localhost:19006"
+        "xnft-dev": "xnft dev"
     },
     "peerDependencies": {
         "react": "^17.0.0 || ^18.0.0"
@@ -98,10 +97,6 @@
         "commander": "^8.3.0",
         "dayjs": "^1.11.7",
         "ethers": "^5.5.4",
-        "expo": "^48.0.11",
-        "expo-constants": "^14.2.1",
-        "expo-linking": "^4.0.1",
-        "expo-status-bar": "^1.4.4",
         "file_size_url": "^1.0.4",
         "formidable": "v3",
         "fp-ts": "^2.12.3",
@@ -133,7 +128,6 @@
         "react-jazzicon": "^1.0.3",
         "react-markdown": "^8.0.7",
         "react-material-file-upload": "^0.0.4",
-        "react-native-web": "^0.19.4",
         "react-qr-code": "^2.0.11",
         "react-query": "^4.0.0",
         "react-router": "^6.10.0",
@@ -166,7 +160,7 @@
         "@types/jest": "^24.9.1",
         "@types/node": "^17.0.17",
         "@types/prettier": "^2.4.3",
-        "@types/react-dom": "~18.0.28",
+        "@types/react-dom": "^17.0.0",
         "@typescript-eslint/eslint-plugin": "^5.36.2",
         "@typescript-eslint/parser": "^5.36.2",
         "autoprefixer": "^10.4.7",
@@ -177,7 +171,6 @@
         "concurrently": "^6.1.0",
         "cross-env": "^7.0.3",
         "crypto-browserify": "^3.12.0",
-        "@expo/webpack-config": "^18.0.1",
         "eslint": "^8.15.0",
         "eslint-config-prettier": "^8.5.0",
         "eslint-plugin-prettier": "^4.0.0",
@@ -196,8 +189,7 @@
         "stream-http": "^3.2.0",
         "tslib": "^2.3.1",
         "url": "^0.11.0",
-        "util": "^0.12.4",
-        "xnft": "latest"
+        "util": "^0.12.4"
     },
     "resolutions": {
         "@types/react": "17.0.40"
