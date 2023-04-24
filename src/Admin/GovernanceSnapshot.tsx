@@ -918,7 +918,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 }
 
 const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean, this_realm: any, connection: Connection, wallet: any, tokenMap: any, storagePool: any, governanceLookup: any, setSecondaryStatus: any, setProgress: any) => {
-
+    
     let govAddress = address;
     
     //setSolanaVotingResultRows(null);
@@ -946,6 +946,8 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
         else
             if (setSecondaryStatus) setSecondaryStatus("Smart Fetching "+x+" of "+length);
         
+        console.log("Processing: "+x+" of "+length);
+
         if (setProgress) setProgress((prevProgress:any) => (prevProgress >= 100 ? 0 : normalise(x)));
         
         try {
@@ -2283,9 +2285,11 @@ const processGovernanceUploadSnapshotAll = async(
                 console.log("Fetching Governance ("+(count+1)+" of "+governanceLookup.length+"): "+item.governanceName+" "+item.governanceAddress+" ("+elapsedDuration.humanize()+")")
                 if (setBatchStatus) setBatchStatus("Fetching Governance ("+(count+1)+" of "+governanceLookup.length+"): "+item.governanceName+" "+item.governanceAddress+" "+elapsedDuration.humanize()+"");
                 
+                if (setProgress) setProgress(0);
                 const grealm = await fetchRealm(item.governanceAddress);
                 if (setSecondaryStatus) setSecondaryStatus("Processing Governance");
                 const governanceData = await processGovernance(item.governanceAddress, grealm, tokenMap, item, storagePool, currentWallet, setPrimaryStatus, setSecondaryStatus);
+                if (setProgress) setProgress(1);
                 if (setSecondaryStatus) setSecondaryStatus("Processing Proposals");
                 const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData, connection, tokenMap, storagePool, governanceLookup, setSecondaryStatus, setProgress);
 
