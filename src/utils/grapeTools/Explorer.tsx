@@ -487,9 +487,7 @@ export default function ExplorerView(props:any){
                         </ListItemIcon>
                         Explorer
                     </MenuItem>
-
-                   
-
+                    
                     {twitterRegistration &&
                         <>
                             <Divider />

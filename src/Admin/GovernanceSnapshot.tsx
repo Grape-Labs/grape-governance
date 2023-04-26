@@ -767,7 +767,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         }
                         console.log("Found record: "+cachedOwner.account.governingTokenOwner + " - "+cachedOwner?.firstTransactionDate + " msig: "+hasMltsg+" ftd: "+hasFtd)
                     }
-
                 }
             }
 

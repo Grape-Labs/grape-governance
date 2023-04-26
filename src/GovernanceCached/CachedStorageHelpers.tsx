@@ -2,6 +2,7 @@ import pako from 'pako';
 import { GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 import { Keypair } from "@solana/web3.js";
 import * as fs from "fs";
+import moment from "moment";
 
 export const formatBytes = (bytes: any, decimals = 2) => {
     if (bytes === 0) return '0 Bytes';
@@ -44,7 +45,7 @@ export const fetchGovernanceMasterMembersFile = async(storagePool:string) => {
 
 export const fetchGovernanceLookupFile = async(storagePool:string) => {
     try{
-        const url = GGAPI_STORAGE_URI+"/"+storagePool+'/governance_lookup.json';
+        const url = GGAPI_STORAGE_URI+"/"+storagePool+'/governance_lookup.json#'+moment().unix();
         const response = await window.fetch(url, {
             method: 'GET',
             headers: {
