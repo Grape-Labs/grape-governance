@@ -2723,7 +2723,7 @@ export function GovernanceCachedView(props: any) {
                                     <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
                                 }
                                 Cache Node: {storagePool}<br/>
-                                <br/>* This is the time taken to capture all proposals & proposal details
+                                <br/>* This is the time taken to capture all proposals & proposal details - proposals that are voting are captured via RPC for realtime results
                             </Typography>
                         }
                     </Box>
