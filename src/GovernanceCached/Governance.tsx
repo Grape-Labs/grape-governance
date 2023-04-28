@@ -790,6 +790,7 @@ function GetParticipants(props: any){
                 voteRecord = vresults.votingResults;
 
                 if (thisitem.account.state === 2){ // voting state we can fetch via rpc
+                    console.log("Fetching voting proposal current results via RPC")
                     from_cache = false;
                     const voteRecords = await getVoteRecords({
                         connection: connection,
@@ -800,6 +801,7 @@ function GetParticipants(props: any){
                         voteRecord = voteRecords.value;//JSON.parse(JSON.stringify(voteRecord));
                     
                 } else{
+                    console.log("Fetching proposal results via Cached Storage")
                     from_cache = true;
                 }
             
