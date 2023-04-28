@@ -13,8 +13,8 @@
 }
 
 html, body .app-body{
-  background: #1f1c2c;  /* fallback for old browsers */
-  background: linear-gradient(to right, #1F1C2C, #928DAB);
+  background: #111111;  /* fallback for old browsers */
+  background: linear-gradient(to right, #00467f, #a5cc82);
   height:100%;
   background-attachment: fixed;
 }

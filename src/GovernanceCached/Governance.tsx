@@ -889,7 +889,7 @@ function GetParticipants(props: any){
                             legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
                             legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
                             decimals:td,
-                            councilMint:new PublicKey(realm.account.config?.councilMint).toBase58() ,
+                            councilMint: realm.account?.config?.councilMint ? new PublicKey(realm.account?.config?.councilMint).toBase58() : null,
                             governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
                         },
                         vote:{
@@ -898,7 +898,7 @@ function GetParticipants(props: any){
                             legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
                             legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
                             decimals:td,
-                            councilMint:new PublicKey(realm.account.config?.councilMint).toBase58() ,
+                            councilMint: realm.account?.config?.councilMint ? new PublicKey(realm.account?.config?.councilMint).toBase58() : null,
                             governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
                         }
                     })
@@ -970,7 +970,9 @@ function GetParticipants(props: any){
                             voterWeight = item.account?.voteWeight?.no
                         }
                     }
-                    csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
+
+                    
+                    csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, ((realm.account.config?.councilMint && new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58()) ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
                 
                 } else{
                     if (item.vote?.voterWeight){
