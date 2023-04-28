@@ -186,7 +186,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     },
   }));
 
-const GOVERNANNCE_STATE = {
+const GOVERNANCE_STATE = {
     0:'Draft',
     1:'Signing Off',
     2:'Voting',
@@ -634,8 +634,6 @@ function GetParticipants(props: any){
                 )
             }
             
-            
-
             return(
                 <>{index > 0 && <Divider />}
                     
@@ -781,24 +779,35 @@ function GetParticipants(props: any){
             getGovernanceProps()
         //}
 
-        /* RPC
-        const voteRecord = await getVoteRecords({
-            connection: connection,
-            programId: new PublicKey(thisitem.owner),
-            proposalPk: new PublicKey(thisitem.pubkey),
-        });
-        const voteResults = voteRecord.value;//JSON.parse(JSON.stringify(voteRecord));
-        */
+
         // CACHE
         // fetch voting results
         let voteRecord = null;
         let from_cache = false;
-        
-        
+
         for (var vresults of cachedGovernance){
             if (thisitem.pubkey === vresults.pubkey){
                 voteRecord = vresults.votingResults;
-                from_cache = true;
+
+                if (thisitem.account.state === 2){ // voting state we can fetch via rpc
+                    from_cache = false;
+                    const voteRecords = await getVoteRecords({
+                        connection: connection,
+                        programId: new PublicKey(thisitem.owner),
+                        proposalPk: new PublicKey(thisitem.pubkey),
+                    });
+                    if (voteRecords?.value)
+                        voteRecord = voteRecords.value;//JSON.parse(JSON.stringify(voteRecord));
+                    
+                } else{
+                    from_cache = true;
+                }
+            
+
+                // if this is voting we should fetch via RPC
+
+
+                
                 if (thisitem?.instructions){
                     thisitem.instructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
                     setProposalInstructions(thisitem.instructions);
@@ -852,7 +861,7 @@ function GetParticipants(props: any){
                 counter++;
                 //console.log("counter: "+counter);
                 if (!from_cache){
-                    if (item.voteType?.vote){
+                    if (item.account?.vote){
                         if (item.account?.vote?.voteType === 0){
                             uYes++;
                         }else{
@@ -895,6 +904,7 @@ function GetParticipants(props: any){
                     
                     //console.log(item.governingTokenOwner.toBase58() + ": "+item?.vote.voterWeight);
                     
+
                     if (item.vote?.vote){
                         if (item.vote?.vote?.voteType === 0){
                             uYes++;
@@ -1333,7 +1343,7 @@ function GetParticipants(props: any){
                                             <>
                                                  <Box sx={{ width: '100%' }}>
                                                     <BorderLinearProgress variant="determinate" value={100} />
-                                                    <Typography variant='caption'>{GOVERNANNCE_STATE[thisitem.account.state]}</Typography>
+                                                    <Typography variant='caption'>{GOVERNANCE_STATE[thisitem.account.state]}</Typography>
                                                 </Box>
                                             </>
                                         :
@@ -1589,7 +1599,7 @@ function GetParticipants(props: any){
                                             </Typography>
                                             <Typography variant="subtitle2">
                                                 <Button color='inherit' sx={{color:'white',borderRadius:'17px'}} href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`} target='_blank'>
-                                                    {GOVERNANNCE_STATE[thisitem.account?.state]} <OpenInNewIcon sx={{ml:1}} fontSize='small'/>
+                                                    {GOVERNANCE_STATE[thisitem.account?.state]} <OpenInNewIcon sx={{ml:1}} fontSize='small'/>
                                                 </Button>
                                             </Typography>
                                         </Box>
@@ -1706,7 +1716,7 @@ function RenderGovernanceTable(props:any) {
                             }>
                             
                             <Button sx={{borderRadius:'17px',color:'inherit',textTransform:'none'}}>
-                                {GOVERNANNCE_STATE[thisitem.account?.state]}
+                                {GOVERNANCE_STATE[thisitem.account?.state]}
                                     <>
                                     {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
                                         <>
