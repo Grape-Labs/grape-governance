@@ -14,7 +14,7 @@
 
 html, body .app-body{
   background: #111111;  /* fallback for old browsers */
-  background: linear-gradient(to right, #00467f, #a5cc82);
+  background: linear-gradient(to right, #1d2b64, #f8cdda);
   height:100%;
   background-attachment: fixed;
 }
