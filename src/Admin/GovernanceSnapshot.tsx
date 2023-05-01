@@ -526,7 +526,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                                     nftsIdentified++;
                                     totalVaultNftValueSol += +resitem.floorPriceLamports,
                                     //totalVaultNftValue += resitem.floorPriceLamports
-
                                     setPrimaryStatus("Treasury NFT Floor Prices ("+thisitem.nftMint+" floor at "+resitem.floorPriceLamports+" lamports)");
                                 }
                                 

@@ -1049,7 +1049,7 @@ function GetParticipants(props: any){
         },new Map());
 
         console.log("memberMp: "+JSON.stringify(memberMp));
-        
+
         const isCommunityVote = propVoteType !== 'Council'; //realm.account.config?.councilMint?.toBase58() !== thisitem?.account.governingTokenMint;// realm?.communityMint === thisitem?.account.governingTokenMint;
         //console.log("isCommunityVote: "+JSON.stringify(isCommunityVote));
         
@@ -1129,7 +1129,7 @@ function GetParticipants(props: any){
 
         return (
         <>
-            {thisitem.account?.state === 2 && 
+            {/*thisitem.account?.state === 2 && 
                 <>
                     <br/>
                     {type === 0 ?
@@ -1143,7 +1143,7 @@ function GetParticipants(props: any){
                         >Vote NO</Button>
                     }
                 </>
-            }
+                */}
         </>);
     }
 
