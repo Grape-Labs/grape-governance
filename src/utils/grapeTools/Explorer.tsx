@@ -43,7 +43,11 @@ import {
     //GRAPE_COLLECTIONS_DATA
 } from './constants';
 
+import { decodeMetadata } from '../grapeTools/utils';
 import { ValidateCurve } from '../grapeTools/WalletAddress';
+
+import SolIcon from '../../components/static/SolIcon';
+import SolCurrencyIcon from '../../components/static/SolCurrencyIcon';
 
 import CloseIcon from '@mui/icons-material/Close';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
@@ -120,6 +124,8 @@ export default function ExplorerView(props:any){
     const [anchorEl, setAnchorEl] = React.useState(null);
     const open = Boolean(anchorEl);
     const showSolanaProfile = props.showSolanaProfile || null;
+    const showNftData = props.showNftData || null;
+    const showSolBalance = props.showSolBalance || null;
     const connection = RPC_CONNECTION;
     const [solanaDomain, setSolanaDomain] = React.useState(null);
     const [hasSolanaDomain, setHasSolanaDomain] = React.useState(false);
@@ -127,6 +133,7 @@ export default function ExplorerView(props:any){
     const [twitterRegistration, setTwitterRegistration] = React.useState(null);
     const [hasProfilePicture, setHasProfilePicture] = React.useState(null);
     const [openDialog, setOpenDialog] = React.useState(false);
+    const [solBalance, setSolBalance] = React.useState(null);
 
     const handleClickOpenDialog = (event:any) => {
         setOpenDialog(true);
@@ -150,6 +157,50 @@ export default function ExplorerView(props:any){
         enqueueSnackbar(`Copied!`,{ variant: 'success' });
         handleClose();
     };
+
+    const fetchSolBalance = async() => {
+        try{
+            const balance = await connection.getBalance(new PublicKey(address));
+            const adjusted_balance = +(balance/(10 ** 9)).toFixed(3)
+            console.log("balance: "+adjusted_balance)
+            setSolBalance(adjusted_balance);
+        }catch(e){
+            console.log("ERR: "+e);
+        }
+    }
+
+    const fetchTokenData = async() => {
+        try{
+            const MD_PUBKEY = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+            const [pda, bump] = await PublicKey.findProgramAddress(
+                [Buffer.from('metadata'), MD_PUBKEY.toBuffer(), new PublicKey(address).toBuffer()],
+                MD_PUBKEY
+            );
+            
+            const tokendata = await connection.getParsedAccountInfo(new PublicKey(pda));
+
+            if (tokendata){
+                //console.log("tokendata: "+JSON.stringify(tokendata));
+                const buf = Buffer.from(tokendata.value.data, 'base64');
+                const meta_final = decodeMetadata(buf);
+                
+                if (meta_final?.data?.name){
+                    setSolanaDomain(meta_final.data.name);
+                    if (meta_final.data?.uri){
+                        const urimeta = await window.fetch(meta_final.data.uri).then((res: any) => res.json());
+                        const image = urimeta?.image;
+                        if (image){
+                            setProfilePictureUrl(image);
+                            setHasProfilePicture(true);
+                        }
+                    }
+                }
+                //console.log("meta_final: "+JSON.stringify(meta_final));
+            }
+        }catch(e){
+            console.log("ERR: "+e)
+        }
+    }
 
     const fetchProfilePicture = async () => {
         //setLoadingPicture(true);  
@@ -273,6 +324,18 @@ export default function ExplorerView(props:any){
             fetchSolanaDomain();
         }
     }, [showSolanaProfile, address]);
+    
+    React.useEffect(() => {   
+        if (showNftData){
+            fetchTokenData()
+        }
+    }, [showNftData, address]);
+
+    React.useEffect(() => {   
+        if (showSolBalance){
+            fetchSolBalance()
+        }
+    }, [showSolBalance, address]);
 
     return (
         <>
@@ -374,6 +437,20 @@ export default function ExplorerView(props:any){
                                 QR Code
                         </MenuItem>
                         
+                        {solBalance &&
+                        <>
+                            <Divider />
+                            <Tooltip title="SOL balance in wallet">
+                                <MenuItem>
+                                        <ListItemIcon>
+                                            <SolCurrencyIcon sx={{color:'white'}} />
+                                        </ListItemIcon>
+                                        {solBalance}
+                                </MenuItem>
+                            </Tooltip>
+                        </>
+                        }
+
                         <BootstrapDialog 
                             open={openDialog} 
                             onClose={handleCloseDialog}
@@ -487,7 +564,7 @@ export default function ExplorerView(props:any){
                         </ListItemIcon>
                         Explorer
                     </MenuItem>
-                    
+
                     {twitterRegistration &&
                         <>
                             <Divider />

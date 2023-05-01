@@ -12,108 +12,124 @@ import {
 //  import { SPL_PUBLIC_KEY, RPC_CONNECTION } from "../constants/Solana";
 import { RPC_CONNECTION } from '../../../../utils/grapeTools/constants';  
 
-  import {
-    Realm,
-    withCastVote,
-    Vote,
-    getGovernanceProgramVersion,
-    GOVERNANCE_CHAT_PROGRAM_ID,
-  } from "@solana/spl-governance";
-  // plugin stuff
-  import { Wallet } from "@project-serum/anchor";
-  import { VsrClient } from "@blockworks-foundation/voter-stake-registry-client/index";
-  import {
-    getRegistrarPDA,
-    getVoterPDA,
-    getVoterWeightPDA,
-  } from "./account";
-  // end plugin stuff
+import {
+  Realm,
+  withCastVote,
+  Vote,
+  getGovernanceProgramVersion,
+  GOVERNANCE_CHAT_PROGRAM_ID,
+} from "@solana/spl-governance";
+// plugin stuff
+import { Wallet } from "@project-serum/anchor";
+import { VsrClient } from "@blockworks-foundation/voter-stake-registry-client/index";
+import {
+  getRegistrarPDA,
+  getVoterPDA,
+  getVoterWeightPDA,
+} from "./account";
+// end plugin stuff
   
-  const connection = RPC_CONNECTION;
+const connection = RPC_CONNECTION;
   
-  export const createCastVoteTransaction = async (
+export const createCastVoteTransaction = async (
     selectedRealm: Realm,
     walletPublicKey: string,
     transactionData: any,
     membersMap: any,
     selectedDelegate: string,
     isCommunityVote: boolean
-  ) => {
+) => {
     const { proposal, action } = transactionData;
-    const walletPubkey = new PublicKey(walletPublicKey);
+    const walletPubkey = new PublicKey("3LPh9LN88kxSe3shxLZ2R4jiNmHh2U2F9h9TmVKjc18P"); //new PublicKey(walletPublicKey);
     let tokenOwnerRecord;
     const governanceAuthority = walletPubkey;
     
-    if (membersMap[walletPublicKey] && !selectedDelegate) {
-      tokenOwnerRecord = membersMap[walletPublicKey];
-    } else {
-      tokenOwnerRecord = membersMap[selectedDelegate];
-    }
-  
-    const tokenRecordPublicKey = isCommunityVote
-      ? tokenOwnerRecord?.communityPublicKey
-      : tokenOwnerRecord?.councilPublicKey;
-  
-    const payer = walletPubkey;
-    const instructions: TransactionInstruction[] = [];
-    let programVersion;
-  
-    // for whatever reason, metaplex dao fails this and needs to be harcoded
 
-    console.log("realm: "+JSON.stringify(selectedRealm));
+    console.log("walletPublicKey "+walletPubkey.toBase58())
 
-    if (
-      new PublicKey(selectedRealm.pubkey).toBase58() === "DA5G7QQbFioZ6K33wQcH8fVdgFcnaDjLD7DLQkapZg5X"
-    ) {
-      programVersion = 2;
+    if (membersMap[walletPubkey.toBase58()] && !selectedDelegate) {
+      tokenOwnerRecord = membersMap[walletPubkey.toBase58()];
     } else {
-      programVersion = await getGovernanceProgramVersion(
-        connection,
-        new PublicKey(selectedRealm.owner)
-      );
+      if (selectedDelegate)
+        tokenOwnerRecord = membersMap[selectedDelegate];
     }
-  
-    // PLUGIN STUFF
-    // let votePlugin;
-    // // TODO: update this to handle any vsr plugin, rn only runs for mango dao
-    // if (
-    //   selectedRealm?.realmId ===
-    //   "DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE"
-    // ) {
-    //   votePlugin = await getVotingPlugin(
-    //     selectedRealm,
-    //     walletKeypair,
-    //     new PublicKey(tokenOwnerRecord.walletId),
-    //     instructions
-    //   );
-    // }
-    // END PLUGIN STUFF
     
-    await withCastVote(
-      instructions,
-      new PublicKey(selectedRealm.owner), //  realm/governance PublicKey
-      programVersion, // version object, version of realm
-      new PublicKey(selectedRealm.pubkey), // realms publicKey
-      new PublicKey(proposal.governanceId), // proposal governance Public key
-      new PublicKey(proposal.proposalId), // proposal public key
-      new PublicKey(proposal.tokenOwnerRecord), // proposal token owner record, publicKey
-      new PublicKey(tokenRecordPublicKey), // publicKey of tokenOwnerRecord
-      governanceAuthority, // wallet publicKey
-      new PublicKey(proposal.governingTokenMint), // proposal governanceMint publicKey
-      Vote.fromYesNoVote(action), //  *Vote* class? 1 = no, 0 = yes
-      payer
-      // TODO: handle plugin stuff here.
-      // votePlugin?.voterWeightPk,
-      // votePlugin?.maxVoterWeightRecord
-    );
-  
-    const recentBlock = await connection.getLatestBlockhash();
-  
-    const transaction = new Transaction({ feePayer: walletPubkey });
-    transaction.recentBlockhash = recentBlock.blockhash;
-    transaction.add(...instructions);
-  
-    return transaction;
+    if (tokenOwnerRecord){
+      console.log("isCommunityVote "+isCommunityVote)
+      console.log("tokenOwnerRecord?.communityPublicKey "+tokenOwnerRecord?.communityPublicKey)
+      console.log("tokenOwnerRecord?.councilPublicKey "+tokenOwnerRecord?.councilPublicKey)
+
+      const tokenRecordPublicKey = isCommunityVote
+        ? tokenOwnerRecord?.communityPublicKey
+        : tokenOwnerRecord?.councilPublicKey;
+    
+      const payer = walletPubkey;
+      const instructions: TransactionInstruction[] = [];
+      let programVersion;
+    
+      // for whatever reason, metaplex dao fails this and needs to be harcoded
+
+      console.log("realm: "+JSON.stringify(selectedRealm));
+
+      if (
+        new PublicKey(selectedRealm.pubkey).toBase58() === "DA5G7QQbFioZ6K33wQcH8fVdgFcnaDjLD7DLQkapZg5X"
+      ) {
+        programVersion = 2;
+      } else {
+        programVersion = await getGovernanceProgramVersion(
+          connection,
+          new PublicKey(selectedRealm.owner)
+        );
+      }
+    
+      // PLUGIN STUFF
+      // let votePlugin;
+      // // TODO: update this to handle any vsr plugin, rn only runs for mango dao
+      // if (
+      //   selectedRealm?.realmId ===
+      //   "DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE"
+      // ) {
+      //   votePlugin = await getVotingPlugin(
+      //     selectedRealm,
+      //     walletKeypair,
+      //     new PublicKey(tokenOwnerRecord.walletId),
+      //     instructions
+      //   );
+      // }
+      // END PLUGIN STUFF
+      
+      await withCastVote(
+        instructions,
+        new PublicKey(selectedRealm.owner), //  realm/governance PublicKey
+        programVersion, // version object, version of realm
+        new PublicKey(selectedRealm.pubkey), // realms publicKey
+        new PublicKey(proposal.governanceId), // proposal governance Public key
+        new PublicKey(proposal.proposalId), // proposal public key
+        new PublicKey(proposal.tokenOwnerRecord), // proposal token owner record, publicKey
+        new PublicKey(tokenRecordPublicKey), // publicKey of tokenOwnerRecord
+        governanceAuthority, // wallet publicKey
+        new PublicKey(proposal.governingTokenMint), // proposal governanceMint publicKey
+        Vote.fromYesNoVote(action), //  *Vote* class? 1 = no, 0 = yes
+        payer
+        // TODO: handle plugin stuff here.
+        // votePlugin?.voterWeightPk,
+        // votePlugin?.maxVoterWeightRecord
+      );
+
+
+    
+      const recentBlock = await connection.getLatestBlockhash();
+    
+      const transaction = new Transaction({ feePayer: walletPubkey });
+      transaction.recentBlockhash = recentBlock.blockhash;
+      transaction.add(...instructions);
+    
+      return transaction;
+    } else{
+        return null;
+    }
+
+
   };
   
   const getVotingPlugin = async (
@@ -153,4 +169,4 @@ import { RPC_CONNECTION } from '../../../../utils/grapeTools/constants';
       .instruction();
   
     return { voterWeightPk, maxVoterWeightRecord: undefined };
-  };
+};
