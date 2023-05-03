@@ -451,37 +451,37 @@ export default function ExplorerView(props:any){
                         </>
                         }
 
-                        <BootstrapDialog 
-                            open={openDialog} 
+                        <BootstrapDialog
                             onClose={handleCloseDialog}
+                            aria-labelledby="customized-dialog-title"
+                            open={openDialog}
                             PaperProps={{
                                 style: {
-                                    background: '#13151C',
-                                    border: '1px solid rgba(255,255,255,0.05)',
-                                    borderTop: '1px solid rgba(255,255,255,0.1)',
-                                    borderRadius: '20px'
-                                }
+                                    boxShadow: '3',
+                                    borderRadius: '17px',
+                                    },
                                 }}
-                            >
-                            <BootstrapDialogTitle id="customized-dialog-title" onClose={handleCloseDialog}>
-                            {"Send to this address"}
-                            </BootstrapDialogTitle>
-                            <DialogContent>
-                                <DialogContentText id="alert-dialog-description">
-                                    <div style={{ height: "auto", margin: "0 auto", maxWidth: "100%", width: "100%", borderRadius: "10px", padding:10, backgroundColor:'#fff' }}>
-                                        <QRCode
-                                        size={256}
-                                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                                        value={address}
-                                        viewBox={`0 0 256 256`}
-                                        />
-                                    </div>
-                                    <Grid sx={{textAlign:'center'}}>
-                                        <Typography variant='caption'>{address}</Typography>
+                        >
+                            <DialogContentText id="alert-dialog-description">
+                                <div style={{ height: "auto", margin: "0 auto", maxWidth: "100%", width: "100%", borderRadius: "10px", padding:10, backgroundColor:'#fff' }}>
+                                    <QRCode
+                                    size={256}
+                                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                                    value={address}
+                                    viewBox={`0 0 256 256`}
+                                    />
+                                </div>
+
+                                <Grid container>
+                                    <Grid item xs={12} textAlign={'center'}>
+                                        <Typography variant='body2'>{address}</Typography>
                                     </Grid>
-                                    
-                                </DialogContentText>
-                            </DialogContent>
+                                    <Grid item xs={12} textAlign={'center'}>
+                                        <Typography variant='caption'>Send to this SOL Address</Typography>
+                                    </Grid>
+                                </Grid>
+                                
+                            </DialogContentText>
                         </BootstrapDialog>
                         </>
                     }
