@@ -572,7 +572,7 @@ export function GovernanceDirectoryView(props: Props) {
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="caption">
-                                        {governanceLookup && governanceLookup.length} Cached
+                                        {governanceLookup && governanceLookup.length} Active Solana DAOs Cached (from 2,127+ total realms)
                                     </Typography>
                                 </Grid>
                             </Grid>
