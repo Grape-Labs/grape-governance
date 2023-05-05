@@ -28,6 +28,7 @@ import {
 
 import Header from './Header/Header';
 import { SnackbarProvider } from 'notistack';
+import {detectEmbeddedInSquadsIframe, SquadsEmbeddedWalletAdapter} from '@sqds/iframe-adapter';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { Helmet } from 'react-helmet';
@@ -127,25 +128,14 @@ function DashboardContent() {
   // You can also provide a custom RPC endpoint
   //const endpoint =  useMemo(() => clusterApiUrl(network), [network]);
   const endpoint =  RPC_ENDPOINT || 'https://api.devnet.solana.com';
-  const wallets = useMemo(() => [
+  const wallets = useMemo(() => 
+  detectEmbeddedInSquadsIframe() ? 
+  [new SquadsEmbeddedWalletAdapter("https://iframe-preview.squads.so")] :
+  [
     new SolflareWalletAdapter(),
     new PhantomWalletAdapter(),
     new GlowWalletAdapter(),
     new LedgerWalletAdapter(),
-    new ExodusWalletAdapter(),
-    new SolletWalletAdapter({ network }),
-    new SolletExtensionWalletAdapter({ network }),
-    new TorusWalletAdapter(),
-    new CloverWalletAdapter(),
-    new MathWalletAdapter(),
-    new Coin98WalletAdapter(),
-    new SolongWalletAdapter(),
-    new BitKeepWalletAdapter(),
-    new TokenPocketWalletAdapter(),
-    new BitKeepWalletAdapter(),
-    new BitpieWalletAdapter(),
-    new SafePalWalletAdapter(),
-    new SlopeWalletAdapter(),
   ], [network]);
   
   const renderLoader = () => <p>Loading</p>;
