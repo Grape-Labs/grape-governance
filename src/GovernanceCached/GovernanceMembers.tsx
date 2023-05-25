@@ -168,7 +168,7 @@ function RenderGovernanceMembersTable(props:any) {
     const memberresultscolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
         { field: 'address', headerName: 'Address', width: 70, hide: true},
-        { field: 'member', headerName: 'Member', width: 170, flex: 1,
+        { field: 'member', headerName: 'Member', width: 200, flex: 1,
             renderCell: (params) => {
                 return(
                     <>

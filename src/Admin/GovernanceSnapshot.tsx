@@ -785,7 +785,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         owner.walletCouncilBalance = balance.value[0].account.data.parsed.info;
                 }
             }
-
+            
             if (!hasMltsg || hoursDiff > (24*15)){ // refresh every 15 days
                 try{
                     const squadsMultisigs = "https://rust-api-sd2oj.ondigitalocean.app/multisig?address="+tokenOwnerRecord.toBase58()+"&useProd=true"
