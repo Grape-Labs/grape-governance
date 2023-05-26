@@ -30,6 +30,7 @@ import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github'
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import { InstructionMapping } from "../utils/grapeTools/InstructionMapping";
 import ReactMarkdown from 'react-markdown';
+import { RemarkRenderers } from 'remark-react-renderer';
 import remarkGfm from 'remark-gfm';
 
 import {
@@ -1008,8 +1009,16 @@ function GetParticipants(props: any){
                 tGist = parts[2];
             
             setGist(tGist);
-
+            
             const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
+
+            // Regular expression to match image URLs
+            const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
+            const stringWithPreviews = rpd.replace(imageUrlRegex, (match:any, imageUrl:any) => {
+                return "![Image X]("+imageUrl+")";
+            });
+            
+
             setProposalDescription(rpd);
         } catch(e){
             console.log("ERR: "+e)
@@ -1147,7 +1156,10 @@ function GetParticipants(props: any){
         </>);
     }
 
-
+    // Custom render function to handle image previews
+    const renderers = {
+        image: ({ src, alt }) => <img src={src} alt={alt} style={{ maxWidth: '100%' }} />,
+    };
     
     return (
         <>
@@ -1191,9 +1203,11 @@ function GetParticipants(props: any){
                         {gist ?
                             <Box sx={{ alignItems: 'left', textAlign: 'left', p:1}}>
                                 <Typography variant='body2'>
-                                    <ReactMarkdown remarkPlugins={[[remarkGfm, {singleTilde: false}]]}>
-                                        {proposalDescription}
-                                    </ReactMarkdown>
+                                    <ReactMarkdown 
+                                        remarkPlugins={[[remarkGfm, {singleTilde: false}]]} 
+                                        transformImageUri={null}
+                                        children={proposalDescription}
+                                    />
                                 </Typography>
                                 
                                 <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>

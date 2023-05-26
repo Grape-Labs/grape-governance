@@ -740,6 +740,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             
             // IMPORTANT to speed this up check first tx for mmember wallet...
 
+            var hasBeenFound = false;
             var hasFtd = false;
             var hasMltsg = false;
             var hasWalletCommunityBalance = false;
@@ -747,6 +748,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             if (cached_members && cached_members.length > 0){
                 for (let cachedOwner of cached_members){ // smart fetching so we do not query this call again
                     if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord.toBase58()){
+                        hasBeenFound = true;
                         if (cachedOwner?.firstTransactionDate){
                             owner.firstTransactionDate = cachedOwner.firstTransactionDate;
                             hasFtd = true;
@@ -754,7 +756,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         if (cachedOwner?.multisigs){
                             owner.multisigs = cachedOwner?.multisigs;
                             hasMltsg = true;
-
                         }
                         if (cachedOwner?.walletBalance){
                             owner.walletBalance = cachedOwner.walletBalance;
@@ -764,9 +765,12 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                             owner.walletCouncilBalance = cachedOwner.walletCouncilBalance;
                             hasWalletCouncilBalance = true;
                         }
-                        console.log("Found record: "+cachedOwner.account.governingTokenOwner + " - "+cachedOwner?.firstTransactionDate + " msig: "+hasMltsg+" ftd: "+hasFtd)
                     }
                 }
+            }
+
+            if (!hasBeenFound){
+
             }
 
             if (!hasWalletCommunityBalance || hoursDiff > (24*3)){ // refresh every 3 days
@@ -1096,9 +1100,6 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
                                 uNo++;
                             }
                         }
-
-                        //if (counter === 1)
-                        //    console.log("item ("+thisitem.pubkey+"): "+JSON.stringify(item))
 
                         //console.log("VRS pushing "+counter)
                         //console.log("VRS pushing item "+JSON.stringify(item))

@@ -17419,6 +17419,13 @@ remark-parse@^10.0.0:
     mdast-util-from-markdown "^1.0.0"
     unified "^10.0.0"
 
+remark-react-renderer@^0.0.1:
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/remark-react-renderer/-/remark-react-renderer-0.0.1.tgz#651f382b8d0ec781d3c3973dc262cf7e06c6d48b"
+  integrity sha512-svtD/njUhtEolX/YbfNV536sOa9bhMvPOHSrQ3qAtcbsR4sMHhxoX8eIEPU5psTfsgI5SQN/ZJQmESudNVzJ9A==
+  dependencies:
+    extend "^3.0.2"
+
 remark-rehype@^10.0.0:
   version "10.1.0"
   resolved "https://registry.npmjs.org/remark-rehype/-/remark-rehype-10.1.0.tgz"

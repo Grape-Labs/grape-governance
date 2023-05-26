@@ -95,21 +95,38 @@ export function ApiView(props: any){
                     }
                 }
             }
-            
+
             if (!skipProp){
                 //console.log("Proposal "+proposal.pubkey)
+            
+                const reduced_member_map = cached_members.reduce((map:any, item:any) => {
+                    if (item.account.governingTokenMint === '8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA') {
+                        //map[item.account.governingTokenOwner] = item;
+                        map.set(item.account.governingTokenOwner, item);
+                    }
+                    return map;
+                    //map.set(item.account.governingTokenOwner, item);
+                    //return map;
+                },new Map())
+            
                 withProp.push(proposal);
                 
                 for (let votingResults of proposal.votingResults){
                     let skipRecord = false;
                     if (votingPowerRequired > 0){ 
                         let voterWeight = votingResults.vote.voterWeight/Math.pow(10, votingResults.vote.decimals);
-                        if (voterWeight >= votingPowerRequired){
+
+                        var memberRecord = reduced_member_map.get(votingResults.governingTokenOwner);
+                        //console.log("memberRecord: "+JSON.stringify(memberRecord));
+                        var latestStake = Number("0x"+memberRecord.account.governingTokenDepositAmount)/Math.pow(10, votingResults.vote.decimals);
+                        
+                        if ((+voterWeight > votingPowerRequired) && 
+                            (+latestStake > votingPowerRequired)){
                             skipRecord = false;
                             //console.log("Pushing ("+votingResults.governingTokenOwner+"): "+voterWeight)    
                         } else{
                             skipRecord = true;
-                            //console.log("Skipping ("+votingResults.governingTokenOwner+"): "+voterWeight)    
+                            //console.log("Skipping ("+votingResults.governingTokenOwner+"): "+voterWeight + " ("+latestStake+") " + votingPowerRequired)    
                         }
                         
                     }

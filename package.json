@@ -138,6 +138,7 @@
         "react-simple-image-viewer": "^1.1.1",
         "react-xnft": "^0.2.0-latest.3375",
         "remark-gfm": "^3.0.1",
+        "remark-react-renderer": "^0.0.1",
         "rimraf": "^3.0.2",
         "tweetnacl": "^1.0.3",
         "web-vitals": "^1.1.2",
