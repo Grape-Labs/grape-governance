@@ -25,6 +25,7 @@ export function ApiView(props: any){
     const {querytype} = useParams<{ querytype: string }>();
     const {queryvar1} = useParams<{ queryvar1: string }>();
     const {queryvar2} = useParams<{ queryvar2: string }>();
+    const {queryvar3} = useParams<{ queryvar3: string }>();
 
     const urlParams = searchParams.get("address") || handlekey;
     const governanceAddress = urlParams;
@@ -37,6 +38,8 @@ export function ApiView(props: any){
         governancePropsToUse = queryvar1 ? +queryvar1 : 2;
     
     let votingPowerRequired = queryvar2 ? +queryvar2 : 0;
+
+    let votingPowerStakedRequired = queryvar3 ? +queryvar3 : 0;
 
     //console.log("governanceAddress "+governanceAddress)
     //console.log("handlekey "+handlekey)
@@ -121,7 +124,7 @@ export function ApiView(props: any){
                         var latestStake = Number("0x"+memberRecord.account.governingTokenDepositAmount)/Math.pow(10, votingResults.vote.decimals);
                         
                         if ((+voterWeight > votingPowerRequired) && 
-                            (+latestStake > 0)){
+                            (+latestStake > votingPowerStakedRequired)){
                             skipRecord = false;
                             //console.log("Pushing ("+votingResults.governingTokenOwner+"): "+voterWeight)    
                         } else{

@@ -670,8 +670,7 @@ function RenderVoterRecordTable(props:any) {
         },new Map())
 
         //console.log("govmastermembermap: "+govmastermembermap);
-        //console.log("govmastermembermap: "+JSON.stringify(govmastermembermap.get('KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT')));
-
+        
         const govmembermap = memberMap.reduce((map:any, item:any) => {
             //tarray.push({address:item.address, decimals:item.decimals})
             map.set(item.pubkey, item);
