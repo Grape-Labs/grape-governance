@@ -121,7 +121,7 @@ export function ApiView(props: any){
                         var latestStake = Number("0x"+memberRecord.account.governingTokenDepositAmount)/Math.pow(10, votingResults.vote.decimals);
                         
                         if ((+voterWeight > votingPowerRequired) && 
-                            (+latestStake > votingPowerRequired)){
+                            (+latestStake > 0)){
                             skipRecord = false;
                             //console.log("Pushing ("+votingResults.governingTokenOwner+"): "+voterWeight)    
                         } else{
