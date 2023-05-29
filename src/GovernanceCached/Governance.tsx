@@ -32,6 +32,7 @@ import { InstructionMapping } from "../utils/grapeTools/InstructionMapping";
 import ReactMarkdown from 'react-markdown';
 import { RemarkRenderers } from 'remark-react-renderer';
 import remarkGfm from 'remark-gfm';
+import remarkImages from 'remark-images';
 
 import {
   Typography,
@@ -1157,9 +1158,15 @@ function GetParticipants(props: any){
     }
 
     // Custom render function to handle image previews
-    const renderers = {
-        image: ({ src, alt }) => <img src={src} alt={alt} style={{ maxWidth: '100%' }} />,
+    const components = {
+        img: ({ src, alt, title }) => (
+            <img src={src} alt={alt} title={title} style={{ maxWidth: '90%' }} />
+        ),
     };
+
+    const BlogImage = (props:any) => {
+        return <img {...props} style={{ maxWidth: "100%" }} />
+      }
     
     return (
         <>
@@ -1201,12 +1208,13 @@ function GetParticipants(props: any){
                     
                     <Box sx={{ alignItems: 'center', textAlign: 'center'}}>
                         {gist ?
-                            <Box sx={{ alignItems: 'left', textAlign: 'left', p:1}}>
+                            <Box sx={{ alignItems: 'center', textAlign: 'left', p:1}}>
                                 <Typography variant='body2'>
                                     <ReactMarkdown 
-                                        remarkPlugins={[[remarkGfm, {singleTilde: false}]]} 
-                                        transformImageUri={null}
+                                        remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
+                                        //transformImageUri={null}
                                         children={proposalDescription}
+                                        //components={components}
                                     />
                                 </Typography>
                                 
