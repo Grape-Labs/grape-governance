@@ -735,15 +735,14 @@ function RenderVoterRecordTable(props:any) {
                 
                 //if (new PublicKey(memberItem.account.governingTokenOwner).toBase58() === inner_item.governingTokenOwner.toBase58()){
                 
-                    let rewards = 0;
+                    let rewards = memberItem?.governanceAwards ? +memberItem.governanceAwards :  0;
                     if (new PublicKey(realm.account.communityMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                         depositedgovernancevotes = +(Number("0x"+memberItem.account.governingTokenDepositAmount)/Math.pow(10, +governingTokenDecimals)).toFixed(0);
-                        rewards = memberItem?.governanceAwards ? +memberItem.governanceAwards :  0;
                     }else if (new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                         depositedcouncilvotes = (Number("0x"+memberItem.account.governingTokenDepositAmount));
                     }
                     
-                    console.log(memberItem.account.governingTokenOwner+": "+rewards)
+                    //console.log(memberItem.account.governingTokenOwner+": "+rewards)
                     
 
                     unstakedgovernancevotes = (memberItem.walletBalance?.tokenAmount?.amount ? Number((+memberItem.walletBalance.tokenAmount.amount /Math.pow(10, memberItem.walletBalance.tokenAmount.decimals || 0)).toFixed(0)) : 0)
