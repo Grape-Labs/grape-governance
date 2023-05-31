@@ -254,6 +254,13 @@ function RenderVoterRecordTable(props:any) {
                 )
             }
         },
+        { field: 'totalawards', headerName: 'Total Awarded', width: 170, hide: false, align: 'right',
+            renderCell: (params) => {
+                return(
+                    <>{getFormattedNumberToLocale(Number(params.value).toFixed(0))}</>
+                )
+            }
+        },
         { field: 'currentunstakedvotes', headerName: 'Unstaked Voting Power', width: 200, hide: false, align: 'right',
             renderCell: (params) => {
                 return(
@@ -402,13 +409,6 @@ function RenderVoterRecordTable(props:any) {
                             }%</>
                         }
                     </>
-                )
-            }
-        },
-        { field: 'totalawards', headerName: 'Awarded', width: 170, hide: false, align: 'right',
-            renderCell: (params) => {
-                return(
-                    <>{getFormattedNumberToLocale(Number(params.value))}</>
                 )
             }
         },

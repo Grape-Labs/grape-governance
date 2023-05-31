@@ -1015,7 +1015,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                                     else
                                         owner.governanceAwards = +tTransfer.tokenAmount;
 
-                                    if (tTransfer.toUserAccount === "EZLvwGdGyeks3jQLWeBbjL1uGeGbqb2MYU4157pDP9ch")
+                                    if (+tTransfer.tokenAmount >= 1000000)
                                         console.log("Emitted rewards "+tTransfer.toUserAccount+" (source: "+tTransfer.fromUserAccount+"): "+tTransfer.tokenAmount+" balance: "+owner.governanceAwards)
                                 }
                             }
