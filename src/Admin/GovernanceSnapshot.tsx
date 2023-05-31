@@ -230,28 +230,58 @@ const fetchGovernanceVaults = async(grealm:any) => {
 
 const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string, destinationAddress: string) => {
     
-    
-    const url = "https://api.helius.xyz/v0/addresses/"+sourceAddress+"/transactions?api-key="+HELIUS_API;
-    const { data } = await axios.get(url)
-    //console.log("parsed transactions: ", data)
+    let hasnext = true;
+    let tokenTransfers = null;
+    let lastSignature = null;
+    while (hasnext){
+        let before = "";
+        if (lastSignature)
+            before = "&before="+lastSignature;
+        const url = "https://api.helius.xyz/v0/addresses/"+sourceAddress+"/transactions?api-key="+HELIUS_API+before;
+        const { data } = await axios.get(url)
+        //console.log("parsed transactions: ", data)
 
-    if (tokenMintAddress){
-        
-        const filteredData = data.filter(item =>
-            item.tokenTransfers.some(transfer => transfer.mint === "8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA")
-        );
+        if (tokenMintAddress){
+            
+            const filteredData = data.filter(item =>
+                item.tokenTransfers.some(transfer => transfer.mint === tokenMintAddress)
+            );
+            
+            const finalData = filteredData.map(item => ({
+                tokenTransfers: item.tokenTransfers,
+                timestamp: item.timestamp,
+                signature: item.signature,
+            }));
+            
 
-        const finalData = filteredData.map(item => ({
-            tokenTransfers: item.tokenTransfers,
-            timestamp: item.timestamp
-        }));
-        
-        //console.log("finalData for ("+tokenMintAddress+"): "+JSON.stringify(finalData));
-        
-        return finalData;
+
+            //console.log("finalData for ("+tokenMintAddress+"): "+JSON.stringify(finalData));
+            
+            console.log("last tx "+sourceAddress+": "+JSON.stringify(finalData[finalData.length-1]));
+
+            if (data.length > 1){
+                hasnext = true;
+                //console.log("data here "+JSON.stringify(data[data.length-1]));
+                lastSignature = data[data.length-1].signature;
+                //console.log("last signature: "+lastSignature);
+            } else{
+                hasnext = false;
+            }
+
+            if (tokenTransfers)
+                tokenTransfers = tokenTransfers.concat(finalData);
+            else
+                tokenTransfers = finalData;
+            
+            //return finalData;
+        }
+        //return data;
     }
-    return data;
-    
+
+    console.log("total transfers for "+sourceAddress+": "+tokenTransfers.length);
+
+    return tokenTransfers;
+
     /*
     const connection = RPC_CONNECTION;
     
@@ -984,7 +1014,9 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                                         owner.governanceAwards += +tTransfer.tokenAmount;
                                     else
                                         owner.governanceAwards = +tTransfer.tokenAmount;
-                                    console.log("Emitted rewards "+tTransfer.toUserAccount+": "+owner.governanceAwards)
+
+                                    if (tTransfer.toUserAccount === "EZLvwGdGyeks3jQLWeBbjL1uGeGbqb2MYU4157pDP9ch")
+                                        console.log("Emitted rewards "+tTransfer.toUserAccount+" (source: "+tTransfer.fromUserAccount+"): "+tTransfer.tokenAmount+" balance: "+owner.governanceAwards)
                                 }
                             }
                         }

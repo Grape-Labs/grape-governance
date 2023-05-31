@@ -405,7 +405,7 @@ function RenderVoterRecordTable(props:any) {
                 )
             }
         },
-        { field: 'totalawards', headerName: 'Awarded', width: 170, hide: true, align: 'right',
+        { field: 'totalawards', headerName: 'Awarded', width: 170, hide: false, align: 'right',
             renderCell: (params) => {
                 return(
                     <>{getFormattedNumberToLocale(Number(params.value))}</>
@@ -1189,8 +1189,8 @@ function RenderVoterRecordTable(props:any) {
                     if (counter > 0)
                         csvFile += '\r\n';
                     else
-                        csvFile = 'pubkey,totalproposalscreated,communitypropcreatorpassed,depositedvotes,councildepositedvotes,unstakedvotes,firstparticipationdate,lastparticipationdate,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,councilpropcreatorpassed,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst\r\n';
-                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.communitypropcreatorpassed+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.currentunstakedvotes+','+voter_item.firstparticipationdate+','+voter_item.lastparticipationdate+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.councilpropcreatorpassed+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst;
+                        csvFile = 'pubkey,totalproposalscreated,communitypropcreatorpassed,depositedvotes,councildepositedvotes,unstakedvotes,firstparticipationdate,lastparticipationdate,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,councilpropcreatorpassed,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst,awards\r\n';
+                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.communitypropcreatorpassed+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.currentunstakedvotes+','+voter_item.firstparticipationdate+','+voter_item.lastparticipationdate+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.councilpropcreatorpassed+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst+','+voter_item.totalawards;
                     counter++;
 
                     //tStakedVotes += voter_item.currentvotes;
