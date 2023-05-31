@@ -405,6 +405,13 @@ function RenderVoterRecordTable(props:any) {
                 )
             }
         },
+        { field: 'totalawards', headerName: 'Awarded', width: 170, hide: true, align: 'right',
+            renderCell: (params) => {
+                return(
+                    <>{getFormattedNumberToLocale(Number(params.value))}</>
+                )
+            }
+        },
         { field: 'ecosystemparticipation', headerName: 'Ecosystem DAO Participation', width: 170, hide: false, align: 'right',
             renderCell: (params) => {
                 return(
@@ -728,8 +735,11 @@ function RenderVoterRecordTable(props:any) {
                 
                 //if (new PublicKey(memberItem.account.governingTokenOwner).toBase58() === inner_item.governingTokenOwner.toBase58()){
                 
+                    let rewards = 0;
+
                     if (new PublicKey(realm.account.communityMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                         depositedgovernancevotes = +(Number("0x"+memberItem.account.governingTokenDepositAmount)/Math.pow(10, +governingTokenDecimals)).toFixed(0);
+                        rewards = memberItem?.governanceAwards ? +(memberItem.governanceAwards/Math.pow(10, +governingTokenDecimals)).toFixed(0) :  0;
                     }else if (new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                         depositedcouncilvotes = (Number("0x"+memberItem.account.governingTokenDepositAmount));
                     }
@@ -775,6 +785,7 @@ function RenderVoterRecordTable(props:any) {
                     successfullcasts: 0,
                     councilpropcreatorpassed: 0,
                     communitypropcreatorpassed: 0,
+                    totalawards: rewards,
                     ecosystemparticipation: participation,
                     multisigs: memberItem?.multisigs,
                                     

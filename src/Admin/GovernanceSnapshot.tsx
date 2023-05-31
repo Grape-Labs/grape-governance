@@ -228,6 +228,162 @@ const fetchGovernanceVaults = async(grealm:any) => {
     return rawGovernances;
 }
 
+const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string, destinationAddress: string) => {
+    
+    
+    const url = "https://api.helius.xyz/v0/addresses/"+sourceAddress+"/transactions?api-key="+HELIUS_API;
+    const { data } = await axios.get(url)
+    //console.log("parsed transactions: ", data)
+
+    if (tokenMintAddress){
+        
+        const filteredData = data.filter(item =>
+            item.tokenTransfers.some(transfer => transfer.mint === "8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA")
+        );
+
+        const finalData = filteredData.map(item => ({
+            tokenTransfers: item.tokenTransfers,
+            timestamp: item.timestamp
+        }));
+        
+        //console.log("finalData for ("+tokenMintAddress+"): "+JSON.stringify(finalData));
+        
+        return finalData;
+    }
+    return data;
+    
+    /*
+    const connection = RPC_CONNECTION;
+    
+    let hasnext = true;
+    let offset = 0;
+    let limit = 50;
+    let resultcount = 0;
+    const govTx = new Array();
+    while (hasnext){
+        //if (setPrimaryStatus) setPrimaryStatus("Fetching Governance Transactions ("+(offset+1)+" - "+(offset+limit)+")");
+        const apiUrl = "https://api.solscan.io/account/token/txs";
+        
+        const response = await axios.get(
+            apiUrl, {
+            params: {
+                address:sourceAddress,
+                token_address:tokenAddress,
+                offset:offset,
+                limit:limit,
+                cluster:""
+            },
+        }).then((res) => {
+            return res;
+        }).catch((err) => {
+            return null;  
+        })
+        offset+=limit;
+        
+        if (response){
+            //console.log("response: "+JSON.stringify(response.data.data.tx.transactions));
+            //console.log("total: "+JSON.stringify(response.data.data.tx.total));
+            //console.log("hasnext: "+JSON.stringify(response.data.data.tx.hasNext));
+            hasnext = response.data.data.tx.hasNext;
+            // total = response.data.data.total
+            // hasnext = response.data.data.hasnext
+            //setGovernanceTransactions(response.data.transactions);
+            for (var tx of response.data.data.tx.transactions){
+                govTx.push(tx);
+            }
+        } else{
+            hasnext = false;
+        }
+    }
+
+    return govTx;
+    */
+    
+    /*
+    try {
+        // Get token mint address
+        const tokenMintAddress = new PublicKey(tokenAddress);
+
+        // Fetch token account data
+        const sourceWalletPublicKey = new PublicKey(sourceAddress);
+        const destinationWallet = new PublicKey(destinationAddress);
+        
+        // Fetch token transfers
+        const tokenTransferSignatures = await connection.getConfirmedSignaturesForAddress2(
+            sourceWalletPublicKey,
+            { limit: 100 } // Adjust the limit as needed
+          );
+  
+        console.log("tokenTransfers: "+JSON.stringify(tokenTransferSignatures))
+
+
+          // Fetch transaction details for each transfer
+        const transfersWithDestination = await Promise.all(
+            tokenTransferSignatures.map(async (transfer) => {
+              const transaction = await connection.getParsedTransaction(transfer.signature);
+              const destination = transaction.transaction.message.accountKeys.find(
+                (accountKey) => accountKey.pubkey.toBase58() === destinationAddress
+              );
+              if (destination) {
+
+                console.log("transaction: "+JSON.stringify(transaction));
+                //console.log("transfer: "+JSON.stringify(transfer));
+
+                return {
+                  signature: transfer.signature,
+                  block: transfer.blockTime,
+                  amount: destination?.amount,
+                };
+              }
+              return null;
+            })
+          );
+
+
+          // Filter out null values and format transfers
+            const validTransfers = transfersWithDestination.filter((transfer) => transfer !== null);
+            const formattedTransfers = validTransfers.map((transfer) => ({
+            signature: transfer.signature,
+            block: transfer.block,
+            amount: transfer.amount,
+            }));
+        
+        console.log("filteredTransfers: "+JSON.stringify(formattedTransfers))
+        //setTransfers(transfersToDestination);
+      } catch (error) {
+        console.error('Error fetching token transfers:', error);
+      }
+    */
+
+    /*
+    const url = PROXY+"https://rest-api.hellomoon.io/v0/token/transfers";
+
+    const config = {
+        headers: {
+            accept: `application/json`,
+            authorization: `Bearer ${HELLO_MOON_BEARER}`,
+            'content-type': `application/json`
+        },
+    };
+    const data = {
+        "type": "transfer",
+        "sourceOwner": sourceAddress,
+        "destinationOwner": destinationAddress,
+        "mint": tokenAddress,
+        "limit": 1000,
+    }
+
+    //console.log("calling "+ JSON.stringify(url))
+    //console.log("data "+ JSON.stringify(data))
+
+    const response = await axios.post(url, data, config);
+    
+    console.log("finished "+ JSON.stringify(response))
+
+    return response;
+    */
+  };
+
 const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, wallet: any, setPrimaryStatus: any, setStatus: any) => {
     //const finalList = new Array();
     //setLoading(true);
@@ -709,6 +865,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         }
         //setGovernanceTransactions(govTx);
         
+
         if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records");
 
         // to do get member map
@@ -719,7 +876,32 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         // grealm.account?.communityMint.toBase58()
         //console.log("communityMint: "+JSON.stringify(grealm.account?.communityMint.toBase58()))
         //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
+        
+        const commMint = grealm.account?.communityMint;
+        var governanceEmitted = [];
+        if (commMint){
+            if (commMint.toBase58() === "8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA"){
+                // check all governance wallets and build a list
+                const voterRewardsEmitWallets = 
+                    ["AWaMVkukciGYPEpJbnmSXPJzVxuuMFz1gWYBkznJ2qbq",
+                    "6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD",
+                    "mRh2wFi6rQEoFzWKQ2KsyMySZ36NEmyL5qTv7H6J7vs",
+                    "7ZNjtUgPYL8kNfoPewEnafy4TiKWMs3QsQNYkGx9TawJ",
+                    "Ef3AHWKWeowSugvyWkpdDGiKK8vBxXGcABfnABKb5rTr",
+                    "F3RJjd9Zotaj7PKL7yHvJgyjzxq2iwV4rWDim3rGFLKV"];
+                
+                for (var rewardsWallet of voterRewardsEmitWallets){
+                    const emitted_governance = await getTokenTransfers(rewardsWallet, commMint.toBase58(), null);
+                    if (emitted_governance && emitted_governance.length > 0){
+                        //console.log("emitted: "+emitted_governance);
+                        governanceEmitted = governanceEmitted.concat(emitted_governance);
+                        //totalEmitted.push(emitted_governance)
+                    }
+                }
+            }
+        }
 
+        console.log("Total emitted wallets: "+governanceEmitted.length);
 
         //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
         // get unique members
@@ -773,12 +955,51 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
             }
 
+            /*
+            if (grealm.account?.communityMint){
+                const mintSupported = "8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA";
+                if (grealm.account.communityMint.toBase58() === mintSupported){ // do this now only for grape
+                    // governance holding the governance power:
+                    const voterRewardsEmitWallet = "AWaMVkukciGYPEpJbnmSXPJzVxuuMFz1gWYBkznJ2qbq";
+                    
+                    if (tokenOwnerRecord.toBase58() === "KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT"){
+                        console.log("Tokens Emitted for "+tokenOwnerRecord.toBase58());
+                    
+                        const emitted_governance = await getTokenTransfers(voterRewardsEmitWallet, mintSupported, tokenOwnerRecord.toBase58());
+                        console.log("emitted_governance "+JSON.stringify(emitted_governance));
+                    }
+                }
+            }
+            */
+
+            if (grealm.account?.communityMint){
+                // get all emitted to this wallet
+                // we should save also all instances to keep historic data
+                if (governanceEmitted && governanceEmitted.length > 0){
+                    for (let emitItem of governanceEmitted){
+                        if (emitItem.tokenTransfers){
+                            for (let tTransfer of emitItem.tokenTransfers){
+                                if (tTransfer.toUserAccount === tokenOwnerRecord.toBase58()){
+                                    if (owner?.governanceAwards)
+                                        owner.governanceAwards += +tTransfer.tokenAmount;
+                                    else
+                                        owner.governanceAwards = +tTransfer.tokenAmount;
+                                    console.log("Emitted rewards "+tTransfer.toUserAccount+": "+owner.governanceAwards)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             if (!hasWalletCommunityBalance || hoursDiff > (24*3)){ // refresh every 3 days
                 if (grealm.account?.communityMint){
                     const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.communityMint});
                     //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
                     if (balance?.value[0]?.account?.data?.parsed?.info)    
-                    owner.walletBalance = balance.value[0].account.data.parsed.info;
+                        owner.walletBalance = balance.value[0].account.data.parsed.info;
+
+                    
                 }
             }
             if (!hasWalletCouncilBalance || hoursDiff > (24*30)){ // refresh every 30 days
@@ -789,6 +1010,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         owner.walletCouncilBalance = balance.value[0].account.data.parsed.info;
                 }
             }
+
+
             
             if (!hasMltsg || hoursDiff > (24*15)){ // refresh every 15 days
                 try{
