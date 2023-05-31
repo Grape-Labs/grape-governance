@@ -1159,7 +1159,7 @@ function GetParticipants(props: any){
 
     // Custom render function to handle image previews
     const components = {
-        img: ({ src, alt, title }) => (
+        image: ({ src, alt, title }) => (
             <img src={src} alt={alt} title={title} style={{ maxWidth: '90%' }} />
         ),
     };
