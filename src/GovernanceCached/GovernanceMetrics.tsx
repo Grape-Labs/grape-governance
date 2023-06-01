@@ -267,7 +267,7 @@ function RenderVoterRecordTable(props:any) {
                                         
                                         {params.value.governanceRewardDetails.map((item: any, index:number) => (
                                             <li>
-                                                {getFormattedNumberToLocale(Number(item.tokenTransfers.tokenAmount))}: {moment.unix(Number(item?.timestamp)).format("YYYY-MM-DD HH:mm")}
+                                                <strong>{getFormattedNumberToLocale(Number(item.tokenTransfers.tokenAmount))}</strong> {moment.unix(Number(item?.timestamp)).format("YYYY-MM-DD HH:mm")}
                                                 <br/><Typography sx={{fontSize:'8px'}}>{item.tokenTransfers.fromTokenAccount}</Typography>
                                             </li>)
                                         )}
