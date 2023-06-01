@@ -926,12 +926,12 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             if (commMint.toBase58() === "8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA"){
                 // check all governance wallets and build a list
                 const voterRewardsEmitWallets = [
-                    "AWaMVkukciGYPEpJbnmSXPJzVxuuMFz1gWYBkznJ2qbq",
-                    "6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD",
-                    "mRh2wFi6rQEoFzWKQ2KsyMySZ36NEmyL5qTv7H6J7vs",
+                    //"AWaMVkukciGYPEpJbnmSXPJzVxuuMFz1gWYBkznJ2qbq",
+                    //"6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD",
+                    //"mRh2wFi6rQEoFzWKQ2KsyMySZ36NEmyL5qTv7H6J7vs",
                     //"7ZNjtUgPYL8kNfoPewEnafy4TiKWMs3QsQNYkGx9TawJ",
-                    "Ef3AHWKWeowSugvyWkpdDGiKK8vBxXGcABfnABKb5rTr",
-                    "F3RJjd9Zotaj7PKL7yHvJgyjzxq2iwV4rWDim3rGFLKV",
+                    //"Ef3AHWKWeowSugvyWkpdDGiKK8vBxXGcABfnABKb5rTr",
+                    //"F3RJjd9Zotaj7PKL7yHvJgyjzxq2iwV4rWDim3rGFLKV",
                     "EjPvwq8GB2isU7JakaQk2pPmonJrTCTpsJastBcmm7XT",
                     "6WQ1cjJWPz9Ab72iL1myK19Uza8ESty9STSq4WBXkde9",
                     "7qzjXQqT6jxEFTfbTLvQv6vrsYDJUPvk9XVsk7yxKncD",
@@ -940,8 +940,9 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     "8uLbghsxMg6HBrMG494xihP4i8LZmfLr5Qiqdo5KYKUp",
                     "4WJBTv6f3byCMu8ZAxBXe4MVEPt5ZnTkKowR9xzm17JL",
                     "CKpFpBw3ZoDN6ZV62tkqKoJua7oqes328XgyewttKT28",
-                    "E44MSZKzey1sEYhPvUk6MjgUTQNmFEEUahxmdPkBtAND",
-                    "GrapevviL94JZRiZwn2LjpWtmDacXU8QhAJvzpUMMFdL"
+                    //"E44MSZKzey1sEYhPvUk6MjgUTQNmFEEUahxmdPkBtAND",
+                    "9n4wcMKGcUSWGmeCNt5gbprqkLjLaWK6j9JcCxyDscHx",
+                    "8V1nn3jG6uXHcHyBgLt5iaMNFSPdsmAsXV8zjizYaLHz",
                 ];
                 
                 const excludeAddress = [
