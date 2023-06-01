@@ -268,7 +268,7 @@ function RenderVoterRecordTable(props:any) {
                                         {params.value.governanceRewardDetails.map((item: any, index:number) => (
                                             <li>
                                                 <strong>{getFormattedNumberToLocale(Number(item.tokenTransfers.tokenAmount))}</strong> {moment.unix(Number(item?.timestamp)).format("YYYY-MM-DD HH:mm")}
-                                                <br/><Typography sx={{fontSize:'8px'}}>{item.tokenTransfers.fromTokenAccount}</Typography>
+                                                <br/><Typography sx={{fontSize:'8px'}}>{item.signature}</Typography>
                                             </li>)
                                         )}
                                     </>}
@@ -756,9 +756,36 @@ function RenderVoterRecordTable(props:any) {
                 let unstakedcouncilvotes = 0;
                 
                 //if (new PublicKey(memberItem.account.governingTokenOwner).toBase58() === inner_item.governingTokenOwner.toBase58()){
-                
-                    let governanceRewards = memberItem?.governanceAwards ? +memberItem.governanceAwards :  0;
+
+                    //let governanceRewards = memberItem?.governanceAwards ? +memberItem.governanceAwards :  0;
                     let governanceRewardDetails = memberItem?.governanceAwardDetails ? memberItem.governanceAwardDetails :  null;
+                    
+
+                    let filteredGovernanceRewards = 0;
+                    let filteredGovernanceRewardDetails = [];
+
+                    if (governanceRewardDetails){
+                        let governanceRewardDetailsParsed = governanceRewardDetails;// JSON.parse(governanceRewardDetails);
+                        for (var rewardsItem of governanceRewardDetailsParsed){
+                            let skipReward = false;
+                            if (governanceStartDate && governanceEndDate){
+                                if (governanceStartDate < governanceEndDate){
+                                    skipReward = true;
+                                    if ((Number(Number(rewardsItem?.timestamp)) >= governanceStartDate) && 
+                                        (Number(Number(rewardsItem?.timestamp)) <= governanceEndDate)){
+                                            console.log("Skipping Reward "+rewardsItem.signature)
+                                            skipReward = false;
+                                        }
+                                }
+                            }
+                            if (!skipReward){
+                                filteredGovernanceRewards += +rewardsItem.tokenTransfers.tokenAmount;
+                                //console.log(">> filteredGovernanceRewards "+filteredGovernanceRewards + " vs " + rewardsItem.tokenTransfers.tokenAmount)
+                                filteredGovernanceRewardDetails.push(rewardsItem);
+                            }
+                        }
+                    }
+
                     if (new PublicKey(realm.account.communityMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                         depositedgovernancevotes = +(Number("0x"+memberItem.account.governingTokenDepositAmount)/Math.pow(10, +governingTokenDecimals)).toFixed(0);
                     }else if (new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
@@ -767,7 +794,6 @@ function RenderVoterRecordTable(props:any) {
                     
                     //console.log(memberItem.account.governingTokenOwner+": "+rewards)
                     
-
                     unstakedgovernancevotes = (memberItem.walletBalance?.tokenAmount?.amount ? Number((+memberItem.walletBalance.tokenAmount.amount /Math.pow(10, memberItem.walletBalance.tokenAmount.decimals || 0)).toFixed(0)) : 0)
                 
                     unstakedcouncilvotes = (memberItem?.walletCouncilBalance?.tokenAmount?.amount ? Number((+memberItem.walletCouncilBalance.tokenAmount.amount /Math.pow(10, memberItem.walletCouncilBalance.tokenAmount.decimals || 0)).toFixed(0)) : 0)
@@ -810,8 +836,8 @@ function RenderVoterRecordTable(props:any) {
                     councilpropcreatorpassed: 0,
                     communitypropcreatorpassed: 0,
                     totalawards:{ 
-                        governanceRewards:governanceRewards,
-                        governanceRewardDetails:governanceRewardDetails
+                        governanceRewards:filteredGovernanceRewards,
+                        governanceRewardDetails:filteredGovernanceRewardDetails
                     },
                     ecosystemparticipation: participation,
                     multisigs: memberItem?.multisigs,
