@@ -228,7 +228,19 @@ const fetchGovernanceVaults = async(grealm:any) => {
     return rawGovernances;
 }
 
-const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string, destinationAddress: string) => {
+// remove any duplicates
+const removeDuplicateSignatures = (array) => {
+    const uniqueSignatures = [];
+    return array.filter((item) => {
+        if (!uniqueSignatures.includes(item.signature)) {
+        uniqueSignatures.push(item.signature);
+        return true;
+        }
+        return false;
+    });
+};
+
+const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string, destinationAddress: string, excludeAddress: string[]) => {
     
     let hasnext = true;
     let tokenTransfers = null;
@@ -246,18 +258,19 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
             const filteredData = data.filter(item =>
                 item.tokenTransfers.some(transfer => transfer.mint === tokenMintAddress)
             );
+
+            const filteredData2 = excludeAddress ? filteredData.filter(item =>
+                item.tokenTransfers.some(transfer => !excludeAddress.includes(transfer?.fromUserAccount))
+            ) : filteredData;
             
-            const finalData = filteredData.map(item => ({
+            const finalData = filteredData2.map(item => ({
                 tokenTransfers: item.tokenTransfers,
                 timestamp: item.timestamp,
                 signature: item.signature,
             }));
             
-
-
             //console.log("finalData for ("+tokenMintAddress+"): "+JSON.stringify(finalData));
-            
-            console.log("last tx "+sourceAddress+": "+JSON.stringify(finalData[finalData.length-1]));
+            //console.log("last tx "+sourceAddress+": "+JSON.stringify(finalData[finalData.length-1]));
 
             if (data.length > 1){
                 hasnext = true;
@@ -277,8 +290,8 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
         }
         //return data;
     }
-
-    console.log("total transfers for "+sourceAddress+": "+tokenTransfers.length);
+    
+    //console.log("total transfers for "+sourceAddress+": "+tokenTransfers.length+" vs "+uniqueTransfers.length);
 
     return tokenTransfers;
 
@@ -912,22 +925,39 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         if (commMint){
             if (commMint.toBase58() === "8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA"){
                 // check all governance wallets and build a list
-                const voterRewardsEmitWallets = 
-                    ["AWaMVkukciGYPEpJbnmSXPJzVxuuMFz1gWYBkznJ2qbq",
+                const voterRewardsEmitWallets = [
+                    "AWaMVkukciGYPEpJbnmSXPJzVxuuMFz1gWYBkznJ2qbq",
                     "6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD",
                     "mRh2wFi6rQEoFzWKQ2KsyMySZ36NEmyL5qTv7H6J7vs",
-                    "7ZNjtUgPYL8kNfoPewEnafy4TiKWMs3QsQNYkGx9TawJ",
+                    //"7ZNjtUgPYL8kNfoPewEnafy4TiKWMs3QsQNYkGx9TawJ",
                     "Ef3AHWKWeowSugvyWkpdDGiKK8vBxXGcABfnABKb5rTr",
-                    "F3RJjd9Zotaj7PKL7yHvJgyjzxq2iwV4rWDim3rGFLKV"];
+                    "F3RJjd9Zotaj7PKL7yHvJgyjzxq2iwV4rWDim3rGFLKV",
+                    "EjPvwq8GB2isU7JakaQk2pPmonJrTCTpsJastBcmm7XT",
+                    "6WQ1cjJWPz9Ab72iL1myK19Uza8ESty9STSq4WBXkde9",
+                    "7qzjXQqT6jxEFTfbTLvQv6vrsYDJUPvk9XVsk7yxKncD",
+                    "9eYJBViDGBXcf61WQfUDdwxtKyVjjLxyKtEhKs35SPnU",
+                    "6XnsmBGrbRRsvRLWpZMHZhKEFJZGDvJ5QmqcC6niASYp",
+                    "8uLbghsxMg6HBrMG494xihP4i8LZmfLr5Qiqdo5KYKUp",
+                    "4WJBTv6f3byCMu8ZAxBXe4MVEPt5ZnTkKowR9xzm17JL",
+                    "CKpFpBw3ZoDN6ZV62tkqKoJua7oqes328XgyewttKT28",
+                    "E44MSZKzey1sEYhPvUk6MjgUTQNmFEEUahxmdPkBtAND",
+                    "GrapevviL94JZRiZwn2LjpWtmDacXU8QhAJvzpUMMFdL"
+                ];
                 
+                const excludeAddress = [
+                    "7ZNjtUgPYL8kNfoPewEnafy4TiKWMs3QsQNYkGx9TawJ",
+                    "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"
+                ];
+
                 for (var rewardsWallet of voterRewardsEmitWallets){
-                    const emitted_governance = await getTokenTransfers(rewardsWallet, commMint.toBase58(), null);
+                    const emitted_governance = await getTokenTransfers(rewardsWallet, commMint.toBase58(), null, excludeAddress);
                     if (emitted_governance && emitted_governance.length > 0){
                         //console.log("emitted: "+emitted_governance);
                         governanceEmitted = governanceEmitted.concat(emitted_governance);
-                        //totalEmitted.push(emitted_governance)
                     }
                 }
+
+                governanceEmitted = removeDuplicateSignatures(governanceEmitted);
             }
         }
 
@@ -957,6 +987,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             var hasMltsg = false;
             var hasWalletCommunityBalance = false;
             var hasWalletCouncilBalance = false;
+            var hasAwards = false;
             if (cached_members && cached_members.length > 0){
                 for (let cachedOwner of cached_members){ // smart fetching so we do not query this call again
                     if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord.toBase58()){
@@ -977,6 +1008,12 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                             owner.walletCouncilBalance = cachedOwner.walletCouncilBalance;
                             hasWalletCouncilBalance = true;
                         }
+                        if (cachedOwner?.governanceAwards && cachedOwner?.governanceAwardDetails){
+                            owner.governanceAwards = cachedOwner.governanceAwards;
+                            owner.governanceAwardDetails = cachedOwner.governanceAwardDetails;
+                            hasAwards = true;
+                        }
+                        
                     }
                 }
             }
@@ -985,38 +1022,35 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
             }
 
-            /*
-            if (grealm.account?.communityMint){
-                const mintSupported = "8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA";
-                if (grealm.account.communityMint.toBase58() === mintSupported){ // do this now only for grape
-                    // governance holding the governance power:
-                    const voterRewardsEmitWallet = "AWaMVkukciGYPEpJbnmSXPJzVxuuMFz1gWYBkznJ2qbq";
-                    
-                    if (tokenOwnerRecord.toBase58() === "KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT"){
-                        console.log("Tokens Emitted for "+tokenOwnerRecord.toBase58());
-                    
-                        const emitted_governance = await getTokenTransfers(voterRewardsEmitWallet, mintSupported, tokenOwnerRecord.toBase58());
-                        console.log("emitted_governance "+JSON.stringify(emitted_governance));
-                    }
-                }
-            }
-            */
-
-            if (grealm.account?.communityMint){
-                // get all emitted to this wallet
-                // we should save also all instances to keep historic data
-                if (governanceEmitted && governanceEmitted.length > 0){
-                    for (let emitItem of governanceEmitted){
-                        if (emitItem.tokenTransfers){
-                            for (let tTransfer of emitItem.tokenTransfers){
-                                if (tTransfer.toUserAccount === tokenOwnerRecord.toBase58()){
-                                    if (owner?.governanceAwards)
-                                        owner.governanceAwards += +tTransfer.tokenAmount;
-                                    else
-                                        owner.governanceAwards = +tTransfer.tokenAmount;
-
-                                    if (+tTransfer.tokenAmount >= 1000000)
-                                        console.log("Emitted rewards "+tTransfer.toUserAccount+" (source: "+tTransfer.fromUserAccount+"): "+tTransfer.tokenAmount+" balance: "+owner.governanceAwards)
+            if (!hasAwards){
+                if (grealm.account?.communityMint){
+                    // get all emitted to this wallet
+                    // we should save also all instances to keep historic data
+                    if (governanceEmitted && governanceEmitted.length > 0){
+                        for (let emitItem of governanceEmitted){
+                            if (emitItem.tokenTransfers){
+                                for (let tTransfer of emitItem.tokenTransfers){
+                                    if (tTransfer.toUserAccount === tokenOwnerRecord.toBase58()){
+                                        if (owner?.governanceAwards){
+                                            owner.governanceAwards += +tTransfer.tokenAmount;
+                                            owner.governanceAwardDetails.push({
+                                                tokenTransfers:tTransfer,
+                                                signature:emitItem.signature,
+                                                timestamp:emitItem.timestamp
+                                            });
+                                        }else{
+                                            owner.governanceAwards = +tTransfer.tokenAmount;
+                                            owner.governanceAwardDetails = new Array();
+                                            owner.governanceAwardDetails.push({
+                                                tokenTransfers:tTransfer,
+                                                signature:emitItem.signature,
+                                                timestamp:emitItem.timestamp
+                                            });
+                                        }
+                                        
+                                        //if (+tTransfer.tokenAmount >= 200000)
+                                        //    console.log("Emitted rewards (> 200k) "+tTransfer.toUserAccount+" (source: "+tTransfer.fromUserAccount+"): "+tTransfer.tokenAmount+" balance: "+owner.governanceAwards + " - sig: "+emitItem.signature)
+                                    }
                                 }
                             }
                         }

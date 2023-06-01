@@ -257,7 +257,26 @@ function RenderVoterRecordTable(props:any) {
         { field: 'totalawards', headerName: 'Total Awarded', width: 170, hide: false, align: 'right',
             renderCell: (params) => {
                 return(
-                    <>{getFormattedNumberToLocale(Number(params.value).toFixed(0))}</>
+                    <>
+                        {params.value &&
+                            <>
+                            <Tooltip title={
+                                <ul>
+                                    {params.value?.governanceRewardDetails &&
+                                    <>
+                                        
+                                        {params.value.governanceRewardDetails.map((item: any, index:number) => (
+                                            <li>{moment.unix(Number(item?.timestamp)).format("YYYY-MM-DD HH:mm")} - {item.tokenAmount} - {item.fromTokenAccount}</li>)
+                                        )}
+                                    </>}
+                                </ul>}>
+                                <Button color='inherit' sx={{borderRadius:'17px'}}>
+                                    {getFormattedNumberToLocale(Number(params.value.governanceRewards).toFixed(0))}
+                                </Button>
+                            </Tooltip>
+                            </>
+                        }
+                    </>
                 )
             }
         },
@@ -735,7 +754,8 @@ function RenderVoterRecordTable(props:any) {
                 
                 //if (new PublicKey(memberItem.account.governingTokenOwner).toBase58() === inner_item.governingTokenOwner.toBase58()){
                 
-                    let rewards = memberItem?.governanceAwards ? +memberItem.governanceAwards :  0;
+                    let governanceRewards = memberItem?.governanceAwards ? +memberItem.governanceAwards :  0;
+                    let governanceRewardDetails = memberItem?.governanceAwardDetails ? memberItem.governanceAwardDetails :  null;
                     if (new PublicKey(realm.account.communityMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
                         depositedgovernancevotes = +(Number("0x"+memberItem.account.governingTokenDepositAmount)/Math.pow(10, +governingTokenDecimals)).toFixed(0);
                     }else if (new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(memberItem.account.governingTokenMint).toBase58()){
@@ -786,7 +806,10 @@ function RenderVoterRecordTable(props:any) {
                     successfullcasts: 0,
                     councilpropcreatorpassed: 0,
                     communitypropcreatorpassed: 0,
-                    totalawards: rewards,
+                    totalawards:{ 
+                        governanceRewards:governanceRewards,
+                        governanceRewardDetails:governanceRewardDetails
+                    },
                     ecosystemparticipation: participation,
                     multisigs: memberItem?.multisigs,
                                     
@@ -1189,8 +1212,8 @@ function RenderVoterRecordTable(props:any) {
                     if (counter > 0)
                         csvFile += '\r\n';
                     else
-                        csvFile = 'pubkey,totalproposalscreated,communitypropcreatorpassed,depositedvotes,councildepositedvotes,unstakedvotes,firstparticipationdate,lastparticipationdate,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,councilpropcreatorpassed,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst,awards\r\n';
-                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.communitypropcreatorpassed+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.currentunstakedvotes+','+voter_item.firstparticipationdate+','+voter_item.lastparticipationdate+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.councilpropcreatorpassed+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst+','+voter_item.totalawards;
+                        csvFile = 'pubkey,totalproposalscreated,communitypropcreatorpassed,depositedvotes,councildepositedvotes,unstakedvotes,firstparticipationdate,lastparticipationdate,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,councilpropcreatorpassed,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst,rewards\r\n';
+                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.communitypropcreatorpassed+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.currentunstakedvotes+','+voter_item.firstparticipationdate+','+voter_item.lastparticipationdate+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.councilpropcreatorpassed+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst+','+voter_item.totalawards.governanceRewards;
                     counter++;
 
                     //tStakedVotes += voter_item.currentvotes;
