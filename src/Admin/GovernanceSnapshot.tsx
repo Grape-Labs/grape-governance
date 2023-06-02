@@ -782,7 +782,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     ia.cgInfo = cgp[iat.account.tokenMap.tokenAddress]
                     vaultValue += cgp[iat.account.tokenMap.tokenAddress].price*iat.account.tokenMap.tokenUiAmount;
                     totalVaultValue += cgp[iat.account.tokenMap.tokenAddress].price*iat.account.tokenMap.tokenUiAmount;
-
+                    
                     // check if stable coin?
                     if ((iat.account.tokenMap.tokenAddress === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")||
                         (iat.account.tokenMap.tokenAddress === "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB")||
@@ -922,8 +922,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         const commMint = grealm.account?.communityMint;
         var governanceEmitted = [];
-        /* GETS EMISSIONS
-        if (commMint){
+        let getAwards = true;
+        if (commMint && getAwards){
             if (commMint.toBase58() === "8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA"){
                 // check all governance wallets and build a list
                 const voterRewardsEmitWallets = [
@@ -964,7 +964,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         }
 
         console.log("Total emitted wallets: "+governanceEmitted.length);
-        */
 
         //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
         // get unique members
@@ -1012,9 +1011,9 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                             hasWalletCouncilBalance = true;
                         }
                         if (cachedOwner?.governanceAwards && cachedOwner?.governanceAwardDetails){
-                            owner.governanceAwards = cachedOwner.governanceAwards;
-                            owner.governanceAwardDetails = cachedOwner.governanceAwardDetails;
-                            hasAwards = true;
+                            //owner.governanceAwards = cachedOwner.governanceAwards;
+                            //owner.governanceAwardDetails = cachedOwner.governanceAwardDetails;
+                            //hasAwards = true;
                         }
                         
                     }
@@ -1031,28 +1030,29 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     // we should save also all instances to keep historic data
                     if (governanceEmitted && governanceEmitted.length > 0){
                         for (let emitItem of governanceEmitted){
-                            if (emitItem.tokenTransfers){
-                                for (let tTransfer of emitItem.tokenTransfers){
-                                    if (tTransfer.toUserAccount === tokenOwnerRecord.toBase58()){
-                                        if (owner?.governanceAwards){
-                                            owner.governanceAwards += +tTransfer.tokenAmount;
-                                            owner.governanceAwardDetails.push({
-                                                tokenTransfers:tTransfer,
-                                                signature:emitItem.signature,
-                                                timestamp:emitItem.timestamp
-                                            });
-                                        }else{
-                                            owner.governanceAwards = +tTransfer.tokenAmount;
-                                            owner.governanceAwardDetails = new Array();
-                                            owner.governanceAwardDetails.push({
-                                                tokenTransfers:tTransfer,
-                                                signature:emitItem.signature,
-                                                timestamp:emitItem.timestamp
-                                            });
+                            if (emitItem.signature !== "2hrrpPLsuVD9bmpNkGSFSQQ9akP69hwwN4ZgVeh55Pha8Xz4GqD2HwYYEWjeFZPbPEM6es6coDeXVsYnSrH7qgqG"){
+                                if (emitItem.tokenTransfers){
+                                    for (let tTransfer of emitItem.tokenTransfers){
+                                        if (tTransfer.toUserAccount === tokenOwnerRecord.toBase58()){
+                                            if (owner?.governanceAwards){
+                                                owner.governanceAwards += +tTransfer.tokenAmount;
+                                                owner.governanceAwardDetails.push({
+                                                    tokenTransfers:tTransfer,
+                                                    signature:emitItem.signature,
+                                                    timestamp:emitItem.timestamp
+                                                });
+                                            }else{
+                                                owner.governanceAwards = +tTransfer.tokenAmount;
+                                                owner.governanceAwardDetails = new Array();
+                                                owner.governanceAwardDetails.push({
+                                                    tokenTransfers:tTransfer,
+                                                    signature:emitItem.signature,
+                                                    timestamp:emitItem.timestamp
+                                                });
+                                            }
+                                            //if (+tTransfer.tokenAmount >= 200000)
+                                            //    console.log("Emitted rewards (> 200k) "+tTransfer.toUserAccount+" (source: "+tTransfer.fromUserAccount+"): "+tTransfer.tokenAmount+" balance: "+owner.governanceAwards + " - sig: "+emitItem.signature)
                                         }
-                                        
-                                        //if (+tTransfer.tokenAmount >= 200000)
-                                        //    console.log("Emitted rewards (> 200k) "+tTransfer.toUserAccount+" (source: "+tTransfer.fromUserAccount+"): "+tTransfer.tokenAmount+" balance: "+owner.governanceAwards + " - sig: "+emitItem.signature)
                                     }
                                 }
                             }
