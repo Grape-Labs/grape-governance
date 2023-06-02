@@ -313,7 +313,7 @@ function GetParticipants(props: any){
                 return(params.value)
             }
         },
-        { field: 'proposal', headerName: 'Proposal', width: 170, hide: true,
+        { field: 'proposal', headerName: 'Proposal', width: 170, hide: true, sortable: false,
             renderCell: (params) => {
                 return(params.value)
             }
@@ -325,14 +325,14 @@ function GetParticipants(props: any){
                 )
             }
         },
-        { field: 'voteAddress', headerName: 'Address', width: 150,
+        { field: 'voteAddress', headerName: 'Address', width: 150, sortable: false,
             renderCell: (params) => {
                 return(
                     <ExplorerView address={params.value} type='address' shorten={4} hideTitle={false} style='text' color='white' fontSize='14px' />
                 )
             }
         },
-        { field: 'quorumWeight', headerName: 'Quorum Weight', headerAlign: 'center', width: 250, align: 'right', hide: totalQuorum ? false : true,
+        { field: 'quorumWeight', headerName: 'Quorum Weight', headerAlign: 'center', width: 250, align: 'right', hide: totalQuorum ? false : true, sortable : false,
             renderCell: (params) => {
                 return(
                     <>
