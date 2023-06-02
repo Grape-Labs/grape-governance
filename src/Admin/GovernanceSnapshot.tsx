@@ -922,6 +922,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         const commMint = grealm.account?.communityMint;
         var governanceEmitted = [];
+        /* GETS EMISSIONS
         if (commMint){
             if (commMint.toBase58() === "8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA"){
                 // check all governance wallets and build a list
@@ -963,6 +964,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         }
 
         console.log("Total emitted wallets: "+governanceEmitted.length);
+        */
 
         //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
         // get unique members
