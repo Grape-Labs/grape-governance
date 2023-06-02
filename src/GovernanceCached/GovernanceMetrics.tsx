@@ -236,6 +236,21 @@ function RenderVoterRecordTable(props:any) {
     const [csvGenerated, setCSVGenerated] = React.useState(null);
     //const [renderCount, setRenderCount] = React.useState(0);
 
+    const awardsComparator = (v1, v2, cellParams1, cellParams2) => {
+        // Get the nested object values
+        const value1 = cellParams1.row.totalawards.governanceRewards;
+        const value2 = cellParams2.row.totalawards.governanceRewards;
+
+        // Perform comparison
+        if (value1 < value2) {
+        return -1;
+        }
+        if (value1 > value2) {
+        return 1;
+        }
+        return 0;
+    };
+
     const [voterRecordRows, setVoterRecordRows] = React.useState(null);
     const votingrecordcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
@@ -255,6 +270,13 @@ function RenderVoterRecordTable(props:any) {
             }
         },
         { field: 'totalawards', headerName: 'Total Awarded', width: 170, hide: false, align: 'right',
+            sortable: true, // Enable sorting on this column
+            sortComparator: (v1, v2, cellParams1, cellParams2) => {
+                // Custom sorting logic based on governanceRewards field
+                const governanceRewards1 = cellParams1.value.governanceRewards || 0;
+                const governanceRewards2 = cellParams2.value.governanceRewards || 0;
+                return governanceRewards1 - governanceRewards2;
+            },
             renderCell: (params) => {
                 return(
                     <>
