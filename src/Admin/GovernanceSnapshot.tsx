@@ -782,7 +782,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     ia.cgInfo = cgp[iat.account.tokenMap.tokenAddress]
                     vaultValue += cgp[iat.account.tokenMap.tokenAddress].price*iat.account.tokenMap.tokenUiAmount;
                     totalVaultValue += cgp[iat.account.tokenMap.tokenAddress].price*iat.account.tokenMap.tokenUiAmount;
-                    
+
                     // check if stable coin?
                     if ((iat.account.tokenMap.tokenAddress === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")||
                         (iat.account.tokenMap.tokenAddress === "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB")||
@@ -922,7 +922,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         const commMint = grealm.account?.communityMint;
         var governanceEmitted = [];
-        let getAwards = true;
+        let getAwards = false;
         if (commMint && getAwards){
             if (commMint.toBase58() === "8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA"){
                 // check all governance wallets and build a list
@@ -1011,9 +1011,9 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                             hasWalletCouncilBalance = true;
                         }
                         if (cachedOwner?.governanceAwards && cachedOwner?.governanceAwardDetails){
-                            //owner.governanceAwards = cachedOwner.governanceAwards;
-                            //owner.governanceAwardDetails = cachedOwner.governanceAwardDetails;
-                            //hasAwards = true;
+                            owner.governanceAwards = cachedOwner.governanceAwards;
+                            owner.governanceAwardDetails = cachedOwner.governanceAwardDetails;
+                            hasAwards = true;
                         }
                         
                     }
