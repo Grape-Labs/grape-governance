@@ -923,6 +923,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         const commMint = grealm.account?.communityMint;
         var governanceEmitted = [];
         let getAwards = false;
+        
         if (commMint && getAwards){
             if (commMint.toBase58() === "8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA"){
                 // check all governance wallets and build a list
@@ -1011,9 +1012,11 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                             hasWalletCouncilBalance = true;
                         }
                         if (cachedOwner?.governanceAwards && cachedOwner?.governanceAwardDetails){
-                            owner.governanceAwards = cachedOwner.governanceAwards;
-                            owner.governanceAwardDetails = cachedOwner.governanceAwardDetails;
-                            hasAwards = true;
+                            if (!getAwards){
+                                owner.governanceAwards = cachedOwner.governanceAwards;
+                                owner.governanceAwardDetails = cachedOwner.governanceAwardDetails;
+                                hasAwards = true;
+                            }
                         }
                         
                     }
@@ -1033,7 +1036,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                             if (emitItem.signature !== "2hrrpPLsuVD9bmpNkGSFSQQ9akP69hwwN4ZgVeh55Pha8Xz4GqD2HwYYEWjeFZPbPEM6es6coDeXVsYnSrH7qgqG"){
                                 if (emitItem.tokenTransfers){
                                     for (let tTransfer of emitItem.tokenTransfers){
-                                        if (tTransfer.toUserAccount === tokenOwnerRecord.toBase58()){
+                                        if (tTransfer.toUserAccount === tokenOwnerRecord.toBase58() &&
+                                            tTransfer.toUserAccount !== "GrapevviL94JZRiZwn2LjpWtmDacXU8QhAJvzpUMMFdL"){
                                             if (owner?.governanceAwards){
                                                 owner.governanceAwards += +tTransfer.tokenAmount;
                                                 owner.governanceAwardDetails.push({
