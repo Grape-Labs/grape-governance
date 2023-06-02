@@ -457,6 +457,13 @@ function RenderVoterRecordTable(props:any) {
             }
         },
         { field: 'ecosystemparticipation', headerName: 'Ecosystem DAO Participation', width: 170, hide: false, align: 'right',
+            sortable: true, // Enable sorting on this column
+            sortComparator: (v1, v2, cellParams1, cellParams2) => {
+                // Custom sorting logic based on governanceRewards field
+                const param1 = cellParams1.value.length || 0;
+                const param2 = cellParams2.value.length || 0;
+                return param1 - param2;
+            },    
             renderCell: (params) => {
                 return(
                     <>
@@ -481,6 +488,13 @@ function RenderVoterRecordTable(props:any) {
             }
         },
         { field: 'multisigs', headerName: 'Other Multisig Participation', width: 170, hide: false, align: 'right',
+            sortable: true, // Enable sorting on this column
+            sortComparator: (v1, v2, cellParams1, cellParams2) => {
+                // Custom sorting logic based on governanceRewards field
+                const param1 = cellParams1.value.multisigs?.length || 0;
+                const param2 = cellParams2.value.multisigs?.length || 0;
+                return param1 - param2;
+            },   
             renderCell: (params) => {
                 return(
                     <>

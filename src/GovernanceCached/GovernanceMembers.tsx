@@ -182,6 +182,13 @@ function RenderGovernanceMembersTable(props:any) {
             }
         },
         { field: 'staked', headerName: 'Votes Staked', width: 170, flex: 1, headerAlign: 'center', align: 'right',
+            sortable: true, // Enable sorting on this column
+            sortComparator: (v1, v2, cellParams1, cellParams2) => {
+                // Custom sorting logic based on governanceRewards field
+                const param1 = cellParams1.value.governingTokenDepositAmount || 0;
+                const param2 = cellParams2.value.governingTokenDepositAmount || 0;
+                return param1 - param2;
+            },   
             renderCell: (params) => {
                 return(
                     <Typography variant="h6">
