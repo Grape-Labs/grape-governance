@@ -506,7 +506,14 @@ function RenderVoterRecordTable(props:any) {
                                 <List
                                     sx={{borderRadius:'17px',width: '100%',bgcolor:'rgba(0,0,0,0.25)'}}
                                 >
-                                    {params.value.multisigs && params.value.multisigs.length > 0 && params.value.multisigs.map((item: any, index:number) => (
+                                    {params.value.multisigs && params.value.multisigs.length > 0 && params.value.multisigs
+                                    .sort((a: any, b: any) => {
+                                        const timeA = new Date(a.metadata.createdTime).getTime();
+                                        const timeB = new Date(b.metadata.createdTime).getTime();
+                                        
+                                        return timeB - timeA; // Sort in descending order
+                                    })
+                                    .map((item: any, index:number) => (
                                         <ListItem>
                                             <Button
                                                 color='inherit' 

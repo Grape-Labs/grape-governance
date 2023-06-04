@@ -945,6 +945,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     //"E44MSZKzey1sEYhPvUk6MjgUTQNmFEEUahxmdPkBtAND",
                     "9n4wcMKGcUSWGmeCNt5gbprqkLjLaWK6j9JcCxyDscHx",
                     "8V1nn3jG6uXHcHyBgLt5iaMNFSPdsmAsXV8zjizYaLHz",
+                    "F5UMGig7FFAg6XNkdtT9EyC7Yzq9wGrqWbfccE6DE4Y2", // squads bounty
+                    "4aBKsrMXHmMq5i3jYi8CfZjhNmmMJqcC1D37QPAz55hV", // meanfi?
                 ];
                 
                 const excludeAddress = [
@@ -1033,7 +1035,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     // we should save also all instances to keep historic data
                     if (governanceEmitted && governanceEmitted.length > 0){
                         for (let emitItem of governanceEmitted){
-                            if (emitItem.signature !== "2hrrpPLsuVD9bmpNkGSFSQQ9akP69hwwN4ZgVeh55Pha8Xz4GqD2HwYYEWjeFZPbPEM6es6coDeXVsYnSrH7qgqG"){
+                            if ((emitItem.signature !== "2hrrpPLsuVD9bmpNkGSFSQQ9akP69hwwN4ZgVeh55Pha8Xz4GqD2HwYYEWjeFZPbPEM6es6coDeXVsYnSrH7qgqG") &&
+                                (emitItem.signature !== "53pmQGjzEroW72MBEqFac8yNEAW9yXqFGTu3ZBQykobkVNjcioajzBMjGt2w8Pve7mwbQzxpXMTWZfrv63JzH1L6")){
                                 if (emitItem.tokenTransfers){
                                     for (let tTransfer of emitItem.tokenTransfers){
                                         if (tTransfer.toUserAccount === tokenOwnerRecord.toBase58() &&
