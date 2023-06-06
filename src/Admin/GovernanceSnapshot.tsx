@@ -923,6 +923,13 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         const commMint = grealm.account?.communityMint;
         var governanceEmitted = [];
         let getAwards = false;
+        let linkedWallets = {
+        //    "7pPJt2xoEoPy8x8Hf2D6U6oLfNa5uKmHHRwkENVoaxmA":"222pEN8xcEwjVbtZfF7HaFRvxGsjBbWj3mqFWV8dNgL1",
+        }
+        let excludeSignatures = [
+            "2hrrpPLsuVD9bmpNkGSFSQQ9akP69hwwN4ZgVeh55Pha8Xz4GqD2HwYYEWjeFZPbPEM6es6coDeXVsYnSrH7qgqG",
+            "53pmQGjzEroW72MBEqFac8yNEAW9yXqFGTu3ZBQykobkVNjcioajzBMjGt2w8Pve7mwbQzxpXMTWZfrv63JzH1L6"
+        ]
         
         if (commMint && getAwards){
             if (commMint.toBase58() === "8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA"){
@@ -947,6 +954,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     "8V1nn3jG6uXHcHyBgLt5iaMNFSPdsmAsXV8zjizYaLHz",
                     "F5UMGig7FFAg6XNkdtT9EyC7Yzq9wGrqWbfccE6DE4Y2", // squads bounty
                     "4aBKsrMXHmMq5i3jYi8CfZjhNmmMJqcC1D37QPAz55hV", // meanfi?
+                    //"GXGVxwRmxKPC7agUS97RdA9FkWwQmvF6MDTEPLwsSDJy" // user wallet (ATA) that has sent out emissions
                 ];
                 
                 const excludeAddress = [
@@ -1035,12 +1043,25 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     // we should save also all instances to keep historic data
                     if (governanceEmitted && governanceEmitted.length > 0){
                         for (let emitItem of governanceEmitted){
-                            if ((emitItem.signature !== "2hrrpPLsuVD9bmpNkGSFSQQ9akP69hwwN4ZgVeh55Pha8Xz4GqD2HwYYEWjeFZPbPEM6es6coDeXVsYnSrH7qgqG") &&
-                                (emitItem.signature !== "53pmQGjzEroW72MBEqFac8yNEAW9yXqFGTu3ZBQykobkVNjcioajzBMjGt2w8Pve7mwbQzxpXMTWZfrv63JzH1L6")){
+                            if (!excludeSignatures.some(address => emitItem.signature.includes(address))){
                                 if (emitItem.tokenTransfers){
                                     for (let tTransfer of emitItem.tokenTransfers){
+                                        let awardWallet = false;
+                                        
+                                        let linkedWallet = null;
+                                        if (linkedWallets.hasOwnProperty(tokenOwnerRecord.toBase58())) {
+                                            linkedWallet = linkedWallets[tokenOwnerRecord.toBase58()];
+                                        }
+
                                         if (tTransfer.toUserAccount === tokenOwnerRecord.toBase58() &&
                                             tTransfer.toUserAccount !== "GrapevviL94JZRiZwn2LjpWtmDacXU8QhAJvzpUMMFdL"){
+                                                awardWallet = true;
+                                        } else if (tTransfer.toUserAccount === linkedWallet &&
+                                            tTransfer.toUserAccount !== "GrapevviL94JZRiZwn2LjpWtmDacXU8QhAJvzpUMMFdL"){
+                                                awardWallet = true;
+                                        }                                        
+
+                                        if (awardWallet){
                                             if (owner?.governanceAwards){
                                                 owner.governanceAwards += +tTransfer.tokenAmount;
                                                 owner.governanceAwardDetails.push({
