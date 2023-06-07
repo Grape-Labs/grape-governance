@@ -304,6 +304,42 @@ function RenderVoterRecordTable(props:any) {
                     </>
                 )
             }
+        },,
+        { field: 'alltimeawards', headerName: 'All Time Awarded', width: 170, hide: true, align: 'right',
+            sortable: true, // Enable sorting on this column
+            sortComparator: (v1, v2, cellParams1, cellParams2) => {
+                // Custom sorting logic based on governanceRewards field
+                const governanceRewards1 = cellParams1.value.governanceRewards || 0;
+                const governanceRewards2 = cellParams2.value.governanceRewards || 0;
+                return governanceRewards1 - governanceRewards2;
+            },
+            renderCell: (params) => {
+                return(
+                    <>
+                        {params.value &&
+                            <>
+                            <Tooltip title={
+                                <ul>
+                                    {params.value?.governanceRewardDetails &&
+                                    <>
+                                        
+                                        {params.value.governanceRewardDetails.map((item: any, index:number) => (
+                                            <li>
+                                                <strong>{getFormattedNumberToLocale(Number(item.tokenTransfers.tokenAmount))}</strong> {moment.unix(Number(item?.timestamp)).format("YYYY-MM-DD HH:mm")}
+                                                <br/><Typography sx={{fontSize:'8px'}}>{item.signature}</Typography>
+                                            </li>)
+                                        )}
+                                    </>}
+                                </ul>}>
+                                <Button color='inherit' sx={{borderRadius:'17px'}}>
+                                    {getFormattedNumberToLocale(Number(params.value.governanceRewards).toFixed(0))}
+                                </Button>
+                            </Tooltip>
+                            </>
+                        }
+                    </>
+                )
+            }
         },
         { field: 'currentunstakedvotes', headerName: 'Unstaked Voting Power', width: 200, hide: false, align: 'right',
             renderCell: (params) => {
@@ -803,9 +839,10 @@ function RenderVoterRecordTable(props:any) {
                     //let governanceRewards = memberItem?.governanceAwards ? +memberItem.governanceAwards :  0;
                     let governanceRewardDetails = memberItem?.governanceAwardDetails ? memberItem.governanceAwardDetails :  null;
                     
-
                     let filteredGovernanceRewards = 0;
                     let filteredGovernanceRewardDetails = [];
+                    let allTimeGovernanceRewards = 0;
+                    let allTimeGovernanceRewardDetails = [];
 
                     if (governanceRewardDetails){
                         let governanceRewardDetailsParsed = governanceRewardDetails;// JSON.parse(governanceRewardDetails);
@@ -826,6 +863,8 @@ function RenderVoterRecordTable(props:any) {
                                 //console.log(">> filteredGovernanceRewards "+filteredGovernanceRewards + " vs " + rewardsItem.tokenTransfers.tokenAmount)
                                 filteredGovernanceRewardDetails.push(rewardsItem);
                             }
+                            allTimeGovernanceRewards += +rewardsItem.tokenTransfers.tokenAmount;
+                            allTimeGovernanceRewardDetails.push(rewardsItem);
                         }
                     }
 
@@ -881,6 +920,10 @@ function RenderVoterRecordTable(props:any) {
                     totalawards:{ 
                         governanceRewards:filteredGovernanceRewards,
                         governanceRewardDetails:filteredGovernanceRewardDetails
+                    },
+                    alltimeawards:{
+                        governanceRewards:allTimeGovernanceRewards,
+                        governanceRewardDetails:allTimeGovernanceRewardDetails
                     },
                     ecosystemparticipation: participation,
                     multisigs: memberItem?.multisigs,
@@ -1284,8 +1327,8 @@ function RenderVoterRecordTable(props:any) {
                     if (counter > 0)
                         csvFile += '\r\n';
                     else
-                        csvFile = 'pubkey,totalproposalscreated,communitypropcreatorpassed,depositedvotes,councildepositedvotes,unstakedvotes,firstparticipationdate,lastparticipationdate,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,councilpropcreatorpassed,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst,rewards\r\n';
-                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.communitypropcreatorpassed+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.currentunstakedvotes+','+voter_item.firstparticipationdate+','+voter_item.lastparticipationdate+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.councilpropcreatorpassed+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst+','+voter_item.totalawards.governanceRewards;
+                        csvFile = 'pubkey,totalproposalscreated,communitypropcreatorpassed,depositedvotes,councildepositedvotes,unstakedvotes,firstparticipationdate,lastparticipationdate,totalvotes,totalvotesfor,totalvotesagainst,totalproposalparticipation,totalproposalsfor,totalproposalsagainst,totalcouncilproposalscreated,councilpropcreatorpassed,totalcouncilvotes,totalcouncilvotesfor,totalcouncilvotesagainst,rewards,alltimerewards\r\n';
+                    csvFile += voter_item.pubkey+','+voter_item.totalproposalscreated+','+voter_item.communitypropcreatorpassed+','+voter_item.currentvotes+','+voter_item.councilvotes+','+voter_item.currentunstakedvotes+','+voter_item.firstparticipationdate+','+voter_item.lastparticipationdate+','+voter_item.totalvotes+','+voter_item.totalvotesfor+','+voter_item.totalvotesagainst+','+voter_item.totalproposalparticipation+','+voter_item.totalproposalsfor+','+voter_item.totalproposalsagainst+','+voter_item.totalcouncilproposalscreated+','+voter_item.councilpropcreatorpassed+','+voter_item.totalcouncilvotes+','+voter_item.totalcouncilvotesfor+','+voter_item.totalcouncilvotesagainst+','+voter_item.totalawards.governanceRewards+','+voter_item.alltimeawards.governanceRewards;
                     counter++;
 
                     //tStakedVotes += voter_item.currentvotes;
