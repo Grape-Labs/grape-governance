@@ -269,7 +269,7 @@ function RenderVoterRecordTable(props:any) {
                 )
             }
         },
-        { field: 'totalawards', headerName: 'Total Awarded', width: 170, hide: false, align: 'right',
+        { field: 'totalawards', headerName: 'Awarded', width: 160, hide: false, align: 'right',
             sortable: true, // Enable sorting on this column
             sortComparator: (v1, v2, cellParams1, cellParams2) => {
                 // Custom sorting logic based on governanceRewards field
@@ -305,7 +305,7 @@ function RenderVoterRecordTable(props:any) {
                 )
             }
         },,
-        { field: 'alltimeawards', headerName: 'All Time Awarded', width: 170, hide: true, align: 'right',
+        { field: 'alltimeawards', headerName: 'All Time Awarded', width: 160, hide: false, align: 'right',
             sortable: true, // Enable sorting on this column
             sortComparator: (v1, v2, cellParams1, cellParams2) => {
                 // Custom sorting logic based on governanceRewards field
@@ -838,7 +838,7 @@ function RenderVoterRecordTable(props:any) {
 
                     //let governanceRewards = memberItem?.governanceAwards ? +memberItem.governanceAwards :  0;
                     let governanceRewardDetails = memberItem?.governanceAwardDetails ? memberItem.governanceAwardDetails :  null;
-                    
+
                     let filteredGovernanceRewards = 0;
                     let filteredGovernanceRewardDetails = [];
                     let allTimeGovernanceRewards = 0;
