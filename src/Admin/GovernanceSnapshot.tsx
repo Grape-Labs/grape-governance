@@ -25,8 +25,16 @@ import {
     getRealmConfig,
     ProposalTransaction,
     pubkeyFilter,
+    SYSTEM_PROGRAM_ID
 } from '@solana/spl-governance';
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
+import {
+    getRegistrarPDA,
+    getVoterPDA,
+    getVoterWeightPDA,
+  } from "../utils/governanceTools/components/instructions/account";
+import { VsrClient } from "@blockworks-foundation/voter-stake-registry-client/index";
+import { Provider, Wallet, AnchorProvider } from "@project-serum/anchor";
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import { getJupiterPrices } from '../utils/grapeTools/helpers';
@@ -152,6 +160,46 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
         });
 } catch(e){console.log("ERR: "+e)}
 }*/
+
+
+const getVotingPlugin = async (
+    selectedRealm: any,
+    walletKeypair: any,
+    walletPubkey: any,
+    instructions: any
+  ) => {
+    const options = AnchorProvider.defaultOptions();
+    const provider = new AnchorProvider(
+      RPC_CONNECTION,
+      walletKeypair as unknown as Wallet,
+      options
+    );
+    const client = await VsrClient.connect(provider, false);
+    const clientProgramId = client!.program.programId;
+    const { registrar } = await getRegistrarPDA(
+      new PublicKey(selectedRealm!.realmId),
+      new PublicKey(selectedRealm!.communityMint),
+      clientProgramId
+    );
+    const { voter } = await getVoterPDA(registrar, walletPubkey, clientProgramId);
+    const { voterWeightPk } = await getVoterWeightPDA(
+      registrar,
+      walletPubkey,
+      clientProgramId
+    );
+    
+    const updateVoterWeightRecordIx = await client!.program.methods
+      .updateVoterWeightRecord()
+      .accounts({
+        registrar,
+        voter,
+        voterWeightRecord: voterWeightPk,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .instruction();
+  
+    return { voterWeightPk, maxVoterWeightRecord: undefined };
+};
 
 const getTokens = async () => {
     const tarray:any[] = [];

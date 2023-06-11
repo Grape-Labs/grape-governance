@@ -52,6 +52,7 @@
         "@dialectlabs/react-ui": "^1.0.0-beta.66",
         "@emotion/react": "^11.4.1",
         "@emotion/styled": "^11.8.1",
+        "@helium/voter-stake-registry-sdk": "^0.2.1",
         "@hellomoon/api": "^1.16.1",
         "@metaplex-foundation/mpl-core": "0.6.1",
         "@metaplex-foundation/mpl-token-metadata": "2.1.1",
