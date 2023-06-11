@@ -1,4 +1,4 @@
-// governanceui VoteStakeRegistry/sdk/accounts.tsx
+// governance ui VoteStakeRegistry/sdk/accounts.tsx
 
 import { BN } from "@project-serum/anchor";
 import { MintInfo } from "@solana/spl-token";

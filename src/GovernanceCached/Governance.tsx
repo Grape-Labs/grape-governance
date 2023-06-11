@@ -305,6 +305,8 @@ function GetParticipants(props: any){
     const [selectedDelegate, setSelectedDelegate] = React.useState("");
     const { publicKey, wallet, sendTransaction, signTransaction } = useWallet();
     const [loadingParticipants, setLoadingParticipants] = React.useState(false);
+    const [forVotes, setForVotes] = React.useState(0);
+    const [againstVotes, setAgainstVotes] = React.useState(0);
 
     const votingresultcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
@@ -857,6 +859,8 @@ function GetParticipants(props: any){
         let csvFile = '';
         let uYes = 0;
         let uNo = 0;
+        let castedYes = 0;
+        let castedNo = 0;
         if (voteResults){
             let counter = 0;
             for (let item of voteResults){
@@ -866,14 +870,18 @@ function GetParticipants(props: any){
                     if (item.account?.vote){
                         if (item.account?.vote?.voteType === 0){
                             uYes++;
+                            castedYes += +(item.account?.voterWeight.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                         }else{
                             uNo++;
+                            castedNo += +(item.account?.voterWeight.toNumber()).toFixed(0);
                         }
                     } else{
                         if (item.account.voteWeight.yes && item.account.voteWeight.yes > 0){
                             uYes++;
+                            castedYes += +(item.account?.voteWeight?.yes.toNumber()).toFixed(0);
                         } else{
                             uNo++;
+                            castedNo += +(item.account?.voteWeight?.no.toNumber()).toFixed(0)
                         }
                     }
 
@@ -997,6 +1005,9 @@ function GetParticipants(props: any){
         }
 
         //console.log("votingResults: "+JSON.stringify(votingResults));
+
+        setForVotes(castedYes);
+        setAgainstVotes(castedNo);
 
         votingResults.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
         
@@ -1279,8 +1290,6 @@ function GetParticipants(props: any){
                         </Box>
                     }
                         
-                    
-
                     {propVoteType &&
                         <Box sx={{ alignItems: 'center', textAlign: 'center',p:1}}>
                             <Grid container spacing={0}>
@@ -1312,7 +1321,7 @@ function GetParticipants(props: any){
                                             <Typography variant="caption">
                                                 <Chip variant='outlined' color='success'
                                                     icon={<ThumbUpIcon color='success' fontSize='small' sx={{ml:1}} />}
-                                                    label={getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                    label={forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
                                                 />
                                             </Typography>
                                         :
@@ -1321,7 +1330,7 @@ function GetParticipants(props: any){
                                                     <Typography variant="caption">
                                                         <Chip variant='outlined' color='success'
                                                             icon={<ThumbUpIcon color='success' fontSize='small' sx={{ml:1}} />}
-                                                            label={getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                            label={forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
                                                         />
                                                     </Typography>
                                                 }
@@ -1340,25 +1349,29 @@ function GetParticipants(props: any){
                                             <>Against</>
                                         </Typography>
                                         <Typography variant="h3">
-                                            {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
+                                            
                                                 <>
-                                                {`${(((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))/((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))+(Number(thisitem.account?.options[0].voteWeight)/Math.pow(10, tokenDecimals))))*100).toFixed(2)}%`}
+                                                {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
+                                                    <>
+                                                    {`${(((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))/((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))+(Number(thisitem.account?.options[0].voteWeight)/Math.pow(10, tokenDecimals))))*100).toFixed(2)}%`}
+                                                    </>
+                                                :
+                                                    <>
+                                                        {thisitem.account.noVotesCount ?
+                                                            <>{(Number(thisitem.account.noVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
+                                                        :
+                                                            <>0%</>
+                                                        }
+                                                    </>
+                                                }
                                                 </>
-                                            :
-                                                <>
-                                                    {thisitem.account.noVotesCount ?
-                                                        <>{(Number(thisitem.account.noVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
-                                                    :
-                                                        <>0%</>
-                                                    }
-                                                </>
-                                            }
+                                            
                                         </Typography>
                                         {thisitem.account?.denyVoteWeight ?
                                             <Typography variant="caption">
                                                 <Chip variant='outlined' color='error'
                                                     icon={<ThumbDownIcon color='error' fontSize='small' sx={{ml:1}} />}
-                                                    label={getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                    label={againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
                                                 />
                                             </Typography>
                                         :
@@ -1367,7 +1380,7 @@ function GetParticipants(props: any){
                                                     <Typography variant="caption">
                                                         <Chip variant='outlined' color='error'
                                                             icon={<ThumbDownIcon color='error' fontSize='small' sx={{ml:1}} />}
-                                                            label={getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                            label={againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
                                                         />
                                                     </Typography>
                                                 }
@@ -1466,19 +1479,28 @@ function GetParticipants(props: any){
                                                 {solanaVotingResultRows && solanaVotingResultRows.length}
                                                 </>&nbsp;/&nbsp;
                                                 <>
-                                                    {thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
-                                                        <Typography variant="caption">
-                                                            {getFormattedNumberToLocale(formatAmount(+((Number(thisitem.account.options[0].voteWeight) + Number(thisitem.account.denyVoteWeight))/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                        </Typography>
-                                                    :
                                                         <>
-                                                            {thisitem.account?.yesVotesCount && 
-                                                                <Typography variant="caption">
-                                                                    {getFormattedNumberToLocale(formatAmount(+((Number(thisitem.account.yesVotesCount) + Number(thisitem.account.noVotesCount)) /Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                </Typography>
-                                                            }
+                                                        {getFormattedNumberToLocale(formatAmount(+forVotes + +againstVotes))}
                                                         </>
-                                                    }
+                                                    {/*
+
+                                                        <>
+                                                        {thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
+                                                            <Typography variant="caption">
+                                                                {getFormattedNumberToLocale(formatAmount(+((Number(thisitem.account.options[0].voteWeight) + Number(thisitem.account.denyVoteWeight))/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                            </Typography>
+                                                        :
+                                                            <>
+                                                                {thisitem.account?.yesVotesCount && 
+                                                                    <Typography variant="caption">
+                                                                        {getFormattedNumberToLocale(formatAmount(+((Number(thisitem.account.yesVotesCount) + Number(thisitem.account.noVotesCount)) /Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                                    </Typography>
+                                                                }
+                                                            </>
+                                                        }
+                                                        </>
+                                                    */}
+                                                
                                                 </>
                                                 </Button>
                                             </Tooltip>

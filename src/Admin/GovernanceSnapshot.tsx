@@ -161,7 +161,6 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
 } catch(e){console.log("ERR: "+e)}
 }*/
 
-
 const getVotingPlugin = async (
     selectedRealm: any,
     walletKeypair: any,
@@ -1023,7 +1022,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         }
 
         console.log("Total emitted wallets: "+governanceEmitted.length);
-
+        
         //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
         // get unique members
         const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
