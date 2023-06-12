@@ -787,7 +787,7 @@ function RenderVoterRecordTable(props:any) {
             //tarray.push({address:item.address, decimals:item.decimals})
             map.set(item.pubkey, item);
             return map;
-        },new Map())
+        }, new Map())
 
         //console.log("govmembermap: "+JSON.stringify(govmembermap));
 

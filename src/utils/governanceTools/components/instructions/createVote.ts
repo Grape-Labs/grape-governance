@@ -33,25 +33,27 @@ const connection = RPC_CONNECTION;
   
 export const createCastVoteTransaction = async (
     selectedRealm: Realm,
-    walletPublicKey: string,
+    walletPublicKey: PublicKey,
     transactionData: any,
-    membersMap: any,
+    membersMapItem: any,
     selectedDelegate: string,
     isCommunityVote: boolean
 ) => {
     const { proposal, action } = transactionData;
-    const walletPubkey = new PublicKey("3LPh9LN88kxSe3shxLZ2R4jiNmHh2U2F9h9TmVKjc18P"); //new PublicKey(walletPublicKey);
-    let tokenOwnerRecord;
+    const walletPubkey = new PublicKey(walletPublicKey);
+    let tokenOwnerRecord = null;
     const governanceAuthority = walletPubkey;
     
-
     console.log("walletPublicKey "+walletPubkey.toBase58())
 
-    if (membersMap[walletPubkey.toBase58()] && !selectedDelegate) {
-      tokenOwnerRecord = membersMap[walletPubkey.toBase58()];
+    console.log("membersMapItem: "+JSON.stringify(membersMapItem));
+
+    //if (membersMap[walletPubkey.toBase58()] && !selectedDelegate) {
+    if (membersMapItem){
+      tokenOwnerRecord = membersMapItem;//membersMap[walletPubkey.toBase58()];
     } else {
       if (selectedDelegate)
-        tokenOwnerRecord = membersMap[selectedDelegate];
+        tokenOwnerRecord = membersMapItem;// membersMap[selectedDelegate];
     }
     
     if (tokenOwnerRecord){
@@ -65,15 +67,13 @@ export const createCastVoteTransaction = async (
     
       const payer = walletPubkey;
       const instructions: TransactionInstruction[] = [];
-      let programVersion;
+      let programVersion = null;
     
-      // for whatever reason, metaplex dao fails this and needs to be harcoded
+      // metaplex dao fails this and needs to be harcoded for now
 
       console.log("realm: "+JSON.stringify(selectedRealm));
 
-      if (
-        new PublicKey(selectedRealm.pubkey).toBase58() === "DA5G7QQbFioZ6K33wQcH8fVdgFcnaDjLD7DLQkapZg5X"
-      ) {
+      if (new PublicKey(selectedRealm.pubkey).toBase58() === "DA5G7QQbFioZ6K33wQcH8fVdgFcnaDjLD7DLQkapZg5X") {
         programVersion = 2;
       } else {
         programVersion = await getGovernanceProgramVersion(
@@ -115,9 +115,7 @@ export const createCastVoteTransaction = async (
         // votePlugin?.voterWeightPk,
         // votePlugin?.maxVoterWeightRecord
       );
-
-
-    
+      
       const recentBlock = await connection.getLatestBlockhash();
     
       const transaction = new Transaction({ feePayer: walletPubkey });

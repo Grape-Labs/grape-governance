@@ -307,7 +307,8 @@ function GetParticipants(props: any){
     const [loadingParticipants, setLoadingParticipants] = React.useState(false);
     const [forVotes, setForVotes] = React.useState(0);
     const [againstVotes, setAgainstVotes] = React.useState(0);
-
+    const [hasVoted, setHasVoted] = React.useState(false);
+    
     const votingresultcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
         { field: 'pubkey', headerName: 'PublicKey', width: 170, hide: true,
@@ -873,15 +874,21 @@ function GetParticipants(props: any){
                             castedYes += +(item.account?.voterWeight.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                         }else{
                             uNo++;
-                            castedNo += +(item.account?.voterWeight.toNumber()).toFixed(0);
+                            castedNo += +(item.account?.voterWeight.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                         }
                     } else{
                         if (item.account.voteWeight.yes && item.account.voteWeight.yes > 0){
                             uYes++;
-                            castedYes += +(item.account?.voteWeight?.yes.toNumber()).toFixed(0);
+                            castedYes += +(item.account?.voteWeight?.yes.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);;
                         } else{
                             uNo++;
-                            castedNo += +(item.account?.voteWeight?.no.toNumber()).toFixed(0)
+                            castedNo += +(item.account?.voteWeight?.no.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                        }
+                    }
+
+                    if (publicKey){
+                        if (publicKey.toBase58() === item.account.governingTokenOwner.toBase58()){
+                            setHasVoted(true);
                         }
                     }
 
@@ -1062,19 +1069,40 @@ function GetParticipants(props: any){
     function VoteForProposal(props:any){
         const type = props.type || 0;
 
+        /*
         console.log("memberMap: "+JSON.stringify(memberMap));
-        const memberMp = memberMap.reduce((map: any, item: any) => {
-            console.log("item: "+JSON.stringify(item.account.governingTokenOwner))
-            map.set(item.account.governingTokenOwner, item);
+        const memberMapReduced = memberMap.reduce((map: any, item: any) => {
+            //console.log("item: "+JSON.stringify(item.account.governingTokenOwner))
+            //map.set(item.account.governingTokenOwner, item);
+            map.set(item.pubkey, item);
+            //console.log("map: "+JSON.stringify(map))
             return map;
         },new Map());
 
-        console.log("memberMp: "+JSON.stringify(memberMp));
+        const item = memberMap.find(item => 
+            item.account.governingTokenOwner === "KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT"
+            && item.account.governingTokenMint === thisitem.account.governingTokenMint);
+
+        console.log("memberMap Item: "+JSON.stringify(item));
+        */
 
         const isCommunityVote = propVoteType !== 'Council'; //realm.account.config?.councilMint?.toBase58() !== thisitem?.account.governingTokenMint;// realm?.communityMint === thisitem?.account.governingTokenMint;
         //console.log("isCommunityVote: "+JSON.stringify(isCommunityVote));
         
         const handleVoteYes = async () => {
+            
+            console.log("thisitem.account.governingTokenMint: "+JSON.stringify(thisitem.account.governingTokenMint));
+
+            const memberItem = memberMap.find(item => 
+                item.account.governingTokenOwner === publicKey.toBase58() && 
+                item.account.governingTokenMint === thisitem.account.governingTokenMint);
+
+            const memberItemSimple = memberMap.find(item => 
+                    item.account.governingTokenOwner === publicKey.toBase58());
+            
+            console.log("memberItemSimple: "+JSON.stringify(memberItemSimple));
+            console.log("memberItem: "+JSON.stringify(memberItem));
+
             const proposal = {
                 governanceId: thisitem.account.governance,
                 proposalId: thisitem.pubkey,
@@ -1093,26 +1121,28 @@ function GetParticipants(props: any){
                 communityMint: thisitem.account.governingTokenMint
             }
 
-            
+            console.log("Proposal: "+JSON.stringify(proposal));
+            console.log("realmData: "+JSON.stringify(realmData));
+            console.log("memberItem: "+JSON.stringify(memberItem));
 
+            //console.log("memberMapReduced: "+JSON.stringify(memberMapReduced));
 
             // check if voter can participate
 
-            if (publicKey) {
-
-
-
+            if (publicKey && memberItem) {
+                
                 const vvvt = await createCastVoteTransaction(
                     realm,
-                    publicKey.toBase58(),
+                    publicKey,
                     transactionData,
-                    memberMp,
+                    memberItem,
                     null,
                     isCommunityVote
                 );
 
-                if (vvvt){
+                console.log("vvvt: "+JSON.stringify(vvvt));
                 
+                if (vvvt){
                     try{
                         enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
                         const signature = await sendTransaction(vvvt, connection, {
@@ -1145,12 +1175,13 @@ function GetParticipants(props: any){
                 } else{
                     alert("No voter record!")
                 }
+                
             }
         }
 
         return (
         <>
-            {/*thisitem.account?.state === 2 && 
+            {/*thisitem.account?.state === 2 && !hasVoted && publicKey &&
                 <>
                     <br/>
                     {type === 0 ?
