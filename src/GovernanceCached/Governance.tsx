@@ -1020,7 +1020,7 @@ function GetParticipants(props: any){
 
         const totalVotesNeeded = Math.ceil(totalQuorum - castedYes);
 
-        if (castedYes <= 0){
+        if (totalVotesNeeded < 0){
             setQuorumTargetPercentage(100);
         }else{
             setQuorumTargetPercentage((totalVotesNeeded / castedYes) * 100);
