@@ -482,12 +482,6 @@ function GetParticipants(props: any){
                 const communityVoteThreshold = governance.account.config.communityVoteThreshold
                 const councilVoteThreshold = governance.account.config.councilVoteThreshold
                 
-                //console.log("supplyFractionPercentage: "+supplyFractionPercentage)
-                //console.log("communityVoteThreshold: "+JSON.stringify(communityVoteThreshold))
-                //console.log("councilVoteThreshold: "+JSON.stringify(councilVoteThreshold))
-
-                //const mintSupply = governingMintPromise.value.data.data.parsed.info.supply;
-                //const mintDecimals = governingMintPromise.value.data.data.parsed.info.decimals; 
                 
                 const voteThresholdPercentage=
                     new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(thisitem.account.governingTokenMint).toBase58()
@@ -539,6 +533,8 @@ function GetParticipants(props: any){
                     setQuorumTargetPercentage((totalVotesNeeded / totalVotes) * 100);
                     setQuorumTarget(totalVotesNeeded);
                 }
+
+                return totalVotes
             }
             
         }catch(e){
@@ -781,7 +777,7 @@ function GetParticipants(props: any){
         }
         
         //if (thisitem.account?.state === 2){ // if voting state
-            getGovernanceProps()
+            const thisQuorum = await getGovernanceProps()
         //}
 
 
@@ -1018,13 +1014,24 @@ function GetParticipants(props: any){
 
         //setTotalQuorum(castedYes);
 
-        const totalVotesNeeded = Math.ceil(totalQuorum - castedYes);
 
-        if (totalVotesNeeded < 0){
-            setQuorumTargetPercentage(100);
-        }else{
-            setQuorumTargetPercentage((totalVotesNeeded / castedYes) * 100);
-            setQuorumTarget(totalVotesNeeded);
+        
+        //console.log("tSupply "+tSupply+"*"+voteThresholdPercentage+"*0.01*"+ (Number(supplyFractionPercentage) / 100))
+
+        //console.log("totalQuorum: "+totalVotes)
+        //console.log("decimals: "+governingMintDetails.value.data.parsed.info.decimals);
+        //console.log("supply: "+governingMintDetails.value.data.parsed.info.supply);
+        //console.log("voteThresholdPercentage: "+(voteThresholdPercentage * 0.01))
+        //console.log("supplyFractionPercentage: "+(Number(supplyFractionPercentage) / 100))
+        
+        if (thisQuorum > 0){
+            const totalVotesNeeded = Math.ceil(thisQuorum - castedYes);
+            if (totalVotesNeeded <= 0){
+                setQuorumTargetPercentage(100);
+            }else{
+                setQuorumTargetPercentage((totalVotesNeeded / castedYes) * 100);
+                setQuorumTarget(totalVotesNeeded);
+            }
         }
 
         votingResults.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
