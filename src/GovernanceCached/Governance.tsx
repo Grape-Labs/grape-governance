@@ -1016,6 +1016,17 @@ function GetParticipants(props: any){
         setForVotes(castedYes);
         setAgainstVotes(castedNo);
 
+        //setTotalQuorum(castedYes);
+
+        const totalVotesNeeded = Math.ceil(totalQuorum - castedYes);
+
+        if (castedYes <= 0){
+            setQuorumTargetPercentage(100);
+        }else{
+            setQuorumTargetPercentage((totalVotesNeeded / castedYes) * 100);
+            setQuorumTarget(totalVotesNeeded);
+        }
+
         votingResults.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
         
         try{
