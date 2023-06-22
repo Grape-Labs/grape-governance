@@ -1108,8 +1108,16 @@ function GetParticipants(props: any){
         //console.log("isCommunityVote: "+JSON.stringify(isCommunityVote));
         
         const handleVoteYes = async () => {
+            await handleVote(0)
+        }
+
+        const handleVoteNo = async () => {
+            await handleVote(1)
+        }
+
+        const handleVote = async (type: Number) => {
             
-            console.log("thisitem.account.governingTokenMint: "+JSON.stringify(thisitem.account.governingTokenMint));
+            //console.log("thisitem.account.governingTokenMint: "+JSON.stringify(thisitem.account.governingTokenMint));
 
             const memberItem = memberMap.find(item => 
                 (item.account.governingTokenOwner === publicKey.toBase58() && 
@@ -1141,9 +1149,9 @@ function GetParticipants(props: any){
                 communityMint: thisitem.account.governingTokenMint
             }
 
-            console.log("Proposal: "+JSON.stringify(proposal));
-            console.log("realmData: "+JSON.stringify(realmData));
-            console.log("memberItem: "+JSON.stringify(memberItem));
+            //console.log("Proposal: "+JSON.stringify(proposal));
+            //console.log("realmData: "+JSON.stringify(realmData));
+            //console.log("memberItem: "+JSON.stringify(memberItem));
 
             //console.log("memberMapReduced: "+JSON.stringify(memberMapReduced));
 
@@ -1157,10 +1165,11 @@ function GetParticipants(props: any){
                     transactionData,
                     memberItem,
                     null,
-                    isCommunityVote
+                    isCommunityVote,
+                    type
                 );
 
-                console.log("vvvt: "+JSON.stringify(vvvt));
+                //console.log("vvvt: "+JSON.stringify(vvvt));
                 
                 if (vvvt){
                     try{
@@ -1179,7 +1188,7 @@ function GetParticipants(props: any){
                             blockhash: latestBlockHash.blockhash,
                             lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
                             signature: signature}, 
-                            'processed'
+                            'finalized'
                         );
                         closeSnackbar(cnfrmkey);
                         const action = (key:any) => (
@@ -1189,6 +1198,9 @@ function GetParticipants(props: any){
                         );
                         
                         enqueueSnackbar(`Congratulations, you have participated in voting for this Proposal`,{ variant: 'success', action });
+
+                        // trigger a refresh here...
+                        getVotingParticipants();
                     }catch(e:any){
                         enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
                     } 
@@ -1210,11 +1222,12 @@ function GetParticipants(props: any){
                             sx={{borderRadius:'17px',textTransform:'none'}}
                         >Vote YES</Button>
                     :
-                    <>{/*
+                    <>
                         <Button
+                            onClick={handleVoteNo}
                             sx={{borderRadius:'17px',textTransform:'none'}}
                         >Vote NO</Button>
-                    */}</>
+                    </>
                     }
                 </>
             }

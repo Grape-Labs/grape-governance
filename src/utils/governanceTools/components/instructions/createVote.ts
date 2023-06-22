@@ -39,16 +39,17 @@ export const createCastVoteTransaction = async (
     transactionData: any,
     membersMapItem: any,
     selectedDelegate: string,
-    isCommunityVote: boolean
+    isCommunityVote: boolean,
+    type: Number
 ) => {
     const { proposal, action } = transactionData;
     const walletPubkey = new PublicKey(walletPublicKey);
     let tokenOwnerRecord = null;
     const governanceAuthority = walletPubkey;
     
-    console.log("walletPublicKey "+walletPubkey.toBase58())
+    //console.log("walletPublicKey "+walletPubkey.toBase58())
 
-    console.log("membersMapItem: "+JSON.stringify(membersMapItem));
+    //console.log("membersMapItem: "+JSON.stringify(membersMapItem));
 
     //if (membersMap[walletPubkey.toBase58()] && !selectedDelegate) {
     if (membersMapItem){
@@ -58,7 +59,7 @@ export const createCastVoteTransaction = async (
         tokenOwnerRecord = membersMapItem;// membersMap[selectedDelegate];
     }
 
-    console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecord));
+    //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecord));
     
     if (tokenOwnerRecord){
       console.log("isCommunityVote "+isCommunityVote)
@@ -67,7 +68,7 @@ export const createCastVoteTransaction = async (
 
       const tokenRecordPublicKey = tokenOwnerRecord?.pubkey;//.account?.governingTokenMint;
       
-      console.log("tokenRecordPublicKey: "+tokenRecordPublicKey)
+      //console.log("tokenRecordPublicKey: "+tokenRecordPublicKey)
 
       //isCommunityVote
       //  ? tokenOwnerRecord?.communityPublicKey
@@ -79,7 +80,7 @@ export const createCastVoteTransaction = async (
     
       // metaplex dao fails this and needs to be harcoded for now
 
-      console.log("realm: "+JSON.stringify(selectedRealm));
+      //console.log("realm: "+JSON.stringify(selectedRealm));
 
       if (new PublicKey(selectedRealm.pubkey).toBase58() === "DA5G7QQbFioZ6K33wQcH8fVdgFcnaDjLD7DLQkapZg5X") {
         programVersion = 2;
@@ -108,22 +109,30 @@ export const createCastVoteTransaction = async (
       
 
       //console.log("programId: "+selectedRealm.owner);
-      console.log("programVersion: "+programVersion)
-      console.log("selectedRealm.owner: "+selectedRealm.owner)
-      console.log("selectedRealm.pubkey: "+selectedRealm.pubkey)
-      console.log("proposal.governanceId: "+proposal.governanceId)
-      console.log("proposal.proposalId: "+proposal.proposalId)
-      console.log("proposal.tokenOwnerRecord: "+proposal.tokenOwnerRecord)
-      console.log("proposal.governingTokenMint: "+proposal.governingTokenMint)
-      console.log("tokenRecordPublicKey: "+JSON.stringify(tokenRecordPublicKey))
-      console.log("vote type: "+JSON.stringify(Vote.fromYesNoVote(action)));
       
-      const voteFor = new Vote({
-        voteType: VoteKind.Approve,
-        approveChoices: [new VoteChoice({ rank: 0, weightPercentage: 100 })],
-        deny: undefined,
-        veto: undefined,
-      })
+      //console.log("programVersion: "+programVersion)
+      //console.log("selectedRealm.owner: "+selectedRealm.owner)
+      //console.log("selectedRealm.pubkey: "+selectedRealm.pubkey)
+      //console.log("proposal.governanceId: "+proposal.governanceId)
+      //console.log("proposal.proposalId: "+proposal.proposalId)
+      //console.log("proposal.tokenOwnerRecord: "+proposal.tokenOwnerRecord)
+      //console.log("proposal.governingTokenMint: "+proposal.governingTokenMint)
+      //console.log("tokenRecordPublicKey: "+JSON.stringify(tokenRecordPublicKey))
+      //console.log("vote type: "+JSON.stringify(Vote.fromYesNoVote(action)));
+      
+      const voteDirection = type === 0 ? new Vote({
+          voteType: VoteKind.Approve,
+          approveChoices: [new VoteChoice({ rank: 0, weightPercentage: 100 })],
+          deny: undefined,
+          veto: undefined,
+        })
+      :
+        new Vote({
+          voteType: VoteKind.Deny,
+          approveChoices: undefined,
+          deny: true,
+          veto: undefined,
+        })
 
 
       //will run only if any plugin is connected with realm
@@ -164,8 +173,8 @@ export const createCastVoteTransaction = async (
         })
         */
 
-      console.log("selectedRealm: "+JSON.stringify(selectedRealm));
-      console.log("voteFor: "+JSON.stringify(voteFor));
+      //console.log("selectedRealm: "+JSON.stringify(selectedRealm));
+      //console.log("voteDirection: "+JSON.stringify(voteDirection));
       
       await withCastVote(
         instructions,
@@ -178,7 +187,7 @@ export const createCastVoteTransaction = async (
         new PublicKey(tokenRecordPublicKey), // publicKey of tokenOwnerRecord
         governanceAuthority, // wallet publicKey
         new PublicKey(proposal.governingTokenMint), // proposal governanceMint Authority
-        voteFor,
+        voteDirection,
         //Vote.fromYesNoVote(action), //  *Vote* class? 1 = no, 0 = yes
         payer,
         null,
