@@ -1312,7 +1312,7 @@ function GetParticipants(props: any){
                                     style={{
                                         border: 'solid',
                                         borderRadius: 15,
-                                        borderColor:'rgba(255,255,255,0.1)',
+                                        borderColor:'rgba(255,255,255,0.05)',
                                         padding:4,
                                     }} 
                                 >
