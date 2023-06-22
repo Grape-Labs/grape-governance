@@ -1407,19 +1407,28 @@ function GetParticipants(props: any){
                                             <>For</>
                                         </Typography>
                                         <Typography variant="h3">
-                                            {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
-                                                <>
-                                                {`${(((Number(thisitem.account?.options[0].voteWeight))/((Number(thisitem.account?.denyVoteWeight))+(Number(thisitem.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
-                                                </>
+
+                                            {forVotes ? 
+                                            <>
+                                                {(forVotes/(forVotes+againstVotes)*100).toFixed(2)}%
+                                            </>
                                             :
-                                                <>
-                                                    {thisitem.account.yesVotesCount ?
-                                                        <>{(Number(thisitem.account.yesVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
-                                                    :
-                                                        <>0%</>
-                                                    }
-                                                </>
-                                            }                  
+                                            <>
+                                                {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
+                                                    <>
+                                                    {`${(((Number(thisitem.account?.options[0].voteWeight))/((Number(thisitem.account?.denyVoteWeight))+(Number(thisitem.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
+                                                    </>
+                                                :
+                                                    <>
+                                                        {thisitem.account.yesVotesCount ?
+                                                            <>{(Number(thisitem.account.yesVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
+                                                        :
+                                                            <>0%</>
+                                                        }
+                                                    </>
+                                                } 
+                                            </>   
+                                            }              
                                         </Typography>
                                         <ButtonGroup variant="outlined" aria-label="outlined primary button group">
                                             {thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
@@ -1468,23 +1477,27 @@ function GetParticipants(props: any){
                                             <>Against</>
                                         </Typography>
                                         <Typography variant="h3">
-                                            
+                                            {againstVotes ? 
                                                 <>
-                                                {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
-                                                    <>
-                                                    {`${(((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))/((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))+(Number(thisitem.account?.options[0].voteWeight)/Math.pow(10, tokenDecimals))))*100).toFixed(2)}%`}
-                                                    </>
-                                                :
-                                                    <>
-                                                        {thisitem.account.noVotesCount ?
-                                                            <>{(Number(thisitem.account.noVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
-                                                        :
-                                                            <>0%</>
-                                                        }
-                                                    </>
-                                                }
+                                                    {(againstVotes/(forVotes+againstVotes)*100).toFixed(2)}%
                                                 </>
-                                            
+                                                :       
+                                                <>
+                                                    {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
+                                                        <>
+                                                        {`${(((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))/((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))+(Number(thisitem.account?.options[0].voteWeight)/Math.pow(10, tokenDecimals))))*100).toFixed(2)}%`}
+                                                        </>
+                                                    :
+                                                        <>
+                                                            {thisitem.account.noVotesCount ?
+                                                                <>{(Number(thisitem.account.noVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
+                                                            :
+                                                                <>0%</>
+                                                            }
+                                                        </>
+                                                    }
+                                                </>
+                                            }
                                         </Typography>
                                         <ButtonGroup variant="outlined" aria-label="outlined primary button group">
                                             {thisitem.account?.denyVoteWeight ?
