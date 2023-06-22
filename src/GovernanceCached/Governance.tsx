@@ -57,6 +57,7 @@ import {
   Badge,
   ButtonGroup,
   CircularProgress,
+  CardMedia,
   Stack,
   Accordion,
   AccordionDetails,
@@ -67,6 +68,8 @@ import {
   Divider,
   
 } from '@mui/material/';
+
+import { makeStyles } from '@mui/material/styles';
 
 import {
     Timeline,
@@ -1246,6 +1249,23 @@ function GetParticipants(props: any){
     const BlogImage = (props:any) => {
         return <img {...props} style={{ maxWidth: "100%" }} />
       }
+
+    const transformImageUri = (uri) => {
+        // Add your image resizing logic here
+        // Example: Append the query parameter "w=500" to resize the image to a width of 500px
+        const resizedUri = `${uri}?w=500`;
+        return resizedUri;
+    };
+
+    /*
+    const useStyles = makeStyles({
+        image: {
+          width: '100%', // Adjust the width as needed
+          height: 'auto', // Maintain aspect ratio
+        },
+    });
+    */
+    //const classes = useStyles();
     
     return (
         <>
@@ -1288,15 +1308,31 @@ function GetParticipants(props: any){
                     <Box sx={{ alignItems: 'center', textAlign: 'center'}}>
                         {gist ?
                             <Box sx={{ alignItems: 'center', textAlign: 'left', p:1}}>
-                                <Typography variant='body2'>
-                                    <ReactMarkdown 
-                                        remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
-                                        //transformImageUri={null}
-                                        children={proposalDescription}
-                                        //components={components}
-                                    />
-                                </Typography>
-                                
+                                <div
+                                    style={{
+                                        border: 'solid',
+                                        borderRadius: 15,
+                                        borderColor:'rgba(255,255,255,0.1)',
+                                        padding:4,
+                                    }} 
+                                >
+                                    <Typography variant='body2'>
+                                        <ReactMarkdown 
+                                            remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
+                                            transformImageUri={transformImageUri}
+                                            children={proposalDescription}
+                                            components={{
+                                                // Custom component for overriding the image rendering
+                                                img: ({ node, ...props }) => (
+                                                  <img
+                                                    {...props}
+                                                    style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
+                                                  />
+                                                ),
+                                              }}
+                                        />
+                                    </Typography>
+                                </div>
                                 <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
                                     {/*
                                     <Gist id={gist} />
