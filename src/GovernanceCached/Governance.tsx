@@ -1215,19 +1215,21 @@ function GetParticipants(props: any){
         <>
             {thisitem.account?.state === 2 && !hasVoted && publicKey &&
                 <>
-                    <br/>
+                    
                     {type === 0 ?
                         <Button
+                            variant="outlined"
+                            color='success'
                             onClick={handleVoteYes}
                             sx={{borderRadius:'17px',textTransform:'none'}}
                         >Vote YES</Button>
                     :
-                    <>
                         <Button
+                            variant="outlined"
+                            color='error'
                             onClick={handleVoteNo}
                             sx={{borderRadius:'17px',textTransform:'none'}}
                         >Vote NO</Button>
-                    </>
                     }
                 </>
             }
@@ -1383,27 +1385,42 @@ function GetParticipants(props: any){
                                                 </>
                                             }                  
                                         </Typography>
-                                        {thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
-                                            <Typography variant="caption">
+                                        <ButtonGroup variant="outlined" aria-label="outlined primary button group">
+                                            {thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
+                                                <Button
+                                                    color="success"
+                                                    sx={{borderRadius:'17px'}}
+                                                >
+                                                    <ThumbUpIcon color='success' fontSize='small' sx={{mr:1}} />
+                                                    {forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                </Button>
+                                                /*
                                                 <Chip variant='outlined' color='success'
                                                     icon={<ThumbUpIcon color='success' fontSize='small' sx={{ml:1}} />}
                                                     label={forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
                                                 />
-                                            </Typography>
-                                        :
-                                            <>
-                                                {thisitem.account?.yesVotesCount && 
-                                                    <Typography variant="caption">
-                                                        <Chip variant='outlined' color='success'
-                                                            icon={<ThumbUpIcon color='success' fontSize='small' sx={{ml:1}} />}
-                                                            label={forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                        />
-                                                    </Typography>
-                                                }
-                                            </>
-                                        }
+                                                */
+                                            :
+                                                <>
+                                                    {thisitem.account?.yesVotesCount && 
+                                                            <Button
+                                                                color="success"
+                                                                sx={{borderRadius:'17px'}}
+                                                            >
+                                                                <ThumbUpIcon color='success' fontSize='small' sx={{mr:1}} />
+                                                                {forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                            </Button>
+                                                            /*
+                                                            <Chip variant='outlined' color='success'
+                                                                icon={<ThumbUpIcon color='success' fontSize='small' sx={{ml:1}} />}
+                                                                label={forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                            />*/
+                                                    }
+                                                </>
+                                            }
 
-                                        <VoteForProposal type={0} />
+                                            <VoteForProposal type={0} />
+                                        </ButtonGroup>
                                     </Box>
                                 </Grid>
                                 <Grid item xs={12} sm={6} md={6} key={1}>
@@ -1433,26 +1450,42 @@ function GetParticipants(props: any){
                                                 </>
                                             
                                         </Typography>
-                                        {thisitem.account?.denyVoteWeight ?
-                                            <Typography variant="caption">
-                                                <Chip variant='outlined' color='error'
-                                                    icon={<ThumbDownIcon color='error' fontSize='small' sx={{ml:1}} />}
-                                                    label={againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                />
-                                            </Typography>
-                                        :
-                                            <>
-                                                {thisitem.account?.noVotesCount && 
-                                                    <Typography variant="caption">
-                                                        <Chip variant='outlined' color='error'
-                                                            icon={<ThumbDownIcon color='error' fontSize='small' sx={{ml:1}} />}
-                                                            label={againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                        />
-                                                    </Typography>
-                                                }
-                                            </>
-                                        }
-                                        <VoteForProposal type={1} />
+                                        <ButtonGroup variant="outlined" aria-label="outlined primary button group">
+                                            {thisitem.account?.denyVoteWeight ?
+                                                   <Button
+                                                        color="error"
+                                                        sx={{borderRadius:'17px'}}
+                                                    >
+                                                        <ThumbDownIcon color='error' fontSize='small' sx={{mr:1}} />
+                                                        {againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                    </Button>
+                                                   /*
+                                                   <Chip variant='outlined' color='error'
+                                                        icon={<ThumbDownIcon color='error' fontSize='small' sx={{ml:1}} />}
+                                                        label={againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                    />
+                                                    */
+                                            :
+                                                <>
+                                                    {thisitem.account?.noVotesCount && 
+                                                        <Button
+                                                            color="error"
+                                                            sx={{borderRadius:'17px'}}
+                                                        >
+                                                            <ThumbDownIcon color='error' fontSize='small' sx={{mr:1}} />
+                                                            {againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                        </Button>
+                                                        /*
+                                                            <Chip variant='outlined' color='error'
+                                                                icon={<ThumbDownIcon color='error' fontSize='small' sx={{ml:1}} />}
+                                                                label={againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                            />
+                                                        */
+                                                    }
+                                                </>
+                                            }
+                                            <VoteForProposal type={1} />
+                                        </ButtonGroup>
                                     </Box>
                                 </Grid>
                                 
