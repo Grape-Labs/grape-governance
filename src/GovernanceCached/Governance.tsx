@@ -1112,14 +1112,16 @@ function GetParticipants(props: any){
             console.log("thisitem.account.governingTokenMint: "+JSON.stringify(thisitem.account.governingTokenMint));
 
             const memberItem = memberMap.find(item => 
-                item.account.governingTokenOwner === publicKey.toBase58() && 
-                item.account.governingTokenMint === thisitem.account.governingTokenMint);
+                (item.account.governingTokenOwner === publicKey.toBase58() && 
+                item.account.governingTokenMint === thisitem.account.governingTokenMint.toBase58()));
 
             const memberItemSimple = memberMap.find(item => 
                     item.account.governingTokenOwner === publicKey.toBase58());
             
-            console.log("memberItemSimple: "+JSON.stringify(memberItemSimple));
-            console.log("memberItem: "+JSON.stringify(memberItem));
+            //console.log("memberItemSimple: "+JSON.stringify(memberItemSimple));
+            //console.log("memberItem: "+JSON.stringify(memberItem));
+
+            //console.log("tokenOwnerRecord: "+JSON.stringify(thisitem.account.tokenOwnerRecord));
 
             const proposal = {
                 governanceId: thisitem.account.governance,
@@ -1127,7 +1129,7 @@ function GetParticipants(props: any){
                 tokenOwnerRecord: thisitem.account.tokenOwnerRecord,
                 governingTokenMint: thisitem.account.governingTokenMint
             }
-            const transactionData = {proposal:proposal,action:0}
+            const transactionData = {proposal:proposal,action:0} // 0 = yes
             //console.log("realm: "+JSON.stringify(realm));
             //console.log("thisitem/proposal: "+JSON.stringify(thisitem));
             //console.log("thisGovernance: "+JSON.stringify(thisGovernance));
@@ -1199,7 +1201,7 @@ function GetParticipants(props: any){
 
         return (
         <>
-            {/*thisitem.account?.state === 2 && !hasVoted && publicKey &&
+            {thisitem.account?.state === 2 && !hasVoted && publicKey &&
                 <>
                     <br/>
                     {type === 0 ?
@@ -1208,12 +1210,14 @@ function GetParticipants(props: any){
                             sx={{borderRadius:'17px',textTransform:'none'}}
                         >Vote YES</Button>
                     :
+                    <>{/*
                         <Button
                             sx={{borderRadius:'17px',textTransform:'none'}}
                         >Vote NO</Button>
+                    */}</>
                     }
                 </>
-                */}
+            }
         </>);
     }
 
