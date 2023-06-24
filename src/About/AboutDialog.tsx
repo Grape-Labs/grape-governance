@@ -50,6 +50,9 @@ export default function AboutDialog() {
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
                 <p>
+                  <Typography variant='subtitle1'><b>Grape Decentralized Storage Caching Engine (DCSE)</b></Typography>
+                </p> 
+                <p>
                     <Typography variant='subtitle1'>An increbibly fast DAO Tooling infrastrastructure to improve the experience of SPL Governance via decentralized cached storage & introducing new ways to view historical data & extract important governance metrics which currently is difficult to achieve efficiently, and finally to provide an API where composing on SPL Governance will be accessible to any developer (even a new developer) with a minimum RPC burden. Ultimately we have achieved Web2 load speeds, with an incredible Web3 DAO primitive (SPL Governance), and this is the path to build tools for the next billion users that will board crypto by making their experience of crypto seamless & transparent.</Typography>
                     <Typography variant='subtitle1' sx={{textAlign:'center'}}>
                     <i>"Building the Web3 infrustructure at Web2 Native Speeds!"</i>
@@ -61,8 +64,14 @@ export default function AboutDialog() {
                     </Typography>
                     <Typography variant='body2'>
                         <ul>
+                            <li>Global directery of active DAOs using SPL Governance on Solana</li>
                             <li>UI Interfaces for simulating RPC/Cached experience for realms (created)</li>
-                            <li>Administrator UI for for fetching historical and up to date SPL Governance proposals along with participation (created)</li>
+                            <li>Hybrid UI leveraging both caching engine along witih realtime proposal results when proposals are in the voting state</li>
+                            <li>Fast proposal participation with voting for/against proposals</li>
+                            <li>Deep dive with detailed exportable SPL Governance metrics available for whitelisted partners, allowing snapshots for periods</li>
+                            <li>Cached Member voter records</li>
+                            <li>Cached treasury details</li>
+                            <li>Whitelisted Administrator UI for fetching historical and up to date SPL Governance proposals along with participation (created)</li>
                             <li>Proof of speed improvements in the respective UIs (cached storage can be fetched in less than 1 second)</li>
                         </ul>
                     </Typography>
@@ -87,21 +96,21 @@ export default function AboutDialog() {
                     <Typography variant='body2'>
                         <ul>
                             <Typography variant='subtitle1'>Phase 1</Typography>
-                            <li>Continue to focus on building a unique, and incredibly fast SPL Governance experience</li>
-                            <li>Build a directory to view active DAOs on Solana accessible via our cached storage</li>
-                            <li>Display easy to understand exportable metrics to add an understanding on SPL Governance participation, trends, activity</li>
-                            <li>Provide metrics solutions run by the unique cached storage</li>
-                            <li>Show members in any given Governance and a summary of the holders</li>
-                            <li>Treasury cached per governance</li>
-                            <li>Automate the caching process with smart webhooks (upon proposal creation, completion and participation)</li>
+                            <li><s>Build a directory to view active DAOs on Solana accessible via our cached storage</s></li>
+                            <li><s>Display easy to understand exportable metrics to add an understanding on SPL Governance participation, trends, activity</s></li>
+                            <li><s>Provide metrics solutions run by the unique cached storage</s></li>
+                            <li><s>Show members in any given Governance and a summary of the holders</s></li>
+                            <li><s>Treasury cached per governance</s></li>
+                            <li>Automate the caching process with smart webhooks (upon proposal creation, completion and participation) - partially completed in the Admin panel</li>
                         </ul>
                         <ul>     
                             <Typography variant='subtitle1'>Phase 2</Typography>
+                            <li>Continue to focus on building a unique, and incredibly fast SPL Governance experience</li>
                             <li>Improve NFT Governance, reliability & speed</li>
                             <li>Create an improved NFT SPL Governance Experience for mass adoption</li>
                             <li>Create SPL Governance plugins and begin working to capture true web2 companies to convert and use SPL Governance in the most transparent possible way</li>
                             <li>API Access for improved composability over SPL Governance</li>
-                            <li>Add more decentralized storage pools</li>
+                            <li>Additional decentralized storage pools</li>
                         </ul>
                     
                     </Typography>

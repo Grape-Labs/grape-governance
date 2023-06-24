@@ -93,7 +93,7 @@ function Copyright(props: any): JSX.Element {
               <Typography 
                 align="center"
                 variant="caption"
-                sx={{verticalAlign:'middle'}}>
+                sx={{verticalAlign:'middle', textAlign:'center'}}>
               {/*
                 Developed by
                 </Typography>
@@ -107,7 +107,7 @@ function Copyright(props: any): JSX.Element {
                 variant="body2"
                 sx={{verticalAlign:'middle'}}>
 
-    Web3 Labs | */}Powered by the Grape Decentralized Storage Caching Engine &amp; Solana
+    Web3 Labs | */}Powered by Grape DSCE on Solana
                 </Typography>
               </Grid>
               
