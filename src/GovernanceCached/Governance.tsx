@@ -1723,8 +1723,8 @@ function GetProposal(props: any){
                                                 Export
                                             </Typography>
                                             <Typography variant="subtitle2">
-                                            <ButtonGroup size="small" color='inherit'>
-                                                {jsonGenerated &&
+                                            {/*ButtonGroup size="small" color='inherit'>
+                                                {/*jsonGenerated &&
                                                     <Tooltip title="Download Voter Participation JSON file">
                                                         <Button
                                                             sx={{borderBottomLeftRadius:'17px',borderTopLeftRadius:'17px'}}
@@ -1734,12 +1734,15 @@ function GetProposal(props: any){
                                                             <DownloadIcon /> JSON
                                                         </Button>
                                                     </Tooltip>
-                                                }
+                                                */}
 
                                                 {csvGenerated &&
                                                     <Tooltip title="Download Voter Participation CSV file">
                                                         <Button
-                                                            sx={{borderBottomRightRadius:'17px',borderTopRightRadius:'17px'}}
+                                                            size="small"
+                                                            color='inherit'
+                                                            variant="outlined"
+                                                            sx={{borderRadius:'17px'}}
                                                             download={`${thisitem.pubkey.toBase58()}.csv`}
                                                             href={csvGenerated}
                                                         >
@@ -1747,7 +1750,7 @@ function GetProposal(props: any){
                                                         </Button>
                                                     </Tooltip>
                                                 }
-                                            </ButtonGroup>
+                                            {/*</ButtonGroup>*/}
                                             
                                             </Typography>
                                         </Box>
