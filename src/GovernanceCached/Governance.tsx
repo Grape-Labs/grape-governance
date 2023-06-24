@@ -273,7 +273,7 @@ function TablePaginationActions(props) {
     );
   }
 
-function GetParticipants(props: any){
+function GetProposal(props: any){
     const cachedGovernance = props.cachedGovernance;
     const governanceLookup = props.governanceLookup;
     const connection = RPC_CONNECTION;
@@ -1888,7 +1888,9 @@ function GetParticipants(props: any){
                     sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
                     open={open}
                     >
-                    <CircularProgress color="inherit" />
+                    <Grid xs={12}>
+                        <CircularProgress color="inherit" />
+                    </Grid>
                 </Backdrop>
             }
         </>
@@ -2222,7 +2224,7 @@ function RenderGovernanceTable(props:any) {
                                                 </TableCell>
                                                 <GetProposalStatus item={item} cachedGovernance={cachedGovernance} />
                                                 <TableCell align="center">
-                                                    <GetParticipants governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
+                                                    <GetProposal governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                                 </TableCell>
                                             </TableRow>
                                         </>
