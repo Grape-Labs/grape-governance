@@ -311,6 +311,7 @@ function GetParticipants(props: any){
     const [forVotes, setForVotes] = React.useState(0);
     const [againstVotes, setAgainstVotes] = React.useState(0);
     const [hasVoted, setHasVoted] = React.useState(false);
+    const [hasVotedVotes, setHasVotedVotes] = React.useState(0);
     
     const votingresultcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
@@ -867,20 +868,25 @@ function GetParticipants(props: any){
                 counter++;
                 //console.log("counter: "+counter);
                 if (!from_cache){
+                    let voterVotes = 0;
                     if (item.account?.vote){
                         if (item.account?.vote?.voteType === 0){
                             uYes++;
+                            voterVotes = +(item.account?.voterWeight.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                             castedYes += +(item.account?.voterWeight.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                         }else{
                             uNo++;
+                            voterVotes = -1 * +(item.account?.voterWeight.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                             castedNo += +(item.account?.voterWeight.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                         }
                     } else{
                         if (item.account.voteWeight.yes && item.account.voteWeight.yes > 0){
                             uYes++;
-                            castedYes += +(item.account?.voteWeight?.yes.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);;
+                            voterVotes = +(item.account?.voteWeight?.yes.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                            castedYes += +(item.account?.voteWeight?.yes.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                         } else{
                             uNo++;
+                            voterVotes = -1 * +(item.account?.voteWeight?.no.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                             castedNo += +(item.account?.voteWeight?.no.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                         }
                     }
@@ -888,6 +894,7 @@ function GetParticipants(props: any){
                     if (publicKey){
                         if (publicKey.toBase58() === item.account.governingTokenOwner.toBase58()){
                             setHasVoted(true);
+                            setHasVotedVotes(voterVotes);
                         }
                     }
 
@@ -1233,6 +1240,32 @@ function GetParticipants(props: any){
                             onClick={handleVoteNo}
                             sx={{borderRadius:'17px',textTransform:'none'}}
                         >Vote NO</Button>
+                    }
+                </>
+            }
+
+            {hasVoted && publicKey &&
+                <>
+                    {(hasVotedVotes > 0 && type === 0) ?
+                        <Tooltip title={`You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes for this proposal`}>
+                            <Button
+                                variant="outlined"
+                                color='success'
+                                sx={{borderRadius:'17px',textTransform:'none'}}
+                            ><CheckCircleIcon /></Button>
+                        </Tooltip>
+                    :
+                        <>
+                            {hasVotedVotes < 0 &&
+                                <Tooltip title={`You casted ${getFormattedNumberToLocale(hasVotedVotes*-1)} votes against this proposal`}>
+                                    <Button
+                                        variant="outlined"
+                                        color='error'
+                                        sx={{borderRadius:'17px',textTransform:'none'}}
+                                    ><CheckCircleIcon /></Button>
+                                </Tooltip>
+                            }
+                        </>
                     }
                 </>
             }

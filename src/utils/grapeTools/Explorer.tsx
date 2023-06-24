@@ -515,6 +515,18 @@ export default function ExplorerView(props:any){
                     
                     <MenuItem 
                         component='a'
+                        href={`https://grape.art/identity/${address}`}
+                        onClick={handleClose}>
+                            <ListItemIcon>
+                                <PersonIcon fontSize="small" />
+                            </ListItemIcon>
+                            Grape Identity
+                    </MenuItem>
+                    
+                    <Divider />
+
+                    <MenuItem 
+                        component='a'
                         href={`https://solana.fm/${type}/${address}`}
                         target='_blank'
                         onClick={handleClose}>

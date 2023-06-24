@@ -89,16 +89,17 @@ function Copyright(props: any): JSX.Element {
           alignItems="center"
         >
             <Grid item>
+              
               <Typography 
                 align="center"
-                variant="body2"
+                variant="caption"
                 sx={{verticalAlign:'middle'}}>
-
+              {/*
                 Developed by
                 </Typography>
               </Grid>
               <Grid item>
-                <img src={CREATOR_LOGO} height="50px" className="main-logo" alt="OMG Labs" />
+                <img src={CREATOR_LOGO} height="50px" className="main-logo" alt="Grape Developer DAO" />
               </Grid>
               <Grid item>
               <Typography 
@@ -106,7 +107,7 @@ function Copyright(props: any): JSX.Element {
                 variant="body2"
                 sx={{verticalAlign:'middle'}}>
 
-                Web3 Labs | Powered by Solana
+    Web3 Labs | */}Powered by the Grape Decentralized Storage Caching Engine &amp; Solana
                 </Typography>
               </Grid>
               
@@ -242,7 +243,7 @@ function DashboardContent() {
 export const NotFound = () => {
   return (
     <div style={{ height: "100%", overflow: "auto" }}>
-      <GovernanceDirectoryView />
+      <GovernanceDirectoryView children={undefined} />
     </div>
   )
 }
