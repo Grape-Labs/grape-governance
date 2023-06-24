@@ -375,7 +375,7 @@ export function Header(props: any) {
                                 display='flex'
                                 sx={{ml:1,mr:1}}
                             >
-                                <img src={APP_LOGO} height="50px" width="200px" className="header-logo" alt="SPL Governance | Powered by Solana" />
+                                <img src={APP_LOGO} height="40px" width="150px" className="header-logo" alt="SPL Governance | Powered by Solana" />
                             </Typography>
                         </Button>
                     
