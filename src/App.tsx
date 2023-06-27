@@ -11,6 +11,7 @@ import { GovernanceMembersView } from "./GovernanceCached/GovernanceMembers";
 import { GovernanceTreasuryView } from "./GovernanceCached/GovernanceTreasury";
 import { GovernanceDirectoryView } from "./GovernanceCached/GovernanceDirectory";
 import { GovernanceReputationView } from "./GovernanceCached/GovernanceReputation";
+import { GovernanceProposalView } from "./GovernanceCached/GovernanceProposal";
 import { ApiView } from "./api/api";
 import CssBaseline from '@mui/material/CssBaseline';
 import { inject } from '@vercel/analytics';
@@ -192,8 +193,16 @@ function DashboardContent() {
                                                   <Route path=":handlekey" element={<GovernanceRPCView />} />
                                               </Route>
 
+                                              <Route path="governance/*" element={<GovernanceCachedView />} >
+                                                  <Route path=":handlekey" element={<GovernanceCachedView />} />
+                                              </Route>
+
                                               <Route path="cachedgovernance/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
+                                              </Route>
+
+                                              <Route path="proposal/*" element={<GovernanceProposalView />} >
+                                                  <Route path=":governance/:proposal" element={<GovernanceProposalView />} />
                                               </Route>
 
                                               <Route path="metrics/*" element={<PremiumView />} >

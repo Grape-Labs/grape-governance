@@ -165,7 +165,7 @@ const GOVERNANCE_STATE = {
 export function GovernanceProposalWrapper(props: any){
     const cachedGovernance = props.cachedGovernance;
     const governanceLookup = props.governanceLookup;
-   const tokenMap = props.tokenMap;
+    const tokenMap = props.tokenMap;
     const memberMap = props.memberMap;
     const governanceAddress = props.governanceAddress;
     const governanceToken = props.governanceToken;
@@ -202,7 +202,7 @@ export function GovernanceProposalWrapper(props: any){
     const handleClose = () => {
         setOpen(false);
     };
-    
+
     return (
         <>
             <Tooltip title='Get Voting Details for this Proposal'>

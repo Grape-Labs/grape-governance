@@ -1,5 +1,6 @@
 import { 
     getRealm, 
+    getProposal,
     getAllProposals, 
     getGovernance, 
     getGovernanceAccounts, 
@@ -14,7 +15,12 @@ import {
     tryGetRealmConfig, 
     getRealmConfig,
     InstructionData  } from '@solana/spl-governance';
+import {
+    fetchGovernanceLookupFile,
+    getFileFromLookup
+} from './CachedStorageHelpers'; 
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
+import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
@@ -28,6 +34,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
 
+import { Link, useParams, useSearchParams } from "react-router-dom";
+
 import {
   Typography,
   Button,
@@ -36,11 +44,7 @@ import {
   Table,
   Tooltip,
   LinearProgress,
-  DialogTitle,
-  Dialog,
-  DialogContent,
   Chip,
-  Backdrop,
   ButtonGroup,
   CircularProgress,
   Accordion,
@@ -72,7 +76,6 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CodeIcon from '@mui/icons-material/Code';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import FitScreenIcon from '@mui/icons-material/FitScreen';
 import CheckIcon from '@mui/icons-material/Check';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -109,45 +112,6 @@ const StyledTable = styled(Table)(({ theme }) => ({
     },
 }));
 
-export interface DialogTitleProps {
-    id: string;
-    children?: React.ReactNode;
-    onClose: () => void;
-}
-  
-const BootstrapDialogTitle = (props: DialogTitleProps) => {
-    const { children, onClose, ...other } = props;
-  
-    return (
-      <DialogTitle sx={{ m: 0, p: 2 }} {...other}>
-        {children}
-        {onClose ? (
-          <IconButton
-            aria-label="close"
-            onClick={onClose}
-            sx={{
-              position: 'absolute',
-              right: 8,
-              top: 8,
-              color: (theme) => theme.palette.grey[500],
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
-        ) : null}
-      </DialogTitle>
-    );
-  };
-
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-    '& .MuDialogContent-root': {
-      padding: theme.spacing(2),
-    },
-    '& .MuDialogActions-root': {
-      padding: theme.spacing(1),
-    },
-  }));
-
 const GOVERNANCE_STATE = {
     0:'Draft',
     1:'Signing Off',
@@ -161,17 +125,27 @@ const GOVERNANCE_STATE = {
 }
 
 export function GovernanceProposalView(props: any){
-    const cachedGovernance = props.cachedGovernance;
-    const governanceLookup = props.governanceLookup;
+    const [searchParams, setSearchParams] = useSearchParams();
+    const {governance} = useParams<{ governance: string }>();
+    const {proposal} = useParams<{ proposal: string }>();
+
+    const governanceAddress = searchParams.get("governance") || governance;
+    const proposalPk = searchParams.get("proposal") || proposal;
+    //const [governanceAddress, setGovernanceAddress] = React.useState(props?.governanceAddress);
     const connection = RPC_CONNECTION;
-    const tokenMap = props.tokenMap;
-    const memberMap = props.memberMap;
-    const governanceAddress = props.governanceAddress;
-    const thisitem = props.item;
-    const governanceToken = props.governanceToken;
+    const [cachedGovernance, setCachedGovernance] = React.useState(props?.cachedGovernance || null);
+    const [governanceLookup, setGovernanceLookup] = React.useState(props?.governanceLookup || null);
+    const [tokenMap, setTokenMap] = React.useState(props?.tokenMap);
+    const [memberMap, setMemberMap] = React.useState(props?.memberMap);
+    const [thisitem, setThisitem] = React.useState(props?.item);
+
+    //const thisitem = props?.item;
+    //const governanceToken = props.governanceToken;
     //const [thisitem, setThisItem] = React.useState(props.item);
-    const realm = props.realm;
+    const [realm, setRealm] = React.useState(props?.realm);
     
+    const [loadingValidation, setLoadingValidation] = React.useState(false);
+    const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
     const [csvGenerated, setCSVGenerated] = React.useState(null); 
     const [jsonGenerated, setJSONGenerated] = React.useState(null);
     const [solanaVotingResultRows,setSolanaVotingResultRows] = React.useState(null);
@@ -451,19 +425,6 @@ export function GovernanceProposalView(props: any){
         [enqueueSnackbar]
     );
 
-    const handleCloseDialog = () => {
-        setOpen(false);
-    }
-
-    const handleClickOpen = () => {
-        setOpen(true);
-        getVotingParticipants();
-    };
-
-    const handleClose = () => {
-        setOpen(false);
-    };
-
     function InstructionView(props: any) {
         const index = props.index;
         const instructionOwnerRecord = props.instructionOwnerRecord;
@@ -618,24 +579,8 @@ export function GovernanceProposalView(props: any){
     const getVotingParticipants = async () => {
         setLoadingParticipants(true);
 
-
-        // ADD ADDITIONAL CHECKS IF WE ARE FETCHING
-        /*
-        const cachedGovernance = props.cachedGovernance;
-        const governanceLookup = props.governanceLookup;
-        const tokenMap = props.tokenMap;
-        const memberMap = props.memberMap;
-        const governanceAddress = props.governanceAddress;
-        const thisitem = props.item;
-        const realm = props.realm;
-        
-        if something from the above is missing fetch via cached storage and then via RPC if not found
-        */
-
-
         let td = 0; // this is the default for NFT mints
         let vType = null;
-
             try{
                 //console.log("checking token: "+new PublicKey(thisitem.account.governingTokenMint).toBase58());
                 td = tokenMap.get(new PublicKey(thisitem.account.governingTokenMint).toBase58()).decimals;
@@ -689,14 +634,14 @@ export function GovernanceProposalView(props: any){
             const thisQuorum = await getGovernanceProps()
         //}
 
-
         // CACHE
         // fetch voting results
         let voteRecord = null;
         let from_cache = false;
+        //console.log("cachedGovernance "+JSON.stringify(cachedGovernance))
 
         for (var vresults of cachedGovernance){
-            if (thisitem.pubkey === vresults.pubkey){
+            if (thisitem.pubkey.toBase58() === vresults.pubkey.toBase58()){
                 voteRecord = vresults.votingResults;
 
                 if (thisitem.account.state === 2){ // voting state we can fetch via rpc
@@ -797,6 +742,9 @@ export function GovernanceProposalView(props: any){
                     }
 
                     if (publicKey){
+
+                        console.log("item.account.governingTokenOwner.toBase58() "+item.account.governingTokenOwner.toBase58())
+
                         if (publicKey.toBase58() === item.account.governingTokenOwner.toBase58()){
                             setHasVoted(true);
                             setHasVotedVotes(voterVotes);
@@ -1195,21 +1143,205 @@ export function GovernanceProposalView(props: any){
         return resizedUri;
     };
 
-    React.useEffect(() => { 
-        if (!loadingParticipants)
-            getVotingParticipants();
-        /*
-        if (thisitem.account?.state === 2){ // if voting state
-            if (!thisGovernance){
-                //console.log("get gov props")
-                //getGovernanceProps()
+
+    const getTokens = async () => {
+        const tarray:any[] = [];
+        try{
+            const tlp = await new TokenListProvider().resolve().then(tokens => {
+                const tokenList = tokens.filterByChainId(ENV.MainnetBeta).getList();
+                const tmap = tokenList.reduce((map, item) => {
+                    tarray.push({address:item.address, decimals:item.decimals})
+                    map.set(item.address, item);
+                    return map;
+                },new Map())
+                setTokenMap(tmap);
+                return tmap;
+            });
+        } catch(e){console.log("ERR: "+e)}
+    }
+
+    const getCachedGovernanceFromLookup = async () => {
+        let cached_governance = new Array();
+        //setCachedRealm(null);
+
+        //console.log("governanceLookup "+JSON.stringify(governanceLookup));
+
+        if (governanceLookup){
+            for (let glitem of governanceLookup){
+                if (glitem.governanceAddress === governanceAddress){
+                    //if (glitem?.realm)
+                    //    setCachedRealm(glitem.realm);
+                    if (glitem?.memberFilename){
+                        const cached_members = await getFileFromLookup(glitem.memberFilename, storagePool);
+                        setMemberMap(cached_members);
+                    }
+                    //if (glitem?.totalVaultValue)
+                    //    setTotalVaultValue(glitem.totalVaultValue);
+                    cached_governance = await getFileFromLookup(glitem.filename, storagePool);
+
+                    //setCachedTimestamp(glitem.timestamp);
+                }
             }
-        }*/
-    }, [thisitem, !thisGovernance]);
+        }
+
+        // convert values in governance to BigInt and PublicKeys accordingly
+        let counter = 0;
+
+        for (let cupdated of cached_governance){
+            cupdated.account.governance = new PublicKey(cupdated.account.governance);
+            cupdated.account.governingTokenMint = new PublicKey(cupdated.account.governingTokenMint);
+            cupdated.account.tokenOwnerRecord = new PublicKey(cupdated.account.tokenOwnerRecord);
+            cupdated.owner = new PublicKey(cupdated.owner);
+            cupdated.pubkey = new PublicKey(cupdated.pubkey);
+
+            
+            if (cupdated.account?.options && cupdated.account?.options[0]?.voteWeight)
+                cupdated.account.options[0].voteWeight = Number("0x"+cupdated.account.options[0].voteWeight)
+            if (cupdated.account?.denyVoteWeight)
+                cupdated.account.denyVoteWeight = Number("0x"+cupdated.account.denyVoteWeight).toString()
+
+            if (cupdated.account?.yesVotesCount)
+                cupdated.account.yesVotesCount = Number("0x"+cupdated.account.yesVotesCount).toString()
+            if (cupdated.account?.noVotesCount)
+                cupdated.account.noVotesCount = Number("0x"+cupdated.account.noVotesCount).toString()
+            
+            
+            cupdated.account.draftAt = Number("0x"+cupdated.account.draftAt).toString()
+            cupdated.account.signingOffAt = Number("0x"+cupdated.account.signingOffAt).toString()
+            cupdated.account.votingAt = Number("0x"+cupdated.account.votingAt).toString()
+            cupdated.account.votingAtSlot = Number("0x"+cupdated.account.votingAtSlot).toString()
+            cupdated.account.vetoVoteWeight = Number("0x"+cupdated.account.vetoVoteWeight).toString()
+            cupdated.account.votingCompletedAt = Number("0x"+cupdated.account.votingCompletedAt).toString()
+
+            // move to nested voting results
+            if (cupdated?.votingResults){
+                for (let inner of cupdated.votingResults){
+                    inner.pubkey = new PublicKey(inner.pubkey);
+                    inner.proposal = new PublicKey(inner.proposal);
+                    inner.governingTokenOwner = new PublicKey(inner.governingTokenOwner);
+                    inner.voteAddress = new PublicKey(inner.voteAddress);
+                    if (inner.vote?.councilMint)
+                        inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
+                    inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
+                    if (inner.vote?.councilMint)
+                        inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
+                    inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
+                    /*
+                    inner.quorumWeight.voterWeight = Number("0x"+inner.quorumWeight.voterWeight).toString()
+                    inner.vote.voterWeight = Number("0x"+inner.vote.voterWeight).toString()
+
+                    inner.quorumWeight.legacyYes = Number("0x"+inner.quorumWeight.legacyYes).toString()
+                    inner.vote.legacyYes = Number("0x"+inner.vote.legacyYes).toString()
+                    inner.quorumWeight.legacyNo = Number("0x"+inner.quorumWeight.legacyNo).toString()
+                    inner.vote.legacyNo = Number("0x"+inner.vote.legacyNo).toString()
+                    */
+                }
+            }
+
+            counter++;
+        }
+        
+        //console.log("cached_governance: "+JSON.stringify(cached_governance))
+
+        setCachedGovernance(cached_governance);
+        //getGovernanceParameters(cached_governance);
+    }
+
+    const validateGovernanceSetup = async() => {
+        
+        setLoadingValidation(true);
+
+        if (!governanceLookup){
+            const fglf = await fetchGovernanceLookupFile(storagePool);
+            //console.log("fglf: "+JSON.stringify(fglf))
+            setGovernanceLookup(fglf);
+        }
+
+        if (!cachedGovernance && governanceLookup){
+            console.log("fetch with govlookup")
+            await getCachedGovernanceFromLookup();
+        }
+        
+        if (!tokenMap){
+            await getTokens();
+        }
+        var grealm = null;
+        var realmPk = null;
+
+        if (!thisitem && governanceLookup){
+            const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
+            setThisitem(prop);
+        }
+        
+
+        if (!realm){
+            grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress));
+            realmPk = new PublicKey(grealm?.pubkey);
+            setRealm(grealm);
+        }
+        if (!memberMap){
+            const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+            setMemberMap(rawTokenOwnerRecords);
+        }
+
+        setLoadingValidation(false);
+    } 
+
+    React.useEffect(() => { 
+        if (!loadingValidation){
+            validateGovernanceSetup();
+        }
+    }, []);
+
+    React.useEffect(() => { 
+        
+        if (!loadingValidation){
+            validateGovernanceSetup();
+        }
+    }, [cachedGovernance, governanceLookup, loadingValidation]);
+
+    /*
+    React.useEffect(() => { 
+        console.log("ok here...")
+        if (!loadingValidation && cachedGovernance){
+            console.log("B")
+            validateGovernanceSetup();
+        }
+    }, [cachedGovernance]);
+    */
+    React.useEffect(() => { 
+        
+        if (cachedGovernance &&
+            governanceLookup &&
+            tokenMap &&
+            memberMap &&
+            thisitem &&
+            realm){
+            if (!loadingValidation){
+                if (!loadingParticipants){
+                    //console.log("C "+JSON.stringify(cachedGovernance))
+                    getVotingParticipants();
+                }
+            }
+        }
+            /*
+            if (thisitem.account?.state === 2){ // if voting state
+                if (!thisGovernance){
+                    //console.log("get gov props")
+                    //getGovernanceProps()
+                }
+            }*/
+    }, [loadingValidation, thisitem, !thisGovernance, cachedGovernance, governanceLookup, tokenMap, memberMap, realm]);
+
+    React.useEffect(() => {
+        if (publicKey && !loadingParticipants){
+            getVotingParticipants();
+        }
+    }, [publicKey, loadingValidation]);
 
     return (
         <>
-            {!loadingParticipants ?
+            {!loadingParticipants && thisitem ?
                 <>
 
                     <Box sx={{ alignItems: 'center', textAlign: 'center',p:1}}>
