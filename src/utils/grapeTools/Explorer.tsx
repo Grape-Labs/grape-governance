@@ -321,7 +321,8 @@ export default function ExplorerView(props:any){
 
             setHasProfilePicture(null);
             setProfilePictureUrl(null);
-
+            setHasProfilePicture(false);
+            setTwitterRegistration(null);
             if (memberMap){
                 for (var member of memberMap){
                     if (member.account.governingTokenOwner === address){
@@ -337,9 +338,11 @@ export default function ExplorerView(props:any){
                             }
                             if (member.socialConnections.cardinal.handle){
                                 setSolanaDomain(member.socialConnections.cardinal.handle)
+                                setTwitterRegistration(member.socialConnections.cardinal.handle)
                             }
                             if (member.socialConnections.cardinal.pfp){
-                                setSolanaDomain(member.socialConnections.cardinal.pfp)
+                                setProfilePictureUrl(member.socialConnections.cardinal.pfp)
+                                setHasProfilePicture(true);
                             }
 
                         }

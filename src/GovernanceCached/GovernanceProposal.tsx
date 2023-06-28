@@ -1473,7 +1473,7 @@ export function GovernanceProposalView(props: any){
                     
                     {proposalAuthor &&
                         <Box sx={{ alignItems: 'center', textAlign: 'center'}}>
-                            <Typography variant='body1'>Author: <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={proposalAuthor} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/></Typography>
+                            <Typography variant='body1'>Author: <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={proposalAuthor} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/></Typography>
                         </Box>
                     }
                     
