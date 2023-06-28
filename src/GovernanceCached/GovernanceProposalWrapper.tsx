@@ -166,7 +166,7 @@ export function GovernanceProposalWrapper(props: any){
                 }} 
             >       
             
-                <GovernanceProposalView governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
+                <GovernanceProposalView showGovernanceTitle={true} governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
             
             </Box>                         
             

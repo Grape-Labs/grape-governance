@@ -34,6 +34,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
 
+import {CopyToClipboard} from 'react-copy-to-clipboard';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import {
@@ -71,6 +72,8 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CodeIcon from '@mui/icons-material/Code';
@@ -129,6 +132,7 @@ export function GovernanceProposalView(props: any){
     const {governance} = useParams<{ governance: string }>();
     const {proposal} = useParams<{ proposal: string }>();
 
+    const showGovernanceTitle = props?.showGovernanceTitle || false;
     const background = props?.background || null;
     const textColor = props?.textColor || null;
     const governanceAddress = searchParams.get("governance") || governance;
@@ -140,7 +144,7 @@ export function GovernanceProposalView(props: any){
     const [tokenMap, setTokenMap] = React.useState(props?.tokenMap);
     const [memberMap, setMemberMap] = React.useState(props?.memberMap);
     const [thisitem, setThisitem] = React.useState(props?.item);
-
+    const [realmName, setRealmName] = React.useState(null);
     //const thisitem = props?.item;
     //const governanceToken = props.governanceToken;
     //const [thisitem, setThisItem] = React.useState(props.item);
@@ -179,6 +183,10 @@ export function GovernanceProposalView(props: any){
     const [hasVoted, setHasVoted] = React.useState(false);
     const [hasVotedVotes, setHasVotedVotes] = React.useState(0);
     
+    const handleCopyClick = () => {
+        enqueueSnackbar(`Copied!`,{ variant: 'success' });
+    };
+
     const votingresultcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
         { field: 'pubkey', headerName: 'PublicKey', width: 170, hide: true,
@@ -1280,6 +1288,9 @@ export function GovernanceProposalView(props: any){
             grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress));
             realmPk = new PublicKey(grealm?.pubkey);
             setRealm(grealm);
+            setRealmName(grealm?.account?.name);
+        } else{
+            setRealmName(realm.account?.name);
         }
         if (!memberMap){
             const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
@@ -1356,6 +1367,71 @@ export function GovernanceProposalView(props: any){
 
             {!loadingParticipants && thisitem ?
                 <>
+
+                    {showGovernanceTitle && realmName && 
+                        <Grid container>
+                            <Grid item xs={12} sm={6} container justifyContent="flex-start">
+                                <Grid container>
+                                    <Grid item xs={12}>
+                                        <Typography variant="h4">
+                                            {realmName && realmName}
+                                        </Typography>
+                                    </Grid>
+                                    
+                                    {/*
+                                    <Grid item xs={12}>
+                                        <Button
+                                            size='small'
+                                            sx={{color:'white', borderRadius:'17px'}}
+                                            href={`https://realms.today/dao/${governanceAddress}/proposal/${proposalPk}`}
+                                            target='blank'
+                                        >
+                                            <Typography variant="caption">
+                                            View on Realms <OpenInNewIcon fontSize='inherit'/>
+                                            </Typography>
+                                        </Button>
+                                    </Grid>
+                                    */}
+
+                                    <Grid item xs={12}>
+                                        <Button
+                                            size='small'
+                                            sx={{color:'white', borderRadius:'17px', textTransform:'none'}}
+                                            href={`https://spl-gov.vercel.app/governance/${governanceAddress}`}
+                                        >
+                                            <Typography variant="caption">
+                                            <ArrowBackIcon fontSize="inherit" /> Back to {realmName && realmName} Governance
+                                            </Typography>
+                                        </Button>
+                                    </Grid>
+                                    
+                                    {proposalPk &&
+
+                                        <Grid item xs={12}>
+
+                                            <CopyToClipboard 
+                                                    text={`https://spl-gov.vercel.app/proposal/${governanceAddress}/${proposalPk}`} 
+                                                    onCopy={handleCopyClick}
+                                                >
+                                                    <Button
+                                                        size='small'
+                                                        sx={{color:'white', borderRadius:'17px', textTransform:'none'}}
+                                                    >
+
+                                                    <Typography variant="caption">
+                                                    Copy Prop Link <ContentCopyIcon fontSize="inherit" /> 
+                                                    </Typography>
+                                                    </Button>
+                                            </CopyToClipboard>
+
+                                        </Grid>
+                                    }
+
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    }
+
 
                     <Box sx={{ alignItems: 'center', textAlign: 'center',p:1}}>
                         <Typography variant='h5'>{thisitem.account?.name}</Typography>
