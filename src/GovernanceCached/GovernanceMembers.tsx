@@ -147,6 +147,7 @@ function TablePaginationActions(props) {
 
 function RenderGovernanceMembersTable(props:any) {
     const tokenMap = props.tokenMap;
+    const memberMap = props.memberMap;
     const [loading, setLoading] = React.useState(false);
     //const [proposals, setProposals] = React.useState(props.proposals);
     const participating = props.participating;
@@ -172,7 +173,7 @@ function RenderGovernanceMembersTable(props:any) {
             renderCell: (params) => {
                 return(
                     <>
-                    <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={params.value.address} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
+                    <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={params.value.address} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
                     {Number(params.value.governingCouncilDepositAmount) > 0 &&
                         <Grid item>
                             <Tooltip title={`Council Member - Votes: ${Number(params.value.governingCouncilDepositAmount)}`}><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon /></Button></Tooltip>
@@ -1027,7 +1028,7 @@ export function GovernanceMembersView(props: any) {
                                 </Box>
                             }
 
-                        <RenderGovernanceMembersTable members={members} participating={participating} tokenMap={tokenMap} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />
+                        <RenderGovernanceMembersTable members={members} memberMap={cachedMemberMap} participating={participating} tokenMap={tokenMap} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />
                     
                         {endTime &&
                             <Typography 

@@ -201,7 +201,7 @@ export function GovernanceProposalView(props: any){
         { field: 'governingTokenOwner', headerName: 'Token Owner', width: 170, flex: 1,
             renderCell: (params) => {
                 return(
-                    <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={params.value} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
+                    <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={params.value} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
                 )
             }
         },
@@ -474,7 +474,7 @@ export function GovernanceProposalView(props: any){
                             <>
 
                                 {ownerRecord?.owner ?
-                                    <ExplorerView showSolanaProfile={true} address={new PublicKey(ownerRecord.owner).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                    <ExplorerView showSolanaProfile={true} memberMap={memberMap} address={new PublicKey(ownerRecord.owner).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
                                 :
                                     <Typography variant='caption'>*Raw Record: <br/>{JSON.stringify(ownerRecord)}<br/></Typography>
                                 }

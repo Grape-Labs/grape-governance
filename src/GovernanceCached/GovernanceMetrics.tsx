@@ -262,7 +262,7 @@ function RenderVoterRecordTable(props:any) {
         { field: 'voter', headerName: 'Voter', width: 260, hide: false,
             renderCell: (params) => {
                 return(
-                    <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={params.value} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
+                    <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={params.value} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
                 )
             }
         },

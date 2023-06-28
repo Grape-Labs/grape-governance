@@ -114,6 +114,7 @@ export default function ExplorerView(props:any){
     //const [address, setAddress] = React.useState(props.address);
     const title = props.title || null;
     const showAddress = props.showAddress || false;
+    const memberMap = props?.memberMap || null;
     const type = props.type || 'address';
     const buttonStyle = props?.style || 'outlined';
     const buttonColor = props?.color || 'white';
@@ -321,8 +322,34 @@ export default function ExplorerView(props:any){
             setHasProfilePicture(null);
             setProfilePictureUrl(null);
 
-            fetchProfilePicture();
-            fetchSolanaDomain();
+            if (memberMap){
+                for (var member of memberMap){
+                    if (member.account.governingTokenOwner === address){
+                        //console.log("found: "+address);
+                        //console.log("memberItem: "+JSON.stringify(member.socialConnections));
+                        if (member?.socialConnections){
+                            if (member.socialConnections.solflare.pfp){
+                                setProfilePictureUrl(member.socialConnections.solflare.pfp)
+                                setHasProfilePicture(true);
+                            }
+                            if (member.socialConnections.bonfida.handle){
+                                setSolanaDomain(member.socialConnections.bonfida.handle)
+                            }
+                            if (member.socialConnections.cardinal.handle){
+                                setSolanaDomain(member.socialConnections.cardinal.handle)
+                            }
+                            if (member.socialConnections.cardinal.pfp){
+                                setSolanaDomain(member.socialConnections.cardinal.pfp)
+                            }
+
+                        }
+                    }
+                }
+            } else{
+                //console.log("no memberMap?")
+                //fetchProfilePicture();
+                //fetchSolanaDomain();
+            }
         }
     }, [showSolanaProfile, address]);
     
