@@ -1361,6 +1361,7 @@ export function GovernanceProposalView(props: any){
     return (
         <>
             <Box
+                height='100%'
             >
 
             {!loadingParticipants && thisitem ?

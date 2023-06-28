@@ -13,6 +13,7 @@ import { GovernanceDirectoryView } from "./GovernanceCached/GovernanceDirectory"
 import { GovernanceReputationView } from "./GovernanceCached/GovernanceReputation";
 import { GovernanceProposalView } from "./GovernanceCached/GovernanceProposal";
 import { GovernanceProposalWrapper } from "./GovernanceCached/GovernanceProposalWrapper";
+import TestEmbed from "./GovernanceCached/TestEmbed";
 import { ApiView } from "./api/api";
 import CssBaseline from '@mui/material/CssBaseline';
 import { inject } from '@vercel/analytics';
@@ -160,6 +161,8 @@ function DashboardContent() {
               <Route path="embedproposal/*" element={<GovernanceProposalView showGovernanceTitle={true} background={'rgba(0,0,0)'} textColor={'rgba(255, 255, 255)'} />} >
                 <Route path=":governance/:proposal" element={<GovernanceProposalView showGovernanceTitle={true} background={'rgba(0,0,0)'} textColor={'rgba(255, 255, 255)'}  />} />
               </Route>
+              
+              <Route path="testembed" element={<TestEmbed />} />
 
               <Route path="/*" element={
                 <Suspense fallback={renderLoader()}>
