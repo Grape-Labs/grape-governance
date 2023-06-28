@@ -157,8 +157,8 @@ function DashboardContent() {
                 <Route path=":handlekey/:querytype/:queryvar1/:queryvar2/:queryvar3" element={<ApiView />} />
               </Route>
 
-              <Route path="embedproposal/*" element={<GovernanceProposalView />} >
-                <Route path=":governance/:proposal" element={<GovernanceProposalView />} />
+              <Route path="embedproposal/*" element={<GovernanceProposalView background={'rgba(255,255,255)'} />} >
+                <Route path=":governance/:proposal" element={<GovernanceProposalView background={'rgba(255,255,255)'} />} />
               </Route>
 
               <Route path="/*" element={

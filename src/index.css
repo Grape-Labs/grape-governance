@@ -12,10 +12,19 @@
   font-style:normal;
 }
 
-html, body .app-body{
+html {
+  height:100%;
+  background:none;
+  margin:0;
+  padding:0
+}
+
+body .app-body{
   background: #111111;  /* fallback for old browsers */
   background: linear-gradient(to right, #1d2b64, #f8cdda);
   height:100%;
+  min-height: 100vh;
+  padding:0;
   background-attachment: fixed;
 }
 

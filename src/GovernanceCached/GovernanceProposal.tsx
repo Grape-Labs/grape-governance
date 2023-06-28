@@ -129,6 +129,7 @@ export function GovernanceProposalView(props: any){
     const {governance} = useParams<{ governance: string }>();
     const {proposal} = useParams<{ proposal: string }>();
 
+    const background = props?.background || null;
     const governanceAddress = searchParams.get("governance") || governance;
     const proposalPk = searchParams.get("proposal") || proposal;
     //const [governanceAddress, setGovernanceAddress] = React.useState(props?.governanceAddress);
@@ -415,7 +416,7 @@ export function GovernanceProposalView(props: any){
     (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
         setExpanded(isExpanded ? panel : false);
     };
-    
+
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
         (error: WalletError) => {
@@ -1334,6 +1335,18 @@ export function GovernanceProposalView(props: any){
     }, [loadingValidation, thisitem, !thisGovernance, cachedGovernance, governanceLookup, tokenMap, memberMap, realm]);
 
     React.useEffect(() => {
+
+        if (background){
+            document.body.style.backgroundColor = background;
+            
+            //document.body.style.backgroundColor = background;
+            /*
+            var elements = document.getElementsByClassName('app-body'); // get all elements
+            for(var i = 0; i < elements.length; i++){
+                elements[i].style.backgroundColor = background;
+            }*/
+        }
+
         if (publicKey && !loadingParticipants){
             getVotingParticipants();
         }
@@ -1341,6 +1354,9 @@ export function GovernanceProposalView(props: any){
 
     return (
         <>
+            <Box
+            >
+
             {!loadingParticipants && thisitem ?
                 <>
 
@@ -1907,6 +1923,7 @@ export function GovernanceProposalView(props: any){
                         <CircularProgress color="inherit" />
                     </Grid>
                 }
+            </Box>
         </>
     )
 }
