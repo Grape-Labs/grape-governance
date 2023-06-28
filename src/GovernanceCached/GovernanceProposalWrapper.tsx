@@ -1,32 +1,10 @@
-import { 
-    getRealm, 
-    getAllProposals, 
-    getGovernance, 
-    getGovernanceAccounts, 
-    getGovernanceChatMessages, 
-    getTokenOwnerRecord, 
-    getTokenOwnerRecordsByOwner, 
-    getAllTokenOwnerRecords, 
-    getRealmConfigAddress, 
-    getGovernanceAccount, 
-    getAccountTypes, 
-    GovernanceAccountType, 
-    tryGetRealmConfig, 
-    getRealmConfig,
-    InstructionData  } from '@solana/spl-governance';
-import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
-import React, { useCallback } from 'react';
+import React, { useCallback, Suspense } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
-import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
-import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
-import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
-import { InstructionMapping } from "../utils/grapeTools/InstructionMapping";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkImages from 'remark-images';
+
+import { SnackbarProvider } from 'notistack';
 
 import {
   Typography,
@@ -163,6 +141,8 @@ const GOVERNANCE_STATE = {
     8:'Executing w/errors!',
 }
 
+const renderLoader = () => <p>Loading</p>;
+
 export function GovernanceProposalWrapper(props: any){
     const cachedGovernance = props.cachedGovernance;
     const governanceLookup = props.governanceLookup;
@@ -188,7 +168,7 @@ export function GovernanceProposalWrapper(props: any){
             
                 <GovernanceProposalView governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
             
-            </Box>                            
+            </Box>                         
             
         </>
     )

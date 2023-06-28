@@ -149,22 +149,23 @@ function DashboardContent() {
 
   return (
     <>
+      <SnackbarProvider>
         <Router>
             <Routes>
               
               <Route path="api/*" element={<ApiView />} >
-                  <Route path=":handlekey/:querytype/:queryvar1/:queryvar2/:queryvar3" element={<ApiView />} />
+                <Route path=":handlekey/:querytype/:queryvar1/:queryvar2/:queryvar3" element={<ApiView />} />
               </Route>
 
               <Route path="embedproposal/*" element={<GovernanceProposalView />} >
-                  <Route path=":governance/:proposal" element={<GovernanceProposalView />} />
+                <Route path=":governance/:proposal" element={<GovernanceProposalView />} />
               </Route>
 
               <Route path="/*" element={
                 <Suspense fallback={renderLoader()}>
                   <ThemeProvider theme={grapeTheme}>
                       <div className="app-body">
-                      <SnackbarProvider>
+                      
                           <ConnectionProvider endpoint={endpoint}>
                               <WalletProvider wallets={wallets} autoConnect>
                               
@@ -242,7 +243,6 @@ function DashboardContent() {
                               
                               </WalletProvider>
                           </ConnectionProvider>
-                      </SnackbarProvider>
                       </div>
                   </ThemeProvider>
                 </Suspense>
@@ -250,6 +250,7 @@ function DashboardContent() {
             </Route>
           </Routes>
         </Router>
+        </SnackbarProvider>
     </>
   );
 }
