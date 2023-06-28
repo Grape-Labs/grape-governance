@@ -26,6 +26,7 @@ import {
     MenuItem,
     ListItemIcon,
     Grid,
+    Box,
     ListItemText,
     Typography,
     Paper,
@@ -102,7 +103,7 @@ export interface DialogTitleProps {
 const StyledMenu = styled(Menu)(({ theme }) => ({
     '& .MuiMenu-root': {
     },
-    '& .MuiMenu-paper': {
+    '& .MuiMenu-box': {
         backgroundColor:'rgba(0,0,0,0.95)',
         borderRadius:'17px'
     },
@@ -400,7 +401,8 @@ export default function ExplorerView(props:any){
                     
                 </Typography>
             </Button>
-            <Paper sx={{backgroundColor:'rgba(255,255,255,0.5)'}}>
+            <Box
+            >
                 <StyledMenu
                     id="basic-menu"
                     anchorEl={anchorEl}
@@ -409,8 +411,6 @@ export default function ExplorerView(props:any){
                     MenuListProps={{
                         'aria-labelledby': 'basic-button',
                     }}
-                    sx={{
-                    }}
                 >
                     <CopyToClipboard 
                             text={address} 
@@ -418,6 +418,7 @@ export default function ExplorerView(props:any){
                         >
                         <MenuItem 
                             onClick={handleClose}
+                            color='inherit'
                         >
 
                             <ListItemIcon>
@@ -430,6 +431,7 @@ export default function ExplorerView(props:any){
                         <>
                         <Divider />
                         <MenuItem 
+                            color='inherit'
                             onClick={handleClickOpenDialog}>
                                 <ListItemIcon>
                                     <QrCode2Icon fontSize="small" />
@@ -441,7 +443,9 @@ export default function ExplorerView(props:any){
                         <>
                             <Divider />
                             <Tooltip title="SOL balance in wallet">
-                                <MenuItem>
+                                <MenuItem
+                                    color='inherit'
+                                >
                                         <ListItemIcon>
                                             <SolCurrencyIcon sx={{color:'white'}} />
                                         </ListItemIcon>
@@ -514,7 +518,9 @@ export default function ExplorerView(props:any){
                     */}
                     
                     <MenuItem 
+                        color='inherit'
                         component='a'
+                        target='_blank'
                         href={`https://grape.art/identity/${address}`}
                         onClick={handleClose}>
                             <ListItemIcon>
@@ -526,6 +532,7 @@ export default function ExplorerView(props:any){
                     <Divider />
 
                     <MenuItem 
+                        color='inherit'
                         component='a'
                         href={`https://solana.fm/${type}/${address}`}
                         target='_blank'
@@ -536,6 +543,7 @@ export default function ExplorerView(props:any){
                             SolanaFM
                     </MenuItem>
                     <MenuItem 
+                        color='inherit'
                         component='a'
                         href={`https://solscan.io/${type === 'address' ? 'account' : type}/${address}`}
                         target='_blank'
@@ -546,6 +554,7 @@ export default function ExplorerView(props:any){
                             SolScan
                     </MenuItem>
                     <MenuItem 
+                        color='inherit'
                         component='a'
                         href={`https://solanabeach.io/${type === 'address' ? 'address' : 'transaction'}/${address}`}
                         target='_blank'
@@ -556,6 +565,7 @@ export default function ExplorerView(props:any){
                             Solana Beach
                     </MenuItem>
                     <MenuItem 
+                        color='inherit'
                         component='a'
                         href={`https://xray.helius.xyz/${type === 'address' ? 'account' : 'tx'}/${address}`}
                         target='_blank'
@@ -566,6 +576,7 @@ export default function ExplorerView(props:any){
                             XRay
                     </MenuItem>
                     <MenuItem 
+                        color='inherit'
                         component='a'
                         href={`https://explorer.solana.com/${type}/${address}`}
                         target='_blank'
@@ -581,6 +592,7 @@ export default function ExplorerView(props:any){
                         <>
                             <Divider />
                             <MenuItem 
+                                color='inherit'
                                 component='a'
                                 href={`https://twitter.com/${twitterRegistration}`}
                                 target='_blank'
@@ -594,7 +606,7 @@ export default function ExplorerView(props:any){
                     }
 
                 </StyledMenu>
-            </Paper>
+            </Box>
         </>
         
     ); 
