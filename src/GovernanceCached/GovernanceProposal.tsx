@@ -46,13 +46,13 @@ import {
   Tooltip,
   LinearProgress,
   Chip,
+  IconButton,
   ButtonGroup,
   CircularProgress,
   Accordion,
   AccordionDetails,
   AccordionSummary,
   Divider,
-  
 } from '@mui/material/';
 
 import {
@@ -86,7 +86,6 @@ import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import CloseIcon from '@mui/icons-material/Close';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import IconButton from '@mui/material/IconButton';
 
 import { 
     PROXY, 
@@ -135,15 +134,15 @@ export function GovernanceProposalView(props: any){
     const showGovernanceTitle = props?.showGovernanceTitle || false;
     const background = props?.background || null;
     const textColor = props?.textColor || null;
-    const governanceAddress = searchParams.get("governance") || governance;
-    const proposalPk = searchParams.get("proposal") || proposal;
+    const governanceAddress = searchParams.get("governance") || governance || props?.governanceAddress;
+    const [thisitem, setThisitem] = React.useState(props?.item);
+    const proposalPk = searchParams.get("proposal") || thisitem?.pubkey || proposal;
     //const [governanceAddress, setGovernanceAddress] = React.useState(props?.governanceAddress);
     const connection = RPC_CONNECTION;
     const [cachedGovernance, setCachedGovernance] = React.useState(props?.cachedGovernance || null);
     const [governanceLookup, setGovernanceLookup] = React.useState(props?.governanceLookup || null);
     const [tokenMap, setTokenMap] = React.useState(props?.tokenMap);
     const [memberMap, setMemberMap] = React.useState(props?.memberMap);
-    const [thisitem, setThisitem] = React.useState(props?.item);
     const [realmName, setRealmName] = React.useState(null);
     //const thisitem = props?.item;
     //const governanceToken = props.governanceToken;
@@ -359,7 +358,6 @@ export function GovernanceProposalView(props: any){
             if (supplyFractionPercentage){
                 const communityVoteThreshold = governance.account.config.communityVoteThreshold
                 const councilVoteThreshold = governance.account.config.councilVoteThreshold
-                
                 
                 const voteThresholdPercentage=
                     new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(thisitem.account.governingTokenMint).toBase58()
@@ -1392,44 +1390,79 @@ export function GovernanceProposalView(props: any){
                                         </Button>
                                     </Grid>
                                     */}
-
-                                    <Grid item xs={12}>
-                                        <Button
-                                            size='small'
-                                            sx={{color:'white', borderRadius:'17px', textTransform:'none'}}
-                                            href={`https://spl-gov.vercel.app/governance/${governanceAddress}`}
-                                        >
-                                            <Typography variant="caption">
-                                            <ArrowBackIcon fontSize="inherit" /> Back to {realmName && realmName} Governance
-                                            </Typography>
-                                        </Button>
-                                    </Grid>
-                                    
-                                    {proposalPk &&
-
-                                        <Grid item xs={12}>
-
-                                            <CopyToClipboard 
-                                                    text={`https://spl-gov.vercel.app/proposal/${governanceAddress}/${proposalPk}`} 
-                                                    onCopy={handleCopyClick}
-                                                >
-                                                    <Button
-                                                        size='small'
-                                                        sx={{color:'white', borderRadius:'17px', textTransform:'none'}}
-                                                    >
-
-                                                    <Typography variant="caption">
-                                                    Copy Prop Link <ContentCopyIcon fontSize="inherit" /> 
-                                                    </Typography>
-                                                    </Button>
-                                            </CopyToClipboard>
-
-                                        </Grid>
-                                    }
-
                                 </Grid>
                             </Grid>
                         </Grid>
+                    }
+
+                    {(showGovernanceTitle && proposalPk && realmName) ? 
+                        <Grid container>
+                            <Grid item xs={12} container justifyContent="flex-start">
+                                
+                                <ButtonGroup    
+                                    variant="outlined" 
+                                    color='inherit'
+                                >
+                                    
+                                    <Tooltip title={`Back to  ${realmName} Governance`}>
+                                        <Button 
+                                            aria-label="back"
+                                            href={`https://spl-gov.vercel.app/governance/${governanceAddress}`}
+                                            sx={{
+                                                borderTopLeftRadius:'17px',
+                                                borderBottomLeftRadius:'17px',
+                                                borderColor:'rgba(255,255,255,0.05)',
+                                                fontSize:'10px'}}
+                                        >
+                                            <ArrowBackIcon fontSize='inherit' sx={{mr:1}} /> Back
+                                        </Button>
+                                    </Tooltip>
+                            
+                                <CopyToClipboard 
+                                        text={`https://spl-gov.vercel.app/proposal/${governanceAddress}/${proposalPk}`} 
+                                        onCopy={handleCopyClick}
+                                    >
+                                        <Tooltip title={`Copy ${realmName} Governance Propoosal Link`}>
+                                            <Button
+                                                aria-label="copy"
+                                                sx={{
+                                                    borderTopRightRadius:'17px',
+                                                    borderBottomRightRadius:'17px',
+                                                    borderColor:'rgba(255,255,255,0.05)',
+                                                    fontSize:'10px'}}
+                                            >
+                                                <ContentCopyIcon fontSize='inherit' sx={{mr:1}} /> Copy
+                                            </Button>
+                                        </Tooltip>
+                                </CopyToClipboard>
+                                </ButtonGroup>
+                            </Grid>
+                        </Grid>
+                    :
+                        <Grid container>
+                            <Grid item xs={12} container justifyContent="flex-start">
+                                
+                            
+                                <CopyToClipboard 
+                                        text={`https://spl-gov.vercel.app/proposal/${governanceAddress}/${proposalPk}`} 
+                                        onCopy={handleCopyClick}
+                                    >
+                                        <Tooltip title={`Copy ${realmName} Governance Propoosal Link`}>
+                                            <Button
+                                                variant="outlined" 
+                                                color='inherit'
+                                                aria-label="copy"
+                                                sx={{
+                                                    borderRadius:'17px',
+                                                    borderColor:'rgba(255,255,255,0.05)',
+                                                    fontSize:'10px'}}
+                                            >
+                                                <ContentCopyIcon fontSize='inherit' sx={{mr:1}} /> Copy
+                                            </Button>
+                                        </Tooltip>
+                                </CopyToClipboard>
+                            </Grid>
+                        </Grid>                       
                     }
 
 
