@@ -130,6 +130,7 @@ export function GovernanceProposalView(props: any){
     const {proposal} = useParams<{ proposal: string }>();
 
     const background = props?.background || null;
+    const textColor = props?.textColor || null;
     const governanceAddress = searchParams.get("governance") || governance;
     const proposalPk = searchParams.get("proposal") || proposal;
     //const [governanceAddress, setGovernanceAddress] = React.useState(props?.governanceAddress);
@@ -1336,16 +1337,12 @@ export function GovernanceProposalView(props: any){
 
     React.useEffect(() => {
 
-        if (background){
+        if (background)
             document.body.style.backgroundColor = background;
-            
-            //document.body.style.backgroundColor = background;
-            /*
-            var elements = document.getElementsByClassName('app-body'); // get all elements
-            for(var i = 0; i < elements.length; i++){
-                elements[i].style.backgroundColor = background;
-            }*/
-        }
+        if (textColor)
+            document.body.style.color = textColor;
+        
+
 
         if (publicKey && !loadingParticipants){
             getVotingParticipants();
@@ -1639,7 +1636,7 @@ export function GovernanceProposalView(props: any){
                                         className='grape-store-stat-item'
                                         sx={{borderRadius:'24px',m:2,p:1}}
                                     >
-                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                        <Typography variant="body2">
                                             <>Type</>
                                         </Typography>
                                         <Typography variant="subtitle2">
@@ -1665,10 +1662,12 @@ export function GovernanceProposalView(props: any){
                                                     }
                                                 </>
                                                 }>
-                                                <Chip
+                                                <Button
+                                                    size="small"
                                                     variant="outlined"
-                                                    label={propVoteType}
-                                                />
+                                                    color="inherit"
+                                                    sx={{borderRadius:'17px'}}
+                                                >{propVoteType}</Button>
                                             </Tooltip>
                                         </Typography>
                                     </Box>
