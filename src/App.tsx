@@ -157,11 +157,11 @@ function DashboardContent() {
               <Route path="api/*" element={<ApiView />} >
                 <Route path=":handlekey/:querytype/:queryvar1/:queryvar2/:queryvar3" element={<ApiView />} />
               </Route>
-
+              
               <Route path="embedproposal/*" element={<GovernanceProposalView showGovernanceTitle={true} background={'rgba(0,0,0)'} textColor={'rgba(255, 255, 255)'} />} >
                 <Route path=":governance/:proposal" element={<GovernanceProposalView showGovernanceTitle={true} background={'rgba(0,0,0)'} textColor={'rgba(255, 255, 255)'}  />} />
               </Route>
-              
+
               <Route path="testembed" element={<TestEmbed />} />
 
               <Route path="/*" element={

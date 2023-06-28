@@ -40,6 +40,13 @@ import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import { getJupiterPrices } from '../utils/grapeTools/helpers';
 import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
 
+import { 
+    tryGetName,
+} from '@cardinal/namespaces';
+
+import { getProfilePicture } from '@solflare-wallet/pfp';
+import { findDisplayName } from '../utils/name-service';
+
 import {
     Box,
     TextField,
@@ -84,7 +91,8 @@ import {
     GGAPI_STORAGE_URI,
     PRIMARY_STORAGE_WALLET,
     RPC_ENDPOINT,
-    WS_ENDPOINT
+    WS_ENDPOINT,
+    TWITTER_PROXY
 } from '../utils/grapeTools/constants';
 
 import WarningIcon from '@mui/icons-material/Warning';
@@ -286,6 +294,98 @@ const removeDuplicateSignatures = (array) => {
         return false;
     });
 };
+
+const getSocialConnections = async(address: string) => {
+    const connection = RPC_CONNECTION;
+
+    const fetchSolflareProfilePicture = async () => {
+        //setLoadingPicture(true);  
+            try{
+                const { isAvailable, url } = await getProfilePicture(connection, new PublicKey(address));
+                
+                let img_url = url;
+                if (url)
+                    img_url = url.replace(/width=100/g, 'width=256');
+                //setProfilePictureUrl(img_url);
+                //setHasProfilePicture(isAvailable);
+                //countRef.current++;
+                return img_url;
+            }catch(e){
+                console.log("ERR: "+e)
+            }
+        //setLoadingPicture(false);
+    }
+
+    const fetchSolanaSocialConnections = async () => {
+        //console.log("fetching tryGetName: "+address);
+        //setTwitterRegistration(null);
+        //setHasSolanaDomain(false);
+        let found_cardinal = false;
+
+        const registrationInfo = {
+            solflare: {
+                pfp: null,
+            },
+            cardinal: {
+                pfp: null,
+                handle: null,
+            },
+            bonfida: {
+                handle: null,
+            }
+        }
+
+        registrationInfo.solflare.pfp = await fetchSolflareProfilePicture();
+
+        //const cardinalResolver = new CardinalTwitterIdentityResolver(ggoconnection);
+        try{
+            //const cardinal_registration = await cardinalResolver.resolve(new PublicKey(address));
+            //const identity = await cardinalResolver.resolveReverse(address);
+            //console.log("identity "+JSON.stringify(cardinal_registration))
+            
+            const cardinal_registration = await tryGetName(
+                connection, 
+                new PublicKey(address)
+            );
+
+            if (cardinal_registration){
+                found_cardinal = true;
+                //console.log("cardinal_registration: "+JSON.stringify(cardinal_registration));
+                //setHasSolanaDomain(true);
+                //setSolanaDomain(cardinal_registration[0]);
+                //setTwitterRegistration(cardinal_registration[0]);
+                registrationInfo.cardinal.handle = cardinal_registration[0];
+                const url = `${TWITTER_PROXY}https://api.twitter.com/2/users/by&usernames=${cardinal_registration[0].slice(1)}&user.fields=profile_image_url,public_metrics`;
+                const response = await axios.get(url);
+                if (response?.data?.data[0]?.profile_image_url){
+                    //setProfilePictureUrl(response?.data?.data[0]?.profile_image_url);
+                    //setHasProfilePicture(true);
+                    registrationInfo.cardinal.pfp = response?.data?.data[0]?.profile_image_url;
+                }
+            }
+        }catch(e){
+            console.log("ERR: "+e);
+        }
+
+        if (!found_cardinal){
+            const domain = await findDisplayName(connection, address);
+            if (domain) {
+                if (domain[0] !== address) {
+                    //setHasSolanaDomain(true);
+                    //setSolanaDomain(domain[0]);
+                    registrationInfo.bonfida.handle = domain[0];
+                }
+            }
+        }
+        
+        return registrationInfo;
+    };
+
+    
+    const socialConnections = await fetchSolanaSocialConnections();
+
+    return socialConnections;
+}
 
 const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string, destinationAddress: string, excludeAddress: string[]) => {
     
@@ -1041,6 +1141,22 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             const tokenOwnerRecord = owner.account.governingTokenOwner;
             
             // IMPORTANT to speed this up check first tx for mmember wallet...
+
+            // get any handles / domains linked
+
+            if (!owner?.socialConnections){
+                const socialConnections = await getSocialConnections(tokenOwnerRecord.toBase58());
+                if (socialConnections){
+                    owner.socialConnections = socialConnections;
+                    console.log("socialConnections "+tokenOwnerRecord.toBase58()+": "+JSON.stringify(socialConnections))
+                }else {
+                    owner.socialConnections = null;
+                    console.log("no socialConnections for "+tokenOwnerRecord.toBase58()+"")
+                }
+                
+            } else{
+                owner.socialConnections = owner.socialConnections;
+            }
 
             var hasBeenFound = false;
             var hasFtd = false;
