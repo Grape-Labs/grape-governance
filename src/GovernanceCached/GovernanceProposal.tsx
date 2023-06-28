@@ -751,8 +751,6 @@ export function GovernanceProposalView(props: any){
 
                     if (publicKey){
 
-                        console.log("item.account.governingTokenOwner.toBase58() "+item.account.governingTokenOwner.toBase58())
-
                         if (publicKey.toBase58() === item.account.governingTokenOwner.toBase58()){
                             setHasVoted(true);
                             setHasVotedVotes(voterVotes);
