@@ -43,7 +43,7 @@ import {
     getFileFromLookup
 } from './CachedStorageHelpers'; 
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
-import { GovernanceProposalWrapper } from './GovernanceProposalWrapper';
+import { GovernanceProposalDialog } from './GovernanceProposalDialog';
 import moment from 'moment';
 
 import InfoIcon from '@mui/icons-material/Info';
@@ -537,7 +537,7 @@ function RenderGovernanceTable(props:any) {
                                                 </TableCell>
                                                 <GetProposalStatus item={item} cachedGovernance={cachedGovernance} />
                                                 <TableCell align="center">
-                                                    <GovernanceProposalWrapper governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
+                                                    <GovernanceProposalDialog governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                                 </TableCell>
                                             </TableRow>
                                         </>

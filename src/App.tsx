@@ -12,6 +12,7 @@ import { GovernanceTreasuryView } from "./GovernanceCached/GovernanceTreasury";
 import { GovernanceDirectoryView } from "./GovernanceCached/GovernanceDirectory";
 import { GovernanceReputationView } from "./GovernanceCached/GovernanceReputation";
 import { GovernanceProposalView } from "./GovernanceCached/GovernanceProposal";
+import { GovernanceProposalWrapper } from "./GovernanceCached/GovernanceProposalWrapper";
 import { ApiView } from "./api/api";
 import CssBaseline from '@mui/material/CssBaseline';
 import { inject } from '@vercel/analytics';
@@ -155,6 +156,10 @@ function DashboardContent() {
                   <Route path=":handlekey/:querytype/:queryvar1/:queryvar2/:queryvar3" element={<ApiView />} />
               </Route>
 
+              <Route path="embedproposal/*" element={<GovernanceProposalView />} >
+                  <Route path=":governance/:proposal" element={<GovernanceProposalView />} />
+              </Route>
+
               <Route path="/*" element={
                 <Suspense fallback={renderLoader()}>
                   <ThemeProvider theme={grapeTheme}>
@@ -201,8 +206,8 @@ function DashboardContent() {
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                               </Route>
 
-                                              <Route path="proposal/*" element={<GovernanceProposalView />} >
-                                                  <Route path=":governance/:proposal" element={<GovernanceProposalView />} />
+                                              <Route path="proposal/*" element={<GovernanceProposalWrapper />} >
+                                                  <Route path=":governance/:proposal" element={<GovernanceProposalWrapper />} />
                                               </Route>
 
                                               <Route path="metrics/*" element={<PremiumView />} >

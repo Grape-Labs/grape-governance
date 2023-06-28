@@ -47,7 +47,6 @@ import {
   AccordionDetails,
   AccordionSummary,
   Divider,
-  Paper,
   
 } from '@mui/material/';
 
@@ -163,7 +162,7 @@ const GOVERNANCE_STATE = {
     8:'Executing w/errors!',
 }
 
-export function GovernanceProposalWrapper(props: any){
+export function GovernanceProposalDialog(props: any){
     const cachedGovernance = props.cachedGovernance;
     const governanceLookup = props.governanceLookup;
     const tokenMap = props.tokenMap;
@@ -174,22 +173,68 @@ export function GovernanceProposalWrapper(props: any){
     //const [thisitem, setThisItem] = React.useState(props.item);
     const realm = props.realm;
     
+    const [open, setOpen] = React.useState(false);
+    
+    const [expanded, setExpanded] = React.useState<string | false>(false);
+    const handleChange =
+    (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+        setExpanded(isExpanded ? panel : false);
+    };
+
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+    const onError = useCallback(
+        (error: WalletError) => {
+            enqueueSnackbar(error.message ? `${error.name}: ${error.message}` : error.name, { variant: 'error' });
+            console.error(error);
+        },
+        [enqueueSnackbar]
+    );
+
+    const handleCloseDialog = () => {
+        setOpen(false);
+    }
+
+    const handleClickOpen = () => {
+        setOpen(true);
+        //getVotingParticipants();
+    };
+
+    const handleClose = () => {
+        setOpen(false);
+    };
+
     return (
         <>
-            <Box
-                sx={{
-                    mt:6,
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    borderRadius: '17px',
-                    overflow: 'hidden',
-                    p:4
-                }} 
-            >       
-            
-                <GovernanceProposalView governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
-            
-            </Box>                            
-            
+            <Tooltip title='Get Voting Details for this Proposal'>
+                <Button 
+                    onClick={handleClickOpen}
+                    sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
+                    <FitScreenIcon />
+                </Button>
+            </Tooltip>
+
+            <BootstrapDialog 
+                maxWidth={"xl"}
+                fullWidth={true}
+                open={open} onClose={handleClose}
+                PaperProps={{
+                    style: {
+                        background: '#13151C',
+                        border: '1px solid rgba(255,255,255,0.05)',
+                        borderTop: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '20px'
+                    }
+                    }}
+                >
+                <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog}>
+                    Proposal Details
+                </BootstrapDialogTitle>
+                <DialogContent>
+                    
+                    <GovernanceProposalView governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
+                                            
+                </DialogContent> 
+            </BootstrapDialog>
         </>
     )
 }
