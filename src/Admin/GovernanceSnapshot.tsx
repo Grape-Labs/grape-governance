@@ -1142,22 +1142,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             
             // IMPORTANT to speed this up check first tx for mmember wallet...
 
-            // get any handles / domains linked
-
-            if (!owner?.socialConnections){
-                const socialConnections = await getSocialConnections(tokenOwnerRecord.toBase58());
-                if (socialConnections){
-                    owner.socialConnections = socialConnections;
-                    console.log("socialConnections "+tokenOwnerRecord.toBase58()+": "+JSON.stringify(socialConnections))
-                }else {
-                    owner.socialConnections = null;
-                    console.log("no socialConnections for "+tokenOwnerRecord.toBase58()+"")
-                }
-                
-            } else{
-                owner.socialConnections = owner.socialConnections;
-            }
-
             var hasBeenFound = false;
             var hasFtd = false;
             var hasMltsg = false;
@@ -1168,6 +1152,21 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 for (let cachedOwner of cached_members){ // smart fetching so we do not query this call again
                     if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord.toBase58()){
                         hasBeenFound = true;
+                        
+                        // get any handles / domains linked
+                        if (cachedOwner?.socialConnections){
+                            owner.socialConnections = cachedOwner?.socialConnections;
+                        } else{
+                            const socialConnections = await getSocialConnections(tokenOwnerRecord.toBase58());
+                            if (socialConnections){
+                                owner.socialConnections = socialConnections;
+                                console.log("socialConnections "+tokenOwnerRecord.toBase58()+": "+JSON.stringify(socialConnections))
+                            }else {
+                                owner.socialConnections = null;
+                                console.log("no socialConnections for "+tokenOwnerRecord.toBase58()+"")
+                            }
+                        }
+                        
                         if (cachedOwner?.firstTransactionDate){
                             owner.firstTransactionDate = cachedOwner.firstTransactionDate;
                             hasFtd = true;
