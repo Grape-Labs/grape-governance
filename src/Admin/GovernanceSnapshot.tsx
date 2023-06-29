@@ -1144,7 +1144,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
             // get any handles / domains linked
 
-            //if (!owner?.socialConnections){
+            if (!owner?.socialConnections){
                 const socialConnections = await getSocialConnections(tokenOwnerRecord.toBase58());
                 if (socialConnections){
                     owner.socialConnections = socialConnections;
@@ -1154,9 +1154,9 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     console.log("no socialConnections for "+tokenOwnerRecord.toBase58()+"")
                 }
                 
-            //} else{
-            //    owner.socialConnections = owner.socialConnections;
-            //}
+            } else{
+                owner.socialConnections = owner.socialConnections;
+            }
 
             var hasBeenFound = false;
             var hasFtd = false;
