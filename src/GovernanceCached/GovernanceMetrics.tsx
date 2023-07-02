@@ -2831,59 +2831,56 @@ export function GovernanceMetricsView(props: any) {
 
                                             {metricsFlowsObject &&
                                                 <>
-                                                {metricsFlowsObject?.metricsInflows ?
+                                                {(metricsFlowsObject?.metricsInflows ||  metricsFlowsObject.metricsOutflows) ?
                                                     <>
-                                                    {metricsFlowsObject.metricsOutflows ?
-                                                    <Grid item xs={12} sm={6} md={6} key={1}>
-                                                        <Box
-                                                            sx={{
-                                                                borderRadius:'24px',
-                                                                m:2,
-                                                                p:1,
-                                                                background: 'rgba(0, 0, 0, 0.2)'
-                                                            }}
-                                                        >
-                                                            <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                                <>Current Months Inflows/Outflows</>
-                                                            </Typography>
-                                                            <Tooltip title={<>
-                                                                    Current Months Inflows/Outflows in Governance Votes (Community Mint: {metricsFlowsObject.governanceCommunityTokenMintName})
-                                                                    </>
-                                                                }>
-                                                                <Button
-                                                                    color='inherit'
-                                                                    sx={{
-                                                                        borderRadius:'17px'
-                                                                    }}
-                                                                >
-                                                                    <Grid container
+                                                        <Grid item xs={12} sm={6} md={6} key={1}>
+                                                            <Box
+                                                                sx={{
+                                                                    borderRadius:'24px',
+                                                                    m:2,
+                                                                    p:1,
+                                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                                }}
+                                                            >
+                                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                                    <>Current Months Inflows/Outflows</>
+                                                                </Typography>
+                                                                <Tooltip title={<>
+                                                                        Current Months Inflows/Outflows in Governance Votes (Community Mint: {metricsFlowsObject.governanceCommunityTokenMintName})
+                                                                        </>
+                                                                    }>
+                                                                    <Button
+                                                                        color='inherit'
                                                                         sx={{
-                                                                            verticalAlign: 'bottom'}}
-                                                                        >
-                                                                        <Typography variant="h4">
-                                                                            {metricsFlowsObject?.metricsInflows && 
-                                                                                <Badge badgeContent={<ArrowDownwardIcon sx={{ fontSize: 10 }} />} color="success">
-                                                                                    {getFormattedNumberToLocale(metricsFlowsObject.metricsInflows)}
-                                                                                </Badge>
-                                                                            }
-                                                                                /
-                                                                            {metricsFlowsObject?.metricsOutflows && 
-                                                                                <Badge badgeContent={<ArrowUpwardIcon sx={{ fontSize: 10 }} />} color="error">
-                                                                                    {getFormattedNumberToLocale(metricsFlowsObject.metricsOutflows)}
-                                                                                </Badge>
-                                                                            }
-                                                                        </Typography>
-                                                                    </Grid>
-                                                                </Button>
-                                                            </Tooltip>
-                                                        </Box>
-                                                    </Grid>
-                                                    :<></>}
+                                                                            borderRadius:'17px'
+                                                                        }}
+                                                                    >
+                                                                        <Grid container
+                                                                            sx={{
+                                                                                verticalAlign: 'bottom'}}
+                                                                            >
+                                                                            <Typography variant="h4">
+                                                                                {metricsFlowsObject?.metricsInflows && 
+                                                                                    <Badge badgeContent={<ArrowDownwardIcon sx={{ fontSize: 10 }} />} color="success">
+                                                                                        {getFormattedNumberToLocale(metricsFlowsObject.metricsInflows)}
+                                                                                    </Badge>
+                                                                                }
+                                                                                    /
+                                                                                {metricsFlowsObject?.metricsOutflows && 
+                                                                                    <Badge badgeContent={<ArrowUpwardIcon sx={{ fontSize: 10 }} />} color="error">
+                                                                                        {getFormattedNumberToLocale(metricsFlowsObject.metricsOutflows)}
+                                                                                    </Badge>
+                                                                                }
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                    </Button>
+                                                                </Tooltip>
+                                                            </Box>
+                                                        </Grid>
                                                     </>:<></>
                                                 }
 
-                                                {metricsFlowsObject?.metricsPreviousInflows ?
-                                                <>{metricsFlowsObject.metricsPreviousOutflows ?
+                                                {(metricsFlowsObject?.metricsPreviousInflows || metricsFlowsObject.metricsPreviousOutflows) ?
 
                                                     <Grid item xs={12} sm={6} md={6} key={1}>
                                                         <Box
@@ -2929,8 +2926,7 @@ export function GovernanceMetricsView(props: any) {
                                                             </Tooltip>
                                                         </Box>
                                                     </Grid>
-                                                    :<></>}
-                                                    </>:<></>
+                                                    :<></>
                                                 }
                                                 </>
                                             }
