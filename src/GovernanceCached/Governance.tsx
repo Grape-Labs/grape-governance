@@ -760,9 +760,49 @@ export function GovernanceCachedView(props: any) {
                     let defeated = 0;
                     let ttvc = 0;
                     let tcvc = 0;
-                    
-                    //const gprops = await getAllProposals(RPC_CONNECTION, grealm.owner, realmPk);
-                    
+                    const hybridCache = true;
+
+
+                    if (hybridCache){
+                        const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
+                        // with the results compare with cached_governance
+                        console.log("gprops: "+JSON.stringify(gprops))
+                        const rpcprops = new Array();
+                        for (const props of gprops){
+                            for (const prop of props){
+                                if (prop){
+                                    rpcprops.push(prop);
+                                }
+                            }
+                        }
+                        const sortedRPCResults = rpcprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
+        
+                        console.log(sortedRPCResults.length +" vs "+ cached_governance.length)
+                        
+                        
+                        
+                        if (rpcprops.length > cached_governance.length){
+                            
+                            cached_governance = sortedRPCResults;
+                            console.log("Hybrid Cache: there is a new proposal we have not fetched")
+                            // the following code will be used when we implement the GPA call to fetch only voting proposals
+                            /*
+                            // Check if each key in rpc_prop exists in cached_governance
+                            gprops.forEach(obj => {
+                                const found = cached_governance.some(
+                                  cachedObj => cachedObj.pubkey.toBase58() === obj.pubkey.toBase58()
+                                );
+                                if (!found) {
+                                  // Add the missing object to cached_governance
+                                  cached_governance.push(JSON.stringify(obj));
+                                }
+                            });
+                            */
+                        } else{
+                            console.log("Hybrid Cache: all proposals fetched")
+                        }
+                    }
+
                     const allprops: any[] = [];
                     for (var prop of cached_governance){
                         
