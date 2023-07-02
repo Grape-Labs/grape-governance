@@ -959,6 +959,8 @@ function RenderVoterRecordTable(props:any) {
                             }
                     }
                 }
+                if (item.account.state === 6)
+                    skipProp = true;
 
                 if (!skipProp){
                     const authorPk = item.account.tokenOwnerRecord;
@@ -1252,8 +1254,8 @@ function RenderVoterRecordTable(props:any) {
                     // item.account.governingTokenOwner.toBase58()
                     if (realm.account.config?.councilMint && (new PublicKey(realm.account.config?.councilMint).toBase58() === item.account.governingTokenMint.toBase58())){
                         // council stats
-                        
-                        totalCouncilProposals++;
+                        if (item.account.state !== 6)
+                            totalCouncilProposals++;
                         if (item.account.state === 3 || item.account.state === 5)
                             totalCouncilPassed++;
                         else if (item.account.state === 7)
