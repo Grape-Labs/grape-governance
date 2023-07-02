@@ -1298,7 +1298,8 @@ function RenderVoterRecordTable(props:any) {
                         for (var pbi of propsByMonth){
                             if (pbi.date === monthts){
                                 pbi_found = true;
-                                pbi.communitycount++;
+                                if (item.account.state !== 6)
+                                    pbi.communitycount++;
                                 if (item.account.state === 3 || item.account.state === 5) 
                                     pbi.communitypassing++
                                 if (item.account.state === 7)
