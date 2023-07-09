@@ -19,8 +19,10 @@ import {
     fetchGovernanceLookupFile,
     getFileFromLookup
 } from './CachedStorageHelpers'; 
+import BN from 'bn.js'
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
+import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token-v2";
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
@@ -439,24 +441,26 @@ export function GovernanceProposalView(props: any){
         const instructionOwnerRecordATA = props.instructionOwnerRecordATA;
         const instruction = props.instruction;
         const instructionDetails = instruction.account?.instructions?.[0] || instruction.account?.instruction;
+        
         if (instructionDetails){
             const typeOfInstruction = instructionDetails?.data[0];
             //console.log("instructionDetails "+JSON.stringify(instructionDetails))
             const programId = new PublicKey(instructionDetails?.programId).toBase58();
             const instructionInfo = InstructionMapping?.[programId]?.[typeOfInstruction];
             
-
             const OwnerRecord = (props:any) => {
                 const pubkey = props.pubkey;
                 const [ownerRecord, setOwnerRecord] = React.useState(null);
-
+                
                 const fetchOwnerRecord = () => {
                     //console.log("instructionOwnerRecord "+JSON.stringify(instructionOwnerRecord))
+                    //console.log("instructionOwnerRecordATA "+JSON.stringify(instructionOwnerRecordATA))
                     var index = 0;
                     for (var item of instructionOwnerRecordATA){
                         if (new PublicKey(item).toBase58() === new PublicKey(pubkey).toBase58()){
-                            if (instructionOwnerRecord[index]?.data?.parsed?.info)
+                            if (instructionOwnerRecord[index]?.data?.parsed?.info){
                                 setOwnerRecord(instructionOwnerRecord[index].data.parsed.info);
+                            }
                         }
                         index++;
                     }
@@ -514,6 +518,15 @@ export function GovernanceProposalView(props: any){
                             </Typography>
                             <Typography>
                                 {instructionInfo?.name || <ExplorerView address={new PublicKey(instructionDetails.programId).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px'/>}
+                                {/*console.log("instruction: "+JSON.stringify(instructionDetails))*/}
+                                
+                                {instructionInfo?.name === 'Token Transfer' &&
+                                    <>
+                                        {/*<br/>Mint: {JSON.stringify(instructionDetails?.data?.slice(1))}*/}
+                                        <br/>Amount: {new BN(instructionDetails?.data?.slice(1), 'le').toNumber()/Math.pow(10, (instructionOwnerRecord[index].data.parsed.info.tokenAmount?.decimals || 0).toLocaleString())}
+                                        {/*instructionDetails?.data && `HERE: ${new BN(instructionInfo.data.slice(1), 'le')}`*/}
+                                    </>
+                                }
                             </Typography>
                             
 

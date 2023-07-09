@@ -13,6 +13,7 @@ import { GovernanceDirectoryView } from "./GovernanceCached/GovernanceDirectory"
 import { GovernanceReputationView } from "./GovernanceCached/GovernanceReputation";
 import { GovernanceProposalView } from "./GovernanceCached/GovernanceProposal";
 import { GovernanceProposalWrapper } from "./GovernanceCached/GovernanceProposalWrapper";
+import GovernanceCreateProposalView from "./GovernanceCached/GovernanceCreateProposal";
 import TestEmbed from "./GovernanceCached/TestEmbed";
 import { ApiView } from "./api/api";
 import CssBaseline from '@mui/material/CssBaseline';
@@ -157,7 +158,7 @@ function DashboardContent() {
               <Route path="api/*" element={<ApiView />} >
                 <Route path=":handlekey/:querytype/:queryvar1/:queryvar2/:queryvar3" element={<ApiView />} />
               </Route>
-              
+
               <Route path="embedproposal/*" element={<GovernanceProposalView showGovernanceTitle={true} background={'rgba(0,0,0)'} textColor={'rgba(255, 255, 255)'} />} >
                 <Route path=":governance/:proposal" element={<GovernanceProposalView showGovernanceTitle={true} background={'rgba(0,0,0)'} textColor={'rgba(255, 255, 255)'}  />} />
               </Route>
@@ -198,6 +199,7 @@ function DashboardContent() {
                                                 <Route path=":handlekey" element={<ApiView />} />
                                             </Route>
                                             */}
+
                                               <Route path="rpcgovernance/*" element={<GovernanceRPCView />} >
                                                   <Route path=":handlekey" element={<GovernanceRPCView />} />
                                               </Route>
@@ -208,6 +210,10 @@ function DashboardContent() {
 
                                               <Route path="cachedgovernance/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
+                                              </Route>
+
+                                              <Route path="newproposal/*" element={<GovernanceCreateProposalView />} >
+                                                  <Route path=":handlekey" element={<GovernanceCreateProposalView />} />
                                               </Route>
 
                                               <Route path="proposal/*" element={<GovernanceProposalWrapper />} >

@@ -1,4 +1,5 @@
 import { 
+    getGovernance,
     getRealm, 
     getAllProposals, 
     getAllTokenOwnerRecords, 
@@ -682,6 +683,7 @@ export function GovernanceCachedView(props: any) {
                 
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
                 let grealm = null;
+
                 if (cachedRealm){
                     console.log("Realm from cache");
                     //console.log("cacheRealm: "+JSON.stringify(cachedRealm))
@@ -691,6 +693,8 @@ export function GovernanceCachedView(props: any) {
                 }
                 setRealm(grealm);
                 setRealmName(grealm.account.name);
+                
+                //let ggov = await getGovernance(RPC_CONNECTION, new PublicKey(grealm.owner))
                 
                 const realmPk = new PublicKey(grealm?.pubkey);
                 //console.log("realmPk: "+realmPk)
@@ -762,8 +766,13 @@ export function GovernanceCachedView(props: any) {
                     let tcvc = 0;
                     const hybridCache = true;
 
+                    //console.log("ggov: "+JSON.stringify(ggov));
+                    //console.log("proposalCount: "+grealm?.account?.proposalCount);
 
                     if (hybridCache){
+
+
+
                         const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
                         // with the results compare with cached_governance
                         console.log("gprops: "+JSON.stringify(gprops))

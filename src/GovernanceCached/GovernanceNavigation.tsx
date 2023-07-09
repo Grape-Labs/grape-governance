@@ -23,6 +23,7 @@ import {
   ButtonGroup,
 } from '@mui/material/';
 
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -33,6 +34,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 
 export default function GovernanceNavigation(props: any){
     const governanceAddress = props.governanceAddress;
+    const { publicKey } = useWallet();
 
     return(
         <Box
@@ -42,6 +44,19 @@ export default function GovernanceNavigation(props: any){
             justifyContent="flex-end"
             alignItems="flex-end"
             >
+                {publicKey &&
+                <Tooltip title={
+                        <><strong>Create Proposal</strong><br/> (coming soon){/** Using the Grape Proposal Builder*/}
+                        </>
+                    }>
+                    <Button
+                        variant="text"
+                        color="warning"
+                        size='small'
+                        sx={{mr:1}}
+                    ><AddCircleIcon /></Button>
+                </Tooltip>
+                }
                 <ButtonGroup
                     color='inherit'
                     size='small'
