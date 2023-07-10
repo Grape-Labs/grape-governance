@@ -357,42 +357,7 @@ function RenderGovernanceTable(props:any) {
                                         <>
                                             <TableRow key={index} sx={{borderBottom:"none"}}>
                                                 <TableCell>
-                                                    <Typography variant="h6" color={(item.account?.state === 2) ? `white` : `gray`}>
-                                                        {item.account?.descriptionLink ?
-                                                            <Tooltip title={
-                                                                <Typography variant="body2">
-                                                                    {item.account?.descriptionLink}
-                                                                </Typography>}>
-                                                                <Button sx={{ml:-1,borderRadius:'17px',textAlign:'left',textTransform:'none'}} color='inherit' >
-                                                                    <Typography variant="h6">
-                                                                    {item.account?.name} <InfoIcon sx={{ml:1, fontSize:16 }}/>
-                                                                    </Typography></Button>
-                                                            </Tooltip>
-                                                        :
-                                                            <>
-                                                            {item.account?.name}
-                                                            </>
-                                                        }
-
-                                                        {realm.account.config?.councilMint === new PublicKey(item.account?.governingTokenMint).toBase58() ?
-                                                            <Tooltip title='Council Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon sx={{ fontSize:16 }} /></Button></Tooltip>
-                                                            :
-                                                            <>
-                                                            {governanceType === 0 ?
-                                                                <></>
-                                                            :
-                                                                <>
-                                                                    {governanceType === 1 ?
-                                                                        <></>
-                                                                    :
-                                                                    <Tooltip title='NFT Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><ImageOutlinedIcon sx={{ fontSize:16 }} /></Button></Tooltip>
-                                                                    }
-                                                                </>
-                                                            }
-                                                            </>
-                                                        }
-                                                        
-                                                    </Typography>
+                                                    <GovernanceProposalDialog governanceType={governanceType} isCouncil={realm.account.config?.councilMint === new PublicKey(item.account?.governingTokenMint).toBase58()} state={item.account?.state} title={item.account?.name} description={item.account?.descriptionLink} governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                                 </TableCell>
                                                 <TableCell>
                                                     <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
@@ -695,7 +660,7 @@ export function GovernanceCachedView(props: any) {
                 setRealmName(grealm.account.name);
                 
                 //let ggov = await getGovernance(RPC_CONNECTION, new PublicKey(grealm.owner))
-                
+
                 const realmPk = new PublicKey(grealm?.pubkey);
                 //console.log("realmPk: "+realmPk)
                 // Check if we have this cached

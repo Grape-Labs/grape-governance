@@ -53,6 +53,8 @@ export default function GovernanceNavigation(props: any){
                         variant="text"
                         color="warning"
                         size='small'
+                        component={Link}
+                        to={'/newproposal/'+governanceAddress}
                         sx={{mr:1}}
                     ><AddCircleIcon /></Button>
                 </Tooltip>

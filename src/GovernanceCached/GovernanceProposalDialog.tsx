@@ -69,6 +69,8 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CodeIcon from '@mui/icons-material/Code';
@@ -170,6 +172,11 @@ export function GovernanceProposalDialog(props: any){
     const governanceAddress = props.governanceAddress;
     const governanceToken = props.governanceToken;
     const thisitem = props.item;
+    const title = props?.title;
+    const description = props?.description;
+    const state = props?.state;
+    const isCouncil = props?.isCouncil;
+    const governanceType = props?.governanceType;
     //const [thisitem, setThisItem] = React.useState(props.item);
     const realm = props.realm;
     
@@ -205,13 +212,46 @@ export function GovernanceProposalDialog(props: any){
 
     return (
         <>
-            <Tooltip title='Get Voting Details for this Proposal'>
-                <Button 
-                    onClick={handleClickOpen}
-                    sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
-                    <FitScreenIcon />
-                </Button>
-            </Tooltip>
+
+            {title ? 
+
+                <>
+                <Tooltip title={description ? description : `Get Voting Details for this Proposal`}>
+                    <Button 
+                        onClick={handleClickOpen}
+                        color='inherit'
+                        sx={{textAlign:'left',textTransform:'none',borderRadius:'17px'}}>
+                          <Typography variant="h6" color={(state === 2) ? `white` : `gray`}>
+                            {title}
+                            {isCouncil &&
+                              <Tooltip title='Council Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon sx={{ fontSize:16 }} /></Button></Tooltip>
+                            }
+                            {governanceType === 0 ?
+                                <></>
+                            :
+                                <>
+                                    {governanceType === 1 ?
+                                        <></>
+                                    :
+                                    <Tooltip title='NFT Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><ImageOutlinedIcon sx={{ fontSize:16 }} /></Button></Tooltip>
+                                    }
+                                </>
+                            }
+                        </Typography>
+                    </Button>
+
+                </Tooltip>
+                
+                </>
+            :
+              <Tooltip title='Get Voting Details for this Proposal'>
+                  <Button 
+                      onClick={handleClickOpen}
+                      sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
+                      <FitScreenIcon />
+                  </Button>
+              </Tooltip>
+            }
 
             <BootstrapDialog 
                 maxWidth={"xl"}
