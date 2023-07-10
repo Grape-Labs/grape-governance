@@ -98,6 +98,13 @@ import {
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
+function trimAddress(addr: string) {
+    if (!addr) return addr;
+    const start = addr.substring(0, 8);
+    const end = addr.substring(addr.length - 4);
+    return `${start}...${end}`;
+}
+
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
     height: 15,
     borderRadius: '17px',
@@ -460,6 +467,7 @@ export function GovernanceProposalView(props: any){
                         if (new PublicKey(item).toBase58() === new PublicKey(pubkey).toBase58()){
                             if (instructionOwnerRecord[index]?.data?.parsed?.info){
                                 setOwnerRecord(instructionOwnerRecord[index].data.parsed.info);
+                                console.log("instructionOwnerRecord[index] "+JSON.stringify(instructionOwnerRecord[index]))
                             }
                         }
                         index++;
@@ -476,7 +484,6 @@ export function GovernanceProposalView(props: any){
                     <>
                         {ownerRecord && 
                             <>
-
                                 {ownerRecord?.owner ?
                                     <ExplorerView showSolanaProfile={true} memberMap={memberMap} address={new PublicKey(ownerRecord.owner).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
                                 :
@@ -501,6 +508,36 @@ export function GovernanceProposalView(props: any){
                     </>
                 )
             }
+
+            const InstructionRecord = (props:any) => {
+                const pubkey = props.pubkey;
+                const [instructionRecord, setInstructionRecord] = React.useState(null);
+                
+                const fetchInstructionRecord = async() => {
+                    const gai = await connection.getParsedAccountInfo(new PublicKey(instruction.account.instructions[0].accounts[0].pubkey))
+                    setInstructionRecord(gai.value);
+                }
+
+                React.useEffect(() => { 
+                    if ((!instructionRecord)&&(pubkey)){
+                        fetchInstructionRecord()
+                    }
+                }, [instructionOwnerRecord]);
+
+                return (
+                    <>
+                    {instructionRecord &&
+                        <ExplorerView 
+                            showSolanaProfile={false}  
+                            address={instructionRecord.data.parsed.info.mint} type='address' useLogo={tokenMap.get(instructionRecord.data.parsed.info.mint)?.logoURI} 
+                            title={`${new BN(instructionDetails?.data?.slice(1), 'le').toNumber()/Math.pow(10, (instructionRecord.data.parsed.info.tokenAmount?.decimals || 0).toLocaleString())} 
+                                ${tokenMap.get(instructionRecord.data.parsed.info.mint)?.symbol || (instructionRecord.data.parsed.info.mint && trimAddress(instructionRecord.data.parsed.info.mint)) || 'Explore'}
+                            `} 
+                            hideTitle={false} style='text' color='white' fontSize='12px'/>
+                    }
+                    </>
+                );
+            }
             
             return(
                 <>{index > 0 && <Divider />}
@@ -521,10 +558,9 @@ export function GovernanceProposalView(props: any){
                                 {/*console.log("instruction: "+JSON.stringify(instructionDetails))*/}
                                 
                                 {instructionInfo?.name === 'Token Transfer' &&
-                                    <>
-                                        {/*<br/>Mint: {JSON.stringify(instructionDetails?.data?.slice(1))}*/}
-                                        <br/>Amount: {new BN(instructionDetails?.data?.slice(1), 'le').toNumber()/Math.pow(10, (instructionOwnerRecord[index].data.parsed.info.tokenAmount?.decimals || 0).toLocaleString())}
-                                        {/*instructionDetails?.data && `HERE: ${new BN(instructionInfo.data.slice(1), 'le')}`*/}
+                                    <>  
+                                    <br/>
+                                        <InstructionRecord pubkey={instruction.pubkey} instructionDetails={instructionDetails} />
                                     </>
                                 }
                             </Typography>
@@ -578,7 +614,6 @@ export function GovernanceProposalView(props: any){
                                             </>}
 
                                             <ExplorerView showSolanaProfile={false} address={new PublicKey(item.pubkey).toBase58()} type='address' shorten={0} hideTitle={false} style='text' color='white' fontSize='12px'/>
-                                        
                                         
                                         </Typography>
                                         <br/><br/>

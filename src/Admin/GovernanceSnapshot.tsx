@@ -1069,7 +1069,11 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         const commMint = grealm.account?.communityMint;
         var governanceEmitted = [];
-        let getAwards = false;
+        let getAwards = false; // adjust if we want to get rewards for the following emitting pubkeys
+        if (!getAwards || hoursDiff > (24*30)){ // refresh every 30 days
+        //    getAwards = true;
+        }
+        
         let linkedWallets = {
         //    "7pPJt2xoEoPy8x8Hf2D6U6oLfNa5uKmHHRwkENVoaxmA":"222pEN8xcEwjVbtZfF7HaFRvxGsjBbWj3mqFWV8dNgL1",
         }
@@ -1257,8 +1261,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
                     if (balance?.value[0]?.account?.data?.parsed?.info)    
                         owner.walletBalance = balance.value[0].account.data.parsed.info;
-
-                    
                 }
             }
             if (!hasWalletCouncilBalance || hoursDiff > (24*30)){ // refresh every 30 days
@@ -1269,8 +1271,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         owner.walletCouncilBalance = balance.value[0].account.data.parsed.info;
                 }
             }
-
-
             
             if (!hasMltsg || hoursDiff > (24*15)){ // refresh every 15 days
                 try{
