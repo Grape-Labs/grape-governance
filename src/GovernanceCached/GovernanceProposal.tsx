@@ -444,7 +444,8 @@ export function GovernanceProposalView(props: any){
 
     const [instructionTransferDetails, setInstructionTransferDetails] = React.useState([]);
     const [instructionTransferSummary, setInstructionTransferSummary] = React.useState([]);
-    
+    const loadedInstructions = new Array();
+
     function InstructionView(props: any) {
         const index = props.index;
         const instructionOwnerRecord = props.instructionOwnerRecord;
@@ -513,36 +514,39 @@ export function GovernanceProposalView(props: any){
             }
 
             const InstructionRecord = (props:any) => {
-                const pubkey = props.pubkey;
+                //const pubkey = props.pubkey;
                 const [instructionRecord, setInstructionRecord] = React.useState(null);
                 const [iLoading, setILoading] = React.useState(false);
 
                 const fetchInstructionRecord = async() => {
                     setILoading(true);
-                    const gai = await connection.getParsedAccountInfo(new PublicKey(instruction.account.instructions[0].accounts[0].pubkey))
-                    setInstructionRecord(gai.value);
                     
-                    const newObject = {
-                        pubkey: instruction.account.instructions[0].accounts[0].pubkey,
-                        mint: gai.value.data.parsed.info.mint,
-                        name: tokenMap.get(gai.value.data.parsed.info.mint)?.symbol,
-                        logoURI: tokenMap.get(gai.value.data.parsed.info.mint)?.logoURI,
-                        amount: new BN(instructionDetails?.data?.slice(1), 'le').toNumber()/Math.pow(10, (gai.value.data.parsed.info.tokenAmount?.decimals || 0))
-                    };
-                    const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instruction.account.instructions[0].accounts[0].pubkey);
+                    console.log("instruction.account.instructions[0]?.info "+JSON.stringify(instruction))
+                    if (instruction.account.instructions[0]?.info && instruction.account.instructions[0]?.gai){
+                        console.log("HERE!!!!! ")
+                        setInstructionRecord(instruction.account.instructions[0]?.gai.value);
 
-                    if (!hasInstruction){
-                        setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
-                    }
-                    
+                        const newObject = {
+                            pubkey: instruction.account.instructions[0].accounts[0].pubkey,
+                            mint: instruction.account.instructions[0]?.gai.value.data.parsed.info.mint,
+                            name: tokenMap.get(instruction.account.instructions[0]?.gai.value.data.parsed.info.mint)?.symbol,
+                            logoURI: tokenMap.get(instruction.account.instructions[0]?.gai.value.data.parsed.info.mint)?.logoURI,
+                            amount: new BN(instructionDetails?.data?.slice(1), 'le').toNumber()/Math.pow(10, (instruction.account.instructions[0]?.gai.value.data.parsed.info.tokenAmount?.decimals || 0))
+                        };
+
+                        const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instruction.account.instructions[0].accounts[0].pubkey);
+
+                        if (!hasInstruction)
+                            setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
+                    }    
                     setILoading(false);
                 }
 
                 React.useEffect(() => { 
                     if (!iLoading)
-                        if ((!instructionRecord)&&(pubkey))
-                            fetchInstructionRecord() 
-                }, [pubkey, instructionRecord]);
+                        if ((!instructionRecord)&&(instruction.pubkey))
+                            fetchInstructionRecord();
+                }, []);
 
                 return (
                     <>
@@ -576,12 +580,11 @@ export function GovernanceProposalView(props: any){
                             </Typography>
                             <Typography>
                                 {instructionInfo?.name || <ExplorerView address={new PublicKey(instructionDetails.programId).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px'/>}
-                                {/*console.log("instruction: "+JSON.stringify(instructionDetails))*/}
                                 
                                 {instructionInfo?.name === 'Token Transfer' &&
                                     <>  
                                     <br/>
-                                        <InstructionRecord pubkey={instruction.pubkey} instructionDetails={instructionDetails} />
+                                        <InstructionRecord />
                                     </>
                                 }
                             </Typography>
@@ -746,6 +749,9 @@ export function GovernanceProposalView(props: any){
                     thisitem.instructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
                     setProposalInstructions(thisitem.instructions);
                     
+                    console.log("Proposal Instructions HERE!!!")
+                    // we need to optimize the proposal instructions rpc calls
+                    
                     var ataArray = new Array();
                     if (thisitem.instructions){
                         for (var instructionItem of thisitem.instructions){
@@ -764,6 +770,44 @@ export function GovernanceProposalView(props: any){
                                                 ataArray.push(new PublicKey(account.pubkey))
                                             }
                                         
+                                        }
+                                    }
+                                }
+
+                                
+                                if (instructionItem?.account?.instructions[0].data && instructionItem.account.instructions[0].data.length > 0){
+                                    const typeOfInstruction = instructionItem.account.instructions[0].data[0];
+                                    //console.log("instructionDetails "+JSON.stringify(instructionDetails))
+                                    const programId = new PublicKey(instructionItem?.account?.instructions[0].programId).toBase58();
+                                    const instructionInfo = InstructionMapping?.[programId]?.[typeOfInstruction];
+                                    
+                                    //console.log("instructionInfo "+JSON.stringify(instructionInfo))
+                                    
+                                    if (instructionInfo.name === "Token Transfer"){
+                                        const gai = await connection.getParsedAccountInfo(new PublicKey(instructionItem.account.instructions[0].accounts[0].pubkey))
+                                        
+                                        if (gai){
+                                            //setInstructionRecord(gai.value);
+                                            
+                                            const newObject = {
+                                                pubkey: instructionItem.account.instructions[0].accounts[0].pubkey,
+                                                mint: gai.value.data.parsed.info.mint,
+                                                name: tokenMap.get(gai.value.data.parsed.info.mint)?.symbol,
+                                                logoURI: tokenMap.get(gai.value.data.parsed.info.mint)?.logoURI,
+                                                amount: new BN(instructionItem.account.instructions[0]?.data?.slice(1), 'le').toNumber()/Math.pow(10, (gai.value.data.parsed.info.tokenAmount?.decimals || 0))
+                                            };
+
+                                            //console.log("newObject "+JSON.stringify(newObject))
+                                            instructionItem.account.instructions[0].info = newObject;
+                                            instructionItem.account.instructions[0].gai = gai;
+                                            
+                                            /*
+                                            const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instructionItem.account.instructions[0].accounts[0].pubkey);
+                
+                                            if (!hasInstruction){
+                                                setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
+                                            }
+                                            */
                                         }
                                     }
                                 }
