@@ -546,21 +546,23 @@ export default function ExplorerView(props:any){
                         }
                         </>
                     */}
-                    
-                    <MenuItem 
-                        color='inherit'
-                        component='a'
-                        target='_blank'
-                        href={`https://grape.art/identity/${address}`}
-                        onClick={handleClose}>
-                            <ListItemIcon>
-                                <PersonIcon fontSize="small" />
-                            </ListItemIcon>
-                            Grape Identity
-                    </MenuItem>
-                    
-                    <Divider />
-
+                {grapeArtProfile && 
+                    <>    
+                        <MenuItem 
+                            color='inherit'
+                            component='a'
+                            target='_blank'
+                            href={`https://grape.art/identity/${address}`}
+                            onClick={handleClose}>
+                                <ListItemIcon>
+                                    <PersonIcon fontSize="small" />
+                                </ListItemIcon>
+                                Grape Identity
+                        </MenuItem>
+                        
+                        <Divider />
+                    </>
+                }
                     <MenuItem 
                         color='inherit'
                         component='a'

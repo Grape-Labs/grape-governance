@@ -1653,7 +1653,7 @@ export function GovernanceProposalView(props: any){
                                                         }, {})
                                                         ).map((item) => (
                                                             <>
-                                                                <ExplorerView 
+                                                                <ExplorerView
                                                                     address={item.mint} type='address' useLogo={item?.logoURI} 
                                                                     title={`${item.totalAmount.toLocaleString()} 
                                                                         ${item?.name || (item?.mint && trimAddress(item.mint)) || 'Explore'}
