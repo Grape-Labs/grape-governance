@@ -488,7 +488,7 @@ export function GovernanceProposalView(props: any){
                         {ownerRecord && 
                             <>
                                 {ownerRecord?.owner ?
-                                    <ExplorerView showSolanaProfile={true} memberMap={memberMap} address={new PublicKey(ownerRecord.owner).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                    <ExplorerView grapeArtProfile={true} showSolanaProfile={true} memberMap={memberMap} address={new PublicKey(ownerRecord.owner).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
                                 :
                                     <Typography variant='caption'>*Raw Record: <br/>{JSON.stringify(ownerRecord)}<br/></Typography>
                                 }
