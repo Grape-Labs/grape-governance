@@ -523,7 +523,6 @@ export function GovernanceProposalView(props: any){
                     
                     console.log("instruction.account.instructions[0]?.info "+JSON.stringify(instruction))
                     if (instruction.account.instructions[0]?.info && instruction.account.instructions[0]?.gai){
-                        console.log("HERE!!!!! ")
                         setInstructionRecord(instruction.account.instructions[0]?.gai.value);
 
                         const newObject = {
@@ -749,7 +748,6 @@ export function GovernanceProposalView(props: any){
                     thisitem.instructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
                     setProposalInstructions(thisitem.instructions);
                     
-                    console.log("Proposal Instructions HERE!!!")
                     // we need to optimize the proposal instructions rpc calls
                     
                     var ataArray = new Array();
