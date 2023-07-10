@@ -442,6 +442,9 @@ export function GovernanceProposalView(props: any){
         [enqueueSnackbar]
     );
 
+    const [instructionTransferDetails, setInstructionTransferDetails] = React.useState([]);
+    const [instructionTransferSummary, setInstructionTransferSummary] = React.useState([]);
+    
     function InstructionView(props: any) {
         const index = props.index;
         const instructionOwnerRecord = props.instructionOwnerRecord;
@@ -467,7 +470,7 @@ export function GovernanceProposalView(props: any){
                         if (new PublicKey(item).toBase58() === new PublicKey(pubkey).toBase58()){
                             if (instructionOwnerRecord[index]?.data?.parsed?.info){
                                 setOwnerRecord(instructionOwnerRecord[index].data.parsed.info);
-                                console.log("instructionOwnerRecord[index] "+JSON.stringify(instructionOwnerRecord[index]))
+                                //console.log("instructionOwnerRecord[index] "+JSON.stringify(instructionOwnerRecord[index]))
                             }
                         }
                         index++;
@@ -512,21 +515,38 @@ export function GovernanceProposalView(props: any){
             const InstructionRecord = (props:any) => {
                 const pubkey = props.pubkey;
                 const [instructionRecord, setInstructionRecord] = React.useState(null);
-                
+                const [iLoading, setILoading] = React.useState(false);
+
                 const fetchInstructionRecord = async() => {
+                    setILoading(true);
                     const gai = await connection.getParsedAccountInfo(new PublicKey(instruction.account.instructions[0].accounts[0].pubkey))
                     setInstructionRecord(gai.value);
+                    
+                    const newObject = {
+                        pubkey: instruction.account.instructions[0].accounts[0].pubkey,
+                        mint: gai.value.data.parsed.info.mint,
+                        name: tokenMap.get(gai.value.data.parsed.info.mint)?.symbol,
+                        logoURI: tokenMap.get(gai.value.data.parsed.info.mint)?.logoURI,
+                        amount: new BN(instructionDetails?.data?.slice(1), 'le').toNumber()/Math.pow(10, (gai.value.data.parsed.info.tokenAmount?.decimals || 0))
+                    };
+                    const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instruction.account.instructions[0].accounts[0].pubkey);
+
+                    if (!hasInstruction){
+                        setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
+                    }
+                    
+                    setILoading(false);
                 }
 
                 React.useEffect(() => { 
-                    if ((!instructionRecord)&&(pubkey)){
-                        fetchInstructionRecord()
-                    }
-                }, [instructionOwnerRecord]);
+                    if (!iLoading)
+                        if ((!instructionRecord)&&(pubkey))
+                            fetchInstructionRecord() 
+                }, [pubkey, instructionRecord]);
 
                 return (
                     <>
-                    {instructionRecord &&
+                    {instructionRecord && 
                         <ExplorerView 
                             showSolanaProfile={false}  
                             address={instructionRecord.data.parsed.info.mint} type='address' useLogo={tokenMap.get(instructionRecord.data.parsed.info.mint)?.logoURI} 
@@ -550,6 +570,7 @@ export function GovernanceProposalView(props: any){
                             variant="body2"
                             color="text.secondary"
                             >
+
                             <Typography variant="subtitle1">
                                 Instruction {index+1} <ExplorerView address={new PublicKey(instruction.pubkey).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
                             </Typography>
@@ -577,6 +598,7 @@ export function GovernanceProposalView(props: any){
                         <TimelineConnector />
                         </TimelineSeparator>
                         <TimelineContent sx={{ py: '12px', px: 2 }}>
+                        
                         <Typography variant="h6" component="span" color="#999">
                             Instruction Accounts
                         </Typography>
@@ -645,6 +667,7 @@ export function GovernanceProposalView(props: any){
             }catch(e){
                 const token = await connection.getParsedAccountInfo(new PublicKey(thisitem.account.governingTokenMint)) //await getMint(connection, new PublicKey(thisitem.account.governingTokenMint));
                 console.log("found: "+JSON.stringify(token.value.data.parsed.info.decimals))
+
                 td = await token.value.data.parsed.info.decimals;
                 vType = 'Token';
                 //console.log("ERR: "+e);
@@ -1593,6 +1616,10 @@ export function GovernanceProposalView(props: any){
                                         border:'none'
                                     }}
                                 >
+
+
+
+
                                     <Typography sx={{ flexShrink: 0 }}>
                                         Instructions 
                                     </Typography>
@@ -1601,8 +1628,47 @@ export function GovernanceProposalView(props: any){
                                     
                                 </AccordionSummary>
                                 <AccordionDetails>
+                                    
+                                    <Box>
+                                        {(instructionTransferDetails && instructionTransferDetails.length > 0) &&
+                                            <Box
+                                                sx={{
+                                                    p:1,
+                                                    borderRadius:'17px',
+                                                    backgroundColor:'rgba(255,255,255,0.05)'}}
+                                            >
+                                                <Typography variant="subtitle1">
+                                                    Token Transfer Summary
+                                                </Typography>
+                                                <Typography variant="caption">
+
+                                                    {Object.values(
+                                                        instructionTransferDetails.reduce((result, item) => {
+                                                            const { mint, amount, name, logoURI } = item;
+                                                            if (!result[mint]) {
+                                                            result[mint] = { mint, totalAmount: 0, name, logoURI };
+                                                            }
+                                                            result[mint].totalAmount += amount;
+                                                            return result;
+                                                        }, {})
+                                                        ).map((item) => (
+                                                            <>
+                                                                <ExplorerView 
+                                                                    address={item.mint} type='address' useLogo={item?.logoURI} 
+                                                                    title={`${item.totalAmount.toLocaleString()} 
+                                                                        ${item?.name || (item?.mint && trimAddress(item.mint)) || 'Explore'}
+                                                                    `} 
+                                                                    hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                                            </>
+                                                        )
+
+                                                    )}
+                                                </Typography>
+                                            </Box>
+                                        }
+                                    </Box>
+                                    
                                     <Timeline>
-    
                                         {proposalInstructions && (proposalInstructions).map((item: any, index:number) => (
                                             <InstructionView instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
                                         ))}
