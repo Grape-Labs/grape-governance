@@ -11,6 +11,8 @@ import {
     getRealmConfigAddress, 
     getGovernanceAccount, 
     getAccountTypes, 
+    ProposalTransaction,
+    pubkeyFilter,
     GovernanceAccountType, 
     tryGetRealmConfig, 
     getRealmConfig,
@@ -726,9 +728,9 @@ export function GovernanceProposalView(props: any){
         // fetch voting results
         let voteRecord = null;
         let from_cache = false;
-        //console.log("cachedGovernance "+JSON.stringify(cachedGovernance))
-
+        
         for (var vresults of cachedGovernance){
+            
             if (thisitem.pubkey.toBase58() === vresults.pubkey.toBase58()){
                 voteRecord = vresults.votingResults;
 
@@ -750,6 +752,22 @@ export function GovernanceProposalView(props: any){
             
 
                 // if this is voting we should fetch via RPC
+
+                
+                let instructions = null;
+                if (thisitem.account.state === 2 && !thisitem?.instructions){
+                    console.log("We are here... !!!!!")
+                    if (thisitem.pubkey){
+                        instructions = await getGovernanceAccounts(
+                            connection,
+                            new PublicKey(thisitem.owner),
+                            ProposalTransaction,
+                            [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
+                        );
+                        thisitem.instructions = instructions;
+                    }
+                }
+
 
                 if (thisitem?.instructions){
                     thisitem.instructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
@@ -788,7 +806,7 @@ export function GovernanceProposalView(props: any){
                                     
                                     //console.log("instructionInfo "+JSON.stringify(instructionInfo))
                                     
-                                    if (instructionInfo.name === "Token Transfer"){
+                                    if (instructionInfo?.name === "Token Transfer"){
                                         const gai = await connection.getParsedAccountInfo(new PublicKey(instructionItem.account.instructions[0].accounts[0].pubkey))
                                         
                                         if (gai){
@@ -1290,8 +1308,6 @@ export function GovernanceProposalView(props: any){
         let cached_governance = new Array();
         //setCachedRealm(null);
 
-        //console.log("governanceLookup "+JSON.stringify(governanceLookup));
-
         if (governanceLookup){
             for (let glitem of governanceLookup){
                 if (glitem.governanceAddress === governanceAddress){
@@ -1382,7 +1398,8 @@ export function GovernanceProposalView(props: any){
             //console.log("fglf: "+JSON.stringify(fglf))
             setGovernanceLookup(fglf);
         }
-
+        
+        console.log("cachedGovernance: "+JSON.stringify(cachedGovernance))
         if (!cachedGovernance && governanceLookup){
             console.log("fetch with govlookup")
             await getCachedGovernanceFromLookup();
@@ -1712,7 +1729,7 @@ export function GovernanceProposalView(props: any){
                                                                             address={item.mint} type='address' useLogo={item?.logoURI} 
                                                                             title={`${item.totalAmount.toLocaleString()} 
                                                                                 ${item?.name || (item?.mint && trimAddress(item.mint)) || 'Explore'}
-                                                                                to ${item.uniqueDestinationAta.size} unique wallets
+                                                                                to ${item.uniqueDestinationAta.size} unique wallet${(item.uniqueDestinationAta.size > 1) ? `s`:``}
                                                                             `} 
                                                                             hideTitle={false} style='text' color='white' fontSize='12px'/>
                                                                     </Grid>
