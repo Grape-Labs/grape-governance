@@ -30,12 +30,15 @@ import {
 } from '@mui/material/';
 
 import TextareaAutosize from '@mui/base/TextareaAutosize';
+import { Title } from '@devexpress/dx-react-chart';
 
 export default function GovernanceCreateProposalView(props: any){
 
     const showGovernanceTitle = true;
     const realmName = 'Test';
+    const [title, setTitle] = React.useState(null);
     const [description, setDescription] = React.useState(null);
+    const maxTitleLen = 130;
     const maxDescriptionLen = 255;
 
     function MinHeightTextarea() {
@@ -143,37 +146,52 @@ export default function GovernanceCreateProposalView(props: any){
             <Grid 
                 xs={12}
                 sx={{
-                    textAlign:'center',
                     '& .MuiTextField-root': { m: 1 },
                     '& .MuiSwitch-root': { m: 1 }
                 }}
             >
+                <Box
+                    sx={{
+                        borderRadius:'17px',
+                        backgroundColor:'rgba(0,0,0,0.5)', 
+                        p:1,pr:3}}
+                >
                 
-                <TextField 
-                    fullWidth 
-                    label="Title" 
-                    id="fullWidth"
-                    sx={{borderRadius:'17px'}} />
-
-                <TextField 
-                    fullWidth
-                    label="Description"
-                    multiline
-                    rows={4}
-                    maxRows={4}
-                    value={description}
-                    onChange={(e) => {
-                        if (!description || description.length < maxDescriptionLen)
-                            setDescription(e.target.value)
-                        }}
-                    
-                    sx={{maxlength:maxDescriptionLen}}
+                    <TextField 
+                        fullWidth 
+                        label="Title" 
+                        id="fullWidth"
+                        value={title}
+                        onChange={(e) => {
+                            if (!title || title.length < maxTitleLen)
+                                setTitle(e.target.value)
+                            }}
+                        sx={{borderRadius:'17px', maxlength:maxDescriptionLen}} 
                     />
-                <Grid sx={{textAlign:'right',}}>
-                <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
-                </Grid>
-                <br/>
-                <FormControlLabel required control={<Switch />} label="Council Vote" />
+                    <Grid sx={{textAlign:'right',}}>
+                    <Typography variant="caption">{title ? title.length > 0 ? maxTitleLen - title.length : maxTitleLen : maxTitleLen} characters remaining</Typography>
+                    </Grid>
+                    
+                    <TextField 
+                        fullWidth
+                        label="Description"
+                        multiline
+                        rows={4}
+                        maxRows={4}
+                        value={description}
+                        onChange={(e) => {
+                            if (!description || description.length < maxDescriptionLen)
+                                setDescription(e.target.value)
+                            }}
+                        
+                        sx={{maxlength:maxDescriptionLen}}
+                        />
+                    <Grid sx={{textAlign:'right',}}>
+                    <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
+                    </Grid>
+                    <br/>
+                    <FormControlLabel required control={<Switch />} label="Council Vote" />
+                </Box>
 
             </Grid>
         </>

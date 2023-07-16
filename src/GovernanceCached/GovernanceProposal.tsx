@@ -521,16 +521,23 @@ export function GovernanceProposalView(props: any){
                 const fetchInstructionRecord = async() => {
                     setILoading(true);
                     
-                    console.log("instruction.account.instructions[0]?.info "+JSON.stringify(instruction))
+                    //console.log("instruction.account.instructions[0]?.info "+JSON.stringify(instruction))
                     if (instruction.account.instructions[0]?.info && instruction.account.instructions[0]?.gai){
                         setInstructionRecord(instruction.account.instructions[0]?.gai.value);
+
+                        let destinationAta = null;
+                        if (instruction.account.instructions[0].accounts.length > 0){
+                            if (!instruction.account.instructions[0].isWritable)
+                                destinationAta = instruction.account.instructions[0].accounts[1].pubkey;
+                        }
 
                         const newObject = {
                             pubkey: instruction.account.instructions[0].accounts[0].pubkey,
                             mint: instruction.account.instructions[0]?.gai.value.data.parsed.info.mint,
                             name: tokenMap.get(instruction.account.instructions[0]?.gai.value.data.parsed.info.mint)?.symbol,
                             logoURI: tokenMap.get(instruction.account.instructions[0]?.gai.value.data.parsed.info.mint)?.logoURI,
-                            amount: new BN(instructionDetails?.data?.slice(1), 'le').toNumber()/Math.pow(10, (instruction.account.instructions[0]?.gai.value.data.parsed.info.tokenAmount?.decimals || 0))
+                            amount: new BN(instructionDetails?.data?.slice(1), 'le').toNumber()/Math.pow(10, (instruction.account.instructions[0]?.gai.value.data.parsed.info.tokenAmount?.decimals || 0)),
+                            destinationAta: destinationAta
                         };
 
                         const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instruction.account.instructions[0].accounts[0].pubkey);
@@ -1686,21 +1693,30 @@ export function GovernanceProposalView(props: any){
 
                                                     {Object.values(
                                                         instructionTransferDetails.reduce((result, item) => {
-                                                            const { mint, amount, name, logoURI } = item;
+                                                            const { mint, amount, name, logoURI, destinationAta } = item;
                                                             if (!result[mint]) {
-                                                            result[mint] = { mint, totalAmount: 0, name, logoURI };
+                                                            result[mint] = { mint, totalAmount: 0, name, logoURI, uniqueDestinationAta: new Set() };
                                                             }
                                                             result[mint].totalAmount += amount;
+                                                            if (destinationAta)
+                                                                result[mint].uniqueDestinationAta.add(destinationAta);
                                                             return result;
                                                         }, {})
                                                         ).map((item) => (
                                                             <>
-                                                                <ExplorerView
-                                                                    address={item.mint} type='address' useLogo={item?.logoURI} 
-                                                                    title={`${item.totalAmount.toLocaleString()} 
-                                                                        ${item?.name || (item?.mint && trimAddress(item.mint)) || 'Explore'}
-                                                                    `} 
-                                                                    hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                                                <Grid container
+                                                                    direction="row"
+                                                                >
+                                                                    <Grid item>
+                                                                        <ExplorerView
+                                                                            address={item.mint} type='address' useLogo={item?.logoURI} 
+                                                                            title={`${item.totalAmount.toLocaleString()} 
+                                                                                ${item?.name || (item?.mint && trimAddress(item.mint)) || 'Explore'}
+                                                                                to ${item.uniqueDestinationAta.size} unique wallets
+                                                                            `} 
+                                                                            hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                                                    </Grid>
+                                                                </Grid>
                                                             </>
                                                         )
 
