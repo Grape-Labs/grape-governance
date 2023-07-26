@@ -457,7 +457,7 @@ export function Header(props: any) {
                                         size="small"
                                         id="combo-box-demo"
                                         options={governanceAutocomplete}
-                                        getOptionLabel={(option) => option.value}
+                                        getOptionLabel={(option) => option.label}
                                         renderOption={(props, option) => (
                                             <Box sx={{border:'none'}} component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                                             {option.label}

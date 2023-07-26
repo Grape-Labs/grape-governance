@@ -1378,12 +1378,12 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     
     const governanceDetails = {
         address: address,
-        totalVaultValue:totalVaultValue,
+        totalVaultValue: totalVaultValue,
         totalVaultSol: totalVaultSol,
         totalVaultSolValue: totalVaultSolValue,
         totalVaultStableCoinValue:totalVaultStableCoinValue,
         totalVaultNftValue:totalVaultNftValue,
-        vaultsInflated:vaultsInflated,
+        vaultsInflated: vaultsInflated,
         governanceVaultsString: governanceVaultsString,
         governanceVaults: rawFilteredVaults,
         memberMap: rawTokenOwnerRecords,
@@ -1397,7 +1397,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         lastProposalDate: lastpropdate,
         transactions: govTx
     }
-
+    
     return governanceDetails;
 }
 
@@ -2977,7 +2977,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             disablePortal
                             id="combo-box-demo"
                             options={governanceAutocomplete}
-                            getOptionLabel={(option) => option.value}
+                            getOptionLabel={(option) => option.label}
                             renderOption={(props, option) => (
                                 <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                                 {option.label}
