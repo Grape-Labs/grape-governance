@@ -26,11 +26,40 @@ import {
   TextField,
   Switch,
   FormControlLabel,
-  FormGroup
+  FormGroup,
+  FormControl,
+  MenuItem,
+  InputLabel,
 } from '@mui/material/';
+import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import TextareaAutosize from '@mui/base/TextareaAutosize';
 import { Title } from '@devexpress/dx-react-chart';
+
+function ProposalSelect() {
+    const [proposalType, setProposalType] = React.useState('');
+  
+    const handleChange = (event: SelectChangeEvent) => {
+      setProposalType(event.target.value as string);
+    };
+  
+    return (
+      <Box sx={{ minWidth: 120, ml:1 }}>
+        <FormControl fullWidth>
+          <InputLabel id="proposal-select-label">Proposal Type</InputLabel>
+          <Select
+            labelId="proposal-select-label"
+            id="proposal-select"
+            value={proposalType}
+            label="Proposal Type"
+            onChange={handleChange}
+          >
+            <MenuItem value={1}>Token Transfer</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
+    );
+  }
 
 export default function GovernanceCreateProposalView(props: any){
 
@@ -156,41 +185,50 @@ export default function GovernanceCreateProposalView(props: any){
                         backgroundColor:'rgba(0,0,0,0.5)', 
                         p:1,pr:3}}
                 >
-                
-                    <TextField 
-                        fullWidth 
-                        label="Title" 
-                        id="fullWidth"
-                        value={title}
-                        onChange={(e) => {
-                            if (!title || title.length < maxTitleLen)
-                                setTitle(e.target.value)
-                            }}
-                        sx={{borderRadius:'17px', maxlength:maxDescriptionLen}} 
-                    />
-                    <Grid sx={{textAlign:'right',}}>
-                    <Typography variant="caption">{title ? title.length > 0 ? maxTitleLen - title.length : maxTitleLen : maxTitleLen} characters remaining</Typography>
-                    </Grid>
-                    
-                    <TextField 
-                        fullWidth
-                        label="Description"
-                        multiline
-                        rows={4}
-                        maxRows={4}
-                        value={description}
-                        onChange={(e) => {
-                            if (!description || description.length < maxDescriptionLen)
-                                setDescription(e.target.value)
-                            }}
-                        
-                        sx={{maxlength:maxDescriptionLen}}
+                    <FormControl fullWidth>
+                        <TextField 
+                            fullWidth 
+                            label="Title" 
+                            id="fullWidth"
+                            value={title}
+                            onChange={(e) => {
+                                if (!title || title.length < maxTitleLen)
+                                    setTitle(e.target.value)
+                                }}
+                            sx={{borderRadius:'17px', maxlength:maxDescriptionLen}} 
                         />
-                    <Grid sx={{textAlign:'right',}}>
-                    <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
-                    </Grid>
+                        <Grid sx={{textAlign:'right',}}>
+                        <Typography variant="caption">{title ? title.length > 0 ? maxTitleLen - title.length : maxTitleLen : maxTitleLen} characters remaining</Typography>
+                        </Grid>
+                    </FormControl>
+
+                    <FormControl fullWidth>
+                        <TextField 
+                            fullWidth
+                            label="Description"
+                            multiline
+                            rows={4}
+                            maxRows={4}
+                            value={description}
+                            onChange={(e) => {
+                                if (!description || description.length < maxDescriptionLen)
+                                    setDescription(e.target.value)
+                                }}
+                            
+                            sx={{maxlength:maxDescriptionLen}}
+                            />
+                        <Grid sx={{textAlign:'right',}}>
+                        <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
+                        </Grid>
+                    </FormControl>
                     <br/>
-                    <FormControlLabel required control={<Switch />} label="Council Vote" />
+                    <FormControl fullWidth>
+                        <ProposalSelect />
+                    </FormControl>
+                    <br/>
+                    <FormControl fullWidth>
+                        <FormControlLabel required control={<Switch />} label="Council Vote" />
+                    </FormControl>
                 </Box>
 
             </Grid>
