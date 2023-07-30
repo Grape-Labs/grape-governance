@@ -137,9 +137,15 @@ export default function GovernanceCreateProposalView(props: any){
     return (
         <>
             <Box
-                height='100%'
-            >
-                <>
+                    sx={{
+                        mt:6,
+                        background: 'rgba(0, 0, 0, 0.6)',
+                        borderRadius: '17px',
+                        overflow: 'hidden',
+                        p:4
+                    }} 
+                > 
+            <>
 
                     {showGovernanceTitle && realmName && 
                         <Grid container>
@@ -170,68 +176,68 @@ export default function GovernanceCreateProposalView(props: any){
                         </Grid>
                     }
                 </>
+
+              <Grid 
+                  xs={12}
+                  sx={{
+                      '& .MuiTextField-root': { m: 1 },
+                      '& .MuiSwitch-root': { m: 1 }
+                  }}
+              >
+                  <Box
+                      sx={{
+                          borderRadius:'17px',
+                          backgroundColor:'rgba(0,0,0,0.2)', 
+                          p:1,pr:3,mt:2}}
+                  >
+                      <FormControl fullWidth>
+                          <TextField 
+                              fullWidth 
+                              label="Title" 
+                              id="fullWidth"
+                              value={title}
+                              onChange={(e) => {
+                                  if (!title || title.length < maxTitleLen)
+                                      setTitle(e.target.value)
+                                  }}
+                              sx={{borderRadius:'17px', maxlength:maxDescriptionLen}} 
+                          />
+                          <Grid sx={{textAlign:'right',}}>
+                          <Typography variant="caption">{title ? title.length > 0 ? maxTitleLen - title.length : maxTitleLen : maxTitleLen} characters remaining</Typography>
+                          </Grid>
+                      </FormControl>
+
+                      <FormControl fullWidth>
+                          <TextField 
+                              fullWidth
+                              label="Description"
+                              multiline
+                              rows={4}
+                              maxRows={4}
+                              value={description}
+                              onChange={(e) => {
+                                  if (!description || description.length < maxDescriptionLen)
+                                      setDescription(e.target.value)
+                                  }}
+                              
+                              sx={{maxlength:maxDescriptionLen}}
+                              />
+                          <Grid sx={{textAlign:'right',}}>
+                          <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
+                          </Grid>
+                      </FormControl>
+                      <br/>
+                      <FormControl fullWidth>
+                          <ProposalSelect />
+                      </FormControl>
+                      <br/>
+                      <FormControl fullWidth>
+                          <FormControlLabel required control={<Switch />} label="Council Vote" />
+                      </FormControl>
+                  </Box>
+
+              </Grid>
             </Box>
-
-            <Grid 
-                xs={12}
-                sx={{
-                    '& .MuiTextField-root': { m: 1 },
-                    '& .MuiSwitch-root': { m: 1 }
-                }}
-            >
-                <Box
-                    sx={{
-                        borderRadius:'17px',
-                        backgroundColor:'rgba(0,0,0,0.5)', 
-                        p:1,pr:3}}
-                >
-                    <FormControl fullWidth>
-                        <TextField 
-                            fullWidth 
-                            label="Title" 
-                            id="fullWidth"
-                            value={title}
-                            onChange={(e) => {
-                                if (!title || title.length < maxTitleLen)
-                                    setTitle(e.target.value)
-                                }}
-                            sx={{borderRadius:'17px', maxlength:maxDescriptionLen}} 
-                        />
-                        <Grid sx={{textAlign:'right',}}>
-                        <Typography variant="caption">{title ? title.length > 0 ? maxTitleLen - title.length : maxTitleLen : maxTitleLen} characters remaining</Typography>
-                        </Grid>
-                    </FormControl>
-
-                    <FormControl fullWidth>
-                        <TextField 
-                            fullWidth
-                            label="Description"
-                            multiline
-                            rows={4}
-                            maxRows={4}
-                            value={description}
-                            onChange={(e) => {
-                                if (!description || description.length < maxDescriptionLen)
-                                    setDescription(e.target.value)
-                                }}
-                            
-                            sx={{maxlength:maxDescriptionLen}}
-                            />
-                        <Grid sx={{textAlign:'right',}}>
-                        <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
-                        </Grid>
-                    </FormControl>
-                    <br/>
-                    <FormControl fullWidth>
-                        <ProposalSelect />
-                    </FormControl>
-                    <br/>
-                    <FormControl fullWidth>
-                        <FormControlLabel required control={<Switch />} label="Council Vote" />
-                    </FormControl>
-                </Box>
-
-            </Grid>
         </>
     );
 
