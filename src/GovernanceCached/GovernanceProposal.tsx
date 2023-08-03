@@ -612,7 +612,7 @@ export function GovernanceProposalView(props: any){
                             // add caching support so we do not make this call numerous times
                             const cachedMint = getObjectByMint(instruction.account.instructions[0]?.gai.value.data.parsed.info.mint);
                             
-                            console.log("cachedTokenMeta: ("+cachedMint+") "+JSON.stringify(cachedTokenMeta));
+                            //console.log("cachedTokenMeta: ("+cachedMint+") "+JSON.stringify(cachedTokenMeta));
                             
                             if (! cachedMint && !iLoading){
 
@@ -693,9 +693,10 @@ export function GovernanceProposalView(props: any){
                     {instructionRecord && 
                         <ExplorerView 
                             showSolanaProfile={false}  
-                            address={instructionRecord.data.parsed.info.mint} type='address' useLogo={tokenMap.get(instructionRecord.data.parsed.info.mint)?.logoURI} 
-                            title={`${new BN(instructionDetails?.data?.slice(1), 'le').toNumber()/Math.pow(10, (instructionRecord.data.parsed.info.tokenAmount?.decimals || 0).toLocaleString())} 
-                                ${tokenMap.get(instructionRecord.data.parsed.info.mint)?.symbol || (instructionRecord.data.parsed.info.mint && trimAddress(instructionRecord.data.parsed.info.mint)) || 'Explore'}
+                            address={instructionRecord.data.parsed.info.mint} type='address' useLogo={getObjectByMint(instruction.account.instructions[0]?.gai.value.data.parsed.info.mint)?.logo || tokenMap.get(instructionRecord.data.parsed.info.mint)?.logoURI} 
+                            title={
+                                `${new BN(instructionDetails?.data?.slice(1), 'le').toNumber()/Math.pow(10, (instructionRecord.data.parsed.info.tokenAmount?.decimals || 0).toLocaleString())} 
+                                ${getObjectByMint(instruction.account.instructions[0]?.gai.value.data.parsed.info.mint)?.name || tokenMap.get(instructionRecord.data.parsed.info.mint)?.symbol || (instructionRecord.data.parsed.info.mint && trimAddress(instructionRecord.data.parsed.info.mint)) || 'Explore'}
                             `} 
                             hideTitle={false} style='text' color='white' fontSize='12px'/>
                     }
