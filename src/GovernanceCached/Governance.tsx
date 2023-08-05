@@ -370,12 +370,12 @@ function RenderGovernanceTable(props:any) {
                                                         <Typography variant="h6">
                                                             
                                                             <Tooltip title={realm.account.config?.councilMint === item.account?.governingTokenMint?.toBase58() ?
-                                                                    <>{Number(item.account.yesVotesCount)}</>
+                                                                    <>{Number(item.account.yesVotesCount).toLocaleString()}</>
                                                                 :
                                                                 <>
                                                                         <>
                                                                         {
-                                                                        (Number(item.account.yesVotesCount)/Math.pow(10, governingTokenDecimals )).toFixed(0)
+                                                                        (Number(item.account.yesVotesCount)/Math.pow(10, governingTokenDecimals )).toFixed(0).toLocaleString()
                                                                         }</>
                                                                     
 
@@ -399,12 +399,12 @@ function RenderGovernanceTable(props:any) {
                                                             {/*console.log("vote: "+JSON.stringify(item.account))*/}
                                                             
                                                             <Tooltip title={(realm.account.config?.councilMint && new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(item.account?.governingTokenMint).toBase58()) ?
-                                                                <>{Number(item.account?.options[0].voteWeight)}</>
+                                                                <>{Number(item.account?.options[0].voteWeight).toLocaleString()}</>
                                                                 :
                                                                 
                                                                 <>
 
-                                                                            {(Number(item.account?.options[0].voteWeight)/Math.pow(10, governingTokenDecimals )).toFixed(0)}
+                                                                            {(Number(item.account?.options[0].voteWeight)/Math.pow(10, governingTokenDecimals )).toFixed(0).toLocaleString()}
                                                                             </>
 
                                                                     }
