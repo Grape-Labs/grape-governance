@@ -100,6 +100,7 @@ import {
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
+import { withTheme } from '@emotion/react';
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
 
@@ -767,7 +768,6 @@ export function GovernanceProposalView(props: any){
                                             <OwnerRecord pubkey={item.pubkey} />
                                             
                                             <Typography variant="caption">
-                                                
                                                 
                                                 ATA Account {iindex+1}: &nbsp;
                                                 {item.isWritable && <>
@@ -1808,27 +1808,21 @@ export function GovernanceProposalView(props: any){
                     </Box>
                     
                     {proposalInstructions &&
-                        <Box sx={{ mt:2,mb:2 }}>
+                        <Box 
+                            sx={{ mt:2,mb:2 }}>
                             <Accordion 
                                 expanded={expanded === 'panel'+1} 
                                 onChange={handleChange('panel'+1)}
-                                sx={{
-                                    //borderBottomLeftRadius:'17px',
-                                    //borderBottomRightRadius:'17px',
-                                    background:'rgba(0,0,0,0.25)',
-                                    }}>
+                                className="panelibh-accordion"
+                            >
                                 <AccordionSummary
-                                expandIcon={<ExpandMoreIcon />}
-                                aria-controls="panel1bh-content"
-                                id="panel1bh-header"
+                                    expandIcon={<ExpandMoreIcon />}
+                                    aria-controls="panelibh-content"
+                                    className="panelibh-header"
                                     sx={{
-                                        border:'none'
+                                        border:'none',
                                     }}
                                 >
-
-
-
-
                                     <Typography sx={{ flexShrink: 0 }}>
                                         Instructions 
                                     </Typography>
@@ -1837,7 +1831,6 @@ export function GovernanceProposalView(props: any){
                                     
                                 </AccordionSummary>
                                 <AccordionDetails>
-                                    
                                     <Box>
                                         {(instructionTransferDetails && instructionTransferDetails.length > 0) &&
                                             <Box
@@ -1891,7 +1884,7 @@ export function GovernanceProposalView(props: any){
                                             <InstructionView instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
                                         ))}
                                     </Timeline>
-                            </AccordionDetails>
+                                </AccordionDetails>
                             </Accordion>
                         </Box>
                     }
