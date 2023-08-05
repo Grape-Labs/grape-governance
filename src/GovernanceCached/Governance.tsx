@@ -401,13 +401,11 @@ function RenderGovernanceTable(props:any) {
                                                             <Tooltip title={(realm.account.config?.councilMint && new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(item.account?.governingTokenMint).toBase58()) ?
                                                                 <>{Number(Number(item.account?.options[0].voteWeight)).toLocaleString()}</>
                                                                 :
-                                                                
                                                                 <>
+                                                                    {Number((Number(item.account?.options[0].voteWeight)/Math.pow(10, governingTokenDecimals )).toFixed(0)).toLocaleString()}
+                                                                </>
 
-                                                                            {Number((Number(item.account?.options[0].voteWeight)/Math.pow(10, governingTokenDecimals )).toFixed(0)).toLocaleString()}
-                                                                            </>
-
-                                                                    }
+                                                                }
                                                             >
                                                                 <Button sx={{color:'white',borderRadius:'17px',textTransform:'none'}}>
                                                                     {Number(item.account?.options[0].voteWeight) > 0 ?
@@ -456,10 +454,7 @@ function RenderGovernanceTable(props:any) {
                                                                         <>{Number(item.account.noVotesCount).toLocaleString()}</>
                                                                     :
                                                                     <>
-                                                                            <>
-                                                                            {Number((Number(item.account.noVotesCount)/Math.pow(10, governingTokenDecimals )).toFixed(0)).toLocaleString()}</>
-                                                                        
-
+                                                                        <>{Number((Number(item.account.noVotesCount)/Math.pow(10, governingTokenDecimals )).toFixed(0)).toLocaleString()}</>
                                                                     </>
                                                                     }
                                                                 >
@@ -481,11 +476,11 @@ function RenderGovernanceTable(props:any) {
                                                         <Typography variant="h6">
                                                             <Tooltip title={Number(item.account?.denyVoteWeight) <= 1 ?
                                                                 <>
-                                                                    {Number(item.account?.denyVoteWeight)}
+                                                                    {Number(item.account?.denyVoteWeight).toLocaleString()}
                                                                 </>
                                                                 :
                                                                 <>
-                                                                    {(Number(item.account?.denyVoteWeight)/Math.pow(10, governingTokenDecimals )).toFixed(0)}
+                                                                    {Number((Number(item.account?.denyVoteWeight)/Math.pow(10, governingTokenDecimals )).toFixed(0)).toLocaleString()}
                                                                 </>
                                                                 }
                                                             >
