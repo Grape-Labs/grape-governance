@@ -453,11 +453,11 @@ function RenderGovernanceTable(props:any) {
                                                             <Typography variant="h6">
                                                                 
                                                                 <Tooltip title={realm.account.config?.councilMint === item.account?.governingTokenMint?.toBase58() ?
-                                                                        <>{Number(item.account.noVotesCount)}</>
+                                                                        <>{Number(item.account.noVotesCount).toLocaleString()}</>
                                                                     :
                                                                     <>
                                                                             <>
-                                                                            {(Number(item.account.noVotesCount)/Math.pow(10, governingTokenDecimals )).toFixed(0)}</>
+                                                                            {Number((Number(item.account.noVotesCount)/Math.pow(10, governingTokenDecimals )).toFixed(0)).toLocaleString()}</>
                                                                         
 
                                                                     </>
