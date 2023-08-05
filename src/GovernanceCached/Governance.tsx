@@ -426,11 +426,11 @@ function RenderGovernanceTable(props:any) {
                                                             {/*console.log("vote: "+JSON.stringify(item.account))*/}
                                                             <Tooltip title={tokenMap.get(item.account.governingTokenMint.toBase58()) ?
                                                                 <>
-                                                                {(Number(item.account?.options[0].voterWeight)/Math.pow(10, governingTokenDecimals )).toFixed(0)}
+                                                                {Number((Number(item.account?.options[0].voterWeight)/Math.pow(10, governingTokenDecimals )).toFixed(0)).toLocaleString()}
                                                                 </>
                                                                 :
                                                                 <>
-                                                                    {Number(item.account?.options[0].voterWeight)}
+                                                                    {Number(item.account?.options[0].voterWeight).toLocaleString()}
                                                                 </>
                                                                 }
                                                             >
