@@ -181,6 +181,16 @@ function GovernanceCardView(props:any) {
                         :<></>
                     }
 
+                    {item?.totalVaultSolValue?
+                        <>{item.totalVaultStableCoinValue > 1 ?
+                        <Typography variant="body2">
+                            <>Treasury in Solana <strong>{getFormattedNumberToLocale(Number(item.totalVaultSolValue).toFixed(2))} SOL</strong></>
+                        </Typography>
+                        :<></>}
+                        </>
+                        :<></>
+                    }
+
                     {item?.totalVaultNftValue?
                         <>{item.totalVaultStableCoinValue > 1 ?
                         <Typography variant="body2">
