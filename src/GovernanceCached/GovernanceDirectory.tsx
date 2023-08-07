@@ -18,7 +18,13 @@ import {
     linearProgressClasses,
     Fab,
     Fade,
-    useScrollTrigger
+    useScrollTrigger,
+    TableContainer,
+    Table,
+    TableBody,
+    TableRow,
+    TableCell,
+    Paper,
 } from '@mui/material/';
 
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -161,64 +167,91 @@ function GovernanceCardView(props:any) {
                     }}
                 >
 
-                    {item?.totalVaultValue?
-                        <>{item.totalVaultValue > 1 ?
-                        <Typography variant="body2">
-                            <>Treasury <strong>{getFormattedNumberToLocale(Number(item.totalVaultValue).toFixed(2))} USD</strong></>
-                        </Typography>
-                        :<></>}
-                        </>
-                        :<></>
-                    }
-
-                    {item?.totalVaultStableCoinValue?
-                        <>{item.totalVaultStableCoinValue > 1 ?
-                        <Typography variant="body2">
-                            <>Treasury in Stable Coin <strong>{getFormattedNumberToLocale(Number(item.totalVaultStableCoinValue).toFixed(2))} USD</strong></>
-                        </Typography>
-                        :<></>}
-                        </>
-                        :<></>
-                    }
-
-                    {item?.totalVaultSolValue?
-                        <>{item.totalVaultSolValue > 100 ?
-                        <Typography variant="body2">
-                            <>Treasury in Solana <strong>{getFormattedNumberToLocale(Number(item.totalVaultSolValue).toFixed(2))} USD</strong></>
-                        </Typography>
-                        :<></>}
-                        </>
-                        :<></>
-                    }
-
-                    {item?.totalVaultNftValue?
-                        <>{item.totalVaultStableCoinValue > 1 ?
-                        <Typography variant="body2">
-                            <>Treasury NFT Floor Price <strong>{getFormattedNumberToLocale(Number(item.totalVaultNftValue).toFixed(2))} USD</strong></>
-                        </Typography>
-                        :<></>}
-                        </>
-                        :<></>
-                    }
-
-                    {(item.totalMembers && item.totalMembers > 0) &&
-                        <Typography variant="body2">
-                            <>All Time Members <strong>{item.totalMembers}</strong></>
-                        </Typography>
-                    }
-                    <Typography variant="body2">
-                        {item?.totalProposals &&
-                            <>Total Proposals <strong>{item.totalProposals}</strong>
-                                {item?.totalCouncilProposals ?
-                                    <>{item.totalCouncilProposals > 0 &&
-                                        <><br/>{item.totalProposals - item.totalCouncilProposals} community / {item.totalCouncilProposals} council</>
+                    <TableContainer>
+                        <Table size="small" aria-label="dense table">
+                            <TableBody>
+                                
+                                    {item?.totalVaultValue?
+                                        <>{item.totalVaultValue > 1 ?
+                                            <TableRow>
+                                                <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}><strong>Treasury</strong></TableCell>
+                                                <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}><strong>{getFormattedNumberToLocale(Number(item.totalVaultValue).toFixed(2))} USD</strong></TableCell>
+                                            </TableRow>
+                                        :<></>}
+                                        </>
+                                        :<></>
                                     }
-                                    </>
-                                    :<></>
-                                }
-                            </>
-                        }
-                        <br />
+
+                                    {item?.totalVaultStableCoinValue?
+                                        <>{item.totalVaultStableCoinValue > 1 ?
+                                            <TableRow>
+                                                <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>Treasury in Stable Coin</TableCell>
+                                                <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>{getFormattedNumberToLocale(Number(item.totalVaultStableCoinValue).toFixed(2))} USD</TableCell>
+                                            </TableRow>
+                                        :<></>}
+                                        </>
+                                        :<></>
+                                    }
+
+                                    {item?.totalVaultSolValue?
+                                        <>{item.totalVaultSolValue > 100 ?
+                                            <TableRow>
+                                                <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>Treasury in Solana</TableCell>
+                                                <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>{getFormattedNumberToLocale(Number(item.totalVaultSolValue).toFixed(2))} USD</TableCell>
+                                            </TableRow>
+                                        :<></>}
+                                        </>
+                                        :<></>
+                                    }
+
+                                    {item?.totalVaultNftValue?
+                                        <>{item.totalVaultNftValue > 1 ?
+                                            <TableRow>
+                                                <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>Treasury NFT Floor Price</TableCell>
+                                                <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>{getFormattedNumberToLocale(Number(item.totalVaultNftValue).toFixed(2))} USD</TableCell>
+                                            </TableRow>
+                                        :<></>}
+                                        </>
+                                        :<></>
+                                    }
+
+                                    {item?.totalMembers?
+                                        <>{item.totalMembers > 0 ?
+                                            <TableRow>
+                                                <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>All Time Members</TableCell>
+                                                <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>{(Number(item.totalMembers).toLocaleString())}</TableCell>
+                                            </TableRow>
+                                        :<></>}
+                                        </>
+                                        :<></>
+                                    }
+
+                                    {item?.totalProposals?
+                                        <>{item.totalProposals > 0 ?
+                                            <>
+                                            <TableRow>
+                                                <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>All Proposals</TableCell>
+                                                <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>{(Number(item.totalProposals).toLocaleString())}</TableCell>
+                                            </TableRow>
+
+                                            {item?.totalCouncilProposals ?
+                                                <TableRow>{item.totalCouncilProposals > 0 &&
+                                                    <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}} colSpan={2}>{item.totalProposals - item.totalCouncilProposals} community / {item.totalCouncilProposals} council</TableCell>
+                                                }
+                                                </TableRow>
+                                                :<></>
+                                            }
+                                            </>
+                                        :<></>}
+                                        </>
+                                        :<></>
+                                    }
+
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
+                    <Typography variant="caption">
                         {item?.lastProposalDate &&
                             <Tooltip title={
                                 <> {moment.unix(Number("0x"+item.lastProposalDate)).format("MMMM D, YYYY, h:mm a") }</>
