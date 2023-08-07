@@ -184,7 +184,7 @@ function GovernanceCardView(props:any) {
                     {item?.totalVaultSolValue?
                         <>{item.totalVaultSolValue > 1 ?
                         <Typography variant="body2">
-                            <>Treasury in Solana <strong>{getFormattedNumberToLocale(Number(item.totalVaultSolValue).toFixed(2))} SOL</strong></>
+                            <>Treasury in Solana <strong>{getFormattedNumberToLocale(Number(item.totalVaultSolValue).toFixed(2))} USD</strong></>
                         </Typography>
                         :<></>}
                         </>
