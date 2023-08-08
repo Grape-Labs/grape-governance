@@ -95,11 +95,11 @@ const VotesLinearProgress = styled(LinearProgress)(({ theme }) => ({
     height: 10,
     borderRadius: '17px',
     [`&.${linearProgressClasses.colorPrimary}`]: {
-      backgroundColor: theme.palette.grey[theme.palette.mode === 'light' ? 200 : 800],
+      backgroundColor: theme.palette.mode === 'light' ? '#EC7063' : 'rgba(176, 58, 46,0.4)',
     },
     [`& .${linearProgressClasses.bar}`]: {
       borderRadius: '0px',
-      backgroundColor: theme.palette.mode === 'light' ? '#1a90ff' : '#52BE80',
+      backgroundColor: theme.palette.mode === 'light' ? '#52BE80' : '#52BE80',
     },
   }));
 
