@@ -514,7 +514,7 @@ function RenderGovernanceTable(props:any) {
                                                     <GovernanceProposalDialog governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                                 </TableCell>
                                             </TableRow>
-                                            {item.account?.state === 2 &&
+                                            {(item.account?.options[0].voteWeight && item.account?.state === 2) ?
                                                 <TableRow sx={{border:'none!important'}}>
                                                     <TableCell colSpan={6}>
                                                         <Box sx={{ width: '100%' }}>
@@ -522,6 +522,7 @@ function RenderGovernanceTable(props:any) {
                                                         </Box>
                                                     </TableCell>
                                                 </TableRow>
+                                            :<></>}
                                             }
                                                 
                                         </>
