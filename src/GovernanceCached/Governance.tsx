@@ -523,7 +523,6 @@ function RenderGovernanceTable(props:any) {
                                                     </TableCell>
                                                 </TableRow>
                                             :<></>}
-                                            }
                                                 
                                         </>
                                     }
