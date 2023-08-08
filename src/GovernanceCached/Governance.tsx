@@ -91,6 +91,19 @@ const StyledTable = styled(Table)(({ theme }) => ({
     },
 }));
 
+const VotesLinearProgress = styled(LinearProgress)(({ theme }) => ({
+    height: 10,
+    borderRadius: '17px',
+    [`&.${linearProgressClasses.colorPrimary}`]: {
+      backgroundColor: theme.palette.grey[theme.palette.mode === 'light' ? 200 : 800],
+    },
+    [`& .${linearProgressClasses.bar}`]: {
+      borderRadius: '0px',
+      backgroundColor: theme.palette.mode === 'light' ? '#1a90ff' : '#52BE80',
+    },
+  }));
+
+
 export interface DialogTitleProps {
     id: string;
     children?: React.ReactNode;
@@ -389,7 +402,7 @@ function RenderGovernanceTable(props:any) {
                                                                         </>
                                                                     :
                                                                     <>0%</>
-        }
+                                                                    }
                                                                 </Button>
                                                             </Tooltip>
                                                         </Typography>
@@ -414,7 +427,7 @@ function RenderGovernanceTable(props:any) {
                                                                     </>
                                                                     :
                                                                     <>0%</>
-        }
+                                                            }
                                                                 </Button>
                                                             </Tooltip>
                                                         </Typography>
@@ -439,7 +452,7 @@ function RenderGovernanceTable(props:any) {
                                                                     </>
                                                                     :
                                                                     <>0%</>
-        }
+                                                            }
                                                                 </Button>
                                                             </Tooltip>
                                                         </Typography>
@@ -465,7 +478,7 @@ function RenderGovernanceTable(props:any) {
                                                                         </>
                                                                         :
                                                                         <>0%</>
-            }
+                                                                    }
                                                                     </Button>
                                                                 </Tooltip>
                                                             </Typography>
@@ -501,6 +514,16 @@ function RenderGovernanceTable(props:any) {
                                                     <GovernanceProposalDialog governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                                 </TableCell>
                                             </TableRow>
+                                            {item.account?.state === 2 &&
+                                                <TableRow sx={{border:'none!important'}}>
+                                                    <TableCell colSpan={6}>
+                                                        <Box sx={{ width: '100%' }}>
+                                                            <VotesLinearProgress variant="determinate" value={(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100)} />
+                                                        </Box>
+                                                    </TableCell>
+                                                </TableRow>
+                                            }
+                                                
                                         </>
                                     }
                                 </>

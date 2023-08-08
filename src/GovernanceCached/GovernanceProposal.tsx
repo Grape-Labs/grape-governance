@@ -200,7 +200,9 @@ export function GovernanceProposalView(props: any){
     const [hasVotedVotes, setHasVotedVotes] = React.useState(0);
     const [cachedTokenMeta, setCachedTokenMeta] = React.useState([{mint: "A6GComqUgUZ7mTqZcDrgnigPEdYDcw5yCumbHaaQxVKK", logo: "https://arweave.net/4-3-xg9otuhR3BZ72MVk6-QB0tqBZAniXfsvAawEdHI", name: "VINE"}]);
     //const cachedTokenMeta = new Array();
-
+    const [castedYesVotes, setCastedYesVotes] = React.useState(null);
+    const [excessVotes, setExcessVotes] = React.useState(null);
+    
     const handleCopyClick = () => {
         enqueueSnackbar(`Copied!`,{ variant: 'success' });
     };
@@ -410,10 +412,15 @@ export function GovernanceProposalView(props: any){
                     setTotalQuorum(totalVotes);
                 
                 const qt = totalVotes-Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals);
+                
+                // we may need to adjust this for realtime quorum calculating
                 const yesVotes = Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals);
                 
                 const excess = yesVotes - totalVotes;
                 
+                setCastedYesVotes(yesVotes);
+                setExcessVotes(excess);
+
                 if (excess > 0){
                     setExceededQuorum(excess);
                     setExceededQuorumPercentage(excess/totalVotes*100);
