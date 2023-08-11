@@ -275,7 +275,7 @@ function RenderGovernanceTable(props:any) {
         
         return (
             <>
-                <TableCell  align="center">
+                <TableCell  align="center" sx={{borderBottom:'none!important'}}>
                     <Typography variant="h6">
                         <Tooltip title={
                             <>
@@ -369,10 +369,10 @@ function RenderGovernanceTable(props:any) {
                                     {item?.pubkey && item?.account &&
                                         <>
                                             <TableRow key={index} sx={{borderBottom:"none"}}>
-                                                <TableCell>
+                                                <TableCell sx={{borderBottom:'none!important'}}>
                                                     <GovernanceProposalDialog governanceType={governanceType} isCouncil={realm.account.config?.councilMint === new PublicKey(item.account?.governingTokenMint).toBase58()} state={item.account?.state} title={item.account?.name} description={item.account?.descriptionLink} governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={(cachedGovernance !== proposals) ? proposals : cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                                 </TableCell>
-                                                <TableCell>
+                                                <TableCell sx={{borderBottom:'none!important'}}>
                                                     <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
                                                         {`${item.account?.draftAt ? (moment.unix(Number((item.account?.draftAt))).format("MMM D, YYYY, h:mm a")) : `-`}`}
                                                     </Typography>
@@ -383,13 +383,13 @@ function RenderGovernanceTable(props:any) {
                                                     <>
                                                         <TableCell 
                                                             colSpan={2}
-                                                            sx={{textAlign:'center'}}>Multiple Choice Poll
+                                                            sx={{textAlign:'center',borderBottom:'none!important'}}>Multiple Choice Poll
                                                         </TableCell>
                                                     </>
                                                 :
                                                     <>
                                                 
-                                                    <TableCell>
+                                                    <TableCell sx={{borderBottom:'none!important'}}>
                                                         {item.account.yesVotesCount ?
                                                             <Typography variant="h6">
                                                                 
@@ -469,7 +469,7 @@ function RenderGovernanceTable(props:any) {
                                                             </Typography>
                                                         }
                                                     </TableCell>
-                                                    <TableCell>
+                                                    <TableCell sx={{borderBottom:'none!important'}}>
 
                                                         {item.account.noVotesCount &&
                                                                 <Typography variant="h6">
@@ -523,7 +523,7 @@ function RenderGovernanceTable(props:any) {
                                                     </>
                                                 }
                                                 <GetProposalStatus item={item} cachedGovernance={cachedGovernance} />
-                                                <TableCell align="center">
+                                                <TableCell align="center" sx={{borderBottom:'none!important'}}>
                                                     <GovernanceProposalDialog governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                                 </TableCell>
                                             </TableRow>
