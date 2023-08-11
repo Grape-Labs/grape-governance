@@ -83,6 +83,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import BallotIcon from '@mui/icons-material/Ballot';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -280,9 +281,26 @@ export function GovernanceProposalView(props: any){
                                     <ThumbDownIcon fontSize='small' sx={{color:'red',ml:1}}/>
                                 }
                                 label={params.value?.voterWeight > 1 ?
-                                    `${getFormattedNumberToLocale(formatAmount(+(Number(params.value.voterWeight)/Math.pow(10, +params.value.decimals)).toFixed(0)))} votes` 
+                                    <>
+                                    {getFormattedNumberToLocale(formatAmount(+(Number(params.value.voterWeight)/Math.pow(10, +params.value.decimals)).toFixed(0)))} votes
+                                    {params.value?.multipleChoice ?
+                                        <> <BallotIcon fontSize='small' sx={{ml:1,verticalAlign:'middle'}} />: 
+                                            {params.value?.multipleChoice.map((item: any, index:number) => (
+                                                <>
+                                                    {item.weightPercentage > 0 ?
+                                                        <> {index+1} </>
+                                                    :<></>
+                                                    }
+                                                </>
+                                            ))
+                                            }
+                                        </>
+                                        :
+                                        <></>
+                                    }
+                                    </>
                                     :
-                                    `${getFormattedNumberToLocale(formatAmount(+(Number(params.value.voterWeight)/Math.pow(10, +params.value.decimals)).toFixed(0)))} vote` 
+                                    <>{getFormattedNumberToLocale(formatAmount(+(Number(params.value.voterWeight)/Math.pow(10, +params.value.decimals)).toFixed(0)))} vote</>
                                 }
                             />
                         :
@@ -910,7 +928,7 @@ export function GovernanceProposalView(props: any){
                 
                 let instructions = null;
                 if (thisitem.account.state === 2 && !thisitem?.instructions){
-                    console.log("We are here... !!!!!")
+                    //console.log("We are here... !!!!!")
                     if (thisitem.pubkey){
                         instructions = await getGovernanceAccounts(
                             connection,
@@ -1012,11 +1030,15 @@ export function GovernanceProposalView(props: any){
         let uNo = 0;
         let castedYes = 0;
         let castedNo = 0;
+
+
         if (voteResults){
             let counter = 0;
             for (let item of voteResults){
+
                 counter++;
                 //console.log("counter: "+counter);
+                //console.log("voter item: "+JSON.stringify(item));
                 if (!from_cache){
                     let voterVotes = 0;
                     if (item.account?.vote){
@@ -1049,6 +1071,10 @@ export function GovernanceProposalView(props: any){
                         }
                     }
 
+                    var multipleChoice = null;
+                    if (item.account?.vote?.approveChoices && item.account?.vote?.approveChoices !== 'undefined' && item.account?.vote?.approveChoices.length > 1)
+                        multipleChoice = item.account?.vote?.approveChoices;
+
                     votingResults.push({
                         id:counter,
                         pubkey:item.pubkey.toBase58(),
@@ -1071,7 +1097,8 @@ export function GovernanceProposalView(props: any){
                             legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
                             decimals:td,
                             councilMint: realm.account?.config?.councilMint ? new PublicKey(realm.account?.config?.councilMint).toBase58() : null,
-                            governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
+                            governingTokenMint:thisitem.account.governingTokenMint?.toBase58(),
+                            multipleChoice: multipleChoice
                         }
                     })
                 } else {   
@@ -1092,6 +1119,12 @@ export function GovernanceProposalView(props: any){
                             uNo++;
                         }
                     }
+                    
+                    var multipleChoice = null;
+                    if (item.vote?.vote?.approveChoices && item.vote?.vote?.approveChoices !== 'undefined' && item.vote?.vote?.approveChoices.length > 1)
+                        multipleChoice = item.vote?.vote?.approveChoices;
+
+                    //console.log("multipleChoice: "+JSON.stringify(multipleChoice));
 
                     votingResults.push({
                         id:counter,
@@ -1115,7 +1148,8 @@ export function GovernanceProposalView(props: any){
                             legacyNo:(item.vote.legacyNo ?  (item.vote.legacyNo) : null),
                             decimals:td,
                             councilMint:(realm.account.config?.councilMint ? new PublicKey(realm.account.config?.councilMint).toBase58() : null),
-                            governingTokenMint:thisitem.vote?.governingTokenMint.toBase58() 
+                            governingTokenMint:thisitem.vote?.governingTokenMint.toBase58(),
+                            multipleChoice: multipleChoice
                         }
                     });
                         
@@ -1175,8 +1209,6 @@ export function GovernanceProposalView(props: any){
 
         //setTotalQuorum(castedYes);
 
-
-        
         //console.log("tSupply "+tSupply+"*"+voteThresholdPercentage+"*0.01*"+ (Number(supplyFractionPercentage) / 100))
 
         //console.log("totalQuorum: "+totalVotes)
@@ -1930,7 +1962,7 @@ export function GovernanceProposalView(props: any){
                                                             </Avatar>
                                                         </ListItemAvatar>
                                                         <ListItemText
-                                                            primary={mitem.label}
+                                                            primary={mindex+1 + ': ' + mitem.label}
                                                             secondary={(typeof mitem.voteWeight === "string" && /^[0-9A-Fa-f]+$/.test(mitem.voteWeight)) ?  
                                                                 Number(Number(parseInt(mitem.voteWeight,16) / Math.pow(10, tokenDecimals)).toFixed(0)).toLocaleString()
                                                                 : 
