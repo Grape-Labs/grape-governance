@@ -203,6 +203,7 @@ export function GovernanceProposalView(props: any){
     const [loadingParticipants, setLoadingParticipants] = React.useState(false);
     const [forVotes, setForVotes] = React.useState(0);
     const [againstVotes, setAgainstVotes] = React.useState(0);
+    const [multiVoteSentiment, setMultiVoteSentiment] = React.useState(null);
     const [hasVoted, setHasVoted] = React.useState(false);
     const [hasVotedVotes, setHasVotedVotes] = React.useState(0);
     const [cachedTokenMeta, setCachedTokenMeta] = React.useState([{mint: "A6GComqUgUZ7mTqZcDrgnigPEdYDcw5yCumbHaaQxVKK", logo: "https://arweave.net/4-3-xg9otuhR3BZ72MVk6-QB0tqBZAniXfsvAawEdHI", name: "VINE"}]);
@@ -1031,6 +1032,7 @@ export function GovernanceProposalView(props: any){
         let castedYes = 0;
         let castedNo = 0;
 
+        let mVoteSentiment = new Array();
 
         if (voteResults){
             let counter = 0;
@@ -1072,8 +1074,23 @@ export function GovernanceProposalView(props: any){
                     }
 
                     var multipleChoice = null;
-                    if (item.account?.vote?.approveChoices && item.account?.vote?.approveChoices !== 'undefined' && item.account?.vote?.approveChoices.length > 1)
+                    if (item.account?.vote?.approveChoices && item.account?.vote?.approveChoices !== 'undefined' && item.account?.vote?.approveChoices.length > 1){
                         multipleChoice = item.account?.vote?.approveChoices;
+                        
+                        var multiItem = 0;
+                        if (!mVoteSentiment){
+                            mVoteSentiment = new Array(multipleChoice.length).fill(0);
+                        }
+
+                        for (var mcitem of multipleChoice){
+                            if (mcitem.weightPercentage > 0){
+                                if (!mVoteSentiment[multiItem]) mVoteSentiment[multiItem] = 0;
+                                mVoteSentiment[multiItem]++;
+                            }
+
+                            multiItem++;
+                        }
+                    }
 
                     votingResults.push({
                         id:counter,
@@ -1121,9 +1138,23 @@ export function GovernanceProposalView(props: any){
                     }
                     
                     var multipleChoice = null;
-                    if (item.vote?.vote?.approveChoices && item.vote?.vote?.approveChoices !== 'undefined' && item.vote?.vote?.approveChoices.length > 1)
+                    if (item.vote?.vote?.approveChoices && item.vote?.vote?.approveChoices !== 'undefined' && item.vote?.vote?.approveChoices.length > 1){
                         multipleChoice = item.vote?.vote?.approveChoices;
 
+                        var multiItem = 0;
+                        if (!mVoteSentiment){
+                            mVoteSentiment = new Array(multipleChoice.length).fill(0);
+                        }
+
+                        for (var mcitem of multipleChoice){
+                            if (mcitem.weightPercentage > 0){
+                                if (!mVoteSentiment[multiItem]) mVoteSentiment[multiItem] = 0;
+                                mVoteSentiment[multiItem]++;
+                            }
+
+                            multiItem++;
+                        }
+                    }
                     //console.log("multipleChoice: "+JSON.stringify(multipleChoice));
 
                     votingResults.push({
@@ -1206,6 +1237,8 @@ export function GovernanceProposalView(props: any){
 
         setForVotes(castedYes);
         setAgainstVotes(castedNo);
+
+        setMultiVoteSentiment(mVoteSentiment);
 
         //setTotalQuorum(castedYes);
 
@@ -1963,10 +1996,16 @@ export function GovernanceProposalView(props: any){
                                                         </ListItemAvatar>
                                                         <ListItemText
                                                             primary={mindex+1 + ': ' + mitem.label}
-                                                            secondary={(typeof mitem.voteWeight === "string" && /^[0-9A-Fa-f]+$/.test(mitem.voteWeight)) ?  
+                                                            secondary={
+                                                                <>{
+                                                                (typeof mitem.voteWeight === "string" && /^[0-9A-Fa-f]+$/.test(mitem.voteWeight)) ?  
                                                                 Number(Number(parseInt(mitem.voteWeight,16) / Math.pow(10, tokenDecimals)).toFixed(0)).toLocaleString()
                                                                 : 
                                                                 Number(Number(mitem.voteWeight / Math.pow(10, tokenDecimals)).toFixed(0)).toLocaleString()
+                                                                }
+                                                                <>{(multiVoteSentiment && multiVoteSentiment[mindex]) ? ` - Voter Sentiment ${multiVoteSentiment[mindex]}` : <></>}</>
+                                                                </>
+                                                                
                                                             }
                                                         />
                                                     </ListItem>
