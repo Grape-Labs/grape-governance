@@ -1807,6 +1807,21 @@ export function GovernanceProposalView(props: any){
                                             </Button>
                                         </Tooltip>
                                 </CopyToClipboard>
+                                
+                                <Tooltip title={`Visit  ${realmName} on Realms`}>
+                                    <Button 
+                                        aria-label="back"
+                                        href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`}
+                                        sx={{
+                                            borderTopLeftRadius:'17px',
+                                            borderBottomLeftRadius:'17px',
+                                            borderColor:'rgba(255,255,255,0.05)',
+                                            fontSize:'10px'}}
+                                    >
+                                        <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
+                                    </Button>
+                                </Tooltip>
+                                
                                 </ButtonGroup>
                             </Grid>
                         </Grid>
@@ -1814,7 +1829,10 @@ export function GovernanceProposalView(props: any){
                         <Grid container>
                             <Grid item xs={12} container justifyContent="flex-start">
                                 
-                            
+                                <ButtonGroup    
+                                    variant="outlined" 
+                                    color='inherit'
+                                >
                                 <CopyToClipboard 
                                         text={`https://spl-gov.vercel.app/proposal/${governanceAddress}/${proposalPk}`} 
                                         onCopy={handleCopyClick}
@@ -1833,6 +1851,20 @@ export function GovernanceProposalView(props: any){
                                             </Button>
                                         </Tooltip>
                                 </CopyToClipboard>
+
+                                <Tooltip title={`Visit  ${realmName} on Realms`}>
+                                    <Button 
+                                        aria-label="back"
+                                        href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`}
+                                        sx={{
+                                            borderRadius:'17px',
+                                            borderColor:'rgba(255,255,255,0.05)',
+                                            fontSize:'10px'}}
+                                    >
+                                        <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
+                                    </Button>
+                                </Tooltip>
+                                </ButtonGroup>
                             </Grid>
                         </Grid>                       
                     }
