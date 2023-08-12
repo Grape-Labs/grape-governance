@@ -245,17 +245,25 @@ export function GovernanceProposalView(props: any){
             renderCell: (params) => {
                 return(
                     <>
-                        {totalQuorum && params.value.voterWeight ?
+                        {totalQuorum && totalQuorum > 1 ?
                             <>
-                            {(((parseInt(params.value.voterWeight)/Math.pow(10, params.value.decimals))/totalQuorum)*100).toFixed(2)} % 
+                                {params.value.voterWeight ?
+                                    <>
+                                    {(((parseInt(params.value.voterWeight)/Math.pow(10, params.value.decimals))/totalQuorum)*100).toFixed(2)} % 
+                                    </>
+                                :
+                                    <>
+                                    {(params.value.legacyYes && params.value.legacyYes > 0) ?
+                                        `${(((parseInt(params.value.legacyYes)/Math.pow(10, params.value.decimals))/totalQuorum)*100).toFixed(2)} %`
+                                    :
+                                        `${(((parseInt(params.value.legacyNo)/Math.pow(10, params.value.decimals))/totalQuorum)*100).toFixed(2)} %`
+                                    }
+                                    </>
+                                }
                             </>
-                        :
-                            <>
-                            {(params.value.legacyYes && params.value.legacyYes > 0) ?
-                                `${(((parseInt(params.value.legacyYes)/Math.pow(10, params.value.decimals))/totalQuorum)*100).toFixed(2)} %`
                             :
-                                `${(((parseInt(params.value.legacyNo)/Math.pow(10, params.value.decimals))/totalQuorum)*100).toFixed(2)} %`
-                            }
+                            <>
+                                -
                             </>
                         }
                         
@@ -432,6 +440,13 @@ export function GovernanceProposalView(props: any){
                 //console.log("supply: "+governingMintDetails.value.data.parsed.info.supply);
                 //console.log("voteThresholdPercentage: "+(voteThresholdPercentage * 0.01))
                 //console.log("supplyFractionPercentage: "+(Number(supplyFractionPercentage) / 100))
+                
+                //console.log("Quorum: "+totalVotes);
+                //console.log("tSupply: "+tSupply);
+                //console.log("voteThresholdPercentage: "+voteThresholdPercentage/100);
+                //console.log("supplyFractionPercentage: "+(Number(supplyFractionPercentage) / 100));
+                //console.log("quorum Council: "+(tSupply  * (voteThresholdPercentage / 100)))
+                //console.log("quorum Community: "+(tSupply  * (voteThresholdPercentage / 100) * (Number(supplyFractionPercentage) / 100)))
                 
                 if (totalVotes && totalVotes > 0)
                     setTotalQuorum(totalVotes);

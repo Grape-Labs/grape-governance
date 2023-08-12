@@ -46,7 +46,7 @@ function ProposalSelect() {
     return (
       <Box sx={{ minWidth: 120, ml:1 }}>
         <FormControl fullWidth>
-          <InputLabel id="proposal-select-label">Proposal Type</InputLabel>
+          <InputLabel id="proposal-select-label">Proposal Instructions</InputLabel>
           <Select
             labelId="proposal-select-label"
             id="proposal-select"
@@ -54,7 +54,9 @@ function ProposalSelect() {
             label="Proposal Type"
             onChange={handleChange}
           >
+            <MenuItem value={0}>None</MenuItem>
             <MenuItem value={1}>Token Transfer</MenuItem>
+            <MenuItem value={2}>Swap</MenuItem>
           </Select>
         </FormControl>
       </Box>
@@ -229,6 +231,10 @@ export default function GovernanceCreateProposalView(props: any){
                       <br/>
                       <FormControl fullWidth>
                           <ProposalSelect />
+                      </FormControl>
+                      <br/>
+                      <FormControl fullWidth>
+                          <FormControlLabel required control={<Switch />} label="Multiple Choice Vote" />
                       </FormControl>
                       <br/>
                       <FormControl fullWidth>
