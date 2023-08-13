@@ -35,10 +35,15 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import TextareaAutosize from '@mui/base/TextareaAutosize';
 import { Title } from '@devexpress/dx-react-chart';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import GitHubIcon from '@mui/icons-material/GitHub';
 
 export default function GovernanceCreateProposalView(props: any){
-
+    const [searchParams, setSearchParams] = useSearchParams();
+    const {handlekey} = useParams<{ handlekey: string }>();
+    const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
+    
+    const governanceAddress = urlParams;
     const showGovernanceTitle = true;
     const realmName = 'Test';
     const [title, setTitle] = React.useState(null);
@@ -112,7 +117,7 @@ export default function GovernanceCreateProposalView(props: any){
             <Select
               labelId="governance-select-label"
               id="proposal-select"
-              value={proposalType}
+              value={governanceWallet}
               label="Governance"
               onChange={handleGovernanceWalletChange}
             >
@@ -188,6 +193,8 @@ export default function GovernanceCreateProposalView(props: any){
         );
       }
 
+
+
     
     return (
         <>
@@ -212,20 +219,37 @@ export default function GovernanceCreateProposalView(props: any){
                                         </Typography>
                                     </Grid>
                                     
-                                    {/*
+                                    
                                     <Grid item xs={12}>
+                                      <ButtonGroup    
+                                          variant="outlined" 
+                                          color='inherit'
+                                      >
                                         <Button
-                                            size='small'
-                                            sx={{color:'white', borderRadius:'17px'}}
-                                            href={`https://realms.today/dao/${governanceAddress}/proposal/${proposalPk}`}
-                                            target='blank'
-                                        >
-                                            <Typography variant="caption">
-                                            View on Realms <OpenInNewIcon fontSize='inherit'/>
-                                            </Typography>
-                                        </Button>
+                                              sx={{
+                                                borderRadius:'17px',
+                                                borderColor:'rgba(255,255,255,0.05)',
+                                                fontSize:'10px'}}
+                                              component={Link}
+                                              to={'/cachedgovernance/'+governanceAddress}
+                                          >
+                                              <Typography variant="caption">
+                                                {governanceAddress}
+                                              </Typography>
+                                          </Button>
+                                          <Button
+                                              sx={{
+                                                borderRadius:'17px',
+                                                borderColor:'rgba(255,255,255,0.05)',
+                                                fontSize:'10px'}}
+                                              href={`https://realms.today/dao/${governanceAddress}`}
+                                              target='blank'
+                                          >
+                                            <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
+                                          </Button>
+                                        </ButtonGroup>
                                     </Grid>
-                                    */}
+                                    
                                 </Grid>
                             </Grid>
                         </Grid>
@@ -245,7 +269,7 @@ export default function GovernanceCreateProposalView(props: any){
                           backgroundColor:'rgba(0,0,0,0.2)', 
                           p:1,pr:3,mt:2}}
                   >
-                      <FormControl fullWidth>
+                      <FormControl fullWidth  sx={{mb:2}}>
                           <TextField 
                               fullWidth 
                               label="Title" 
@@ -262,7 +286,7 @@ export default function GovernanceCreateProposalView(props: any){
                           </Grid>
                       </FormControl>
 
-                      <FormControl fullWidth>
+                      <FormControl fullWidth  sx={{mb:2}}>
                           <TextField 
                               fullWidth
                               label="Description"
@@ -296,26 +320,23 @@ export default function GovernanceCreateProposalView(props: any){
                           
                       </FormControl>
                       
-                      <br/>
-                      <FormControl fullWidth>
+                      <FormControl fullWidth  sx={{mb:2}}>
                           <GovernanceSelect />
                       </FormControl>
-                      <br/>
                       
                       {governanceWallet && 
                       <>
-                        <br/>
-                        <FormControl fullWidth>
+                        <FormControl fullWidth sx={{mb:2}}>
                             <ProposalSelect />
                         </FormControl>
-                        <br/>
+                        
                       </>
                       }
-                      <FormControl fullWidth>
+                      <FormControl fullWidth >
                           <FormControlLabel required control={<Switch />} label="Multiple Choice Vote" />
                       </FormControl>
-                      <br/>
-                      <FormControl fullWidth>
+                      
+                      <FormControl fullWidth >
                           <FormControlLabel required control={<Switch />} label="Council Vote" />
                       </FormControl>
 
