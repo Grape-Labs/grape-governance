@@ -45,7 +45,8 @@ export default function GovernanceCreateProposalView(props: any){
     const [description, setDescription] = React.useState(null);
     const maxTitleLen = 130;
     const maxDescriptionLen = 255;
-    const [proposalType, setProposalType] = React.useState('');
+    const [proposalType, setProposalType] = React.useState(null);
+    const [governanceWallet, setGovernanceWallet] = React.useState(null);
     const [isGistDescription, setIsGistDescription] = React.useState(false);
 
     function handleDescriptionChange(text:string){
@@ -92,6 +93,32 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={1}>None</MenuItem>
               <MenuItem value={2}>Token Transfer</MenuItem>
               <MenuItem value={3}>Swap</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+      );
+    }
+
+    function GovernanceSelect() {
+      
+      const handleGovernanceWalletChange = (event: SelectChangeEvent) => {
+        setGovernanceWallet(event.target.value as string);
+      };
+    
+      return (
+        <Box sx={{ minWidth: 120, ml:1 }}>
+          <FormControl fullWidth>
+            <InputLabel id="governance-select-label">Governance</InputLabel>
+            <Select
+              labelId="governance-select-label"
+              id="proposal-select"
+              value={proposalType}
+              label="Governance"
+              onChange={handleGovernanceWalletChange}
+            >
+              <MenuItem value={1}>A</MenuItem>
+              <MenuItem value={2}>B</MenuItem>
+              <MenuItem value={3}>C</MenuItem>
             </Select>
           </FormControl>
         </Box>
@@ -268,11 +295,22 @@ export default function GovernanceCreateProposalView(props: any){
                           </Grid>
                           
                       </FormControl>
+                      
                       <br/>
                       <FormControl fullWidth>
-                          <ProposalSelect />
+                          <GovernanceSelect />
                       </FormControl>
                       <br/>
+                      
+                      {governanceWallet && 
+                      <>
+                        <br/>
+                        <FormControl fullWidth>
+                            <ProposalSelect />
+                        </FormControl>
+                        <br/>
+                      </>
+                      }
                       <FormControl fullWidth>
                           <FormControlLabel required control={<Switch />} label="Multiple Choice Vote" />
                       </FormControl>
