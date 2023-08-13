@@ -2489,9 +2489,7 @@ export function GovernanceProposalView(props: any){
                                                 <>Status</>
                                             </Typography>
                                             <Typography variant="subtitle2">
-                                                <Button color='inherit' sx={{color:'white',borderRadius:'17px'}} href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`} target='_blank'>
-                                                    {GOVERNANCE_STATE[thisitem.account?.state]} <OpenInNewIcon sx={{ml:1}} fontSize='small'/>
-                                                </Button>
+                                                    {GOVERNANCE_STATE[thisitem.account?.state]}
                                             </Typography>
                                         </Box>
                                     </Grid> 

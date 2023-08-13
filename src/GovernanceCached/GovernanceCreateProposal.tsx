@@ -35,33 +35,7 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import TextareaAutosize from '@mui/base/TextareaAutosize';
 import { Title } from '@devexpress/dx-react-chart';
-
-function ProposalSelect() {
-    const [proposalType, setProposalType] = React.useState('');
-  
-    const handleChange = (event: SelectChangeEvent) => {
-      setProposalType(event.target.value as string);
-    };
-  
-    return (
-      <Box sx={{ minWidth: 120, ml:1 }}>
-        <FormControl fullWidth>
-          <InputLabel id="proposal-select-label">Proposal Instructions</InputLabel>
-          <Select
-            labelId="proposal-select-label"
-            id="proposal-select"
-            value={proposalType}
-            label="Proposal Type"
-            onChange={handleChange}
-          >
-            <MenuItem value={0}>None</MenuItem>
-            <MenuItem value={1}>Token Transfer</MenuItem>
-            <MenuItem value={2}>Swap</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
-    );
-  }
+import GitHubIcon from '@mui/icons-material/GitHub';
 
 export default function GovernanceCreateProposalView(props: any){
 
@@ -71,6 +45,58 @@ export default function GovernanceCreateProposalView(props: any){
     const [description, setDescription] = React.useState(null);
     const maxTitleLen = 130;
     const maxDescriptionLen = 255;
+    const [proposalType, setProposalType] = React.useState('');
+    const [isGistDescription, setIsGistDescription] = React.useState(false);
+
+    function handleDescriptionChange(text:string){
+      setDescription(text);
+      setIsGistDescription(false);
+      try{
+        const url = new URL(text);
+        const pathname = url.pathname;
+        const parts = pathname.split('/');
+        //console.log("pathname: "+pathname)
+        let tGist = null;
+        if (parts.length > 1)
+            tGist = parts[2];
+        
+        //setGist(tGist);
+
+        //const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
+        //setProposalDescription(rpd);
+        setIsGistDescription(true);
+        
+    } catch(e){
+        console.log("ERR: "+e)
+    }
+      
+    }
+
+    function ProposalSelect() {
+      
+      const handleProposalTypeChange = (event: SelectChangeEvent) => {
+        setProposalType(event.target.value as string);
+      };
+    
+      return (
+        <Box sx={{ minWidth: 120, ml:1 }}>
+          <FormControl fullWidth>
+            <InputLabel id="proposal-select-label">Proposal Instructions</InputLabel>
+            <Select
+              labelId="proposal-select-label"
+              id="proposal-select"
+              value={proposalType}
+              label="Proposal Instructions"
+              onChange={handleProposalTypeChange}
+            >
+              <MenuItem value={1}>None</MenuItem>
+              <MenuItem value={2}>Token Transfer</MenuItem>
+              <MenuItem value={3}>Swap</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+      );
+    }
 
     function MinHeightTextarea() {
         const blue = {
@@ -219,14 +245,28 @@ export default function GovernanceCreateProposalView(props: any){
                               value={description}
                               onChange={(e) => {
                                   if (!description || description.length < maxDescriptionLen)
-                                      setDescription(e.target.value)
+                                      handleDescriptionChange(e.target.value)
                                   }}
                               
                               sx={{maxlength:maxDescriptionLen}}
                               />
                           <Grid sx={{textAlign:'right',}}>
-                          <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
+
+                            {isGistDescription ?
+                              <Button
+                                  color='inherit'
+                                  size='small'
+                                  href={description}
+                                  sx={{borderRadius:'17px'}}
+                              >
+                                  <GitHubIcon sx={{mr:1}} /> GIST
+                              </Button>
+                            :
+
+                              <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
+                            }
                           </Grid>
+                          
                       </FormControl>
                       <br/>
                       <FormControl fullWidth>
@@ -240,10 +280,24 @@ export default function GovernanceCreateProposalView(props: any){
                       <FormControl fullWidth>
                           <FormControlLabel required control={<Switch />} label="Council Vote" />
                       </FormControl>
+
+                      <Grid sx={{textAlign:'right'}}>
+                        <Button 
+                          disabled={!(
+                            (title && title.length > 0) &&
+                            (description && description.length > 0) &&
+                            (proposalType)
+                            )
+                          }
+                          variant="contained"
+                          color="success"
+                          sx={{borderRadius:'17px'}}>Create Proposal</Button>
+                      </Grid>
                   </Box>
 
               </Grid>
             </Box>
+
         </>
     );
 
