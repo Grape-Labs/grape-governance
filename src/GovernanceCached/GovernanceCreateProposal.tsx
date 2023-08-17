@@ -1,4 +1,4 @@
-import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
+import { PublicKey, TokenAmount, Connection, Transaction } from '@solana/web3.js';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletDialogProvider, WalletMultiButton } from "@solana/wallet-adapter-material-ui";
@@ -12,6 +12,7 @@ import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github'
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useSnackbar } from 'notistack';
 
 import { 
     createInstructionData  } from '@solana/spl-governance';
@@ -30,13 +31,21 @@ import {
   FormControl,
   MenuItem,
   InputLabel,
+  CircularProgress,
 } from '@mui/material/';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TextareaAutosize from '@mui/base/TextareaAutosize';
 import { Title } from '@devexpress/dx-react-chart';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import GitHubIcon from '@mui/icons-material/GitHub';
+
+import { 
+  PROXY, 
+  RPC_CONNECTION,
+  GGAPI_STORAGE_POOL, 
+  GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 
 export default function GovernanceCreateProposalView(props: any){
     const [searchParams, setSearchParams] = useSearchParams();
@@ -53,6 +62,40 @@ export default function GovernanceCreateProposalView(props: any){
     const [proposalType, setProposalType] = React.useState(null);
     const [governanceWallet, setGovernanceWallet] = React.useState(null);
     const [isGistDescription, setIsGistDescription] = React.useState(false);
+    const { publicKey, sendTransaction } = useWallet();
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+    const connection = RPC_CONNECTION;
+
+    const createProposal = async() => {
+      // 1. call createDAOProposal.tsx with the respective variables to create the prop and return to execute
+      
+      // 2. Then pass transaction to the UI and execute on user wallet
+      const transaction = new Transaction();
+
+      enqueueSnackbar(`Creating proposal...`,{ variant: 'info' });
+      const signedTransaction2 = await sendTransaction(transaction, connection);
+          
+      const snackprogress = (key:any) => (
+          <CircularProgress sx={{padding:'10px'}} />
+      );
+      const cnfrmkey = enqueueSnackbar(`${t('Confirming transaction')}`,{ variant: 'info', action:snackprogress, persist: true });
+      const latestBlockHash = await connection.getLatestBlockhash();
+      await connection.confirmTransaction({
+          blockhash: latestBlockHash.blockhash,
+          lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+          signature: signedTransaction2}, 
+          'processed'
+      );
+      closeSnackbar(cnfrmkey);
+      const snackaction = (key:any) => (
+          <Button href={`https://explorer.solana.com/tx/${signedTransaction2}`} target='_blank'  sx={{color:'white'}}>
+              {signedTransaction2}
+          </Button>
+      );
+      enqueueSnackbar(`${t('NFT transaction completed')} `,{ variant: 'success', action:snackaction });
+
+
+    }
 
     function handleDescriptionChange(text:string){
       setDescription(text);
@@ -225,18 +268,18 @@ export default function GovernanceCreateProposalView(props: any){
                                           variant="outlined" 
                                           color='inherit'
                                       >
-                                        <Button
-                                              sx={{
-                                                borderRadius:'17px',
-                                                borderColor:'rgba(255,255,255,0.05)',
-                                                fontSize:'10px'}}
-                                              component={Link}
-                                              to={'/cachedgovernance/'+governanceAddress}
-                                          >
-                                              <Typography variant="caption">
-                                                {governanceAddress}
-                                              </Typography>
-                                          </Button>
+                                        <Tooltip title={`Back to ${governanceAddress} Governance`}>
+                                          <Button
+                                                sx={{
+                                                  borderRadius:'17px',
+                                                  borderColor:'rgba(255,255,255,0.05)',
+                                                  fontSize:'10px'}}
+                                                component={Link}
+                                                to={'/cachedgovernance/'+governanceAddress}
+                                            >
+                                                <ArrowBackIcon fontSize='inherit' sx={{mr:1}} /> Back
+                                            </Button>
+                                          </Tooltip>
                                           <Button
                                               sx={{
                                                 borderRadius:'17px',

@@ -389,6 +389,7 @@ const getSocialConnections = async(address: string) => {
 
 const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string, destinationAddress: string, excludeAddress: string[]) => {
     
+    // HELIUS:
     let hasnext = true;
     let tokenTransfers = null;
     let lastSignature = null;
@@ -436,12 +437,11 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
             //return finalData;
         }
         //return data;
+        
     }
-    
-    //console.log("total transfers for "+sourceAddress+": "+tokenTransfers.length+" vs "+uniqueTransfers.length);
-
+    //console.log("HELIUS token transfers for "+sourceAddress+": "+tokenTransfers.length+" - "+JSON.stringify(tokenTransfers));
     return tokenTransfers;
-
+    
     /*
     const connection = RPC_CONNECTION;
     
@@ -545,6 +545,8 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
       }
     */
 
+    // HELLO MOON
+
     /*
     const url = PROXY+"https://rest-api.hellomoon.io/v0/token/transfers";
 
@@ -555,23 +557,35 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
             'content-type': `application/json`
         },
     };
-    const data = {
-        "type": "transfer",
-        "sourceOwner": sourceAddress,
-        "destinationOwner": destinationAddress,
-        "mint": tokenAddress,
-        "limit": 1000,
+
+    hasnext = true;
+    offset = 0;
+    limit = 1000;
+    resultcount = 0;
+    const govTx = new Array();
+    while (hasnext){
+        const data = {
+            "type": "transfer",
+            "sourceOwner": sourceAddress,
+            //"destinationOwner": destinationAddress,
+            "mint": tokenMintAddress,
+            "limit": limit,
+        }
+
+        //console.log("calling "+ JSON.stringify(url))
+        //console.log("data "+ JSON.stringify(data))
+
+        const response = await axios.post(url, data, config);
+        console.log("HM response: "+ JSON.stringify(response))
+        console.log("HM response data: "+ JSON.stringify(response?.data?.data))
+
+        hasnext = false;
     }
-
-    //console.log("calling "+ JSON.stringify(url))
-    //console.log("data "+ JSON.stringify(data))
-
-    const response = await axios.post(url, data, config);
     
-    console.log("finished "+ JSON.stringify(response))
-
-    return response;
+    return null;
+    //return response;
     */
+
   };
 
 const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, wallet: any, setPrimaryStatus: any, setStatus: any) => {

@@ -236,7 +236,7 @@ function GovernanceCardView(props:any) {
 
                                             {item?.totalCouncilProposals ?
                                                 <TableRow>{item.totalCouncilProposals > 0 &&
-                                                    <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)',textAlign:'right'}} colSpan={2}>{item.totalProposals - item.totalCouncilProposals} community / {item.totalCouncilProposals} council</TableCell>
+                                                    <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)',textAlign:'right'}} colSpan={2}><Typography sx={{fontSize:'10px'}}>{item.totalProposals - item.totalCouncilProposals} community / {item.totalCouncilProposals} council</Typography></TableCell>
                                                 }
                                                 </TableRow>
                                                 :<></>
