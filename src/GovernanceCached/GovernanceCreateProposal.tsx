@@ -13,9 +13,9 @@ import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useSnackbar } from 'notistack';
-
+import { createProposalInstructions } from './Proposals/createProposalInstructions';
 import { 
-    createInstructionData  } from '@solana/spl-governance';
+  getRealm, createInstructionData  } from '@solana/spl-governance';
 
 import {
   Typography,
@@ -47,6 +47,11 @@ import {
   GGAPI_STORAGE_POOL, 
   GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 
+  import {
+    fetchGovernanceLookupFile,
+    getFileFromLookup
+} from './CachedStorageHelpers'; 
+
 export default function GovernanceCreateProposalView(props: any){
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
@@ -54,7 +59,6 @@ export default function GovernanceCreateProposalView(props: any){
     
     const governanceAddress = urlParams;
     const showGovernanceTitle = true;
-    const realmName = 'Test';
     const [title, setTitle] = React.useState(null);
     const [description, setDescription] = React.useState(null);
     const maxTitleLen = 130;
@@ -66,9 +70,40 @@ export default function GovernanceCreateProposalView(props: any){
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const connection = RPC_CONNECTION;
 
+    const [governanceLookup, setGovernanceLookup] = React.useState(null);
+    const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
+    const [cachedGovernance, setCachedGovernance] = React.useState(null);
+    const [cachedRealm, setCachedRealm] = React.useState(null);
+    const [cachedTreasury, setCachedTreasury] = React.useState(null);
+    const [startTime, setStartTime] = React.useState(null);
+    const [endTime, setEndTime] = React.useState(null);
+    
+    const [loading, setLoading] = React.useState(false);
+    const [realm, setRealm] = React.useState(null);
+    const [realmName, setRealmName] = React.useState(null);
+    const [tokenMap, setTokenMap] = React.useState(null);
+    const [tokenArray, setTokenArray] = React.useState(null);
+    const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
+
+    const [totalGovernanceValue, setTotalGovernanceValue] = React.useState(null);
+    const [totalGovernanceSolValue, setTotalGovernanceSolValue] = React.useState(null);
+    const [totalGovernanceSol, setTotalGovernanceSol] = React.useState(null);
+    const [totalGovernanceNftFloorValue, setTotalGovernanceNftFloorValue] = React.useState(null);
+    const [totalGovernanceStableCoinValue, setTotalGovernanceStableCoinValue] = React.useState(null);
+
+
     const createProposal = async() => {
+      
+      // get governance settings
+      // 
+      
+      
       // 1. call createDAOProposal.tsx with the respective variables to create the prop and return to execute
       
+      
+      //await createProposalInstructions()
+
+
       // 2. Then pass transaction to the UI and execute on user wallet
       const transaction = new Transaction();
 
@@ -236,8 +271,106 @@ export default function GovernanceCreateProposalView(props: any){
         );
       }
 
+    const getTokens = async () => {
+        const tarray:any[] = [];
+        try{
+            let tmap  = null;
+            const tlp = await new TokenListProvider().resolve().then(tokens => {
+                const tokenList = tokens.filterByChainId(ENV.MainnetBeta).getList();
+                const tokenMp = tokenList.reduce((map, item) => {
+                    tarray.push({address:item.address, decimals:item.decimals})
+                    map.set(item.address, item);
+                    return map;
+                },new Map());
+                setTokenMap(tokenMp);
+                setTokenArray(tarray);
+                tmap = tokenMp;
+            });
+            return tmap;
+        } catch(e){console.log("ERR: "+e); return null;}
+    }
 
+    const getRealmDetails = async () => {
+        let grealm = null;
+        if (cachedRealm){
+            console.log("Realm from cache")
+            grealm = cachedRealm;
+        } else{
+            grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
+        }
+        const realmPk = new PublicKey(grealm.pubkey);
+        setRealm(grealm);
+        setRealmName(grealm.account.name);
+    }
 
+    const getCachedGovernanceFromLookup = async () => {
+        
+        let cached_governance = new Array();
+        if (governanceLookup){
+            for (let glitem of governanceLookup){
+                if (glitem.governanceAddress === governanceAddress){
+
+                    if (glitem?.realm){
+                        setCachedRealm(glitem?.realm);
+                    }
+
+                    if (glitem?.governanceVaultsFilename){
+                        const cached_treasury = await getFileFromLookup(glitem.governanceVaultsFilename, storagePool);
+                        setCachedTreasury(cached_treasury);
+                    }
+
+                    setRealmName(glitem.governanceName);
+
+                    setTotalGovernanceValue(glitem?.totalVaultValue);
+                    setTotalGovernanceSolValue(glitem?.totalVaultSolValue);
+                    setTotalGovernanceSol(glitem?.totalVaultSol);
+                    setTotalGovernanceNftFloorValue(glitem?.totalVaultNftValue);
+                    setTotalGovernanceStableCoinValue(glitem?.totalVaultStableCoinValue);
+
+                    cached_governance = await getFileFromLookup(glitem.filename, storagePool);
+                    setCachedTimestamp(glitem.timestamp);
+                }
+            }
+        }
+
+        
+        setCachedGovernance(cached_governance);
+        endTimer();
+    }
+
+    const startTimer = () => {
+        setStartTime(Date.now());
+    }
+
+    const endTimer = () => {
+        setEndTime(Date.now())
+    }
+
+    const callGovernanceLookup = async() => {
+        const fglf = await fetchGovernanceLookupFile(storagePool);
+        setGovernanceLookup(fglf);
+    }
+
+    React.useEffect(() => {
+        if (governanceLookup){
+            getCachedGovernanceFromLookup();
+        }
+    }, [governanceLookup, governanceAddress]);
+    
+    React.useEffect(() => { 
+        if (tokenMap){  
+            startTimer();
+            callGovernanceLookup();
+        }
+    }, [tokenMap]);
+
+    React.useEffect(() => { 
+        if (!loading){
+            if (!tokenMap){
+                getTokens();
+            }
+        }
+    }, []);
     
     return (
         <>
