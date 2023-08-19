@@ -661,6 +661,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         return {
             pubkey: governance.pubkey.toBase58(), // program that controls vault/token account
             vaultId: governance.account?.governedAccount.toBase58(), // vault/token account where tokens are held
+            governance: JSON.stringify(governance),
             isGovernanceVault: true,
         };
     });

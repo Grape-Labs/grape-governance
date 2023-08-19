@@ -35,6 +35,7 @@ import {
 } from '@mui/material/';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TextareaAutosize from '@mui/base/TextareaAutosize';
 import { Title } from '@devexpress/dx-react-chart';
@@ -189,22 +190,49 @@ export default function GovernanceCreateProposalView(props: any){
       };
     
       return (
-        <Box sx={{ minWidth: 120, ml:1 }}>
-          <FormControl fullWidth>
-            <InputLabel id="governance-select-label">Governance</InputLabel>
-            <Select
-              labelId="governance-select-label"
-              id="proposal-select"
-              value={governanceWallet}
-              label="Governance"
-              onChange={handleGovernanceWalletChange}
-            >
-              <MenuItem value={1}>A</MenuItem>
-              <MenuItem value={2}>B</MenuItem>
-              <MenuItem value={3}>C</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
+        <>
+
+          <Box sx={{ minWidth: 120, ml:1 }}>
+            <FormControl fullWidth>
+              <InputLabel id="governance-select-label">Governance Wallet</InputLabel>
+              <Select
+                labelId="governance-select-label"
+                id="proposal-select"
+                value={governanceWallet}
+                label="Governance Wallet"
+                onChange={handleGovernanceWalletChange}
+              > 
+                {cachedTreasury && cachedTreasury
+                  .sort((a:any,b:any) => (b.solBalance - a.solBalance)  || b.tokens?.value.length - a.tokens?.value.length)
+                  .map((item: any,key:number) => (
+                  <MenuItem value={item.vault.pubkey}>
+                    {console.log("wallet: "+JSON.stringify(item))}
+                    <Grid container>
+                      <Grid item sm={8}>
+                        <Grid
+                          container
+                          direction="row"
+                          justifyContent="left"
+                          alignItems="left"
+                        >
+                          <AccountBalanceWalletIcon sx={{mr:1}}/>
+                          {item.vault.pubkey}
+                        </Grid>
+
+                      </Grid>
+                      <Grid item xs sx={{textAlign:'right'}}>
+                        <Typography variant="caption">
+                          {item.solBalance/(10 ** 9)} sol - {item?.tokens?.value.length} tokens
+
+                        </Typography>
+                      </Grid> 
+                    </Grid>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </>
       );
     }
 
@@ -371,7 +399,7 @@ export default function GovernanceCreateProposalView(props: any){
             }
         }
     }, []);
-    
+
     return (
         <>
             <Box
