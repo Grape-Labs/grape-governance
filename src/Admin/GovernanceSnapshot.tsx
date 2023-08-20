@@ -661,12 +661,13 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         return {
             pubkey: governance.pubkey.toBase58(), // program that controls vault/token account
             vaultId: governance.account?.governedAccount.toBase58(), // vault/token account where tokens are held
-            governance: JSON.stringify(governance),
+            governance: governance,
             isGovernanceVault: true,
+            nativeTreasuryAddress: null
         };
     });
 
-    console.log("vaultsInfo: "+JSON.stringify(vaultsInfo))
+    //console.log("vaultsInfo: ("+vaultsInfo.length+") "+JSON.stringify(vaultsInfo))
 
     const rawNativeSolAddresses = await Promise.all(
         rawGovernances.map((x) =>
@@ -678,17 +679,28 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         )
     );
 
+    // add the native treasury address for governance rules
+    rawNativeSolAddresses.forEach((rawAddress, index) => {
+        vaultsInfo[index].nativeTreasuryAddress = rawAddress
+    });
+
+    //console.log("rawNativeSolAddresses: ("+rawNativeSolAddresses.length+") "+JSON.stringify(rawNativeSolAddresses))
+
     //console.log("rawNativeSolAddresses: "+JSON.stringify(rawNativeSolAddresses))
    
     rawNativeSolAddresses.forEach((rawAddress, index) => {
         vaultsInfo.push({
           pubkey: rawAddress.toBase58(), // program that controls vault/token account
           vaultId: index.toString(), // vault/token account where tokens are held
+          governance: null,
           isGovernanceVault: false,
+          nativeTreasuryAddress: null,
         });
     });
 
-    console.log("rawNativeSolAddresses: "+JSON.stringify(rawNativeSolAddresses))
+
+
+    //console.log("rawNativeSolAddresses: "+JSON.stringify(rawNativeSolAddresses))
     if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury Sol Balance");
 
     const vaultSolBalancesPromise = await Promise.all(

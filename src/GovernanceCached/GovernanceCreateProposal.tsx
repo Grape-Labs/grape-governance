@@ -205,29 +205,42 @@ export default function GovernanceCreateProposalView(props: any){
                 {cachedTreasury && cachedTreasury
                   .sort((a:any,b:any) => (b.solBalance - a.solBalance)  || b.tokens?.value.length - a.tokens?.value.length)
                   .map((item: any,key:number) => (
-                  <MenuItem value={item.vault.pubkey}>
-                    {console.log("wallet: "+JSON.stringify(item))}
-                    <Grid container>
-                      <Grid item sm={8}>
-                        <Grid
-                          container
-                          direction="row"
-                          justifyContent="left"
-                          alignItems="left"
-                        >
-                          <AccountBalanceWalletIcon sx={{mr:1}}/>
-                          {item.vault.pubkey}
-                        </Grid>
+                    <>
+                    {
+                      /*
+                      now we are getting only the rule wallets
+                      do one more loop per rule wallet in order to get the native wallet address
+                      */
+                    }
 
-                      </Grid>
-                      <Grid item xs sx={{textAlign:'right'}}>
-                        <Typography variant="caption">
-                          {item.solBalance/(10 ** 9)} sol - {item?.tokens?.value.length} tokens
+                    {item.vault?.nativeTreasuryAddress &&
+                      <MenuItem value={item.vault.pubkey}>
+                          {console.log("wallet: "+JSON.stringify(item))}
+                          
+                          <Grid container>
+                            <Grid item sm={8}>
+                              <Grid
+                                container
+                                direction="row"
+                                justifyContent="left"
+                                alignItems="left"
+                              >
+                                <AccountBalanceWalletIcon sx={{mr:1}}/>
+                                {item.vault.pubkey} - {item.vault.isGovernanceVault ? `true` : `false`}
+                              
+                              </Grid>
 
-                        </Typography>
-                      </Grid> 
-                    </Grid>
-                  </MenuItem>
+                            </Grid>
+                            <Grid item xs sx={{textAlign:'right'}}>
+                              <Typography variant="caption">
+                                {item.solBalance/(10 ** 9)} sol - {item?.tokens?.value.length} tokens
+
+                              </Typography>
+                            </Grid>
+                          </Grid>
+                      </MenuItem>
+                    }
+                    </>
                 ))}
               </Select>
             </FormControl>

@@ -1812,6 +1812,7 @@ export function GovernanceProposalView(props: any){
                                     <Button 
                                         aria-label="back"
                                         href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`}
+                                        target='blank'
                                         sx={{
                                             borderTopLeftRadius:'17px',
                                             borderBottomLeftRadius:'17px',
@@ -1856,6 +1857,7 @@ export function GovernanceProposalView(props: any){
                                     <Button 
                                         aria-label="back"
                                         href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`}
+                                        target='blank'
                                         sx={{
                                             borderRadius:'17px',
                                             borderColor:'rgba(255,255,255,0.05)',
