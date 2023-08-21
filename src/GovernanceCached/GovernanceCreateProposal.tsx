@@ -35,6 +35,7 @@ import {
 } from '@mui/material/';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
+import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import TextareaAutosize from '@mui/base/TextareaAutosize';
@@ -114,7 +115,7 @@ export default function GovernanceCreateProposalView(props: any){
       const snackprogress = (key:any) => (
           <CircularProgress sx={{padding:'10px'}} />
       );
-      const cnfrmkey = enqueueSnackbar(`${t('Confirming transaction')}`,{ variant: 'info', action:snackprogress, persist: true });
+      const cnfrmkey = enqueueSnackbar('Confirming transaction',{ variant: 'info', action:snackprogress, persist: true });
       const latestBlockHash = await connection.getLatestBlockhash();
       await connection.confirmTransaction({
           blockhash: latestBlockHash.blockhash,
@@ -128,9 +129,7 @@ export default function GovernanceCreateProposalView(props: any){
               {signedTransaction2}
           </Button>
       );
-      enqueueSnackbar(`${t('NFT transaction completed')} `,{ variant: 'success', action:snackaction });
-
-
+      enqueueSnackbar('Transaction completed',{ variant: 'success', action:snackaction });
     }
 
     function handleDescriptionChange(text:string){
@@ -186,62 +185,83 @@ export default function GovernanceCreateProposalView(props: any){
     function GovernanceSelect() {
       
       const handleGovernanceWalletChange = (event: SelectChangeEvent) => {
+        console.log("menu item: "+event.target.value)
         setGovernanceWallet(event.target.value as string);
       };
     
       return (
         <>
-
           <Box sx={{ minWidth: 120, ml:1 }}>
             <FormControl fullWidth>
-              <InputLabel id="governance-select-label">Governance Wallet</InputLabel>
+              <InputLabel id="governance-wallet-select-label">Governance Wallet</InputLabel>
               <Select
-                labelId="governance-select-label"
-                id="proposal-select"
+                labelId="governance-wallet-select-label"
+                id="governance-wallet-select"
                 value={governanceWallet}
                 label="Governance Wallet"
                 onChange={handleGovernanceWalletChange}
               > 
                 {cachedTreasury && cachedTreasury
-                  .sort((a:any,b:any) => (b.solBalance - a.solBalance)  || b.tokens?.value.length - a.tokens?.value.length)
-                  .map((item: any,key:number) => (
-                    <>
-                    {
-                      /*
-                      now we are getting only the rule wallets
-                      do one more loop per rule wallet in order to get the native wallet address
-                      */
-                    }
-
-                    {item.vault?.nativeTreasuryAddress &&
-                      <MenuItem value={item.vault.pubkey}>
-                          {console.log("wallet: "+JSON.stringify(item))}
-                          
-                          <Grid container>
-                            <Grid item sm={8}>
-                              <Grid
-                                container
-                                direction="row"
-                                justifyContent="left"
-                                alignItems="left"
-                              >
-                                <AccountBalanceWalletIcon sx={{mr:1}}/>
-                                {item.vault.pubkey} - {item.vault.isGovernanceVault ? `true` : `false`}
+                  .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
+                  .map((item: any, key: number) => {
+                    if (item.vault?.nativeTreasuryAddress) {
+                      return (
+                        <MenuItem key={key} value={item.vault.pubkey}>
+                            {/*console.log("wallet: "+JSON.stringify(item))*/}
+                            
+                            <Grid container>
+                              <Grid item xs={12}>
+                                <Grid container>
+                                  <Grid item sm={8}>
+                                    <Grid
+                                      container
+                                      direction="row"
+                                      justifyContent="left"
+                                      alignItems="left"
+                                    >
+                                      <AccountBalanceWalletIcon fontSize='inherit' sx={{mr:1}}/>
+                                      {item.vault?.nativeTreasury?.vault.pubkey}
+                                    </Grid>
+                                  </Grid>
+                                  <Grid item xs sx={{textAlign:'right'}}>
+                                    <Typography variant="caption">
+                                      {item.vault?.nativeTreasury?.solBalance/(10 ** 9)} sol - {item.vault?.nativeTreasury?.tokens?.value.length} tokens
+                                    </Typography>
+                                  </Grid>
+                                </Grid>  
+                              </Grid>
                               
+                              <Grid item xs={12}>
+                                <Grid container>
+                                  <Grid item sm={8}>
+                                    <Grid
+                                      container
+                                      direction="row"
+                                      justifyContent="left"
+                                      alignItems="left"
+                                    >
+                                      <Typography variant="caption">
+                                        <SubdirectoryArrowRightIcon fontSize='inherit' sx={{ml:1, mr:1}}/>
+                                        {item.vault.pubkey} - {item.vault.isGovernanceVault && `rules wallet`}
+                                      </Typography>
+                                    </Grid>
+
+                                  </Grid>
+                                  <Grid item xs sx={{textAlign:'right'}}>
+                                    <Typography variant="caption">
+                                      {item.solBalance/(10 ** 9)} sol - {item?.tokens?.value.length} tokens
+                                    </Typography>
+                                  </Grid>
+                                </Grid>
                               </Grid>
 
                             </Grid>
-                            <Grid item xs sx={{textAlign:'right'}}>
-                              <Typography variant="caption">
-                                {item.solBalance/(10 ** 9)} sol - {item?.tokens?.value.length} tokens
-
-                              </Typography>
-                            </Grid>
-                          </Grid>
-                      </MenuItem>
+                        </MenuItem>
+                      );
+                    } else {
+                      return null; // Don't render anything for items without nativeTreasuryAddress
                     }
-                    </>
-                ))}
+                  })}
               </Select>
             </FormControl>
           </Box>
@@ -357,6 +377,22 @@ export default function GovernanceCreateProposalView(props: any){
 
                     if (glitem?.governanceVaultsFilename){
                         const cached_treasury = await getFileFromLookup(glitem.governanceVaultsFilename, storagePool);
+                        // merge treasury with only the wallet rules addresses
+                        for (let item of cached_treasury) {
+                          if (item.vault.nativeTreasuryAddress) {
+                            for (let citem of cached_treasury) {
+                              if (citem.vault.pubkey === item.vault.nativeTreasuryAddress) {
+                                // push native treasury holdings to an object
+                                console.log("citem "+JSON.stringify(citem))
+                                if (!item.vault?.nativeTreasury)
+                                  item.vault.nativeTreasury = citem;
+                              }
+                            }
+                          }
+                        }
+
+                        console.log("merged_treasury: "+JSON.stringify(cached_treasury))
+
                         setCachedTreasury(cached_treasury);
                     }
 
@@ -550,7 +586,7 @@ export default function GovernanceCreateProposalView(props: any){
                       </>
                       }
                       <FormControl fullWidth >
-                          <FormControlLabel required control={<Switch />} label="Multiple Choice Vote" />
+                          <FormControlLabel  disabled={true} required control={<Switch />} label="Multiple Choice Vote" />
                       </FormControl>
                       
                       <FormControl fullWidth >
