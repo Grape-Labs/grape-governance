@@ -774,8 +774,10 @@ function RenderVoterRecordTable(props:any) {
         var voterCount = 0;
         var counter = 0;
         
+        let govmastermembermap = null;
+
         if (governanceMasterMembers && Array.isArray(governanceMasterMembers)) {
-            const govmastermembermap = governanceMasterMembers.reduce((map: any, item: any) => {
+            govmastermembermap = governanceMasterMembers.reduce((map: any, item: any) => {
               if (item && item.address) {
                 map.set(item.address, item);
               }
@@ -896,7 +898,10 @@ function RenderVoterRecordTable(props:any) {
 
                 totalVotesDeposited += +depositedgovernancevotes;
                 
-                let participation = govmastermembermap.get(new PublicKey(memberItem.account.governingTokenOwner).toBase58())?.participating;
+                let participation = null;
+                
+                if (govmastermembermap)
+                    participation = govmastermembermap.get(new PublicKey(memberItem.account.governingTokenOwner).toBase58())?.participating;
                 
                 voterArray.push({
                     id: voterCount+1,

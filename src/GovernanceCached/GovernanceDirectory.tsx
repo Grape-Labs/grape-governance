@@ -886,7 +886,7 @@ export function GovernanceDirectoryView(props: Props) {
                                                     verticalAlign: 'bottom'}}
                                             >
                                                 <Typography variant="h4">
-                                                    {governanceTotalParticipatingMultisigs && <>{governanceTotalParticipatingMultisigs  ? getFormattedNumberToLocale(governanceTotalParticipatingMultisigs) : 0}</>}
+                                                    {governanceTotalParticipatingMultisigs && <>{governanceTotalParticipatingMultisigs > 0  ? getFormattedNumberToLocale(governanceTotalParticipatingMultisigs) : `-`}</>}
                                                 </Typography>
                                             </Grid>
                                         </Button>
