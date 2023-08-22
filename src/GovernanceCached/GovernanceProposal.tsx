@@ -1002,10 +1002,10 @@ export function GovernanceProposalView(props: any){
                                             
                                             const newObject = {
                                                 pubkey: instructionItem.account.instructions[0].accounts[0].pubkey,
-                                                mint: gai.value.data.parsed.info.mint,
-                                                name: tokenMap.get(gai.value.data.parsed.info.mint)?.symbol,
-                                                logoURI: tokenMap.get(gai.value.data.parsed.info.mint)?.logoURI,
-                                                amount: new BN(instructionItem.account.instructions[0]?.data?.slice(1), 'le').toNumber()/Math.pow(10, (gai.value.data.parsed.info.tokenAmount?.decimals || 0))
+                                                mint: gai.value?.data.parsed.info.mint,
+                                                name: tokenMap.get(gai.value?.data.parsed.info.mint)?.symbol,
+                                                logoURI: tokenMap.get(gai.value?.data.parsed.info.mint)?.logoURI,
+                                                amount: new BN(instructionItem.account.instructions[0]?.data?.slice(1), 'le').toNumber()/Math.pow(10, (gai.value?.data.parsed.info.tokenAmount?.decimals || 0))
                                             };
 
                                             //console.log("newObject "+JSON.stringify(newObject))

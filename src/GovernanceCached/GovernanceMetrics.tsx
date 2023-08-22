@@ -293,7 +293,7 @@ function RenderVoterRecordTable(props:any) {
                                         
                                         {params.value.governanceRewardDetails
                                         .slice() // Create a shallow copy of the array to avoid mutating the original
-                                        .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
+                                        .sort((a:any, b:any) => Number(b.timestamp) - Number(a.timestamp))
                                         .map((item: any, index:number) => (
                                             <li>
                                                 <strong>{getFormattedNumberToLocale(Number(item.tokenTransfers.tokenAmount))}</strong> {moment.unix(Number(item?.timestamp)).format("YYYY-MM-DD HH:mm")}
@@ -332,7 +332,7 @@ function RenderVoterRecordTable(props:any) {
                                         
                                         {params.value.governanceRewardDetails
                                         .slice() // Create a shallow copy of the array to avoid mutating the original
-                                        .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
+                                        .sort((a:any, b:any) => Number(b.timestamp) - Number(a.timestamp))
                                         .map((item: any, index:number) => (
                                             <li>
                                                 <strong>{getFormattedNumberToLocale(Number(item.tokenTransfers.tokenAmount))}</strong> {moment.unix(Number(item?.timestamp)).format("YYYY-MM-DD HH:mm")}
