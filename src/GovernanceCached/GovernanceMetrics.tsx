@@ -291,7 +291,10 @@ function RenderVoterRecordTable(props:any) {
                                     {params.value?.governanceRewardDetails &&
                                     <>
                                         
-                                        {params.value.governanceRewardDetails.map((item: any, index:number) => (
+                                        {params.value.governanceRewardDetails
+                                        .slice() // Create a shallow copy of the array to avoid mutating the original
+                                        .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
+                                        .map((item: any, index:number) => (
                                             <li>
                                                 <strong>{getFormattedNumberToLocale(Number(item.tokenTransfers.tokenAmount))}</strong> {moment.unix(Number(item?.timestamp)).format("YYYY-MM-DD HH:mm")}
                                                 <br/><Typography sx={{fontSize:'8px'}}>{item.signature}</Typography>
@@ -327,7 +330,10 @@ function RenderVoterRecordTable(props:any) {
                                     {params.value?.governanceRewardDetails &&
                                     <>
                                         
-                                        {params.value.governanceRewardDetails.map((item: any, index:number) => (
+                                        {params.value.governanceRewardDetails
+                                        .slice() // Create a shallow copy of the array to avoid mutating the original
+                                        .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
+                                        .map((item: any, index:number) => (
                                             <li>
                                                 <strong>{getFormattedNumberToLocale(Number(item.tokenTransfers.tokenAmount))}</strong> {moment.unix(Number(item?.timestamp)).format("YYYY-MM-DD HH:mm")}
                                                 <br/><Typography sx={{fontSize:'8px'}}>{item.signature}</Typography>
@@ -785,7 +791,8 @@ function RenderVoterRecordTable(props:any) {
             }, new Map());
           } else {
             // Handle the case where governanceMasterMembers is not a valid array
-            alert("Error Occured in Master Members")
+            //alert("Error Occured in Master Members")
+            console.log("An Error Occured in the Master Members records")
           }
 
         //console.log("govmastermembermap: "+govmastermembermap);
