@@ -528,10 +528,12 @@ export function GovernanceDirectoryView(props: Props) {
                 setGovernanceTotalMembers(totalGovernanceMembers)
 
             let multisigParticipation = 0;
-            for (var masterMember of fgmmf){
-                //console.log("masterMember: "+JSON.stringify(masterMember))
-                if (masterMember?.multisigs?.multisigs && masterMember.multisigs.multisigs.length > 0)
-                    multisigParticipation += 1;//masterMember.multisigs.length; 
+            if (fgmmf){
+                for (var masterMember of fgmmf){
+                    //console.log("masterMember: "+JSON.stringify(masterMember))
+                    if (masterMember?.multisigs?.multisigs && masterMember.multisigs.multisigs.length > 0)
+                        multisigParticipation += 1;//masterMember.multisigs.length; 
+                }
             }
 
             setGovernanceTotalParticipatingMultisigs(multisigParticipation);

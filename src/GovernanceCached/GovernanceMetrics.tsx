@@ -774,12 +774,17 @@ function RenderVoterRecordTable(props:any) {
         var voterCount = 0;
         var counter = 0;
         
-        
-        const govmastermembermap = governanceMasterMembers.reduce((map:any, item:any) => {
-            //tarray.push({address:item.address, decimals:item.decimals})
-            map.set(item.address, item);
-            return map;
-        },new Map())
+        if (governanceMasterMembers && Array.isArray(governanceMasterMembers)) {
+            const govmastermembermap = governanceMasterMembers.reduce((map: any, item: any) => {
+              if (item && item.address) {
+                map.set(item.address, item);
+              }
+              return map;
+            }, new Map());
+          } else {
+            // Handle the case where governanceMasterMembers is not a valid array
+            alert("Error Occured in Master Members")
+          }
 
         //console.log("govmastermembermap: "+govmastermembermap);
         

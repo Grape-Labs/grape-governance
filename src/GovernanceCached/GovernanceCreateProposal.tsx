@@ -15,7 +15,8 @@ import remarkGfm from 'remark-gfm';
 import { useSnackbar } from 'notistack';
 import { createProposalInstructions } from './Proposals/createProposalInstructions';
 import { 
-  getRealm, createInstructionData  } from '@solana/spl-governance';
+  getRealm, 
+  createInstructionData, getRealmConfig  } from '@solana/spl-governance';
 
 import {
   Typography,
@@ -87,6 +88,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [tokenArray, setTokenArray] = React.useState(null);
     const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
 
+    const [governanceRules, setGovernanceRules] = React.useState(null);
     const [totalGovernanceValue, setTotalGovernanceValue] = React.useState(null);
     const [totalGovernanceSolValue, setTotalGovernanceSolValue] = React.useState(null);
     const [totalGovernanceSol, setTotalGovernanceSol] = React.useState(null);
@@ -182,11 +184,25 @@ export default function GovernanceCreateProposalView(props: any){
       );
     }
 
+    const getGovernanceRules = async (realmConfigPk: string) => {
+      try{
+        const govRules = await getRealmConfig(connection, new PublicKey(realmConfigPk));
+
+        console.log("govRules: "+JSON.stringify(govRules))
+
+        setGovernanceRules(govRules);
+      }catch(e){
+        console.log("ERR: "+e)
+      }
+    }
+
     function GovernanceSelect() {
       
       const handleGovernanceWalletChange = (event: SelectChangeEvent) => {
         console.log("menu item: "+event.target.value)
         setGovernanceWallet(event.target.value as string);
+        getGovernanceRules(event.target.value)
+
       };
     
       return (
