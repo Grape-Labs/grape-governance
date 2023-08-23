@@ -1646,23 +1646,28 @@ export function GovernanceProposalView(props: any){
         var realmPk = null;
 
         if (!thisitem && governanceLookup){
+            console.log("Getting proposal via RPC");
             const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
             setThisitem(prop);
         }
         
 
         if (!realm){
+            console.log("No realm!")
             grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress));
             realmPk = new PublicKey(grealm?.pubkey);
             setRealm(grealm);
             setRealmName(grealm?.account?.name);
         } else{
+            console.log("Realm exists");
             setRealmName(realm.account?.name);
         }
         if (!memberMap){
             const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
             setMemberMap(rawTokenOwnerRecords);
         }
+
+        console.log("Completed Gov Prop setup")
 
         setLoadingValidation(false);
     } 
@@ -1723,11 +1728,11 @@ export function GovernanceProposalView(props: any){
         if (textColor)
             document.body.style.color = textColor;
         
-        if (publicKey && !loadingParticipants){
+        if (thisitem && !loadingParticipants){
             console.log("Step 3.")
             getVotingParticipants();
         }
-    }, [publicKey, loadingValidation]);
+    }, [publicKey, loadingValidation, thisitem]);
 
     return (
         <>
