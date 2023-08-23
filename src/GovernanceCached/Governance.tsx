@@ -586,10 +586,11 @@ export function GovernanceCachedView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
-    const showGovernanceTitle = props?.showGovernanceTitle ? props?.showGovernanceTitle : false;
-    const background = props?.background ? props.background : null;
-    const textColor = props?.textColor ? props.background : null;
-    const showGovernanceNavigation = props?.showGovernanceNavigation ? true : false;
+    const showGovernanceTitle = props.showGovernanceTitle !== undefined ? props.showGovernanceTitle : true;
+    const background = null; //props?.background ? props.background : null;
+    const textColor = null; //props?.textColor ? props.background : null;
+
+    const showGovernanceNavigation = props.showGovernanceNavigation !== undefined ? props.showGovernanceNavigation : true;
     
     const governanceAddress = urlParams;
     const [cachedRealm, setCachedRealm] = React.useState(null);
@@ -1083,11 +1084,11 @@ export function GovernanceCachedView(props: any) {
                             mt: showGovernanceNavigation ? 6 : 0,
                             background: 'rgba(0, 0, 0, 0.6)',
                             borderRadius: '17px',
-                            p:4,
+                            p: showGovernanceNavigation ? 4 : 0,
                             alignItems: 'center', textAlign: 'center'
                         }} 
                     > 
-                        <Typography variant="caption">Loading Governance Proposals {governanceAddress}</Typography>
+                        <Typography variant="caption" sx={{color:'white'}}>Loading Governance Proposals {governanceAddress}</Typography>
                         
                         <LinearProgress color="inherit" />
                         
@@ -1114,7 +1115,7 @@ export function GovernanceCachedView(props: any) {
                                         <Grid item xs={12} sm={6} container justifyContent="flex-start">
                                             <Grid container>
                                                 <Grid item xs={12}>
-                                                    <Typography variant="h4">
+                                                    <Typography variant="h4" sx={{color:'white'}}>
                                                         {realmName}
                                                     </Typography>
                                                 </Grid>
@@ -1189,7 +1190,7 @@ export function GovernanceCachedView(props: any) {
                                                                     verticalAlign: 'bottom'}}
                                                                 >
                                                                     {totalVaultValue ?
-                                                                        <Typography variant="h4">
+                                                                        <Typography variant="h4" sx={{color:'white'}}>
                                                                             ${getFormattedNumberToLocale(totalVaultValue.toFixed(2))} 
                                                                         </Typography>
                                                                     :<>-</>
@@ -1232,7 +1233,7 @@ export function GovernanceCachedView(props: any) {
                                                                     verticalAlign: 'bottom'}}
                                                                 >
                                                                     {totalVotesCasted ?
-                                                                        <Typography variant="h4">
+                                                                        <Typography variant="h4" sx={{color:'white'}}>
                                                                             {getFormattedNumberToLocale(totalVotesCasted)} 
                                                                         </Typography>
                                                                     :<></>
@@ -1281,10 +1282,10 @@ export function GovernanceCachedView(props: any) {
                                                                 sx={{
                                                                     verticalAlign: 'bottom'}}
                                                             >
-                                                                <Typography variant="h4">
+                                                                <Typography variant="h4" sx={{color:'white'}}>
                                                                     {totalProposals}
                                                                 </Typography>
-                                                                <Typography variant="h6">/{((totalPassed/totalProposals)*100).toFixed(1)}%</Typography>
+                                                                <Typography variant="h6" sx={{color:'white'}}>/{((totalPassed/totalProposals)*100).toFixed(1)}%</Typography>
                                                             </Grid>
                                                         </Button>
                                                     </Tooltip>
@@ -1317,7 +1318,7 @@ export function GovernanceCachedView(props: any) {
                                                                 sx={{
                                                                     verticalAlign: 'bottom'}}
                                                                 >
-                                                                <Typography variant="h4">
+                                                                <Typography variant="h4" sx={{color:'white'}}>
                                                                     <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{totalPassed}</Badge>/
                                                                     <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{totalDefeated}</Badge>
                                                                 </Typography>
@@ -1371,11 +1372,11 @@ export function GovernanceCachedView(props: any) {
                                 mt: showGovernanceNavigation ? 6 : 0,
                                 background: 'rgba(0, 0, 0, 0.5)',
                                 borderRadius: '17px',
-                                p:4,
+                                p: showGovernanceNavigation ? 4 : 0,
                                 alignItems: 'center', textAlign: 'center'
                             }} 
                         > 
-                            <Typography variant="caption">Governance Proposals {governanceAddress}</Typography>
+                            <Typography variant="caption" sx={{color:'white'}}>Governance Proposals {governanceAddress}</Typography>
                             
                         </Box>
                     </ThemeProvider>

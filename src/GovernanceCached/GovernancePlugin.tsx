@@ -130,9 +130,9 @@ export default function GovernanceDetailsView(props: any) {
                     },
                 }}
         >
-
-            <GovernanceCachedView governanceAddress={governanceAddress} />
-            
+          
+          <GovernanceCachedView governanceAddress={governanceAddress} showGovernanceNavigation={true} />
+          
         </BootstrapDialog>
         </div>
     );
