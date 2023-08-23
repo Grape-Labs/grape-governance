@@ -587,7 +587,8 @@ export function GovernanceCachedView(props: any) {
     const showGovernanceTitle = props?.showGovernanceTitle || false;
     const background = props?.background || null;
     const textColor = props?.textColor || null;
-
+    const showGovernanceNavigation = props?.showGovernanceNavigation || true;
+    
     const governanceAddress = urlParams;
     const [cachedRealm, setCachedRealm] = React.useState(null);
     const [startTime, setStartTime] = React.useState(null);
@@ -1075,6 +1076,7 @@ export function GovernanceCachedView(props: any) {
             return (
                 <Box
                     sx={{
+                        width:'100%',
                         mt:6,
                         background: 'rgba(0, 0, 0, 0.6)',
                         borderRadius: '17px',
@@ -1093,6 +1095,7 @@ export function GovernanceCachedView(props: any) {
                 return (
                     <Box
                         sx={{
+                            width:'100%',
                             mt:6,
                             background: 'rgba(0, 0, 0, 0.6)',
                             borderRadius: '17px',
@@ -1124,9 +1127,11 @@ export function GovernanceCachedView(props: any) {
                                             </Grid>
                                         </Grid>
                                     </Grid>
-                                    <Grid item xs={12} sm={6} container justifyContent="flex-end">
-                                        <GovernanceNavigation governanceAddress={governanceAddress} />
-                                    </Grid>
+                                    {showGovernanceNavigation &&
+                                        <Grid item xs={12} sm={6} container justifyContent="flex-end">
+                                            <GovernanceNavigation governanceAddress={governanceAddress} />
+                                        </Grid>
+                                    }
                                 </Grid>
                                 {/*
                                 <Typography variant="caption">
@@ -1355,6 +1360,7 @@ export function GovernanceCachedView(props: any) {
                 return (
                     <Box
                         sx={{
+                            width:'100%',
                             mt:6,
                             background: 'rgba(0, 0, 0, 0.5)',
                             borderRadius: '17px',
