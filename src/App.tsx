@@ -173,7 +173,7 @@ function DashboardContent() {
                 <Suspense fallback={renderLoader()}>
                   <ThemeProvider theme={grapeTheme}>
                       <div className="app-body">
-                      
+                          
                           <ConnectionProvider endpoint={endpoint}>
                               <WalletProvider wallets={wallets} autoConnect>
                               

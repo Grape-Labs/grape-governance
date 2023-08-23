@@ -1080,7 +1080,7 @@ export function GovernanceCachedView(props: any) {
                     <Box
                         sx={{
                             width:'100%',
-                            mt:6,
+                            mt: showGovernanceNavigation ? 6 : 0,
                             background: 'rgba(0, 0, 0, 0.6)',
                             borderRadius: '17px',
                             p:4,
@@ -1101,11 +1101,11 @@ export function GovernanceCachedView(props: any) {
                         <Box
                             sx={{
                                 width:'100%',
-                                mt:6,
+                                mt: showGovernanceNavigation ? 6 : 0,
                                 background: 'rgba(0, 0, 0, 0.6)',
                                 borderRadius: '17px',
                                 overflow: 'hidden',
-                                p:4
+                                p: showGovernanceNavigation ? 4 : 0,
                             }} 
                         > 
                             {realm &&
@@ -1367,7 +1367,7 @@ export function GovernanceCachedView(props: any) {
                         <Box
                             sx={{
                                 width:'100%',
-                                mt:6,
+                                mt: showGovernanceNavigation ? 6 : 0,
                                 background: 'rgba(0, 0, 0, 0.5)',
                                 borderRadius: '17px',
                                 p:4,
