@@ -163,6 +163,10 @@ function DashboardContent() {
                 <Route path=":governance/:proposal" element={<GovernanceProposalView showGovernanceTitle={true} background={'rgba(0,0,0)'} textColor={'rgba(255, 255, 255)'}  />} />
               </Route>
 
+              <Route path="embedgovernance/*" element={<GovernanceCachedView showGovernanceTitle={true} background={'rgba(0,0,0)'} textColor={'rgba(255, 255, 255)'} />} >
+                <Route path=":handlekey" element={<GovernanceCachedView showGovernanceTitle={true} background={'rgba(0,0,0)'} textColor={'rgba(255, 255, 255)'}  />} />
+              </Route>
+
               <Route path="testembed" element={<TestEmbed />} />
 
               <Route path="/*" element={

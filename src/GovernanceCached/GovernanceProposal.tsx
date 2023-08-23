@@ -1635,7 +1635,6 @@ export function GovernanceProposalView(props: any){
         
         console.log("cachedGovernance: "+JSON.stringify(cachedGovernance))
         if (!cachedGovernance && governanceLookup){
-            console.log("fetch with govlookup")
             await getCachedGovernanceFromLookup();
         }
         
@@ -1650,16 +1649,13 @@ export function GovernanceProposalView(props: any){
             const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
             setThisitem(prop);
         }
-        
 
         if (!realm){
-            console.log("No realm!")
             grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress));
             realmPk = new PublicKey(grealm?.pubkey);
             setRealm(grealm);
             setRealmName(grealm?.account?.name);
         } else{
-            console.log("Realm exists");
             setRealmName(realm.account?.name);
         }
         if (!memberMap){
@@ -1776,14 +1772,15 @@ export function GovernanceProposalView(props: any){
                         <Grid container>
                             <Grid item xs={12} container justifyContent="flex-start">
                                 
-                                <ButtonGroup    
+                                <ButtonGroup
                                     variant="outlined" 
                                     color='inherit'
                                 >
-                                    
                                     <Tooltip title={`Back to  ${realmName} Governance`}>
                                         <Button 
                                             aria-label="back"
+                                            variant="outlined" 
+                                            color='inherit'
                                             href={`https://spl-gov.vercel.app/governance/${governanceAddress}`}
                                             sx={{
                                                 borderTopLeftRadius:'17px',
@@ -1802,6 +1799,8 @@ export function GovernanceProposalView(props: any){
                                         <Tooltip title={`Copy ${realmName} Governance Propoosal Link`}>
                                             <Button
                                                 aria-label="copy"
+                                                variant="outlined" 
+                                                color='inherit'
                                                 sx={{
                                                     borderTopRightRadius:'17px',
                                                     borderBottomRightRadius:'17px',
@@ -1813,54 +1812,12 @@ export function GovernanceProposalView(props: any){
                                         </Tooltip>
                                 </CopyToClipboard>
                                 
-                                <Tooltip title={`Visit  ${realmName} on Realms`}>
-                                    <Button 
-                                        aria-label="back"
-                                        href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`}
-                                        target='blank'
-                                        sx={{
-                                            borderTopLeftRadius:'17px',
-                                            borderBottomLeftRadius:'17px',
-                                            borderColor:'rgba(255,255,255,0.05)',
-                                            fontSize:'10px'}}
-                                    >
-                                        <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
-                                    </Button>
-                                </Tooltip>
-                                
                                 </ButtonGroup>
-                            </Grid>
-                        </Grid>
-                    :
-                        <Grid container>
-                            <Grid item xs={12} container justifyContent="flex-start">
-                                
-                                <ButtonGroup    
-                                    variant="outlined" 
-                                    color='inherit'
-                                >
-                                <CopyToClipboard 
-                                        text={`https://spl-gov.vercel.app/proposal/${governanceAddress}/${proposalPk}`} 
-                                        onCopy={handleCopyClick}
-                                    >
-                                        <Tooltip title={`Copy ${realmName} Governance Propoosal Link`}>
-                                            <Button
-                                                variant="outlined" 
-                                                color='inherit'
-                                                aria-label="copy"
-                                                sx={{
-                                                    borderRadius:'17px',
-                                                    borderColor:'rgba(255,255,255,0.05)',
-                                                    fontSize:'10px'}}
-                                            >
-                                                <ContentCopyIcon fontSize='inherit' sx={{mr:1}} /> Copy
-                                            </Button>
-                                        </Tooltip>
-                                </CopyToClipboard>
-
                                 <Tooltip title={`Visit  ${realmName} on Realms`}>
                                     <Button 
                                         aria-label="back"
+                                        variant="outlined" 
+                                        color='inherit'
                                         href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`}
                                         target='blank'
                                         sx={{
@@ -1871,6 +1828,51 @@ export function GovernanceProposalView(props: any){
                                         <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
                                     </Button>
                                 </Tooltip>
+                                
+                            </Grid>
+                        </Grid>
+                    :
+                        <Grid container>
+                            <Grid item xs={12} container justifyContent="flex-start">
+                                
+                                <ButtonGroup
+                                    variant="outlined" 
+                                    color='inherit'
+                                >
+                                    <CopyToClipboard 
+                                            text={`https://spl-gov.vercel.app/proposal/${governanceAddress}/${proposalPk}`} 
+                                            onCopy={handleCopyClick}
+                                        >
+                                            <Tooltip title={`Copy ${realmName} Governance Propoosal Link`}>
+                                                <Button
+                                                    variant="outlined" 
+                                                    color='inherit'
+                                                    aria-label="copy"
+                                                    sx={{   
+                                                        borderTopLeftRadius:'17px',
+                                                        borderBottomLeftRadius:'17px',
+                                                        borderColor:'rgba(255,255,255,0.05)',
+                                                        fontSize:'10px'}}
+                                                >
+                                                    <ContentCopyIcon fontSize='inherit' sx={{mr:1}} /> Copy
+                                                </Button>
+                                            </Tooltip>
+                                    </CopyToClipboard>
+
+                                    <Tooltip title={`Visit  ${realmName} on Realms`}>
+                                        <Button 
+                                            aria-label="back"
+                                            href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`}
+                                            target='blank'
+                                            sx={{
+                                                borderTopRightRadius:'17px',
+                                                borderBottomRightRadius:'17px',
+                                                borderColor:'rgba(255,255,255,0.05)',
+                                                fontSize:'10px'}}
+                                        >
+                                            <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
+                                        </Button>
+                                    </Tooltip>
                                 </ButtonGroup>
                             </Grid>
                         </Grid>                       

@@ -584,6 +584,10 @@ export function GovernanceCachedView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
+    const showGovernanceTitle = props?.showGovernanceTitle || false;
+    const background = props?.background || null;
+    const textColor = props?.textColor || null;
+
     const governanceAddress = urlParams;
     const [cachedRealm, setCachedRealm] = React.useState(null);
     const [startTime, setStartTime] = React.useState(null);
@@ -956,6 +960,11 @@ export function GovernanceCachedView(props: any) {
     }
 
     React.useEffect(() => {
+        if (background)
+            document.body.style.backgroundColor = background;
+        if (textColor)
+            document.body.style.color = textColor;
+        
         if (tokenMap){
             console.log("Step 1.")
             callGovernanceLookup();
