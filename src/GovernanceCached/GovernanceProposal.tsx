@@ -157,9 +157,11 @@ export function GovernanceProposalView(props: any){
     const {governance} = useParams<{ governance: string }>();
     const {proposal} = useParams<{ proposal: string }>();
 
-    const showGovernanceTitle = props?.showGovernanceTitle || false;
-    const background = props?.background || null;
-    const textColor = props?.textColor || null;
+    const showGovernanceTitle = props?.showGovernanceTitle ? props?.showGovernanceTitle : false;
+    const background = props?.background ? props.background : null;
+    const textColor = props?.textColor ? props.background : null;
+    //const showGovernanceNavigation = props?.showGovernanceNavigation ? true : false;
+
     const governanceAddress = searchParams.get("governance") || governance || props?.governanceAddress;
     const [thisitem, setThisitem] = React.useState(props?.item);
     const proposalPk = searchParams.get("proposal") || thisitem?.pubkey || proposal;
