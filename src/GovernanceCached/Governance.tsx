@@ -13,6 +13,8 @@ import React, { useCallback } from 'react';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { styled, useTheme } from '@mui/material/styles';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
+import grapeTheme from  '../utils/config/theme';
+import { ThemeProvider } from '@mui/material/styles';
 
 import {
   Typography,
@@ -588,7 +590,7 @@ export function GovernanceCachedView(props: any) {
     const background = props?.background || null;
     const textColor = props?.textColor || null;
     const showGovernanceNavigation = props?.showGovernanceNavigation || true;
-    
+
     const governanceAddress = urlParams;
     const [cachedRealm, setCachedRealm] = React.useState(null);
     const [startTime, setStartTime] = React.useState(null);
@@ -1074,303 +1076,308 @@ export function GovernanceCachedView(props: any) {
     //if (publicKey){
         if(loading){
             return (
-                <Box
-                    sx={{
-                        width:'100%',
-                        mt:6,
-                        background: 'rgba(0, 0, 0, 0.6)',
-                        borderRadius: '17px',
-                        p:4,
-                        alignItems: 'center', textAlign: 'center'
-                    }} 
-                > 
-                    <Typography variant="caption">Loading Governance Proposals {governanceAddress}</Typography>
-                    
-                    <LinearProgress color="inherit" />
-                    
-                </Box>
-            )
-        } else{
-            if (proposals && tokenMap && memberMap && realm){
-                return (
+                <ThemeProvider theme={grapeTheme}>
                     <Box
                         sx={{
                             width:'100%',
                             mt:6,
                             background: 'rgba(0, 0, 0, 0.6)',
                             borderRadius: '17px',
-                            overflow: 'hidden',
-                            p:4
-                        }} 
-                    > 
-                        {realm &&
-                            <>
-                                <Grid container>
-                                    <Grid item xs={12} sm={6} container justifyContent="flex-start">
-                                        <Grid container>
-                                            <Grid item xs={12}>
-                                                <Typography variant="h4">
-                                                    {realmName}
-                                                </Typography>
-                                            </Grid>
-                                            <Grid item xs={12}>
-                                                <Button
-                                                    size='small'
-                                                    sx={{color:'white', borderRadius:'17px'}}
-                                                    href={'https://realms.today/dao/'+(governanceAddress)}
-                                                    target='blank'
-                                                >
-                                                    <Typography variant="caption">
-                                                    View on Realms <OpenInNewIcon fontSize='inherit'/>
-                                                    </Typography>
-                                                </Button>
-                                            </Grid>
-                                        </Grid>
-                                    </Grid>
-                                    {showGovernanceNavigation &&
-                                        <Grid item xs={12} sm={6} container justifyContent="flex-end">
-                                            <GovernanceNavigation governanceAddress={governanceAddress} />
-                                        </Grid>
-                                    }
-                                </Grid>
-                                {/*
-                                <Typography variant="caption">
-                                    <Tooltip title={
-                                        <>
-                                            Council Mint: {realm.account.config.councilMint.toBase58()}<br/>
-                                            Community Mint Max Vote Weight: {realm.account.config.communityMintMaxVoteWeightSource.value.toNumber()/1000000}<br/>
-                                            <>Min Community Tokens to Create Governance: {realm.account.config.minCommunityTokensToCreateGovernance.toNumber()/1000000}</>
-                                        </>
-                                    }>
-                                        <Button>
-                                        {realm.pubkey.toBase58()}
-                                        </Button>
-                                    </Tooltip>
-                                </Typography>
-                                */}
-                            </>
-                        }
-
-                        
-                                <Box sx={{ 
-                                    p:1}}>
-                                    <Grid container spacing={0}>
-
-                                    <Grid item xs={12} sm={6} md={3} lg={3} key={1}>
-                                            <Box
-                                                sx={{
-                                                    borderRadius:'24px',
-                                                    m:2,
-                                                    p:1,
-                                                    background: 'rgba(0, 0, 0, 0.2)',
-                                                }}
-                                            >
-                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Treasury</>
-                                                </Typography>
-                                                <Tooltip title={<>
-                                                        Treasury total holdings value
-                                                        </>
-                                                    }>
-                                                        <Button
-                                                            color='inherit'
-                                                            sx={{
-                                                                borderRadius:'17px'
-                                                            }}
-                                                        >
-                                                            <Grid container
-                                                            sx={{
-                                                                verticalAlign: 'bottom'}}
-                                                            >
-                                                                {totalVaultValue ?
-                                                                    <Typography variant="h4">
-                                                                        ${getFormattedNumberToLocale(totalVaultValue.toFixed(2))} 
-                                                                    </Typography>
-                                                                :<>-</>
-                                                                }
-                                                            </Grid>
-                                                        </Button>
-                                                </Tooltip>
-                                            </Box>
-                                        </Grid>
-
-
-                                        <Grid item xs={12} sm={6} md={3} lg={3} key={1}>
-                                            <Box
-                                                sx={{
-                                                    borderRadius:'24px',
-                                                    m:2,
-                                                    p:1,
-                                                    background: 'rgba(0, 0, 0, 0.2)',
-                                                }}
-                                            >
-                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Total Casted Votes</>
-                                                </Typography>
-                                                <Tooltip title={<>
-                                                            Total votes casted for this governnace
-                                                            {(totalCouncilVotesCasted && totalVotesCasted) ?
-                                                                <><br/>Community/Council</>
-                                                            :<></>
-                                                            }
-                                                        </>
-                                                    }>
-                                                        <Button
-                                                            color='inherit'
-                                                            sx={{
-                                                                borderRadius:'17px'
-                                                            }}
-                                                        >
-                                                            <Grid container
-                                                            sx={{
-                                                                verticalAlign: 'bottom'}}
-                                                            >
-                                                                {totalVotesCasted ?
-                                                                    <Typography variant="h4">
-                                                                        {getFormattedNumberToLocale(totalVotesCasted)} 
-                                                                    </Typography>
-                                                                :<></>
-                                                                }
-
-                                                                <Typography variant="h4" color="#999">
-                                                                    {(totalCouncilVotesCasted && totalVotesCasted) ?
-                                                                        <>/</>
-                                                                    :<></>
-                                                                    }
-                                                                    {totalCouncilVotesCasted ?
-                                                                        <>{totalCouncilVotesCasted}</>
-                                                                    :<></>
-                                                                    }
-                                                                </Typography>
-                                                                
-                                                            </Grid>
-                                                        </Button>
-                                                </Tooltip>
-                                            </Box>
-                                        </Grid>
-
-                                        <Grid item xs={12} sm={6} md={3} lg={3} key={1}>
-                                            <Box
-                                                sx={{
-                                                    borderRadius:'24px',
-                                                    m:2,
-                                                    p:1,
-                                                    background: 'rgba(0, 0, 0, 0.2)',
-                                                }}
-                                            >
-                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Proposals/Success Rate</>
-                                                </Typography>
-                                                <Tooltip title={<>
-                                                            Total proposals created in this governance<br/>Success rate is calculated on successfully completed proposals
-                                                        </>
-                                                    }>
-                                                    <Button
-                                                        color='inherit'
-                                                        sx={{
-                                                            borderRadius:'17px',
-                                                        }}
-                                                    >   
-                                                        <Grid container
-                                                            sx={{
-                                                                verticalAlign: 'bottom'}}
-                                                        >
-                                                            <Typography variant="h4">
-                                                                {totalProposals}
-                                                            </Typography>
-                                                            <Typography variant="h6">/{((totalPassed/totalProposals)*100).toFixed(1)}%</Typography>
-                                                        </Grid>
-                                                    </Button>
-                                                </Tooltip>
-                                            </Box>
-                                        </Grid>
-                                        
-                                        <Grid item xs={12} sm={6} md={3} lg={3} key={1}>
-                                            <Box
-                                                sx={{
-                                                    borderRadius:'24px',
-                                                    m:2,
-                                                    p:1,
-                                                    background: 'rgba(0, 0, 0, 0.2)',
-                                                }}
-                                            >
-                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Passing/Defeated</>
-                                                </Typography>
-                                                <Tooltip title={<>
-                                                            Total proposals passed / Total proposals defeated
-                                                        </>
-                                                    }>
-                                                    <Button
-                                                        color='inherit'
-                                                        sx={{
-                                                            borderRadius:'17px'
-                                                        }}
-                                                    >
-                                                        <Grid container
-                                                            sx={{
-                                                                verticalAlign: 'bottom'}}
-                                                            >
-                                                            <Typography variant="h4">
-                                                                <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{totalPassed}</Badge>/
-                                                                <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{totalDefeated}</Badge>
-                                                            </Typography>
-                                                        </Grid>
-                                                    </Button>
-                                                </Tooltip>
-                                            </Box>
-                                        </Grid>
-                                        
-                                    </Grid>
-                                </Box>
-                                  
-                                
-                        <RenderGovernanceTable 
-                            governanceLookup={governanceLookup} 
-                            endTimer={endTimer} 
-                            cachedGovernance={cachedGovernance} 
-                            memberMap={memberMap} 
-                            governanceType={governanceType} 
-                            governingTokenDecimals={governingTokenDecimals} 
-                            governingTokenMint={governingTokenMint} 
-                            tokenMap={tokenMap} 
-                            realm={realm} 
-                            thisToken={thisToken} 
-                            proposals={proposals} 
-                            nftBasedGovernance={nftBasedGovernance} 
-                            governanceAddress={governanceAddress} />
-                        
-                        {endTime &&
-                            <Typography 
-                                variant="caption"
-                                sx={{textAlign:'center'}}
-                            >
-                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Hybrid Caching<br/>
-                                {cachedTimestamp &&
-                                    <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
-                                }
-                                Cache Node: {storagePool}<br/>
-                                <br/>* This is the time taken to capture all proposals & proposal details - proposals currently voting are captured via RPC for realtime results
-                            </Typography>
-                        }
-                    </Box>
-                                
-                );
-            }else{
-                return (
-                    <Box
-                        sx={{
-                            width:'100%',
-                            mt:6,
-                            background: 'rgba(0, 0, 0, 0.5)',
-                            borderRadius: '17px',
                             p:4,
                             alignItems: 'center', textAlign: 'center'
                         }} 
                     > 
-                        <Typography variant="caption">Governance Proposals {governanceAddress}</Typography>
+                        <Typography variant="caption">Loading Governance Proposals {governanceAddress}</Typography>
+                        
+                        <LinearProgress color="inherit" />
                         
                     </Box>
+                </ThemeProvider>
+            )
+        } else{
+            if (proposals && tokenMap && memberMap && realm){
+                return (
+                    <ThemeProvider theme={grapeTheme}>
+                        <Box
+                            sx={{
+                                width:'100%',
+                                mt:6,
+                                background: 'rgba(0, 0, 0, 0.6)',
+                                borderRadius: '17px',
+                                overflow: 'hidden',
+                                p:4
+                            }} 
+                        > 
+                            {realm &&
+                                <>
+                                    <Grid container>
+                                        <Grid item xs={12} sm={6} container justifyContent="flex-start">
+                                            <Grid container>
+                                                <Grid item xs={12}>
+                                                    <Typography variant="h4">
+                                                        {realmName}
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item xs={12}>
+                                                    <Button
+                                                        size='small'
+                                                        sx={{color:'white', borderRadius:'17px'}}
+                                                        href={'https://realms.today/dao/'+(governanceAddress)}
+                                                        target='blank'
+                                                    >
+                                                        <Typography variant="caption">
+                                                        View on Realms <OpenInNewIcon fontSize='inherit'/>
+                                                        </Typography>
+                                                    </Button>
+                                                </Grid>
+                                            </Grid>
+                                        </Grid>
+                                        {showGovernanceNavigation &&
+                                            <Grid item xs={12} sm={6} container justifyContent="flex-end">
+                                                <GovernanceNavigation governanceAddress={governanceAddress} />
+                                            </Grid>
+                                        }
+                                    </Grid>
+                                    {/*
+                                    <Typography variant="caption">
+                                        <Tooltip title={
+                                            <>
+                                                Council Mint: {realm.account.config.councilMint.toBase58()}<br/>
+                                                Community Mint Max Vote Weight: {realm.account.config.communityMintMaxVoteWeightSource.value.toNumber()/1000000}<br/>
+                                                <>Min Community Tokens to Create Governance: {realm.account.config.minCommunityTokensToCreateGovernance.toNumber()/1000000}</>
+                                            </>
+                                        }>
+                                            <Button>
+                                            {realm.pubkey.toBase58()}
+                                            </Button>
+                                        </Tooltip>
+                                    </Typography>
+                                    */}
+                                </>
+                            }
+
+                            
+                                    <Box sx={{ 
+                                        p:1}}>
+                                        <Grid container spacing={0}>
+
+                                        <Grid item xs={12} sm={6} md={3} lg={3} key={1}>
+                                                <Box
+                                                    sx={{
+                                                        borderRadius:'24px',
+                                                        m:2,
+                                                        p:1,
+                                                        background: 'rgba(0, 0, 0, 0.2)',
+                                                    }}
+                                                >
+                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                        <>Treasury</>
+                                                    </Typography>
+                                                    <Tooltip title={<>
+                                                            Treasury total holdings value
+                                                            </>
+                                                        }>
+                                                            <Button
+                                                                color='inherit'
+                                                                sx={{
+                                                                    borderRadius:'17px'
+                                                                }}
+                                                            >
+                                                                <Grid container
+                                                                sx={{
+                                                                    verticalAlign: 'bottom'}}
+                                                                >
+                                                                    {totalVaultValue ?
+                                                                        <Typography variant="h4">
+                                                                            ${getFormattedNumberToLocale(totalVaultValue.toFixed(2))} 
+                                                                        </Typography>
+                                                                    :<>-</>
+                                                                    }
+                                                                </Grid>
+                                                            </Button>
+                                                    </Tooltip>
+                                                </Box>
+                                            </Grid>
+
+
+                                            <Grid item xs={12} sm={6} md={3} lg={3} key={1}>
+                                                <Box
+                                                    sx={{
+                                                        borderRadius:'24px',
+                                                        m:2,
+                                                        p:1,
+                                                        background: 'rgba(0, 0, 0, 0.2)',
+                                                    }}
+                                                >
+                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                        <>Total Casted Votes</>
+                                                    </Typography>
+                                                    <Tooltip title={<>
+                                                                Total votes casted for this governnace
+                                                                {(totalCouncilVotesCasted && totalVotesCasted) ?
+                                                                    <><br/>Community/Council</>
+                                                                :<></>
+                                                                }
+                                                            </>
+                                                        }>
+                                                            <Button
+                                                                color='inherit'
+                                                                sx={{
+                                                                    borderRadius:'17px'
+                                                                }}
+                                                            >
+                                                                <Grid container
+                                                                sx={{
+                                                                    verticalAlign: 'bottom'}}
+                                                                >
+                                                                    {totalVotesCasted ?
+                                                                        <Typography variant="h4">
+                                                                            {getFormattedNumberToLocale(totalVotesCasted)} 
+                                                                        </Typography>
+                                                                    :<></>
+                                                                    }
+
+                                                                    <Typography variant="h4" color="#999">
+                                                                        {(totalCouncilVotesCasted && totalVotesCasted) ?
+                                                                            <>/</>
+                                                                        :<></>
+                                                                        }
+                                                                        {totalCouncilVotesCasted ?
+                                                                            <>{totalCouncilVotesCasted}</>
+                                                                        :<></>
+                                                                        }
+                                                                    </Typography>
+                                                                    
+                                                                </Grid>
+                                                            </Button>
+                                                    </Tooltip>
+                                                </Box>
+                                            </Grid>
+                                            
+                                            <Grid item xs={12} sm={6} md={3} lg={3} key={1}>
+                                                <Box
+                                                    sx={{
+                                                        borderRadius:'24px',
+                                                        m:2,
+                                                        p:1,
+                                                        background: 'rgba(0, 0, 0, 0.2)',
+                                                    }}
+                                                >
+                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                        <>Proposals/Success Rate</>
+                                                    </Typography>
+                                                    <Tooltip title={<>
+                                                                Total proposals created in this governance<br/>Success rate is calculated on successfully completed proposals
+                                                            </>
+                                                        }>
+                                                        <Button
+                                                            color='inherit'
+                                                            sx={{
+                                                                borderRadius:'17px',
+                                                            }}
+                                                        >   
+                                                            <Grid container
+                                                                sx={{
+                                                                    verticalAlign: 'bottom'}}
+                                                            >
+                                                                <Typography variant="h4">
+                                                                    {totalProposals}
+                                                                </Typography>
+                                                                <Typography variant="h6">/{((totalPassed/totalProposals)*100).toFixed(1)}%</Typography>
+                                                            </Grid>
+                                                        </Button>
+                                                    </Tooltip>
+                                                </Box>
+                                            </Grid>
+                                            
+                                            <Grid item xs={12} sm={6} md={3} lg={3} key={1}>
+                                                <Box
+                                                    sx={{
+                                                        borderRadius:'24px',
+                                                        m:2,
+                                                        p:1,
+                                                        background: 'rgba(0, 0, 0, 0.2)',
+                                                    }}
+                                                >
+                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                        <>Passing/Defeated</>
+                                                    </Typography>
+                                                    <Tooltip title={<>
+                                                                Total proposals passed / Total proposals defeated
+                                                            </>
+                                                        }>
+                                                        <Button
+                                                            color='inherit'
+                                                            sx={{
+                                                                borderRadius:'17px'
+                                                            }}
+                                                        >
+                                                            <Grid container
+                                                                sx={{
+                                                                    verticalAlign: 'bottom'}}
+                                                                >
+                                                                <Typography variant="h4">
+                                                                    <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{totalPassed}</Badge>/
+                                                                    <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{totalDefeated}</Badge>
+                                                                </Typography>
+                                                            </Grid>
+                                                        </Button>
+                                                    </Tooltip>
+                                                </Box>
+                                            </Grid>
+                                            
+                                        </Grid>
+                                    </Box>
+                                    
+                                    
+                            <RenderGovernanceTable 
+                                governanceLookup={governanceLookup} 
+                                endTimer={endTimer} 
+                                cachedGovernance={cachedGovernance} 
+                                memberMap={memberMap} 
+                                governanceType={governanceType} 
+                                governingTokenDecimals={governingTokenDecimals} 
+                                governingTokenMint={governingTokenMint} 
+                                tokenMap={tokenMap} 
+                                realm={realm} 
+                                thisToken={thisToken} 
+                                proposals={proposals} 
+                                nftBasedGovernance={nftBasedGovernance} 
+                                governanceAddress={governanceAddress} />
+                            
+                            {endTime &&
+                                <Typography 
+                                    variant="caption"
+                                    sx={{textAlign:'center'}}
+                                >
+                                    Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Hybrid Caching<br/>
+                                    {cachedTimestamp &&
+                                        <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
+                                    }
+                                    Cache Node: {storagePool}<br/>
+                                    <br/>* This is the time taken to capture all proposals & proposal details - proposals currently voting are captured via RPC for realtime results
+                                </Typography>
+                            }
+                        </Box>
+                    </ThemeProvider>        
+                );
+            }else{
+                return (
+                    <ThemeProvider theme={grapeTheme}>
+                        <Box
+                            sx={{
+                                width:'100%',
+                                mt:6,
+                                background: 'rgba(0, 0, 0, 0.5)',
+                                borderRadius: '17px',
+                                p:4,
+                                alignItems: 'center', textAlign: 'center'
+                            }} 
+                        > 
+                            <Typography variant="caption">Governance Proposals {governanceAddress}</Typography>
+                            
+                        </Box>
+                    </ThemeProvider>
                 );
             }
             
