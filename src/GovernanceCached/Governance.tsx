@@ -1116,7 +1116,7 @@ export function GovernanceCachedView(props: any) {
                                 <>
                                     <Grid container
                                         sx={{
-                                            m: showGovernanceNavigation ? 2 : 0,
+                                            m: showGovernanceNavigation ? 0 : 2,
                                         }}
                                     >
                                         <Grid item xs={12} sm={6} container justifyContent="flex-start">
@@ -1360,7 +1360,7 @@ export function GovernanceCachedView(props: any) {
                             {endTime &&
                                 <Grid
                                     sx={{
-                                        m: showGovernanceNavigation ? 2 : 0,
+                                        m: showGovernanceNavigation ? 0 : 2,
                                     }}
                                 >
                                     <Typography 
