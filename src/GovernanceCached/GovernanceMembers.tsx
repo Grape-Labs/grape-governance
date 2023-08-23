@@ -779,15 +779,18 @@ export function GovernanceMembersView(props: any) {
                                                 </Typography>
                                             </Grid>
                                             <Grid item xs={12}>
-                                                <Button
-                                                    size='small'
-                                                    sx={{color:'white', borderRadius:'17px'}}
-                                                    href={'https://realms.today/dao/'+(governanceAddress)}
+                                                <Button 
+                                                    aria-label="back"
+                                                    variant="outlined" 
+                                                    color='inherit'
+                                                    href={`https://realms.today/dao/${governanceAddress}`}
                                                     target='blank'
+                                                    sx={{
+                                                        borderRadius:'17px',
+                                                        borderColor:'rgba(255,255,255,0.05)',
+                                                        fontSize:'10px'}}
                                                 >
-                                                    <Typography variant="caption">
-                                                    View on Realms <OpenInNewIcon fontSize='inherit'/>
-                                                    </Typography>
+                                                    <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
                                                 </Button>
                                             </Grid>
                                         </Grid>

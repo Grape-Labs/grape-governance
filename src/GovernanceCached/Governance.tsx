@@ -1114,7 +1114,11 @@ export function GovernanceCachedView(props: any) {
                         > 
                             {realm &&
                                 <>
-                                    <Grid container>
+                                    <Grid container
+                                        sx={{
+                                            m: showGovernanceNavigation ? 2 : 0,
+                                        }}
+                                    >
                                         <Grid item xs={12} sm={6} container justifyContent="flex-start">
                                             <Grid container>
                                                 <Grid item xs={12}>
@@ -1122,16 +1126,19 @@ export function GovernanceCachedView(props: any) {
                                                         {realmName}
                                                     </Typography>
                                                 </Grid>
-                                                <Grid item xs={12}>
-                                                    <Button
-                                                        size='small'
-                                                        sx={{color:'white', borderRadius:'17px'}}
-                                                        href={'https://realms.today/dao/'+(governanceAddress)}
+                                                <Grid item xs={12}>    
+                                                    <Button 
+                                                        aria-label="back"
+                                                        variant="outlined" 
+                                                        color='inherit'
+                                                        href={`https://realms.today/dao/${governanceAddress}`}
                                                         target='blank'
+                                                        sx={{
+                                                            borderRadius:'17px',
+                                                            borderColor:'rgba(255,255,255,0.05)',
+                                                            fontSize:'10px'}}
                                                     >
-                                                        <Typography variant="caption">
-                                                        View on Realms <OpenInNewIcon fontSize='inherit'/>
-                                                        </Typography>
+                                                        <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
                                                     </Button>
                                                 </Grid>
                                             </Grid>
@@ -1351,17 +1358,25 @@ export function GovernanceCachedView(props: any) {
                                 governanceAddress={governanceAddress} />
                             
                             {endTime &&
-                                <Typography 
-                                    variant="caption"
-                                    sx={{textAlign:'center'}}
+                                <Grid
+                                    sx={{
+                                        m: showGovernanceNavigation ? 2 : 0,
+                                    }}
                                 >
-                                    Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Hybrid Caching<br/>
-                                    {cachedTimestamp &&
-                                        <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
-                                    }
-                                    Cache Node: {storagePool}<br/>
-                                    <br/>* This is the time taken to capture all proposals & proposal details - proposals currently voting are captured via RPC for realtime results
-                                </Typography>
+                                    <Typography 
+                                        variant="caption"
+                                        sx={{
+                                            textAlign:'center'
+                                        }}
+                                    >
+                                        Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Hybrid Caching<br/>
+                                        {cachedTimestamp &&
+                                            <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
+                                        }
+                                        Cache Node: {storagePool}<br/>
+                                        <br/>* This is the time taken to capture all proposals & proposal details - proposals currently voting are captured via RPC for realtime results
+                                    </Typography>
+                                </Grid>
                             }
                         </Box>
                     </ThemeProvider>        
