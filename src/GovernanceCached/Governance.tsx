@@ -1085,6 +1085,8 @@ export function GovernanceCachedView(props: any) {
                             background: 'rgba(0, 0, 0, 0.6)',
                             borderRadius: '17px',
                             p: showGovernanceNavigation ? 4 : 0,
+                            pt:4,
+                            pb:4,
                             alignItems: 'center', textAlign: 'center'
                         }} 
                     > 
@@ -1107,6 +1109,7 @@ export function GovernanceCachedView(props: any) {
                                 borderRadius: '17px',
                                 overflow: 'hidden',
                                 p: showGovernanceNavigation ? 4 : 0,
+                                color: 'white',
                             }} 
                         > 
                             {realm &&
@@ -1115,7 +1118,7 @@ export function GovernanceCachedView(props: any) {
                                         <Grid item xs={12} sm={6} container justifyContent="flex-start">
                                             <Grid container>
                                                 <Grid item xs={12}>
-                                                    <Typography variant="h4" sx={{color:'white'}}>
+                                                    <Typography variant="h4">
                                                         {realmName}
                                                     </Typography>
                                                 </Grid>
@@ -1190,7 +1193,7 @@ export function GovernanceCachedView(props: any) {
                                                                     verticalAlign: 'bottom'}}
                                                                 >
                                                                     {totalVaultValue ?
-                                                                        <Typography variant="h4" sx={{color:'white'}}>
+                                                                        <Typography variant="h4">
                                                                             ${getFormattedNumberToLocale(totalVaultValue.toFixed(2))} 
                                                                         </Typography>
                                                                     :<>-</>
@@ -1233,7 +1236,7 @@ export function GovernanceCachedView(props: any) {
                                                                     verticalAlign: 'bottom'}}
                                                                 >
                                                                     {totalVotesCasted ?
-                                                                        <Typography variant="h4" sx={{color:'white'}}>
+                                                                        <Typography variant="h4">
                                                                             {getFormattedNumberToLocale(totalVotesCasted)} 
                                                                         </Typography>
                                                                     :<></>
@@ -1282,10 +1285,10 @@ export function GovernanceCachedView(props: any) {
                                                                 sx={{
                                                                     verticalAlign: 'bottom'}}
                                                             >
-                                                                <Typography variant="h4" sx={{color:'white'}}>
+                                                                <Typography variant="h4">
                                                                     {totalProposals}
                                                                 </Typography>
-                                                                <Typography variant="h6" sx={{color:'white'}}>/{((totalPassed/totalProposals)*100).toFixed(1)}%</Typography>
+                                                                <Typography variant="h6">/{((totalPassed/totalProposals)*100).toFixed(1)}%</Typography>
                                                             </Grid>
                                                         </Button>
                                                     </Tooltip>
@@ -1318,7 +1321,7 @@ export function GovernanceCachedView(props: any) {
                                                                 sx={{
                                                                     verticalAlign: 'bottom'}}
                                                                 >
-                                                                <Typography variant="h4" sx={{color:'white'}}>
+                                                                <Typography variant="h4">
                                                                     <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{totalPassed}</Badge>/
                                                                     <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{totalDefeated}</Badge>
                                                                 </Typography>
@@ -1373,6 +1376,8 @@ export function GovernanceCachedView(props: any) {
                                 background: 'rgba(0, 0, 0, 0.5)',
                                 borderRadius: '17px',
                                 p: showGovernanceNavigation ? 4 : 0,
+                                pt:4,
+                                pb:4,
                                 alignItems: 'center', textAlign: 'center'
                             }} 
                         > 
