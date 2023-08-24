@@ -398,7 +398,7 @@ function RenderGovernanceTable(props:any) {
                                     ).map((item:any, index:number) => (
                                     <>
                                         {/*console.log("item ("+index+"): "+JSON.stringify(item))*/}
-                                        {item?.pubkey && item?.account &&
+                                        {item?.pubkey && item?.account && item.account?.options && item.account?.options.length > 0 &&
                                             <>
                                                 {(item.account?.options[0].voteWeight && item.account?.state === 2) ?
                                                     <TableRow sx={{border:'none'}}>
