@@ -1407,6 +1407,19 @@ export function GovernanceCachedView(props: any) {
                                         Cache Node: {storagePool}<br/>
                                         <br/>* This is the time taken to capture all proposals & proposal details - proposals currently voting are captured via RPC for realtime results
                                     </Typography>
+
+                                    {showGovernanceNavigation ? 
+                                        <></> : 
+                                        <Box
+                                            sx={{
+                                                color:'rgba(255,255,255,0.5)',
+                                                width:'100%',
+                                                alignItems: 'center', textAlign: 'center'
+                                            }} 
+                                        > 
+                                            <Typography variant='subtitle1'>Powered by Grape Governance Caching</Typography>
+                                        </Box>
+                                    }
                                 </Grid>
                             }
                         </Box>
@@ -1428,7 +1441,6 @@ export function GovernanceCachedView(props: any) {
                             }} 
                         > 
                             <Typography variant="caption" sx={{color:'white'}}>Governance Proposals {governanceAddress}</Typography>
-                            
                         </Box>
                     </ThemeProvider>
                 );
