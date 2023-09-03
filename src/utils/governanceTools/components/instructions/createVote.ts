@@ -32,7 +32,7 @@ import {
 // end plugin stuff
   
 const connection = RPC_CONNECTION;
-  
+
 export const createCastVoteTransaction = async (
     selectedRealm: Realm,
     walletPublicKey: PublicKey,
@@ -40,6 +40,7 @@ export const createCastVoteTransaction = async (
     membersMapItem: any,
     selectedDelegate: string,
     isCommunityVote: boolean,
+    multiChoice: any,
     type: Number
 ) => {
     const { proposal, action } = transactionData;
@@ -120,19 +121,45 @@ export const createCastVoteTransaction = async (
       //console.log("tokenRecordPublicKey: "+JSON.stringify(tokenRecordPublicKey))
       //console.log("vote type: "+JSON.stringify(Vote.fromYesNoVote(action)));
       
-      const voteDirection = type === 0 ? new Vote({
-          voteType: VoteKind.Approve,
-          approveChoices: [new VoteChoice({ rank: 0, weightPercentage: 100 })],
-          deny: undefined,
-          veto: undefined,
-        })
+      console.log("multiChoice: " +multiChoice);
+
+      let rank = 0;
+      let weightPercentage = 100;
+      if (multiChoice){
+        //rank = multiChoice;
+        //weightPercentage = 0;
+      }
+
+
+      const voteDirection = (type === 0 && multiChoice) ?
+            new Vote({
+              voteType: VoteKind.Approve,
+              approveChoices: 
+                multiChoice.proposal.account.options.map((_o, index) => {
+                  if (multiChoice.index === index)
+                    return new VoteChoice({ rank: 0, weightPercentage: 100 })
+                  else
+                    return new VoteChoice({ rank: 0, weightPercentage: 0 })
+                }),
+              deny: undefined,
+              veto: undefined,
+          })
       :
-        new Vote({
-          voteType: VoteKind.Deny,
-          approveChoices: undefined,
-          deny: true,
-          veto: undefined,
-        })
+        type === 0 ?
+          new Vote({
+              voteType: VoteKind.Approve,
+              approveChoices: [new VoteChoice({ rank: rank, weightPercentage: weightPercentage })],
+              deny: undefined,
+              veto: undefined,
+          })
+          :
+            new Vote({
+              voteType: VoteKind.Deny,
+              approveChoices: undefined,
+              deny: true,
+              veto: undefined,
+          })
+        
 
 
       //will run only if any plugin is connected with realm

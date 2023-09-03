@@ -1331,6 +1331,7 @@ export function GovernanceProposalView(props: any){
 
     function VoteForProposal(props:any){
         const type = props.type || 0;
+        const multiChoice = props.multiChoice || null;
 
         /*
         console.log("memberMap: "+JSON.stringify(memberMap));
@@ -1375,7 +1376,7 @@ export function GovernanceProposalView(props: any){
             //console.log("memberItem: "+JSON.stringify(memberItem));
 
             //console.log("tokenOwnerRecord: "+JSON.stringify(thisitem.account.tokenOwnerRecord));
-
+            
             const proposal = {
                 governanceId: thisitem.account.governance,
                 proposalId: thisitem.pubkey,
@@ -1411,6 +1412,7 @@ export function GovernanceProposalView(props: any){
                     memberItem,
                     null,
                     isCommunityVote,
+                    multiChoice,
                     type
                 );
 
@@ -1467,7 +1469,7 @@ export function GovernanceProposalView(props: any){
                             color='success'
                             onClick={handleVoteYes}
                             sx={{borderRadius:'17px',textTransform:'none'}}
-                        >Vote YES</Button>
+                        >Vote{!multiChoice && ` YES`}</Button>
                     :
                         <Button
                             variant="outlined"
@@ -2045,9 +2047,7 @@ export function GovernanceProposalView(props: any){
                                                         
                                                         <ListItem
                                                             secondaryAction={
-                                                                <IconButton edge="end" aria-label="delete">
-                                                                    ...
-                                                                </IconButton>
+                                                                <VoteForProposal type={0} multiChoice={{index:mindex,proposal:thisitem}} />
                                                             }
                                                             >
                                                             <ListItemAvatar>
