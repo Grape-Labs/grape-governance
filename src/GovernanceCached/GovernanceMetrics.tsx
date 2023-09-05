@@ -1100,7 +1100,7 @@ function RenderVoterRecordTable(props:any) {
                                                 totalvotesagainst = +((inner_item?.vote?.voterWeight)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//inner_item?.vote?.voterWeight; //getFormattedNumberToLocale(formatAmount(+(parseInt(inner_item?.vote?.voterWeight)/Math.pow(10, inner_item?.vote?.decimals)).toFixed(0)));
                                                 totalvotes = (totalvotesagainst);
                                                 if (item.account.state === 7)
-                                                    votersuccess = 1;
+                                                    votersuccess = 0;
                                             }
                                         } else if (inner_item?.vote?.legacyYes) {
                                             if (inner_item?.vote?.legacyYes > 0){
@@ -1114,7 +1114,7 @@ function RenderVoterRecordTable(props:any) {
                                                 totalvotesagainst = +((inner_item?.vote?.legacyNo)/Math.pow(10, +inner_item?.vote?.decimals)).toFixed(0);//(inner_item?.vote?.legacyNo);
                                                 totalvotes = (totalvotesagainst);
                                                 if (item.account.state === 7)
-                                                    votersuccess = 1;
+                                                    votersuccess = 0;
                                             }
                                         }
                                     }
