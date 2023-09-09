@@ -13,7 +13,7 @@ import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useSnackbar } from 'notistack';
-import { createProposalInstructions } from './Proposals/createProposalInstructions';
+import { createProposalInstructions } from './Proposals/createDAOProposalInstructions';
 import { 
   getRealm, 
   createInstructionData, getRealmConfig  } from '@solana/spl-governance';

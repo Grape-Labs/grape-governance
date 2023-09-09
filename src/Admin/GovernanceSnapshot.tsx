@@ -49,6 +49,7 @@ import { findDisplayName } from '../utils/name-service';
 
 import {
     Box,
+    Grid,
     TextField,
     Button,
     ButtonGroup,
@@ -91,6 +92,7 @@ import {
     GGAPI_STORAGE_URI,
     PRIMARY_STORAGE_WALLET,
     RPC_ENDPOINT,
+    RPC_LABEL,
     WS_ENDPOINT,
     TWITTER_PROXY
 } from '../utils/grapeTools/constants';
@@ -2854,6 +2856,13 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [governanceAutocomplete, setGovernanceAutocomplete] = React.useState(null);
     const [storageAutocomplete, setStorageAutocomplete] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
+    const [rpcAutocomplete, setRpcAutocomplete] = React.useState([
+        {
+            label: RPC_LABEL,
+            value: RPC_ENDPOINT
+        }
+    ]);
+
     const [rpcProvider, setRPCProviderPool] = React.useState(RPC_ENDPOINT);
     const [cronBookmark, setCronBookmark] = React.useState(null);
     const [currentWallet, setCurrentWallet] = React.useState(null);
@@ -2930,12 +2939,33 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     Grape Governance<br/>Decentralized Caching<br/>
                     {currentWallet && <Typography variant="caption">Storage Wallet: {currentWallet}</Typography>}
                 </Typography>
-                
-                <TextField 
-                        fullWidth 
-                        label="Enter a custom RPC pool address" 
-                        //value={rpcProvider || RPC_CONNECTION}
-                        onChange={(e) => setRPCProviderPool(e.target.value)}/>
+
+                {rpcAutocomplete ?
+                    <Autocomplete
+                        freeSolo
+                        disablePortal
+                        id="combo-box-demo"
+                        options={rpcAutocomplete}
+                        getOptionLabel={(option) => option.value}
+                        renderOption={(props, option) => (
+                            <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                <Grid container>
+                                    <Grid xs={12}>
+                                        <Typography variant="subtitle1">{option.label}</Typography>
+                                    </Grid>
+                                </Grid>
+                            </Box>
+                        )}
+                        onChange={(e, sel) => setRPCProviderPool(sel?.value)} 
+                        renderInput={(params) => <TextField {...params} onChange={(e) => setRPCProviderPool(e.target.value)} label="RPC Provider" />}
+                    />
+                    :
+                    <TextField 
+                            fullWidth 
+                            label="Enter a custom RPC pool address" 
+                            //value={rpcProvider || RPC_CONNECTION}
+                            onChange={(e) => setRPCProviderPool(e.target.value)}/>
+                }
 
 
                 {storageAutocomplete ?
