@@ -65,7 +65,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [title, setTitle] = React.useState(null);
     const [description, setDescription] = React.useState(null);
     const maxTitleLen = 130;
-    const maxDescriptionLen = 255;
+    const maxDescriptionLen = 512;
     const [proposalType, setProposalType] = React.useState(null);
     const [governanceWallet, setGovernanceWallet] = React.useState(null);
     const [isGistDescription, setIsGistDescription] = React.useState(false);
@@ -548,7 +548,7 @@ export default function GovernanceCreateProposalView(props: any){
                                   if (!title || title.length < maxTitleLen)
                                       setTitle(e.target.value)
                                   }}
-                              sx={{borderRadius:'17px', maxlength:maxDescriptionLen}} 
+                              sx={{borderRadius:'17px', maxlength:maxTitleLen}} 
                           />
                           <Grid sx={{textAlign:'right',}}>
                           <Typography variant="caption">{title ? title.length > 0 ? maxTitleLen - title.length : maxTitleLen : maxTitleLen} characters remaining</Typography>

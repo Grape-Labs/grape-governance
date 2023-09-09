@@ -1376,7 +1376,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 count++;
             }
         }
-
+        
         const sortedResults = allprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
         
         // get first date
@@ -2854,6 +2854,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [governanceAutocomplete, setGovernanceAutocomplete] = React.useState(null);
     const [storageAutocomplete, setStorageAutocomplete] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
+    const [rpcProvider, setRPCProviderPool] = React.useState(RPC_ENDPOINT);
     const [cronBookmark, setCronBookmark] = React.useState(null);
     const [currentWallet, setCurrentWallet] = React.useState(null);
 
@@ -2929,6 +2930,13 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     Grape Governance<br/>Decentralized Caching<br/>
                     {currentWallet && <Typography variant="caption">Storage Wallet: {currentWallet}</Typography>}
                 </Typography>
+                
+                <TextField 
+                        fullWidth 
+                        label="Enter a custom RPC pool address" 
+                        //value={rpcProvider || RPC_CONNECTION}
+                        onChange={(e) => setRPCProviderPool(e.target.value)}/>
+
 
                 {storageAutocomplete ?
                     <Autocomplete
@@ -2968,7 +2976,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                     governanceLookup, 
                                     tokenMap, 
                                     currentWallet, 
-                                    connection, 
+                                    new Connection(rpcProvider || RPC_ENDPOINT), 
                                     storagePool, 
                                     governanceAutocomplete, 
                                     thisDrive, 
@@ -3040,7 +3048,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                         governanceLookup, 
                                         tokenMap, 
                                         currentWallet, 
-                                        connection, 
+                                        new Connection(rpcProvider || RPC_ENDPOINT), 
                                         storagePool, 
                                         governanceAutocomplete, 
                                         thisDrive, 
@@ -3071,7 +3079,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                         governanceLookup, 
                                         tokenMap, 
                                         currentWallet, 
-                                        connection, 
+                                        new Connection(rpcProvider || RPC_ENDPOINT), 
                                         storagePool, 
                                         governanceAutocomplete, 
                                         thisDrive, 
