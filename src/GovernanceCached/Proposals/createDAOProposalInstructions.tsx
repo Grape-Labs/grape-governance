@@ -31,7 +31,7 @@ export interface InstructionsAndSignersSet {
 }*/
 
   export async function createProposalInstructions(
-    token_realm_program_id:any, 
+    token_realm_program_id: PublicKey, 
     realmPk: PublicKey,
     governancePk: PublicKey,
     governingTokenMint: PublicKey,
@@ -99,7 +99,7 @@ export interface InstructionsAndSignersSet {
   );
   //see if we can add some of the instruction data in the createProposal before sending first transaction
   //return proposalPk;
-
+  console.log("proposalPK completed")
   
   let transactionDao = new Transaction();
   transactionDao.add(...instructions);
@@ -129,6 +129,8 @@ export interface InstructionsAndSignersSet {
   );
   console.log("instructionsData: "+JSON.stringify(instructionData.slice(0,1)));
   transactionDao.add(...instructions);
+
+  console.log("wit1 completed")
 
   return transactionDao;
   

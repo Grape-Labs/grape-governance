@@ -127,13 +127,11 @@ export default function GovernanceCreateProposalView(props: any){
         null
       );
       
-      
 
       //await createProposalInstructions()
-
         
       enqueueSnackbar(`Creating proposal...`,{ variant: 'info' });
-      const signedTransaction2 = await sendTransaction(transaction, connection);
+      const signedTransaction2 = await sendTransaction(propTx, connection);
           
       const snackprogress = (key:any) => (
           <CircularProgress sx={{padding:'10px'}} />
