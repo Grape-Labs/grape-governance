@@ -24,12 +24,20 @@ import {
 
 import { AnyMxRecord } from 'dns';
 
+/*
 export interface InstructionsAndSignersSet {
     signers: any[];
     instructions: any[];
-}
+}*/
 
-  export async function createProposalInstructions(token_realm_program_id:any, walletPk:PublicKey, name:string,description:string, connection: any, transactionInstr: InstructionsAndSignersSet, sendTransaction: any): Promise<InstructionsAndSignersSet> {
+  export async function createProposalInstructions(
+    token_realm_program_id:any, 
+    walletPk:PublicKey, 
+    name:string,
+    description:string, 
+    connection: any, 
+    transactionInstr: Transaction, //: InstructionsAndSignersSet, 
+    sendTransaction: any): Promise<Transaction> {
     
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
     //let initialInstructions: TransactionInstruction[] = [];
@@ -87,7 +95,9 @@ export interface InstructionsAndSignersSet {
       walletPk,
   );
   //see if we can add some of the instruction data in the createProposal before sending first transaction
+  //return proposalPk;
 
+  
   let transactionDao = new Transaction();
   transactionDao.add(...instructions);
 
@@ -117,7 +127,11 @@ export interface InstructionsAndSignersSet {
   console.log("instructionsData: "+JSON.stringify(instructionData.slice(0,1)));
   transactionDao.add(...instructions);
 
+  return transactionDao;
+  
+  /*
   const signedTransaction = await sendTransaction(transactionDao, connection);
+
   await connection.confirmTransaction(signedTransaction, 'processed'); 
   instructions = [];
   signers = [];
@@ -138,7 +152,7 @@ export interface InstructionsAndSignersSet {
   
   //const instructions2Set = instructions;
   console.log("instructionsData2: "+JSON.stringify(instructionData.slice(1,3)));
-  //add to transaction first sell now listing instruction (the big one)
+  // add to transaction first sell now listing instruction (the big one)
   let transactionDao2 = new Transaction();
   transactionDao2.add(...instructions);
 
@@ -190,6 +204,6 @@ export interface InstructionsAndSignersSet {
   return {
     signers: signers,
     instructions: instructions3Set
-  }
+  }*/
 
 }

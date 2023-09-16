@@ -92,7 +92,6 @@ import {
     GGAPI_STORAGE_URI,
     PRIMARY_STORAGE_WALLET,
     RPC_ENDPOINT,
-    RPC_LABEL,
     WS_ENDPOINT,
     TWITTER_PROXY
 } from '../utils/grapeTools/constants';
@@ -595,7 +594,15 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     //setLoading(true);
     //setProposals(null);
     //setCurrentUploadInfo(null);
-    if (setStatus) setStatus("Fetching Governance - Source: Q");
+
+    let rpcLabel = '';
+    const parsedURL = new URL(RPC_ENDPOINT);
+    // Split the hostname by '.' and get the last two parts
+    const parts = parsedURL.hostname.split('.');
+    const mainDomain = parts.slice(-2).join('.');
+    rpcLabel = mainDomain;
+    
+    if (setStatus) setStatus("Fetching Governance - Source: "+rpcLabel);
     const connection = RPC_CONNECTION;
     //console.log("Fetching governance "+address);
     //const grealm = await getRealm(RPC_CONNECTION, new PublicKey(address))
@@ -1283,6 +1290,18 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     }
                 }
             }
+
+            /*
+            //if (!hasWalletCommunityBalance || hoursDiff > (24*3)){ // refresh every 3 days
+                //if (tokenOwnerRecord.toBase58() === 'KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT'){
+                //if (tokenOwnerRecord.toBase58() === '3PKhzE9wuEkGPHHu2sNCvG86xNtDJduAcyBPXpE6cSNt'){
+                    const url = `https://api.helius.xyz/v0/addresses/${tokenOwnerRecord.toBase58()}/transactions?api-key=${HELIUS_API}&type=TRANSFER`
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    console.log(tokenOwnerRecord.toBase58()+" wallet transactions: ", data);
+                //}
+            //}
+            */
 
             if (!hasWalletCommunityBalance || hoursDiff > (24*3)){ // refresh every 3 days
                 if (grealm.account?.communityMint){
@@ -2858,7 +2877,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
     const [rpcAutocomplete, setRpcAutocomplete] = React.useState([
         {
-            label: RPC_LABEL,
+            label: new URL(RPC_ENDPOINT).hostname.split('.').slice(-2).join('.'),
             value: RPC_ENDPOINT
         }
     ]);

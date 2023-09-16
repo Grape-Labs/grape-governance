@@ -99,18 +99,28 @@ export default function GovernanceCreateProposalView(props: any){
     const createProposal = async() => {
       
       // get governance settings
-      // 
+      
+      enqueueSnackbar(`Genarating tx...`,{ variant: 'info' });
+      // 1. Generate the instructions to pass to governance
+      const transaction = new Transaction();
+      
+      enqueueSnackbar(`Creating Governance prop w/instructions...`,{ variant: 'info' });
+      // 2. call createDAOProposal.tsx with the respective variables to create the prop and return to execute
+      const propTx = await createProposalInstructions(
+        realm,
+        publicKey,
+        title,
+        description,
+        connection,
+        transaction,
+        sendTransaction
+      );
       
       
-      // 1. call createDAOProposal.tsx with the respective variables to create the prop and return to execute
-      
-      
+
       //await createProposalInstructions()
 
-
-      // 2. Then pass transaction to the UI and execute on user wallet
-      const transaction = new Transaction();
-
+        
       enqueueSnackbar(`Creating proposal...`,{ variant: 'info' });
       const signedTransaction2 = await sendTransaction(transaction, connection);
           
@@ -133,7 +143,7 @@ export default function GovernanceCreateProposalView(props: any){
       );
       enqueueSnackbar('Transaction completed',{ variant: 'success', action:snackaction });
     }
-
+    
     function handleDescriptionChange(text:string){
       setDescription(text);
       setIsGistDescription(false);
@@ -617,6 +627,7 @@ export default function GovernanceCreateProposalView(props: any){
                             (proposalType)
                             )
                           }
+                          onClick={createProposal}
                           variant="contained"
                           color="success"
                           sx={{borderRadius:'17px'}}>Create Proposal</Button>
