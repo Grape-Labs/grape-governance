@@ -16,7 +16,9 @@ import { useSnackbar } from 'notistack';
 import { createProposalInstructions } from './Proposals/createDAOProposalInstructions';
 import { 
   getRealm, 
-  createInstructionData, getRealmConfig  } from '@solana/spl-governance';
+  createInstructionData, 
+  getRealmConfig,
+  } from '@solana/spl-governance';
 
 import {
   Typography,
@@ -106,14 +108,23 @@ export default function GovernanceCreateProposalView(props: any){
       
       enqueueSnackbar(`Creating Governance prop w/instructions...`,{ variant: 'info' });
       // 2. call createDAOProposal.tsx with the respective variables to create the prop and return to execute
+      // temporarily use a static program id, make it dynamic for more flexibility
+      const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+      const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
+
+      const governingTokenMint = new PublicKey('8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA');
+
       const propTx = await createProposalInstructions(
+        programId,
         realm,
+        governanceWallet,
+        governingTokenMint,
         publicKey,
         title,
         description,
         connection,
         transaction,
-        sendTransaction
+        null
       );
       
       

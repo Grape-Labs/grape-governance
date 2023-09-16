@@ -32,6 +32,9 @@ export interface InstructionsAndSignersSet {
 
   export async function createProposalInstructions(
     token_realm_program_id:any, 
+    realmPk: PublicKey,
+    governancePk: PublicKey,
+    governingTokenMint: PublicKey,
     walletPk:PublicKey, 
     name:string,
     description:string, 
@@ -50,11 +53,11 @@ export interface InstructionsAndSignersSet {
       programId,
     );
 
-    const realmPk = new PublicKey('DcR6g5EawaEoTRYcnuBjtD26VSVjWNoi1C1hKJWwvcup');
-    const governancePk = new PublicKey('JAbgQLj9MoJ2Kvie8t8Y6z6as3Epf7rDp87Po3wFwrNK');
+    //const realmPk = new PublicKey('DcR6g5EawaEoTRYcnuBjtD26VSVjWNoi1C1hKJWwvcup');
+    //const governancePk = new PublicKey('JAbgQLj9MoJ2Kvie8t8Y6z6as3Epf7rDp87Po3wFwrNK');
     //const name = name;
     const descriptionLink = description;
-    const governingTokenMint = new PublicKey('9Z7SQ1WMiDNaHu2cX823sZxD2SQpscoLGkyeLAHEqy9r');
+    //const governingTokenMint = new PublicKey('9Z7SQ1WMiDNaHu2cX823sZxD2SQpscoLGkyeLAHEqy9r');
     //const walletPk = new PublicKey(walletPublicKey);
       
     const proposalIndex = 15;  //this isn't fixed will need to find the next available slot for a proposal
