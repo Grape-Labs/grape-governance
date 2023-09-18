@@ -218,8 +218,10 @@ export default function GovernanceCreateProposalView(props: any){
               onChange={handleProposalTypeChange}
             >
               <MenuItem value={1}>None</MenuItem>
-              <MenuItem value={2}>Token Transfer</MenuItem>
-              <MenuItem value={3}>Swap</MenuItem>
+              {/*<MenuItem value={2} disabled>Custom</MenuItem>*/}
+              <MenuItem value={3} disabled>Import from base58</MenuItem>
+              <MenuItem value={4}>Token Transfer</MenuItem>
+              <MenuItem value={5}>Swap</MenuItem>
             </Select>
           </FormControl>
         </Box>
