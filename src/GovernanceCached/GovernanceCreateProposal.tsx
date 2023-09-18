@@ -113,11 +113,13 @@ export default function GovernanceCreateProposalView(props: any){
       const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
 
       const governingTokenMint = new PublicKey('8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA');
+      console.log("cachedRealml.pubkey: "+JSON.stringify(cachedRealm.pubkey));
+      console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
       const propTx = await createProposalInstructions(
         programId,
-        realm,
-        governanceWallet,
+        new PublicKey(cachedRealm.pubkey),
+        new PublicKey(governanceWallet),
         governingTokenMint,
         publicKey,
         title,
