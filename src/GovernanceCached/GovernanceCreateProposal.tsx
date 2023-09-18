@@ -3,6 +3,7 @@ import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletDialogProvider, WalletMultiButton } from "@solana/wallet-adapter-material-ui";
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import React, { useCallback } from 'react';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { styled, useTheme } from '@mui/material/styles';
@@ -75,7 +76,6 @@ export default function GovernanceCreateProposalView(props: any){
     const { publicKey, sendTransaction } = useWallet();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const connection = RPC_CONNECTION;
-
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
     const [cachedGovernance, setCachedGovernance] = React.useState(null);
@@ -98,6 +98,8 @@ export default function GovernanceCreateProposalView(props: any){
     const [totalGovernanceNftFloorValue, setTotalGovernanceNftFloorValue] = React.useState(null);
     const [totalGovernanceStableCoinValue, setTotalGovernanceStableCoinValue] = React.useState(null);
 
+    const wallet = useWallet();
+    const anchorWallet = useAnchorWallet();
 
     const createProposal = async() => {
       
@@ -112,7 +114,7 @@ export default function GovernanceCreateProposalView(props: any){
       // temporarily use a static program id, make it dynamic for more flexibility
       const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
       const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
-      
+
       //const governingTokenMint = new PublicKey('8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA');
       console.log("cachedRealm: "+JSON.stringify(cachedRealm));
       console.log("cachedRealm.pubkey: "+JSON.stringify(cachedRealm.pubkey));
@@ -127,6 +129,7 @@ export default function GovernanceCreateProposalView(props: any){
 
 
       if (publicKey){
+        console.log("createProposalInstructions")
         const propTx = await createProposalInstructions(
           programId,
           new PublicKey(cachedRealm.pubkey),
@@ -137,7 +140,8 @@ export default function GovernanceCreateProposalView(props: any){
           description,
           connection,
           transaction,
-          sendTransaction
+          wallet,//anchorWallet,
+          null//sendTransaction
         );
         
 

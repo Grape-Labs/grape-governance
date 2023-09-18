@@ -1,5 +1,6 @@
 import { PublicKey, SystemProgram, TransactionInstruction, Transaction, } from '@solana/web3.js'
 import { BN, web3 } from '@project-serum/anchor';
+
 import { 
   getRealms, 
   getGovernance,
@@ -24,6 +25,7 @@ import {
 } from '@solana/spl-governance';
 
 import { chunks } from '../../utils/governanceTools/helpers';
+import { sendTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../../utils/governanceTools/sendTransactions';
 
 import { AnyMxRecord } from 'dns';
 
@@ -37,7 +39,8 @@ export async function createProposalInstructions(
     description:string, 
     connection: any, 
     transactionInstr: Transaction, //: InstructionsAndSignersSet, 
-    sendTransaction: any): Promise<Transaction> {
+    wallet: WalletSigner,
+    sendTransaction: any): Promise<any>{//Promise<Transaction> {
     
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
     //let initialInstructions: TransactionInstruction[] = [];
@@ -175,17 +178,24 @@ export async function createProposalInstructions(
     console.log(`Creating proposal using ${insertChunks.length} chunks`);
 
 
-    return null;
+    //return null;
     
+    if (!sendTransaction){
     
-    
-   await sendTransaction(
-      connection,
-      wallet,
-      [prerequisiteInstructions, instructions, ...insertChunks],
-      [[], [], ...signerChunks],
-      SequenceType.Sequential
-    );
+      console.log(`Sending Transactions...`);
+      const stresponse = await sendTransactions(
+          connection,
+          wallet,
+          [prerequisiteInstructions, instructions, ...insertChunks],
+          [[], [], ...signerChunks],
+          SequenceType.Sequential
+        );
+
+        console.log(`Sending complete: ${JSON.stringify(stresponse)}`);
+    } else {
+      // return transaction instructions here
+    }
+
   
     //return proposalAddress;
     
