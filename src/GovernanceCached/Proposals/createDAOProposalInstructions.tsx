@@ -191,6 +191,7 @@ export async function createProposalInstructions(
           SequenceType.Sequential
         );
 
+        console.log(`Proposal: ${JSON.stringify(proposalAddress)}`);
         console.log(`Sending complete: ${JSON.stringify(stresponse)}`);
     } else {
       // return transaction instructions here

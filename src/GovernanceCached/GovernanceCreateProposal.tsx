@@ -140,7 +140,7 @@ export default function GovernanceCreateProposalView(props: any){
           description,
           connection,
           transaction,
-          wallet,//anchorWallet,
+          anchorWallet,//anchorWallet,
           null//sendTransaction
         );
         
