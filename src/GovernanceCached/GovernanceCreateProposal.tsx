@@ -116,45 +116,50 @@ export default function GovernanceCreateProposalView(props: any){
       console.log("cachedRealml.pubkey: "+JSON.stringify(cachedRealm.pubkey));
       console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
-      const propTx = await createProposalInstructions(
-        programId,
-        new PublicKey(cachedRealm.pubkey),
-        new PublicKey(governanceWallet),
-        governingTokenMint,
-        publicKey,
-        title,
-        description,
-        connection,
-        transaction,
-        null
-      );
-      
-
-      //await createProposalInstructions()
+      if (publicKey){
+        const propTx = await createProposalInstructions(
+          programId,
+          new PublicKey(cachedRealm.pubkey),
+          new PublicKey(governanceWallet),
+          governingTokenMint,
+          publicKey,
+          title,
+          description,
+          connection,
+          transaction,
+          null
+        );
         
-      enqueueSnackbar(`Creating proposal...`,{ variant: 'info' });
-      const signedTransaction2 = await sendTransaction(propTx, connection);
+
+        //await createProposalInstructions()
           
-      const snackprogress = (key:any) => (
-          <CircularProgress sx={{padding:'10px'}} />
-      );
-      const cnfrmkey = enqueueSnackbar('Confirming transaction',{ variant: 'info', action:snackprogress, persist: true });
-      const latestBlockHash = await connection.getLatestBlockhash();
-      await connection.confirmTransaction({
-          blockhash: latestBlockHash.blockhash,
-          lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-          signature: signedTransaction2}, 
-          'processed'
-      );
-      closeSnackbar(cnfrmkey);
-      const snackaction = (key:any) => (
-          <Button href={`https://explorer.solana.com/tx/${signedTransaction2}`} target='_blank'  sx={{color:'white'}}>
-              {signedTransaction2}
-          </Button>
-      );
-      enqueueSnackbar('Transaction completed',{ variant: 'success', action:snackaction });
+        enqueueSnackbar(`Creating proposal...`,{ variant: 'info' });
+        const signedTransaction2 = await sendTransaction(propTx, connection);
+            
+        const snackprogress = (key:any) => (
+            <CircularProgress sx={{padding:'10px'}} />
+        );
+        const cnfrmkey = enqueueSnackbar('Confirming transaction',{ variant: 'info', action:snackprogress, persist: true });
+        const latestBlockHash = await connection.getLatestBlockhash();
+        await connection.confirmTransaction({
+            blockhash: latestBlockHash.blockhash,
+            lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+            signature: signedTransaction2}, 
+            'processed'
+        );
+        closeSnackbar(cnfrmkey);
+        const snackaction = (key:any) => (
+            <Button href={`https://explorer.solana.com/tx/${signedTransaction2}`} target='_blank'  sx={{color:'white'}}>
+                {signedTransaction2}
+            </Button>
+        );
+        enqueueSnackbar('Transaction completed',{ variant: 'success', action:snackaction });
+      } else{
+        enqueueSnackbar(`No Wallet Connected!`,{ variant: 'error' });
+      }
+
     }
-    
+      
     function handleDescriptionChange(text:string){
       setDescription(text);
       setIsGistDescription(false);
@@ -172,6 +177,7 @@ export default function GovernanceCreateProposalView(props: any){
         //const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
         //setProposalDescription(rpd);
         setIsGistDescription(true);
+      
         
     } catch(e){
         console.log("ERR: "+e)
