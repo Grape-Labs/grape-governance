@@ -94,6 +94,9 @@ export async function createProposalInstructions(
     // we have the following already cached so this should be passed:
     console.log("3");
     const governance = await getGovernance(connection, governancePk);
+
+      console.log("governance: "+JSON.stringify(governance));
+
     const proposalIndex = governance?.account?.proposalCount;
 
     //will run only if plugin is connected with realm
@@ -171,10 +174,11 @@ export async function createProposalInstructions(
     //console.log('connection publicKey:', connection)
     console.log(`Creating proposal using ${insertChunks.length} chunks`);
 
+
     return null;
     
     
-    /*
+    
    await sendTransaction(
       connection,
       wallet,
@@ -183,7 +187,7 @@ export async function createProposalInstructions(
       SequenceType.Sequential
     );
   
-    return proposalAddress;
-    */
+    //return proposalAddress;
+    
 
 }

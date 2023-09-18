@@ -69,6 +69,7 @@ export default function GovernanceCreateProposalView(props: any){
     const maxTitleLen = 130;
     const maxDescriptionLen = 512;
     const [proposalType, setProposalType] = React.useState(null);
+    const [isCouncilVote, setIsCouncilVote] = React.useState(false);
     const [governanceWallet, setGovernanceWallet] = React.useState(null);
     const [isGistDescription, setIsGistDescription] = React.useState(false);
     const { publicKey, sendTransaction } = useWallet();
@@ -112,9 +113,18 @@ export default function GovernanceCreateProposalView(props: any){
       const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
       const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
 
-      const governingTokenMint = new PublicKey('8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA');
-      console.log("cachedRealml.pubkey: "+JSON.stringify(cachedRealm.pubkey));
+      //const governingTokenMint = new PublicKey('8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA');
+      console.log("cachedRealm: "+JSON.stringify(cachedRealm));
+      console.log("cachedRealm.pubkey: "+JSON.stringify(cachedRealm.pubkey));
       console.log("governanceWallet: "+JSON.stringify(governanceWallet));
+
+      enqueueSnackbar(`Creating proposal...`,{ variant: 'info' });
+
+      let governingTokenMint = new PublicKey(cachedRealm.account?.communityMint);
+      if (isCouncilVote){
+        governingTokenMint = new PublicKey(cachedRealm.account?.config?.councilMint);
+      }
+      
 
       if (publicKey){
         const propTx = await createProposalInstructions(
@@ -127,33 +137,34 @@ export default function GovernanceCreateProposalView(props: any){
           description,
           connection,
           transaction,
-          null
+          sendTransaction
         );
         
 
         //await createProposalInstructions()
           
-        enqueueSnackbar(`Creating proposal...`,{ variant: 'info' });
-        const signedTransaction2 = await sendTransaction(propTx, connection);
-            
-        const snackprogress = (key:any) => (
-            <CircularProgress sx={{padding:'10px'}} />
-        );
-        const cnfrmkey = enqueueSnackbar('Confirming transaction',{ variant: 'info', action:snackprogress, persist: true });
-        const latestBlockHash = await connection.getLatestBlockhash();
-        await connection.confirmTransaction({
-            blockhash: latestBlockHash.blockhash,
-            lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-            signature: signedTransaction2}, 
-            'processed'
-        );
-        closeSnackbar(cnfrmkey);
-        const snackaction = (key:any) => (
-            <Button href={`https://explorer.solana.com/tx/${signedTransaction2}`} target='_blank'  sx={{color:'white'}}>
-                {signedTransaction2}
-            </Button>
-        );
-        enqueueSnackbar('Transaction completed',{ variant: 'success', action:snackaction });
+        if (propTx){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
+          const signedTransaction2 = await sendTransaction(propTx, connection);
+              
+          const snackprogress = (key:any) => (
+              <CircularProgress sx={{padding:'10px'}} />
+          );
+          const cnfrmkey = enqueueSnackbar('Confirming transaction',{ variant: 'info', action:snackprogress, persist: true });
+          const latestBlockHash = await connection.getLatestBlockhash();
+          await connection.confirmTransaction({
+              blockhash: latestBlockHash.blockhash,
+              lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+              signature: signedTransaction2}, 
+              'processed'
+          );
+          closeSnackbar(cnfrmkey);
+          const snackaction = (key:any) => (
+              <Button href={`https://explorer.solana.com/tx/${signedTransaction2}`} target='_blank'  sx={{color:'white'}}>
+                  {signedTransaction2}
+              </Button>
+          );
+          enqueueSnackbar('Transaction completed',{ variant: 'success', action:snackaction });
+        }
       } else{
         enqueueSnackbar(`No Wallet Connected!`,{ variant: 'error' });
       }
@@ -633,7 +644,18 @@ export default function GovernanceCreateProposalView(props: any){
                       </FormControl>
                       
                       <FormControl fullWidth >
-                          <FormControlLabel required control={<Switch />} label="Council Vote" />
+                          <FormControlLabel 
+                            required 
+                            control={
+                              <Switch 
+                                onChange={
+                                  (e) => {
+                                    setIsCouncilVote(e.target.checked)
+                                  }
+                                }
+                              />
+                            } 
+                            label="Council Vote" />
                       </FormControl>
 
                       <Grid sx={{textAlign:'right'}}>
