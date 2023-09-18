@@ -78,7 +78,7 @@ export async function createProposalInstructions(
     const options = ['Approve'];
     const useDenyOption = true;
     console.log("2");
-
+    
     console.log("programId: "+programId.toBase58());
     console.log("realmPk: "+realmPk.toBase58());
     console.log("governingTokenMint: "+governingTokenMint.toBase58());
@@ -94,8 +94,8 @@ export async function createProposalInstructions(
     // we have the following already cached so this should be passed:
     console.log("3");
     const governance = await getGovernance(connection, governancePk);
-
-      console.log("governance: "+JSON.stringify(governance));
+    
+    console.log("governance: "+JSON.stringify(governance));
 
     const proposalIndex = governance?.account?.proposalCount;
 

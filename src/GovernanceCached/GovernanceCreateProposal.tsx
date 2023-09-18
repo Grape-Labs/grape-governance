@@ -112,7 +112,7 @@ export default function GovernanceCreateProposalView(props: any){
       // temporarily use a static program id, make it dynamic for more flexibility
       const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
       const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
-
+      
       //const governingTokenMint = new PublicKey('8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA');
       console.log("cachedRealm: "+JSON.stringify(cachedRealm));
       console.log("cachedRealm.pubkey: "+JSON.stringify(cachedRealm.pubkey));
@@ -124,7 +124,7 @@ export default function GovernanceCreateProposalView(props: any){
       if (isCouncilVote){
         governingTokenMint = new PublicKey(cachedRealm.account?.config?.councilMint);
       }
-      
+
 
       if (publicKey){
         const propTx = await createProposalInstructions(
