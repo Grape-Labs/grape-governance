@@ -124,7 +124,7 @@ export default function GovernanceCreateProposalView(props: any){
       // get governance settings
       setCreateDisabled(true);
 
-      enqueueSnackbar(`Preparing Grape Governance Proposal`,{ variant: 'info' });
+      enqueueSnackbar(`Assembling Grape Governance Transactions`,{ variant: 'info' });
       // 1. Generate the instructions to pass to governance
       const transaction = new Transaction();
       
@@ -144,10 +144,9 @@ export default function GovernanceCreateProposalView(props: any){
         governingTokenMint = new PublicKey(cachedRealm.account?.config?.councilMint);
       }
 
-
       if (publicKey){
         enqueueSnackbar(`Creating Grape Governance Proposal`,{ variant: 'info' });
-        const propAddress = await createProposalInstructions(
+        const propResponse = await createProposalInstructions(
           programId,
           new PublicKey(cachedRealm.pubkey),
           new PublicKey(governanceWallet),
@@ -158,22 +157,46 @@ export default function GovernanceCreateProposalView(props: any){
           connection,
           transaction,
           anchorWallet,//anchorWallet,
-          null//sendTransaction
+          null,//sendTransaction,
+          enqueueSnackbar
         );
         
 
         //await createProposalInstructions()
           
-        if (propAddress){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
+        console.log("propAddress: "+JSON.stringify(propResponse));
+        
+        if (propResponse){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
+          /*
+          const snackprogress = (key:any) => (
+            <CircularProgress sx={{padding:'10px'}} />
+          );
+          const cnfrmkey = enqueueSnackbar('Confirming transaction',{ variant: 'info', action:snackprogress, persist: true });
+          const latestBlockHash = await connection.getLatestBlockhash();
+          await connection.confirmTransaction({
+              blockhash: latestBlockHash.blockhash,
+              lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+              signature: propResponse.stresponse}, 
+              'processed'
+          );
+          closeSnackbar(cnfrmkey);
+          */
+
           const snackaction = (key:any) => (
-            <Button href={`https://spl-gov.vercel.app/proposal/${cachedRealm.pubkey}/${propAddress.toBase58()}`} target='_blank'  sx={{color:'white'}}>
-                {propAddress.toBase58()}
+            <Button href={`https://spl-gov.vercel.app/proposal/${cachedRealm.pubkey}/${propResponse.proposalAddress.toBase58()}`} target='_blank'  sx={{color:'white'}}>
+                {propResponse.proposalAddress.toBase58()}
             </Button>
           );
-          enqueueSnackbar('Grape Governance Transaction completed - redirecting in 5 seconds to proposal',{ variant: 'success', action:snackaction });
           
-          setProposalMade(true);
+          //enqueueSnackbar('Grape Governance Transaction completed - redirecting in 5 seconds to proposal',{ variant: 'success', action:snackaction });
+          
+          const snackprogress = (key:any) => (
+            <CircularProgress sx={{padding:'10px'}} />
+          );
+          const cnfrmkey = enqueueSnackbar('Redirecting in a few seconds to the proposal',{ variant: 'success', action:snackprogress, persist: true });
 
+          setProposalMade(true);
+          
           // redirect to proposal
           const redirectTimer = setTimeout(() => {
             //navigate(`/proposal/${cachedRealm.pubkey}/${propAddress.toBase58()}`, { replace: true });
@@ -184,29 +207,6 @@ export default function GovernanceCreateProposalView(props: any){
           enqueueSnackbar(`An error occured...`,{ variant: 'error' });
           setCreateDisabled(false);
         }
-
-        /*
-          const signedTransaction2 = await sendTransaction(propTx, connection);
-              
-          const snackprogress = (key:any) => (
-              <CircularProgress sx={{padding:'10px'}} />
-          );
-          const cnfrmkey = enqueueSnackbar('Confirming transaction',{ variant: 'info', action:snackprogress, persist: true });
-          const latestBlockHash = await connection.getLatestBlockhash();
-          await connection.confirmTransaction({
-              blockhash: latestBlockHash.blockhash,
-              lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-              signature: signedTransaction2}, 
-              'processed'
-          );
-          closeSnackbar(cnfrmkey);
-          const snackaction = (key:any) => (
-              <Button href={`https://explorer.solana.com/tx/${signedTransaction2}`} target='_blank'  sx={{color:'white'}}>
-                  {signedTransaction2}
-              </Button>
-          );
-          enqueueSnackbar('Transaction completed',{ variant: 'success', action:snackaction });
-        */
       } else{
         enqueueSnackbar(`No Wallet Connected!`,{ variant: 'error' });
         setCreateDisabled(false);

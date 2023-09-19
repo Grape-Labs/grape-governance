@@ -40,7 +40,8 @@ export async function createProposalInstructions(
     connection: any, 
     transactionInstr: Transaction, //: InstructionsAndSignersSet, 
     wallet: WalletSigner,
-    sendTransaction: any): Promise<any>{//Promise<Transaction> {
+    sendTransaction: any,
+    enqueueSnackbar: any): Promise<any>{//Promise<Transaction> {
     
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
     //let initialInstructions: TransactionInstruction[] = [];
@@ -127,7 +128,7 @@ export async function createProposalInstructions(
       voteType,
       options,
       useDenyOption,
-      walletPk,
+      walletPk
     );
     
     const insertInstructions: TransactionInstruction[] = [];
@@ -181,7 +182,7 @@ export async function createProposalInstructions(
     //return null;
     
     if (!sendTransaction){
-    
+      
       console.log(`Sending Transactions...`);
       try{
         const stresponse = await sendTransactions(
@@ -195,7 +196,12 @@ export async function createProposalInstructions(
           console.log(`Proposal: ${JSON.stringify(proposalAddress)}`);
           console.log(`Sending complete: ${JSON.stringify(stresponse)}`);
 
-          return proposalAddress;
+          const response = {
+            proposalAddress,
+            stresponse
+          };
+          
+          return response;
       } catch(e){
         console.log("ERR: ", e)
         return false;

@@ -267,7 +267,7 @@ export const sendTransactions = async (
     blockhash: string
     feeCalculator: FeeCalculator
   }
-): Promise<number> => {
+): Promise<any> => {
   if (!wallet.publicKey) throw new Error('Wallet not connected!')
   const unsignedTxns: Transaction[] = []
 
@@ -300,6 +300,7 @@ export const sendTransactions = async (
   }
   const signedTxns = await wallet.signAllTransactions(unsignedTxns)
   const pendingTxns: Promise<{ txid: string; slot: number }>[] = []
+  const completedTxns: Promise<{ txid: string; slot: number }>[] = []
   //const walletPkTest = getWalletPublicKey(wallet);
   //console.log('Wallet Test:', walletPkTest.toBase58());
   //console.log('signedTxns' +JSON.stringify(signedTxns));
@@ -326,8 +327,9 @@ export const sendTransactions = async (
     if (sequenceType != SequenceType.Parallel) {
       await signedTxnPromise
       if (breakEarlyObject.breakEarly) {
-        return i // REturn the txn we failed on by index
+        return i // Return the txn we failed on by index
       }
+      completedTxns.push(signedTxnPromise);
     } else {
       pendingTxns.push(signedTxnPromise)
     }
@@ -337,5 +339,10 @@ export const sendTransactions = async (
     await Promise.all(pendingTxns)
   }
 
-  return signedTxns.length
+  const response = {
+    signedTxns: signedTxns.length,
+    completedTxns
+  }
+
+  return response;//signedTxns.length
 }
