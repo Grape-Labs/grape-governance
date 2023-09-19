@@ -85,7 +85,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [title, setTitle] = React.useState(null);
     const [description, setDescription] = React.useState(null);
     const maxTitleLen = 130;
-    const maxDescriptionLen = 392;//512;
+    const maxDescriptionLen = 390;//512;
     const [proposalType, setProposalType] = React.useState(null);
     const [isCouncilVote, setIsCouncilVote] = React.useState(false);
     const [governanceWallet, setGovernanceWallet] = React.useState(null);
