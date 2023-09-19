@@ -5,7 +5,8 @@ import { WalletDialogProvider, WalletMultiButton } from "@solana/wallet-adapter-
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import React, { useCallback } from 'react';
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams, useNavigate } from "react-router-dom";
+//import { useHistory } from "react-router";
 import { styled, useTheme } from '@mui/material/styles';
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
 import Gist from 'react-gist';
@@ -13,6 +14,7 @@ import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github'
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import Confetti from 'react-dom-confetti';
 import { useSnackbar } from 'notistack';
 import { createProposalInstructions } from './Proposals/createDAOProposalInstructions';
 import { 
@@ -58,7 +60,22 @@ import {
     getFileFromLookup
 } from './CachedStorageHelpers'; 
 
+const confettiConfig = {
+  angle: 90,
+  spread: 360,
+  startVelocity: 40,
+  elementCount: 200,
+  dragFriction: 0.12,
+  duration: 4000,
+  stagger: 3,
+  width: "10px",
+  height: "10px",
+  perspective: "500px",
+  colors: ["#f00", "#0f0", "#00f"]
+};
+
 export default function GovernanceCreateProposalView(props: any){
+    const navigate = useNavigate();  
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
@@ -83,13 +100,14 @@ export default function GovernanceCreateProposalView(props: any){
     const [cachedTreasury, setCachedTreasury] = React.useState(null);
     const [startTime, setStartTime] = React.useState(null);
     const [endTime, setEndTime] = React.useState(null);
-    
+    const [proposalMade, setProposalMade] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
     const [realm, setRealm] = React.useState(null);
     const [realmName, setRealmName] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(null);
     const [tokenArray, setTokenArray] = React.useState(null);
     const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
+    const [createDisabled, setCreateDisabled] = React.useState(false);
 
     const [governanceRules, setGovernanceRules] = React.useState(null);
     const [totalGovernanceValue, setTotalGovernanceValue] = React.useState(null);
@@ -104,12 +122,13 @@ export default function GovernanceCreateProposalView(props: any){
     const createProposal = async() => {
       
       // get governance settings
-      
-      enqueueSnackbar(`Genarating tx...`,{ variant: 'info' });
+      setCreateDisabled(true);
+
+      enqueueSnackbar(`Preparing Grape Governance Proposal`,{ variant: 'info' });
       // 1. Generate the instructions to pass to governance
       const transaction = new Transaction();
       
-      enqueueSnackbar(`Creating Governance prop w/instructions...`,{ variant: 'info' });
+      //enqueueSnackbar(`Preparing Grape Governance Proposal`,{ variant: 'info' });
       // 2. call createDAOProposal.tsx with the respective variables to create the prop and return to execute
       // temporarily use a static program id, make it dynamic for more flexibility
       const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
@@ -120,8 +139,6 @@ export default function GovernanceCreateProposalView(props: any){
       console.log("cachedRealm.pubkey: "+JSON.stringify(cachedRealm.pubkey));
       console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
-      enqueueSnackbar(`Creating proposal...`,{ variant: 'info' });
-
       let governingTokenMint = new PublicKey(cachedRealm.account?.communityMint);
       if (isCouncilVote){
         governingTokenMint = new PublicKey(cachedRealm.account?.config?.councilMint);
@@ -129,8 +146,8 @@ export default function GovernanceCreateProposalView(props: any){
 
 
       if (publicKey){
-        console.log("createProposalInstructions")
-        const propTx = await createProposalInstructions(
+        enqueueSnackbar(`Creating Grape Governance Proposal`,{ variant: 'info' });
+        const propAddress = await createProposalInstructions(
           programId,
           new PublicKey(cachedRealm.pubkey),
           new PublicKey(governanceWallet),
@@ -147,7 +164,28 @@ export default function GovernanceCreateProposalView(props: any){
 
         //await createProposalInstructions()
           
-        if (propTx){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
+        if (propAddress){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
+          const snackaction = (key:any) => (
+            <Button href={`https://spl-gov.vercel.app/proposal/${cachedRealm.pubkey}/${propAddress.toBase58()}`} target='_blank'  sx={{color:'white'}}>
+                {propAddress.toBase58()}
+            </Button>
+          );
+          enqueueSnackbar('Grape Governance Transaction completed - redirecting in 5 seconds to proposal',{ variant: 'success', action:snackaction });
+          
+          setProposalMade(true);
+
+          // redirect to proposal
+          const redirectTimer = setTimeout(() => {
+            //navigate(`/proposal/${cachedRealm.pubkey}/${propAddress.toBase58()}`, { replace: true });
+            navigate(`/cachedgovernance/${cachedRealm.pubkey}`, {replace: true});
+          }, 5000); // 5000 milliseconds = 5 seconds
+          return () => clearTimeout(redirectTimer);
+        } else{
+          enqueueSnackbar(`An error occured...`,{ variant: 'error' });
+          setCreateDisabled(false);
+        }
+
+        /*
           const signedTransaction2 = await sendTransaction(propTx, connection);
               
           const snackprogress = (key:any) => (
@@ -168,9 +206,10 @@ export default function GovernanceCreateProposalView(props: any){
               </Button>
           );
           enqueueSnackbar('Transaction completed',{ variant: 'success', action:snackaction });
-        }
+        */
       } else{
         enqueueSnackbar(`No Wallet Connected!`,{ variant: 'error' });
+        setCreateDisabled(false);
       }
 
     }
@@ -521,7 +560,6 @@ export default function GovernanceCreateProposalView(props: any){
                     }} 
                 > 
             <>
-
                     {showGovernanceTitle && realmName && 
                         <Grid container>
                             <Grid item xs={12} sm={6} container justifyContent="flex-start">
@@ -669,14 +707,21 @@ export default function GovernanceCreateProposalView(props: any){
                           disabled={!(
                             (title && title.length > 0) &&
                             (description && description.length > 0) &&
-                            (proposalType)
+                            (proposalType) &&
+                            (!createDisabled)
                             )
                           }
                           onClick={createProposal}
                           variant="contained"
                           color="success"
-                          sx={{borderRadius:'17px'}}>Create Proposal</Button>
+                          sx={{borderRadius:'17px'}}>
+                            <Confetti
+                                active={ proposalMade }
+                                config={ confettiConfig }
+                            />        
+                            Create Proposal</Button>
                       </Grid>
+                      
                   </Box>
 
               </Grid>

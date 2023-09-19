@@ -183,16 +183,23 @@ export async function createProposalInstructions(
     if (!sendTransaction){
     
       console.log(`Sending Transactions...`);
-      const stresponse = await sendTransactions(
-          connection,
-          wallet,
-          [prerequisiteInstructions, instructions, ...insertChunks],
-          [[], [], ...signerChunks],
-          SequenceType.Sequential
-        );
+      try{
+        const stresponse = await sendTransactions(
+            connection,
+            wallet,
+            [prerequisiteInstructions, instructions, ...insertChunks],
+            [[], [], ...signerChunks],
+            SequenceType.Sequential
+          );
 
-        console.log(`Proposal: ${JSON.stringify(proposalAddress)}`);
-        console.log(`Sending complete: ${JSON.stringify(stresponse)}`);
+          console.log(`Proposal: ${JSON.stringify(proposalAddress)}`);
+          console.log(`Sending complete: ${JSON.stringify(stresponse)}`);
+
+          return proposalAddress;
+      } catch(e){
+        console.log("ERR: ", e)
+        return false;
+      }
     } else {
       // return transaction instructions here
     }
