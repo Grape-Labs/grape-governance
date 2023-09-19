@@ -178,7 +178,7 @@ export default function GovernanceCreateProposalView(props: any){
           const redirectTimer = setTimeout(() => {
             //navigate(`/proposal/${cachedRealm.pubkey}/${propAddress.toBase58()}`, { replace: true });
             navigate(`/cachedgovernance/${cachedRealm.pubkey}`, {replace: true});
-          }, 5000); // 5000 milliseconds = 5 seconds
+          }, 7000); // 7000 milliseconds = 7 seconds
           return () => clearTimeout(redirectTimer);
         } else{
           enqueueSnackbar(`An error occured...`,{ variant: 'error' });
