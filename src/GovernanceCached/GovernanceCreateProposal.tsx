@@ -261,8 +261,8 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={1}>None</MenuItem>
               {/*<MenuItem value={2} disabled>Custom</MenuItem>*/}
               <MenuItem value={3} disabled>Import from base58</MenuItem>
-              <MenuItem value={4}>Token Transfer</MenuItem>
-              <MenuItem value={5}>Swap</MenuItem>
+              <MenuItem value={4} disabled>Token Transfer</MenuItem>
+              <MenuItem value={5} disabled>Swap</MenuItem>
             </Select>
           </FormControl>
         </Box>
@@ -286,7 +286,8 @@ export default function GovernanceCreateProposalView(props: any){
       const handleGovernanceWalletChange = (event: SelectChangeEvent) => {
         console.log("menu item: "+event.target.value)
         setGovernanceWallet(event.target.value as string);
-        getGovernanceRules(event.target.value)
+        getGovernanceRules(event.target.value);
+        setProposalType(1);
 
       };
     
