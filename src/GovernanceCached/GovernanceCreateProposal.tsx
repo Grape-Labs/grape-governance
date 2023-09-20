@@ -128,6 +128,7 @@ export default function GovernanceCreateProposalView(props: any){
       // 1. Generate the instructions to pass to governance
       const transaction = new Transaction();
       
+      
       //enqueueSnackbar(`Preparing Grape Governance Proposal`,{ variant: 'info' });
       // 2. call createDAOProposal.tsx with the respective variables to create the prop and return to execute
       // temporarily use a static program id, make it dynamic for more flexibility
@@ -147,7 +148,7 @@ export default function GovernanceCreateProposalView(props: any){
       if (publicKey){
         enqueueSnackbar(`Creating Grape Governance Proposal`,{ variant: 'info' });
         const propResponse = await createProposalInstructions(
-          [],
+          //[],
           programId,
           new PublicKey(cachedRealm.pubkey),
           new PublicKey(governanceWallet),

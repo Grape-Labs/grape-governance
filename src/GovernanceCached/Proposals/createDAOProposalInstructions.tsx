@@ -30,7 +30,6 @@ import { sendTransactions, SequenceType, WalletSigner, getWalletPublicKey } from
 import { AnyMxRecord } from 'dns';
 
 export async function createProposalInstructions(
-    instructions: TransactionInstruction[],
     token_realm_program_id: PublicKey, 
     realmPk: PublicKey,
     governancePk: PublicKey,
@@ -48,7 +47,7 @@ export async function createProposalInstructions(
     //let initialInstructions: TransactionInstruction[] = [];
     let signers: any[] = [];
 
-    //let instructions: TransactionInstruction[] = [];
+    let instructions: TransactionInstruction[] = [];
     const programId = new PublicKey(token_realm_program_id);
     const programVersion = await getGovernanceProgramVersion(
       connection,
