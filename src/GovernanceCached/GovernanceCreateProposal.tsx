@@ -1,4 +1,4 @@
-import { PublicKey, TokenAmount, Connection, Transaction } from '@solana/web3.js';
+import { PublicKey, TokenAmount, Connection, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletDialogProvider, WalletMultiButton } from "@solana/wallet-adapter-material-ui";
@@ -147,6 +147,7 @@ export default function GovernanceCreateProposalView(props: any){
       if (publicKey){
         enqueueSnackbar(`Creating Grape Governance Proposal`,{ variant: 'info' });
         const propResponse = await createProposalInstructions(
+          [],
           programId,
           new PublicKey(cachedRealm.pubkey),
           new PublicKey(governanceWallet),
