@@ -116,6 +116,8 @@ export default function GovernanceCreateProposalView(props: any){
     const [totalGovernanceNftFloorValue, setTotalGovernanceNftFloorValue] = React.useState(null);
     const [totalGovernanceStableCoinValue, setTotalGovernanceStableCoinValue] = React.useState(null);
 
+    const [proposalInstructions, setProposalInstructions] = React.useState(null);
+
     const wallet = useWallet();
     const anchorWallet = useAnchorWallet();
 
@@ -128,7 +130,7 @@ export default function GovernanceCreateProposalView(props: any){
       // 1. Generate the instructions to pass to governance
       const transaction = new Transaction();
       
-      
+
       //enqueueSnackbar(`Preparing Grape Governance Proposal`,{ variant: 'info' });
       // 2. call createDAOProposal.tsx with the respective variables to create the prop and return to execute
       // temporarily use a static program id, make it dynamic for more flexibility
@@ -136,10 +138,11 @@ export default function GovernanceCreateProposalView(props: any){
       const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
 
       //const governingTokenMint = new PublicKey('8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA');
+      /*
       console.log("cachedRealm: "+JSON.stringify(cachedRealm));
       console.log("cachedRealm.pubkey: "+JSON.stringify(cachedRealm.pubkey));
       console.log("governanceWallet: "+JSON.stringify(governanceWallet));
-
+      */
       let governingTokenMint = new PublicKey(cachedRealm.account?.communityMint);
       if (isCouncilVote){
         governingTokenMint = new PublicKey(cachedRealm.account?.config?.councilMint);

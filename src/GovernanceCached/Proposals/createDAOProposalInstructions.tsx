@@ -68,7 +68,7 @@ export async function createProposalInstructions(
     //const realm = await getRealm(connection, realmPk);
 
     const signatory = walletPk;
-    console.log("1");
+    //console.log("1");
     //extra
     //const solTreasury = new PublicKey(COLLABORATION_SOL_TREASURY);
     //const communityTokenMint = realm?.account?.communityMint;
@@ -81,14 +81,14 @@ export async function createProposalInstructions(
     const voteType = VoteType.SINGLE_CHOICE;
     const options = ['Approve'];
     const useDenyOption = true;
-    console.log("2");
-    
+    //console.log("2");
+    /*
     console.log("programId: "+programId.toBase58());
     console.log("realmPk: "+realmPk.toBase58());
     console.log("governingTokenMint: "+governingTokenMint.toBase58());
     console.log("governancePk: "+governancePk.toBase58());
     console.log("walletPk: "+walletPk.toBase58());
-
+    */
     const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
       programId,
       realmPk,
@@ -96,10 +96,10 @@ export async function createProposalInstructions(
       walletPk,
     );
     // we have the following already cached so this should be passed:
-    console.log("3");
+    //console.log("3");
     const governance = await getGovernance(connection, governancePk);
     
-    console.log("governance: "+JSON.stringify(governance));
+    //console.log("governance: "+JSON.stringify(governance));
 
     const proposalIndex = governance?.account?.proposalCount;
 
@@ -111,7 +111,7 @@ export async function createProposalInstructions(
       client
     );*/
 
-    console.log("4");
+    //console.log("4");
 
     const proposalAddress = await withCreateProposal(
       instructions,
