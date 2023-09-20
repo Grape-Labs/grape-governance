@@ -569,7 +569,7 @@ export default function GovernanceCreateProposalView(props: any){
                                 <Grid container>
                                     <Grid item xs={12}>
                                         <Typography variant="h4">
-                                            Create Proposal on {realmName}
+                                          {realmName}
                                         </Typography>
                                     </Grid>
                                     
@@ -603,7 +603,7 @@ export default function GovernanceCreateProposalView(props: any){
                                           </Button>
                                         </ButtonGroup>
                                     </Grid>
-                                    
+
                                 </Grid>
                             </Grid>
                         </Grid>
@@ -623,6 +623,14 @@ export default function GovernanceCreateProposalView(props: any){
                           backgroundColor:'rgba(0,0,0,0.2)', 
                           p:1,pr:3,mt:2}}
                   >
+                        <Grid container>
+                          <Grid item xs={12}>
+                            <Typography variant="h6">
+                                Create Proposal
+                              </Typography>
+                            </Grid>
+                        </Grid>
+
                       <FormControl fullWidth  sx={{mb:2}}>
                           <TextField 
                               fullWidth 
