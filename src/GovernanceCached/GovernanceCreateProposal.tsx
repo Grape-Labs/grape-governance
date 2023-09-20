@@ -700,7 +700,6 @@ export default function GovernanceCreateProposalView(props: any){
                       
                       <FormControl fullWidth >
                           <FormControlLabel 
-                            required 
                             control={
                               <Switch 
                                 onChange={
