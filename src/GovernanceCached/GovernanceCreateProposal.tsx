@@ -569,7 +569,7 @@ export default function GovernanceCreateProposalView(props: any){
                                 <Grid container>
                                     <Grid item xs={12}>
                                         <Typography variant="h4">
-                                            Create Proposal
+                                            Create Proposal on {realmName}
                                         </Typography>
                                     </Grid>
                                     
