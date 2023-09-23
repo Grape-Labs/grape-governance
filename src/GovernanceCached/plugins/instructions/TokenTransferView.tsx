@@ -230,8 +230,6 @@ export default function TokenTransferView(props: any) {
                         PROGRAM_ID.toBuffer(),
                         new PublicKey(mint_address).toBuffer(),
                     ], PROGRAM_ID)
-                    //const meta_response = await connection.getAccountInfo(pda);
-                    //console.log("meta_response: "+JSON.stringify(meta_response));
                     const tokenMetadata = await Metadata. fromAccountAddress(connection, pda)
                     
                     if (tokenMetadata?.data?.name)
@@ -255,13 +253,6 @@ export default function TokenTransferView(props: any) {
                             console.log("ERR: ",err);
                         }
                     }
-
-                    
-
-                    console.log("tokenMetadata: "+JSON.stringify(tokenMetadata.data.uri))
-                    
-                
-                
             }
 
             React.useEffect(() => { 
@@ -423,7 +414,8 @@ export default function TokenTransferView(props: any) {
         const destinationsStr = destinations;
 
         if (destinationsStr && destinationsStr.length > 0) {
-            const destinationArray = destinationsStr.split(',')
+            const destinationArray = destinationsStr
+            .split(/,|\n/) // Split by comma or newline
             .map(destination => destination.trim())
             .filter(destination => destination);
 
