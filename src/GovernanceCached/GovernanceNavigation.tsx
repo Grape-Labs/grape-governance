@@ -44,19 +44,21 @@ export default function GovernanceNavigation(props: any){
             justifyContent="flex-end"
             alignItems="flex-end"
             >
-                {publicKey &&
+                {/*publicKey &&
                 <Tooltip title={
-                        <><strong>Create Proposal</strong><br/> (coming soon){/** Using the Grape Proposal Builder*/}
+                        <><strong>Create Proposal</strong><br/> (coming soon)
                         </>
                     }>
                     <Button
                         variant="text"
                         color="warning"
                         size='small'
+                        //component={Link}
+                        //to={'/newproposal/'+governanceAddress}
                         sx={{mr:1}}
                     ><AddCircleIcon /></Button>
                 </Tooltip>
-                }
+                */}
                 <ButtonGroup
                     color='inherit'
                     size='small'

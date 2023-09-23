@@ -157,12 +157,12 @@ export default function GovernanceCreateProposalView(props: any){
       const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
 
       //const governingTokenMint = new PublicKey('8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA');
-      
+      /*
       console.log("cachedRealm: "+JSON.stringify(cachedRealm));
       console.log("cachedRealm.pubkey: "+JSON.stringify(cachedRealm.pubkey));
       console.log("governanceWallet: "+JSON.stringify(governanceWallet));
       console.log("governanceRulesWallet: "+JSON.stringify(governanceRulesWallet));
-      
+      */
       let governingTokenMint = new PublicKey(cachedRealm.account?.communityMint);
       if (isCouncilVote){
         governingTokenMint = new PublicKey(cachedRealm.account?.config?.councilMint);
@@ -325,6 +325,7 @@ export default function GovernanceCreateProposalView(props: any){
         )}
 
         setGovernanceRulesWallet(rulesWallet);
+
         getGovernanceRules(rulesWallet);
         setProposalType(1);
 

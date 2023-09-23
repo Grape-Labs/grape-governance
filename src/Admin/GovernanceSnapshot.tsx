@@ -40,6 +40,8 @@ import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import { getJupiterPrices } from '../utils/grapeTools/helpers';
 import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
 
+import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
+
 import { 
     tryGetName,
 } from '@cardinal/namespaces';
@@ -823,9 +825,47 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 const ta = thisitem.account.data.parsed.info.tokenAmount.amount;
                 const td = thisitem.account.data.parsed.info.tokenAmount.decimals;
                 const tf = thisitem.account.data.parsed.info.tokenAmount.amount/Math.pow(10, (thisitem.account.data.parsed.info.tokenAmount.decimals || 0));;
-                const tn = tokenMap.get(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58())?.name;
-                const tl = tokenMap.get(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58())?.logoURI;
+                let tn = tokenMap.get(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58())?.name;
+                let tl = tokenMap.get(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58())?.logoURI;
                 const cgid = tokenMap.get(new PublicKey(thisitem.account.data.parsed.info.mint).toBase58())?.extensions?.coingeckoId;
+
+                if (!tn){
+                    
+                    //const getTokenMintInfo = async() => {
+                    try{
+                        const mint_address = new PublicKey(thisitem.account.data.parsed.info.mint)
+                        const [pda, bump] = await PublicKey.findProgramAddress([
+                            Buffer.from("metadata"),
+                            PROGRAM_ID.toBuffer(),
+                            new PublicKey(mint_address).toBuffer(),
+                        ], PROGRAM_ID)
+                        const tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
+                        
+                        if (tokenMetadata?.data?.name)
+                            tn = (tokenMetadata.data.name);
+                        
+                        if (tokenMetadata?.data?.uri){
+                            try{
+                                const metadata = await window.fetch(tokenMetadata.data.uri)
+                                .then(
+                                    (res: any) => res.json())
+                                .catch((error) => {
+                                    // Handle any errors that occur during the fetch or parsing JSON
+                                    console.error("Error fetching data:", error);
+                                });
+                                
+                                if (metadata && metadata?.image){
+                                    if (metadata.image)
+                                        tl = (metadata.image);
+                                }
+                            }catch(err){
+                                console.log("ERR 1: ",err);
+                            }
+                        }
+                    }catch(e){
+                        console.log("ERR 2: ",e)
+                    }
+                }
 
                 if ((ta > 0) && (ta !== 1 && td !== 0)){
                     assetsIdentified++;

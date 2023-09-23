@@ -77,7 +77,7 @@ export default function TokenTransferView(props: any) {
 
     const connection = RPC_CONNECTION;
     
-    console.log("governanceWallet: "+JSON.stringify(governanceWallet));
+    //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
     async function transferTokens() {
         //const payerWallet = new PublicKey(payerAddress);
@@ -230,7 +230,7 @@ export default function TokenTransferView(props: any) {
                         PROGRAM_ID.toBuffer(),
                         new PublicKey(mint_address).toBuffer(),
                     ], PROGRAM_ID)
-                    const tokenMetadata = await Metadata. fromAccountAddress(connection, pda)
+                    const tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
                     
                     if (tokenMetadata?.data?.name)
                         setMintName(tokenMetadata.data.name);
@@ -531,7 +531,7 @@ export default function TokenTransferView(props: any) {
             <FormControl fullWidth  sx={{mb:2}}>
                 <TextField 
                     fullWidth
-                    label="Wallet(s) for multiple wallets seperate by a comma"
+                    label="Enter destination Wallet *for multiple wallets add 1 wallet per line or seperate with a comma"
                     multiline
                     rows={4}
                     maxRows={4}
