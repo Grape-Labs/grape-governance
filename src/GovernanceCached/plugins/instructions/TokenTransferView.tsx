@@ -44,6 +44,9 @@ import {
   Alert
 } from '@mui/material';
 
+import SolIcon from '../../../components/static/SolIcon';
+import SolCurrencyIcon from '../../../components/static/SolCurrencyIcon';
+
 import ExplorerView from '../../../utils/grapeTools/Explorer';
 
 import { SelectChangeEvent } from '@mui/material/Select';
@@ -63,11 +66,12 @@ import ArrowCircleRightOutlinedIcon from '@mui/icons-material/ArrowCircleRightOu
 import { number } from 'prop-types';
 
 export default function TokenTransferView(props: any) {
+    const pluginType = props?.pluginType || 4; // 1 Token 2 SOL
     const setInstructionsObject = props?.setInstructionsObject;
     const governanceWallet = props?.governanceWallet;
     const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
-    const [tokenAmount, setTokenAmount] = React.useState(0);
+    const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [transactionInstructions, setTransactionInstructions] = React.useState(null);
     const [tokenMaxAmount, setTokenMaxAmount] = React.useState(null);
 
@@ -115,6 +119,8 @@ export default function TokenTransferView(props: any) {
                     })
                 );
             }
+            setTransactionInstructions(transaction);
+            return transaction;
         } else{  
             console.log("mint: "+ tokenMint);
             const accountInfo = await connection.getParsedAccountInfo(tokenAccount);
@@ -204,17 +210,21 @@ export default function TokenTransferView(props: any) {
             const selectedTokenMint = event.target.value as string;
             setTokenMint(selectedTokenMint);
 
-            // with token mint traverse to get the mint info if > 0 amount
-            {governanceWallet && governanceWallet.tokens.value
-                //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
-                .map((item: any, key: number) => {
-                    if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
-                        item.account.data.parsed.info.tokenAmount.amount > 0) {
-                            if (item.account.data.parsed.info.mint === selectedTokenMint){
-                                setTokenMaxAmount(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals);
-                            }
-                    }
-            })}
+            if (pluginType === 4){
+                // with token mint traverse to get the mint info if > 0 amount
+                {governanceWallet && governanceWallet.tokens.value
+                    //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
+                    .map((item: any, key: number) => {
+                        if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
+                            item.account.data.parsed.info.tokenAmount.amount > 0) {
+                                if (item.account.data.parsed.info.mint === selectedTokenMint){
+                                    setTokenMaxAmount(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals);
+                                }
+                        }
+                })}
+            } else{
+                setTokenMaxAmount(governanceWallet.solBalance/10 ** 9)
+            }
         };
 
         function ShowTokenMintInfo(props: any){
@@ -280,9 +290,8 @@ export default function TokenTransferView(props: any) {
                             </Grid>
                         </Grid>       
                     :
-                    <>{mintAddress}</>
-                }
-
+                        <>{mintAddress}</>
+                    }
                 </>
             )
 
@@ -300,86 +309,124 @@ export default function TokenTransferView(props: any) {
                   label="Token"
                   onChange={handleMintSelected}
                 >
-                  
-                  {/*
-                  
-                    Add any SOL available from this wallet
+                    {pluginType === 4 ?
+                        <>
+                        {governanceWallet && governanceWallet.tokens.value
+                            .filter((item: any) => 
+                                item.account.data?.parsed?.info?.tokenAmount?.amount > 0
+                            )
+                            .sort((a: any, b: any) => 
+                                b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount
+                            )
+                            .map((item: any, key: number) => {
+                            
+                                if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
+                                    item.account.data.parsed.info.tokenAmount.amount > 0) {
+                                
+                                return (
+                                <MenuItem key={key} value={item.account.data.parsed.info.mint}>
+                                    {/*console.log("wallet: "+JSON.stringify(item))*/}
+                                    
+                                    <Grid container
+                                        alignItems="center"
+                                    >
+                                        <Grid item xs={12}>
+                                        <Grid container>
+                                            <Grid item sm={8}>
+                                            <Grid
+                                                container
+                                                direction="row"
+                                                justifyContent="left"
+                                                alignItems="left"
+                                            >
 
-                  */}
-                  
-                  {governanceWallet && governanceWallet.tokens.value
-                    .filter((item: any) => 
-                        item.account.data?.parsed?.info?.tokenAmount?.amount > 0
-                    )
-                    .sort((a: any, b: any) => 
-                        b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount
-                    )
-                    .map((item: any, key: number) => {
-                    
-                    //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
-                    //.map((item: any, key: number) => {
-                      if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
-                            item.account.data.parsed.info.tokenAmount.amount > 0) {
-                        
-                        return (
-                          <MenuItem key={key} value={item.account.data.parsed.info.mint}>
-                              {/*console.log("wallet: "+JSON.stringify(item))*/}
-                              
-                              <Grid container>
-                                <Grid item xs={12}>
-                                  <Grid container>
-                                    <Grid item sm={8}>
-                                      <Grid
+                                                {item.account?.tokenMap?.tokenName ?
+                                                    <Grid 
+                                                        container
+                                                        direction="row"
+                                                        alignItems="center"
+                                                    >
+                                                        <Grid item>
+                                                            <Avatar alt={item.account.tokenMap.tokenName} src={item.account.tokenMap.tokenLogo} />
+                                                        </Grid>
+                                                        <Grid item sx={{ml:1}}>
+                                                            <Typography variant="h6">
+                                                            {item.account.tokenMap.tokenName}
+                                                            </Typography>
+                                                        </Grid>
+                                                    </Grid>
+                                                :
+                                                    <>
+                                                        <ShowTokenMintInfo mintAddress={item.account.data.parsed.info.mint} />
+                                                    </>
+                                                }
+                                            </Grid>
+                                            </Grid>
+                                            <Grid item xs sx={{textAlign:'right'}}>
+                                            <Typography variant="h6">
+                                                {/*item.vault?.nativeTreasury?.solBalance/(10 ** 9)*/}
+
+                                                {(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals).toLocaleString()}
+                                            </Typography>
+                                            </Grid>
+                                        </Grid>  
+
+                                        <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
+                                            <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
+                                                {item.account.data.parsed.info.mint}
+                                            </Typography>
+                                        </Grid>
+                                        </Grid>
+                                    </Grid>
+                                </MenuItem>
+                                );
+                            } else {
+                                return null; // Don't render anything for items without nativeTreasuryAddress
+                            }
+                            })}
+                        </>
+                    :
+                        <MenuItem key={1} value={'So11111111111111111111111111111111111111112'}>
+                            <Grid container
+                                alignItems="center"
+                            >
+                                <Grid item sm={8}>
+                                    <Grid
                                         container
                                         direction="row"
                                         justifyContent="left"
                                         alignItems="left"
-                                      >
+                                    >
 
-                                        {item.account?.tokenMap?.tokenName ?
-                                            <Grid 
-                                                container
-                                                direction="row"
-                                                alignItems="center"
-                                            >
-                                                <Grid item>
-                                                    <Avatar alt={item.account.tokenMap.tokenName} src={item.account.tokenMap.tokenLogo} />
-                                                </Grid>
-                                                <Grid item sx={{ml:1}}>
-                                                    <Typography variant="h6">
-                                                    {item.account.tokenMap.tokenName}
-                                                    </Typography>
-                                                </Grid>
+                                        <Grid 
+                                            container
+                                            alignItems="center"
+                                        >
+                                           <Grid item>
+                                                <div style={{ display: 'flex', alignItems: 'center', fontSize: '20px' }}>
+                                                    <SolIcon />
+                                                </div>
                                             </Grid>
-                                        :
-                                            <>
-                                                <ShowTokenMintInfo mintAddress={item.account.data.parsed.info.mint} />
-                                            </>
-                                        }
-                                      </Grid>
+                                            <Grid item sx={{ml:1}}>
+                                                <Typography variant="h6">
+                                                SOL
+                                                </Typography>
+                                            </Grid>
+                                        </Grid>
                                     </Grid>
-                                    <Grid item xs sx={{textAlign:'right'}}>
-                                      <Typography variant="h6">
+                                </Grid>
+                                <Grid item xs sx={{textAlign:'right'}}>
+                                    <Typography variant="h6">
                                         {/*item.vault?.nativeTreasury?.solBalance/(10 ** 9)*/}
 
-                                        {(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals).toLocaleString()}
-                                      </Typography>
-                                    </Grid>
-                                  </Grid>  
-
-                                  <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
-                                    <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
-                                        {item.account.data.parsed.info.mint}
+                                        {(governanceWallet.solBalance/10 ** 9).toLocaleString()}
                                     </Typography>
-                                  </Grid>
                                 </Grid>
-                              </Grid>
-                          </MenuItem>
-                        );
-                      } else {
-                        return null; // Don't render anything for items without nativeTreasuryAddress
-                      }
-                    })}
+                            </Grid>
+                                    
+                        </MenuItem>
+                    }
+                    
                 </Select>
               </FormControl>
             </Box>
@@ -413,9 +460,11 @@ export default function TokenTransferView(props: any) {
         if (parts[1] && parts[1].length > 9) return; // More than 9 decimal places
 
         // Update the input field value
-        //event.target.value = numericInput;
+        // event.target.value = numericInput;
         text = numericInput;
-        setTokenAmount(+numericInput);
+
+        // Set tokenAmount as a string (or float if you prefer)
+        setTokenAmount(text);
     }
 
     function calculateDestinations(destinations:string, destinationAmount:number){
@@ -458,10 +507,9 @@ export default function TokenTransferView(props: any) {
                 .map((destination: any) => `${destination.address.trim()} - ${destination.amount.toLocaleString()} tokens`)
                 .join(', ');
         }
-            
-
+        
         setInstructionsObject({
-            "type":"Token Transfer",
+            "type":`${pluginType === 4 ? `Token` : 'SOL'} Transfer`,
             "description":description,
             "governanceInstructions":transactionInstructions,
             "authorInstructions":null
@@ -488,7 +536,7 @@ export default function TokenTransferView(props: any) {
             <Box
                 sx={{mb:4}}
             >
-                <Typography variant="h5">Token Transfer Plugin</Typography>
+                <Typography variant="h5">{pluginType === 4 ? 'Token' : 'SOL'} Transfer Plugin</Typography>
             </Box>
 
             {/*
@@ -645,8 +693,7 @@ export default function TokenTransferView(props: any) {
             <Button 
                 disabled={!(
                     (transactionInstructions && JSON.stringify(transactionInstructions).length > 0)
-                )
-                }
+                )}
                 onClick={prepareAndReturnInstructions}
                 fullWidth
                 variant="contained"
@@ -659,7 +706,7 @@ export default function TokenTransferView(props: any) {
             <Box
                 sx={{mt:4,textAlign:'center'}}
             >
-                <Typography variant="caption" sx={{color:'#ccc'}}>Governance Token Transfer Plugin developed by Grape Protocol</Typography>
+                <Typography variant="caption" sx={{color:'#ccc'}}>Governance {pluginType === 4 ? 'Token' : 'SOL'} Transfer Plugin developed by Grape Protocol</Typography>
             </Box>
 
             

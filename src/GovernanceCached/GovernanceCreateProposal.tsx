@@ -288,8 +288,11 @@ export default function GovernanceCreateProposalView(props: any){
               {/*<MenuItem value={2} disabled>Custom</MenuItem>*/}
               <MenuItem value={3} disabled>Import from base58</MenuItem>
               <MenuItem value={4}>Token Transfer</MenuItem>
-              <MenuItem value={5} disabled>SOL Transfer</MenuItem>
+              <MenuItem value={5}>SOL Transfer</MenuItem>
               {/*<MenuItem value={6} disabled>Swap</MenuItem>*/}
+              <MenuItem value={7} disabled>Close & Full Burn Token(s)</MenuItem>
+              <MenuItem value={8} disabled>Lending</MenuItem>
+              <MenuItem value={9} disabled>Staking</MenuItem>
             </Select>
           </FormControl>
         </Box>
@@ -771,7 +774,12 @@ export default function GovernanceCreateProposalView(props: any){
 
                         {proposalType === 4 &&
                           <FormControl fullWidth sx={{mb:2}}>
-                            <TokenTransferView governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                            <TokenTransferView pluginType={4} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                          </FormControl>
+                        }
+                        {proposalType === 5 &&
+                          <FormControl fullWidth sx={{mb:2}}>
+                            <TokenTransferView pluginType={5} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                           </FormControl>
                         }
                       
