@@ -308,8 +308,16 @@ export default function TokenTransferView(props: any) {
                   */}
                   
                   {governanceWallet && governanceWallet.tokens.value
-                    //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
+                    .filter((item: any) => 
+                        item.account.data?.parsed?.info?.tokenAmount?.amount > 0
+                    )
+                    .sort((a: any, b: any) => 
+                        b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount
+                    )
                     .map((item: any, key: number) => {
+                    
+                    //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
+                    //.map((item: any, key: number) => {
                       if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
                             item.account.data.parsed.info.tokenAmount.amount > 0) {
                         
