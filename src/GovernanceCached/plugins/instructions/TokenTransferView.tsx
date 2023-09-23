@@ -5,6 +5,7 @@ import { Signer, Connection, PublicKey, SystemProgram, Transaction, TransactionI
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, createTransferInstruction } from "@solana/spl-token-v2";
 //import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
 //import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
+import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 
 import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
 import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
@@ -161,7 +162,7 @@ export default function TokenTransferView(props: any) {
                             )
                         )
                     }
-                    
+
                     const amount = (destinationObject.amount * Math.pow(10, decimals));
                     transaction.add(
                         createTransferInstruction(
@@ -172,7 +173,6 @@ export default function TokenTransferView(props: any) {
                         )
                     )
                 }
-                
                 
                 /*
                 if (memoText && memoText.length > 0){
@@ -216,6 +216,86 @@ export default function TokenTransferView(props: any) {
                     }
             })}
         };
+
+        function ShowTokenMintInfo(props: any){
+            const mintAddress = props.mintAddress;
+            const [mintName, setMintName] = React.useState(null);
+            const [mintLogo, setMintLogo] = React.useState(null);
+
+            const getTokenMintInfo = async() => {
+                
+                    const mint_address = new PublicKey(mintAddress)
+                    const [pda, bump] = await PublicKey.findProgramAddress([
+                        Buffer.from("metadata"),
+                        PROGRAM_ID.toBuffer(),
+                        new PublicKey(mint_address).toBuffer(),
+                    ], PROGRAM_ID)
+                    //const meta_response = await connection.getAccountInfo(pda);
+                    //console.log("meta_response: "+JSON.stringify(meta_response));
+                    const tokenMetadata = await Metadata. fromAccountAddress(connection, pda)
+                    
+                    if (tokenMetadata?.data?.name)
+                        setMintName(tokenMetadata.data.name);
+                    
+                    if (tokenMetadata?.data?.uri){
+                        try{
+                            const metadata = await window.fetch(tokenMetadata.data.uri)
+                            .then(
+                                (res: any) => res.json())
+                            .catch((error) => {
+                                // Handle any errors that occur during the fetch or parsing JSON
+                                console.error("Error fetching data:", error);
+                            });
+                            
+                            if (metadata && metadata?.image){
+                                if (metadata.image)
+                                    setMintLogo(metadata.image);
+                            }
+                        }catch(err){
+                            console.log("ERR: ",err);
+                        }
+                    }
+
+                    
+
+                    console.log("tokenMetadata: "+JSON.stringify(tokenMetadata.data.uri))
+                    
+                
+                
+            }
+
+            React.useEffect(() => { 
+                if (mintAddress && !mintName){
+                    getTokenMintInfo();
+                }
+            }, [mintAddress]);
+
+            return ( 
+                <>
+
+                    {mintName ?
+                        <Grid 
+                            container
+                            direction="row"
+                            alignItems="center"
+                        >
+                            <Grid item>
+                                <Avatar alt={mintName} src={mintLogo} />
+                            </Grid>
+                            <Grid item sx={{ml:1}}>
+                                <Typography variant="h6">
+                                {mintName}
+                                </Typography>
+                            </Grid>
+                        </Grid>       
+                    :
+                    <>{mintAddress}</>
+                }
+
+                </>
+            )
+
+        }
       
         return (
           <>
@@ -274,7 +354,7 @@ export default function TokenTransferView(props: any) {
                                             </Grid>
                                         :
                                             <>
-                                            {item.account.data.parsed.info.mint}
+                                                <ShowTokenMintInfo mintAddress={item.account.data.parsed.info.mint} />
                                             </>
                                         }
                                       </Grid>
@@ -283,7 +363,7 @@ export default function TokenTransferView(props: any) {
                                       <Typography variant="h6">
                                         {/*item.vault?.nativeTreasury?.solBalance/(10 ** 9)*/}
 
-                                        {item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals}
+                                        {(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals).toLocaleString()}
                                       </Typography>
                                     </Grid>
                                   </Grid>  

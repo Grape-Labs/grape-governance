@@ -289,7 +289,7 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={3} disabled>Import from base58</MenuItem>
               <MenuItem value={4}>Token Transfer</MenuItem>
               <MenuItem value={5} disabled>SOL Transfer</MenuItem>
-              <MenuItem value={6} disabled>Swap</MenuItem>
+              {/*<MenuItem value={6} disabled>Swap</MenuItem>*/}
             </Select>
           </FormControl>
         </Box>
