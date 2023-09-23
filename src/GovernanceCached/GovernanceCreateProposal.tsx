@@ -38,16 +38,25 @@ import {
   MenuItem,
   InputLabel,
   CircularProgress,
+  List,
+  ListItem,
+  IconButton,
+  ListItemAvatar,
+  ListItemText,
+  Avatar,
 } from '@mui/material/';
-import Select, { SelectChangeEvent } from '@mui/material/Select';
 
+import DeleteIcon from '@mui/icons-material/Delete';
 import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import TextareaAutosize from '@mui/base/TextareaAutosize';
-import { Title } from '@devexpress/dx-react-chart';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import GitHubIcon from '@mui/icons-material/GitHub';
+
+import Select, { SelectChangeEvent } from '@mui/material/Select';
+import TokenTransferView from './/plugins/instructions/TokenTransferView'
+import TextareaAutosize from '@mui/base/TextareaAutosize';
+import { Title } from '@devexpress/dx-react-chart';
 
 import { 
   PROXY, 
@@ -70,7 +79,7 @@ const confettiConfig = {
   stagger: 3,
   width: "10px",
   height: "10px",
-  perspective: "500px",
+  perspective: "285px",
   colors: ["#f00", "#0f0", "#00f"]
 };
 
@@ -89,6 +98,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [proposalType, setProposalType] = React.useState(null);
     const [isCouncilVote, setIsCouncilVote] = React.useState(false);
     const [governanceWallet, setGovernanceWallet] = React.useState(null);
+    const [governanceRulesWallet, setGovernanceRulesWallet] = React.useState(null);
     const [isGistDescription, setIsGistDescription] = React.useState(false);
     const { publicKey, sendTransaction } = useWallet();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
@@ -108,6 +118,8 @@ export default function GovernanceCreateProposalView(props: any){
     const [tokenArray, setTokenArray] = React.useState(null);
     const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
     const [createDisabled, setCreateDisabled] = React.useState(false);
+    const [instructionsObject, setInstructionsObject] = React.useState(null);
+    const [instructionsArray, setInstructionsArray] = React.useState([]);
 
     const [governanceRules, setGovernanceRules] = React.useState(null);
     const [totalGovernanceValue, setTotalGovernanceValue] = React.useState(null);
@@ -130,6 +142,13 @@ export default function GovernanceCreateProposalView(props: any){
       // 1. Generate the instructions to pass to governance
       const transaction = new Transaction();
       
+      // using instructionsArray iterate and generate the transaction
+      if (instructionsArray && instructionsArray.length > 0){
+        for (let instructionItem of instructionsArray){
+          if (instructionItem.governanceInstructions)
+            transaction.add(instructionItem.governanceInstructions);
+        }
+      }
 
       //enqueueSnackbar(`Preparing Grape Governance Proposal`,{ variant: 'info' });
       // 2. call createDAOProposal.tsx with the respective variables to create the prop and return to execute
@@ -138,11 +157,12 @@ export default function GovernanceCreateProposalView(props: any){
       const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
 
       //const governingTokenMint = new PublicKey('8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA');
-      /*
+      
       console.log("cachedRealm: "+JSON.stringify(cachedRealm));
       console.log("cachedRealm.pubkey: "+JSON.stringify(cachedRealm.pubkey));
       console.log("governanceWallet: "+JSON.stringify(governanceWallet));
-      */
+      console.log("governanceRulesWallet: "+JSON.stringify(governanceRulesWallet));
+      
       let governingTokenMint = new PublicKey(cachedRealm.account?.communityMint);
       if (isCouncilVote){
         governingTokenMint = new PublicKey(cachedRealm.account?.config?.councilMint);
@@ -154,7 +174,7 @@ export default function GovernanceCreateProposalView(props: any){
           //[],
           programId,
           new PublicKey(cachedRealm.pubkey),
-          new PublicKey(governanceWallet),
+          new PublicKey(governanceRulesWallet),
           governingTokenMint,
           publicKey,
           title,
@@ -238,11 +258,11 @@ export default function GovernanceCreateProposalView(props: any){
         //const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
         //setProposalDescription(rpd);
         setIsGistDescription(true);
-      
         
-    } catch(e){
-        console.log("ERR: "+e)
-    }
+          
+      } catch(e){
+          console.log("ERR: "+e)
+      }
       
     }
 
@@ -250,6 +270,7 @@ export default function GovernanceCreateProposalView(props: any){
       
       const handleProposalTypeChange = (event: SelectChangeEvent) => {
         setProposalType(event.target.value as string);
+        
       };
     
       return (
@@ -266,8 +287,9 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={1}>None</MenuItem>
               {/*<MenuItem value={2} disabled>Custom</MenuItem>*/}
               <MenuItem value={3} disabled>Import from base58</MenuItem>
-              <MenuItem value={4} disabled>Token Transfer</MenuItem>
-              <MenuItem value={5} disabled>Swap</MenuItem>
+              <MenuItem value={4}>Token Transfer</MenuItem>
+              <MenuItem value={5} disabled>SOL Transfer</MenuItem>
+              <MenuItem value={6} disabled>Swap</MenuItem>
             </Select>
           </FormControl>
         </Box>
@@ -277,9 +299,7 @@ export default function GovernanceCreateProposalView(props: any){
     const getGovernanceRules = async (realmConfigPk: string) => {
       try{
         const govRules = await getRealmConfig(connection, new PublicKey(realmConfigPk));
-
         console.log("govRules: "+JSON.stringify(govRules))
-
         setGovernanceRules(govRules);
       }catch(e){
         console.log("ERR: "+e)
@@ -288,10 +308,24 @@ export default function GovernanceCreateProposalView(props: any){
 
     function GovernanceSelect() {
       
-      const handleGovernanceWalletChange = (event: SelectChangeEvent) => {
-        console.log("menu item: "+event.target.value)
-        setGovernanceWallet(event.target.value as string);
-        getGovernanceRules(event.target.value);
+      const handleGovernanceWalletChange = (event: SelectChangeEvent) => {//(nativeWallet: string, rulesWallet: string) => {
+        const nativeWallet = event.target.value as string;
+        console.log("menu item: "+JSON.stringify(nativeWallet))
+        
+        setGovernanceWallet(nativeWallet);
+
+        // get rules wallet:
+        let rulesWallet = null;
+        {cachedTreasury && cachedTreasury
+          .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
+          .map((item: any, key: number) => {
+            if (nativeWallet === item.vault?.nativeTreasury)
+              rulesWallet = item.vault.pubkey;
+          }
+        )}
+
+        setGovernanceRulesWallet(rulesWallet);
+        getGovernanceRules(rulesWallet);
         setProposalType(1);
 
       };
@@ -307,13 +341,16 @@ export default function GovernanceCreateProposalView(props: any){
                 value={governanceWallet}
                 label="Governance Wallet"
                 onChange={handleGovernanceWalletChange}
+                //onClick={() => handleGovernanceWalletChange(item.vault.nativeTreasury, item.vault.pubkey)}
               > 
                 {cachedTreasury && cachedTreasury
                   .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
                   .map((item: any, key: number) => {
                     if (item.vault?.nativeTreasuryAddress) {
+                      // rules wallet:
+                      // item.vault.pubkey
                       return (
-                        <MenuItem key={key} value={item.vault.pubkey}>
+                        <MenuItem key={key} value={item.vault.nativeTreasury}>
                             {/*console.log("wallet: "+JSON.stringify(item))*/}
                             
                             <Grid container>
@@ -332,7 +369,14 @@ export default function GovernanceCreateProposalView(props: any){
                                   </Grid>
                                   <Grid item xs sx={{textAlign:'right'}}>
                                     <Typography variant="caption">
-                                      {item.vault?.nativeTreasury?.solBalance/(10 ** 9)} sol - {item.vault?.nativeTreasury?.tokens?.value.length} tokens
+                                      {item.vault?.nativeTreasury?.solBalance/(10 ** 9)} sol -&nbsp;
+                                      {item.vault?.nativeTreasury?.tokens?.value.reduce((count, token) => {
+                                        // Check if the condition is met before counting the token
+                                        if (token.account.data.parsed.info.tokenAmount.amount > 0) {
+                                          count++;
+                                        }
+                                        return count;
+                                      }, 0)} tokens
                                     </Typography>
                                   </Grid>
                                 </Grid>  
@@ -356,7 +400,7 @@ export default function GovernanceCreateProposalView(props: any){
                                   </Grid>
                                   <Grid item xs sx={{textAlign:'right'}}>
                                     <Typography variant="caption">
-                                      {item.solBalance/(10 ** 9)} sol - {item?.tokens?.value.length} tokens
+                                      {item.solBalance/(10 ** 9)} sol {/*- {item?.tokens?.value.length} tokens*/}
                                     </Typography>
                                   </Grid>
                                 </Grid>
@@ -535,6 +579,34 @@ export default function GovernanceCreateProposalView(props: any){
         setGovernanceLookup(fglf);
     }
 
+    const removeTxItem = (indexToRemove:number) => {
+      const updatedArray = instructionsArray.filter((item, index) => index !== indexToRemove);
+      setInstructionsArray(updatedArray);
+    };
+
+    React.useEffect(() => {
+      if (instructionsObject){
+        // check if this instruction exists in the object
+        let found = false;
+        if (instructionsArray && instructionsArray.length > 0){
+          for (let instructionItem of instructionsArray){
+            if (instructionsObject === instructionItem)
+              found = true;
+          }
+          if (!found)
+            instructionsArray.push(instructionsObject);
+        } else{
+          instructionsArray.push(instructionsObject);
+        }
+
+        setProposalType(null);
+
+        setInstructionsObject(null);
+      }
+    }, [instructionsObject]);
+
+
+
     React.useEffect(() => {
         if (governanceLookup){
             getCachedGovernanceFromLookup();
@@ -559,14 +631,14 @@ export default function GovernanceCreateProposalView(props: any){
     return (
         <>
             <Box
-                    sx={{
-                        mt:6,
-                        background: 'rgba(0, 0, 0, 0.6)',
-                        borderRadius: '17px',
-                        overflow: 'hidden',
-                        p:4
-                    }} 
-                > 
+                sx={{
+                    mt:6,
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    borderRadius: '17px',
+                    overflow: 'hidden',
+                    p:4
+                }} 
+              > 
             <>
                     {showGovernanceTitle && realmName && 
                         <Grid container>
@@ -641,7 +713,7 @@ export default function GovernanceCreateProposalView(props: any){
                               fullWidth 
                               label="Title" 
                               id="fullWidth"
-                              value={title}
+                              //value={title}
                               onChange={(e) => {
                                   if (!title || title.length < maxTitleLen)
                                       setTitle(e.target.value)
@@ -649,7 +721,7 @@ export default function GovernanceCreateProposalView(props: any){
                               sx={{borderRadius:'17px', maxlength:maxTitleLen}} 
                           />
                           <Grid sx={{textAlign:'right',}}>
-                          <Typography variant="caption">{title ? title.length > 0 ? maxTitleLen - title.length : maxTitleLen : maxTitleLen} characters remaining</Typography>
+                            <Typography variant="caption">{title ? title.length > 0 ? maxTitleLen - title.length : maxTitleLen : maxTitleLen} characters remaining</Typography>
                           </Grid>
                       </FormControl>
 
@@ -660,7 +732,7 @@ export default function GovernanceCreateProposalView(props: any){
                               multiline
                               rows={4}
                               maxRows={4}
-                              value={description}
+                              //value={description}
                               onChange={(e) => {
                                   if (!description || description.length < maxDescriptionLen)
                                       handleDescriptionChange(e.target.value)
@@ -680,7 +752,6 @@ export default function GovernanceCreateProposalView(props: any){
                                   <GitHubIcon sx={{mr:1}} /> GIST
                               </Button>
                             :
-
                               <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
                             }
                           </Grid>
@@ -696,6 +767,53 @@ export default function GovernanceCreateProposalView(props: any){
                         <FormControl fullWidth sx={{mb:2}}>
                             <ProposalSelect />
                         </FormControl>
+
+                        {proposalType === 4 &&
+                          <FormControl fullWidth sx={{mb:2}}>
+                            <TokenTransferView governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                          </FormControl>
+                        }
+                      
+                      {(instructionsArray && instructionsArray.length > 0) &&
+                          <Box
+                              sx={{
+                                m:2,
+                                background: 'rgba(0, 0, 0, 0.2)',
+                                borderRadius: '17px',
+                                overflow: 'hidden',
+                                p:4
+                            }} 
+                          >
+                            <FormControl fullWidth sx={{mb:2}}>
+                                <List dense={true}>
+                                    {instructionsArray.map((txinstr:any, index:number) => (
+                                        <ListItem
+                                          secondaryAction={
+                                            <IconButton 
+                                              onClick={e => removeTxItem(index)}
+                                              edge="end" 
+                                              aria-label="delete">
+                                              <DeleteIcon />
+                                            </IconButton>
+                                          }
+                                        >
+                                          <ListItemAvatar>
+                                            <Avatar>
+                                              {index+1}
+                                            </Avatar>
+                                          </ListItemAvatar>
+                                          <ListItemText
+                                            primary={`
+                                              ${txinstr?.type} - ${txinstr?.description}
+                                            `}
+                                            secondary={JSON.stringify(txinstr?.governanceInstructions)}
+                                          />
+                                        </ListItem>
+                                    ))}
+                                  </List>
+                            </FormControl>
+                          </Box>
+                      }
                         
                       </>
                       }
@@ -716,13 +834,13 @@ export default function GovernanceCreateProposalView(props: any){
                             } 
                             label="Council Vote" />
                       </FormControl>
-
+                      
                       <Grid sx={{textAlign:'right'}}>
                         <Button 
                           disabled={!(
                             (title && title.length > 0) &&
                             (description && description.length > 0) &&
-                            (proposalType) &&
+                            (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
                             (!createDisabled)
                             )
                           }
