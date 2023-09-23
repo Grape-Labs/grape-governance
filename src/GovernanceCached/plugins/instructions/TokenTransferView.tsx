@@ -309,9 +309,7 @@ export default function TokenTransferView(props: any) {
                   label="Token"
                   onChange={handleMintSelected}
                 >
-                    {pluginType === 4 ?
-                        <>
-                        {governanceWallet && governanceWallet.tokens.value
+                    {(pluginType === 4 && governanceWallet) && governanceWallet.tokens.value
                             .filter((item: any) => 
                                 item.account.data?.parsed?.info?.tokenAmount?.amount > 0
                             )
@@ -323,69 +321,71 @@ export default function TokenTransferView(props: any) {
                                 if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
                                     item.account.data.parsed.info.tokenAmount.amount > 0) {
                                 
-                                return (
-                                <MenuItem key={key} value={item.account.data.parsed.info.mint}>
-                                    {/*console.log("wallet: "+JSON.stringify(item))*/}
-                                    
-                                    <Grid container
-                                        alignItems="center"
-                                    >
-                                        <Grid item xs={12}>
-                                        <Grid container>
-                                            <Grid item sm={8}>
-                                            <Grid
-                                                container
-                                                direction="row"
-                                                justifyContent="left"
-                                                alignItems="left"
-                                            >
 
-                                                {item.account?.tokenMap?.tokenName ?
-                                                    <Grid 
+                                    return (
+                                        <MenuItem key={key} value={item.account.data.parsed.info.mint}>
+                                            {/*console.log("wallet: "+JSON.stringify(item))*/}
+                                            
+                                            <Grid container
+                                                alignItems="center"
+                                            >
+                                                <Grid item xs={12}>
+                                                <Grid container>
+                                                    <Grid item sm={8}>
+                                                    <Grid
                                                         container
                                                         direction="row"
-                                                        alignItems="center"
+                                                        justifyContent="left"
+                                                        alignItems="left"
                                                     >
-                                                        <Grid item>
-                                                            <Avatar alt={item.account.tokenMap.tokenName} src={item.account.tokenMap.tokenLogo} />
-                                                        </Grid>
-                                                        <Grid item sx={{ml:1}}>
-                                                            <Typography variant="h6">
-                                                            {item.account.tokenMap.tokenName}
-                                                            </Typography>
-                                                        </Grid>
+
+                                                        {item.account?.tokenMap?.tokenName ?
+                                                            <Grid 
+                                                                container
+                                                                direction="row"
+                                                                alignItems="center"
+                                                            >
+                                                                <Grid item>
+                                                                    <Avatar alt={item.account.tokenMap.tokenName} src={item.account.tokenMap.tokenLogo} />
+                                                                </Grid>
+                                                                <Grid item sx={{ml:1}}>
+                                                                    <Typography variant="h6">
+                                                                    {item.account.tokenMap.tokenName}
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Grid>
+                                                        :
+                                                            <>
+                                                                <ShowTokenMintInfo mintAddress={item.account.data.parsed.info.mint} />
+                                                            </>
+                                                        }
                                                     </Grid>
-                                                :
-                                                    <>
-                                                        <ShowTokenMintInfo mintAddress={item.account.data.parsed.info.mint} />
-                                                    </>
-                                                }
-                                            </Grid>
-                                            </Grid>
-                                            <Grid item xs sx={{textAlign:'right'}}>
-                                            <Typography variant="h6">
-                                                {/*item.vault?.nativeTreasury?.solBalance/(10 ** 9)*/}
+                                                    </Grid>
+                                                    <Grid item xs sx={{textAlign:'right'}}>
+                                                    <Typography variant="h6">
+                                                        {/*item.vault?.nativeTreasury?.solBalance/(10 ** 9)*/}
 
-                                                {(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals).toLocaleString()}
-                                            </Typography>
-                                            </Grid>
-                                        </Grid>  
+                                                        {(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals).toLocaleString()}
+                                                    </Typography>
+                                                    </Grid>
+                                                </Grid>  
 
-                                        <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
-                                            <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
-                                                {item.account.data.parsed.info.mint}
-                                            </Typography>
-                                        </Grid>
-                                        </Grid>
-                                    </Grid>
-                                </MenuItem>
-                                );
-                            } else {
-                                return null; // Don't render anything for items without nativeTreasuryAddress
-                            }
+                                                <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
+                                                    <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
+                                                        {item.account.data.parsed.info.mint}
+                                                    </Typography>
+                                                </Grid>
+                                                </Grid>
+                                            </Grid>
+                                        </MenuItem>
+                                    );
+                                } else {
+                                    return null; // Don't render anything for items without nativeTreasuryAddress
+                                }
                             })}
-                        </>
-                    :
+                    
+                    {pluginType === 5 &&
+                        
                         <MenuItem key={1} value={'So11111111111111111111111111111111111111112'}>
                             <Grid container
                                 alignItems="center"
@@ -459,12 +459,14 @@ export default function TokenTransferView(props: any) {
 
         if (parts[1] && parts[1].length > 9) return; // More than 9 decimal places
 
-        // Update the input field value
-        // event.target.value = numericInput;
-        text = numericInput;
+        // Add a fractional part (even if zero) to ensure it's treated as a float
+        const withFractionalPart = numericInput.includes('.') ? numericInput : numericInput + '.0';
 
-        // Set tokenAmount as a string (or float if you prefer)
-        setTokenAmount(text);
+        // Update the input field value
+        // event.target.value = withFractionalPart;
+
+        // Set tokenAmount as a float
+        setTokenAmount(parseFloat(withFractionalPart));
     }
 
     function calculateDestinations(destinations:string, destinationAmount:number){
@@ -581,6 +583,12 @@ export default function TokenTransferView(props: any) {
                         <Typography variant="caption" color="error">WARNING: This proposal may fail if the token balance is insufficient!</Typography>
                     </Grid>
                 : <></>
+                }
+
+                {(pluginType === 5 && tokenMaxAmount <= 0.001)&&
+                    <Grid sx={{textAlign:'right',}}>
+                        <Typography variant="caption" color="error">Balance greater than rent is required to do a transfer</Typography>
+                    </Grid>
                 }
             </FormControl>
             
