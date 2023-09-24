@@ -46,6 +46,7 @@ import {
   Avatar,
 } from '@mui/material/';
 
+import FlakyIcon from '@mui/icons-material/Flaky';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -128,7 +129,10 @@ export default function GovernanceCreateProposalView(props: any){
     const [totalGovernanceNftFloorValue, setTotalGovernanceNftFloorValue] = React.useState(null);
     const [totalGovernanceStableCoinValue, setTotalGovernanceStableCoinValue] = React.useState(null);
 
-    const [proposalEstimatedFee, setProposalEstimatedFee] = React.useState(null);
+    const [proposalSimulation, setProposalSimulation] = React.useState(null);
+    const [proposalSimulationUnitsConsumed, setProposalSimulationUnitsConsumed] = React.useState(null);
+    const [proposalSimulationLogs, setProposalSimulationLogs] = React.useState(null);
+    const [proposalSimulationErr, setProposalSimulationErr] = React.useState(null);
     const [proposalInstructions, setProposalInstructions] = React.useState(null);
 
     const wallet = useWallet();
@@ -159,7 +163,7 @@ export default function GovernanceCreateProposalView(props: any){
       }
 
       if (publicKey){
-        const propCalculatedFee = await createProposalInstructions(
+        const propSimulation = await createProposalInstructions(
           //[],
           programId,
           new PublicKey(cachedRealm.pubkey),
@@ -174,9 +178,20 @@ export default function GovernanceCreateProposalView(props: any){
           null,//sendTransaction,
           true,
         );
-        console.log("Calculated Fee: ",propCalculatedFee);
-        setProposalEstimatedFee(propCalculatedFee);
+        console.log("Simulation: ",propSimulation);
+        console.log("Simulation string: "+JSON.stringify(propSimulation));
+        
+        if (propSimulation?.err)
+          setProposalSimulationErr(JSON.stringify(propSimulation?.err));
+        setProposalSimulationLogs(propSimulation?.logs);
+        setProposalSimulationUnitsConsumed(propSimulation?.unitsConsumed);
+
+        //setProposalSimulation((JSON.stringify(propSimulation)));
       }  
+    }
+
+    const simulateProposal = async() => {
+      calculateProposalFee();
     }
     
 
@@ -654,7 +669,7 @@ export default function GovernanceCreateProposalView(props: any){
 
         setInstructionsObject(null);
 
-        calculateProposalFee();
+        //calculateProposalFee();
       }
     }, [instructionsObject]);
 
@@ -881,17 +896,36 @@ export default function GovernanceCreateProposalView(props: any){
                                         </ListItem>
                                     ))}
                                   </List>
-
-                                  {proposalEstimatedFee &&
-                                      <Grid sx={{textAlign:'right'}}>
-                                          <Typography variant="caption">
-                                              Estimated Fee {proposalEstimatedFee}
-                                          </Typography>
-                                      </Grid>
-                                  }
                             </FormControl>
                           </Box>
                       }
+
+
+                        {proposalSimulationUnitsConsumed ?
+                            <>
+                            {(proposalSimulationUnitsConsumed > 0) ?
+                                <Grid sx={{textAlign:'right'}}>
+                                    <Typography variant="caption">
+                                        Estimated Fee {(proposalSimulationUnitsConsumed/10 ** 9)*50}
+                                    </Typography>
+                                </Grid>
+                            :
+                            <>
+                                
+                            </>
+                            }
+                            </>
+                          :<>
+                            {proposalSimulationLogs &&
+                              <Grid sx={{textAlign:'right'}}>
+                                <Typography variant="caption" sx={{color:"red"}}>
+                                  ERROR: {JSON.stringify(proposalSimulationLogs)}
+                                </Typography>
+                              </Grid>
+                            }
+                          </>
+                        }
+                        
                         
                       </>
                       }
@@ -914,23 +948,42 @@ export default function GovernanceCreateProposalView(props: any){
                       </FormControl>
                       
                       <Grid sx={{textAlign:'right'}}>
-                        <Button 
-                          disabled={!(
-                            (title && title.length > 0) &&
-                            (description && description.length > 0) &&
-                            (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
-                            (!createDisabled)
-                            )
-                          }
-                          onClick={createProposal}
-                          variant="contained"
-                          color="success"
-                          sx={{borderRadius:'17px'}}>
-                            <Confetti
-                                active={ proposalMade }
-                                config={ confettiConfig }
-                            />        
-                            Create Proposal</Button>
+                        <ButtonGroup variant="contained" aria-label="outlined button group"
+                          sx={{borderRadius:'17px'}}
+                        >
+                          <Tooltip title="Simulate & Calculate Fees">
+                          <Button 
+                            disabled={!(
+                              (title && title.length > 0) &&
+                              (description && description.length > 0) &&
+                              (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
+                              (!createDisabled)
+                              )
+                            }
+                            onClick={simulateProposal}
+                            variant="contained"
+                            color="info"
+                            sx={{borderTopLeftRadius:'17px', borderBottomLeftRadius:'17px'}}>
+                              <FlakyIcon /></Button>
+                          </Tooltip>
+                          <Button 
+                            disabled={!(
+                              (title && title.length > 0) &&
+                              (description && description.length > 0) &&
+                              (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
+                              (!createDisabled)
+                              )
+                            }
+                            onClick={createProposal}
+                            variant="contained"
+                            color="success"
+                            sx={{borderTopRightRadius:'17px', borderBottomRightRadius:'17px'}}>
+                              <Confetti
+                                  active={ proposalMade }
+                                  config={ confettiConfig }
+                              />        
+                              Create Proposal</Button>
+                          </ButtonGroup>
                       </Grid>
                       
                   </Box>
