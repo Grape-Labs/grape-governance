@@ -41,7 +41,7 @@ export async function createProposalInstructions(
     transactionInstr: Transaction, //: InstructionsAndSignersSet, 
     wallet: WalletSigner,
     sendTransaction: any,
-    enqueueSnackbar: any): Promise<any>{//Promise<Transaction> {
+    calculateFees: any): Promise<any>{//Promise<Transaction> {
     
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
     //let initialInstructions: TransactionInstruction[] = [];
@@ -179,7 +179,32 @@ export async function createProposalInstructions(
     console.log(`Creating proposal using ${insertChunks.length} chunks`);
 
     //return null;
-    
+    if (calculateFees){
+      console.log("Getting estimated fees");
+      const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
+      const transaction = new Transaction;
+
+      prerequisiteInstructions.forEach((instruction) => {
+        transaction.add(instruction);
+      });
+      instructions.forEach((instruction) => {
+        transaction.add(instruction);
+      });
+      insertChunks.forEach((instructionArray) => {
+        instructionArray.forEach((instruction) => {
+          transaction.add(instruction);
+        });
+      });
+
+      transaction.recentBlockhash = latestBlockHash;
+      transaction.feePayer = walletPk;//signerChunks;
+      const feeInLamports = (await connection.getFeeForMessage(transaction.compileMessage(), 'confirmed')).value;
+      console.log("Estimated fee in lamports: ",feeInLamports);
+      //setTransactionEstimatedFee(feeInLamports/10 ** 9);
+      return feeInLamports/10 ** 9;
+    }
+
+
     if (!sendTransaction){
       
       console.log(`Sending Transactions...`);

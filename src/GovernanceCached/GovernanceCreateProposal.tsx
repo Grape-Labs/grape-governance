@@ -128,10 +128,57 @@ export default function GovernanceCreateProposalView(props: any){
     const [totalGovernanceNftFloorValue, setTotalGovernanceNftFloorValue] = React.useState(null);
     const [totalGovernanceStableCoinValue, setTotalGovernanceStableCoinValue] = React.useState(null);
 
+    const [proposalEstimatedFee, setProposalEstimatedFee] = React.useState(null);
     const [proposalInstructions, setProposalInstructions] = React.useState(null);
 
     const wallet = useWallet();
     const anchorWallet = useAnchorWallet();
+
+    
+    const calculateProposalFee = async() => {
+      // get governance settings
+      // 1. Generate the instructions to pass to governance
+      const transaction = new Transaction();
+      
+      // using instructionsArray iterate and generate the transaction
+      if (instructionsArray && instructionsArray.length > 0){
+        for (let instructionItem of instructionsArray){
+          if (instructionItem.governanceInstructions)
+            transaction.add(instructionItem.governanceInstructions);
+        }
+      }
+
+      //enqueueSnackbar(`Preparing Grape Governance Proposal`,{ variant: 'info' });
+      // 2. call createDAOProposal.tsx with the respective variables to create the prop and return to execute
+      // temporarily use a static program id, make it dynamic for more flexibility
+      const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+      const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
+      let governingTokenMint = new PublicKey(cachedRealm.account?.communityMint);
+      if (isCouncilVote){
+        governingTokenMint = new PublicKey(cachedRealm.account?.config?.councilMint);
+      }
+
+      if (publicKey){
+        const propCalculatedFee = await createProposalInstructions(
+          //[],
+          programId,
+          new PublicKey(cachedRealm.pubkey),
+          new PublicKey(governanceRulesWallet),
+          governingTokenMint,
+          publicKey,
+          title,
+          description,
+          connection,
+          transaction,
+          anchorWallet,//anchorWallet,
+          null,//sendTransaction,
+          true,
+        );
+        console.log("Calculated Fee: ",propCalculatedFee);
+        setProposalEstimatedFee(propCalculatedFee);
+      }  
+    }
+    
 
     const createProposal = async() => {
       
@@ -183,7 +230,7 @@ export default function GovernanceCreateProposalView(props: any){
           transaction,
           anchorWallet,//anchorWallet,
           null,//sendTransaction,
-          enqueueSnackbar
+          false
         );
         
 
@@ -606,6 +653,8 @@ export default function GovernanceCreateProposalView(props: any){
         setProposalType(null);
 
         setInstructionsObject(null);
+
+        //calculateProposalFee();
       }
     }, [instructionsObject]);
 
@@ -815,11 +864,31 @@ export default function GovernanceCreateProposalView(props: any){
                                             primary={`
                                               ${txinstr?.type} - ${txinstr?.description}
                                             `}
-                                            secondary={JSON.stringify(txinstr?.governanceInstructions)}
+                                            secondary={
+                                              <>
+                                              {JSON.stringify(txinstr?.governanceInstructions)}
+
+                                              {txinstr?.transactionEstimatedFee &&
+                                                  <Grid sx={{textAlign:'right'}}>
+                                                      <Typography variant="caption">
+                                                          Estimated Fee {txinstr.transactionEstimatedFee}
+                                                      </Typography>
+                                                  </Grid>
+                                              }
+                                              </>
+                                            }
                                           />
                                         </ListItem>
                                     ))}
                                   </List>
+
+                                  {proposalEstimatedFee &&
+                                      <Grid sx={{textAlign:'right'}}>
+                                          <Typography variant="caption">
+                                              Estimated Fee {proposalEstimatedFee}
+                                          </Typography>
+                                      </Grid>
+                                  }
                             </FormControl>
                           </Box>
                       }

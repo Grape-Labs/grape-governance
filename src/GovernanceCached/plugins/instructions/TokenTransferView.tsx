@@ -1,7 +1,5 @@
 import React, { useCallback } from 'react';
-import { WalletError, WalletNotConnectedError, WalletSignMessageError } from '@solana/wallet-adapter-base';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { Signer, Connection, PublicKey, SystemProgram, Transaction, TransactionInstruction } from '@solana/web3.js';
+import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, createTransferInstruction } from "@solana/spl-token-v2";
 //import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
 //import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
@@ -44,6 +42,7 @@ import {
   Alert
 } from '@mui/material';
 
+import Confetti from 'react-dom-confetti';
 import SolIcon from '../../../components/static/SolIcon';
 import SolCurrencyIcon from '../../../components/static/SolCurrencyIcon';
 
@@ -65,6 +64,20 @@ import ArrowCircleRightIcon from '@mui/icons-material/ArrowCircleRight';
 import ArrowCircleRightOutlinedIcon from '@mui/icons-material/ArrowCircleRightOutlined';
 import { number } from 'prop-types';
 
+const confettiConfig = {
+    angle: 90,
+    spread: 360,
+    startVelocity: 40,
+    elementCount: 200,
+    dragFriction: 0.12,
+    duration: 4000,
+    stagger: 3,
+    width: "10px",
+    height: "10px",
+    perspective: "285px",
+    colors: ["#f00", "#0f0", "#00f"]
+  };
+
 export default function TokenTransferView(props: any) {
     const pluginType = props?.pluginType || 4; // 1 Token 2 SOL
     const setInstructionsObject = props?.setInstructionsObject;
@@ -74,8 +87,8 @@ export default function TokenTransferView(props: any) {
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [transactionInstructions, setTransactionInstructions] = React.useState(null);
     const [tokenMaxAmount, setTokenMaxAmount] = React.useState(null);
-
-    const maxDestinationWalletLen = 10;
+    const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
+    const maxDestinationWalletLen = 20;
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
     const [destinationString, setDestinationString] = React.useState(null);
 
@@ -92,6 +105,7 @@ export default function TokenTransferView(props: any) {
         console.log("amountToSend: "+amountToSend)
         const tokenAccount = new PublicKey(mintPubkey);
         
+
         /*
         let GRAPE_TT_MEMO = {
             status:1, // status
@@ -120,6 +134,19 @@ export default function TokenTransferView(props: any) {
                 );
             }
             setTransactionInstructions(transaction);
+            // Estimate the transaction fee
+            try{
+                console.log("Getting estimated fees");
+                
+                const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
+                transaction.recentBlockhash = latestBlockHash;
+                transaction.feePayer = fromWallet;
+                const feeInLamports = (await connection.getFeeForMessage(transaction.compileMessage(), 'confirmed')).value;
+                console.log("Estimated fee in lamports: ",feeInLamports);
+                setTransactionEstimatedFee(feeInLamports/10 ** 9);
+            }catch(e){
+                console.log("FEE ERR: ",e);
+            }
             return transaction;
         } else{  
             console.log("mint: "+ tokenMint);
@@ -192,6 +219,20 @@ export default function TokenTransferView(props: any) {
                 }
                 */
                 setTransactionInstructions(transaction);
+                // Estimate the transaction fee
+                
+                try{
+                    console.log("Getting estimated fees");
+                    
+                    const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
+                    transaction.recentBlockhash = latestBlockHash;
+                    transaction.feePayer = fromWallet;
+                    const feeInLamports = (await connection.getFeeForMessage(transaction.compileMessage(), 'confirmed')).value;
+                    console.log("Estimated fee in lamports: ",feeInLamports);
+                    setTransactionEstimatedFee(feeInLamports/10 ** 9);
+                }catch(e){
+                    console.log("FEE ERR: ",e);
+                }
                 return transaction;
             } catch(err:any){
                 console.log("ERR: "+JSON.stringify(err));
@@ -301,7 +342,7 @@ export default function TokenTransferView(props: any) {
           <>
             <Box sx={{ minWidth: 120, ml:1 }}>
               <FormControl fullWidth sx={{mb:2}}>
-                <InputLabel id="governance-token-select-label">Token</InputLabel>
+                <InputLabel id="governance-token-select-label">{pluginType === 4 ? 'Token' : 'Select'}</InputLabel>
                 <Select
                   labelId="governance-token-select-label"
                   id="governance-token-select"
@@ -386,7 +427,7 @@ export default function TokenTransferView(props: any) {
                     
                     {pluginType === 5 &&
                         
-                        <MenuItem key={1} value={'So11111111111111111111111111111111111111112'}>
+                        <MenuItem key={1} value={'So11111111111111111111111111111111111111112'} selected>
                             <Grid container
                                 alignItems="center"
                             >
@@ -504,7 +545,7 @@ export default function TokenTransferView(props: any) {
         if (destinationWalletArray.length === 1){
             description = `Sending ${tokenAmount.toLocaleString()} ${tokenMint} to ${destinationWalletArray[0].address}`;
         } else{
-            description = `Sending ${tokenAmount.toLocaleString()} ${tokenMint} to: `;
+            description = `Sending ${tokenAmount.toLocaleString()} ${tokenMint} to `;
             description += destinationWalletArray
                 .map((destination: any) => `${destination.address.trim()} - ${destination.amount.toLocaleString()} tokens`)
                 .join(', ');
@@ -514,7 +555,8 @@ export default function TokenTransferView(props: any) {
             "type":`${pluginType === 4 ? `Token` : 'SOL'} Transfer`,
             "description":description,
             "governanceInstructions":transactionInstructions,
-            "authorInstructions":null
+            "authorInstructions":null,
+            "transactionEstimatedFee":transactionEstimatedFee,
         });
     }
 
@@ -693,6 +735,13 @@ export default function TokenTransferView(props: any) {
                             value={JSON.stringify(transactionInstructions)}
                             disabled
                         />
+                        {transactionEstimatedFee &&
+                            <Grid sx={{textAlign:'right'}}>
+                                <Typography variant="caption">
+                                    Estimated Fee {transactionEstimatedFee}
+                                </Typography>
+                            </Grid>
+                        }
                     </Box>
 
                 }
