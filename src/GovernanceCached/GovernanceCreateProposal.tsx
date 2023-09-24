@@ -882,11 +882,11 @@ export default function GovernanceCreateProposalView(props: any){
                                             secondary={
                                               <>
                                               {JSON.stringify(txinstr?.governanceInstructions)}
-
+                                              
                                               {(txinstr?.transactionEstimatedFee && txinstr?.transactionEstimatedFee > 0) &&
                                                   <Grid sx={{textAlign:'right'}}>
                                                       <Typography variant="caption">
-                                                          Estimated Fee {txinstr.transactionEstimatedFee}
+                                                          Estimated Fee {(txinstr.transactionEstimatedFee).toFixed(6)}
                                                       </Typography>
                                                   </Grid>
                                               }

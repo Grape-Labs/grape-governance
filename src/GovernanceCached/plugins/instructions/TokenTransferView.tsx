@@ -525,6 +525,7 @@ export default function TokenTransferView(props: any) {
         setTokenAmount(parseFloat(withFractionalPart));
     }
 
+    /*
     function calculateDestinations(destinations:string, destinationAmount:number){
         const destinationsStr = destinations;
 
@@ -548,6 +549,80 @@ export default function TokenTransferView(props: any) {
             setDestinationWalletArray(uniqueValidDestinations);
         }
     }
+    */
+    function calculateDestinations(destinations: string, destinationAmount: number) {
+        const destinationsStr = destinations;
+      
+        if (destinationsStr && destinationsStr.length > 0) {
+          const destinationArray = destinationsStr
+            .split(/,|\n/) // Split by comma or newline
+            .map(destination => destination.trim())
+            .filter(destination => destination);
+      
+          const uniqueValidDestinations = [];
+          let currentAddress = null;
+          let specifiedAmount = null;
+          let remainingAddresses = [];
+          let fixedAmountDestinations = [];
+      
+          for (const destination of destinationArray) {
+            if (!currentAddress) {
+              // If no current address, this is expected to be an address
+              if (isValidSolanaPublicKey(destination)) {
+                currentAddress = destination;
+              }
+            } else if (!specifiedAmount) {
+              // If current address exists but no specified amount, this is expected to be an amount
+              const amount = parseFloat(destination);
+              if (!isNaN(amount)) {
+                specifiedAmount = amount;
+              }
+            } else {
+              // If both address and specified amount exist, treat it as a new address
+              if (specifiedAmount !== null) {
+                uniqueValidDestinations.push({ address: currentAddress, amount: specifiedAmount });
+              } else {
+                remainingAddresses.push(currentAddress);
+              }
+              currentAddress = destination;
+              specifiedAmount = null;
+            }
+          }
+      
+          // Handle the last address and specified amount pair
+          if (currentAddress) {
+            if (specifiedAmount !== null) {
+              uniqueValidDestinations.push({ address: currentAddress, amount: specifiedAmount });
+            } else {
+              remainingAddresses.push(currentAddress);
+            }
+          }
+      
+          // If there are fixed amount destinations, add them first
+          uniqueValidDestinations.push(...fixedAmountDestinations);
+      
+          // Calculate the total specified amounts
+          const totalSpecifiedAmount = uniqueValidDestinations.reduce((total, dest) => total + dest.amount, 0);
+      
+          // Calculate the remaining amount to distribute
+          const remainingAmount = destinationAmount - totalSpecifiedAmount;
+      
+          // Calculate the amount to distribute evenly among the remaining addresses
+          const evenlyDistributedAmount = remainingAmount / remainingAddresses.length;
+      
+          // Assign the specified amount to the first address if it's not already assigned
+          if (uniqueValidDestinations.length > 0 && specifiedAmount !== null) {
+            uniqueValidDestinations[0].amount = specifiedAmount;
+          }
+      
+          // Distribute evenly to the remaining addresses
+          for (const address of remainingAddresses) {
+            uniqueValidDestinations.push({ address, amount: evenlyDistributedAmount });
+          }
+      
+          setDestinationWalletArray(uniqueValidDestinations);
+        }
+      }
 
     function handleDestinationWalletChange(destinations:string){
         setDestinationString(destinations);
