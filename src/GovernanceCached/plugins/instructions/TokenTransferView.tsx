@@ -80,6 +80,7 @@ const confettiConfig = {
   };
 
 export default function TokenTransferView(props: any) {
+    const payerWallet = props?.payerWallet || null;
     const pluginType = props?.pluginType || 4; // 1 Token 2 SOL
     const setInstructionsObject = props?.setInstructionsObject;
     const governanceWallet = props?.governanceWallet;
@@ -186,11 +187,11 @@ export default function TokenTransferView(props: any) {
                     const receiverAccount = await connection.getAccountInfo(
                         destTokenAccount
                     )
-                        
+                    
                     if (receiverAccount === null) {
                         transaction.add(
                             createAssociatedTokenAccountInstruction(
-                                fromPublicKey, // or use payerWallet
+                                payerWallet || fromPublicKey, // or use payerWallet
                                 destTokenAccount,
                                 destPublicKey,
                                 mintPubkey,

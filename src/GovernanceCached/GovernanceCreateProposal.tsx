@@ -838,12 +838,12 @@ export default function GovernanceCreateProposalView(props: any){
 
                         {proposalType === 4 &&
                           <FormControl fullWidth sx={{mb:2}}>
-                            <TokenTransferView pluginType={4} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                            <TokenTransferView payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                           </FormControl>
                         }
                         {proposalType === 5 &&
                           <FormControl fullWidth sx={{mb:2}}>
-                            <TokenTransferView pluginType={5} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                            <TokenTransferView payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                           </FormControl>
                         }
                       
@@ -882,7 +882,7 @@ export default function GovernanceCreateProposalView(props: any){
                                             secondary={
                                               <>
                                               {JSON.stringify(txinstr?.governanceInstructions)}
-                                              
+
                                               {(txinstr?.transactionEstimatedFee && txinstr?.transactionEstimatedFee > 0) &&
                                                   <Grid sx={{textAlign:'right'}}>
                                                       <Typography variant="caption">
