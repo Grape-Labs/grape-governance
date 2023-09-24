@@ -654,7 +654,7 @@ export default function GovernanceCreateProposalView(props: any){
 
         setInstructionsObject(null);
 
-        //calculateProposalFee();
+        calculateProposalFee();
       }
     }, [instructionsObject]);
 
@@ -868,7 +868,7 @@ export default function GovernanceCreateProposalView(props: any){
                                               <>
                                               {JSON.stringify(txinstr?.governanceInstructions)}
 
-                                              {txinstr?.transactionEstimatedFee &&
+                                              {(txinstr?.transactionEstimatedFee && txinstr?.transactionEstimatedFee > 0) &&
                                                   <Grid sx={{textAlign:'right'}}>
                                                       <Typography variant="caption">
                                                           Estimated Fee {txinstr.transactionEstimatedFee}

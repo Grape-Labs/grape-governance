@@ -136,6 +136,7 @@ export default function TokenTransferView(props: any) {
             setTransactionInstructions(transaction);
             // Estimate the transaction fee
             try{
+                /*
                 console.log("Getting estimated fees");
                 
                 const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
@@ -144,6 +145,7 @@ export default function TokenTransferView(props: any) {
                 const feeInLamports = (await connection.getFeeForMessage(transaction.compileMessage(), 'confirmed')).value;
                 console.log("Estimated fee in lamports: ",feeInLamports);
                 setTransactionEstimatedFee(feeInLamports/10 ** 9);
+                */
             }catch(e){
                 console.log("FEE ERR: ",e);
             }
@@ -222,14 +224,27 @@ export default function TokenTransferView(props: any) {
                 // Estimate the transaction fee
                 
                 try{
+                    /*
                     console.log("Getting estimated fees");
-                    
                     const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
                     transaction.recentBlockhash = latestBlockHash;
                     transaction.feePayer = fromWallet;
-                    const feeInLamports = (await connection.getFeeForMessage(transaction.compileMessage(), 'confirmed')).value;
-                    console.log("Estimated fee in lamports: ",feeInLamports);
-                    setTransactionEstimatedFee(feeInLamports/10 ** 9);
+                    const simulationResult = await connection.simulateTransaction(transaction);
+                    if (simulationResult?.err) {
+                        console.error('Transaction simulation failed:', simulationResult);
+                        return;
+                    }else{
+                        console.log('simulationResult: '+JSON.stringify(simulationResult));
+                        const computeUnits = simulationResult.value?.unitsConsumed; //simulationResult.value?.transaction?.message.recentBlockhashFeeCalculator.totalFees;
+                        //const lamportsPerSol = 1000000000;
+                        const sol = computeUnits / 10 ** 9;
+                        console.log(`Estimated fee: ${sol}`);
+                        setTransactionEstimatedFee(sol);//feeInLamports/10 ** 9;
+                    }
+                    */
+                    //const feeInLamports = (await connection.getFeeForMessage(transaction.compileMessage(), 'confirmed')).value;
+                    //console.log("Estimated fee in lamports: ",feeInLamports);
+                    //setTransactionEstimatedFee(feeInLamports/10 ** 9);
                 }catch(e){
                     console.log("FEE ERR: ",e);
                 }
