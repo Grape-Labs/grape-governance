@@ -664,7 +664,12 @@ export default function TokenTransferView(props: any) {
             <FormControl fullWidth  sx={{mb:2}}>
                 <Grid container alignContent="center" alignItems="center" direction="row" xs={12}>
                     <Grid item xs="auto">
-                        <Tooltip title="Distribute Evenly">
+                        <Tooltip title={
+                            <>
+                            Distribute Evenly<br/>
+                            For custom amounts please use the following format:
+                            address,amount
+                            </>}>
                             <Checkbox 
                                 defaultChecked 
                                 onChange={handleDistrubtionTypeChange}
@@ -754,7 +759,7 @@ export default function TokenTransferView(props: any) {
                             >
                                 <Typography variant="h6">Preview/Summary</Typography>
                                 <Typography variant="caption">
-                                    Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to:<br/>
+                                    Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to {destinationWalletArray.length} recipient(s):<br/>
                                     {destinationWalletArray.map((destination:any, index:number) => (
                                         <li key={index}>
                                             {destination.address.trim()} - {destination.amount.toLocaleString()} tokens
