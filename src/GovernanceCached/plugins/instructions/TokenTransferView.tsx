@@ -39,7 +39,8 @@ import {
   Paper,
   Typography,
   Box,
-  Alert
+  Alert,
+  Checkbox
 } from '@mui/material';
 
 import Confetti from 'react-dom-confetti';
@@ -91,6 +92,7 @@ export default function TokenTransferView(props: any) {
     const maxDestinationWalletLen = 20;
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
     const [destinationString, setDestinationString] = React.useState(null);
+    const [distributionType, setDistributionType] = React.useState(true);
 
     const connection = RPC_CONNECTION;
     
@@ -526,7 +528,7 @@ export default function TokenTransferView(props: any) {
     }
 
     
-    function calculateDestinations(destinations:string, destinationAmount:number){
+    function calculateDestinationsEvenly(destinations:string, destinationAmount: number){
         const destinationsStr = destinations;
 
         if (destinationsStr && destinationsStr.length > 0) {
@@ -549,51 +551,49 @@ export default function TokenTransferView(props: any) {
             setDestinationWalletArray(uniqueValidDestinations);
         }
     }
-    /*
-    function calculateDestinations(destinations: string, destinationAmount: number) {
-        const destinationsStr = destinations;
+    
+    function calculateDestinations(destination) {
+        const destinationsStr = destination;
+        const destinationArray = destinationsStr.split('\n').map(item => item.trim()).filter(item => item !== '');
       
-        if (destinationsStr && destinationsStr.length > 0) {
-          const destinationArray = destinationsStr
-            .split(/,|\n/) // Split by comma or newline
-            .map(destination => destination.trim())
-            .filter(destination => destination);
+        const uniqueDestinationsMap = new Map();
+        let totalAmount = 0;
+
+        for (const destination of destinationArray) {
+          const [address, amountStr] = destination.split(',');
       
-          const uniqueValidDestinations = [];
-          let specifiedAmount = null;
-      
-          for (const destination of destinationArray) {
-            // If it's a valid numeric value, parse it as an amount
-            const amount = parseFloat(destination);
+          if (isValidSolanaPublicKey(address)) {
+            const amount = parseFloat(amountStr);
+            
             if (!isNaN(amount)) {
-              specifiedAmount = amount;
-            } else if (isValidSolanaPublicKey(destination)) {
-              uniqueValidDestinations.push({ address: destination, amount: specifiedAmount });
+                totalAmount+=amount;
+                if (uniqueDestinationsMap.has(address)) {
+                    // If the address already exists, update the amount
+                    uniqueDestinationsMap.get(address).amount += amount;
+                } else {
+                    // If it's a new address, add it to the map
+                    uniqueDestinationsMap.set(address, { address, amount });
+                }
             }
           }
-      
-          // Calculate the total specified amounts
-          const totalSpecifiedAmount = uniqueValidDestinations.reduce((total, dest) => total + dest.amount, 0);
-      
-          // Calculate the remaining amount to distribute
-          const remainingAmount = destinationAmount - totalSpecifiedAmount;
-      
-          // Calculate the amount to distribute evenly among the remaining addresses
-          const evenlyDistributedAmount = remainingAmount / uniqueValidDestinations.length;
-      
-          // Distribute evenly to the remaining addresses
-          uniqueValidDestinations.forEach(dest => {
-            dest.amount += evenlyDistributedAmount;
-          });
-      
-          setDestinationWalletArray(uniqueValidDestinations);
         }
+      
+        // Convert the map values to an array
+        const uniqueDestinations = Array.from(uniqueDestinationsMap.values());
+        
+        //console.log("uniqueValidDestinations: "+JSON.stringify(uniqueDestinations));
+        setTokenAmount(totalAmount);
+        setDestinationWalletArray(uniqueDestinations);
       }
-      */
+    
 
     function handleDestinationWalletChange(destinations:string){
         setDestinationString(destinations);
     }
+
+    const handleDistrubtionTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setDistributionType(event.target.checked);
+      };
 
     function prepareAndReturnInstructions(){
 
@@ -618,10 +618,12 @@ export default function TokenTransferView(props: any) {
     }
 
     React.useEffect(() => { 
-        if (destinationString && tokenAmount){
-            calculateDestinations(destinationString, tokenAmount);
+        if (destinationString && tokenAmount && distributionType){
+            calculateDestinationsEvenly(destinationString, tokenAmount);
+        } else if (destinationString){
+            calculateDestinations(destinationString);
         }
-    }, [destinationString, tokenAmount]);
+    }, [destinationString, tokenAmount, distributionType]);
 
 
     return (
@@ -660,35 +662,47 @@ export default function TokenTransferView(props: any) {
             <TokenSelect />
             
             <FormControl fullWidth  sx={{mb:2}}>
-                <TextField 
-                    fullWidth 
-                    label="Amount" 
-                    id="fullWidth"
-                    value={tokenAmount}
-                    type="text"
-                    onChange={(e) => {
-                        handleTokenAmountChange(e.target.value);
-                        
-                    }}
-                    inputProps={{
-                        inputMode: 'numeric', // Set inputMode for mobile support
-                        pattern: '[0-9]*', // Use pattern attribute to restrict input to digits
-                        style: { textAlign: 'right' },
-                    }}
-                    sx={{borderRadius:'17px'}} 
-                />
-                {tokenMaxAmount && tokenAmount > tokenMaxAmount ? 
-                    <Grid sx={{textAlign:'right',}}>
-                        <Typography variant="caption" color="error">WARNING: This proposal may fail if the token balance is insufficient!</Typography>
+                <Grid container alignContent="center" alignItems="center" direction="row" xs={12}>
+                    <Grid item xs="auto">
+                        <Tooltip title="Distribute Evenly">
+                            <Checkbox 
+                                defaultChecked 
+                                onChange={handleDistrubtionTypeChange}
+                            />
+                        </Tooltip>
                     </Grid>
-                : <></>
-                }
+                    <Grid item xs>
+                        <TextField 
+                            fullWidth 
+                            label="Amount" 
+                            id="fullWidth"
+                            value={tokenAmount}
+                            type="text"
+                            onChange={(e) => {
+                                handleTokenAmountChange(e.target.value);
+                                
+                            }}
+                            inputProps={{
+                                inputMode: 'numeric', // Set inputMode for mobile support
+                                pattern: '[0-9]*', // Use pattern attribute to restrict input to digits
+                                style: { textAlign: 'right' },
+                            }}
+                            sx={{borderRadius:'17px'}} 
+                        />
+                        {tokenMaxAmount && tokenAmount > tokenMaxAmount ? 
+                            <Grid sx={{textAlign:'right',}}>
+                                <Typography variant="caption" color="error">WARNING: This proposal may fail if the token balance is insufficient!</Typography>
+                            </Grid>
+                        : <></>
+                        }
 
-                {(pluginType === 5 && tokenMaxAmount <= 0.001)&&
-                    <Grid sx={{textAlign:'right',}}>
-                        <Typography variant="caption" color="error">Balance greater than rent is required to do a transfer</Typography>
+                        {(pluginType === 5 && tokenMaxAmount <= 0.001)&&
+                            <Grid sx={{textAlign:'right',}}>
+                                <Typography variant="caption" color="error">Balance greater than rent is required to do a transfer</Typography>
+                            </Grid>
+                        }
                     </Grid>
-                }
+                </Grid>
             </FormControl>
             
             <FormControl fullWidth  sx={{mb:2}}>
