@@ -552,6 +552,8 @@ export default function TokenTransferView(props: any) {
             }));
 
             setDestinationWalletArray(uniqueValidDestinations);
+        } else{
+            setDestinationWalletArray(null);
         }
     }
     
@@ -587,7 +589,7 @@ export default function TokenTransferView(props: any) {
         //console.log("uniqueValidDestinations: "+JSON.stringify(uniqueDestinations));
         setTokenAmount(totalAmount);
         setDestinationWalletArray(uniqueDestinations);
-      }
+    } 
     
 
     function handleDestinationWalletChange(destinations:string){
