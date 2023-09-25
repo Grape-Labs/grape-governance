@@ -39,6 +39,7 @@ export async function createProposalInstructions(
     description:string, 
     connection: any, 
     transactionInstr: Transaction, //: InstructionsAndSignersSet, 
+    authTransactionInstr: Transaction,
     wallet: WalletSigner,
     sendTransaction: any,
     calculateFees: any): Promise<any>{//Promise<Transaction> {
@@ -211,6 +212,7 @@ export async function createProposalInstructions(
     if (!sendTransaction){
       
       console.log(`Sending Transactions...`);
+      // see if we can send authTransactionInstr as a TransactionInstruction
       try{
         const stresponse = await sendTransactions(
             connection,

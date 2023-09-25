@@ -88,6 +88,7 @@ export default function TokenTransferView(props: any) {
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [transactionInstructions, setTransactionInstructions] = React.useState(null);
+    const [payerInstructions, setPayerInstructions] = React.useState(null);
     const [tokenMaxAmount, setTokenMaxAmount] = React.useState(null);
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
     const maxDestinationWalletLen = 20;
@@ -123,6 +124,7 @@ export default function TokenTransferView(props: any) {
         }*/
         
         const transaction = new Transaction();
+        const pTransaction = new Transaction();
 
         if (tokenMint === "So11111111111111111111111111111111111111112"){ // Check if SOL
             const decimals = 9;
@@ -190,22 +192,21 @@ export default function TokenTransferView(props: any) {
                         destTokenAccount
                     )
                     
-                    console.log("here 1");
                     if (receiverAccount === null) {
-                        transaction.add(
-                            createAssociatedTokenAccountInstruction(
-                                payerWallet || fromPublicKey, // or use payerWallet
-                                destTokenAccount,
-                                destPublicKey,
-                                mintPubkey,
-                                TOKEN_PROGRAM_ID,
-                                ASSOCIATED_TOKEN_PROGRAM_ID
-                            )
-                        )
+                        const transactionInstruction = createAssociatedTokenAccountInstruction(
+                            payerWallet || fromPublicKey, // or use payerWallet
+                            destTokenAccount,
+                            destPublicKey,
+                            mintPubkey,
+                            TOKEN_PROGRAM_ID,
+                            ASSOCIATED_TOKEN_PROGRAM_ID
+                        );
+                        //transaction.add(transactionInstruction);
+                        pTransaction.add(transactionInstruction);
                     }
 
                     const amount = Math.floor((destinationObject.amount * Math.pow(10, decimals)));
-                    
+
                     transaction.add(
                         createTransferInstruction(
                             fromTokenAccount,
@@ -227,6 +228,7 @@ export default function TokenTransferView(props: any) {
                     );
                 }
                 */
+                setPayerInstructions(pTransaction);
                 setTransactionInstructions(transaction);
                 // Estimate the transaction fee
                 
@@ -614,7 +616,7 @@ export default function TokenTransferView(props: any) {
             "type":`${pluginType === 4 ? `Token` : 'SOL'} Transfer`,
             "description":description,
             "governanceInstructions":transactionInstructions,
-            "authorInstructions":null,
+            "authorInstructions":payerInstructions,
             "transactionEstimatedFee":transactionEstimatedFee,
         });
     }

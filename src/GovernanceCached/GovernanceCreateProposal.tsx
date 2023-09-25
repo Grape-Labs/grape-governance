@@ -121,7 +121,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [createDisabled, setCreateDisabled] = React.useState(false);
     const [instructionsObject, setInstructionsObject] = React.useState(null);
     const [instructionsArray, setInstructionsArray] = React.useState([]);
-
+    
     const [governanceRules, setGovernanceRules] = React.useState(null);
     const [totalGovernanceValue, setTotalGovernanceValue] = React.useState(null);
     const [totalGovernanceSolValue, setTotalGovernanceSolValue] = React.useState(null);
@@ -143,12 +143,14 @@ export default function GovernanceCreateProposalView(props: any){
       // get governance settings
       // 1. Generate the instructions to pass to governance
       const transaction = new Transaction();
-      
+      const authTransaction = new Transaction();
       // using instructionsArray iterate and generate the transaction
       if (instructionsArray && instructionsArray.length > 0){
         for (let instructionItem of instructionsArray){
           if (instructionItem.governanceInstructions)
             transaction.add(instructionItem.governanceInstructions);
+          if (instructionItem?.authorInstructions)
+            authTransaction.add(instructionItem.authorInstructions);
         }
       }
 
@@ -174,6 +176,7 @@ export default function GovernanceCreateProposalView(props: any){
           description,
           connection,
           transaction,
+          null,
           anchorWallet,//anchorWallet,
           null,//sendTransaction,
           true,
@@ -203,12 +206,14 @@ export default function GovernanceCreateProposalView(props: any){
       enqueueSnackbar(`Assembling Grape Governance Transactions`,{ variant: 'info' });
       // 1. Generate the instructions to pass to governance
       const transaction = new Transaction();
-      
+      const authTransaction = new Transaction();
       // using instructionsArray iterate and generate the transaction
       if (instructionsArray && instructionsArray.length > 0){
         for (let instructionItem of instructionsArray){
           if (instructionItem.governanceInstructions)
             transaction.add(instructionItem.governanceInstructions);
+          if (instructionItem?.authorInstructions)
+            authTransaction.add(instructionItem.authorInstructions);
         }
       }
 
@@ -243,6 +248,7 @@ export default function GovernanceCreateProposalView(props: any){
           description,
           connection,
           transaction,
+          authTransaction,
           anchorWallet,//anchorWallet,
           null,//sendTransaction,
           false
@@ -672,8 +678,6 @@ export default function GovernanceCreateProposalView(props: any){
         //calculateProposalFee();
       }
     }, [instructionsObject]);
-
-
 
     React.useEffect(() => {
         if (governanceLookup){

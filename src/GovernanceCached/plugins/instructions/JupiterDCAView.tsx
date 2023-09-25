@@ -14,6 +14,9 @@ export default function TokenTransferView(props: any) {
   const USDC = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
   const BONK = new PublicKey('DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263');
 
+  // e.g. if your input mint is USDC and output mint is SOL and you only want to buy SOL when price is < 20 USDC. minOutAmountPerCycle should be 
+  // (ui_in_amount_per_cycle / human_price) * lamports_per_sol
+  
   async function createDCA() {
     const params: CreateDCAParams = {
       user: publicKey,
@@ -22,10 +25,10 @@ export default function TokenTransferView(props: any) {
       cycleSecondsApart: BigInt(86400), // 1 day between each order -> 60 * 60 * 24
       inputMint: USDC, // sell
       outputMint: BONK, // buy
-      minOutAmount: null,  // refer to Integration doc
-      maxOutAmount: null, // refer to Integration doc
+      minOutAmountPerCycle: null,  // refer to Integration doc
+      maxOutAmountPerCycle: null, // refer to Integration doc
       startAt: null, // unix timestamp in seconds
-      userInTokenAccount, // optional: if the inputMint token is not in an Associated Token Account but some other token account, pass in the PublicKey of the token account, otherwise, leave it undefined
+      userInTokenAccount: null, // optional: if the inputMint token is not in an Associated Token Account but some other token account, pass in the PublicKey of the token account, otherwise, leave it undefined
     };
 
     const { tx, dcaPubKey } = await dca.createDCA(params);
