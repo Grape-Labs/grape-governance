@@ -533,8 +533,7 @@ export default function TokenTransferView(props: any) {
 
     
     function calculateDestinationsEvenly(destinations:string, destinationAmount: number){
-        const destinationsStr = destinations;
-
+        const destinationsStr = destinations.replace(/['"]/g, '');;
         if (destinationsStr && destinationsStr.length > 0) {
             const destinationArray = destinationsStr
             .split(/,|\n/) // Split by comma or newline
@@ -557,7 +556,7 @@ export default function TokenTransferView(props: any) {
     }
     
     function calculateDestinations(destination) {
-        const destinationsStr = destination;
+        const destinationsStr = destination.replace(/['"]/g, '');
         const destinationArray = destinationsStr.split('\n').map(item => item.trim()).filter(item => item !== '');
       
         const uniqueDestinationsMap = new Map();
