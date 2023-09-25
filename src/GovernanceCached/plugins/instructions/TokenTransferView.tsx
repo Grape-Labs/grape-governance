@@ -169,7 +169,9 @@ export default function TokenTransferView(props: any) {
             */
             try{
                 for (let index = 0; index < destinationWalletArray.length; index++) {
+                    
                     const destinationObject = destinationWalletArray[index];
+
                     // getOrCreateAssociatedTokenAccount
                     const fromTokenAccount = await getAssociatedTokenAddress(
                         mintPubkey,
@@ -188,6 +190,7 @@ export default function TokenTransferView(props: any) {
                         destTokenAccount
                     )
                     
+                    console.log("here 1");
                     if (receiverAccount === null) {
                         transaction.add(
                             createAssociatedTokenAccountInstruction(
@@ -201,7 +204,8 @@ export default function TokenTransferView(props: any) {
                         )
                     }
 
-                    const amount = (destinationObject.amount * Math.pow(10, decimals));
+                    const amount = Math.floor((destinationObject.amount * Math.pow(10, decimals)));
+                    
                     transaction.add(
                         createTransferInstruction(
                             fromTokenAccount,
@@ -252,15 +256,12 @@ export default function TokenTransferView(props: any) {
                     console.log("FEE ERR: ",e);
                 }
                 return transaction;
-            } catch(err:any){
-                console.log("ERR: "+JSON.stringify(err));
+            } catch(err){
+                console.log("GEN ERR: "+JSON.stringify(err));
             }
             
-            
         }
-
         return null;
-
     }
 
     function TokenSelect() {
@@ -546,7 +547,7 @@ export default function TokenTransferView(props: any) {
             .filter(destination => isValidSolanaPublicKey(destination)) // Filter valid addresses
             .map(destination => ({
                 address: destination,
-                amount: (tokenAmount || destinationAmount) / uniqueDestinationsSet.size,
+                amount: ((tokenAmount || destinationAmount) / uniqueDestinationsSet.size),
             }));
 
             setDestinationWalletArray(uniqueValidDestinations);
