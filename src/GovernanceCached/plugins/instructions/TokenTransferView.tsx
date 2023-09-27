@@ -527,23 +527,33 @@ export default function TokenTransferView(props: any) {
         
         if (destinationsStr && destinationsStr.length > 0) {
             const destinationArray = destinationsStr
-            .split(/,|\n/) // Split by comma or newline
-            .map(destination => destination.trim())
-            .filter(destination => destination);
+                .split(/,|\n/) // Split by comma or newline
+                .map(destination => destination.trim().split(',')[0]) // Ignore numeric values after comma
+                .filter(destination => destination);
 
             // Use a Set to filter out duplicates
             const uniqueDestinationsSet = new Set(destinationArray);
 
             // Convert the Set back to an array to preserve order and uniqueness
             let uniqueValidDestinations = Array.from(uniqueDestinationsSet)
-            .filter(destination => isValidSolanaPublicKey(destination)) // Filter valid addresses
-            .map(destination => ({
-                address: destination,
-                amount: ((tokenAmount || destinationAmount) / uniqueDestinationsSet.size),
-            }));
+                .filter(destination => isValidSolanaPublicKey(destination)) // Filter valid addresses
+                .map(destination => ({
+                    address: destination,
+                    amount: ((tokenAmount || destinationAmount) / uniqueDestinationsSet.size),
+                }));
+
+            //console.log(tokenAmount + " - "+ destinationAmount);
+            //console.log("uniqueDestinationsSet.size: "+ uniqueDestinationsSet.size);
 
             if (uniqueValidDestinations.length > maxDestinationWalletLen)
                 uniqueValidDestinations = uniqueValidDestinations.slice(0, maxDestinationWalletLen);
+            
+            uniqueValidDestinations.forEach(destination => {
+                destination.amount = ((tokenAmount || destinationAmount) / uniqueDestinationsSet.size);
+            });
+            
+
+            //console.log("uniqueValidDestinations: "+ uniqueValidDestinations.length);
 
             setDestinationWalletArray(uniqueValidDestinations);
         } else{
@@ -778,7 +788,7 @@ export default function TokenTransferView(props: any) {
             <FormControl fullWidth  sx={{mb:2}}>
                 <TextField 
                     fullWidth
-                    label="Enter destination Wallet *for multiple wallets add 1 wallet per line or seperate with a comma"
+                    label="Enter destination Wallet *for multiple wallets add 1 wallet per line (seperate with a comma for custom distribution per wallet)"
                     multiline
                     rows={4}
                     maxRows={4}
