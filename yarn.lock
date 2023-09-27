@@ -2872,10 +2872,10 @@
     "@json-rpc-tools/types" "^1.7.6"
     "@pedrouid/environment" "^1.0.1"
 
-"@jup-ag/dca-sdk@^2.3.0":
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/@jup-ag/dca-sdk/-/dca-sdk-2.3.0.tgz#766f13e33cacb5544439352697bf042652a9cd4a"
-  integrity sha512-LaY3SOBaLgl4+O4dxVSUL5d23BdyTfv3dgRRdE5o+TxrEnHkFdFsFYUib+ayS/klX3/Xf1cyw4/cEQBKsgmyog==
+"@jup-ag/dca-sdk@^2.3.5":
+  version "2.3.5"
+  resolved "https://registry.yarnpkg.com/@jup-ag/dca-sdk/-/dca-sdk-2.3.5.tgz#0bbd53a291448563b39ad1f7081692deca796082"
+  integrity sha512-yXIxhvAWGFR87zEvdbAFKEpwkWQSqpnHlfVu7pFoX72RX2nPyEPPlvaVzdvPpmaKsCutFYUSBZxLYBssUMMPmw==
   dependencies:
     "@coral-xyz/anchor" "^0.28.0"
     "@solana/spl-token" "0.3.5"

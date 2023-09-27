@@ -1,6 +1,6 @@
 {
     "name": "@omg-labs/spl-governance-caching",
-    "version": "1.1.017",
+    "version": "1.1.018",
     "author": "Solana SPL Governance",
     "repository": "https://github.com/omg-labs/spl-governance-caching",
     "license": "Apache-2.0",
@@ -54,7 +54,7 @@
         "@emotion/styled": "^11.8.1",
         "@helium/voter-stake-registry-sdk": "^0.2.1",
         "@hellomoon/api": "^1.16.7",
-        "@jup-ag/dca-sdk": "^2.3.0",
+        "@jup-ag/dca-sdk": "^2.3.5",
         "@metaplex-foundation/mpl-core": "0.6.1",
         "@metaplex-foundation/mpl-token-metadata": "2.1.1",
         "@metaplex/js": "^4.12.0",
