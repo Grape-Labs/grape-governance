@@ -55,7 +55,9 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import GitHubIcon from '@mui/icons-material/GitHub';
 
 import Select, { SelectChangeEvent } from '@mui/material/Select';
-import TokenTransferView from './/plugins/instructions/TokenTransferView'
+
+import TokenTransferView from './plugins/instructions/TokenTransferView';
+import JupiterDCAView from './plugins/instructions/JupiterDCAView';
 import TextareaAutosize from '@mui/base/TextareaAutosize';
 import { Title } from '@devexpress/dx-react-chart';
 
@@ -95,7 +97,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [title, setTitle] = React.useState(null);
     const [description, setDescription] = React.useState(null);
     const maxTitleLen = 130;
-    const maxDescriptionLen = 390;//512;
+    const maxDescriptionLen = 350;//512;
     const [proposalType, setProposalType] = React.useState(null);
     const [isCouncilVote, setIsCouncilVote] = React.useState(false);
     const [governanceWallet, setGovernanceWallet] = React.useState(null);
@@ -121,7 +123,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [createDisabled, setCreateDisabled] = React.useState(false);
     const [instructionsObject, setInstructionsObject] = React.useState(null);
     const [instructionsArray, setInstructionsArray] = React.useState([]);
-    
+
     const [governanceRules, setGovernanceRules] = React.useState(null);
     const [totalGovernanceValue, setTotalGovernanceValue] = React.useState(null);
     const [totalGovernanceSolValue, setTotalGovernanceSolValue] = React.useState(null);
@@ -202,7 +204,7 @@ export default function GovernanceCreateProposalView(props: any){
       
       // get governance settings
       setCreateDisabled(true);
-
+      
       enqueueSnackbar(`Assembling Grape Governance Transactions`,{ variant: 'info' });
       // 1. Generate the instructions to pass to governance
       const transaction = new Transaction();
@@ -237,6 +239,22 @@ export default function GovernanceCreateProposalView(props: any){
 
       if (publicKey){
         enqueueSnackbar(`Creating Grape Governance Proposal`,{ variant: 'info' });
+
+        // check if !whitelisted otherwise add a memo:
+        const memoText = "Created on Grape Governance - Building a new DAO Experience";
+        const whitelisted = false;
+        if (!whitelisted){
+          if (memoText && memoText.length > 0){
+            transaction.add(
+                new TransactionInstruction({
+                    keys: [{ pubkey: governanceRulesWallet, isSigner: true, isWritable: true }],
+                    data: Buffer.from(JSON.stringify(memoText || ''), 'utf-8'),
+                    programId: new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"),
+                })
+            );
+          }
+        }
+        
         const propResponse = await createProposalInstructions(
           //[],
           programId,
@@ -251,7 +269,8 @@ export default function GovernanceCreateProposalView(props: any){
           authTransaction,
           anchorWallet,//anchorWallet,
           null,//sendTransaction,
-          false
+          false,
+          isGistDescription
         );
         
 
@@ -326,7 +345,6 @@ export default function GovernanceCreateProposalView(props: any){
         //const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
         //setProposalDescription(rpd);
         setIsGistDescription(true);
-        
           
       } catch(e){
           console.log("ERR: "+e)
@@ -338,7 +356,6 @@ export default function GovernanceCreateProposalView(props: any){
       
       const handleProposalTypeChange = (event: SelectChangeEvent) => {
         setProposalType(event.target.value as string);
-        
       };
     
       return (
@@ -358,9 +375,11 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={4}>Token Transfer</MenuItem>
               <MenuItem value={5}>SOL Transfer</MenuItem>
               {/*<MenuItem value={6} disabled>Swap</MenuItem>*/}
-              <MenuItem value={7} disabled>Close & Full Burn Token(s)</MenuItem>
-              <MenuItem value={8} disabled>Lending</MenuItem>
-              <MenuItem value={9} disabled>Staking</MenuItem>
+              {/*<MenuItem value={7} disabled>Limit Order Strategy</MenuItem>*/}
+              <MenuItem value={8}>DCA Strategy</MenuItem>
+              <MenuItem value={9} disabled>Close & Full Burn Token(s)</MenuItem>
+              <MenuItem value={10} disabled>Lending</MenuItem>
+              <MenuItem value={11} disabled>Staking</MenuItem>
             </Select>
           </FormControl>
         </Box>
@@ -394,7 +413,7 @@ export default function GovernanceCreateProposalView(props: any){
               rulesWallet = item.vault.pubkey;
           }
         )}
-
+        
         setGovernanceRulesWallet(rulesWallet);
 
         getGovernanceRules(rulesWallet);
@@ -848,6 +867,11 @@ export default function GovernanceCreateProposalView(props: any){
                         {proposalType === 5 &&
                           <FormControl fullWidth sx={{mb:2}}>
                             <TokenTransferView payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                          </FormControl>
+                        }
+                        {proposalType === 8 &&
+                          <FormControl fullWidth sx={{mb:2}}>
+                            <JupiterDCAView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                           </FormControl>
                         }
                       

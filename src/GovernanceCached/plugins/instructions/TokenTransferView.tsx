@@ -4,6 +4,7 @@ import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddres
 //import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
 //import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
 import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
+import { useWallet } from '@solana/wallet-adapter-react';
 
 import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
 import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
@@ -91,11 +92,11 @@ export default function TokenTransferView(props: any) {
     const [payerInstructions, setPayerInstructions] = React.useState(null);
     const [tokenMaxAmount, setTokenMaxAmount] = React.useState(null);
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
-    const maxDestinationWalletLen = 20;
+    let maxDestinationWalletLen = 20;
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
     const [destinationString, setDestinationString] = React.useState(null);
     const [distributionType, setDistributionType] = React.useState(true);
-
+    const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
@@ -108,21 +109,7 @@ export default function TokenTransferView(props: any) {
         const amountToSend = +tokenAmount;
         console.log("amountToSend: "+amountToSend)
         const tokenAccount = new PublicKey(mintPubkey);
-        
-
-        /*
-        let GRAPE_TT_MEMO = {
-            status:1, // status
-            type:memotype, // AMA - SETUP 
-            ref:memoref, // SOURCE
-            notes:memonotes
-        };*/
-        
-        /*
-        if (memoText){
-            memonotes = memoText
-        }*/
-        
+                
         const transaction = new Transaction();
         const pTransaction = new Transaction();
 
@@ -267,7 +254,7 @@ export default function TokenTransferView(props: any) {
     }
 
     function TokenSelect() {
-      
+
         const handleMintSelected = (event: SelectChangeEvent) => {
             const selectedTokenMint = event.target.value as string;
             setTokenMint(selectedTokenMint);
@@ -465,9 +452,7 @@ export default function TokenTransferView(props: any) {
                                             alignItems="center"
                                         >
                                            <Grid item>
-                                                <div style={{ display: 'flex', alignItems: 'center', fontSize: '20px' }}>
-                                                    <SolIcon />
-                                                </div>
+                                                <Avatar alt='SOL' src='https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/So11111111111111111111111111111111111111112.png' />
                                             </Grid>
                                             <Grid item sx={{ml:1}}>
                                                 <Typography variant="h6">
@@ -496,6 +481,7 @@ export default function TokenTransferView(props: any) {
         );
       }
 
+    
     function isValidSolanaPublicKey(publicKeyString:string) {
         // Regular expression for Solana public key validation
         //const solanaPublicKeyRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -602,6 +588,9 @@ export default function TokenTransferView(props: any) {
 
     function prepareAndReturnInstructions(){
 
+        //await transferTokens;
+
+
         let description = "";
 
         if (destinationWalletArray.length === 1){
@@ -630,6 +619,11 @@ export default function TokenTransferView(props: any) {
         }
     }, [destinationString, tokenAmount, distributionType]);
 
+    React.useEffect(() => {
+        if (publicKey.toBase58() === 'FDw92PNX4FtibvkDm7nd5XJUAg6ChTcVqMaFmG7kQ9JP'){
+            maxDestinationWalletLen = 2000;
+        }
+    },[publicKey]);
 
     return (
         <Box
@@ -686,7 +680,7 @@ export default function TokenTransferView(props: any) {
                             fullWidth 
                             label="Amount" 
                             id="fullWidth"
-                            value={tokenAmount}
+                            //value={tokenAmount}
                             type="text"
                             onChange={(e) => {
                                 handleTokenAmountChange(e.target.value);
@@ -694,7 +688,7 @@ export default function TokenTransferView(props: any) {
                             }}
                             inputProps={{
                                 inputMode: 'numeric', // Set inputMode for mobile support
-                                pattern: '[0-9]*', // Use pattern attribute to restrict input to digits
+                                pattern: '[0-9.]*', // Use pattern attribute to restrict input to digits
                                 style: { textAlign: 'right' },
                             }}
                             sx={{borderRadius:'17px'}} 
@@ -793,7 +787,19 @@ export default function TokenTransferView(props: any) {
                         variant="contained"
                         color="info"
                         sx={{borderRadius:'17px'}}>
-                        Generate Instructions</Button>
+                        Preview Instructions</Button>
+                    {/*
+                    <Button 
+                        disabled={!(
+                            (destinationWalletArray && destinationWalletArray.length > 0) &&
+                            (tokenAmount && tokenAmount > 0)
+                        )}
+                        onClick={prepareAndReturnInstructions}
+                        variant="contained"
+                        color="warning"
+                        sx={{borderRadius:'17px'}}>
+                        Add to Proposal</Button>
+                    */}
                 </Grid>
                 
                 {transactionInstructions && 

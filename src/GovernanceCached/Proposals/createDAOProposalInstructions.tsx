@@ -42,7 +42,8 @@ export async function createProposalInstructions(
     authTransactionInstr: Transaction,
     wallet: WalletSigner,
     sendTransaction: any,
-    calculateFees: any): Promise<any>{//Promise<Transaction> {
+    calculateFees: any,
+    isGist?: boolean): Promise<any>{//Promise<Transaction> {
     
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
     //let initialInstructions: TransactionInstruction[] = [];
@@ -54,11 +55,17 @@ export async function createProposalInstructions(
       connection,
       programId,
     );
-
+    
     //const realmPk = new PublicKey('DcR6g5EawaEoTRYcnuBjtD26VSVjWNoi1C1hKJWwvcup');
     //const governancePk = new PublicKey('JAbgQLj9MoJ2Kvie8t8Y6z6as3Epf7rDp87Po3wFwrNK');
     //const name = name;
-    const descriptionLink = description;
+
+    
+
+    let descriptionLink = description;
+    if (!isGist){
+      description += ' - created with Grape Governance';
+    }
     //const governingTokenMint = new PublicKey('9Z7SQ1WMiDNaHu2cX823sZxD2SQpscoLGkyeLAHEqy9r');
     //const walletPk = new PublicKey(walletPublicKey);
     
@@ -158,7 +165,6 @@ export async function createProposalInstructions(
         walletPk
       );
     }
-    console.log("5")
 
     withSignOffProposal(
       insertInstructions, // Sign Off proposal needs to be executed after inserting instructions hence we add it to insertInstructions

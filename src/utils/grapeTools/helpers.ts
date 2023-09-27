@@ -104,14 +104,14 @@ export function getRemainingDays(targetDate?: string): number {
   return time.getDate() > date.getDate() ? time.getDate() - date.getDate() : 0;
 }
 
-export async function getJupiterPrices(tokens:string[]) {
+export async function getJupiterPrices(tokens:string[], vsToken?:string) {
   const body = {
     ids: tokens,
   }
-  const apiUrl = "https://price.jup.ag/v4/price?ids="+tokens;
+  let apiUrl = "https://price.jup.ag/v4/price?ids="+tokens;
+  if (vsToken)
+    apiUrl = "https://price.jup.ag/v4/price?ids="+tokens+"&vsToken="+vsToken;
   const resp = await window.fetch(apiUrl, {
-    //method:'GET',
-    //body: JSON.stringify(body)
   })
   const json = await resp.json(); 
   return json.data;
