@@ -239,9 +239,9 @@ export default function GovernanceCreateProposalView(props: any){
 
       if (publicKey){
         enqueueSnackbar(`Creating Grape Governance Proposal`,{ variant: 'info' });
-
+        
         // check if !whitelisted otherwise add a memo:
-        const memoText = "Created on Grape Governance - Building a new DAO Experience";
+        const memoText = "Created on Grape Governance - Building a new DAO Experience on Solana";
         const whitelisted = false;
         if (!whitelisted){
           if (memoText && memoText.length > 0){
@@ -413,6 +413,8 @@ export default function GovernanceCreateProposalView(props: any){
               rulesWallet = item.vault.pubkey;
           }
         )}
+
+        // use RPC here to get teh rules wallet details
         
         setGovernanceRulesWallet(rulesWallet);
 

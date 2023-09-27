@@ -107,7 +107,7 @@ export async function createProposalInstructions(
     //console.log("3");
     const governance = await getGovernance(connection, governancePk);
     
-    //console.log("governance: "+JSON.stringify(governance));
+    console.log("governance: "+JSON.stringify(governance));
 
     const proposalIndex = governance?.account?.proposalCount;
 
@@ -120,7 +120,7 @@ export async function createProposalInstructions(
     );*/
 
     //console.log("4");
-
+    
     const proposalAddress = await withCreateProposal(
       instructions,
       programId,

@@ -69,6 +69,7 @@ import { useSnackbar } from 'notistack';
 
 //import { withSend } from "@cardinal/token-manager";
 
+import CodeIcon from '@mui/icons-material/Code';
 import WarningIcon from '@mui/icons-material/Warning';
 import SendIcon from '@mui/icons-material/Send';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
@@ -161,6 +162,16 @@ export default function JupiterDCAView(props: any) {
         transaction.add(tx2);
 
         setTransactionInstructions(transaction);
+        const description = "Withdraw from "+dcaWallet+" inputMint: "+inputMint+" outputMint: "+outputMint;
+
+        setInstructionsObject({
+            "type":`DCA`,
+            "description":description,
+            "governanceInstructions":transaction,
+            "authorInstructions":null,
+            "transactionEstimatedFee":transactionEstimatedFee,
+        });
+
     }
     
     async function withdrawDCA(dcaWallet: string, dcaPubKey: string, inputMint: string, outputMint: string, withdrawInAmount: number, withdrawOutAmount: number) {
@@ -719,7 +730,7 @@ export default function JupiterDCAView(props: any) {
 
     async function getAndUpdateWalletHoldings(wallet:string){
         try{
-            setLoadingWallet(true);
+            //setLoadingWallet(true);
             const solBalance = await connection.getBalance(new PublicKey(wallet));
 
             const tokenBalance = await connection.getParsedTokenAccountsByOwner(
@@ -754,10 +765,10 @@ export default function JupiterDCAView(props: any) {
 
             governanceWallet.tokens.value = itemsToAdd;//[...governanceWallet.tokens.value, ...itemsToAdd];
             setConsolidatedGovernanceWallet(governanceWallet);
-            setLoadingWallet(false);
+            //setLoadingWallet(false);
         } catch(e){
             console.log("ERR: "+e);
-            setLoadingWallet(false);
+            //setLoadingWallet(false);
         }
 
     }
@@ -1053,7 +1064,7 @@ export default function JupiterDCAView(props: any) {
                                         return (
                                             <ListItem alignItems="flex-start">
                                                 <ListItemAvatar>
-                                                    <Avatar alt={item.publicKey}></Avatar>
+                                                    <Avatar alt={item.publicKey}><CodeIcon /></Avatar>
                                                 </ListItemAvatar>
                                                 <ListItemText
                                                     primary={`Account: ${item.publicKey}`}
