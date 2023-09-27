@@ -85,7 +85,7 @@ export default function TokenTransferView(props: any) {
     const payerWallet = props?.payerWallet || null;
     const pluginType = props?.pluginType || 4; // 1 Token 2 SOL
     const setInstructionsObject = props?.setInstructionsObject;
-    const governanceWallet = props?.governanceWallet;
+    const [governanceWallet, setGovernanceWallet] = React.useState(props?.governanceWallet);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
     const [hasBeenCalled, setHasBeenCalled] = React.useState(false);
     const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
@@ -99,6 +99,7 @@ export default function TokenTransferView(props: any) {
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
     const [destinationString, setDestinationString] = React.useState(null);
     const [distributionType, setDistributionType] = React.useState(false);
+    const [loadingWallet, setLoadingWallet] = React.useState(false);
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     
@@ -635,6 +636,7 @@ export default function TokenTransferView(props: any) {
 
     async function getAndUpdateWalletHoldings(wallet:string){
         try{
+            setLoadingWallet(true);
             const solBalance = await connection.getBalance(new PublicKey(wallet));
 
             const tokenBalance = await connection.getParsedTokenAccountsByOwner(
@@ -645,31 +647,34 @@ export default function TokenTransferView(props: any) {
             )
             // loop through governanceWallet
             governanceWallet.solBalance = solBalance;
-            
+            const itemsToAdd = [];
+
             console.log("governanceWallet "+JSON.stringify(governanceWallet));
             if (tokenBalance?.value){
                 for (let titem of tokenBalance?.value){
                     if (governanceWallet.tokens.value){
                         let foundCached = false;
                         for (let gitem of governanceWallet.tokens.value){
-                            //if (titem.account.data.parsed.info.mint === gitem.account.data.parsed.info.mint){
-                            if (titem.pubkey === gitem.pubkey){
+                            if (titem.pubkey.toBase58() === gitem.pubkey){
                                 foundCached = true;
                                 gitem.account.data.parsed.info.tokenAmount.amount = titem.account.data.parsed.info.tokenAmount.amount;
                                 gitem.account.data.parsed.info.tokenAmount.uiAmount = titem.account.data.parsed.info.tokenAmount.uiAmount;
-                                //console.log("HERE Setting " + titem.account.data.parsed.info.tokenAmount.amount )
+                                itemsToAdd.push(gitem);
                             }
                         }
-                        //if (!foundCached)
-                        //    governanceWallet.tokens.value.push(titem);
+                        if (!foundCached) {
+                            itemsToAdd.push(titem);
+                        }
                     }
                 }
             }
 
-            //console.log("governanceWallet "+JSON.stringify(governanceWallet));
+            governanceWallet.tokens.value = itemsToAdd;//[...governanceWallet.tokens.value, ...itemsToAdd];
             setConsolidatedGovernanceWallet(governanceWallet);
+            setLoadingWallet(false);
         } catch(e){
             console.log("ERR: "+e);
+            setLoadingWallet(false);
         }
 
     }
@@ -689,8 +694,9 @@ export default function TokenTransferView(props: any) {
     },[publicKey]);
 
     React.useState(() => {
-        if (governanceWallet && !consolidatedGovernanceWallet) {
+        if (governanceWallet && !consolidatedGovernanceWallet && !loadingWallet) {
             getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
+            //setConsolidatedGovernanceWallet(gWallet);
         }
     }, [governanceWallet, consolidatedGovernanceWallet]);
 

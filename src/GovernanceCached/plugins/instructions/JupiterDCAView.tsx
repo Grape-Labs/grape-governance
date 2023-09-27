@@ -719,6 +719,7 @@ export default function JupiterDCAView(props: any) {
 
     async function getAndUpdateWalletHoldings(wallet:string){
         try{
+            setLoadingWallet(true);
             const solBalance = await connection.getBalance(new PublicKey(wallet));
 
             const tokenBalance = await connection.getParsedTokenAccountsByOwner(
@@ -729,31 +730,34 @@ export default function JupiterDCAView(props: any) {
             )
             // loop through governanceWallet
             governanceWallet.solBalance = solBalance;
-            
+            const itemsToAdd = [];
+
             console.log("governanceWallet "+JSON.stringify(governanceWallet));
             if (tokenBalance?.value){
                 for (let titem of tokenBalance?.value){
                     if (governanceWallet.tokens.value){
                         let foundCached = false;
                         for (let gitem of governanceWallet.tokens.value){
-                            //if (titem.account.data.parsed.info.mint === gitem.account.data.parsed.info.mint){
-                            if (titem.pubkey === gitem.pubkey){
+                            if (titem.pubkey.toBase58() === gitem.pubkey){
                                 foundCached = true;
                                 gitem.account.data.parsed.info.tokenAmount.amount = titem.account.data.parsed.info.tokenAmount.amount;
                                 gitem.account.data.parsed.info.tokenAmount.uiAmount = titem.account.data.parsed.info.tokenAmount.uiAmount;
-                                //console.log("HERE Setting " + titem.account.data.parsed.info.tokenAmount.amount )
+                                itemsToAdd.push(gitem);
                             }
                         }
-                        //if (!foundCached)
-                        //    governanceWallet.tokens.value.push(titem);
+                        if (!foundCached) {
+                            itemsToAdd.push(titem);
+                        }
                     }
                 }
             }
 
-            //console.log("governanceWallet "+JSON.stringify(governanceWallet));
+            governanceWallet.tokens.value = itemsToAdd;//[...governanceWallet.tokens.value, ...itemsToAdd];
             setConsolidatedGovernanceWallet(governanceWallet);
+            setLoadingWallet(false);
         } catch(e){
             console.log("ERR: "+e);
+            setLoadingWallet(false);
         }
 
     }
