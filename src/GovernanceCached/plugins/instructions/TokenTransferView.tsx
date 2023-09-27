@@ -549,10 +549,9 @@ export default function TokenTransferView(props: any) {
                 uniqueValidDestinations = uniqueValidDestinations.slice(0, maxDestinationWalletLen);
             
             uniqueValidDestinations.forEach(destination => {
-                destination.amount = ((tokenAmount || destinationAmount) / uniqueDestinationsSet.size);
+                destination.amount = ((tokenAmount || destinationAmount) / uniqueValidDestinations.length);
             });
             
-
             //console.log("uniqueValidDestinations: "+ uniqueValidDestinations.length);
 
             setDestinationWalletArray(uniqueValidDestinations);
