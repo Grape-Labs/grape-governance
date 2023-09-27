@@ -58,6 +58,7 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import TokenTransferView from './plugins/instructions/TokenTransferView';
 import JupiterDCAView from './plugins/instructions/JupiterDCAView';
+import ListOnMEView from './plugins/instructions/ListOnMEView';
 import TextareaAutosize from '@mui/base/TextareaAutosize';
 import { Title } from '@devexpress/dx-react-chart';
 
@@ -382,9 +383,13 @@ export default function GovernanceCreateProposalView(props: any){
               {/*<MenuItem value={7} disabled>Limit Order Strategy</MenuItem>*/}
               <MenuItem value={8}>DCA Strategy</MenuItem>
               <MenuItem value={9} disabled>Close & Full Burn Token(s)</MenuItem>
-              <MenuItem value={10} disabled>Lending</MenuItem>
-              <MenuItem value={11} disabled>Staking</MenuItem>
-              <MenuItem value={12} disabled>List on Magic Eden</MenuItem>
+              {publicKey.toBase58() === 'KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT' &&
+                <>
+                  <MenuItem value={10} disabled>Lending</MenuItem>
+                  <MenuItem value={11} disabled>Staking</MenuItem>
+                  <MenuItem value={12} disabled>List on Magic Eden</MenuItem>
+                </>
+              }
             </Select>
           </FormControl>
         </Box>
@@ -881,6 +886,14 @@ export default function GovernanceCreateProposalView(props: any){
                             <JupiterDCAView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                           </FormControl>
                         }
+
+                        {proposalType === 12 &&
+                          <FormControl fullWidth sx={{mb:2}}>
+                            <ListOnMEView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                          </FormControl>
+                        }
+
+                    
                       
                       {(instructionsArray && instructionsArray.length > 0) &&
                           <Box
