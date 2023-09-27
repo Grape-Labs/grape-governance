@@ -29,6 +29,7 @@ import {
   DialogActions,
   TextField,
   FormControl,
+  FormControlLabel,
   FormLabel,
   FormHelperText,
   MenuItem,
@@ -97,7 +98,7 @@ export default function TokenTransferView(props: any) {
     let maxDestinationWalletLen = 20;
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
     const [destinationString, setDestinationString] = React.useState(null);
-    const [distributionType, setDistributionType] = React.useState(true);
+    const [distributionType, setDistributionType] = React.useState(false);
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     
@@ -145,7 +146,7 @@ export default function TokenTransferView(props: any) {
             }
             return transaction;
         } else{  
-            console.log("mint: "+ tokenMint);
+            //console.log("mint: "+ tokenMint);
             const accountInfo = await connection.getParsedAccountInfo(tokenAccount);
             const accountParsed = JSON.parse(JSON.stringify(accountInfo.value.data));
             const decimals = accountParsed.parsed.info.decimals;
@@ -372,7 +373,7 @@ export default function TokenTransferView(props: any) {
                                 if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
                                     item.account.data.parsed.info.tokenAmount.amount > 0) {
                                 
-                                    console.log("mint: "+item.account.data.parsed.info.mint)
+                                    //console.log("mint: "+item.account.data.parsed.info.mint)
 
                                     return (
                                         <MenuItem key={key} value={item.account.data.parsed.info.mint}>
@@ -523,7 +524,7 @@ export default function TokenTransferView(props: any) {
     
     function calculateDestinationsEvenly(destinations:string, destinationAmount: number){
         const destinationsStr = destinations.replace(/['"]/g, '');;
-        console.log("here...")
+        
         if (destinationsStr && destinationsStr.length > 0) {
             const destinationArray = destinationsStr
             .split(/,|\n/) // Split by comma or newline
@@ -534,12 +535,15 @@ export default function TokenTransferView(props: any) {
             const uniqueDestinationsSet = new Set(destinationArray);
 
             // Convert the Set back to an array to preserve order and uniqueness
-            const uniqueValidDestinations = Array.from(uniqueDestinationsSet)
+            let uniqueValidDestinations = Array.from(uniqueDestinationsSet)
             .filter(destination => isValidSolanaPublicKey(destination)) // Filter valid addresses
             .map(destination => ({
                 address: destination,
                 amount: ((tokenAmount || destinationAmount) / uniqueDestinationsSet.size),
             }));
+
+            if (uniqueValidDestinations.length > maxDestinationWalletLen)
+                uniqueValidDestinations = uniqueValidDestinations.slice(0, maxDestinationWalletLen);
 
             setDestinationWalletArray(uniqueValidDestinations);
         } else{
@@ -547,10 +551,11 @@ export default function TokenTransferView(props: any) {
         }
     }
     
-    function calculateDestinations(destination) {
+    function calculateDestinations(destination:string) {
         const destinationsStr = destination.replace(/['"]/g, '');
         const destinationArray = destinationsStr.split('\n').map(item => item.trim()).filter(item => item !== '');
-      
+        //console.log("here...")
+
         const uniqueDestinationsMap = new Map();
         let totalAmount = 0;
 
@@ -574,8 +579,11 @@ export default function TokenTransferView(props: any) {
         }
       
         // Convert the map values to an array
-        const uniqueDestinations = Array.from(uniqueDestinationsMap.values());
+        let uniqueDestinations = Array.from(uniqueDestinationsMap.values());
         
+        if (uniqueDestinations.length > maxDestinationWalletLen)
+            uniqueDestinations = uniqueDestinations.slice(0, maxDestinationWalletLen);
+
         //console.log("uniqueValidDestinations: "+JSON.stringify(uniqueDestinations));
         setTokenAmount(totalAmount);
         setDestinationWalletArray(uniqueDestinations);
@@ -583,6 +591,7 @@ export default function TokenTransferView(props: any) {
     
 
     function handleDestinationWalletChange(destinations:string){
+        //console.log("String changed...")
         setDestinationString(destinations);
     }
 
@@ -600,7 +609,7 @@ export default function TokenTransferView(props: any) {
         if (destinationWalletArray.length === 1){
             description = `Sending ${tokenAmount.toLocaleString()} ${tokenMint} to ${destinationWalletArray[0].address}`;
         } else{
-            description = `Sending ${tokenAmount.toLocaleString()} ${tokenMint} to `;
+            description = `Sending ${tokenAmount.toLocaleString()} ${tokenMint} to ${destinationWalletArray.length} recipients: `;
             description += destinationWalletArray
                 .map((destination: any) => `${destination.address.trim()} - ${destination.amount.toLocaleString()} tokens`)
                 .join(', ');
@@ -722,10 +731,14 @@ export default function TokenTransferView(props: any) {
                             For custom amounts please use the following format:
                             address,amount
                             </>}>
-                            <Checkbox 
-                                defaultChecked 
-                                onChange={handleDistrubtionTypeChange}
-                            />
+                            <FormControlLabel control={
+                                <Checkbox 
+                                    defaultChecked={distributionType}
+                                    onChange={handleDistrubtionTypeChange}
+                                />
+                                }
+                                label='Even'/>
+
                         </Tooltip>
                     </Grid>
                     <Grid item xs>
@@ -771,11 +784,9 @@ export default function TokenTransferView(props: any) {
                     maxRows={4}
                     //value={destinationWallets}
                     onChange={(e) => {
-                        if (!destinationWalletArray || destinationWalletArray.length < maxDestinationWalletLen)
                             handleDestinationWalletChange(e.target.value)
-                        }}
-                    
-                    sx={{maxlength:maxDestinationWalletLen}}
+                    }}
+                    //sx={{maxlength:maxDestinationWalletLen}}
                     />
                 <Grid sx={{textAlign:'right',}}>
                     <Typography variant="caption">{destinationWalletArray ? destinationWalletArray.length > 0 ? maxDestinationWalletLen - destinationWalletArray.length : maxDestinationWalletLen : maxDestinationWalletLen} wallets remaining</Typography>
