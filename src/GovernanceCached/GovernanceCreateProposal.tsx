@@ -247,14 +247,14 @@ export default function GovernanceCreateProposalView(props: any){
           if (memoText && memoText.length > 0){
             transaction.add(
                 new TransactionInstruction({
-                    keys: [{ pubkey: governanceRulesWallet, isSigner: true, isWritable: true }],
+                    keys: [{ pubkey: new PublicKey(governanceRulesWallet), isSigner: true, isWritable: true }],
                     data: Buffer.from(JSON.stringify(memoText || ''), 'utf-8'),
                     programId: new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"),
                 })
             );
           }
         }
-        
+
         const propResponse = await createProposalInstructions(
           //[],
           programId,

@@ -717,6 +717,51 @@ export default function JupiterDCAView(props: any) {
         });
     }
 
+    async function getAndUpdateWalletHoldings(wallet:string){
+        try{
+            const solBalance = await connection.getBalance(new PublicKey(wallet));
+
+            const tokenBalance = await connection.getParsedTokenAccountsByOwner(
+                new PublicKey(wallet),
+                {
+                programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+                }
+            )
+            //console.log("solBalance: "+JSON.stringify(solBalance));
+            //console.log("tokenBalance: "+JSON.stringify(tokenBalance));
+            //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
+
+            // loop through governanceWallet
+            governanceWallet.solBalance = solBalance;
+
+            if (tokenBalance?.value){
+                for (let titem of tokenBalance?.value){
+                    if (governanceWallet.tokens.value){
+                        let foundCached = false;
+                        for (let gitem of governanceWallet.tokens.value){
+                            if (titem.account.data.parsed.info.mint === gitem.account.data.parsed.info.mint){
+                                foundCached = true;
+                                gitem.account.data.parsed.info.tokenAmount.amount = titem.account.data.parsed.info.tokenAmount.amount;
+                                gitem.account.data.parsed.info.tokenAmount.uiAmount = titem.account.data.parsed.info.tokenAmount.uiAmount;
+                                //console.log("HERE Setting " + titem.account.data.parsed.info.tokenAmount.amount )
+                            }
+                        }
+                        if (!foundCached)
+                            governanceWallet.tokens.value.push(titem);
+                    }
+                }
+            }
+        } catch(e){
+            console.log("ERR: "+e);
+        }
+
+    }
+
+    React.useState(() => {
+        if (governanceWallet)
+            getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
+    }, [governanceWallet]);
+
     React.useEffect(() => { 
         /*
         if (destinationString && tokenAmount && distributionType){
