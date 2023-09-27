@@ -183,13 +183,17 @@ export default function GovernanceCreateProposalView(props: any){
           null,//sendTransaction,
           true,
         );
-        console.log("Simulation: ",propSimulation);
-        console.log("Simulation string: "+JSON.stringify(propSimulation));
+        //console.log("Simulation: ",propSimulation);
+        //console.log("Simulation string: "+JSON.stringify(propSimulation));
         
-        if (propSimulation?.err)
-          setProposalSimulationErr(JSON.stringify(propSimulation?.err));
-        setProposalSimulationLogs(propSimulation?.logs);
-        setProposalSimulationUnitsConsumed(propSimulation?.unitsConsumed);
+        if (propSimulation){
+          if (propSimulation?.err)
+            setProposalSimulationErr(JSON.stringify(propSimulation?.err));
+          setProposalSimulationLogs(propSimulation?.logs);
+          setProposalSimulationUnitsConsumed(propSimulation?.unitsConsumed);
+        } else{
+          setProposalSimulationErr("Could not simulate...");
+        }
 
         //setProposalSimulation((JSON.stringify(propSimulation)));
       }  
@@ -239,7 +243,7 @@ export default function GovernanceCreateProposalView(props: any){
 
       if (publicKey){
         enqueueSnackbar(`Creating Grape Governance Proposal`,{ variant: 'info' });
-        
+
         // check if !whitelisted otherwise add a memo:
         const memoText = "Created on Grape Governance - Building a new DAO Experience on Solana";
         const whitelisted = false;
@@ -380,6 +384,7 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={9} disabled>Close & Full Burn Token(s)</MenuItem>
               <MenuItem value={10} disabled>Lending</MenuItem>
               <MenuItem value={11} disabled>Staking</MenuItem>
+              <MenuItem value={12} disabled>List on Magic Eden</MenuItem>
             </Select>
           </FormControl>
         </Box>

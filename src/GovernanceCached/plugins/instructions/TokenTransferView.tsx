@@ -564,14 +564,13 @@ export default function TokenTransferView(props: any) {
     function calculateDestinations(destination:string) {
         const destinationsStr = destination.replace(/['"]/g, '');
         const destinationArray = destinationsStr.split('\n').map(item => item.trim()).filter(item => item !== '');
-        //console.log("here...")
-
+        
         const uniqueDestinationsMap = new Map();
         let totalAmount = 0;
 
         for (const destination of destinationArray) {
           const [address, amountStr] = destination.split(',');
-      
+            
           if (isValidSolanaPublicKey(address)) {
             const amount = parseFloat(amountStr);
             
@@ -594,9 +593,13 @@ export default function TokenTransferView(props: any) {
         if (uniqueDestinations.length > maxDestinationWalletLen)
             uniqueDestinations = uniqueDestinations.slice(0, maxDestinationWalletLen);
 
-        //console.log("uniqueValidDestinations: "+JSON.stringify(uniqueDestinations));
-        setTokenAmount(totalAmount);
-        setDestinationWalletArray(uniqueDestinations);
+
+        if (totalAmount === 0 && tokenAmount > 0){
+            calculateDestinationsEvenly(destination, tokenAmount)
+        } else{
+            setTokenAmount(totalAmount);
+            setDestinationWalletArray(uniqueDestinations);
+        }
     } 
     
 
@@ -683,6 +686,7 @@ export default function TokenTransferView(props: any) {
         if (destinationString && tokenAmount && distributionType){
             calculateDestinationsEvenly(destinationString, tokenAmount);
         } else if (destinationString){
+
             calculateDestinations(destinationString);
         }
     }, [destinationString, tokenAmount, distributionType]);

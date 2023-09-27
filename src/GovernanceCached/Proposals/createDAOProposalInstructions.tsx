@@ -190,19 +190,22 @@ export async function createProposalInstructions(
       console.log("Getting estimated fees");
       const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
       const transaction = new Transaction;
+      let unitsConsumed = 0;
 
       prerequisiteInstructions.forEach((instruction) => {
         transaction.add(instruction);
       });
+      
       instructions.forEach((instruction) => {
         transaction.add(instruction);
       });
+      
       insertChunks.forEach((instructionArray) => {
         instructionArray.forEach((instruction) => {
           transaction.add(instruction);
         });
       });
-
+      
       transaction.recentBlockhash = latestBlockHash;
       transaction.feePayer = walletPk;//signerChunks;
       
@@ -210,8 +213,17 @@ export async function createProposalInstructions(
       //console.log("Estimated fee in lamports: ",feeInLamports);
       //setTransactionEstimatedFee(feeInLamports/10 ** 9);
       //const simulationResult = await connection.simulateTransaction(transaction);
-      const simulationResult = await simulateTransaction(connection, transaction, 'confirmed');
-      return simulationResult?.value;
+
+      try{
+        const simulationResult = await simulateTransaction(connection, transaction, 'confirmed');
+
+        console.log("simulationResult: "+JSON.stringify(simulationResult))
+
+        return simulationResult.value;
+      }catch(e){
+        console.log("ERR: "+e);
+        return null;
+      }
     }
 
 
