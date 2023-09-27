@@ -98,6 +98,7 @@ export default function JupiterDCAView(props: any) {
     const pluginType = props?.pluginType || 4; // 1 Token 2 SOL
     const setInstructionsObject = props?.setInstructionsObject;
     const governanceWallet = props?.governanceWallet;
+    const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
     const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
     const [toMintAddress, setToMintAddress] = React.useState(null);
     const [tokenMint, setTokenMint] = React.useState(null);
@@ -462,7 +463,6 @@ export default function JupiterDCAView(props: any) {
                                 if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
                                     item.account.data.parsed.info.tokenAmount.amount > 0) {
                                 
-
                                     return (
                                         <MenuItem key={key} value={item.account.data.parsed.info.mint}>
                                             {/*console.log("wallet: "+JSON.stringify(item))*/}
@@ -521,7 +521,7 @@ export default function JupiterDCAView(props: any) {
                                         </MenuItem>
                                     );
                                 } else {
-                                    return null; // Don't render anything for items without nativeTreasuryAddress
+                                    //return null; // Don't render anything for items without nativeTreasuryAddress
                                 }
                             })}
                     
@@ -727,30 +727,31 @@ export default function JupiterDCAView(props: any) {
                 programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
                 }
             )
-            //console.log("solBalance: "+JSON.stringify(solBalance));
-            //console.log("tokenBalance: "+JSON.stringify(tokenBalance));
-            //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
-
             // loop through governanceWallet
             governanceWallet.solBalance = solBalance;
-
+            
+            console.log("governanceWallet "+JSON.stringify(governanceWallet));
             if (tokenBalance?.value){
                 for (let titem of tokenBalance?.value){
                     if (governanceWallet.tokens.value){
                         let foundCached = false;
                         for (let gitem of governanceWallet.tokens.value){
-                            if (titem.account.data.parsed.info.mint === gitem.account.data.parsed.info.mint){
+                            //if (titem.account.data.parsed.info.mint === gitem.account.data.parsed.info.mint){
+                            if (titem.pubkey === gitem.pubkey){
                                 foundCached = true;
                                 gitem.account.data.parsed.info.tokenAmount.amount = titem.account.data.parsed.info.tokenAmount.amount;
                                 gitem.account.data.parsed.info.tokenAmount.uiAmount = titem.account.data.parsed.info.tokenAmount.uiAmount;
                                 //console.log("HERE Setting " + titem.account.data.parsed.info.tokenAmount.amount )
                             }
                         }
-                        if (!foundCached)
-                            governanceWallet.tokens.value.push(titem);
+                        //if (!foundCached)
+                        //    governanceWallet.tokens.value.push(titem);
                     }
                 }
             }
+
+            //console.log("governanceWallet "+JSON.stringify(governanceWallet));
+            setConsolidatedGovernanceWallet(governanceWallet);
         } catch(e){
             console.log("ERR: "+e);
         }
@@ -758,9 +759,9 @@ export default function JupiterDCAView(props: any) {
     }
 
     React.useState(() => {
-        if (governanceWallet)
+        if (governanceWallet && !consolidatedGovernanceWallet) 
             getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
-    }, [governanceWallet]);
+    }, [governanceWallet, consolidatedGovernanceWallet]);
 
     React.useEffect(() => { 
         /*
@@ -789,7 +790,9 @@ export default function JupiterDCAView(props: any) {
                 <Typography variant="h5">Jupiter DCA Plugin</Typography>
             </Box>
             
-            <TokenSelect />
+            {consolidatedGovernanceWallet &&
+                <TokenSelect />
+            }
             
             <FormControl fullWidth  sx={{mb:2}}>
                 <Grid container alignContent="center" alignItems="center" direction="row" xs={12} spacing={1}>

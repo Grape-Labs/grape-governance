@@ -85,6 +85,8 @@ export default function TokenTransferView(props: any) {
     const pluginType = props?.pluginType || 4; // 1 Token 2 SOL
     const setInstructionsObject = props?.setInstructionsObject;
     const governanceWallet = props?.governanceWallet;
+    const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
+    const [hasBeenCalled, setHasBeenCalled] = React.useState(false);
     const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
@@ -366,10 +368,11 @@ export default function TokenTransferView(props: any) {
                                 b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount
                             )
                             .map((item: any, key: number) => {
-                            
+                                
                                 if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
                                     item.account.data.parsed.info.tokenAmount.amount > 0) {
                                 
+                                    console.log("mint: "+item.account.data.parsed.info.mint)
 
                                     return (
                                         <MenuItem key={key} value={item.account.data.parsed.info.mint}>
@@ -520,6 +523,7 @@ export default function TokenTransferView(props: any) {
     
     function calculateDestinationsEvenly(destinations:string, destinationAmount: number){
         const destinationsStr = destinations.replace(/['"]/g, '');;
+        console.log("here...")
         if (destinationsStr && destinationsStr.length > 0) {
             const destinationArray = destinationsStr
             .split(/,|\n/) // Split by comma or newline
@@ -623,24 +627,29 @@ export default function TokenTransferView(props: any) {
             )
             // loop through governanceWallet
             governanceWallet.solBalance = solBalance;
-
+            
+            console.log("governanceWallet "+JSON.stringify(governanceWallet));
             if (tokenBalance?.value){
                 for (let titem of tokenBalance?.value){
                     if (governanceWallet.tokens.value){
                         let foundCached = false;
                         for (let gitem of governanceWallet.tokens.value){
-                            if (titem.account.data.parsed.info.mint === gitem.account.data.parsed.info.mint){
+                            //if (titem.account.data.parsed.info.mint === gitem.account.data.parsed.info.mint){
+                            if (titem.pubkey === gitem.pubkey){
                                 foundCached = true;
                                 gitem.account.data.parsed.info.tokenAmount.amount = titem.account.data.parsed.info.tokenAmount.amount;
                                 gitem.account.data.parsed.info.tokenAmount.uiAmount = titem.account.data.parsed.info.tokenAmount.uiAmount;
                                 //console.log("HERE Setting " + titem.account.data.parsed.info.tokenAmount.amount )
                             }
                         }
-                        if (!foundCached)
-                            governanceWallet.tokens.value.push(titem);
+                        //if (!foundCached)
+                        //    governanceWallet.tokens.value.push(titem);
                     }
                 }
             }
+
+            //console.log("governanceWallet "+JSON.stringify(governanceWallet));
+            setConsolidatedGovernanceWallet(governanceWallet);
         } catch(e){
             console.log("ERR: "+e);
         }
@@ -662,9 +671,10 @@ export default function TokenTransferView(props: any) {
     },[publicKey]);
 
     React.useState(() => {
-        if (governanceWallet)
+        if (governanceWallet && !consolidatedGovernanceWallet) {
             getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
-    }, [governanceWallet]);
+        }
+    }, [governanceWallet, consolidatedGovernanceWallet]);
 
     return (
         <Box
@@ -699,7 +709,9 @@ export default function TokenTransferView(props: any) {
             </FormControl>
             */}
             
-            <TokenSelect />
+            {consolidatedGovernanceWallet &&
+                <TokenSelect />
+            }
             
             <FormControl fullWidth  sx={{mb:2}}>
                 <Grid container alignContent="center" alignItems="center" direction="row" xs={12}>
