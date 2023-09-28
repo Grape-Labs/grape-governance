@@ -147,7 +147,7 @@ function GovernanceCardView(props:any) {
                 <Tooltip title={`View ${item.governanceName} Governance`}>
                     <Button 
                         component={Link}
-                        to={'/cachedgovernance/'+item.governanceAddress}
+                        to={'/dao/'+item.governanceAddress}
                         size="large"
                         color='inherit'
                         sx={{borderRadius:'17px',textTransform:'none'}}
@@ -272,7 +272,7 @@ function GovernanceCardView(props:any) {
             <Tooltip title="Cached method will fetch Governance will load all proposals & proposal details">
                 <Button 
                     component={Link}
-                    to={'/cachedgovernance/'+item.governanceAddress}
+                    to={'/dao/'+item.governanceAddress}
                     size="small"
                     color='inherit'
                     sx={{borderRadius:'17px',textTransform:'none'}}

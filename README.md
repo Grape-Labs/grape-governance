@@ -35,14 +35,14 @@ Next Steps...
 - <img width="428" alt="Screenshot 2023-03-22 at 11 55 57 PM" src="https://user-images.githubusercontent.com/13381905/227047565-037eb923-e341-4548-857e-80754137f65b.png">
 
 
-- The simulation can be run for any Governance and a timer will show for the load time on the bottom https://spl-governance-caching.vercel.app/cachedgovernance/HgcYAkXFT1ENpUCjBZWc1TjAAFacUwdGZRNhTHx9cuo
+- The simulation can be run for any Governance and a timer will show for the load time on the bottom https://spl-governance-caching.vercel.app/dao/HgcYAkXFT1ENpUCjBZWc1TjAAFacUwdGZRNhTHx9cuo
 
 <img width="1682" alt="Screenshot 2023-03-22 at 11 53 50 PM" src="https://user-images.githubusercontent.com/13381905/227047342-0fd4d7a8-7638-44c2-8d63-1d0fab2a7e4b.png">
 
 
 Time taken on Realms UI for SPL Governance https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE is roughly **25-35s**
 
-Time taken for load via Cached Storage **<1s (38ms!)** (Governance: Mango https://spl-governance-caching.vercel.app/cachedgovernance/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
+Time taken for load via Cached Storage **<1s (38ms!)** (Governance: Mango https://spl-governance-caching.vercel.app/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
 <img width="543" alt="Screenshot 2023-03-22 at 11 56 46 PM" src="https://user-images.githubusercontent.com/13381905/227047694-0d793e26-c49f-4ae3-87fa-c7767076555a.png">
 
 

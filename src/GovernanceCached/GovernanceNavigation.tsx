@@ -71,7 +71,7 @@ export default function GovernanceNavigation(props: any){
                         }>
                         <Button
                             component={Link}
-                            to={'/cachedgovernance/'+governanceAddress}
+                            to={'/dao/'+governanceAddress}
                         ><HowToVoteIcon /></Button>
                     </Tooltip>
                     <Tooltip title={
@@ -105,7 +105,7 @@ export default function GovernanceNavigation(props: any){
                             sx={{color:'#999', ml:1}}
                         ><MilitaryTechIcon /></Button>
                     </Tooltip>
-                    
+
                     {/*
                     <Tooltip title={
                         <><strong>Configuration</strong><br/> (coming soon)</>

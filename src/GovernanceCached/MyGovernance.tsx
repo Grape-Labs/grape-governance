@@ -67,10 +67,10 @@ const governancecolumns: GridColDef[] = [
                         color="info"
                         /*
                         component={Link}
-                        to={`/cachedgovernance/${params.value}`}
+                        to={`/dao/${params.value}`}
                         */
                         component='a'
-                        href={`/cachedgovernance/${params.value}`}
+                        href={`/dao/${params.value}`}
                         
                         sx={{borderRadius:'17px'}}
                         

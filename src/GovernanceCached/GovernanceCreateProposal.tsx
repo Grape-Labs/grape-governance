@@ -318,7 +318,7 @@ export default function GovernanceCreateProposalView(props: any){
           const redirectTimer = setTimeout(() => {
             //navigate(`/proposal/${cachedRealm.pubkey}/${propAddress.toBase58()}`, { replace: true });
             closeSnackbar(cnfrmkey);
-            navigate(`/cachedgovernance/${cachedRealm.pubkey}`, {replace: true});
+            navigate(`/dao/${cachedRealm.pubkey}`, {replace: true});
           }, 7000); // 7000 milliseconds = 7 seconds
 
           return () => clearTimeout(redirectTimer);
@@ -764,7 +764,7 @@ export default function GovernanceCreateProposalView(props: any){
                                                   borderColor:'rgba(255,255,255,0.05)',
                                                   fontSize:'10px'}}
                                                 component={Link}
-                                                to={'/cachedgovernance/'+governanceAddress}
+                                                to={'/dao/'+governanceAddress}
                                             >
                                                 <ArrowBackIcon fontSize='inherit' sx={{mr:1}} /> Back
                                             </Button>

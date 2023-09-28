@@ -215,6 +215,10 @@ function DashboardContent() {
                                               <Route path="governance/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                               </Route>
+                                              
+                                              <Route path="dao/*" element={<GovernanceCachedView />} >
+                                                  <Route path=":handlekey" element={<GovernanceCachedView />} />
+                                              </Route>
 
                                               <Route path="cachedgovernance/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
