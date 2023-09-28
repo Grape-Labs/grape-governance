@@ -136,7 +136,12 @@ export default function JupiterDCAView(props: any) {
         name:"GRAPE",
         decimals:6,
         logo:"https://lh3.googleusercontent.com/y7Wsemw9UVBc9dtjtRfVilnS1cgpDt356PPAjne5NvMXIwWz9_x7WKMPH99teyv8vXDmpZinsJdgiFQ16_OAda1dNcsUxlpw9DyMkUk=s0"
-    }]
+    }];
+
+    const objectToken = {};
+    availableTokens.forEach(token => {
+        objectToken[token.mint] = token;
+    }); 
 
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
     async function getCurrentDCAAccounts(){
@@ -472,7 +477,8 @@ export default function JupiterDCAView(props: any) {
                             .map((item: any, key: number) => {
                             
                                 if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
-                                    item.account.data.parsed.info.tokenAmount.amount > 0) {
+                                    item.account.data.parsed.info.tokenAmount.amount > 0 &&
+                                    item.account.data.parsed.info.tokenAmount.decimals > 0) {
                                 
                                     return (
                                         <MenuItem key={key} value={item.account.data.parsed.info.mint}>
@@ -802,7 +808,20 @@ export default function JupiterDCAView(props: any) {
             <Box
                 sx={{mb:4}}
             >
-                <Typography variant="h5">Jupiter DCA Plugin</Typography>
+                <Typography variant="h5">
+                    <Grid 
+                            container
+                            direction="row"
+                            alignItems="center"
+                        >
+                        <Grid item>
+                            <Avatar alt={'Jupiter Aggregator'} src={'https://jup.ag/svg/jupiter-logo.svg'} />
+                        </Grid>
+                        <Grid item xs sx={{ml:1}}>
+                            <strong>Jupiter</strong> DCA Plugin
+                        </Grid>
+                    </Grid>
+                </Typography>
             </Box>
             
             {consolidatedGovernanceWallet &&
@@ -1076,17 +1095,40 @@ export default function JupiterDCAView(props: any) {
                                                                 variant="body2"
                                                                 color="text.primary"
                                                             >
-                                                                Selling: {item.account.inputMint}<br/>
-                                                                Buying: {item.account.outputMint}<br/>
+                                                                Selling: {objectToken[item.account.inputMint] ? objectToken[item.account.inputMint].name : item.account.inputMint}<br/>
+                                                                Buying: {objectToken[item.account.outputMint] ? objectToken[item.account.outputMint].name : item.account.outputMint}<br/>
                                                             </Typography>
                                                             <br/>
-                                                            createdAt: {moment.unix(parseInt(item.account.createdAt,16)).toLocaleString()}<br/>
-                                                            nextCycleAt: {moment.unix(parseInt(item.account.nextCycleAt,16)).toLocaleString()}<br/>
-                                                            inDeposited: {parseInt(item.account.inDeposited,16)}<br/>
-                                                            Withdrawn: {parseInt(item.account.outWithdrawn,16)}<br/>
-                                                            outReceived: {parseInt(item.account.outReceived,16)}<br/>
-                                                            cycleFrequency: {convertSecondsToLegibleFormat(parseInt(item.account.cycleFrequency,16).toString())}<br/>
-                                                            nextCycleAmountLeft: {parseInt(item.account.nextCycleAmountLeft,16)}<br/>
+                                                            <Typography variant="caption">
+                                                                Created: {moment.unix(parseInt(item.account.createdAt,16)).toLocaleString()}<br/>
+                                                                {objectToken[item.account.inputMint] ?
+                                                                    <>
+                                                                        Deposited: {parseInt(item.account.inDeposited,16)  / 10 ** objectToken[item.account.inputMint].decimals} {objectToken[item.account.inputMint] ? objectToken[item.account.inputMint].name : item.account.inputMint}<br/>
+                                                                        Next Cycle: {parseInt(item.account.nextCycleAmountLeft,16) / 10 ** objectToken[item.account.inputMint].decimals} {objectToken[item.account.inputMint] ? objectToken[item.account.inputMint].name : ''} at {moment.unix(parseInt(item.account.nextCycleAt,16)).toLocaleString()}<br/>
+                                                                    </>
+                                                                :
+                                                                    <>
+                                                                        Deposited: {parseInt(item.account.inDeposited,16)}<br/>
+                                                                        Next Cycle: {parseInt(item.account.nextCycleAmountLeft,16)} {item.account.inputMint} at {moment.unix(parseInt(item.account.nextCycleAt,16)).toLocaleString()}<br/>
+                                                                        
+                                                                    </>
+                                                                }
+                                                                Cycle: {convertSecondsToLegibleFormat(parseInt(item.account.cycleFrequency,16).toString())}<br/>
+                                                                
+                                                                {objectToken[item.account.outputMint] ?
+                                                                    <>
+                                                                        Withdrawn: {parseInt(item.account.outWithdrawn,16) / 10 ** objectToken[item.account.outputMint].decimals}<br/>
+                                                                        Received: {parseInt(item.account.outReceived,16) / 10 ** objectToken[item.account.outputMint].decimals}<br/>
+                                                                    </>
+                                                                :
+                                                                    <>
+                                                                        Withdrawn: {parseInt(item.account.outWithdrawn,16)}<br/>
+                                                                        Received: {parseInt(item.account.outReceived,16)}<br/>
+                                                                    </>
+                                                                }
+                                                                
+                                                            </Typography>
+                                                            
                                                             <Button 
                                                                 onClick={e => withdrawAndCloseDCAAccount(item.account.user, item.publicKey, item.account.inputMint, item.account.outputMint, 0, parseInt(item.account.nextCycleAmountLeft,16))}
                                                                 size="small"
