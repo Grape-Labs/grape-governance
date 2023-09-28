@@ -383,13 +383,11 @@ export default function GovernanceCreateProposalView(props: any){
               {/*<MenuItem value={7} disabled>Limit Order Strategy</MenuItem>*/}
               <MenuItem value={8}>DCA Strategy</MenuItem>
               <MenuItem value={9} disabled>Close & Full Burn Token(s)</MenuItem>
-              {publicKey.toBase58() === 'KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT' &&
-                <>
+              {/*
                   <MenuItem value={10} disabled>Lending</MenuItem>
                   <MenuItem value={11} disabled>Staking</MenuItem>
-                  <MenuItem value={12} disabled>List on Magic Eden</MenuItem>
-                </>
-              }
+                  <MenuItem value={12}>List on Magic Eden</MenuItem>
+              */}
             </Select>
           </FormControl>
         </Box>

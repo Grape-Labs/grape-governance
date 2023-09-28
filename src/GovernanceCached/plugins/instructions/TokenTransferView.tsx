@@ -855,7 +855,7 @@ export default function TokenTransferView(props: any) {
                     <Box
                         sx={{textAlign:'center'}}
                     >
-                        <Typography variant="caption">Start by adding selecting a token, amount and wallet destination address</Typography>
+                        <Typography variant="caption">Start by selecting a token, amount and wallet destination address</Typography>
                     </Box>
                 }
 

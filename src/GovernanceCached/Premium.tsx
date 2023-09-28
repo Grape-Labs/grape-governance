@@ -19,11 +19,6 @@ import {
   APP_WHITELIST 
 } from '../utils/grapeTools/constants';
 
-const steps = [
-  'Collection Snapshot by UA/Collection',  
-  'Collection Snapshot by Creator',  
-  'Holder Snapshot'];
-
 export function PremiumView (this: any, props: any) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeStep, setActiveStep] = React.useState(0);
@@ -69,7 +64,7 @@ export function PremiumView (this: any, props: any) {
                 borderRadius: '24px'
               }}>
                 <p>
-                <Typography variant='h4'>SPL Governance<br/>Decentralized Caching</Typography>
+                <Typography variant='h4'>Grape Governance<br/>Decentralized Caching</Typography>
                 </p>
                 <WalletDialogProvider className="grape-wallet-provider">
                   <WalletMultiButton className="grape-wallet-button">
@@ -77,7 +72,7 @@ export function PremiumView (this: any, props: any) {
                   </WalletMultiButton>
                 </WalletDialogProvider>
               <p>
-              <Typography variant='h5'>This is a premium feature and requires your wallet to hold the SPL Caching Token or to be Whitelisted</Typography>
+              <Typography variant='h5'>This is a premium feature and requires your wallet to hold the Grape Governance Access Token or to be Whitelisted</Typography>
               </p>
             </Box>
           </>

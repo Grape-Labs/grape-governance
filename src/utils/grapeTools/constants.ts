@@ -27,6 +27,7 @@ export const RPC_CONNECTION = new Connection(
     RPC_ENDPOINT
 );
 
+export const ME_KEYBASE = process.env.REACT_APP_API_ME_KEYBASE || null;
 export const SOFLARE_NOTIFICATIONS_API_KEY = process.env.REACT_APP_API_KEY_SOLFLARE_NOTIFICATIONS || '';
 export const PROXY = process.env.REACT_APP_API_PROXY || '';
 export const CLOUDFLARE_IPFS_CDN = 'https://cloudflare-ipfs.com';

@@ -259,7 +259,7 @@ export default function JupiterDCAView(props: any) {
             user: fromWalletAddress,
             inAmount: inAmount, // buy a total of 5 USDC over 5 days
             inAmountPerCycle: BigInt(inAmountPerCycle), // buy using 1 USDC each day
-            cycleSecondsApart: BigInt(period*periodDuration), // 1 day between each order -> 60 * 60 * 24
+            cycleSecondsApart: BigInt(period), // 1 day between each order -> 60 * 60 * 24
             inputMint: fromMintAddressPk, // sell
             outputMint: toMintAddressPk, // buy
             minOutAmountPerCycle: (minOutAmountPerCycle && minOutAmountPerCycle > 0) ? biMinOutAmountPerCycle : null,  // refer to Integration doc
