@@ -68,6 +68,7 @@ import ClickAwayListener from '@mui/base/ClickAwayListener';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 
 import HomeIcon from '@mui/icons-material/Home';
+import PersonIcon from '@mui/icons-material/Person';
 import MenuIcon from '@mui/icons-material/Menu';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import BurstModeIcon from '@mui/icons-material/BurstMode';
@@ -237,7 +238,7 @@ export function Header(props: any) {
     //const currPath = location?.pathname ?? "";
     const { enqueueSnackbar } = useSnackbar();
     
-    const wallet = useWallet();
+    const { publicKey, wallet } = useWallet();
     const theme: 'dark' | 'light' = 'dark';
     
     //Menu
@@ -428,6 +429,19 @@ export function Header(props: any) {
                                 </ListItemButton>
                             </Tooltip>
                         </ListItem>
+                        {publicKey &&
+                            <ListItem disablePadding>
+                                <Tooltip title={`View your Governance Profile`} placement="right" arrow>
+                                    <ListItemButton 
+                                        component={Link}
+                                        to={'/profile'}
+                                    >
+                                    <ListItemIcon><PersonIcon /></ListItemIcon>
+                                        <Typography variant="h6">Profile</Typography>
+                                    </ListItemButton>
+                                </Tooltip>
+                            </ListItem>
+                        }
 
                         <ListItem disablePadding>
                             <Tooltip title={`*tools for whitelisted addresses`} placement="right" arrow>

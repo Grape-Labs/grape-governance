@@ -4,6 +4,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AdminView } from "./Admin/Admin";
 import { GovernanceRPCView } from "./GovernanceRPC/Governance";
+import { MyGovernanceView } from "./GovernanceCached/MyGovernance";
 import { GovernanceCachedView } from "./GovernanceCached/Governance";
 import { PremiumView } from "./GovernanceCached/Premium";
 import { GovernanceMetricsView } from "./GovernanceCached/GovernanceMetrics";
@@ -203,6 +204,9 @@ function DashboardContent() {
                                                 <Route path=":handlekey" element={<ApiView />} />
                                             </Route>
                                             */}
+                                              <Route path="profile/*" element={<MyGovernanceView />} >
+                                                <Route path=":handlekey" element={<MyGovernanceView />} />
+                                              </Route>
 
                                               <Route path="rpcgovernance/*" element={<GovernanceRPCView />} >
                                                   <Route path=":handlekey" element={<GovernanceRPCView />} />

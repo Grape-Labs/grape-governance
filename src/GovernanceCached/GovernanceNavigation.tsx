@@ -105,6 +105,8 @@ export default function GovernanceNavigation(props: any){
                             sx={{color:'#999', ml:1}}
                         ><MilitaryTechIcon /></Button>
                     </Tooltip>
+                    
+                    {/*
                     <Tooltip title={
                         <><strong>Configuration</strong><br/> (coming soon)</>
                         }>
@@ -112,6 +114,7 @@ export default function GovernanceNavigation(props: any){
                             sx={{color:'#999', ml:1}}
                         ><SettingsIcon /></Button>
                     </Tooltip>
+                    */}
 
                 </ButtonGroup>
                 
