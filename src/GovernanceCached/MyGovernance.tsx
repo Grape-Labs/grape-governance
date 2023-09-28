@@ -1,5 +1,6 @@
 import React from "react";
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
+import { styled, useTheme } from '@mui/material/styles';
 // @ts-ignore
 import { PublicKey, Connection } from '@solana/web3.js';
 
@@ -24,11 +25,23 @@ import {
     Box,
     LinearProgress,
     Link,
+    linearProgressClasses,
   } from '@mui/material';
 
 import { RPC_CONNECTION
 } from '../utils/grapeTools/constants';
 
+const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
+    height: 15,
+    borderRadius: '17px',
+    [`&.${linearProgressClasses.colorPrimary}`]: {
+      backgroundColor: theme.palette.grey[theme.palette.mode === 'light' ? 200 : 800],
+    },
+    [`& .${linearProgressClasses.bar}`]: {
+      borderRadius: '0px',
+      backgroundColor: theme.palette.mode === 'light' ? '#1a90ff' : '#ffffff',
+    },
+}));
 
 const governancecolumns: GridColDef[] = [
     { field: 'id', headerName: 'ID', width: 70, hide: true },
@@ -244,7 +257,7 @@ export function MyGovernanceView(props: any){
             
                 <Box sx={{ p:1}}>
                     {loadingGovernance ?
-                        <LinearProgress />
+                        <LinearProgress color="inherit" />
                     :
                         <>
                         {governanceRecord && governanceRecordRows && 
