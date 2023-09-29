@@ -7,7 +7,11 @@ import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddres
 import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 import { useWallet } from '@solana/wallet-adapter-react';
 
-import { RPC_CONNECTION, ME_KEYBASE } from '../../../utils/grapeTools/constants';
+import { 
+    RPC_CONNECTION, 
+    ME_KEYBASE,
+    PROXY,
+} from '../../../utils/grapeTools/constants';
 import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
 
 import {
@@ -123,15 +127,39 @@ export default function ListOnMEView(props: any) {
             Generate ME Listing Instructions
         */                
         try {
+
+            const buyer_referral = ''//publicKey.toBase58();
+            const seller_referral = 0;
+            
+            const tokenAta = await getAssociatedTokenAddress(
+                mintPubkey,
+                fromWallet,
+                true
+            );
+            
+            /*
+            console.log("buyer: "+publicKey.toBase58());
+            console.log("seller: "+meListing[0].seller);
+            console.log("auctionHouse: "+meListing[0].auctionHouse);
+            console.log("tokenAta: "+tokenAta.toBase58());
+            console.log("tokenMint: "+meListing[0].tokenMint);
+            console.log("tokenPDA: "+meListing[0].pdaAddress);
+            console.log("price: "+meListing[0].price);
+            console.log("seller_referral: "+seller_referral);
+            */
+           
+            //const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/buy_now";
+            const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell"
+            //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell";
+            
             const res = await axios.get(
-                "https://api-mainnet.magiceden.dev/v2/instructions/sell",
+                apiUrl,
                 {
                 params: {
-                    //buyer: "keypair.publicKey.toBase58()",
-                    seller: fromWallet,
+                    seller: fromWallet.toBase58(),
                     auctionHouseAddress: "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe",
-                    tokenMint: new PublicKey(tokenMint),
-                    tokenAccount: "insert associated token account here",
+                    tokenMint: tokenMint,
+                    tokenAccount: tokenAta.toBase58(),
                     price: tokenAmount,
                     //sellerReferal: 0,
                     //expiry: -1,
@@ -141,6 +169,8 @@ export default function ListOnMEView(props: any) {
             );
             const txSigned = res.data.txSigned;
             const txn = transaction.add(txSigned);
+            
+            console.log("LISTING TX: "+JSON.stringify(txn));
 
             //setPayerInstructions(pTransaction);
             setTransactionInstructions(transaction);
@@ -254,6 +284,14 @@ export default function ListOnMEView(props: any) {
                   value={tokenMint}
                   label="Token"
                   onChange={handleMintSelected}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 200, // Adjust this value as needed
+                        overflowY: 'auto', // Add vertical scrollbar if content overflows maxHeight
+                      },
+                    },
+                  }}
                 >
                     {(governanceWallet) && governanceWallet.tokens.value
                             .filter((item: any) => 
@@ -476,7 +514,20 @@ export default function ListOnMEView(props: any) {
             <Box
                 sx={{mb:4}}
             >
-                <Typography variant="h5">List on Magic Eden Plugin</Typography>
+                <Typography variant="h5">
+                    <Grid 
+                            container
+                            direction="row"
+                            alignItems="center"
+                        >
+                        <Grid item>
+                            <Avatar variant="rounded" alt={'Magic Eden'} src={'https://downloads.intercomcdn.com/i/o/326487/8399b8e845fc45a0b0ac50c8/8c1046fe692522734b0ee9e39bd2d77b.png'} />
+                        </Grid>
+                        <Grid item xs sx={{ml:1}}>
+                            <strong>Magic Eden</strong> Listing Plugin
+                        </Grid>
+                    </Grid>
+                </Typography>
             </Box>
 
             {/*
@@ -576,7 +627,7 @@ export default function ListOnMEView(props: any) {
                 <Grid sx={{textAlign:'right', mb:2}}>
                     <Button 
                         disabled={!(
-                            (destinationWalletArray && destinationWalletArray.length > 0) &&
+                            (tokenMint) &&
                             (tokenAmount && tokenAmount > 0)
                         )
                         }
@@ -647,7 +698,7 @@ export default function ListOnMEView(props: any) {
             <Box
                 sx={{mt:4,textAlign:'center'}}
             >
-                <Typography variant="caption" sx={{color:'#ccc'}}>Governance {pluginType === 4 ? 'Token' : 'SOL'} List on Magic Eden Plugin developed by Grape Protocol</Typography>
+                <Typography variant="caption" sx={{color:'#ccc'}}>Governance {pluginType === 4 ? 'Token' : 'SOL'} Magic Eden Listing Plugin developed by Grape Protocol</Typography>
             </Box>
 
             

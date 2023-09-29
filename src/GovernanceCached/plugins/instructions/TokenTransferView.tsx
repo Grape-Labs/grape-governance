@@ -361,6 +361,14 @@ export default function TokenTransferView(props: any) {
                   value={tokenMint}
                   label="Token"
                   onChange={handleMintSelected}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 200, // Adjust this value as needed
+                        overflowY: 'auto', // Add vertical scrollbar if content overflows maxHeight
+                      },
+                    },
+                  }}
                 >
                     {(pluginType === 4 && governanceWallet) && governanceWallet.tokens.value
                             .filter((item: any) => 

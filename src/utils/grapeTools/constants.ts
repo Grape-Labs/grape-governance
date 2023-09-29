@@ -36,6 +36,7 @@ export const TWITTER_PROXY = process.env.REACT_APP_API_TWITTER_PROXY || null;
 export const GGAPI_STORAGE_POOL = process.env.REACT_APP_API_GGAPI_STORAGE_POOL || "EwMD4x7m2Hsay5KfyFwuDMUPtnvw4XmRFYhByorwdkL4";
 export const GGAPI_STORAGE_URI = 'https://shdw-drive.genesysgo.net';
 export const APP_WHITELIST = process.env.REACT_APP_API_WHITELIST || null;
+export const APP_GOVERNANCEPROPWHITELIST = process.env.REACT_APP_API_GOVERNANCEPROPWHITELIST || null;
 
 export const PRIMARY_STORAGE_WALLET = process.env.REACT_APP_API_PRIMARY_STORAGE_WALLET || null;
 export const SECONDARY_STORAGE_WALLET = process.env.REACT_APP_API_SECONDARY_STORAGE_WALLET || null;

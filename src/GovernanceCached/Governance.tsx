@@ -653,6 +653,7 @@ export function GovernanceCachedView(props: any) {
     const [governanceType, setGovernanceType] = React.useState(0);
     const [cachedGovernance, setCachedGovernance] = React.useState(null);
     const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
+    const [isParticipatingInDao, setParticipatingInDao] = React.useState(false)
 
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
@@ -1176,7 +1177,7 @@ export function GovernanceCachedView(props: any) {
                                         </Grid>
                                         {showGovernanceNavigation ?
                                             <Grid item xs={12} sm={6} container justifyContent="flex-end">
-                                                <GovernanceNavigation governanceAddress={governanceAddress} />
+                                                <GovernanceNavigation governanceAddress={governanceAddress} cachedMemberMap={cachedMemberMap} realm={realm} />
                                             </Grid>
                                             :<></>
                                         }

@@ -21,7 +21,9 @@ import {
   getRealm, 
   createInstructionData, 
   getRealmConfig,
-  } from '@solana/spl-governance';
+  getVoterWeightRecord,
+  getVoterWeightRecordAddress
+} from '@solana/spl-governance';
 
 import {
   Typography,
@@ -72,6 +74,39 @@ import {
     fetchGovernanceLookupFile,
     getFileFromLookup
 } from './CachedStorageHelpers'; 
+
+const enum GoverningTokenType {
+  Liquid = 0,
+  Membership = 1,
+  Dormant = 2,
+}
+
+const enum GovernanceAccountType {
+  Uninitialized = 0,
+  RealmV1 = 1,
+  TokenOwnerRecordV1 = 2,
+  GovernanceV1 = 3,
+  ProgramGovernanceV1 = 4,
+  ProposalV1 = 5,
+  SignatoryRecordV1 = 6,
+  VoteRecordV1 = 7,
+  ProposalInstructionV1 = 8,
+  MintGovernanceV1 = 9,
+  TokenGovernanceV1 = 10,
+  RealmConfig = 11,
+  VoteRecordV2 = 12,
+  ProposalTransactionV2 = 13,
+  ProposalV2 = 14,
+  ProgramMetadata = 15,
+  RealmV2 = 16,
+  TokenOwnerRecordV2 = 17,
+  GovernanceV2 = 18,
+  ProgramGovernanceV2 = 19,
+  MintGovernanceV2 = 20,
+  TokenGovernanceV2 = 21,
+  SignatoryRecordV2 = 22,
+  ProposalDeposit = 23,
+}
 
 const confettiConfig = {
   angle: 90,
@@ -138,10 +173,33 @@ export default function GovernanceCreateProposalView(props: any){
     const [proposalSimulationErr, setProposalSimulationErr] = React.useState(null);
     const [proposalInstructions, setProposalInstructions] = React.useState(null);
 
-    const wallet = useWallet();
     const anchorWallet = useAnchorWallet();
 
+    function getTokenTypeString(tokenTypeValue: any) {
+      const tokenTypeEnumKey = Object.keys(GoverningTokenType).find(
+        (key) => GoverningTokenType[key] === tokenTypeValue
+      );
     
+      if (tokenTypeEnumKey !== undefined) {
+        return tokenTypeEnumKey;
+      } else {
+        return "Unknown"; // Or handle the case where the value is not found in the enum
+      }
+    }
+
+    function getAccountTypeString(accountTypeValue: any) {
+      const accountTypeEnumKey = Object.keys(GovernanceAccountType).find(
+        (key) => GovernanceAccountType[key] === accountTypeValue
+      );
+    
+      if (accountTypeEnumKey !== undefined) {
+        return accountTypeEnumKey;
+      } else {
+        return "Unknown"; // Or handle the case where the value is not found in the enum
+      }
+    }
+    
+
     const calculateProposalFee = async() => {
       // get governance settings
       // 1. Generate the instructions to pass to governance
@@ -398,17 +456,29 @@ export default function GovernanceCreateProposalView(props: any){
       try{
         const govRules = await getRealmConfig(connection, new PublicKey(realmConfigPk));
         console.log("govRules: "+JSON.stringify(govRules))
+
+        //const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+        //const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
+
+        //const vwra = await getVoterWeightRecordAddress(govRules.owner, govRules.account.realm, new PublicKey(realmConfigPk), govRules.owner);
+        //console.log("vwra: "+JSON.stringify(vwra));
+        //const vwr1 = await getVoterWeightRecord(connection, vwra);
+        //console.log("Community voterWeightRecord: "+JSON.stringify(vwr1));
+        //const vwr2 = await getVoterWeightRecord(connection, govRules.account.councilTokenConfig.voterWeightAddin);
+        //console.log("Council voterWeightRecord: "+JSON.stringify(vwr2));
+        
         setGovernanceRules(govRules);
+
       }catch(e){
         console.log("ERR: "+e)
       }
     }
 
     function GovernanceSelect() {
-      
+    
       const handleGovernanceWalletChange = (event: SelectChangeEvent) => {//(nativeWallet: string, rulesWallet: string) => {
         const nativeWallet = event.target.value as string;
-        console.log("menu item: "+JSON.stringify(nativeWallet))
+        //console.log("menu item: "+JSON.stringify(nativeWallet))
         
         setGovernanceWallet(nativeWallet);
 
@@ -516,6 +586,22 @@ export default function GovernanceCreateProposalView(props: any){
                   })}
               </Select>
             </FormControl>
+
+            {governanceRules &&
+               <Grid sx={{textAlign:'right'}}>
+                  <Typography variant="caption">
+                      {/*JSON.stringify(governanceRules)*/}
+
+                      Community: {getTokenTypeString(governanceRules.account.communityTokenConfig.tokenType)} - 
+                      Council: {getTokenTypeString(governanceRules.account.councilTokenConfig.tokenType)} - 
+                      Account Type: {getAccountTypeString(governanceRules.account.accountType)}
+                      {/*<>tokenType === GoverningTokenType.Community ? mint : councilMint;</>*/}
+                      {/*<>tokenType === GoverningTokenType.Community ? mint : councilMint;</>*/}
+                  </Typography>
+              </Grid>
+              
+              
+            }
           </Box>
         </>
       );

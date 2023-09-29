@@ -103,6 +103,7 @@ export default function JupiterDCAView(props: any) {
     const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
     const [toMintAddress, setToMintAddress] = React.useState(null);
     const [tokenMint, setTokenMint] = React.useState(null);
+    const [tokenDecimals, setTokenDecimals] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [transactionInstructions, setTransactionInstructions] = React.useState(null);
     const [payerInstructions, setPayerInstructions] = React.useState(null);
@@ -131,6 +132,16 @@ export default function JupiterDCAView(props: any) {
         name:"USDC",
         decimals:6,
         logo:"https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v.png"
+    },{
+        mint:"Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+        name:"USDT",
+        decimals:6,
+        logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.svg"
+    },{
+        mint:"mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+        name:"mSol",
+        decimals:9,
+        logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So/logo.png"
     },{
         mint:"8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA",
         name:"GRAPE",
@@ -224,13 +235,26 @@ export default function JupiterDCAView(props: any) {
         const toMintAddressPk = new PublicKey(toMintAddress);
         const dca = new DCA(connection, Network.MAINNET);
         let toDecimals = 6;
-        let fromDecimals = 6;
+        let fromDecimals = tokenDecimals;
 
         for (var item of availableTokens){
             if (item.mint === toMintAddress)
                 toDecimals = item.decimals;
             if (item.mint === tokenMint)
                 fromDecimals = item.decimals
+        }
+
+        if (!fromDecimals){
+            {governanceWallet && governanceWallet.tokens.value
+                //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
+                .map((item: any, key: number) => {
+                    if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
+                        item.account.data.parsed.info.tokenAmount.amount > 0) {
+                            if (item.account.data.parsed.info.mint === tokenMint){
+                                fromDecimals = item.account.data.parsed.info.tokenAmount.decimals;
+                            }
+                    }
+            })}
         }
 
         //const transaction = new Transaction();
@@ -245,19 +269,20 @@ export default function JupiterDCAView(props: any) {
         //let testAmount = BigInt(test);
         //console.log("testAmount: "+testAmount);
 
-        integerTokenAmount = Math.floor(tokenAmount * Math.pow(10, fromDecimals))/(periodDuration);
-        const inAmountPerCycle = BigInt(integerTokenAmount);
+        integerTokenAmount = Math.floor((tokenAmount * Math.pow(10, fromDecimals))/periodDuration);
+        console.log("integerTokenAmount: "+integerTokenAmount);
+        const inAmountPerCycle = BigInt(integerTokenAmount.toFixed(0));
 
         let biMinOutAmountPerCycle = null;
         if (minOutAmountPerCycle){
             integerTokenAmount = Math.floor(minOutAmountPerCycle * Math.pow(10, fromDecimals));
-            biMinOutAmountPerCycle = BigInt(integerTokenAmount);
+            biMinOutAmountPerCycle = BigInt(integerTokenAmount.toFixed(0));
         }
 
         let biMaxOutAmountPerCycle = null;
         if (biMaxOutAmountPerCycle){
             integerTokenAmount = Math.floor(maxOutAmountPerCycle * Math.pow(10, fromDecimals));
-            biMaxOutAmountPerCycle = BigInt(integerTokenAmount);
+            biMaxOutAmountPerCycle = BigInt(integerTokenAmount.toFixed(0));
         }
 
         const params: CreateDCAParams = {
@@ -334,6 +359,7 @@ export default function JupiterDCAView(props: any) {
                     if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
                         item.account.data.parsed.info.tokenAmount.amount > 0) {
                             if (item.account.data.parsed.info.mint === selectedTokenMint){
+                                setTokenDecimals(item.account.data.parsed.info.tokenAmount.decimals);
                                 setTokenMaxAmount(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals);
                             }
                     }
@@ -422,6 +448,14 @@ export default function JupiterDCAView(props: any) {
                   value={tokenMint}
                   label="Token"
                   onChange={handleMintSelected}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 200, // Adjust this value as needed
+                        overflowY: 'auto', // Add vertical scrollbar if content overflows maxHeight
+                      },
+                    },
+                  }}
                 >
                     {(governanceWallet && governanceWallet.solBalance > 0) &&
                         <MenuItem key={1} value={'So11111111111111111111111111111111111111112'} selected>
@@ -628,6 +662,14 @@ export default function JupiterDCAView(props: any) {
                 value={toMintAddress}
                 label="To Buy"
                 onChange={handleToBuyChange}
+                MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 200, // Adjust this value as needed
+                        overflowY: 'auto', // Add vertical scrollbar if content overflows maxHeight
+                      },
+                    },
+                }}
               >
                 {availableTokens.map((item: any, key: number) => {
                     return(
@@ -712,12 +754,12 @@ export default function JupiterDCAView(props: any) {
             description = `DCA Strategy - `;
             description +=  `Sell: ${tokenAmount} ${tokenMint} - `;
             description +=  `Buy: ${toMintAddress} - `;
-            description +=  `Frequency: ${convertSecondsToLegibleFormat(period, true)} - `;
-            description +=  `Every: ${periodDuration} - `;
-            description +=  `Amount p/cycle: ${tokenAmount/periodDuration} ${tokenMint} - `;
+            description +=  `Frequency: ${convertSecondsToLegibleFormat(period, true)} Cycles - `;
+            description +=  `Duration: ${periodDuration} - `;
+            description +=  `Amount p/cycle: ${(tokenAmount/periodDuration).toFixed(3)} ${tokenMint}`;
             if (pricingStrategy){
                 if (minOutAmountPerCycle){
-                    description +=  `Minumum Buy Mint Price per Cycle: ${minOutAmountPerCycle}`;
+                    description +=  ` - Minumum Buy Mint Price per Cycle: ${minOutAmountPerCycle}`;
                 }
                 if (maxOutAmountPerCycle){
                     description +=  ` - Max Buy Mint Price per Cycle: ${maxOutAmountPerCycle}`;
@@ -976,7 +1018,7 @@ export default function JupiterDCAView(props: any) {
                             Buy: {toMintAddress}<br/>
                             Frequency: {convertSecondsToLegibleFormat(period, true)}<br/>
                             Over: {periodDuration}<br/>
-                            Amount per cycle: {tokenAmount/periodDuration} {tokenMint}<br/>
+                            Amount per cycle: {(tokenAmount/periodDuration).toFixed(3)} {tokenMint}<br/>
                             {pricingStrategy &&
                                 <>
                                     {minOutAmountPerCycle &&

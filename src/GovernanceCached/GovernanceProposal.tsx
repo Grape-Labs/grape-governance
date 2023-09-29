@@ -359,7 +359,7 @@ export function GovernanceProposalView(props: any){
     const getGovernanceProps = async () => {
         let governance_item = null;
         let governance = null;
-
+        
         if (governanceLookup){
             for (let glitem of governanceLookup){
                 if (glitem.governanceAddress === governanceAddress){
