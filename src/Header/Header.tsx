@@ -229,7 +229,7 @@ export function Header(props: any) {
     const currPath = location.pathname;
     const searchParams = new URLSearchParams(location.search);
     //const [fetchType, setFetchType] = React.useState(currPath.includes("rpcgovernance") ? "rpcgovernance" : currPath.includes("metrics") ? "metrics" : currPath.includes("members") ? "members" : currPath.includes("treasury") ? "treasury" : "cachedgovernance");
-    const [fetchType, setFetchType] = React.useState(currPath.includes("rpcgovernance") ? "rpcgovernance" : "cachedgovernance");
+    const [fetchType, setFetchType] = React.useState(currPath.includes("rpcgovernance") ? "rpcgovernance" : "dao");
     
     const [anchorEl, setAnchorEl] = React.useState(null);
     const isWalletOpen = Boolean(anchorEl);

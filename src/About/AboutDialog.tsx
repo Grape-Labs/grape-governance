@@ -71,7 +71,8 @@ export default function AboutDialog() {
                             <li>Deep dive with detailed exportable SPL Governance metrics available for whitelisted partners, allowing snapshots for periods</li>
                             <li>Cached Member voter records</li>
                             <li>Cached treasury details</li>
-                            <li>Whitelisted Administrator UI for fetching historical and up to date SPL Governance proposals along with participation (created)</li>
+                            <li>GOVERN Token Gated Proposals</li>
+                            <li>METRICS Token Gated Administrator UI for fetching historical and up to date SPL Governance proposals along with participation (created)</li>
                             <li>Proof of speed improvements in the respective UIs (cached storage can be fetched in less than 1 second)</li>
                         </ul>
                     </Typography>

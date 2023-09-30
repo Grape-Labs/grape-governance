@@ -4,6 +4,7 @@ import { Connection, PublicKey, Transaction, LAMPORTS_PER_SOL } from '@solana/we
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { 
   PROXY,
+  RPC_CONNECTION
 } from './constants';
 
 const SI_SYMBOL = ["", "k", "M", "G", "T", "P", "E"];
@@ -193,4 +194,29 @@ export async function getMintFromMetadataWithVerifiedCollection(updateAuthority:
     // add a helper function to get Metadata from Grape Verified Collection
 
     // returns the mint address
+}
+
+export async function isGated(address: string, tokenWhitelist: string) {
+  try{
+    const tokenBalance = await RPC_CONNECTION.getParsedTokenAccountsByOwner(
+        new PublicKey(address),
+        {
+        programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+        }
+    )
+    
+    if (tokenBalance?.value){
+        for (let item of tokenBalance?.value){
+          if (item.account.data.parsed.info.mint === tokenWhitelist){
+            if (item.account.data.parsed.info.tokenAmount.amount > 0)
+              return true;
+          }
+
+        }
+    }
+    return false;
+  }catch (e){
+    console.log("ERR: "+e);
+    return false;
+  }
 }

@@ -46,6 +46,7 @@ import {
   ListItemAvatar,
   ListItemText,
   Avatar,
+  LinearProgress
 } from '@mui/material/';
 
 import FlakyIcon from '@mui/icons-material/Flaky';
@@ -55,6 +56,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import GitHubIcon from '@mui/icons-material/GitHub';
+import DiscordIcon from '../components/static/DiscordIcon';
 
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
@@ -68,9 +70,15 @@ import {
   PROXY, 
   RPC_CONNECTION,
   GGAPI_STORAGE_POOL, 
-  GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
+  GGAPI_STORAGE_URI,
+  PROP_TOKEN
+} from '../utils/grapeTools/constants';
 
-  import {
+import { 
+  isGated
+} from '../utils/grapeTools/helpers';
+
+import {
     fetchGovernanceLookupFile,
     getFileFromLookup
 } from './CachedStorageHelpers'; 
@@ -172,8 +180,10 @@ export default function GovernanceCreateProposalView(props: any){
     const [proposalSimulationLogs, setProposalSimulationLogs] = React.useState(null);
     const [proposalSimulationErr, setProposalSimulationErr] = React.useState(null);
     const [proposalInstructions, setProposalInstructions] = React.useState(null);
+    const [verified, setVerified] = React.useState(false);
 
     const anchorWallet = useAnchorWallet();
+
 
     function getTokenTypeString(tokenTypeValue: any) {
       const tokenTypeEnumKey = Object.keys(GoverningTokenType).find(
@@ -750,6 +760,7 @@ export default function GovernanceCreateProposalView(props: any){
 
         
         setCachedGovernance(cached_governance);
+        setLoading(false);
         endTimer();
     }
 
@@ -770,6 +781,14 @@ export default function GovernanceCreateProposalView(props: any){
       const updatedArray = instructionsArray.filter((item, index) => index !== indexToRemove);
       setInstructionsArray(updatedArray);
     };
+
+    const getVerificationStatus = async() => {
+      const verify = await isGated(governanceAddress, PROP_TOKEN);
+      console.log("Governance Verified Status: "+JSON.stringify(verify));
+      setVerified(verify);
+      if (!verify)
+        setLoading(false);
+    }
 
     React.useEffect(() => {
       if (instructionsObject){
@@ -807,323 +826,379 @@ export default function GovernanceCreateProposalView(props: any){
         }
     }, [tokenMap]);
 
+
     React.useEffect(() => { 
-        if (!loading){
-            if (!tokenMap){
-                getTokens();
-            }
-        }
+      if (verified)
+          getTokens();
+    }, [verified]);
+
+
+    React.useEffect(() => { 
+      if (!loading){
+        setLoading(true);
+        if (!verified)
+          getVerificationStatus();
+      }
+      
     }, []);
 
     return (
         <>
+          {loading ?
+          <>
+          
             <Box
-                sx={{
-                    mt:6,
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    borderRadius: '17px',
-                    overflow: 'hidden',
-                    p:4
-                }} 
+                  sx={{
+                      mt:6,
+                      background: 'rgba(0, 0, 0, 0.6)',
+                      borderRadius: '17px',
+                      p:4,
+                      alignItems: 'center', textAlign: 'center'
+                  }} 
               > 
-            <>
-                    {showGovernanceTitle && realmName && 
-                        <Grid container>
-                            <Grid item xs={12} sm={6} container justifyContent="flex-start">
-                                <Grid container>
-                                    <Grid item xs={12}>
-                                        <Typography variant="h4">
-                                          {realmName}
-                                        </Typography>
-                                    </Grid>
-                                    
-                                    
-                                    <Grid item xs={12}>
-                                      <ButtonGroup    
-                                          variant="outlined" 
-                                          color='inherit'
-                                      >
-                                        <Tooltip title={`Back to ${governanceAddress} Governance`}>
-                                          <Button
+                  <Typography variant="caption">Loading Grape Governance: Proposal Builder</Typography>
+                  
+                  <LinearProgress color="inherit" />
+                  
+            </Box>
+          </>
+          :
+          <>
+              <Box
+                  sx={{
+                      mt:6,
+                      background: 'rgba(0, 0, 0, 0.6)',
+                      borderRadius: '17px',
+                      overflow: 'hidden',
+                      p:4
+                  }} 
+                > 
+
+              {(governanceAddress && !verified) ?
+                <Grid container>
+                  <Grid item alignItems="center" sx={{p:5}}>
+                    <Typography variant='h5'>Your governance needs to hold the GOVERN token to access the proposal builder</Typography>
+                    <Typography variant='body1'>Reach out to the Grape DAO on 
+                      <Button 
+                          target='_blank' href={`https://discord.gg/grapedao`}
+                          color='inherit'
+                          sx={{
+                          verticalAlign: 'middle',
+                          display: 'inline-flex',
+                          borderRadius:'17px',
+                          m:1,
+                          textTransform:'none'
+                      }}>
+                          <DiscordIcon sx={{mt:1,fontSize:27.5,color:'white'}} /> <strong>Discord</strong>
+                      </Button> to get started</Typography>
+                      
+                  </Grid>
+                </Grid>
+              :
+                <>
+                  <>
+
+                      {showGovernanceTitle && realmName && 
+                          <Grid container>
+                              <Grid item xs={12} sm={6} container justifyContent="flex-start">
+                                  <Grid container>
+                                      <Grid item xs={12}>
+                                          <Typography variant="h4">
+                                            {realmName}
+                                          </Typography>
+                                      </Grid>
+                                      
+                                      
+                                      <Grid item xs={12}>
+                                        <ButtonGroup    
+                                            variant="outlined" 
+                                            color='inherit'
+                                        >
+                                          <Tooltip title={`Back to ${governanceAddress} Governance`}>
+                                            <Button
+                                                  sx={{
+                                                    borderRadius:'17px',
+                                                    borderColor:'rgba(255,255,255,0.05)',
+                                                    fontSize:'10px'}}
+                                                  component={Link}
+                                                  to={'/dao/'+governanceAddress}
+                                              >
+                                                  <ArrowBackIcon fontSize='inherit' sx={{mr:1}} /> Back
+                                              </Button>
+                                            </Tooltip>
+                                            <Button
                                                 sx={{
                                                   borderRadius:'17px',
                                                   borderColor:'rgba(255,255,255,0.05)',
                                                   fontSize:'10px'}}
-                                                component={Link}
-                                                to={'/dao/'+governanceAddress}
+                                                href={`https://realms.today/dao/${governanceAddress}`}
+                                                target='blank'
                                             >
-                                                <ArrowBackIcon fontSize='inherit' sx={{mr:1}} /> Back
+                                              <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
                                             </Button>
-                                          </Tooltip>
-                                          <Button
-                                              sx={{
-                                                borderRadius:'17px',
-                                                borderColor:'rgba(255,255,255,0.05)',
-                                                fontSize:'10px'}}
-                                              href={`https://realms.today/dao/${governanceAddress}`}
-                                              target='blank'
-                                          >
-                                            <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
-                                          </Button>
-                                        </ButtonGroup>
-                                    </Grid>
+                                          </ButtonGroup>
+                                      </Grid>
 
-                                </Grid>
-                            </Grid>
-                        </Grid>
-                    }
-                </>
-
-              <Grid 
-                  xs={12}
-                  sx={{
-                      '& .MuiTextField-root': { m: 1 },
-                      '& .MuiSwitch-root': { m: 1 }
-                  }}
-              >
-                  <Box
-                      sx={{
-                          borderRadius:'17px',
-                          backgroundColor:'rgba(0,0,0,0.2)', 
-                          p:1,pr:3,mt:2}}
-                  >
-                        <Grid container>
-                          <Grid item xs={12}>
-                            <Typography variant="h6">
-                                Create Proposal
-                              </Typography>
-                            </Grid>
-                        </Grid>
-
-                      <FormControl fullWidth  sx={{mb:2}}>
-                          <TextField 
-                              fullWidth 
-                              label="Title" 
-                              id="fullWidth"
-                              //value={title}
-                              onChange={(e) => {
-                                  if (!title || title.length < maxTitleLen)
-                                      setTitle(e.target.value)
-                                  }}
-                              sx={{borderRadius:'17px', maxlength:maxTitleLen}} 
-                          />
-                          <Grid sx={{textAlign:'right',}}>
-                            <Typography variant="caption">{title ? title.length > 0 ? maxTitleLen - title.length : maxTitleLen : maxTitleLen} characters remaining</Typography>
+                                  </Grid>
+                              </Grid>
                           </Grid>
-                      </FormControl>
-
-                      <FormControl fullWidth  sx={{mb:2}}>
-                          <TextField 
-                              fullWidth
-                              label="Description"
-                              multiline
-                              rows={4}
-                              maxRows={4}
-                              //value={description}
-                              onChange={(e) => {
-                                  if (!description || description.length < maxDescriptionLen)
-                                      handleDescriptionChange(e.target.value)
-                                  }}
-                              
-                              sx={{maxlength:maxDescriptionLen}}
-                              />
-                          <Grid sx={{textAlign:'right',}}>
-
-                            {isGistDescription ?
-                              <Button
-                                  color='inherit'
-                                  size='small'
-                                  href={description}
-                                  sx={{borderRadius:'17px'}}
-                              >
-                                  <GitHubIcon sx={{mr:1}} /> GIST
-                              </Button>
-                            :
-                              <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
-                            }
-                          </Grid>
-                          
-                      </FormControl>
-                      
-                      <FormControl fullWidth  sx={{mb:2}}>
-                          <GovernanceSelect />
-                      </FormControl>
-                      
-                      {governanceWallet && 
-                      <>
-                        <FormControl fullWidth sx={{mb:2}}>
-                            <ProposalSelect />
-                        </FormControl>
-
-                        {proposalType === 4 &&
-                          <FormControl fullWidth sx={{mb:2}}>
-                            <TokenTransferView payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
-                          </FormControl>
-                        }
-                        {proposalType === 5 &&
-                          <FormControl fullWidth sx={{mb:2}}>
-                            <TokenTransferView payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
-                          </FormControl>
-                        }
-                        {proposalType === 8 &&
-                          <FormControl fullWidth sx={{mb:2}}>
-                            <JupiterDCAView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
-                          </FormControl>
-                        }
-
-                        {proposalType === 12 &&
-                          <FormControl fullWidth sx={{mb:2}}>
-                            <ListOnMEView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
-                          </FormControl>
-                        }
-
-                    
-                      
-                      {(instructionsArray && instructionsArray.length > 0) &&
-                          <Box
-                              sx={{
-                                m:2,
-                                background: 'rgba(0, 0, 0, 0.2)',
-                                borderRadius: '17px',
-                                overflow: 'hidden',
-                                p:4
-                            }} 
-                          >
-                            <FormControl fullWidth sx={{mb:2}}>
-                                <List dense={true}>
-                                    {instructionsArray.map((txinstr:any, index:number) => (
-                                        <ListItem
-                                          secondaryAction={
-                                            <IconButton 
-                                              onClick={e => removeTxItem(index)}
-                                              edge="end" 
-                                              aria-label="delete">
-                                              <DeleteIcon />
-                                            </IconButton>
-                                          }
-                                        >
-                                          <ListItemAvatar>
-                                            <Avatar>
-                                              {index+1}
-                                            </Avatar>
-                                          </ListItemAvatar>
-                                          <ListItemText
-                                            primary={`
-                                              ${txinstr?.type} - ${txinstr?.description}
-                                            `}
-                                            secondary={
-                                              <>
-                                              {JSON.stringify(txinstr?.governanceInstructions)}
-
-                                              {(txinstr?.transactionEstimatedFee && txinstr?.transactionEstimatedFee > 0) &&
-                                                  <Grid sx={{textAlign:'right'}}>
-                                                      <Typography variant="caption">
-                                                          Estimated Fee {(txinstr.transactionEstimatedFee).toFixed(6)}
-                                                      </Typography>
-                                                  </Grid>
-                                              }
-                                              </>
-                                            }
-                                          />
-                                        </ListItem>
-                                    ))}
-                                  </List>
-                            </FormControl>
-                          </Box>
                       }
+                  </>
 
-
-                        {proposalSimulationUnitsConsumed ?
-                            <>
-                            {(proposalSimulationUnitsConsumed > 0) ?
-                                <Grid sx={{textAlign:'right'}}>
-                                    <Typography variant="caption">
-                                        Estimated Fee {(proposalSimulationUnitsConsumed/10 ** 9)*50}
-                                    </Typography>
-                                </Grid>
-                            :
-                            <>
-                                
-                            </>
-                            }
-                            </>
-                          :<>
-                            {proposalSimulationLogs &&
-                              <Grid sx={{textAlign:'right'}}>
-                                <Typography variant="caption" sx={{color:"red"}}>
-                                  ERROR: {JSON.stringify(proposalSimulationLogs)}
+                <Grid 
+                    xs={12}
+                    sx={{
+                        '& .MuiTextField-root': { m: 1 },
+                        '& .MuiSwitch-root': { m: 1 }
+                    }}
+                >
+                    <Box
+                        sx={{
+                            borderRadius:'17px',
+                            backgroundColor:'rgba(0,0,0,0.2)', 
+                            p:1,pr:3,mt:2}}
+                    >
+                          <Grid container>
+                            <Grid item xs={12}>
+                              <Typography variant="h6">
+                                  Create Proposal
                                 </Typography>
                               </Grid>
-                            }
-                          </>
+                          </Grid>
+
+                        <FormControl fullWidth  sx={{mb:2}}>
+                            <TextField 
+                                fullWidth 
+                                label="Title" 
+                                id="fullWidth"
+                                //value={title}
+                                onChange={(e) => {
+                                    if (!title || title.length < maxTitleLen)
+                                        setTitle(e.target.value)
+                                    }}
+                                sx={{borderRadius:'17px', maxlength:maxTitleLen}} 
+                            />
+                            <Grid sx={{textAlign:'right',}}>
+                              <Typography variant="caption">{title ? title.length > 0 ? maxTitleLen - title.length : maxTitleLen : maxTitleLen} characters remaining</Typography>
+                            </Grid>
+                        </FormControl>
+
+                        <FormControl fullWidth  sx={{mb:2}}>
+                            <TextField 
+                                fullWidth
+                                label="Description"
+                                multiline
+                                rows={4}
+                                maxRows={4}
+                                //value={description}
+                                onChange={(e) => {
+                                    if (!description || description.length < maxDescriptionLen)
+                                        handleDescriptionChange(e.target.value)
+                                    }}
+                                
+                                sx={{maxlength:maxDescriptionLen}}
+                                />
+                            <Grid sx={{textAlign:'right',}}>
+
+                              {isGistDescription ?
+                                <Button
+                                    color='inherit'
+                                    size='small'
+                                    href={description}
+                                    sx={{borderRadius:'17px'}}
+                                >
+                                    <GitHubIcon sx={{mr:1}} /> GIST
+                                </Button>
+                              :
+                                <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
+                              }
+                            </Grid>
+                            
+                        </FormControl>
+                        
+                        <FormControl fullWidth  sx={{mb:2}}>
+                            <GovernanceSelect />
+                        </FormControl>
+                        
+                        {governanceWallet && 
+                        <>
+                          <FormControl fullWidth sx={{mb:2}}>
+                              <ProposalSelect />
+                          </FormControl>
+
+                          {proposalType === 4 &&
+                            <FormControl fullWidth sx={{mb:2}}>
+                              <TokenTransferView payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                            </FormControl>
+                          }
+                          {proposalType === 5 &&
+                            <FormControl fullWidth sx={{mb:2}}>
+                              <TokenTransferView payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                            </FormControl>
+                          }
+                          {proposalType === 8 &&
+                            <FormControl fullWidth sx={{mb:2}}>
+                              <JupiterDCAView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                            </FormControl>
+                          }
+
+                          {proposalType === 12 &&
+                            <FormControl fullWidth sx={{mb:2}}>
+                              <ListOnMEView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                            </FormControl>
+                          }
+
+                      
+                        
+                        {(instructionsArray && instructionsArray.length > 0) &&
+                            <Box
+                                sx={{
+                                  m:2,
+                                  background: 'rgba(0, 0, 0, 0.2)',
+                                  borderRadius: '17px',
+                                  overflow: 'hidden',
+                                  p:4
+                              }} 
+                            >
+                              <FormControl fullWidth sx={{mb:2}}>
+                                  <List dense={true}>
+                                      {instructionsArray.map((txinstr:any, index:number) => (
+                                          <ListItem
+                                            secondaryAction={
+                                              <IconButton 
+                                                onClick={e => removeTxItem(index)}
+                                                edge="end" 
+                                                aria-label="delete">
+                                                <DeleteIcon />
+                                              </IconButton>
+                                            }
+                                          >
+                                            <ListItemAvatar>
+                                              <Avatar>
+                                                {index+1}
+                                              </Avatar>
+                                            </ListItemAvatar>
+                                            <ListItemText
+                                              primary={`
+                                                ${txinstr?.type} - ${txinstr?.description}
+                                              `}
+                                              secondary={
+                                                <>
+                                                {JSON.stringify(txinstr?.governanceInstructions)}
+
+                                                {(txinstr?.transactionEstimatedFee && txinstr?.transactionEstimatedFee > 0) &&
+                                                    <Grid sx={{textAlign:'right'}}>
+                                                        <Typography variant="caption">
+                                                            Estimated Fee {(txinstr.transactionEstimatedFee).toFixed(6)}
+                                                        </Typography>
+                                                    </Grid>
+                                                }
+                                                </>
+                                              }
+                                            />
+                                          </ListItem>
+                                      ))}
+                                    </List>
+                              </FormControl>
+                            </Box>
                         }
+
+
+                          {proposalSimulationUnitsConsumed ?
+                              <>
+                              {(proposalSimulationUnitsConsumed > 0) ?
+                                  <Grid sx={{textAlign:'right'}}>
+                                      <Typography variant="caption">
+                                          Estimated Fee {(proposalSimulationUnitsConsumed/10 ** 9)*50}
+                                      </Typography>
+                                  </Grid>
+                              :
+                              <>
+                                  
+                              </>
+                              }
+                              </>
+                            :<>
+                              {proposalSimulationLogs &&
+                                <Grid sx={{textAlign:'right'}}>
+                                  <Typography variant="caption" sx={{color:"red"}}>
+                                    ERROR: {JSON.stringify(proposalSimulationLogs)}
+                                  </Typography>
+                                </Grid>
+                              }
+                            </>
+                          }
+                          
+                          
+                        </>
+                        }
+                        <FormControl fullWidth >
+                            <FormControlLabel  disabled={true} required control={<Switch />} label="Multiple Choice Vote" />
+                        </FormControl>
                         
-                        
-                      </>
-                      }
-                      <FormControl fullWidth >
-                          <FormControlLabel  disabled={true} required control={<Switch />} label="Multiple Choice Vote" />
-                      </FormControl>
-                      
-                      <FormControl fullWidth >
-                          <FormControlLabel 
-                            control={
-                              <Switch 
-                                onChange={
-                                  (e) => {
-                                    setIsCouncilVote(e.target.checked)
+                        <FormControl fullWidth >
+                            <FormControlLabel 
+                              control={
+                                <Switch 
+                                  onChange={
+                                    (e) => {
+                                      setIsCouncilVote(e.target.checked)
+                                    }
                                   }
-                                }
-                              />
-                            } 
-                            label="Council Vote" />
-                      </FormControl>
-                      
-                      <Grid sx={{textAlign:'right'}}>
-                        <ButtonGroup variant="contained" aria-label="outlined button group"
-                          sx={{borderRadius:'17px'}}
-                        >
-                          <Tooltip title="Simulate & Calculate Fees">
-                          <Button 
-                            disabled={!(
-                              (title && title.length > 0) &&
-                              (description && description.length > 0) &&
-                              (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
-                              (!createDisabled)
-                              )
-                            }
-                            onClick={simulateProposal}
-                            variant="contained"
-                            color="info"
-                            sx={{borderTopLeftRadius:'17px', borderBottomLeftRadius:'17px'}}>
-                              <FlakyIcon /></Button>
-                          </Tooltip>
-                          <Button 
-                            disabled={!(
-                              (title && title.length > 0) &&
-                              (description && description.length > 0) &&
-                              (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
-                              (!createDisabled)
-                              )
-                            }
-                            onClick={createProposal}
-                            variant="contained"
-                            color="success"
-                            sx={{borderTopRightRadius:'17px', borderBottomRightRadius:'17px'}}>
-                              <Confetti
-                                  active={ proposalMade }
-                                  config={ confettiConfig }
-                              />        
-                              Create Proposal</Button>
-                          </ButtonGroup>
-                      </Grid>
-                      
-                  </Box>
+                                />
+                              } 
+                              label="Council Vote" />
+                        </FormControl>
+                        
+                        <Grid sx={{textAlign:'right'}}>
+                          <ButtonGroup variant="contained" aria-label="outlined button group"
+                            sx={{borderRadius:'17px'}}
+                          >
+                            <Tooltip title="Simulate & Calculate Fees">
+                            <Button 
+                              disabled={!(
+                                (title && title.length > 0) &&
+                                (description && description.length > 0) &&
+                                (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
+                                (!createDisabled)
+                                )
+                              }
+                              onClick={simulateProposal}
+                              variant="contained"
+                              color="info"
+                              sx={{borderTopLeftRadius:'17px', borderBottomLeftRadius:'17px'}}>
+                                <FlakyIcon /></Button>
+                            </Tooltip>
+                            <Button 
+                              disabled={!(
+                                (title && title.length > 0) &&
+                                (description && description.length > 0) &&
+                                (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
+                                (!createDisabled)
+                                )
+                              }
+                              onClick={createProposal}
+                              variant="contained"
+                              color="success"
+                              sx={{borderTopRightRadius:'17px', borderBottomRightRadius:'17px'}}>
+                                <Confetti
+                                    active={ proposalMade }
+                                    config={ confettiConfig }
+                                />        
+                                Create Proposal</Button>
+                            </ButtonGroup>
+                        </Grid>
+                        
+                    </Box>
 
-              </Grid>
-            </Box>
+                </Grid>
+                </>
+              }
+              </Box>
 
-        </>
+          </>
+        }
+      </>
     );
 
 }

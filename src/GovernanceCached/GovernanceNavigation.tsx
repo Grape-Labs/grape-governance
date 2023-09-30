@@ -62,11 +62,16 @@ export default function GovernanceNavigation(props: any){
 
     function findObjectByGoverningTokenOwner(tokenOwner:string, viaRpc:boolean) {
         if (viaRpc){
-            const foundObject = rpcMemberMap.find(item => item.account.governingTokenOwner.toBase58() === tokenOwner);
+            try{
+            const foundObject = rpcMemberMap.find(item => Number(item.account.governingTokenDepositAmount > 0) && item.account.governingTokenOwner.toBase58() === tokenOwner);
             console.log("foundObject via rpc "+JSON.stringify(foundObject));
             return foundObject || null; // Return null if not found
+            }catch(e){
+                console.log("ERR: "+e);
+                return null;
+            }
         } else{
-            const foundObject = cachedMemberMap.find(item => item.account.governingTokenOwner === tokenOwner);
+            const foundObject = cachedMemberMap.find(item => Number(item.account.governingTokenDepositAmount) > 0 && item.account.governingTokenOwner === tokenOwner);
             //console.log("foundObject via cache "+JSON.stringify(foundObject));
             return foundObject || null; // Return null if not found
         }
@@ -83,20 +88,16 @@ export default function GovernanceNavigation(props: any){
         if (publicKey && rpcMemberMap){
             const foundObject = findObjectByGoverningTokenOwner(publicKey.toBase58(), true)
             if (foundObject){
-                if (Number(foundObject.account.governingTokenDepositAmount) > 0)
-                    setIsParticipatingInDao(true);
+                setIsParticipatingInDao(true);
             }
         }
     }, [rpcMemberMap]);
 
     React.useEffect(() => {
         if (publicKey && cachedMemberMap){
-            //console.log("here with cachedmemberMap "+JSON.stringify(cachedMemberMap))
-            
             const foundObject = findObjectByGoverningTokenOwner(publicKey.toBase58(), false)
             if (foundObject){
-                if (Number(foundObject.account.governingTokenDepositAmount) > 0)
-                    setIsParticipatingInDao(true);
+                setIsParticipatingInDao(true);
             }
         } else if (publicKey && !cachedMemberMap){
             console.log("key ++ cache")
@@ -184,7 +185,7 @@ export default function GovernanceNavigation(props: any){
                     </Tooltip>
                     */}
 
-                    {/*isParticipatingInDao &&
+                    {isParticipatingInDao &&
                         <Tooltip title={
                             <><strong>Proposal Builder</strong><br/></>
                             }>
@@ -194,7 +195,7 @@ export default function GovernanceNavigation(props: any){
                                 to={'/newproposal/'+governanceAddress}
                             ><AddCircle /></Button>
                         </Tooltip>
-                    */}
+                    }
 
                 </ButtonGroup>
                 
