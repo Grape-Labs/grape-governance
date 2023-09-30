@@ -307,13 +307,13 @@ export default function JupiterDCAView(props: any) {
         return null;
     }
 
-    function convertSecondsToLegibleFormat(secondsStr:string, showOnlyUnit?: boolean) {
+    function convertSecondsToLegibleFormat(secondsStr:string, showOnlyUnit?: boolean, period?:string) {
         const seconds = +secondsStr;
         const minute = 60;
         const hour = minute * 60;
         const day = hour * 24;
         const week = day * 7;
-        const month = day * 30; // Approximate
+        const month = day * 31; // Approximate
         
         if (showOnlyUnit){
             if (seconds >= month) {
@@ -331,7 +331,7 @@ export default function JupiterDCAView(props: any) {
             }
         }else{
             if (seconds >= month) {
-                return `${Math.floor(seconds / month)} months`;
+                return period ? `${period} months` : `${Math.floor(seconds / month)} months`;
             } else if (seconds >= week) {
                 return `${Math.floor(seconds / week)} weeks`;
             } else if (seconds >= day) {
@@ -1029,8 +1029,7 @@ export default function JupiterDCAView(props: any) {
                                     }
                                 </>
                             }
-
-                            Ends in : {convertSecondsToLegibleFormat((period*periodDuration).toString(), false)} from proposal execution<br/>
+                            Ends in : {convertSecondsToLegibleFormat((period*periodDuration).toFixed(0), false, periodDuration)} from proposal execution<br/>
                             </Typography>
                         </Box>
                         
