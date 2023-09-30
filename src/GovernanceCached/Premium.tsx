@@ -60,7 +60,7 @@ export function PremiumView (this: any, props: any) {
   }
 
   const getVerificationStatus = async() => {
-    if (PROP_TOKEN){
+    if (METRICS_TOKEN){
       const verify = await isGated(publicKey.toBase58(), METRICS_TOKEN);
       console.log("Governance Verified Status: "+JSON.stringify(verify));
       setVerified(verify);

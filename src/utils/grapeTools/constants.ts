@@ -44,3 +44,4 @@ export const TERTIARY_STORAGE_WALLET = process.env.REACT_APP_API_TERTIARY_STORAG
 
 export const PROP_TOKEN = process.env.REACT_APP_API_PROP_TOKEN || "5Hb1JX2H85yBua97USwJYJH5pURUVirL2s3WBpp3QGfV";
 export const METRICS_TOKEN = process.env.REACT_APP_API_METRICS_TOKEN || "CmtdUmxdML91oNUGj4qiEnWffcYibfUJPCJwaPkhWogc";
+export const ADMIN_TOKEN = process.env.REACT_APP_API_METRICS_TOKEN || "CmtdUmxdML91oNUGj4qiEnWffcYibfUJPCJwaPkhWogc";
