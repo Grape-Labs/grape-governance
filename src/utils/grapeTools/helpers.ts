@@ -226,32 +226,33 @@ export async function isGated(address: string, tokenWhitelist: string) {
 }
 
 export async function findObjectByGoverningTokenOwner(memberMap: any, tokenOwner:string, viaRpc:boolean, minDepositedAmount?: number, realm?: any) {
-  console.log("HERE!")
-  if (realm)
-    console.log("has realm!")
   if ((!memberMap) && (realm)){
     // attempt to get via RPC
-    console.log("REALM::: "+JSON.stringify(realm));
     const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(realm.owner), new PublicKey(realm.pubkey))
     //const tokenOwnerRecord = await getTokenOwnerRecord(RPC_CONNECTION, )
     if (rawTokenOwnerRecords){
-      console.log("rawTokenOwnerRecords: "+JSON.stringify(rawTokenOwnerRecords));
       //memberMap = JSON.parse(JSON.stringify(rawTokenOwnerRecords));
       const foundRawObject = await rawTokenOwnerRecords.find(item => (Number(item.account.governingTokenDepositAmount) > (minDepositedAmount || 0)) && item.account.governingTokenOwner?.toBase58() === tokenOwner);
-      return foundRawObject || null; // Return null if not found
+      console.log("foundRawObject: "+JSON.stringify(foundRawObject));
+      if (foundRawObject)
+        return foundRawObject || false; // Return null if not found
+      else  
+        return false;
     } else{
-      console.log("SOMETHING WRONG!!!")
       console.log("ERR: "+e);
-      return null;
+      return false;
     }
   } else {
     
     try{
         const foundObject = await memberMap.find(item => Number(item.account.governingTokenDepositAmount > (minDepositedAmount || 0)) && item.account.governingTokenOwner?.toBase58() === tokenOwner);
-        return foundObject || null; // Return null if not found
+        if (foundObject)
+          return foundObject || false; // Return null if not found
+        else
+          return false;
     }catch(e){
         console.log("ERR: "+e);
-        return null;
+        return false;
     }
   }
 }

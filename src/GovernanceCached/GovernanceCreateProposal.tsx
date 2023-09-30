@@ -182,7 +182,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [proposalSimulationErr, setProposalSimulationErr] = React.useState(null);
     const [proposalInstructions, setProposalInstructions] = React.useState(null);
     const [verified, setVerified] = React.useState(false);
-    const [hasVotingPower, setHasVotingPower] = React.useState(false);
+    const [isProposer, setIsProposer] = React.useState(false);
 
     const anchorWallet = useAnchorWallet();
 
@@ -762,7 +762,7 @@ export default function GovernanceCreateProposalView(props: any){
 
         
         setCachedGovernance(cached_governance);
-        setLoading(false);
+        //setLoading(false);
         endTimer();
     }
 
@@ -794,11 +794,13 @@ export default function GovernanceCreateProposalView(props: any){
 
     const checkMemberStatus = async() => {
       //console.log("cachedRealm: "+JSON.stringify(cachedRealm))
+      //console.log("checking: "+publicKey.toBase58())
       const canParticipate = await findObjectByGoverningTokenOwner(null, publicKey.toBase58(), true, 0, cachedRealm);
-      console.log("canParticipate: "+JSON.stringify(canParticipate));
-      setHasVotingPower(canParticipate);
+      //console.log("canParticipate: "+JSON.stringify(canParticipate));
+      //const canParticipate = false;
+      if (canParticipate) 
+        setIsProposer(true); 
       setLoading(false);
-      //setCanParticipate()
     }
 
     React.useEffect(() => {
@@ -921,49 +923,58 @@ export default function GovernanceCreateProposalView(props: any){
                 > 
 
               {(!verified) ?
-                <Grid container>
-                 
-                    <Typography variant='h5'>Your governance needs to hold the GOVERN access token to access the proposal builder</Typography>
-                    <Typography variant='body1'>Reach out to the Grape DAO on 
-                      <Button 
-                          target='_blank' href={`https://discord.gg/grapedao`}
-                          color='inherit'
-                          sx={{
-                          verticalAlign: 'middle',
-                          display: 'inline-flex',
-                          borderRadius:'17px',
-                          m:1,
-                          textTransform:'none'
-                      }}>
-                          <DiscordIcon sx={{mt:1,fontSize:27.5,color:'white'}} /> <strong>Discord</strong>
-                      </Button> to get started</Typography>
-                      
+                <Grid container alignContent="center"  sx={{alignItems: 'center', textAlign: 'center'}}>
+                    <Grid item xs={12}>
+                      <Typography variant='h5'>Your governance needs to hold the GOVERN access token to access the proposal builder</Typography>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant='body1'>Reach out to the Grape DAO on 
+                        <Button 
+                            target='_blank' href={`https://discord.gg/grapedao`}
+                            color='inherit'
+                            sx={{
+                            verticalAlign: 'middle',
+                            display: 'inline-flex',
+                            borderRadius:'17px',
+                            m:1,
+                            textTransform:'none'
+                        }}>
+                            <DiscordIcon sx={{mt:1,fontSize:27.5,color:'white'}} /> <strong>Discord</strong>
+                        </Button> to get started</Typography>
+                    </Grid>
+                    
+                    <Grid item xs={12} sx={{textAlign:'right'}}>
+                      <Typography variant="caption">Ref# {realmName ? realmName : governanceAddress}</Typography>
+                    </Grid> 
                   
                 </Grid>
               :
                 <>
-                {(!loading && verified && (hasVotingPower===false)) ?
-                    
-                    <Grid container>
+                {(!loading && !isProposer) ?
+                    <Grid container alignContent="center" sx={{alignItems: 'center', textAlign: 'center'}}>
                         <Grid item xs={12}>
-                        <Typography variant='h5'>You do not have enough voting power to participate in this Governance</Typography>
+                          <Typography variant='h5'>You do not have enough voting power to participate in this Governance</Typography>
                         </Grid>
                         <Grid item xs={12}>
-                        <Typography variant='body1'>
-                            <Button 
-                                component={Link}
-                                to={'/dao/'+governanceAddress}
-                                color='inherit'
-                                sx={{
-                                verticalAlign: 'middle',
-                                display: 'inline-flex',
-                                borderRadius:'17px',
-                                m:1,
-                                textTransform:'none'
-                            }}>
-                                <ArrowBackIcon fontSize='inherit' sx={{mr:1}} /> Back to {realmName ? realmName : governanceAddress}
-                            </Button></Typography>
+                          <Typography variant='body1'>
+                              <Button 
+                                  component={Link}
+                                  to={'/dao/'+governanceAddress}
+                                  color='inherit'
+                                  variant='outlined'
+                                  sx={{
+                                  verticalAlign: 'middle',
+                                  display: 'inline-flex',
+                                  borderRadius:'17px',
+                                  m:1,
+                                  textTransform:'none'
+                              }}>
+                                  <ArrowBackIcon fontSize='inherit' sx={{mr:1}} /> Back to {realmName ? realmName : governanceAddress} Governance
+                              </Button></Typography>
                         </Grid>
+                        <Grid item xs={12} sx={{textAlign:'right'}}>
+                          <Typography variant="caption">Ref# {publicKey ? publicKey.toBase58() : `Invalid Wallet`}</Typography>
+                        </Grid> 
                     </Grid>
                 :
                   <>
