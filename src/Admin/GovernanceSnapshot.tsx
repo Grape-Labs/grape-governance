@@ -800,13 +800,13 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     let totalVaultSolValue = 0;
     let totalVaultNftValue = 0;
     let totalVaultNftValueSol = 0;
+    let totalVaultNftValueUSDC = 0;
     const treasuryAssets = new Array();
     const cgArray = ["solana"]//new Array();
     const cgMintArray = ["So11111111111111111111111111111111111111112"];
 
     for (var vi of vaultsInflated){
         //console.log('VAULT: '+JSON.stringify(gv))
-
         console.log('***************************************************');
         console.log('*** TOKEN BALANCE: '+new PublicKey(vi.vault.pubkey).toBase58())+" ***";
 
@@ -941,14 +941,18 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
                         if (results?.data){
                             for (var resitem of results.data){
-                                console.log("FLR price for: "+resitem.floorPriceLamports)
+                                //console.log("FLR price for "+thisitem.nftMint+": "+(+resitem.floorPriceLamports/10**9))
                                 if (+resitem.floorPriceLamports > 0){
                                     thisitem.listingCount = resitem.listing_count;
                                     thisitem.floorPriceLamports = resitem.floorPriceLamports;
                                     nftsIdentified++;
-                                    totalVaultNftValueSol += +resitem.floorPriceLamports,
+                                    totalVaultNftValueSol += +resitem.floorPriceLamports;
+                                    console.log("adding: "+(+resitem.floorPriceLamports))
+                                    console.log("totalVaultNftValueSol: "+totalVaultNftValueSol)
                                     //totalVaultNftValue += resitem.floorPriceLamports
                                     setPrimaryStatus("Treasury NFT Floor Prices ("+thisitem.nftMint+" floor at "+resitem.floorPriceLamports+" lamports)");
+                                    break;
+                                    //setPrimaryStatus("Treasury NFT Floor Prices ("+thisitem.nftMint+" floor at "+(+resitem.floorPriceLamports/10**9)+" lamports)");
                                 }
                                 
                             }
@@ -1029,7 +1033,9 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         //ia.solToUsd = cgp['solana'].usd;
         ia.solToUsd = cgp['So11111111111111111111111111111111111111112'].price;
         ia.solUsdValue = (ia.solBalance > 0 ? cgp['So11111111111111111111111111111111111111112'].price*(ia.solBalance/(10 ** 9)) : 0);
-        totalVaultNftValue = (totalVaultNftValueSol > 0 ? cgp['So11111111111111111111111111111111111111112'].price*(totalVaultNftValueSol/(10 ** 9)) : 0);
+        console.log("Total NFT Sol Value: "+(totalVaultNftValueSol/(10 ** 9)))
+        console.log("Aggregate Total NFT Sol Value: "+(totalVaultNftValueSol/(10 ** 9)))
+        totalVaultNftValueUSDC = (totalVaultNftValueSol > 0 ? cgp['So11111111111111111111111111111111111111112'].price*(totalVaultNftValueSol/(10 ** 9)) : 0);
         vaultValue += ia.solUsdValue;
         totalVaultSolValue += ia.solUsdValue;
         totalVaultSol += ia.solBalance > 0 ? ia.solBalance/(10 ** 9) : 0;
@@ -1470,7 +1476,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         totalVaultSol: totalVaultSol,
         totalVaultSolValue: totalVaultSolValue,
         totalVaultStableCoinValue:totalVaultStableCoinValue,
-        totalVaultNftValue:totalVaultNftValue,
+        totalVaultNftValue:totalVaultNftValueUSDC,
         vaultsInflated: vaultsInflated,
         governanceVaultsString: governanceVaultsString,
         governanceVaults: rawFilteredVaults,

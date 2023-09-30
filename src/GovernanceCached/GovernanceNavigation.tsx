@@ -52,6 +52,10 @@ import {
     TWITTER_PROXY
 } from '../utils/grapeTools/constants';
 
+import { 
+    findObjectByGoverningTokenOwner
+  } from '../utils/grapeTools/helpers';
+
 export default function GovernanceNavigation(props: any){
     const governanceAddress = props.governanceAddress;
     const [realm, setRealm] = React.useState(props?.realm || null);
@@ -59,23 +63,6 @@ export default function GovernanceNavigation(props: any){
     const [rpcMemberMap, setRpcMemberMap] = React.useState(null);
     const [isParticipatingInDao, setIsParticipatingInDao] = React.useState(false);
     const { publicKey } = useWallet();
-
-    function findObjectByGoverningTokenOwner(tokenOwner:string, viaRpc:boolean) {
-        if (viaRpc){
-            try{
-            const foundObject = rpcMemberMap.find(item => Number(item.account.governingTokenDepositAmount > 0) && item.account.governingTokenOwner.toBase58() === tokenOwner);
-            console.log("foundObject via rpc "+JSON.stringify(foundObject));
-            return foundObject || null; // Return null if not found
-            }catch(e){
-                console.log("ERR: "+e);
-                return null;
-            }
-        } else{
-            const foundObject = cachedMemberMap.find(item => Number(item.account.governingTokenDepositAmount) > 0 && item.account.governingTokenOwner === tokenOwner);
-            //console.log("foundObject via cache "+JSON.stringify(foundObject));
-            return foundObject || null; // Return null if not found
-        }
-    }
 
     async function getRpcMemberMap(){
         //console.log("realm.owner? "+realm?.owner)
@@ -86,7 +73,7 @@ export default function GovernanceNavigation(props: any){
 
     React.useEffect(() => {
         if (publicKey && rpcMemberMap){
-            const foundObject = findObjectByGoverningTokenOwner(publicKey.toBase58(), true)
+            const foundObject = findObjectByGoverningTokenOwner(rpcMemberMap, publicKey.toBase58(), true, 0)
             if (foundObject){
                 setIsParticipatingInDao(true);
             }
@@ -95,7 +82,7 @@ export default function GovernanceNavigation(props: any){
 
     React.useEffect(() => {
         if (publicKey && cachedMemberMap){
-            const foundObject = findObjectByGoverningTokenOwner(publicKey.toBase58(), false)
+            const foundObject = findObjectByGoverningTokenOwner(cachedMemberMap, publicKey.toBase58(), false, 0)
             if (foundObject){
                 setIsParticipatingInDao(true);
             }
