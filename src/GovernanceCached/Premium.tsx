@@ -127,7 +127,7 @@ export function PremiumView (this: any, props: any) {
                       </WalletDialogProvider>
                     }
                   <p>
-                  <Typography variant='h5'>You need to be holding the METRICS token to access powerful governance participation metrics for this DAO</Typography>
+                  <Typography variant='h5'>You need to be holding the METRICS access token to access powerful governance participation metrics for this DAO</Typography>
 
                   <Typography variant='body1'>Reach out to the Grape DAO on 
                   <Button 

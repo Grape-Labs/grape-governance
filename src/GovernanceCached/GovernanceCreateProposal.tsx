@@ -877,7 +877,7 @@ export default function GovernanceCreateProposalView(props: any){
               {(governanceAddress && !verified) ?
                 <Grid container>
                   <Grid item alignItems="center" sx={{p:5}}>
-                    <Typography variant='h5'>Your governance needs to hold the GOVERN token to access the proposal builder</Typography>
+                    <Typography variant='h5'>Your governance needs to hold the GOVERN access token to access the proposal builder</Typography>
                     <Typography variant='body1'>Reach out to the Grape DAO on 
                       <Button 
                           target='_blank' href={`https://discord.gg/grapedao`}
