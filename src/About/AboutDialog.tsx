@@ -104,8 +104,14 @@ export default function AboutDialog() {
                             <li><s>Treasury cached per governance</s></li>
                             <li>Automate the caching process with smart webhooks (upon proposal creation, completion and participation) - partially completed in the Admin panel</li>
                         </ul>
-                        <ul>     
+                        <ul>
                             <Typography variant='subtitle1'>Phase 2</Typography>
+                            <li><s>Build a new Proposal Building primitives</s></li>
+                            <li>Add plugins and solutions for third parties to integrate</li>
+                            <li>Add TOKEN, METRICS, ADMIN tokens for verified accessibility</li>
+                        </ul>
+                        <ul>     
+                            <Typography variant='subtitle1'>Phase 3</Typography>
                             <li>Continue to focus on building a unique, and incredibly fast SPL Governance experience</li>
                             <li>Improve NFT Governance, reliability & speed</li>
                             <li>Create an improved NFT SPL Governance Experience for mass adoption</li>
