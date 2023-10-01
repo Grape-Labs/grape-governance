@@ -43,7 +43,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import { decodeMetadata } from '../utils/grapeTools/utils';
 import grapeTheme from  '../utils/config/theme';
-import { ThemeProvider } from '@mui/material/styles';
+import { ThemeProvider, styled } from '@mui/material/styles';
 
 import {
   Typography,
@@ -67,6 +67,7 @@ import {
   ListItemText,
   Avatar,
   TextField,
+  TextareaAutosize
 } from '@mui/material/';
 
 import {
@@ -114,6 +115,14 @@ import { withTheme } from '@emotion/react';
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
 const METAPLEX_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+
+const CustomTextarea = styled(TextareaAutosize)(({ theme }) => ({
+    width: '100%', // Make it full width
+    backgroundColor: '#333', // Change the background color to dark
+    color: '#fff', // Change the text color to white or another suitable color
+    border: 'none', // Remove the border (optional)
+    padding: theme.spacing(1), // Add padding (optional)
+  }));
 
 function trimAddress(addr: string) {
     if (!addr) return addr;
@@ -557,7 +566,17 @@ export function GovernanceProposalView(props: any){
                                 {ownerRecord?.owner ?
                                     <ExplorerView grapeArtProfile={true} showSolanaProfile={true} memberMap={memberMap} address={new PublicKey(ownerRecord.owner).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
                                 :
-                                    <Typography variant='caption'>*Raw Record: <br/>{JSON.stringify(ownerRecord)}<br/></Typography>
+                                    <Typography variant='caption'>*Raw Record: <br/>
+                                        <Grid item xs zeroMinWidth>
+                                            <Typography noWrap sx={{fontSize:'10px'}}>
+                                                <CustomTextarea
+                                                    minRows={2}
+                                                    value={JSON.stringify(ownerRecord)}
+                                                    readOnly
+                                                /><br/>
+                                            </Typography>
+                                        </Grid>
+                                    </Typography>
                                 }
 
                                 {(ownerRecord?.tokenAmount?.amount && +ownerRecord.tokenAmount.amount > 0) ? 
@@ -882,18 +901,12 @@ export function GovernanceProposalView(props: any){
                                     </Grid>
                                     <Grid item xs={12}>
                                         <Grid container>
-                                            <Grid item xs zeroMinWidth>
-                                                
-                                                <TextField
-                                                    fullWidth
-                                                    id="standard-multiline-static"
-                                                    label=""
-                                                    multiline
-                                                    rows={4}
+                                            <Grid item xs>
+                                                <CustomTextarea
+                                                    minRows={4}
                                                     value={JSON.stringify(instructionDetails.info.data)}
-                                                    variant="standard"
-                                                    disabled
-                                                    />
+                                                    readOnly
+                                                />
                                             </Grid>
                                         </Grid>
                                     </Grid>
