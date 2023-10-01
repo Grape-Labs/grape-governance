@@ -133,10 +133,10 @@ function DashboardContent() {
   const network = WalletAdapterNetwork.Devnet; //.Devnet; //.Mainnet;
   // You can also provide a custom RPC endpoint
   //const endpoint =  useMemo(() => clusterApiUrl(network), [network]);
-  const endpoint =  RPC_ENDPOINT || 'https://api.devnet.solana.com';
+  const endpoint =  RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
   const wallets = useMemo(() => 
-  detectEmbeddedInSquadsIframe() ? 
-  [new SquadsEmbeddedWalletAdapter("https://iframe-preview.squads.so")] :
+  //detectEmbeddedInSquadsIframe() ? 
+  //[new SquadsEmbeddedWalletAdapter("https://iframe-preview.squads.so")] :
   [
     new SolflareWalletAdapter(),
     new PhantomWalletAdapter(),
@@ -215,7 +215,7 @@ function DashboardContent() {
                                               <Route path="governance/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                               </Route>
-                                              
+
                                               <Route path="dao/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                               </Route>
