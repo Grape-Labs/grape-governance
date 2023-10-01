@@ -112,7 +112,7 @@ function Copyright(props: any): JSX.Element {
                 variant="body2"
                 sx={{verticalAlign:'middle'}}>
 
-    Web3 Labs | */}Powered by Grape DSCE on Solana
+    Web3 Labs | */}Governance by Grape on Solana
                 </Typography>
               </Grid>
               

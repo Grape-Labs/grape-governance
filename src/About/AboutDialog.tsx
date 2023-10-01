@@ -50,10 +50,10 @@ export default function AboutDialog() {
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
                 <p>
-                  <Typography variant='subtitle1'><b>Grape Decentralized Storage Caching Engine (DSCE)</b></Typography>
+                  <Typography variant='subtitle1'><b>Governance by Grape</b></Typography>
                 </p> 
                 <p>
-                    <Typography variant='subtitle1'>An increbibly fast DAO Tooling infrastrastructure to improve the experience of SPL Governance via decentralized cached storage & introducing new ways to view historical data & extract important governance metrics which currently is difficult to achieve efficiently, and finally to provide an API where composing on SPL Governance will be accessible to any developer (even a new developer) with a minimum RPC burden. Ultimately we have achieved Web2 load speeds, with an incredible Web3 DAO primitive (SPL Governance), and this is the path to build tools for the next billion users that will board crypto by making their experience of crypto seamless & transparent.</Typography>
+                    <Typography variant='subtitle1'>An increbibly fast DAO Tooling infrastrastructure to improve the experience of SPL Governance via Decentralized Caching Storage Engine (Grape DCSE) & introducing new ways to view historical data & extract important governance metrics which currently is difficult to achieve efficiently, and finally to provide an API where composing on SPL Governance will be accessible to any developer (even a new developer) with a minimum RPC burden. Ultimately we have achieved Web2 load speeds, with an incredible Web3 DAO primitive (SPL Governance), and this is the path to build tools for the next billion users that will board crypto by making their experience of crypto seamless & transparent.</Typography>
                     <Typography variant='subtitle1' sx={{textAlign:'center'}}>
                     <i>"Building the Web3 infrustructure at Web2 Native Speeds!"</i>
                     </Typography>
