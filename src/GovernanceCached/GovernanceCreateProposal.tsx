@@ -22,7 +22,8 @@ import {
   createInstructionData, 
   getRealmConfig,
   getVoterWeightRecord,
-  getVoterWeightRecordAddress
+  getVoterWeightRecordAddress,
+  getMaxVoterWeightRecord,
 } from '@solana/spl-governance';
 
 import {
@@ -314,7 +315,7 @@ export default function GovernanceCreateProposalView(props: any){
 
       if (publicKey){
         enqueueSnackbar(`Creating Governance Proposal`,{ variant: 'info' });
-
+        
         // check if !whitelisted otherwise add a memo:
         const memoText = "Created on Governance by Grape - Building a new DAO Experience on Solana";
         const whitelisted = false;
@@ -466,9 +467,13 @@ export default function GovernanceCreateProposalView(props: any){
 
     const getGovernanceRules = async (realmConfigPk: string) => {
       try{
-        const govRules = await getRealmConfig(connection, new PublicKey(realmConfigPk));
-        console.log("govRules: "+JSON.stringify(govRules))
 
+        const govRules = await getRealmConfig(connection, new PublicKey(realmConfigPk));
+        console.log("govRules ("+realmConfigPk+"): "+JSON.stringify(govRules))
+
+        //const vwr1 = await getVoterWeightRecord(connection, govRules.account.communityTokenConfig.voterWeightAddin);
+        //const vwr2 = await getVoterWeightRecord(connection, govRules.communityTokenConfig.voterWeightAddin);
+        //console.log("Community voterWeightRecord: "+JSON.stringify(vwr1));
         //const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
         //const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
 

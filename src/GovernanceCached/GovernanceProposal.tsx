@@ -66,6 +66,7 @@ import {
   ListItemAvatar,
   ListItemText,
   Avatar,
+  TextField,
 } from '@mui/material/';
 
 import {
@@ -646,7 +647,7 @@ export function GovernanceProposalView(props: any){
 
                 return (
                     <>
-                    {JSON.stringify(instructionInfo)}
+                        {JSON.stringify(instructionInfo)}
                     </>
                 );
 
@@ -798,12 +799,6 @@ export function GovernanceProposalView(props: any){
                                             <InstructionTransferRecord />
                                         </>
                                     }
-                                    {instructionInfo?.name === 'MEMO' &&
-                                        <>  
-                                        <br/>
-                                            <InstructionMemoRecord instructionInfo={instructionInfo} />
-                                        </>
-                                    }
                                 </Typography>
                                 
 
@@ -855,7 +850,7 @@ export function GovernanceProposalView(props: any){
                                                 </>}
 
                                                 <ExplorerView showSolanaProfile={false} address={new PublicKey(item.pubkey).toBase58()} type='address' shorten={0} hideTitle={false} style='text' color='white' fontSize='12px'/>
-                                            
+                                                
                                             </Typography>
                                             <br/><br/>
                                         </>
@@ -864,6 +859,46 @@ export function GovernanceProposalView(props: any){
                                 ))}
 
                             </Typography>
+                            
+                            {instructionDetails?.info?.description &&   
+                                <Grid container sx={{mt:1}}>
+                                    <Grid item>        
+                                        <Typography variant="h6" component="span" color="#999">
+                                            Description
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        {instructionDetails.info.description}
+                                    </Grid>
+                                </Grid>
+                            }
+
+                            {instructionDetails.info?.data && 
+                                <Grid container sx={{mt:1}}>
+                                    <Grid item>
+                                        <Typography variant="h6" component="span" color="#999">
+                                            Data
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Grid container>
+                                            <Grid item xs zeroMinWidth>
+                                                
+                                                <TextField
+                                                    fullWidth
+                                                    id="standard-multiline-static"
+                                                    label=""
+                                                    multiline
+                                                    rows={4}
+                                                    value={JSON.stringify(instructionDetails.info.data)}
+                                                    variant="standard"
+                                                    disabled
+                                                    />
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+                            }
                             </TimelineContent>
                         </TimelineItem>
                     </>
