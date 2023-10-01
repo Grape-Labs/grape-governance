@@ -48,4 +48,28 @@ export const InstructionMapping = {
         ],
       },
     },
+    MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr: {
+      34: {
+        name: "Memo Program",
+        accounts: [
+          { name: "Authority" },
+        ],
+      },
+    },
+    DCA265Vj8a9CEuX1eb1LWRnDT7uK6q1xMipnNyatn23M: {
+      36: {
+          name: "DCA Program by Jupiter",
+          accounts: [
+            { name: "Authority" },
+          ],
+      },
+    },
+    ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL: {
+      1: {
+          name: "ATA Program",
+          accounts: [
+            { name: "Authority" },
+          ],
+      },
+    },
   };

@@ -518,8 +518,12 @@ export function GovernanceProposalView(props: any){
             const typeOfInstruction = instructionDetails?.data[0];
             //console.log("instructionDetails "+JSON.stringify(instructionDetails))
             const programId = new PublicKey(instructionDetails?.programId).toBase58();
+            console.log("programId: "+programId);
+            console.log("typeOfInstruction: "+typeOfInstruction)
             const instructionInfo = InstructionMapping?.[programId]?.[typeOfInstruction];
-            
+            // for ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL it will return no type as it is a single create ata account
+
+
             const OwnerRecord = (props:any) => {
                 const pubkey = props.pubkey;
                 const [ownerRecord, setOwnerRecord] = React.useState(null);
@@ -638,8 +642,18 @@ export function GovernanceProposalView(props: any){
                 return null;
             }
 
+            const InstructionMemoRecord = (props:any) => {
 
-            const InstructionRecord = (props:any) => {
+                return (
+                    <>
+                    {JSON.stringify(instructionInfo)}
+                    </>
+                );
+
+            }
+
+
+            const InstructionTransferRecord = (props:any) => {
                 //const pubkey = props.pubkey;
                 const [instructionRecord, setInstructionRecord] = React.useState(null);
                 const [iLoading, setILoading] = React.useState(false);
@@ -781,7 +795,13 @@ export function GovernanceProposalView(props: any){
                                     {instructionInfo?.name === 'Token Transfer' &&
                                         <>  
                                         <br/>
-                                            <InstructionRecord />
+                                            <InstructionTransferRecord />
+                                        </>
+                                    }
+                                    {instructionInfo?.name === 'MEMO' &&
+                                        <>  
+                                        <br/>
+                                            <InstructionMemoRecord instructionInfo={instructionInfo} />
                                         </>
                                     }
                                 </Typography>
@@ -995,6 +1015,7 @@ export function GovernanceProposalView(props: any){
                                     const programId = new PublicKey(instructionItem?.account?.instructions[0].programId).toBase58();
                                     const instructionInfo = InstructionMapping?.[programId]?.[typeOfInstruction];
                                     
+                                    
                                     //console.log("instructionInfo "+JSON.stringify(instructionInfo))
                                     
                                     if (instructionInfo?.name === "Token Transfer"){
@@ -1004,11 +1025,13 @@ export function GovernanceProposalView(props: any){
                                             //setInstructionRecord(gai.value);
                                             
                                             const newObject = {
+                                                type:"TokeTransfer",
                                                 pubkey: instructionItem.account.instructions[0].accounts[0].pubkey,
                                                 mint: gai.value?.data.parsed.info.mint,
                                                 name: tokenMap.get(gai.value?.data.parsed.info.mint)?.symbol,
                                                 logoURI: tokenMap.get(gai.value?.data.parsed.info.mint)?.logoURI,
-                                                amount: new BN(instructionItem.account.instructions[0]?.data?.slice(1), 'le').toNumber()/Math.pow(10, (gai.value?.data.parsed.info.tokenAmount?.decimals || 0))
+                                                amount: new BN(instructionItem.account.instructions[0]?.data?.slice(1), 'le').toNumber()/Math.pow(10, (gai.value?.data.parsed.info.tokenAmount?.decimals || 0)),
+                                                data: instructionItem.account.instructions[0].data
                                             };
 
                                             //console.log("newObject "+JSON.stringify(newObject))
@@ -1022,6 +1045,36 @@ export function GovernanceProposalView(props: any){
                                                 setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
                                             }
                                             */
+                                        }
+                                    } else if (programId === "DCA265Vj8a9CEuX1eb1LWRnDT7uK6q1xMipnNyatn23M"){
+                                        
+                                        console.log("DCA PROGRAM INSTRUCTION: "+JSON.stringify(instructionItem.account))
+
+                                        if (instructionItem.account.instructions[0]?.data){
+                                            //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
+                                            const newObject = {
+                                                type:"DCA Program by Jupiter",
+                                                description:"",
+                                                data:instructionItem.account.instructions[0].data
+                                            };
+                                            instructionItem.account.instructions[0].info = newObject;
+                                        }
+
+                                        //console.log("instructionItem.account.instructions[0] "+JSON.stringify(instructionItem.account.instructions[0]))
+                                        //console.log("instructionItem.account.instructions[0].data "+JSON.stringify(instructionItem.account.instructions[0].data))
+                                        //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
+                                        //console.log("instructionItem.account.instructions[0].data "+buffer.toString("utf-8"))
+
+
+                                    }else if (programId === "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"){
+                                        if (instructionItem.account.instructions[0]?.data){
+                                            const buffer = Buffer.from(instructionItem.account.instructions[0].data);
+                                            const newObject = {
+                                                type:"Memo",
+                                                description:buffer.toString("utf-8"),
+                                                data:instructionItem.account.instructions[0].data
+                                            };
+                                            instructionItem.account.instructions[0].info = newObject;
                                         }
                                     }
                                 }
