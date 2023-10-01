@@ -334,15 +334,30 @@ export default function JupiterDCAView(props: any) {
             }
         }else{
             if (seconds >= month) {
-                return period ? `${period} months` : `${Math.floor(seconds / month)} months`;
+                const months = period ? period : Math.floor(seconds / month);
+                const remainingSeconds = seconds % month;
+                const weeks = Math.floor(remainingSeconds / week);
+                const days = Math.floor((remainingSeconds % week) / day);
+                return `${months} months ${weeks > 0 ? ` ${weeks} days` : ``} ${days > 0 ? ` ${days} days` : ``}`;
             } else if (seconds >= week) {
-                return `${Math.floor(seconds / week)} weeks`;
+                const weeks = Math.floor(seconds / week);
+                const remainingSeconds = seconds % week;
+                const days = Math.floor(remainingSeconds / day);
+                return `${weeks} weeks ${days > 0 ? ` ${days} days` : ``}`;
             } else if (seconds >= day) {
-                return `${Math.floor(seconds / day)} days`;
+                const days = Math.floor(seconds / day);
+                const remainingSeconds = seconds % day;
+                const hours = Math.floor(remainingSeconds / hour);
+                return `${days} days ${hours > 0 ? ` ${hours} hours`:``}`;
             } else if (seconds >= hour) {
-                return `${Math.floor(seconds / hour)} hours`;
+                const hours = Math.floor(seconds / hour);
+                const remainingSeconds = seconds % hour;
+                const minutes = Math.floor(remainingSeconds / minute);
+                return `${hours} hours ${minutes > 0 ? ` ${minutes} minutes`:``}`;
             } else if (seconds >= minute) {
-                return `${Math.floor(seconds / minute)} minutes`;
+                const minutes = Math.floor(seconds / minute);
+                const remainingSeconds = seconds % minute;
+                return `${minutes} minutes ${remainingSeconds > 0 ? ` ${remainingSeconds} seconds`:``}`;
             } else {
                 return `${seconds} seconds`;
             }
@@ -1039,14 +1054,14 @@ export default function JupiterDCAView(props: any) {
                             Buy: {objectToken[toMintAddress] ? objectToken[toMintAddress].name : toMintAddress}<br/>
                             Frequency: {convertSecondsToLegibleFormat(period, true)}<br/>
                             Over: {periodDuration}<br/>
-                            Amount per cycle: {(tokenAmount/periodDuration).toFixed(3)} {tokenMint}<br/>
+                            Amount per cycle: {(tokenAmount/periodDuration).toFixed(3)} {objectToken[tokenMint] ? objectToken[tokenMint].name : tokenMint}<br/>
                             {pricingStrategy &&
                                 <>
                                     {minOutAmountPerCycle &&
-                                        <>Minumum Buy Mint Price per Cycle: {minOutAmountPerCycle}<br/></>
+                                        <>Minumum Buy Mint Price per Cycle: {minOutAmountPerCycle} {objectToken[tokenMint] ? objectToken[tokenMint].name : tokenMint}<br/></>
                                     }
                                     {maxOutAmountPerCycle &&
-                                        <>Max Buy Mint Price per Cycle: {maxOutAmountPerCycle}<br/></>
+                                        <>Max Buy Mint Price per Cycle: {maxOutAmountPerCycle} {objectToken[tokenMint] ? objectToken[tokenMint].name : tokenMint}<br/></>
                                     }
                                 </>
                             }
