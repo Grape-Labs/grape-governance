@@ -87,7 +87,7 @@ export function AdminView (this: any, props: any) {
                       alignItems: 'center', textAlign: 'center'
                   }} 
               > 
-                  <Typography variant="caption">Loading Grape Governance: Processing Admin Verification</Typography>
+                  <Typography variant="caption">Loading Governance: Processing Admin Verification</Typography>
                   
                   <LinearProgress color="inherit" />
                   
@@ -110,7 +110,7 @@ export function AdminView (this: any, props: any) {
                   borderRadius: '24px'
                 }}>
                   <p>
-                  <Typography variant='h4'>Grape Governance</Typography>
+                  <Typography variant='h4'>Governance by Grape</Typography>
                   </p>
                   {!publicKey &&
                     <WalletDialogProvider className="grape-wallet-provider">
@@ -120,7 +120,7 @@ export function AdminView (this: any, props: any) {
                     </WalletDialogProvider>
                   }
                 <p>
-                <Typography variant='h5'>You need to be holding the ADMIN access token to manage Grape Governance</Typography>
+                <Typography variant='h5'>You need to be holding the ADMIN access token to manage Governance</Typography>
 
                 <Typography variant='body1'>Reach out to the Grape DAO on 
                 <Button 

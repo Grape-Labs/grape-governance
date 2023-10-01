@@ -1418,7 +1418,7 @@ export function GovernanceCachedView(props: any) {
                                                 alignItems: 'center', textAlign: 'center'
                                             }} 
                                         > 
-                                            <Typography variant='subtitle1'>Powered by Grape Governance Caching</Typography>
+                                            <Typography variant='subtitle1'>Powered by Governance by Grape</Typography>
                                         </Box>
                                     }
                                 </Grid>

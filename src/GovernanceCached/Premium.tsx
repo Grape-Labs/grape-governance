@@ -91,7 +91,7 @@ export function PremiumView (this: any, props: any) {
                       alignItems: 'center', textAlign: 'center'
                   }} 
               > 
-                  <Typography variant="caption">Loading Grape Governance: Metrics Verification</Typography>
+                  <Typography variant="caption">Loading Governance: Metrics Verification</Typography>
                   
                   <LinearProgress color="inherit" />
                   
@@ -117,7 +117,7 @@ export function PremiumView (this: any, props: any) {
                     borderRadius: '24px'
                   }}>
                     <p>
-                    <Typography variant='h4'>Grape Governance</Typography>
+                    <Typography variant='h4'>Governance by Grape</Typography>
                     </p>
                     {!publicKey &&
                       <WalletDialogProvider className="grape-wallet-provider">

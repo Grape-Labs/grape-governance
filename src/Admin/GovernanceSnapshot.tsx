@@ -3001,7 +3001,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 >
                 
                 <Typography variant="h6" sx={{textAlign:'center'}}>
-                    Grape Governance<br/>Decentralized Caching<br/>
+                    Governance by Grape<br/>Decentralized Caching<br/>
                     {currentWallet && <Typography variant="caption">Storage Wallet: {currentWallet}</Typography>}
                 </Typography>
 
