@@ -107,7 +107,8 @@ export default function AboutDialog() {
                         <ul>
                             <Typography variant='subtitle1'>Phase 2</Typography>
                             <li><s>Build a new Proposal Building primitives</s></li>
-                            <li>Add plugins and solutions for third parties to integrate</li>
+                            <li>Add plugins for easy third parties integration</li>
+                            <li>Add support for new plugins currently not available to help DAO's manage their Treasury</li>
                             <li>Add TOKEN, METRICS, ADMIN tokens for verified accessibility</li>
                         </ul>
                         <ul>     
