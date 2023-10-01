@@ -69,6 +69,9 @@ import { useSnackbar } from 'notistack';
 
 //import { withSend } from "@cardinal/token-manager";
 
+import VerticalAlignBottomIcon from '@mui/icons-material/VerticalAlignBottom';
+import VerticalAlignTopIcon from '@mui/icons-material/VerticalAlignTop';
+import VerticalAlignCenterIcon from '@mui/icons-material/VerticalAlignCenter';
 import CodeIcon from '@mui/icons-material/Code';
 import WarningIcon from '@mui/icons-material/Warning';
 import SendIcon from '@mui/icons-material/Send';
@@ -307,7 +310,7 @@ export default function JupiterDCAView(props: any) {
         return null;
     }
 
-    function convertSecondsToLegibleFormat(secondsStr:string, showOnlyUnit?: boolean, period?:string) {
+    function convertSecondsToLegibleFormat(secondsStr:string, showOnlyUnit?: boolean, period?:number) {
         const seconds = +secondsStr;
         const minute = 60;
         const hour = minute * 60;
@@ -344,7 +347,7 @@ export default function JupiterDCAView(props: any) {
                 return `${seconds} seconds`;
             }
         }
-      }
+    }
 
     function TokenSelect() {
       
@@ -735,7 +738,7 @@ export default function JupiterDCAView(props: any) {
                 <MenuItem value={60*60}>Hour</MenuItem>
                 <MenuItem value={60*60*24}>Day</MenuItem>
                 <MenuItem value={60*60*26*7}>Week</MenuItem>
-                <MenuItem value={60*60*26*30}>30 Days</MenuItem>
+                <MenuItem value={60*60*26*31}>Month</MenuItem>
               </Select>
             </FormControl>
           </Box>
@@ -946,11 +949,27 @@ export default function JupiterDCAView(props: any) {
                                 sx={{borderRadius:'17px'}} 
                             />
                         </FormControl> 
+                        {(period && periodDuration) ?
+                            <>
+                            {((period*periodDuration > 31557600)) ?
+                                <Grid sx={{textAlign:'right',}}>
+                                    <Typography variant="caption" color="error">Up to 12m is supported during the beta phase</Typography>
+                                </Grid>
+                                :<></>
+                            }
+                            {(periodDuration > 0 && periodDuration < 2) ?
+                                <Grid sx={{textAlign:'right',}}>
+                                    <Typography variant="caption" color="error">At least 2 cycles are needed for a DCA Strategy</Typography>
+                                </Grid>
+                                :<></>
+                            }
+                            </>
+                            :<></>
+                        }
                     </Grid>  
                 </Grid>
 
                 <FormControl fullWidth>
-
                     <FormGroup>
                         <FormControlLabel
                         control={
@@ -967,33 +986,35 @@ export default function JupiterDCAView(props: any) {
                 
                 {pricingStrategy &&
                     <Grid container direction="row" xs={12} sx={{mt:1}} spacing={1} >
-                        <Grid sm={6} spacing={1}>
+                        <Grid sm={6}>
                             <FormControl fullWidth>
                                 <TextField 
-                                    fullWidth 
                                     label="Min Price Per Cycle" 
-                                    id="fullWidth"
                                     //value={toAddress}
                                     type="text"
                                     onChange={(e) => {
                                         setMinOutAmountPerCycle(+e.target.value);
                                     }}
                                     sx={{borderRadius:'17px'}} 
+                                    InputProps={{
+                                        endAdornment: <InputAdornment position="start">{(toMintAddress && objectToken[toMintAddress]) ? objectToken[toMintAddress].name : toMintAddress}  <VerticalAlignBottomIcon /></InputAdornment>,
+                                    }}
                                 />
                             </FormControl>   
                         </Grid>
                         <Grid sm={6}>
-                            <FormControl fullWidth>
+                            <FormControl fullWidth >
                                 <TextField 
-                                    fullWidth 
                                     label="Max Price Per Cycle" 
-                                    id="fullWidth"
                                     //value={toAddress}
                                     type="text"
                                     onChange={(e) => {
                                         setMaxOutAmountPerCycle(+e.target.value);
                                     }}
                                     sx={{borderRadius:'17px'}} 
+                                    InputProps={{
+                                        endAdornment: <InputAdornment position="start">{(toMintAddress && objectToken[toMintAddress]) ? objectToken[toMintAddress].name : toMintAddress} <VerticalAlignTopIcon /></InputAdornment>,
+                                    }}
                                 />
                             </FormControl> 
                         </Grid>  
@@ -1014,8 +1035,8 @@ export default function JupiterDCAView(props: any) {
                             <Typography variant="caption">
                             <strong>DCA Strategy</strong>
                             <br/>
-                            Sell: {tokenAmount} {tokenMint}<br/>
-                            Buy: {toMintAddress}<br/>
+                            Sell: {tokenAmount} {objectToken[tokenMint] ? objectToken[tokenMint].name : tokenMint}<br/>
+                            Buy: {objectToken[toMintAddress] ? objectToken[toMintAddress].name : toMintAddress}<br/>
                             Frequency: {convertSecondsToLegibleFormat(period, true)}<br/>
                             Over: {periodDuration}<br/>
                             Amount per cycle: {(tokenAmount/periodDuration).toFixed(3)} {tokenMint}<br/>
@@ -1041,9 +1062,9 @@ export default function JupiterDCAView(props: any) {
                 <Grid sx={{textAlign:'right', mb:2}}>
                         
                         <Button 
-                            disabled={!(
+                            disabled={(!(
                                 (tokenAmount && toMintAddress && tokenMint && periodDuration && period)
-                            )
+                            ) || (period <= 1) || (period*periodDuration > 31557600))
                             }
                             onClick={setupDCA}
                             variant="contained"
