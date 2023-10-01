@@ -34,6 +34,7 @@ import {
   Box,
   ButtonGroup,
   TextField,
+  TextareaAutosize,
   Switch,
   FormControlLabel,
   FormGroup,
@@ -64,7 +65,6 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 import TokenTransferView from './plugins/instructions/TokenTransferView';
 import JupiterDCAView from './plugins/instructions/JupiterDCAView';
 import ListOnMEView from './plugins/instructions/ListOnMEView';
-import TextareaAutosize from '@mui/base/TextareaAutosize';
 import { Title } from '@devexpress/dx-react-chart';
 
 import { 
@@ -84,6 +84,14 @@ import {
     fetchGovernanceLookupFile,
     getFileFromLookup
 } from './CachedStorageHelpers'; 
+
+const CustomTextarea = styled(TextareaAutosize)(({ theme }) => ({
+  width: '100%', // Make it full width
+  backgroundColor: '#333', // Change the background color to dark
+  color: '#fff', // Change the text color to white or another suitable color
+  border: 'none', // Remove the border (optional)
+  padding: theme.spacing(1), // Add padding (optional)
+}));
 
 const enum GoverningTokenType {
   Liquid = 0,
@@ -315,7 +323,7 @@ export default function GovernanceCreateProposalView(props: any){
 
       if (publicKey){
         enqueueSnackbar(`Creating Governance Proposal`,{ variant: 'info' });
-        
+
         // check if !whitelisted otherwise add a memo:
         const memoText = "Created on Governance by Grape - Building a new DAO Experience on Solana";
         const whitelisted = false;
@@ -1157,7 +1165,7 @@ export default function GovernanceCreateProposalView(props: any){
                                                   onClick={e => removeTxItem(index)}
                                                   edge="end" 
                                                   aria-label="delete">
-                                                  <DeleteIcon />
+                                                  <DeleteIcon color="error" />
                                                 </IconButton>
                                               }
                                             >
@@ -1172,7 +1180,13 @@ export default function GovernanceCreateProposalView(props: any){
                                                 `}
                                                 secondary={
                                                   <>
-                                                  {JSON.stringify(txinstr?.governanceInstructions)}
+                                                  <CustomTextarea
+                                                      minRows={6}
+                                                      value={JSON.stringify(txinstr?.governanceInstructions)}
+                                                      readOnly
+                                                  />
+                                                  {/*{JSON.stringify(txinstr?.governanceInstructions)}*/}
+
 
                                                   {(txinstr?.transactionEstimatedFee && txinstr?.transactionEstimatedFee > 0) &&
                                                       <Grid sx={{textAlign:'right'}}>

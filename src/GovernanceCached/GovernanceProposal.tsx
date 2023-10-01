@@ -22,6 +22,8 @@ import {
     getFileFromLookup
 } from './CachedStorageHelpers'; 
 import BN from 'bn.js'
+import * as fs from "fs";
+import { BorshCoder } from "@coral-xyz/anchor";
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token-v2";
@@ -29,7 +31,7 @@ import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
 import React, { useCallback } from 'react';
-import { styled, useTheme } from '@mui/material/styles';
+import { styled, useTheme, ThemeProvider } from '@mui/material/styles';
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
 import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
@@ -43,7 +45,6 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import { decodeMetadata } from '../utils/grapeTools/utils';
 import grapeTheme from  '../utils/config/theme';
-import { ThemeProvider, styled } from '@mui/material/styles';
 
 import {
   Typography,
@@ -892,6 +893,27 @@ export function GovernanceProposalView(props: any){
                                 </Grid>
                             }
 
+                            {instructionDetails.info?.decodedIx && 
+                                <Grid container sx={{mt:1}}>
+                                    <Grid item>
+                                        <Typography variant="h6" component="span" color="#999">
+                                            Decoded
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Grid container>
+                                            <Grid item xs>
+                                                <CustomTextarea
+                                                    minRows={4}
+                                                    value={JSON.stringify(instructionDetails.info.decodedIx)}
+                                                    readOnly
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+                            }
+
                             {instructionDetails.info?.data && 
                                 <Grid container sx={{mt:1}}>
                                     <Grid item>
@@ -922,6 +944,18 @@ export function GovernanceProposalView(props: any){
         } else{
             return <></>
         }
+    }
+
+    // Custom function to read a big UInt64LE
+    function readBigUInt64LE(buffer) {
+        return BigInt(buffer[0]) +
+        (BigInt(buffer[1]) << BigInt(8)) +
+        (BigInt(buffer[2]) << BigInt(16)) +
+        (BigInt(buffer[3]) << BigInt(24)) +
+        (BigInt(buffer[4]) << BigInt(32)) +
+        (BigInt(buffer[5]) << BigInt(40)) +
+        (BigInt(buffer[6]) << BigInt(48)) +
+        (BigInt(buffer[7]) << BigInt(56));
     }
 
     const getVotingParticipants = async () => {
@@ -1097,12 +1131,68 @@ export function GovernanceProposalView(props: any){
                                     } else if (programId === "DCA265Vj8a9CEuX1eb1LWRnDT7uK6q1xMipnNyatn23M"){
                                         
                                         console.log("DCA PROGRAM INSTRUCTION: "+JSON.stringify(instructionItem.account))
-
+                                        
                                         if (instructionItem.account.instructions[0]?.data){
+
+                                            console.log("DCA Base64: "+instructionItem.account.instructions[0]?.data.toString("base64"))
+                                            
+                                            //const fileContent = await fs.readFile('./plugins/idl/JupiterDCA.json', options:{encoding:'utf-8'});
+                                            const jsonData = require('./plugins/idl/JupiterDCA.json');
+                                            //const fileContent = await fs.readFileSync('./plugins/idl/JupiterDCA.json');
+                                            
+                                            const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
+
+                                            // `4` is the index of the instruction which interacts with Candy Machine V2 
+                                            const instruction = instructionItem.account.instructions[0];
+                                            const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
+                                            const decodedIx = borshCoder.instruction.decode(hexString, 'hex')
+                                            //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
+                                            
+                                            console.log("decodedIx: "+JSON.stringify(decodedIx));
+                                            let description = "";
+                                            let u64BigInt, u64Number;
+
+                                            if (decodedIx){
+                                                if (decodedIx?.name){
+                                                    description = "Name: "+decodedIx.name;
+                                                }
+                                                if (decodedIx.data?.inAmount){
+                                                    u64BigInt = BigInt('0x' + decodedIx.data.inAmount);
+                                                    u64Number = Number(u64BigInt);
+                                                    description += " - In: "+u64Number;
+                                                }
+                                                if (decodedIx.data?.inAmountPerCycle){
+                                                    u64BigInt = BigInt('0x' + decodedIx.data.inAmountPerCycle);
+                                                    u64Number = Number(u64BigInt);
+                                                    description += " - In p/Cycle: " + u64Number;
+                                                }
+                                                if (decodedIx.data?.cycleFrequency){
+                                                    u64BigInt = BigInt(decodedIx.data.cycleFrequency);
+                                                    u64Number = Number(u64BigInt);
+                                                    description += " - Cycle Frequency: "+u64Number+"s";
+                                                }
+                                                if (decodedIx.data?.minPrice){
+                                                    u64BigInt = BigInt('0x' + decodedIx.data.minPrice);
+                                                    u64Number = Number(u64BigInt);
+                                                    description += " - Min Price: "+u64Number;
+                                                }
+                                                if (decodedIx.data?.maxPrice){
+                                                    u64BigInt = BigInt('0x' + decodedIx.data.maxPrice);
+                                                    u64Number = Number(u64BigInt);
+                                                    description += " - Max Price: "+u64Number;
+                                                }
+                                                if (decodedIx.data?.startAt){
+                                                    u64BigInt = BigInt(decodedIx.data.startAt);
+                                                    u64Number = Number(u64BigInt);
+                                                    description += " - Starting: "+u64Number;
+                                                }
+                                            }
+
                                             //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
                                             const newObject = {
                                                 type:"DCA Program by Jupiter",
-                                                description:"",
+                                                description:description,
+                                                decodedIx:decodedIx,
                                                 data:instructionItem.account.instructions[0].data
                                             };
                                             instructionItem.account.instructions[0].info = newObject;

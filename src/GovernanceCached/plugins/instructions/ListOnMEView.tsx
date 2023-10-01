@@ -33,6 +33,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  TextareaAutosize,
   FormControl,
   FormControlLabel,
   FormLabel,
@@ -84,7 +85,15 @@ const confettiConfig = {
     height: "10px",
     perspective: "285px",
     colors: ["#f00", "#0f0", "#00f"]
-  };
+};
+
+const CustomTextarea = styled(TextareaAutosize)(({ theme }) => ({
+    width: '100%', // Make it full width
+    backgroundColor: '#333', // Change the background color to dark
+    color: '#fff', // Change the text color to white or another suitable color
+    border: 'none', // Remove the border (optional)
+    padding: theme.spacing(1), // Add padding (optional)
+}));
 
 export default function ListOnMEView(props: any) {
     const payerWallet = props?.payerWallet || null;
@@ -661,6 +670,12 @@ export default function ListOnMEView(props: any) {
                     >
                         <Typography variant="h6">Transaction Instructions</Typography>
                     
+                        <CustomTextarea
+                            minRows={6}
+                            value={JSON.stringify(transactionInstructions)}
+                            readOnly
+                        /><br/>
+                        {/*
                         <TextField 
                             fullWidth
                             label="Instructions"
@@ -669,7 +684,7 @@ export default function ListOnMEView(props: any) {
                             maxRows={4}
                             value={JSON.stringify(transactionInstructions)}
                             disabled
-                        />
+                        />*/}
                         {transactionEstimatedFee &&
                             <Grid sx={{textAlign:'right'}}>
                                 <Typography variant="caption">
