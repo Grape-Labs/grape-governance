@@ -22,7 +22,6 @@ import {
     getFileFromLookup
 } from './CachedStorageHelpers'; 
 import BN from 'bn.js'
-import * as fs from "fs";
 import { BorshCoder } from "@coral-xyz/anchor";
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
@@ -113,6 +112,8 @@ import {
     GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 import { withTheme } from '@emotion/react';
+import fs from 'fs/promises';
+
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
 const METAPLEX_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
@@ -1139,59 +1140,68 @@ export function GovernanceProposalView(props: any){
                                             
                                             //console.log("DCA Base64: "+encodeURI(JSON.stringify(instructionItem.account.instructions[0]).toString("base64")))
                                             
-                                            //const programId = new PublicKey(instructionItem.account.instructions[0].programId);
-                                            
-                                            //const jsonData = require('./plugins/idl/'+programId+'.json');
-                                            const jsonData = require('./plugins/idl/JupiterDCA.json');
+                                            //console.log("programId")
+                                            //const jsonData = require('./plugins/idl/'+instructionItem.account.instructions[0].programId+'.json');
+                                            //const jsonData = require('./plugins/idl/JupiterDCA.json');
                                             ////const fileContent = await fs.readFileSync('./plugins/idl/JupiterDCA.json');
-                                            
-                                            const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
-
-                                            // `4` is the index of the instruction which interacts with Candy Machine V2 
-                                            const instruction = instructionItem.account.instructions[0];
-                                            const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
-                                            const decodedIx = borshCoder.instruction.decode(hexString, 'hex')
-                                            //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
-                                            
-                                            console.log("decodedIx: "+JSON.stringify(decodedIx));
                                             let description = "";
-                                            let u64BigInt, u64Numbe;
-
-                                            if (decodedIx){
-                                                if (decodedIx?.name){
-                                                    description = "Name: "+decodedIx.name;
+                                            let u64BigInt, u64Number;
+                                            let decodedIx;
+                                            try {
+                                                const filePath = './plugins/idl/'+instructionItem.account.instructions[0].programId+'.json';
+                                                const data = await fs.readFile(filePath, 'utf-8');
+                                                const parsedData = JSON.parse(data);
+                                                //setJsonData(parsedData);
+                                                const borshCoder = new BorshCoder(parsedData);
+                                                
+                                                // `4` is the index of the instruction which interacts with Candy Machine V2 
+                                                const instruction = instructionItem.account.instructions[0];
+                                                const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
+                                                decodedIx = borshCoder.instruction.decode(hexString, 'hex');
+                                                //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
+                                                
+                                                //console.log("decodedIx: "+JSON.stringify(decodedIx));
+                                               
+                                                if (decodedIx){
+                                                    if (decodedIx?.name){
+                                                        description = "Name: "+decodedIx.name;
+                                                    }
+                                                    if (decodedIx.data?.inAmount){
+                                                        u64BigInt = BigInt(decodedIx.data.inAmount);
+                                                        u64Number = Number(u64BigInt);
+                                                        description += " - In: "+u64Number;
+                                                    }
+                                                    if (decodedIx.data?.inAmountPerCycle){
+                                                        u64BigInt = BigInt(decodedIx.data.inAmountPerCycle);
+                                                        u64Number = Number(u64BigInt);
+                                                        description += " - In p/Cycle: " + u64Number;
+                                                    }
+                                                    if (decodedIx.data?.cycleFrequency){
+                                                        u64BigInt = BigInt(decodedIx.data.cycleFrequency);
+                                                        u64Number = Number(u64BigInt);
+                                                        description += " - Cycle Frequency: "+u64Number+"s";
+                                                    }
+                                                    if (decodedIx.data?.minPrice){
+                                                        u64BigInt = BigInt(decodedIx.data.minPrice);
+                                                        u64Number = Number(u64BigInt);
+                                                        description += " - Min Price: "+u64Number;
+                                                    }
+                                                    if (decodedIx.data?.maxPrice){
+                                                        u64BigInt = BigInt(decodedIx.data.maxPrice);
+                                                        u64Number = Number(u64BigInt);
+                                                        description += " - Max Price: "+u64Number;
+                                                    }
+                                                    if (decodedIx.data?.startAt){
+                                                        u64BigInt = BigInt(decodedIx.data.startAt);
+                                                        u64Number = Number(u64BigInt);
+                                                        description += " - Starting: "+u64Number;
+                                                    }
                                                 }
-                                                if (decodedIx.data?.inAmount){
-                                                    u64BigInt = BigInt(decodedIx.data.inAmount);
-                                                    u64Number = Number(u64BigInt);
-                                                    description += " - In: "+u64Number;
-                                                }
-                                                if (decodedIx.data?.inAmountPerCycle){
-                                                    u64BigInt = BigInt(decodedIx.data.inAmountPerCycle);
-                                                    u64Number = Number(u64BigInt);
-                                                    description += " - In p/Cycle: " + u64Number;
-                                                }
-                                                if (decodedIx.data?.cycleFrequency){
-                                                    u64BigInt = BigInt(decodedIx.data.cycleFrequency);
-                                                    u64Number = Number(u64BigInt);
-                                                    description += " - Cycle Frequency: "+u64Number+"s";
-                                                }
-                                                if (decodedIx.data?.minPrice){
-                                                    u64BigInt = BigInt(decodedIx.data.minPrice);
-                                                    u64Number = Number(u64BigInt);
-                                                    description += " - Min Price: "+u64Number;
-                                                }
-                                                if (decodedIx.data?.maxPrice){
-                                                    u64BigInt = BigInt(decodedIx.data.maxPrice);
-                                                    u64Number = Number(u64BigInt);
-                                                    description += " - Max Price: "+u64Number;
-                                                }
-                                                if (decodedIx.data?.startAt){
-                                                    u64BigInt = BigInt(decodedIx.data.startAt);
-                                                    u64Number = Number(u64BigInt);
-                                                    description += " - Starting: "+u64Number;
-                                                }
+                                            } catch (error) {
+                                                console.error(`Error reading JSON file: ${error.message}`);
                                             }
+
+                                            
 
                                             //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
                                             const newObject = {
