@@ -1148,19 +1148,31 @@ export function GovernanceProposalView(props: any){
                                             let u64BigInt, u64Number;
                                             let decodedIx;
                                             try {
-                                                const filePath = './plugins/idl/'+instructionItem.account.instructions[0].programId+'.json';
-                                                const data = await fs.readFile(filePath, 'utf-8');
-                                                const parsedData = JSON.parse(data);
+
+                                                /*
+                                                const filePath = './plugins/idl/'+instructionItem.account.instructions[0].programId+'.tsx';
+                                                const filePath2 = './plugins/idl/JupiterDCA.json';
+                                                
+                                                const data = import(filePath2);
+                                                const parsedData = JSON.parse(JSON.stringify(data));
+                                                //const parsedData = (data.idl);
                                                 //setJsonData(parsedData);
                                                 const borshCoder = new BorshCoder(parsedData);
+                                                */
+
+                                                //const fileContent = await fs.readFile('./plugins/idl/JupiterDCA.json', options:{encoding:'utf-8'});
+                                                const jsonData = require('./plugins/idl/JupiterDCA.json');
+                                                //const jsonData = require('./plugins/idl/'+instructionItem.account.instructions[0].programId+'.json');
+                                                //const fileContent = await fs.readFileSync('./plugins/idl/JupiterDCA.json');
                                                 
+                                                const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
                                                 // `4` is the index of the instruction which interacts with Candy Machine V2 
                                                 const instruction = instructionItem.account.instructions[0];
                                                 const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
                                                 decodedIx = borshCoder.instruction.decode(hexString, 'hex');
                                                 //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
                                                 
-                                                //console.log("decodedIx: "+JSON.stringify(decodedIx));
+                                                console.log("decodedIx: "+JSON.stringify(decodedIx));
                                                
                                                 if (decodedIx){
                                                     if (decodedIx?.name){
@@ -1198,7 +1210,7 @@ export function GovernanceProposalView(props: any){
                                                     }
                                                 }
                                             } catch (error) {
-                                                console.error(`Error reading JSON file: ${error.message}`);
+                                                console.error(`ERR: ${error.message}`);
                                             }
 
                                             
