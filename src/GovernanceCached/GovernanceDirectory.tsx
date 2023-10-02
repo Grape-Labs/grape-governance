@@ -27,6 +27,8 @@ import {
     Paper,
 } from '@mui/material/';
 
+import { useWallet } from '@solana/wallet-adapter-react';
+
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -298,6 +300,8 @@ function GovernanceCardView(props:any) {
 }
 
 export function GovernanceDirectoryView(props: Props) {
+    const { publicKey } = useWallet();
+    
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
     const [loading, setLoading] = React.useState(false);
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
@@ -627,6 +631,17 @@ export function GovernanceDirectoryView(props: Props) {
                         >
                             <Grid container>
                                 <Grid item xs={12}>
+                                    {/*publicKey &&
+                                        <Button
+                                            variant='contained'
+                                            color='inherit'
+                                            sx={{backgroundColor:'white',mt:0.2,mr:1}}
+                                            disabled
+                                        >
+                                            Create Governance
+                                        </Button>
+                                    */}
+                                    
                                     <TextField 
                                         size="small"
                                         id="search-governances" 

@@ -51,6 +51,7 @@ import {
   LinearProgress
 } from '@mui/material/';
 
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import GavelIcon from '@mui/icons-material/Gavel';
 import FlakyIcon from '@mui/icons-material/Flaky';
@@ -624,7 +625,47 @@ export default function GovernanceCreateProposalView(props: any){
                                           <>
                                             <AccessTimeIcon sx={{fontSize:'10px'}} /> {convertSecondsToLegibleFormat(item.vault.governance.account.config.baseVotingTime, false)}
                                           </>
-                                          }
+                                        }
+
+                                        <Tooltip title={
+                                          <>
+                                            {item?.vault?.governance?.account?.accountType && 
+                                              <>Governance Type: {GovernanceAccountType[item.vault.governance.account.accountType]}</>
+                                            }
+                                            {(() => {
+                                              //const stringValue = item?.vault?.governance?.account?.config?.minCommunityTokensToCreateProposal;
+                                              
+                                              const numericValue = Number("0x"+item.vault.governance.account.config.minCommunityTokensToCreateProposal);
+                                              
+                                              if (!isNaN(numericValue)) {
+                                                const u64BigInt = BigInt(numericValue);
+                                                const u64Number = Number(u64BigInt);
+                                                return (
+                                                  <><br/>Proposal Minimum (Community): {u64Number}</>
+                                                );
+                                              } else {
+                                                return (
+                                                  <></>
+                                                );
+                                              }
+                                            
+                                            })()}
+                                            
+                                            {item?.vault?.governance?.account?.config?.minCouncilTokensToCreateProposal && 
+                                              <><br/>Proposal Minimum (Council): {Number(item.vault.governance.account.config.minCouncilTokensToCreateProposal)}</>
+                                            }
+                                            {(item?.vault?.governance?.account?.activeProposalCount && Number(item.vault.governance.account.activeProposalCount) > 0) &&
+                                              <><br/>Active Proposals: {Number(item.vault.governance.account.activeProposalCount)}</>
+                                            }
+                                          </>
+                                        }>
+                                          <IconButton
+                                            color='inherit'
+                                            sx={{ml:1}}
+                                          >
+                                            <HelpOutlineIcon sx={{fontSize:'14px'}} />
+                                          </IconButton>
+                                        </Tooltip>
 
                                         {/*
                                         {(item?.vault?.governance?.account?.config?.minCouncilTokensToCreateProposal && Number(item?.vault?.governance?.account?.config?.minCouncilTokensToCreateProposal)>0) && 
