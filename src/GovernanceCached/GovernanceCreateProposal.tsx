@@ -576,7 +576,15 @@ export default function GovernanceCreateProposalView(props: any){
                                   </Grid>
                                   <Grid item xs sx={{textAlign:'right'}}>
                                     <Typography variant="caption">
-                                      {item.vault?.nativeTreasury?.solBalance/(10 ** 9)} sol -&nbsp;
+                                      {(item.vault?.nativeTreasury?.solBalance/(10 ** 9)).toFixed(2)} SOL -&nbsp;
+                                      {item.vault?.nativeTreasury?.tokens?.value.map((item, index) => (
+                                        <>
+                                        {(item.account.data.parsed.info.mint === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" &&
+                                          ((item.account.data.parsed.info.tokenAmount.amount / 10 ** item.account.data.parsed.info.tokenAmount.decimals) > 0.9)) &&
+                                            Number((item.account.data.parsed.info.tokenAmount.amount / 10 ** item.account.data.parsed.info.tokenAmount.decimals).toFixed(0)).toLocaleString() + ' USDC '
+                                        }</>
+                                      ))}
+                                      
                                       {item.vault?.nativeTreasury?.tokens?.value.reduce((count, token) => {
                                         // Check if the condition is met before counting the token
                                         if (token.account.data.parsed.info.tokenAmount.amount > 0) {
