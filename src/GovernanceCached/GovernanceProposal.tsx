@@ -1134,38 +1134,16 @@ export function GovernanceProposalView(props: any){
                                         
                                         if (instructionItem.account.instructions[0]?.data){
 
-                                            console.log("DCA string: "+JSON.stringify(instructionItem.account.instructions[0]));
+                                            //console.log("DCA string: "+JSON.stringify(instructionItem.account.instructions[0]));
                                             
                                             
-                                            console.log("DCA Base64: "+encodeURI(JSON.stringify(instructionItem.account.instructions[0]).toString("base64")))
+                                            //console.log("DCA Base64: "+encodeURI(JSON.stringify(instructionItem.account.instructions[0]).toString("base64")))
                                             
-                                            const programId = new PublicKey(instructionItem.account.instructions[0].programId);
-                                            // Convert the JSON object to a JSON string
+                                            //const programId = new PublicKey(instructionItem.account.instructions[0].programId);
                                             
-                                            //console.log("DCA based64 ")
-
-                                            /*
-                                            const deserializedInstruction = JSON.parse(JSON.stringify(instructionItem.account.instructions[0]));
-                                            // Encode the JSON string as base64
-                                            const txi = new TransactionInstruction({
-                                                keys: [],
-                                                programId,
-                                                data: Buffer.from(deserializedInstruction.data, 'hex'), // Convert data to a Buffer
-                                            });
-                                        
-                                            const transaction = new Transaction().add(txi);
-                                            const latestBlockhash = (await connection.getLatestBlockhash()).blockhash;
-                                            //transaction.recentBlockhash = latestBlockhash;
-                                            //transaction.feePayer = publicKey//new PublicKey("614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8")
-                                            const transactionData = transaction.serialize();
-                                            // Encode the binary data as base64
-                                            const base64Data = Buffer.from(transactionData).toString('base64');
-
-                                            console.log("DCA Base64: "+base64Data)
-                                            */
-                                            //const fileContent = await fs.readFile('./plugins/idl/JupiterDCA.json', options:{encoding:'utf-8'});
+                                            //const jsonData = require('./plugins/idl/'+programId+'.json');
                                             const jsonData = require('./plugins/idl/JupiterDCA.json');
-                                            //const fileContent = await fs.readFileSync('./plugins/idl/JupiterDCA.json');
+                                            ////const fileContent = await fs.readFileSync('./plugins/idl/JupiterDCA.json');
                                             
                                             const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
 
@@ -1177,7 +1155,7 @@ export function GovernanceProposalView(props: any){
                                             
                                             console.log("decodedIx: "+JSON.stringify(decodedIx));
                                             let description = "";
-                                            let u64BigInt, u64Number;
+                                            let u64BigInt, u64Numbe;
 
                                             if (decodedIx){
                                                 if (decodedIx?.name){

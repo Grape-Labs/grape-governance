@@ -62,7 +62,7 @@ export async function createProposalInstructions(
 
     let descriptionLink = description;
     if (!isGist){
-      descriptionLink += ' - created with Governance by Grape';
+      //descriptionLink += ' - created with Governance by Grape';
     }
     //const governingTokenMint = new PublicKey('9Z7SQ1WMiDNaHu2cX823sZxD2SQpscoLGkyeLAHEqy9r');
     //const walletPk = new PublicKey(walletPublicKey);

@@ -51,6 +51,8 @@ import {
   LinearProgress
 } from '@mui/material/';
 
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import GavelIcon from '@mui/icons-material/Gavel';
 import FlakyIcon from '@mui/icons-material/Flaky';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
@@ -78,6 +80,7 @@ import {
 import { 
   isGated,
   findObjectByGoverningTokenOwner,
+  convertSecondsToLegibleFormat,
 } from '../utils/grapeTools/helpers';
 
 import {
@@ -596,11 +599,57 @@ export default function GovernanceCreateProposalView(props: any){
                                   </Grid>
                                   <Grid item xs sx={{textAlign:'right'}}>
                                     <Typography variant="caption">
-                                      {item.solBalance/(10 ** 9)} sol {/*- {item?.tokens?.value.length} tokens*/}
+                                    
+                                      <>
+                                        {/*console.log("vault: "+JSON.stringify(item))*/}
+                                        <GavelIcon sx={{fontSize:'10px'}} /> 
+
+                                        {item?.vault?.governance?.account?.config?.baseVotingTime && 
+                                          <>
+                                            <AccessTimeIcon sx={{fontSize:'10px'}} /> {convertSecondsToLegibleFormat(item.vault.governance.account.config.baseVotingTime, false)}
+                                          </>
+                                          }
+
+                                        {/*
+                                        {(item?.vault?.governance?.account?.config?.minCouncilTokensToCreateProposal && Number(item?.vault?.governance?.account?.config?.minCouncilTokensToCreateProposal)>0) && 
+                                          ` - Council Min Prop ${Number(item.vault.governance.account.config.minCouncilTokensToCreateProposal)}`}
+                                        }
+
+                                        {(() => {
+                                          //const stringValue = item?.vault?.governance?.account?.config?.minCommunityTokensToCreateProposal;
+                                          
+                                          const numericValue = Number("0x"+item.vault.governance.account.config.minCommunityTokensToCreateProposal);
+                                          
+                                          if (!isNaN(numericValue)) {
+                                            const u64BigInt = BigInt(numericValue);
+                                            const u64Number = Number(u64BigInt);
+                                            return (
+                                              <> - Community Prop Min {u64Number}</>
+                                            );
+                                          } else {
+                                            return (
+                                              <></>
+                                            );
+                                          }
+                                        
+                                        })()}
+                                        
+                                        {(item?.vault?.governance?.account?.proposalCount && Number(item?.vault?.governance?.account?.proposalCount)>0) && 
+                                          ` - Props ${Number(item.vault.governance.account.proposalCount)}`}
+
+                                        {(item?.vault?.governance?.account?.activeProposalCount && Number(item?.vault?.governance?.account?.activeProposalCount)>0) && 
+                                          ` - Active ${Number(item.vault.governance.account.activeProposalCount)}`}
+                                        */}
+                                      </>
+                                    
+                                      
+                                      {/*{item.solBalance/(10 ** 9)} sol - {item?.tokens?.value.length} tokens*/}
                                     </Typography>
                                   </Grid>
                                 </Grid>
                               </Grid>
+
+                              
 
                             </Grid>
                         </MenuItem>

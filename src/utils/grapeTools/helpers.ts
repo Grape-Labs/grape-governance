@@ -256,3 +256,57 @@ export async function findObjectByGoverningTokenOwner(memberMap: any, tokenOwner
     }
   }
 }
+
+export function convertSecondsToLegibleFormat(secondsStr:string, showOnlyUnit?: boolean, period?:number) {
+  const seconds = +secondsStr;
+  const minute = 60;
+  const hour = minute * 60;
+  const day = hour * 24;
+  const week = day * 7;
+  const month = day * 31; // Approximate
+  
+  if (showOnlyUnit){
+      if (seconds >= month) {
+          return `Month`;
+      } else if (seconds >= week) {
+          return `Week`;
+      } else if (seconds >= day) {
+          return `Day`;
+      } else if (seconds >= hour) {
+          return `Hour`;
+      } else if (seconds >= minute) {
+          return `Minute`;
+      } else {
+          return `Second`;
+      }
+  }else{
+      if (seconds >= month) {
+          const months = period ? period : Math.floor(seconds / month);
+          const remainingSeconds = seconds % month;
+          const weeks = Math.floor(remainingSeconds / week);
+          const days = Math.floor((remainingSeconds % week) / day);
+          return `${months} months ${weeks > 0 ? ` ${weeks} days` : ``} ${days > 0 ? ` ${days} days` : ``}`;
+      } else if (seconds >= week) {
+          const weeks = Math.floor(seconds / week);
+          const remainingSeconds = seconds % week;
+          const days = Math.floor(remainingSeconds / day);
+          return `${weeks} weeks ${days > 0 ? ` ${days} days` : ``}`;
+      } else if (seconds >= day) {
+          const days = Math.floor(seconds / day);
+          const remainingSeconds = seconds % day;
+          const hours = Math.floor(remainingSeconds / hour);
+          return `${days} days ${hours > 0 ? ` ${hours} hours`:``}`;
+      } else if (seconds >= hour) {
+          const hours = Math.floor(seconds / hour);
+          const remainingSeconds = seconds % hour;
+          const minutes = Math.floor(remainingSeconds / minute);
+          return `${hours} hours ${minutes > 0 ? ` ${minutes} minutes`:``}`;
+      } else if (seconds >= minute) {
+          const minutes = Math.floor(seconds / minute);
+          const remainingSeconds = seconds % minute;
+          return `${minutes} minutes ${remainingSeconds > 0 ? ` ${remainingSeconds} seconds`:``}`;
+      } else {
+          return `${seconds} seconds`;
+      }
+  }
+}
