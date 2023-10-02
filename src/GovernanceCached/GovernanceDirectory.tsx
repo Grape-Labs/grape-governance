@@ -117,7 +117,7 @@ function GovernanceCardView(props:any) {
     return (
         <Card sx={{ 
             borderRadius: '17px',
-            background: 'linear-gradient(to right, rgba(0,0,0,0.50) 40%, #'+randomColor+' 200%)' }}>
+            background: 'linear-gradient(75deg, rgba(0,0,0,0.50) 40%, #'+randomColor+' 200%)' }}>
         <CardContent>
             <Grid container>
                 <Grid item xs={12} sm={8} container justifyContent="flex-start">
