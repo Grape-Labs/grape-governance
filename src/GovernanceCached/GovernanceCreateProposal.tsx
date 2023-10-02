@@ -379,7 +379,7 @@ export default function GovernanceCreateProposalView(props: any){
           */
 
           const snackaction = (key:any) => (
-            <Button href={`https://spl-gov.vercel.app/proposal/${cachedRealm.pubkey}/${propResponse.proposalAddress.toBase58()}`} target='_blank'  sx={{color:'white'}}>
+            <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponse.proposalAddress.toBase58()}`} target='_blank'  sx={{color:'white'}}>
                 {propResponse.proposalAddress.toBase58()}
             </Button>
           );

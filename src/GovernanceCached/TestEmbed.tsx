@@ -6,7 +6,7 @@ function TestEmbed() {
     return (
         <div>
             <iframe 
-                src="https://spl-gov.vercel.app/embedgovernance/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" 
+                src="https://governance.so/embedgovernance/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" 
                 sandbox="allow-same-origin allow-top-navigation allow-scripts allow-forms allow-popup" 
                 width="100%" 
                 height="800" 
