@@ -1157,12 +1157,12 @@ export function GovernanceProposalView(props: any){
                                                     description = "Name: "+decodedIx.name;
                                                 }
                                                 if (decodedIx.data?.inAmount){
-                                                    u64BigInt = BigInt('0x' + decodedIx.data.inAmount);
+                                                    u64BigInt = BigInt(decodedIx.data.inAmount);
                                                     u64Number = Number(u64BigInt);
                                                     description += " - In: "+u64Number;
                                                 }
                                                 if (decodedIx.data?.inAmountPerCycle){
-                                                    u64BigInt = BigInt('0x' + decodedIx.data.inAmountPerCycle);
+                                                    u64BigInt = BigInt(decodedIx.data.inAmountPerCycle);
                                                     u64Number = Number(u64BigInt);
                                                     description += " - In p/Cycle: " + u64Number;
                                                 }
@@ -1172,12 +1172,12 @@ export function GovernanceProposalView(props: any){
                                                     description += " - Cycle Frequency: "+u64Number+"s";
                                                 }
                                                 if (decodedIx.data?.minPrice){
-                                                    u64BigInt = BigInt('0x' + decodedIx.data.minPrice);
+                                                    u64BigInt = BigInt(decodedIx.data.minPrice);
                                                     u64Number = Number(u64BigInt);
                                                     description += " - Min Price: "+u64Number;
                                                 }
                                                 if (decodedIx.data?.maxPrice){
-                                                    u64BigInt = BigInt('0x' + decodedIx.data.maxPrice);
+                                                    u64BigInt = BigInt(decodedIx.data.maxPrice);
                                                     u64Number = Number(u64BigInt);
                                                     description += " - Max Price: "+u64Number;
                                                 }
