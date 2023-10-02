@@ -479,24 +479,32 @@ export default function GovernanceCreateProposalView(props: any){
     const getGovernanceRules = async (realmConfigPk: string) => {
       try{
 
-        const govRules = await getRealmConfig(connection, new PublicKey(realmConfigPk));
-        console.log("govRules ("+realmConfigPk+"): "+JSON.stringify(govRules))
+        if (cachedTreasury){
+          for (let item of cachedTreasury) {
+            if (item.vault.nativeTreasuryAddress === realmConfigPk) {
+              console.log("item: "+JSON.stringify(item))
+            }
+          }
 
-        //const vwr1 = await getVoterWeightRecord(connection, govRules.account.communityTokenConfig.voterWeightAddin);
-        //const vwr2 = await getVoterWeightRecord(connection, govRules.communityTokenConfig.voterWeightAddin);
-        //console.log("Community voterWeightRecord: "+JSON.stringify(vwr1));
-        //const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-        //const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
 
-        //const vwra = await getVoterWeightRecordAddress(govRules.owner, govRules.account.realm, new PublicKey(realmConfigPk), govRules.owner);
-        //console.log("vwra: "+JSON.stringify(vwra));
-        //const vwr1 = await getVoterWeightRecord(connection, vwra);
-        //console.log("Community voterWeightRecord: "+JSON.stringify(vwr1));
-        //const vwr2 = await getVoterWeightRecord(connection, govRules.account.councilTokenConfig.voterWeightAddin);
-        //console.log("Council voterWeightRecord: "+JSON.stringify(vwr2));
-        
-        setGovernanceRules(govRules);
+          //const govRules = await getRealmConfig(connection, new PublicKey(realmConfigPk));
+          //console.log("govRules ("+realmConfigPk+"): "+JSON.stringify(govRules))
 
+          //const vwr1 = await getVoterWeightRecord(connection, govRules.account.communityTokenConfig.voterWeightAddin);
+          //const vwr2 = await getVoterWeightRecord(connection, govRules.communityTokenConfig.voterWeightAddin);
+          //console.log("Community voterWeightRecord: "+JSON.stringify(vwr1));
+          //const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+          //const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
+
+          //const vwra = await getVoterWeightRecordAddress(govRules.owner, govRules.account.realm, new PublicKey(realmConfigPk), govRules.owner);
+          //console.log("vwra: "+JSON.stringify(vwra));
+          //const vwr1 = await getVoterWeightRecord(connection, vwra);
+          //console.log("Community voterWeightRecord: "+JSON.stringify(vwr1));
+          //const vwr2 = await getVoterWeightRecord(connection, govRules.account.councilTokenConfig.voterWeightAddin);
+          //console.log("Council voterWeightRecord: "+JSON.stringify(vwr2));
+          
+          //setGovernanceRules(govRules);
+        }
       }catch(e){
         console.log("ERR: "+e)
       }
@@ -661,21 +669,17 @@ export default function GovernanceCreateProposalView(props: any){
               </Select>
             </FormControl>
 
-            {governanceRules &&
+            {/*governanceRules &&
                <Grid sx={{textAlign:'right'}}>
                   <Typography variant="caption">
-                      {/*JSON.stringify(governanceRules)*/}
-
                       Community: {getTokenTypeString(governanceRules.account.communityTokenConfig.tokenType)} - 
                       Council: {getTokenTypeString(governanceRules.account.councilTokenConfig.tokenType)} - 
                       Account Type: {getAccountTypeString(governanceRules.account.accountType)}
-                      {/*<>tokenType === GoverningTokenType.Community ? mint : councilMint;</>*/}
-                      {/*<>tokenType === GoverningTokenType.Community ? mint : councilMint;</>*/}
                   </Typography>
               </Grid>
               
               
-            }
+            */}
           </Box>
         </>
       );
