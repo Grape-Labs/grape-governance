@@ -1148,7 +1148,6 @@ export function GovernanceProposalView(props: any){
                                             let u64BigInt, u64Number;
                                             let decodedIx;
                                             try {
-
                                                 /*
                                                 const filePath = './plugins/idl/'+instructionItem.account.instructions[0].programId+'.tsx';
                                                 const filePath2 = './plugins/idl/JupiterDCA.json';
@@ -1159,7 +1158,7 @@ export function GovernanceProposalView(props: any){
                                                 //setJsonData(parsedData);
                                                 const borshCoder = new BorshCoder(parsedData);
                                                 */
-
+                                                
                                                 //const fileContent = await fs.readFile('./plugins/idl/JupiterDCA.json', options:{encoding:'utf-8'});
                                                 const jsonData = require('./plugins/idl/JupiterDCA.json');
                                                 //const jsonData = require('./plugins/idl/'+instructionItem.account.instructions[0].programId+'.json');

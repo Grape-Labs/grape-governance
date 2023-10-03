@@ -591,6 +591,19 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
 
   };
 
+const getAllDomains = async(address: string) => {
+    const domain = await findDisplayName(RPC_CONNECTION, address);
+    if (domain) {
+        //if (domain[0] !== address) {
+            //setHasSolanaDomain(true);
+            //setSolanaDomain(domain[0]);
+            //registrationInfo.bonfida.handle = domain[0];
+            return domain;
+        //}
+    }
+    return null;
+}
+
 const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, wallet: any, setPrimaryStatus: any, setStatus: any) => {
     //const finalList = new Array();
     //setLoading(true);
@@ -674,7 +687,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             vaultId: governance.account?.governedAccount.toBase58(), // vault/token account where tokens are held
             governance: governance,
             isGovernanceVault: true,
-            nativeTreasuryAddress: null
+            nativeTreasuryAddress: null,
+            domains: null,
         };
     });
 
@@ -705,7 +719,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
           vaultId: index.toString(), // vault/token account where tokens are held
           governance: null,
           isGovernanceVault: false,
-          nativeTreasuryAddress: null,
         });
     });
 
@@ -784,11 +797,16 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     let x = 0;
     for (var gv of vaultsInfo){ // reformat to something pretty ;)
         console.log("vault: "+JSON.stringify(gv));
+
+        const domainsForAddress = await getAllDomains(gv.pubkey);
+        console.log("SNS: "+JSON.stringify(domainsForAddress));
+        
         vaultsInflated.push({
             vault:gv,
             solBalance:vaultSolBalancesPromise[x],
             tokens:vaultsWithTokensPromise[x],
             nfts:vaultsWithNftsPromise[x].data,
+            domains:domainsForAddress,
         })
         x++;
     }

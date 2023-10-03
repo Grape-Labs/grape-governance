@@ -58,6 +58,7 @@ import FlakyIcon from '@mui/icons-material/Flaky';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import LanguageIcon from '@mui/icons-material/Language';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import GitHubIcon from '@mui/icons-material/GitHub';
@@ -572,7 +573,7 @@ export default function GovernanceCreateProposalView(props: any){
                                       alignItems="left"
                                     >
                                       <AccountBalanceWalletIcon fontSize='inherit' sx={{mr:1}}/>
-                                      {item.vault?.nativeTreasury?.vault.pubkey}
+                                      {item.vault?.nativeTreasury?.vault.pubkey} 
                                     </Grid>
                                   </Grid>
                                   <Grid item xs sx={{textAlign:'right'}}>
@@ -585,7 +586,7 @@ export default function GovernanceCreateProposalView(props: any){
                                             Number((item.account.data.parsed.info.tokenAmount.amount / 10 ** item.account.data.parsed.info.tokenAmount.decimals).toFixed(2)).toLocaleString() + ' USDC '
                                         }</>
                                       ))}
-                                      
+
                                       {item.vault?.nativeTreasury?.tokens?.value.reduce((count, token) => {
                                         // Check if the condition is met before counting the token
                                         if (token.account.data.parsed.info.tokenAmount.amount > 0) {
@@ -619,7 +620,10 @@ export default function GovernanceCreateProposalView(props: any){
                                     
                                       <>
                                         {/*console.log("vault: "+JSON.stringify(item))*/}
-                                        <GavelIcon sx={{fontSize:'10px'}} /> 
+                                        {(item.vault?.nativeTreasury?.domains && item.vault.nativeTreasury.domains.length > 0 && item.vault.nativeTreasury.domains[0] !== item.vault?.nativeTreasury.vault.pubkey) &&
+                                        <><LanguageIcon sx={{fontSize:'10px',mr:0.5}}/> {item.vault.nativeTreasury.domains}</>}
+                                        
+                                        <GavelIcon sx={{fontSize:'10px',ml:1}} /> 
 
                                         {item?.vault?.governance?.account?.config?.baseVotingTime && 
                                           <>
@@ -848,7 +852,7 @@ export default function GovernanceCreateProposalView(props: any){
                             for (let citem of cached_treasury) {
                               if (citem.vault.pubkey === item.vault.nativeTreasuryAddress) {
                                 // push native treasury holdings to an object
-                                console.log("citem "+JSON.stringify(citem))
+                                //console.log("citem "+JSON.stringify(citem))
                                 if (!item.vault?.nativeTreasury)
                                   item.vault.nativeTreasury = citem;
                               }
