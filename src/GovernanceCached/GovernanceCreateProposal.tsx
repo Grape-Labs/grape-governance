@@ -621,7 +621,7 @@ export default function GovernanceCreateProposalView(props: any){
                                       <>
                                         {/*console.log("vault: "+JSON.stringify(item))*/}
                                         {(item.vault?.nativeTreasury?.domains && item.vault.nativeTreasury.domains.length > 0 && item.vault.nativeTreasury.domains[0] !== item.vault?.nativeTreasury.vault.pubkey) &&
-                                        <><LanguageIcon sx={{fontSize:'10px',mr:0.5}}/> {item.vault.nativeTreasury.domains}</>}
+                                        <><LanguageIcon sx={{fontSize:'10px',mr:0.5}}/> {item.vault.nativeTreasury.domains[0]} {item.vault.nativeTreasury.domains.length > 1 && <sup>{item.vault.nativeTreasury.domains.length}</sup>}</>}
                                         
                                         <GavelIcon sx={{fontSize:'10px',ml:1}} /> 
 
