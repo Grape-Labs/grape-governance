@@ -1229,7 +1229,6 @@ export function GovernanceProposalView(props: any){
                                         //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
                                         //console.log("instructionItem.account.instructions[0].data "+buffer.toString("utf-8"))
 
-
                                     }else if (programId === "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"){
                                         if (instructionItem.account.instructions[0]?.data){
                                             const buffer = Buffer.from(instructionItem.account.instructions[0].data);

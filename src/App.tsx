@@ -48,10 +48,10 @@ import { useTranslation } from 'react-i18next';
 import {
   LedgerWalletAdapter,
   PhantomWalletAdapter,
-  GlowWalletAdapter,
+  //GlowWalletAdapter,
   SolflareWalletAdapter,
-  SolletExtensionWalletAdapter,
-  SolletWalletAdapter,
+  //SolletExtensionWalletAdapter,
+  //SolletWalletAdapter,
   TorusWalletAdapter,
   CloverWalletAdapter,
   MathWalletAdapter,
@@ -61,8 +61,8 @@ import {
   TokenPocketWalletAdapter,
   BitpieWalletAdapter,
   SafePalWalletAdapter,
-  ExodusWalletAdapter,
-  SlopeWalletAdapter,
+  //ExodusWalletAdapter,
+  //SlopeWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
 
 //import { mainListItems, secondaryListItems } from './components/SidebarList/SidebarList';
@@ -140,7 +140,7 @@ function DashboardContent() {
   [
     new SolflareWalletAdapter(),
     new PhantomWalletAdapter(),
-    new GlowWalletAdapter(),
+   // new GlowWalletAdapter(),
     new LedgerWalletAdapter(),
   ], [network]);
   

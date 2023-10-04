@@ -1,4 +1,4 @@
-import { PublicKey, SystemProgram, TransactionInstruction, Transaction, } from '@solana/web3.js'
+import { PublicKey, SystemProgram, TransactionInstruction, Transaction, Keypair } from '@solana/web3.js'
 import { BN, web3 } from '@project-serum/anchor';
 
 import { 
@@ -22,12 +22,16 @@ import {
   getRealm,
   withSignOffProposal,
   getAllProposals,
+  PROGRAM_VERSION_V2
 } from '@solana/spl-governance';
 
 import { chunks } from '../../utils/governanceTools/helpers';
 import { simulateTransaction, sendTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../../utils/governanceTools/sendTransactions';
 
 import { AnyMxRecord } from 'dns';
+
+const sleep = (ttl: number) =>
+  new Promise((resolve) => setTimeout(() => resolve(true), ttl))
 
 export async function createProposalInstructions(
     token_realm_program_id: PublicKey, 
@@ -43,13 +47,15 @@ export async function createProposalInstructions(
     wallet: WalletSigner,
     sendTransaction: any,
     calculateFees: any,
-    isGist?: boolean): Promise<any>{//Promise<Transaction> {
+    isGist?: boolean,
+    isDraft?: boolean): Promise<any>{//Promise<Transaction> {
     
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
     //let initialInstructions: TransactionInstruction[] = [];
     let signers: any[] = [];
 
     let instructions: TransactionInstruction[] = [];
+
     const programId = new PublicKey(token_realm_program_id);
     const programVersion = await getGovernanceProgramVersion(
       connection,
@@ -62,7 +68,7 @@ export async function createProposalInstructions(
 
     let descriptionLink = description;
     if (!isGist){
-      //descriptionLink += ' - created with Governance by Grape';
+      description += ' - created with Grape Governance';
     }
     //const governingTokenMint = new PublicKey('9Z7SQ1WMiDNaHu2cX823sZxD2SQpscoLGkyeLAHEqy9r');
     //const walletPk = new PublicKey(walletPublicKey);
@@ -107,7 +113,22 @@ export async function createProposalInstructions(
     
     console.log("governance: "+JSON.stringify(governance));
 
-    const proposalIndex = governance?.account?.proposalCount;
+    //const proposalIndex = governance?.account?.proposalCount;
+    const proposalIndex = Number(governance?.account?.proposalCount);
+
+    console.log("governingTokenMint: "+governingTokenMint.toBase58());
+    console.log("governancePk: "+governancePk.toBase58());
+    console.log("programId: "+programId.toBase58());
+    console.log("programVersion: "+programVersion);
+    console.log("proposalIndex: "+proposalIndex);
+
+    //return null;
+
+    if (programVersion <= PROGRAM_VERSION_V2) {
+      if (proposalIndex === undefined) {
+        throw new Error(`proposalIndex is required for version: ${programVersion}`);
+      }
+    }
 
     //will run only if plugin is connected with realm
     /*const voterWeight = await withUpdateVoterWeightRecord(
@@ -130,7 +151,7 @@ export async function createProposalInstructions(
       descriptionLink,
       governingTokenMint,
       walletPk,
-      proposalIndex,
+      undefined,//proposalIndex,
       voteType,
       options,
       useDenyOption,
@@ -146,6 +167,7 @@ export async function createProposalInstructions(
     for (var instruction of transactionInstr.instructions){
       instructionData.push(createInstructionData(instruction));
     }
+
     
     for(let j= 0; j < transactionInstr.instructions.length; j++) {
       await withInsertTransaction(
@@ -163,20 +185,23 @@ export async function createProposalInstructions(
         walletPk
       );
     }
+    
 
-    withSignOffProposal(
-      insertInstructions, // Sign Off proposal needs to be executed after inserting instructions hence we add it to insertInstructions
-      programId,
-      programVersion,
-      realmPk,
-      governancePk,
-      proposalAddress,
-      signatory,
-      /*signatoryRecordAddress,
-      undefined*/
-      undefined,
-      tokenOwnerRecordPk
-    );
+    if (!isDraft){
+      withSignOffProposal(
+        insertInstructions, // Sign Off proposal needs to be executed after inserting instructions hence we add it to insertInstructions
+        programId,
+        programVersion,
+        realmPk,
+        governancePk,
+        proposalAddress,
+        signatory,
+        /*signatoryRecordAddress,
+        undefined*/
+        undefined,
+        tokenOwnerRecordPk
+      );
+    }
   
     const insertChunks = chunks(insertInstructions, 1);
     const signerChunks = Array(insertChunks.length).fill([]);
@@ -246,14 +271,24 @@ export async function createProposalInstructions(
             stresponse
           };
 
-          return response;
+          return {
+            address: proposalAddress, 
+            response:response};
       } catch(e){
         console.log("ERR: ", e)
-        return false;
+        if (proposalAddress){
+          return {
+            address: proposalAddress,
+            response: null
+          };
+        } else {
+          return null;
+        }
       }
     } else {
       // return transaction instructions here
     }
+    return null;
 
   
     //return proposalAddress;

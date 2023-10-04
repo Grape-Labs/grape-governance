@@ -289,7 +289,7 @@ export default function GovernanceCreateProposalView(props: any){
     }
     
 
-    const createProposal = async() => {
+    const createProposal = async(isDraft: boolean) => {
       
       // get governance settings
       setCreateDisabled(true);
@@ -327,11 +327,10 @@ export default function GovernanceCreateProposalView(props: any){
       }
 
       if (publicKey){
-        enqueueSnackbar(`Creating Governance Proposal`,{ variant: 'info' });
-
         // check if !whitelisted otherwise add a memo:
         const memoText = "Created on Governance by Grape - Building a new DAO Experience on Solana";
         const whitelisted = false;
+        /*
         if (!whitelisted){
           if (memoText && memoText.length > 0){
             transaction.add(
@@ -343,7 +342,13 @@ export default function GovernanceCreateProposalView(props: any){
             );
           }
         }
+        */
 
+        const snackprogress = (key:any) => (
+          <CircularProgress sx={{padding:'10px'}} />
+        );
+        const cnfrmkey = enqueueSnackbar('Creating Governance Proposal',{ variant: 'info', action:snackprogress, persist: true });
+        
         const propResponse = await createProposalInstructions(
           //[],
           programId,
@@ -359,32 +364,22 @@ export default function GovernanceCreateProposalView(props: any){
           anchorWallet,//anchorWallet,
           null,//sendTransaction,
           false,
-          isGistDescription
+          isGistDescription,
+          isDraft
         );
+
+        closeSnackbar(cnfrmkey);
         
 
         //await createProposalInstructions()
           
         console.log("propAddress: "+JSON.stringify(propResponse));
         
-        if (propResponse){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
-          /*
-          const snackprogress = (key:any) => (
-            <CircularProgress sx={{padding:'10px'}} />
-          );
-          const cnfrmkey = enqueueSnackbar('Confirming transaction',{ variant: 'info', action:snackprogress, persist: true });
-          const latestBlockHash = await connection.getLatestBlockhash();
-          await connection.confirmTransaction({
-              blockhash: latestBlockHash.blockhash,
-              lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-              signature: propResponse.stresponse}, 
-              'processed'
-          );
-          closeSnackbar(cnfrmkey);
-          */
-
+        if (propResponse && propResponse?.address && propResponse?.response){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
+          
+          
           const snackaction = (key:any) => (
-            <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponse.proposalAddress.toBase58()}`} target='_blank'  sx={{color:'white'}}>
+            <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponse.address.toBase58()}`} target='_blank'  sx={{color:'white'}}>
                 {propResponse.proposalAddress.toBase58()}
             </Button>
           );
@@ -404,8 +399,16 @@ export default function GovernanceCreateProposalView(props: any){
             closeSnackbar(cnfrmkey);
             navigate(`/dao/${cachedRealm.pubkey}`, {replace: true});
           }, 7000); // 7000 milliseconds = 7 seconds
-
+          
           return () => clearTimeout(redirectTimer);
+        } else if (propResponse && propResponse.address){
+          const snackaction = (key:any) => (
+            <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponse.address.toBase58()}`} target='_blank'  sx={{color:'white'}}>
+                {propResponse.proposalAddress.toBase58()}
+            </Button>
+          );
+          enqueueSnackbar('Redirecting in a few seconds to the proposal',{ variant: 'info', action:snackprogress });
+          setCreateDisabled(false);
         } else{
           enqueueSnackbar(`An error occured...`,{ variant: 'error' });
           setCreateDisabled(false);
@@ -1362,6 +1365,7 @@ export default function GovernanceCreateProposalView(props: any){
                             <ButtonGroup variant="contained" aria-label="outlined button group"
                               sx={{borderRadius:'17px'}}
                             >
+                              {/*
                               <Tooltip title="Simulate & Calculate Fees">
                               <Button 
                                 disabled={!(
@@ -1377,6 +1381,7 @@ export default function GovernanceCreateProposalView(props: any){
                                 sx={{borderTopLeftRadius:'17px', borderBottomLeftRadius:'17px'}}>
                                   <FlakyIcon /></Button>
                               </Tooltip>
+                              */}
                               <Button 
                                 disabled={!(
                                   (title && title.length > 0) &&
@@ -1385,14 +1390,31 @@ export default function GovernanceCreateProposalView(props: any){
                                   (!createDisabled)
                                   )
                                 }
-                                onClick={createProposal}
+                                onClick={(e) => createProposal(true)}
+                                variant="contained"
+                                color="info"
+                                sx={{borderTopLeftRadius:'17px', borderBottomLeftRadius:'17px'}}>
+                                  <Confetti
+                                      active={ proposalMade }
+                                      config={ confettiConfig }
+                                  />        
+                                  Save Draft</Button>
+                              <Button 
+                                disabled={!(
+                                  (title && title.length > 0) &&
+                                  (description && description.length > 0) &&
+                                  (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
+                                  (!createDisabled)
+                                  )
+                                }
+                                onClick={(e) => createProposal(false)}
                                 variant="contained"
                                 color="success"
                                 sx={{borderTopRightRadius:'17px', borderBottomRightRadius:'17px'}}>
                                   <Confetti
                                       active={ proposalMade }
                                       config={ confettiConfig }
-                                  />        
+                                  />     
                                   Create Proposal</Button>
                               </ButtonGroup>
                           </Grid>
