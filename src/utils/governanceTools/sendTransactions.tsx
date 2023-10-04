@@ -12,8 +12,6 @@ import {
 } from '@solana/web3.js';
 //import  SignerWalletAdapter  from "@project-serum/sol-wallet-adapter";
 import { AnchorWallet } from "@solana/wallet-adapter-react";
-import { Wallet } from '@coral-xyz/anchor';
-import { SignerWalletAdapter } from '@solana/wallet-adapter-base'
 
 // TODO: sendTransactions() was imported from Oyster as is and needs to be reviewed and updated
 // In particular common primitives should be unified with send.tsx and also ensure the same resiliency mechanism
@@ -23,7 +21,7 @@ const sleep = (ttl: number) =>
   new Promise((resolve) => setTimeout(() => resolve(true), ttl))
 
 export type WalletSigner = Pick<
-  SignerWalletAdapter,
+  AnchorWallet,
   'publicKey' | 'signTransaction' | 'signAllTransactions'
 >
 
@@ -33,12 +31,6 @@ export function getWalletPublicKey(wallet: WalletSigner) {
   }
 
   return wallet.publicKey
-}
-
-export enum SequenceType {
-  Sequential,
-  Parallel,
-  StopOnFailure,
 }
 
 async function awaitTransactionSignatureConfirmation(
@@ -118,7 +110,7 @@ async function awaitTransactionSignatureConfirmation(
           }
         }
         fn()
-        await sleep(3000)
+        await sleep(2000)
       }
     }
     fn()
@@ -148,12 +140,10 @@ export async function simulateTransaction(
   commitment: Commitment
 ): Promise<RpcResponseAndContext<SimulatedTransactionResponse>> {
   // @ts-ignore
-  transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-  /*
   transaction.recentBlockhash = await connection._recentBlockhash(
     // @ts-ignore
     connection._disableBlockhashCaching
-  )*/
+  )
 
   const signData = transaction.serializeMessage()
   // @ts-ignore
@@ -199,14 +189,14 @@ export async function sendSignedTransaction({
   )
 
   console.log('Started awaiting confirmation for', txid)
-  
+
   let done = false
   ;(async () => {
     while (!done && getUnixTs() - startTime < timeout) {
       connection.sendRawTransaction(rawTransaction, {
         skipPreflight: true,
       })
-      await sleep(1000);
+      await sleep(500)
     }
   })()
   try {
@@ -257,7 +247,11 @@ export async function sendSignedTransaction({
   console.log('Latency', txid, getUnixTs() - startTime)
   return { txid, slot }
 }
-
+export enum SequenceType {
+  Sequential,
+  Parallel,
+  StopOnFailure,
+}
 /////////////////////////////////////////
 export const sendTransactions = async (
   connection: Connection,
@@ -352,126 +346,3 @@ export const sendTransactions = async (
 
   return response;//signedTxns.length
 }
-
-/*
-export const sendTransactionsV3 = ({
-  connection,
-  wallet,
-  transactionInstructions,
-  timeoutStrategy,
-  callbacks,
-  config,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  lookupTableAccounts,
-}: sendSignAndConfirmTransactionsProps & { lookupTableAccounts?: any }) => {
-  const callbacksWithUiComponent = {
-    afterBatchSign: (signedTxnsCount) => {
-      if (callbacks?.afterBatchSign) {
-        callbacks?.afterBatchSign(signedTxnsCount)
-      }
-      //showTransactionsProcessUi(signedTxnsCount)
-    },
-    afterAllTxConfirmed: () => {
-      if (callbacks?.afterAllTxConfirmed) {
-        callbacks?.afterAllTxConfirmed()
-      }
-      //closeTransactionProcessUi()
-      transactionInstructions.forEach((x) =>
-        x.instructionsSet.forEach((x) =>
-          invalidateInstructionAccounts(x.transactionInstruction)
-        )
-      )
-    },
-    afterEveryTxConfirmation: () => {
-      if (callbacks?.afterEveryTxConfirmation) {
-        callbacks?.afterEveryTxConfirmation()
-      }
-      incrementProcessedTransactions()
-    },
-    onError: (e, notProcessedTransactions, originalProps) => {
-      if (callbacks?.onError) {
-        callbacks?.onError(e, notProcessedTransactions, originalProps)
-      }
-      
-      showTransactionError(
-        () =>
-          sendTransactionsV3({
-            ...originalProps,
-            transactionInstructions: notProcessedTransactions,
-          }),
-        getErrorMsg(e),
-        e.txid
-      )
-      transactionInstructions.forEach((x) =>
-        x.instructionsSet.forEach((x) =>
-          invalidateInstructionAccounts(x.transactionInstruction)
-        )
-      )
-    },
-  }
-
-  const cfg = {
-    maxTxesInBatch:
-      transactionInstructions.filter(
-        (x) => x.sequenceType === SequenceType.Sequential
-      ).length > 0
-        ? 20
-        : 30,
-    autoRetry: false,
-    maxRetries: 5,
-    retried: 0,
-    logFlowInfo: true,
-    ...config,
-  }
-  return sendSignAndConfirmTransactions({
-    connection,
-    wallet,
-    transactionInstructions,
-    timeoutStrategy,
-    callbacks: callbacksWithUiComponent,
-    config: cfg,
-    confirmLevel: 'confirmed', //TODO base this on connection confirmation level
-    //lookupTableAccounts,
-  })
-}
-
-const getErrorMsg = (e) => {
-  if (e.error) {
-    return e.error
-  }
-  if (e.message) {
-    return e.message
-  }
-  if (typeof e === 'object') {
-    return tryStringify(e)
-  }
-  return `${e}`
-}
-
-const tryStringify = (obj) => {
-  try {
-    return JSON.stringify(obj)
-  } catch {
-    return null
-  }
-}
-
-export const txBatchesToInstructionSetWithSigners = (
-  txBatch: TransactionInstruction[],
-  signerBatches: Keypair[][],
-  batchIdx?: number
-) => {
-  return txBatch.map((tx, txIdx) => {
-    return {
-      transactionInstruction: tx,
-      signers:
-        typeof batchIdx !== 'undefined' &&
-        signerBatches.length &&
-        signerBatches[batchIdx] &&
-        signerBatches[batchIdx][txIdx]
-          ? [signerBatches[batchIdx][txIdx]]
-          : [],
-    }
-  })
-}
-*/

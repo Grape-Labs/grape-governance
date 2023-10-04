@@ -1,4 +1,5 @@
-import { PublicKey, SystemProgram, TransactionInstruction, Transaction, Keypair } from '@solana/web3.js'
+
+import { PublicKey, SystemProgram, TransactionInstruction, Transaction, } from '@solana/web3.js'
 import { BN, web3 } from '@project-serum/anchor';
 
 import { 
@@ -22,16 +23,12 @@ import {
   getRealm,
   withSignOffProposal,
   getAllProposals,
-  PROGRAM_VERSION_V2
 } from '@solana/spl-governance';
 
 import { chunks } from '../../utils/governanceTools/helpers';
-import { simulateTransaction, sendTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../../utils/governanceTools/sendTransactions';
+import { sendTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../../utils/governanceTools/sendTransactions';
 
 import { AnyMxRecord } from 'dns';
-
-const sleep = (ttl: number) =>
-  new Promise((resolve) => setTimeout(() => resolve(true), ttl))
 
 export async function createProposalInstructions(
     token_realm_program_id: PublicKey, 
@@ -43,11 +40,8 @@ export async function createProposalInstructions(
     description:string, 
     connection: any, 
     transactionInstr: Transaction, //: InstructionsAndSignersSet, 
-    authTransactionInstr: Transaction,
     wallet: WalletSigner,
     sendTransaction: any,
-    calculateFees: any,
-    isGist?: boolean,
     isDraft?: boolean): Promise<any>{//Promise<Transaction> {
     
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
@@ -55,21 +49,16 @@ export async function createProposalInstructions(
     let signers: any[] = [];
 
     let instructions: TransactionInstruction[] = [];
-
     const programId = new PublicKey(token_realm_program_id);
     const programVersion = await getGovernanceProgramVersion(
       connection,
       programId,
     );
-    
+
     //const realmPk = new PublicKey('DcR6g5EawaEoTRYcnuBjtD26VSVjWNoi1C1hKJWwvcup');
     //const governancePk = new PublicKey('JAbgQLj9MoJ2Kvie8t8Y6z6as3Epf7rDp87Po3wFwrNK');
     //const name = name;
-
-    let descriptionLink = description;
-    if (!isGist){
-      description += ' - created with Grape Governance';
-    }
+    const descriptionLink = description;
     //const governingTokenMint = new PublicKey('9Z7SQ1WMiDNaHu2cX823sZxD2SQpscoLGkyeLAHEqy9r');
     //const walletPk = new PublicKey(walletPublicKey);
     
@@ -80,7 +69,7 @@ export async function createProposalInstructions(
     //const realm = await getRealm(connection, realmPk);
 
     const signatory = walletPk;
-    //console.log("1");
+    console.log("1");
     //extra
     //const solTreasury = new PublicKey(COLLABORATION_SOL_TREASURY);
     //const communityTokenMint = realm?.account?.communityMint;
@@ -93,14 +82,14 @@ export async function createProposalInstructions(
     const voteType = VoteType.SINGLE_CHOICE;
     const options = ['Approve'];
     const useDenyOption = true;
-    //console.log("2");
-    /*
+    console.log("2");
+    
     console.log("programId: "+programId.toBase58());
     console.log("realmPk: "+realmPk.toBase58());
     console.log("governingTokenMint: "+governingTokenMint.toBase58());
     console.log("governancePk: "+governancePk.toBase58());
     console.log("walletPk: "+walletPk.toBase58());
-    */
+
     const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
       programId,
       realmPk,
@@ -108,27 +97,12 @@ export async function createProposalInstructions(
       walletPk,
     );
     // we have the following already cached so this should be passed:
-    //console.log("3");
+    console.log("3");
     const governance = await getGovernance(connection, governancePk);
     
     console.log("governance: "+JSON.stringify(governance));
 
-    //const proposalIndex = governance?.account?.proposalCount;
-    const proposalIndex = Number(governance?.account?.proposalCount);
-
-    console.log("governingTokenMint: "+governingTokenMint.toBase58());
-    console.log("governancePk: "+governancePk.toBase58());
-    console.log("programId: "+programId.toBase58());
-    console.log("programVersion: "+programVersion);
-    console.log("proposalIndex: "+proposalIndex);
-
-    //return null;
-
-    if (programVersion <= PROGRAM_VERSION_V2) {
-      if (proposalIndex === undefined) {
-        throw new Error(`proposalIndex is required for version: ${programVersion}`);
-      }
-    }
+    const proposalIndex = governance?.account?.proposalCount;
 
     //will run only if plugin is connected with realm
     /*const voterWeight = await withUpdateVoterWeightRecord(
@@ -138,8 +112,8 @@ export async function createProposalInstructions(
       client
     );*/
 
-    //console.log("4");
-    
+    console.log("4");
+
     const proposalAddress = await withCreateProposal(
       instructions,
       programId,
@@ -151,7 +125,7 @@ export async function createProposalInstructions(
       descriptionLink,
       governingTokenMint,
       walletPk,
-      undefined,//proposalIndex,
+      proposalIndex,
       voteType,
       options,
       useDenyOption,
@@ -167,7 +141,6 @@ export async function createProposalInstructions(
     for (var instruction of transactionInstr.instructions){
       instructionData.push(createInstructionData(instruction));
     }
-
     
     for(let j= 0; j < transactionInstr.instructions.length; j++) {
       await withInsertTransaction(
@@ -185,7 +158,7 @@ export async function createProposalInstructions(
         walletPk
       );
     }
-    
+    console.log("5")
 
     if (!isDraft){
       withSignOffProposal(
@@ -208,52 +181,12 @@ export async function createProposalInstructions(
     //console.log('connection publicKey:', connection)
     console.log(`Creating proposal using ${insertChunks.length} chunks`);
 
+
     //return null;
-    if (calculateFees){
-      console.log("Getting estimated fees");
-      const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
-      const transaction = new Transaction;
-      let unitsConsumed = 0;
-
-      prerequisiteInstructions.forEach((instruction) => {
-        transaction.add(instruction);
-      });
-      
-      instructions.forEach((instruction) => {
-        transaction.add(instruction);
-      });
-      
-      insertChunks.forEach((instructionArray) => {
-        instructionArray.forEach((instruction) => {
-          transaction.add(instruction);
-        });
-      });
-      
-      transaction.recentBlockhash = latestBlockHash;
-      transaction.feePayer = walletPk;//signerChunks;
-      
-      //const feeInLamports = (await connection.getFeeForMessage(transaction.compileMessage(), 'confirmed')).value;
-      //console.log("Estimated fee in lamports: ",feeInLamports);
-      //setTransactionEstimatedFee(feeInLamports/10 ** 9);
-      //const simulationResult = await connection.simulateTransaction(transaction);
-
-      try{
-        const simulationResult = await simulateTransaction(connection, transaction, 'confirmed');
-
-        console.log("simulationResult: "+JSON.stringify(simulationResult))
-
-        return simulationResult.value;
-      }catch(e){
-        console.log("ERR: "+e);
-        return null;
-      }
-    }
-
-
+    
     if (!sendTransaction){
       
       console.log(`Sending Transactions...`);
-      // see if we can send authTransactionInstr as a TransactionInstruction
       try{
         const stresponse = await sendTransactions(
             connection,
@@ -267,28 +200,25 @@ export async function createProposalInstructions(
           console.log(`Sending complete: ${JSON.stringify(stresponse)}`);
 
           const response = {
-            proposalAddress,
-            stresponse
+            address:proposalAddress,
+            response:stresponse
           };
-
-          return {
-            address: proposalAddress, 
-            response:response};
+          
+          return response;
       } catch(e){
         console.log("ERR: ", e)
         if (proposalAddress){
-          return {
-            address: proposalAddress,
-            response: null
+          const response = {
+            address:proposalAddress,
+            response:null
           };
-        } else {
+        } else{
           return null;
         }
       }
     } else {
       // return transaction instructions here
     }
-    return null;
 
   
     //return proposalAddress;

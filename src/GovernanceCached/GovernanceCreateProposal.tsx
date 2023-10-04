@@ -253,7 +253,6 @@ export default function GovernanceCreateProposalView(props: any){
 
       if (publicKey){
         const propSimulation = await createProposalInstructions(
-          //[],
           programId,
           new PublicKey(cachedRealm.pubkey),
           new PublicKey(governanceRulesWallet),
@@ -263,9 +262,8 @@ export default function GovernanceCreateProposalView(props: any){
           description,
           connection,
           transaction,
-          null,
           anchorWallet,//anchorWallet,
-          null,//sendTransaction,
+          null,
           true,
         );
         //console.log("Simulation: ",propSimulation);
@@ -350,7 +348,6 @@ export default function GovernanceCreateProposalView(props: any){
         const cnfrmkey = enqueueSnackbar('Creating Governance Proposal',{ variant: 'info', action:snackprogress, persist: true });
         
         const propResponse = await createProposalInstructions(
-          //[],
           programId,
           new PublicKey(cachedRealm.pubkey),
           new PublicKey(governanceRulesWallet),
@@ -360,23 +357,18 @@ export default function GovernanceCreateProposalView(props: any){
           description,
           connection,
           transaction,
-          authTransaction,
           anchorWallet,//anchorWallet,
           null,//sendTransaction,
-          false,
-          isGistDescription,
           isDraft
         );
 
         closeSnackbar(cnfrmkey);
         
-
         //await createProposalInstructions()
           
         console.log("propAddress: "+JSON.stringify(propResponse));
         
         if (propResponse && propResponse?.address && propResponse?.response){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
-          
           
           const snackaction = (key:any) => (
             <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponse.address.toBase58()}`} target='_blank'  sx={{color:'white'}}>
