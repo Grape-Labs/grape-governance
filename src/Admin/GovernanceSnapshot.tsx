@@ -1135,12 +1135,14 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 offset = tmpOffset;
                 console.log("Offset updated to calculated offset: "+tmpOffset)
                 // given that offset here will be smaller than what we have cached push those items out
+                /*
                 const offsetDiff = cached_transaction_map.length - offset;
-                
+
                 // Remove items from the end of the govTx array based on offsetDiff
                 if (offsetDiff > 0) {
                     govTx.splice(-offsetDiff);
                 }
+                */
 
             }
         }
@@ -1175,7 +1177,18 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 // hasnext = response.data.data.hasnext
                 //setGovernanceTransactions(response.data.transactions);
                 for (var tx of response.data.data.tx.transactions){
-                    govTx.push(tx);
+                    // check if there are no duplicates:
+                    let foundGtx = false;
+                    for (var gtx of govTx){
+                        if (JSON.stringify(gtx) === JSON.stringify(tx)){
+                            foundGtx = true;
+                            console.log("Skipping tx: "+gtx);
+                        }
+                    }
+                    if (!foundGtx){
+                        govTx.push(tx);
+                        console.log("Adding tx: "+tx);
+                    }
                 }
             } else{
                 hasnext = false;
