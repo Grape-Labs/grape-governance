@@ -3020,7 +3020,6 @@ export function GovernanceMetricsView(props: any) {
                                     sx={{textAlign:'center'}}
                                 >
                                     <Alert 
-                                        
                                         severity="info"
                                         sx={{borderRadius:'17px',m:2}}>*** NFT Voting Power Reflecting last participating proposal, more VSR/NFT voter metrics will be displayed soon ***</Alert>
                                 </Box>
