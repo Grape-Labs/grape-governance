@@ -461,7 +461,7 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={5}>SOL Transfer</MenuItem>
               {/*<MenuItem value={6} disabled>Swap</MenuItem>*/}
               {/*<MenuItem value={7} disabled>Limit Order Strategy</MenuItem>*/}
-              <MenuItem value={8}>DCA Strategy</MenuItem>
+              <MenuItem value={8}>Timed Swap</MenuItem>
               <MenuItem value={9}>Swap</MenuItem>
               <MenuItem value={10} disabled>Close & Full Burn Token(s)</MenuItem>
               {/*
