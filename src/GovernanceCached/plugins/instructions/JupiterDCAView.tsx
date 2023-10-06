@@ -723,7 +723,7 @@ export default function JupiterDCAView(props: any) {
         let description = "";
 
         if (toMintAddress){
-            description = `DCA Strategy - `;
+            description = `Timed Swap Description - `;
             description +=  `Sell: ${tokenAmount} ${tokenMint} - `;
             description +=  `Buy: ${toMintAddress} - `;
             description +=  `Frequency: ${convertSecondsToLegibleFormat(period, true)} Cycles - `;
@@ -832,7 +832,7 @@ export default function JupiterDCAView(props: any) {
                             <Avatar alt={'Jupiter Aggregator'} src={'https://jup.ag/svg/jupiter-logo.svg'} />
                         </Grid>
                         <Grid item xs sx={{ml:1}}>
-                            <strong>Jupiter</strong> DCA Plugin
+                            <strong>Jupiter</strong> Timed Swap Plugin
                         </Grid>
                     </Grid>
                 </Typography>
@@ -928,7 +928,7 @@ export default function JupiterDCAView(props: any) {
                             }
                             {(periodDuration > 0 && periodDuration < 2) ?
                                 <Grid sx={{textAlign:'right',}}>
-                                    <Typography variant="caption" color="error">At least 2 cycles are needed for a DCA Strategy</Typography>
+                                    <Typography variant="caption" color="error">At least 2 cycles are needed</Typography>
                                 </Grid>
                                 :<></>
                             }
@@ -946,8 +946,8 @@ export default function JupiterDCAView(props: any) {
                         }
                         label={
                             <>
-                            Custom Pricing Strategy
-                                <Typography variant="caption"><br/>DCA will execute only when the market price is within the desired Minimum and Maximum Price range</Typography>
+                            Custom Pricing Rules
+                                <Typography variant="caption"><br/>Will execute only when the market price is within the desired Minimum and Maximum Price range</Typography>
                             </>}
                         />
                     </FormGroup>
@@ -1002,7 +1002,7 @@ export default function JupiterDCAView(props: any) {
                         >
                             <Typography variant="h6">Preview/Summary</Typography>
                             <Typography variant="caption">
-                            <strong>DCA Strategy</strong>
+                            <strong>Time Swap Description</strong>
                             <br/>
                             Sell: {tokenAmount} {objectToken[tokenMint] ? objectToken[tokenMint].name : tokenMint}<br/>
                             Buy: {objectToken[toMintAddress] ? objectToken[toMintAddress].name : toMintAddress}<br/>
@@ -1113,7 +1113,7 @@ export default function JupiterDCAView(props: any) {
                                 p:4
                             }}
                         >
-                            <Typography variant="h6">Current DCA's for this Governance Wallet</Typography>
+                            <Typography variant="h6">Current Timed Swaps for this Governance Wallet</Typography>
                             <Typography variant="caption">
                                 <List sx={{ width: '100%' }}>
                                     {currentDCAs.map((item: any, key: number) => {
@@ -1193,7 +1193,7 @@ export default function JupiterDCAView(props: any) {
             <Box
                 sx={{mt:4,textAlign:'center'}}
             >
-                <Typography variant="caption" sx={{color:'#ccc'}}>Governance Jupiter DCA Plugin developed by Grape Protocol</Typography>
+                <Typography variant="caption" sx={{color:'#ccc'}}>Governance Jupiter Timed Swap Plugin developed by Grape Protocol</Typography>
             </Box>
 
             
