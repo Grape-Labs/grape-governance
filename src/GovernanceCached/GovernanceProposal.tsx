@@ -1046,11 +1046,10 @@ export function GovernanceProposalView(props: any){
             
 
                 // if this is voting we should fetch via RPC
-
                 
                 let instructions = null;
                 if (thisitem.account.state === 2 && !thisitem?.instructions){
-                    //console.log("We are here... !!!!!")
+                    console.log("Instructons will be loaded via RPC")
                     if (thisitem.pubkey){
                         instructions = await getGovernanceAccounts(
                             connection,
@@ -1191,6 +1190,15 @@ export function GovernanceProposalView(props: any){
                                                         u64BigInt = BigInt(decodedIx.data.cycleFrequency);
                                                         u64Number = Number(u64BigInt);
                                                         description += " - Cycle Frequency: "+u64Number+"s";
+                                                    }
+                                                    if (decodedIx.data?.inAmount && decodedIx.data?.inAmountPerCycle){
+                                                        u64BigInt = BigInt(decodedIx.data.inAmount);
+                                                        u64Number = Number(u64BigInt);
+                                                        var u64BigInt2 = BigInt(decodedIx.data.inAmountPerCycle);
+                                                        var u64Number2 = Number(u64BigInt2);
+                                                        
+
+                                                        description += " - Cycles: "+Math.floor(u64Number/u64Number2)+"";
                                                     }
                                                     if (decodedIx.data?.minPrice){
                                                         u64BigInt = BigInt(decodedIx.data.minPrice);

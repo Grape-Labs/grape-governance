@@ -1,5 +1,5 @@
 import React, { useMemo, Suspense } from 'react';
-import { ThemeProvider } from '@mui/material/styles';
+
 //import {  } from "react-router";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AdminView } from "./Admin/Admin";
@@ -15,10 +15,14 @@ import { GovernanceReputationView } from "./GovernanceCached/GovernanceReputatio
 import { GovernanceProposalView } from "./GovernanceCached/GovernanceProposal";
 import { GovernanceProposalWrapper } from "./GovernanceCached/GovernanceProposalWrapper";
 import GovernanceCreateProposalView from "./GovernanceCached/GovernanceCreateProposal";
+
 import TestEmbed from "./GovernanceCached/TestEmbed";
 import { ApiView } from "./api/api";
 import CssBaseline from '@mui/material/CssBaseline';
 import { inject } from '@vercel/analytics';
+
+//import { ThemeProvider } from '@mui/material/styles';
+import ThemeProvider from './theme';
 
 //import ReactXnft, { AnchorDom, View, Text } from "react-xnft";
 
@@ -254,6 +258,7 @@ function DashboardContent() {
                                               <Route path="admin/*" element={<AdminView />} >
                                                   <Route path=":handlekey" element={<AdminView />} />
                                               </Route>
+                                              
                                               
                                               <Route path="*" element={<NotFound />} />
                                             </Routes>

@@ -1286,7 +1286,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             const tokenOwnerRecord = owner.account.governingTokenOwner;
             
             // IMPORTANT to speed this up check first tx for mmember wallet...
-
+            
             var hasBeenFound = false;
             var hasFtd = false;
             var hasMltsg = false;

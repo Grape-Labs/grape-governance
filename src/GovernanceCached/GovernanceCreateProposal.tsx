@@ -68,6 +68,7 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import TokenTransferView from './plugins/instructions/TokenTransferView';
 import JupiterDCAView from './plugins/instructions/JupiterDCAView';
+import JupiterSwapView from './plugins/instructions/JupiterSwapView';
 import ListOnMEView from './plugins/instructions/ListOnMEView';
 import { Title } from '@devexpress/dx-react-chart';
 
@@ -461,11 +462,12 @@ export default function GovernanceCreateProposalView(props: any){
               {/*<MenuItem value={6} disabled>Swap</MenuItem>*/}
               {/*<MenuItem value={7} disabled>Limit Order Strategy</MenuItem>*/}
               <MenuItem value={8}>DCA Strategy</MenuItem>
-              <MenuItem value={9} disabled>Close & Full Burn Token(s)</MenuItem>
+              <MenuItem value={9}>Swap</MenuItem>
+              <MenuItem value={10} disabled>Close & Full Burn Token(s)</MenuItem>
               {/*
-                  <MenuItem value={10} disabled>Lending</MenuItem>
-                  <MenuItem value={11} disabled>Staking</MenuItem>
-                  <MenuItem value={12}>List on Magic Eden</MenuItem>
+                  <MenuItem value={11} disabled>Lending</MenuItem>
+                  <MenuItem value={12} disabled>Staking</MenuItem>
+                  <MenuItem value={13}>List on Magic Eden</MenuItem>
               */}
             </Select>
           </FormControl>
@@ -1236,6 +1238,11 @@ export default function GovernanceCreateProposalView(props: any){
                             {proposalType === 8 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <JupiterDCAView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                              </FormControl>
+                            }
+                            {proposalType === 9 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <JupiterSwapView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
 

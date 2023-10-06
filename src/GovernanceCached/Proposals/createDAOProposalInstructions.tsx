@@ -84,18 +84,20 @@ export async function createProposalInstructions(
     const useDenyOption = true;
     console.log("2");
     
-    console.log("programId: "+programId.toBase58());
-    console.log("realmPk: "+realmPk.toBase58());
-    console.log("governingTokenMint: "+governingTokenMint.toBase58());
-    console.log("governancePk: "+governancePk.toBase58());
-    console.log("walletPk: "+walletPk.toBase58());
-
     const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
       programId,
       realmPk,
       governingTokenMint,
       walletPk,
     );
+
+    console.log("programId: "+programId.toBase58());
+    console.log("realmPk: "+realmPk.toBase58());
+    console.log("governingTokenMint: "+governingTokenMint.toBase58());
+    console.log("governancePk: "+governancePk.toBase58());
+    console.log("walletPk: "+walletPk.toBase58());
+    console.log("tokenOwnerRecordPk: "+tokenOwnerRecordPk.toBase58())
+    
     // we have the following already cached so this should be passed:
     console.log("3");
     const governance = await getGovernance(connection, governancePk);
@@ -113,6 +115,10 @@ export async function createProposalInstructions(
     );*/
 
     console.log("4");
+    
+    const governanceAuthority = walletPk
+    //const signatory = walletPk
+    const payer = walletPk
 
     const proposalAddress = await withCreateProposal(
       instructions,
@@ -124,12 +130,12 @@ export async function createProposalInstructions(
       name,
       descriptionLink,
       governingTokenMint,
-      walletPk,
+      governanceAuthority,
       proposalIndex,
       voteType,
       options,
       useDenyOption,
-      walletPk
+      payer
     );
     
     const insertInstructions: TransactionInstruction[] = [];
@@ -175,7 +181,7 @@ export async function createProposalInstructions(
         tokenOwnerRecordPk
       );
     }
-  
+    
     const insertChunks = chunks(insertInstructions, 1);
     const signerChunks = Array(insertChunks.length).fill([]);
     //console.log('connection publicKey:', connection)

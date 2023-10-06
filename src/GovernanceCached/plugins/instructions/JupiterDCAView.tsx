@@ -312,11 +312,6 @@ export default function JupiterDCAView(props: any) {
       
         const { tx, dcaPubKey } = await dca.createDCA(params);
         
-        //const latestBlockHash = await connection.getLatestBlockhash();
-        //tx.recentBlockhash = latestBlockHash;
-
-        //console.log("DCA B64: "+tx.serializeMessage().toString("base64"));
-        //setPayerInstructions(pTransaction);
         setTransactionInstructions(tx);
         // Estimate the transaction fee
             
