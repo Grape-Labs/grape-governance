@@ -1366,7 +1366,7 @@ export function GovernanceCachedView(props: any) {
                                                         <>Proposals/Success Rate</>
                                                     </Typography>
                                                     <Tooltip title={<>
-                                                                Total proposals created in this governance<br/>Success rate is calculated on successfully completed proposals
+                                                                Total proposals voted for in this governance<br/>Success rate is calculated on successfully completed proposals
                                                             </>
                                                         }>
                                                         <Button
