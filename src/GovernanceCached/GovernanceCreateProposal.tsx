@@ -300,9 +300,9 @@ export default function GovernanceCreateProposalView(props: any){
       // using instructionsArray iterate and generate the transaction
       if (instructionsArray && instructionsArray.length > 0){
         for (let instructionItem of instructionsArray){
-          if (instructionItem.governanceInstructions)
+          if (instructionItem.governanceInstructions){
             transaction.add(instructionItem.governanceInstructions);
-          if (instructionItem?.authorInstructions)
+          }if (instructionItem?.authorInstructions)
             authTransaction.add(instructionItem.authorInstructions);
         }
       }
@@ -462,10 +462,10 @@ export default function GovernanceCreateProposalView(props: any){
               {/*<MenuItem value={6} disabled>Swap</MenuItem>*/}
               {/*<MenuItem value={7} disabled>Limit Order Strategy</MenuItem>*/}
               <MenuItem value={9}
-                disabled={governanceAddress === 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip' ? true : false}
+                disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Swap</MenuItem>
               <MenuItem value={8} 
-                disabled={governanceAddress === 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip' ? true : false}
+                disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Timed Swap</MenuItem>
               <MenuItem value={10} disabled>Close & Full Burn Token(s)</MenuItem>
               <MenuItem value={11} disabled>SNS Transfer</MenuItem>

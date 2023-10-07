@@ -1219,9 +1219,7 @@ export function GovernanceProposalView(props: any){
                                             } catch (error) {
                                                 console.error(`ERR: ${error.message}`);
                                             }
-
                                             
-
                                             //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
                                             const newObject = {
                                                 type:"DCA Program by Jupiter",

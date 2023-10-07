@@ -204,7 +204,7 @@ export default function JupiterSwapView(props: any) {
         console.log("inAmount: "+inAmount);
         
         const quoteResponse = await (
-            await fetch('https://quote-api.jup.ag/v6/quote?inputMint='+tokenMint+'&outputMint='+toMintAddress+'&amount='+tokenAmount+'&slippageBps=50'
+            await fetch('https://quote-api.jup.ag/v6/quote?inputMint='+tokenMint+'&outputMint='+toMintAddress+'&amount='+tokenAmount+'&slippageBps=50&maxAccounts=54'
             )
           ).json();
         
@@ -212,7 +212,7 @@ export default function JupiterSwapView(props: any) {
 
         // get serialized transactions for the swap
         if (quoteResponse){
-            
+            /*
             const instructions = await (
                 await fetch('https://quote-api.jup.ag/v6/swap-instructions', {
                   method: 'POST',
@@ -227,7 +227,7 @@ export default function JupiterSwapView(props: any) {
             })
             ).json();
 
-            /*
+            */
             const transactions = await (
                 await fetch('https://quote-api.jup.ag/v6/swap', {
                 method: 'POST',
@@ -263,11 +263,14 @@ export default function JupiterSwapView(props: any) {
             
             const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
             
+            const tx = Transaction.from(swapTransactionBuf);
+            
             let transaction = VersionedTransaction.deserialize(swapTransactionBuf);
+            
             //const rawTx = transaction.serialize();
             //const deserializedTransaction = Transaction.from(swapTransactionBuf);
-            */
             
+            /*
             const {
                 tokenLedgerInstruction, // If you are using `useTokenLedger = true`.
                 computeBudgetInstructions, // The necessary instructions to setup the compute budget.
@@ -294,13 +297,37 @@ export default function JupiterSwapView(props: any) {
             console.log("tx: "+JSON.stringify(swapInstruction));
 
            //tx.add(new TransactionInstruction(instructions));
+            const tx = new Transaction();
+            */
+            //tx.add(swapInstruction);
+            
+            
+            const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
+            tx.recentBlockhash = latestBlockHash;
+            tx.feePayer = fromWalletAddress;
+            const simulationResult = await connection.simulateTransaction(tx);
+            if (simulationResult?.err) {
+                console.error('Transaction simulation failed:', simulationResult);
+                return;
+            }else{
+                console.log('simulationResult: '+JSON.stringify(simulationResult));
+                const computeUnits = simulationResult.value?.unitsConsumed; //simulationResult.value?.transaction?.message.recentBlockhashFeeCalculator.totalFees;
+                //const lamportsPerSol = 1000000000;
+                const sol = computeUnits / 10 ** 9;
+                console.log(`Estimated fee: ${sol}`);
+                //setTransactionEstimatedFee(sol);//feeInLamports/10 ** 9;
+            }
 
-            setTransactionInstructions(swapInstruction);
+            /*
+            const serializedTransaction = swapTransaction.serialize();
+            const transactionSize = serializedTransaction.length;
+            console.log(`Transaction size: ${transactionSize} bytes`);
+            */
+            setTransactionInstructions(tx);
             // Estimate the transaction fee
         }
         return null; 
     }
-
     function TokenSelect() {
       
         const handleMintSelected = (event: SelectChangeEvent) => {
@@ -610,12 +637,12 @@ export default function JupiterSwapView(props: any) {
         return (
           <Box sx={{ minWidth: 120, ml:1, mb:1 }}>
             <FormControl fullWidth>
-              <InputLabel id="token-buy-select">To Buy</InputLabel>
+              <InputLabel id="token-buy-select">To Swap</InputLabel>
               <Select
                 labelId="token-buy-select"
                 id="token-buy-select"
                 value={toMintAddress}
-                label="To Buy"
+                label="To Swap"
                 onChange={handleToBuyChange}
                 MenuProps={{
                     PaperProps: {
@@ -674,8 +701,8 @@ export default function JupiterSwapView(props: any) {
 
         if (toMintAddress){
             description = `SWAP - `;
-            description +=  `Sell: ${tokenAmount} ${tokenMint} - `;
-            description +=  `Buy: ${toMintAddress} - `;
+            description +=  `From: ${tokenAmount} ${tokenMint} - `;
+            description +=  `To: ${toMintAddress} - `;
         }
         
         setInstructionsObject({
@@ -834,8 +861,8 @@ export default function JupiterSwapView(props: any) {
                             <Typography variant="caption">
                             <strong>Swap</strong>
                             <br/>
-                            Sell: {tokenAmount} {objectToken[tokenMint] ? objectToken[tokenMint].name : tokenMint}<br/>
-                            Buy: {objectToken[toMintAddress] ? objectToken[toMintAddress].name : toMintAddress}<br/>
+                            From: {tokenAmount} {objectToken[tokenMint] ? objectToken[tokenMint].name : tokenMint}<br/>
+                            To: {objectToken[toMintAddress] ? objectToken[toMintAddress].name : toMintAddress}<br/>
                             </Typography>
                         </Box>
                         
