@@ -461,15 +461,18 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={5}>SOL Transfer</MenuItem>
               {/*<MenuItem value={6} disabled>Swap</MenuItem>*/}
               {/*<MenuItem value={7} disabled>Limit Order Strategy</MenuItem>*/}
+              <MenuItem value={9}
+                disabled={governanceAddress === 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip' ? true : false}
+              >Swap</MenuItem>
               <MenuItem value={8} 
                 disabled={governanceAddress === 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip' ? true : false}
               >Timed Swap</MenuItem>
-              <MenuItem value={9}>Swap</MenuItem>
               <MenuItem value={10} disabled>Close & Full Burn Token(s)</MenuItem>
+              <MenuItem value={11} disabled>SNS Transfer</MenuItem>
               {/*
-                  <MenuItem value={11} disabled>Lending</MenuItem>
-                  <MenuItem value={12} disabled>Staking</MenuItem>
-                  <MenuItem value={13}>List on Magic Eden</MenuItem>
+                  <MenuItem value={12} disabled>Lending</MenuItem>
+                  <MenuItem value={13} disabled>Staking</MenuItem>
+                  <MenuItem value={15}>List on Magic Eden</MenuItem>
               */}
             </Select>
           </FormControl>
