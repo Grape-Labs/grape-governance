@@ -251,7 +251,9 @@ function RenderGovernanceTable(props:any) {
     const { publicKey } = useWallet();
     const [propTokenDecimals, setPropTokenDecimals] = React.useState(token?.decimals || 6);
     const [filteredGovernance, setFilteredGovernance] = React.useState(null);
-    const [filterState, setFilterState] = React.useState(true);
+    //const [filterState, setFilterState] = React.useState(true);
+    const filterState = props.filterState;
+    const setFilterState = props.setFilterState;
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
     // Avoid a layout jump when reaching the last page with empty rows.
@@ -395,12 +397,12 @@ function RenderGovernanceTable(props:any) {
                                                 item.account?.descriptionLink?.toLowerCase().includes(filteredGovernance.toLowerCase())
                                             )
                                         )
-                                        .filter((item: any) => filterState ? (item.account?.state !== 6) : true)
+                                        //.filter((item: any) => filterState ? (item.account?.state !== 6) : true)
                                         : 
                                         (rowsPerPage > 0
                                             ? proposals
                                                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                                                .filter((item: any) => filterState ? (item.account?.state !== 6) : true)
+                                                //.filter((item: any) => filterState ? (item.account?.state !== 6) : true)
                                             : proposals
                                         )
                                         /*
@@ -662,12 +664,14 @@ export function GovernanceCachedView(props: any) {
     const connection = RPC_CONNECTION;
     const { publicKey, wallet } = useWallet();
     const [proposals, setProposals] = React.useState(null);
+    const [allProposals, setAllProposals] = React.useState(null);
     const [participating, setParticipating] = React.useState(false)
     const [participatingRealm, setParticipatingRealm] = React.useState(null)
     const [nftBasedGovernance, setNftBasedGovernance] = React.useState(false);
     const [thisToken, setThisToken] = React.useState(null);
     const [totalVaultValue, setTotalVaultValue] = React.useState(null);
     const [totalProposals, setTotalProposals] = React.useState(null);
+    const [totalActualProposals, setTotalActualProposals] = React.useState(null);
     const [totalPassed, setTotalPassed] = React.useState(null);
     const [totalDefeated, setTotalDefeated] = React.useState(null);
     const [totalVotesCasted, setTotalVotesCasted] = React.useState(null);
@@ -677,7 +681,8 @@ export function GovernanceCachedView(props: any) {
     const [governanceType, setGovernanceType] = React.useState(0);
     const [cachedGovernance, setCachedGovernance] = React.useState(null);
     const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
-    const [isParticipatingInDao, setParticipatingInDao] = React.useState(false)
+    const [isParticipatingInDao, setParticipatingInDao] = React.useState(false);
+    const [filterState, setFilterState] = React.useState(true);
 
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
@@ -909,11 +914,15 @@ export function GovernanceCachedView(props: any) {
 
                     setTotalDefeated(defeated);
                     setTotalPassed(passed);
+                    setTotalActualProposals(+defeated+passed);
                     setTotalProposals(allprops.length);
                     setTotalCouncilVotesCasted(tcvc);
                     setTotalVotesCasted(ttvc);
                     
-                    setProposals(allprops);
+                    const sortedResults = allprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
+
+                    setAllProposals(allprops);
+                    setProposals(sortedResults);
 
                 } else {
                     
@@ -989,9 +998,10 @@ export function GovernanceCachedView(props: any) {
                     
                     setTotalDefeated(defeated);
                     setTotalPassed(passed);
+                    setTotalActualProposals(+defeated+passed);
                     setTotalProposals(sortedResults.length);
                     setTotalVotesCasted(ttvc);
-
+                    setAllProposals(allprops);
                     setProposals(sortedResults);
 
                 }
@@ -999,6 +1009,27 @@ export function GovernanceCachedView(props: any) {
         }
         setLoading(false);
     }
+
+    React.useEffect(() => {
+        if (allProposals){
+            if (filterState){
+                console.log("allProposals: "+JSON.stringify(allProposals))
+                const tmpProps = allProposals
+                    .filter((item) => item.account?.state !== 6)
+                    .sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
+                
+                console.log("Showing only valid props")
+                setProposals(tmpProps)
+            } else{
+                const tmpProps = allProposals
+                    .sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
+                
+                console.log("Showing all props")
+                setProposals(tmpProps)
+            }
+        }
+    }, [cachedGovernance, allProposals, filterState]);
+    
 
     React.useEffect(() => {
         if (cachedGovernance && governanceAddress){
@@ -1349,9 +1380,9 @@ export function GovernanceCachedView(props: any) {
                                                                     verticalAlign: 'bottom'}}
                                                             >
                                                                 <Typography variant="h4">
-                                                                    {totalProposals}
+                                                                    {totalActualProposals}
                                                                 </Typography>
-                                                                <Typography variant="h6">/{((totalPassed/totalProposals)*100).toFixed(1)}%</Typography>
+                                                                <Typography variant="h6">/{((totalPassed/totalActualProposals)*100).toFixed(1)}%</Typography>
                                                             </Grid>
                                                         </Button>
                                                     </Tooltip>
@@ -1411,6 +1442,8 @@ export function GovernanceCachedView(props: any) {
                                 thisToken={thisToken} 
                                 proposals={proposals} 
                                 nftBasedGovernance={nftBasedGovernance} 
+                                filterState={filterState}
+                                setFilterState={setFilterState}
                                 governanceAddress={governanceAddress} />
                             
                             {endTime &&
