@@ -166,6 +166,7 @@ const GOVERNANCE_STATE = {
 
 export function GovernanceProposalDialog(props: any){
     const cachedGovernance = props.cachedGovernance;
+    const isCancelled = props.isCancelled || false;
     const governanceLookup = props.governanceLookup;
     const tokenMap = props.tokenMap;
     const memberMap = props.memberMap;
@@ -214,35 +215,34 @@ export function GovernanceProposalDialog(props: any){
         <>
 
             {title ? 
-
-                <>
                 <Tooltip title={description ? description : `Get Voting Details for this Proposal`}>
                     <Button 
                         onClick={handleClickOpen}
                         color='inherit'
                         sx={{textAlign:'left',textTransform:'none',borderRadius:'17px'}}>
-                          <Typography variant="h6" color={(state === 2) ? `white` : `gray`}>
-                            {title}
-                            {isCouncil &&
-                              <Tooltip title='Council Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon sx={{ fontSize:16 }} /></Button></Tooltip>
-                            }
-                            {governanceType === 0 ?
-                                <></>
-                            :
-                                <>
-                                    {governanceType === 1 ?
-                                        <></>
-                                    :
-                                    <Tooltip title='NFT Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><ImageOutlinedIcon sx={{ fontSize:16 }} /></Button></Tooltip>
-                                    }
-                                </>
-                            }
+                          <Typography variant="h6" 
+                            color={(state === 2) ? `white` : `gray`}
+                            sx={{ textDecoration: isCancelled ? 'line-through' : 'none' }}>
+                              {title}
+                              {isCouncil &&
+                                <Tooltip title='Council Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon sx={{ fontSize:16 }} /></Button></Tooltip>
+                              }
+
+                              {governanceType === 0 ?
+                                  <></>
+                              :
+                                  <>
+                                      {governanceType === 1 ?
+                                          <></>
+                                      :
+                                      <Tooltip title='NFT Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><ImageOutlinedIcon sx={{ fontSize:16 }} /></Button></Tooltip>
+                                      }
+                                  </>
+                              }
                         </Typography>
                     </Button>
 
                 </Tooltip>
-                
-                </>
             :
               <Tooltip title='Get Voting Details for this Proposal'>
                   <Button 
@@ -271,7 +271,7 @@ export function GovernanceProposalDialog(props: any){
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
-                    <GovernanceProposalView governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
+                    <GovernanceProposalView governanceLookup={governanceLookup} isCancelled={isCancelled} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                             
                 </DialogContent> 
             </BootstrapDialog>

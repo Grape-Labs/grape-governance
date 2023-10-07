@@ -36,6 +36,9 @@ import {
   DialogTitle,
   Dialog,
   Badge,
+  FormGroup,
+  FormControlLabel,
+  Switch,
 } from '@mui/material/';
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
@@ -248,6 +251,7 @@ function RenderGovernanceTable(props:any) {
     const { publicKey } = useWallet();
     const [propTokenDecimals, setPropTokenDecimals] = React.useState(token?.decimals || 6);
     const [filteredGovernance, setFilteredGovernance] = React.useState(null);
+    const [filterState, setFilterState] = React.useState(true);
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
     // Avoid a layout jump when reaching the last page with empty rows.
@@ -261,6 +265,10 @@ function RenderGovernanceTable(props:any) {
         setRowsPerPage(parseInt(event.target.value, 10));
         setPage(0);
     };
+
+    const handleFilterStateChange = () => {
+        setFilterState(!filterState);
+    }
     
     function GetProposalStatus(props: any){
         const thisitem = props.item;
@@ -379,16 +387,20 @@ function RenderGovernanceTable(props:any) {
                                 <>  
                                     {(
                                         (filteredGovernance && filteredGovernance.length > 3) ? 
-                                        proposals.filter((item: any) => 
+                                        proposals
+                                        .filter((item: any) => 
                                             ( 
                                                 item.account?.name?.toLowerCase().includes(filteredGovernance.toLowerCase()) 
                                             || 
                                                 item.account?.descriptionLink?.toLowerCase().includes(filteredGovernance.toLowerCase())
                                             )
-                                        ) 
+                                        )
+                                        .filter((item: any) => filterState ? (item.account?.state !== 6) : true)
                                         : 
                                         (rowsPerPage > 0
-                                            ? proposals.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                                            ? proposals
+                                                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                                                .filter((item: any) => filterState ? (item.account?.state !== 6) : true)
                                             : proposals
                                         )
                                         /*
@@ -412,7 +424,7 @@ function RenderGovernanceTable(props:any) {
 
                                                 <TableRow key={index} sx={{borderBottom:"none"}}>
                                                     <TableCell>
-                                                        <GovernanceProposalDialog governanceType={governanceType} isCouncil={realm.account.config?.councilMint === new PublicKey(item.account?.governingTokenMint).toBase58()} state={item.account?.state} title={item.account?.name} description={item.account?.descriptionLink} governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={(cachedGovernance !== proposals) ? proposals : cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
+                                                        <GovernanceProposalDialog governanceType={governanceType} isCancelled={+item.account.state === 6 ? true : false} isCouncil={realm.account.config?.councilMint === new PublicKey(item.account?.governingTokenMint).toBase58()} state={item.account?.state} title={item.account?.name} description={item.account?.descriptionLink} governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={(cachedGovernance !== proposals) ? proposals : cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                                     </TableCell>
                                                     <TableCell>
                                                         <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
@@ -608,6 +620,18 @@ function RenderGovernanceTable(props:any) {
                             
                         </StyledTable>
                     </Table>
+                    <Box
+                        display="flex"
+                        justifyContent="flex-end"
+                        sx={{
+                            alignItems:"right",
+                            m:1
+                        }}
+                    >
+                        <FormGroup row>
+                            <FormControlLabel control={<Switch onChange={handleFilterStateChange} size="small" />} label={<><Typography variant="caption">Show Cancelled Proposals</Typography></>} />
+                        </FormGroup>
+                    </Box>
                 </TableContainer>
             </>
         )
