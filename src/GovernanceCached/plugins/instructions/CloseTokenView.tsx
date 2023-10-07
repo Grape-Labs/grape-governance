@@ -113,6 +113,7 @@ export default function TokenTransferView(props: any) {
     const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAta, setTokenAta] = React.useState(null);
+    const [tokenDecimals, setTokenDecimals] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [transactionInstructions, setTransactionInstructions] = React.useState(null);
     const [payerInstructions, setPayerInstructions] = React.useState(null);
@@ -183,45 +184,60 @@ export default function TokenTransferView(props: any) {
         } else{
             useTokenAta = new PublicKey(tokenAta);
         }
+        const MD_PUBKEY = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+        if (tokenDecimals <= 0){
+            const [pda, bump] = await PublicKey.findProgramAddress(
+                [Buffer.from('metadata'), MD_PUBKEY.toBuffer(), mintPubkey.toBuffer()],
+                MD_PUBKEY
+            );
 
-        const transction = new Transaction();
+            const masterEdition = await getMasterEdition(mintPubkey)
+            const collectionMetadata = await Metadata.fromAccountAddress(connection, pda);
+            let collectionMetadataPk = null;
 
-        /*
-        const accounts = {
-            metadata: pda,
-            owner: publicKey,
-            mint: mintPubkey,
-            tokenAccount: tokenAta,
-            masterEditionAccount: masterEdition,
-            splTokenProgram: new PublicKey(TOKEN_PROGRAM_ID),
-            collectionMetadata: collectionMetadata || null
-        }
-        var tti = await createBurnNftInstruction(accounts)
-        */
+            if (collectionMetadata.data?.creators && collectionMetadata?.collection && collectionMetadata?.collection?.verified)
+                collectionMetadataPk = await getMetadata(collectionMetadata.collection.key);
 
-        if (tokenMaxAmountRaw && tokenMaxAmountRaw > 0){
+            const accounts = {
+                metadata: pda,
+                owner: fromWallet,
+                mint: mintPubkey,
+                tokenAccount: new PublicKey(tokenAta),
+                masterEditionAccount: masterEdition,
+                splTokenProgram: new PublicKey(TOKEN_PROGRAM_ID),
+                collectionMetadata: collectionMetadataPk || null
+            }
+
+            console.log("This mint used the Metaplex program and supports full account closing")
+            let tti = createBurnNftInstruction(accounts);
+            transaction.add(tti);
+        } else{
+
+            if (tokenMaxAmountRaw && tokenMaxAmountRaw > 0){
+                transaction.add(
+                    createBurnInstruction(
+                        useTokenAta,
+                        mintPubkey,
+                        fromWallet,
+                        tokenMaxAmountRaw,
+                        [],
+                        TOKEN_PROGRAM_ID
+                    )
+                )
+            }
+            
             transaction.add(
-                createBurnInstruction(
+                createCloseAccountInstruction(
                     useTokenAta,
-                    mintPubkey,
                     fromWallet,
-                    tokenMaxAmountRaw,
+                    fromWallet,
                     [],
                     TOKEN_PROGRAM_ID
                 )
             )
+
         }
-
-        transaction.add(
-            createCloseAccountInstruction(
-                useTokenAta,
-                fromWallet,
-                fromWallet,
-                [],
-                TOKEN_PROGRAM_ID
-            )
-        )
-
+        
         setTransactionInstructions(transaction);
         
         return null;
@@ -235,6 +251,8 @@ export default function TokenTransferView(props: any) {
             //const selectedTokenMint = event.target.value as string;
             
             // with token mint traverse to get the mint info if > 0 amount
+            let decimals = 0;
+            let meta = null;
             {governanceWallet && governanceWallet.tokens.value
                 //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
                 .map((item: any, key: number) => {
@@ -245,17 +263,19 @@ export default function TokenTransferView(props: any) {
                                 setTokenMaxAmountRaw(item.account.data.parsed.info.tokenAmount.amount);
                                 //setTokenAta(item.pubkey);
                                 setTokenMint(item.account.data.parsed.info.mint);
-
+                                setTokenDecimals(item.account.data.parsed.info.tokenAmount.decimals);
                             }
                     } else {
                         if (item.pubkey === selectedAta){
                             setTokenMaxAmount(0);
                             setTokenMaxAmountRaw(0);
                             setTokenMint(item.account.data.parsed.info.mint);
-
+                            setTokenDecimals(item.account.data.parsed.info.tokenAmount.decimals);
                         }
                     }
             })}
+
+            //collectionMetadata = await getMetadata(new PublicKey(holdingsSelected[item * maxLen + holding].metadata_decoded.collection.key));
         };
 
         function ShowTokenMintInfo(props: any){
@@ -423,8 +443,6 @@ export default function TokenTransferView(props: any) {
                                     return null; // Don't render anything for items without nativeTreasuryAddress
                                 }
                             })}
-                    
-                    
                     
                 </Select>
               </FormControl>
