@@ -66,6 +66,7 @@ import DiscordIcon from '../components/static/DiscordIcon';
 
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
+import CloseTokenView from './plugins/instructions/CloseTokenView';
 import TokenTransferView from './plugins/instructions/TokenTransferView';
 import JupiterDCAView from './plugins/instructions/JupiterDCAView';
 import JupiterSwapView from './plugins/instructions/JupiterSwapView';
@@ -459,16 +460,14 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={3} disabled>Import from base58</MenuItem>
               <MenuItem value={4}>Token Transfer</MenuItem>
               <MenuItem value={5}>SOL Transfer</MenuItem>
-              {/*<MenuItem value={6} disabled>Swap</MenuItem>*/}
-              {/*<MenuItem value={7} disabled>Limit Order Strategy</MenuItem>*/}
+              <MenuItem value={10}>Close Token Account</MenuItem>
+              <MenuItem value={11} disabled>SNS Transfer</MenuItem>
               <MenuItem value={9}
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Swap</MenuItem>
               <MenuItem value={8} 
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Timed Swap</MenuItem>
-              <MenuItem value={10} disabled>Close & Full Burn Token(s)</MenuItem>
-              <MenuItem value={11} disabled>SNS Transfer</MenuItem>
               {/*
                   <MenuItem value={12} disabled>Lending</MenuItem>
                   <MenuItem value={13} disabled>Staking</MenuItem>
@@ -1248,6 +1247,12 @@ export default function GovernanceCreateProposalView(props: any){
                             {proposalType === 9 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <JupiterSwapView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                              </FormControl>
+                            }
+
+                            {proposalType === 10 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <CloseTokenView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
 
