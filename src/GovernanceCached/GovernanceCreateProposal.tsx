@@ -66,6 +66,7 @@ import DiscordIcon from '../components/static/DiscordIcon';
 
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
+import SNSView from './plugins/instructions/SNSView';
 import CloseTokenView from './plugins/instructions/CloseTokenView';
 import TokenTransferView from './plugins/instructions/TokenTransferView';
 import JupiterDCAView from './plugins/instructions/JupiterDCAView';
@@ -461,7 +462,7 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={4}>Token Transfer</MenuItem>
               <MenuItem value={5}>SOL Transfer</MenuItem>
               <MenuItem value={10}>Close Token Account</MenuItem>
-              <MenuItem value={11} disabled>SNS Transfer</MenuItem>
+              <MenuItem value={11}>SNS Transfer</MenuItem>
               <MenuItem value={9}
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Swap</MenuItem>
@@ -1246,19 +1247,25 @@ export default function GovernanceCreateProposalView(props: any){
                             }
                             {proposalType === 9 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <JupiterSwapView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                                <JupiterSwapView payerWallet={publicKey} pluginType={9} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
 
                             {proposalType === 10 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <CloseTokenView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                                <CloseTokenView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                              </FormControl>
+                            }
+
+                            {proposalType === 11 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <SNSView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
 
                             {proposalType === 12 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <ListOnMEView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                                <ListOnMEView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
 
