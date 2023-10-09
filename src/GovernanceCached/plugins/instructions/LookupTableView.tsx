@@ -161,13 +161,13 @@ export default function LookupTableView(props: any) {
         const filters = [
             {
                 dataSize: size,
-            },
+            },/*
             {
               memcmp: {
                 offset: 24,//21,
                 bytes: addressPk.toBase58()
               },
-            },
+            },*/
           ];
         
         //  console.log("filter: "+JSON.stringify(filters));

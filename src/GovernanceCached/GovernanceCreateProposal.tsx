@@ -474,7 +474,7 @@ export default function GovernanceCreateProposalView(props: any){
               >Swap</MenuItem>
               <MenuItem value={8} 
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
-              >Timed Swap</MenuItem>
+              >DCA / Scheduled Swap</MenuItem>
 
               {/*governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
                 <MenuItem value={15}>List on Magic Eden</MenuItem>
