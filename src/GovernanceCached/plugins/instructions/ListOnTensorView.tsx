@@ -1,8 +1,9 @@
 import React, { useCallback } from 'react';
 import axios from 'axios';
-import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
+import { Signer, Connection, PublicKey, Keypair, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, createTransferInstruction } from "@solana/spl-token-v2";
 import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
+import { AnchorProvider, Wallet } from "@project-serum/anchor";
 import { useWallet } from '@solana/wallet-adapter-react';
 
 import { 
@@ -40,6 +41,15 @@ import {
   Alert,
   Checkbox
 } from '@mui/material';
+
+import {
+    TensorSwapSDK,
+    TensorWhitelistSDK,
+    computeTakerPrice,
+    TakerSide,
+    castPoolConfigAnchor,
+    findWhitelistPDA,
+  } from "@tensor-oss/tensorswap-sdk";
 
 import Confetti from 'react-dom-confetti';
 import SolIcon from '../../../components/static/SolIcon';
@@ -122,9 +132,12 @@ export default function ListOnMEView(props: any) {
         const transaction = new Transaction();
         const pTransaction = new Transaction();
         
-        /*
-            Generate ME Listing Instructions
-        */                
+        const conn = new Connection("https://api.mainnet-beta.solana.com");
+        //const provider = new AnchorProvider(conn, fromWallet, {});
+        const provider = new AnchorProvider(conn, new Wallet(Keypair.generate()), {});
+        const swapSdk = new TensorSwapSDK({ provider });
+        const wlSdk = new TensorWhitelistSDK({ provider });
+        
         try {
 
             const buyer_referral = ''//publicKey.toBase58();
@@ -135,6 +148,7 @@ export default function ListOnMEView(props: any) {
                 fromWallet,
                 true
             );
+            
             
             /*
             console.log("buyer: "+publicKey.toBase58());
@@ -522,10 +536,10 @@ export default function ListOnMEView(props: any) {
                             alignItems="center"
                         >
                         <Grid item>
-                            <Avatar variant="rounded" alt={'Magic Eden'} src={'https://downloads.intercomcdn.com/i/o/326487/8399b8e845fc45a0b0ac50c8/8c1046fe692522734b0ee9e39bd2d77b.png'} />
+                            <Avatar variant="rounded" alt={'Tensor'} src={'https://www.gitbook.com/cdn-cgi/image/width=40,dpr=2,height=40,fit=contain,format=auto/https%3A%2F%2F13329462-files.gitbook.io%2F~%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252FTP1CBEbwTzCoyWl9J8MH%252Ficon%252F5ebqkVtNHSF9zW257dtX%252Fwhite-on-black.png%3Falt%3Dmedia%26token%3D3f2dce0e-2a33-49de-a602-d818889f5227'} />
                         </Grid>
                         <Grid item xs sx={{ml:1}}>
-                            <strong>Magic Eden</strong> Listing Plugin
+                            <strong>Tensor</strong> Listing Plugin
                         </Grid>
                     </Grid>
                 </Typography>
@@ -705,7 +719,7 @@ export default function ListOnMEView(props: any) {
             <Box
                 sx={{mt:4,textAlign:'center'}}
             >
-                <Typography variant="caption" sx={{color:'#ccc'}}>Governance Magic Eden Listing Plugin developed by Grape Protocol</Typography>
+                <Typography variant="caption" sx={{color:'#ccc'}}>Governance Tensor Listing Plugin developed by Grape Protocol</Typography>
             </Box>
 
             

@@ -66,12 +66,14 @@ import DiscordIcon from '../components/static/DiscordIcon';
 
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
+import LookupTableView from './plugins/instructions/LookupTableView';
 import SNSView from './plugins/instructions/SNSView';
 import CloseTokenView from './plugins/instructions/CloseTokenView';
 import TokenTransferView from './plugins/instructions/TokenTransferView';
 import JupiterDCAView from './plugins/instructions/JupiterDCAView';
 import JupiterSwapView from './plugins/instructions/JupiterSwapView';
 import ListOnMEView from './plugins/instructions/ListOnMEView';
+import ListOnTensorView from './plugins/instructions/ListOnTensorView';
 import { Title } from '@devexpress/dx-react-chart';
 
 import { 
@@ -202,7 +204,6 @@ export default function GovernanceCreateProposalView(props: any){
     const [isProposer, setIsProposer] = React.useState(false);
 
     const anchorWallet = useAnchorWallet();
-
 
     function getTokenTypeString(tokenTypeValue: any) {
       const tokenTypeEnumKey = Object.keys(GoverningTokenType).find(
@@ -459,20 +460,33 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={1}>None</MenuItem>
               {/*<MenuItem value={2} disabled>Custom</MenuItem>*/}
               <MenuItem value={3} disabled>Import from base58</MenuItem>
+              <MenuItem value={20} 
+                disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
+              >Create Address Book</MenuItem>
               <MenuItem value={4}>Token Transfer</MenuItem>
               <MenuItem value={5}>SOL Transfer</MenuItem>
               <MenuItem value={10}>Close Token Account</MenuItem>
+              
               <MenuItem value={11}>SNS Transfer</MenuItem>
+              
               <MenuItem value={9}
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Swap</MenuItem>
               <MenuItem value={8} 
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Timed Swap</MenuItem>
+
+              {/*governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
+                <MenuItem value={15}>List on Magic Eden</MenuItem>
+              */}
+              {/*governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
+                <MenuItem value={16}>List on Tensor</MenuItem>
+              */}
               {/*
                   <MenuItem value={12} disabled>Lending</MenuItem>
                   <MenuItem value={13} disabled>Staking</MenuItem>
                   <MenuItem value={15}>List on Magic Eden</MenuItem>
+                  <MenuItem value={16}>List on Tensor</MenuItem>
               */}
             </Select>
           </FormControl>
@@ -1263,13 +1277,23 @@ export default function GovernanceCreateProposalView(props: any){
                               </FormControl>
                             }
 
-                            {proposalType === 12 &&
+                            {proposalType === 15 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <ListOnMEView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
 
-                        
+                            {proposalType === 16 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <ListOnTensorView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                              </FormControl>
+                            }
+
+                            {proposalType === 20 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <LookupTableView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                              </FormControl>
+                            }
                           
                           {(instructionsArray && instructionsArray.length > 0) &&
                               <Box

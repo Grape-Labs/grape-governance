@@ -13,8 +13,6 @@ import * as anchor from '@project-serum/anchor';
 //import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
 import { useWallet } from '@solana/wallet-adapter-react';
 
-
-
 import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
 import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
 
@@ -280,7 +278,7 @@ export default function SNSView(props: any) {
           // Check if the publicKey matches the Solana public key pattern
           return solanaPublicKeyRegex.test(publicKeyString);
     }
-    
+
     function handleDestinationAddressChange(text:string){
         // add validation here
         if (isValidSolanaPublicKey(text)){
@@ -325,7 +323,20 @@ export default function SNSView(props: any) {
             <Box
                 sx={{mb:4}}
             >
-                <Typography variant="h5">SNS Transfer Plugin</Typography>
+                <Typography variant="h5">
+                    <Grid 
+                            container
+                            direction="row"
+                            alignItems="center"
+                        >
+                        <Grid item>
+                            <Avatar variant="rounded" alt={'Bonfida'} src={'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA1NiA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTI4IDRMMjguMDE1NCAxNy4xMDAzIiBzdHJva2U9IndoaXRlIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik01Mi40NjAzIDQ2LjAxMDNMNDEuMzIzMSAzOS40NTUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTQuMDk4OTQgNDYuMDEwM0wxNS4yMzYxIDM5LjQ1NSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8cGF0aCBkPSJNMjguMDA4NyAzMi4wMTA5TDE1IDI0LjQ4OThMMjguMDA4NyAxNi45NzE5TDQxIDI0LjUyMDZMMjguMDA4NyAzMi4wMTA5WiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTI4LjAyMDcgNDYuOTY5TDE1LjAxNjcgMzkuNTA1N0wxNSAyNC40ODk4TDI4LjAyMDcgMzIuMDEwOVY0Ni45NjlaIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTI4IDQ2Ljk2OUw0MS4wMDMzIDM5LjUzOTFWMjQuNTIwNkwyOCAzMi4wMTA5VjQ2Ljk2OVoiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8cGF0aCBkPSJNNTIgNDYuMDEwMlYxOC4wMzIxTDI3Ljk5OTcgNC4wNDIzNkw0IDE4LjAzMjFWNDYuMDEwMkwyNy45OTk3IDU5Ljk5OTlMNTIgNDYuMDEwMloiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLW1pdGVybGltaXQ9IjEwIi8+CjxwYXRoIGQ9Ik0yOC4wMDAxIDMyLjA0NTZMMjcuMjQzOCAzMy4zNDFMMjcuOTk4OCAzMy43ODE4TDI4Ljc1NDUgMzMuMzQyMUwyOC4wMDAxIDMyLjA0NTZaTTMuMjgyODkgMTkuMzUxOEwyNy4yNDM4IDMzLjM0MUwyOC43NTY0IDMwLjc1MDJMNC43OTU0OCAxNi43NjExTDMuMjgyODkgMTkuMzUxOFpNMjguNzU0NSAzMy4zNDIxTDUyLjc5MzYgMTkuMzUyOUw1MS4yODQ3IDE2Ljc2TDI3LjI0NTYgMzAuNzQ5MkwyOC43NTQ1IDMzLjM0MjFaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMjggMzIuMDQ1N1Y1OS45OTk5IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo='} />
+                        </Grid>
+                        <Grid item xs sx={{ml:1}}>
+                            <strong>SNS</strong> Transfer Plugin
+                        </Grid>
+                    </Grid>
+                </Typography>
             </Box>
 
             {/*

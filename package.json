@@ -86,6 +86,7 @@
         "@strata-foundation/react": "^3.11.2",
         "@strata-foundation/spl-token-bonding": "^3.11.2",
         "@strata-foundation/spl-token-collective": "^3.11.2",
+        "@tensor-oss/tensorswap-sdk": "^1.15.0",
         "@testing-library/jest-dom": "^5.16.4",
         "@testing-library/react": "^13.4.0",
         "@types/react-copy-to-clipboard": "^5.0.3",
