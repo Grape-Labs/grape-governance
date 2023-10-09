@@ -139,14 +139,40 @@ export default function LookupTableView(props: any) {
     }
 
     const getAllLookupTables = async(address: string) => {
-        /*
-        const domain = await findDisplayName(RPC_CONNECTION, address);
-        if (domain) {
-            return domain;
+        
+        const lookupTableProgramId = new PublicKey('AddressLookupTab1e1111111111111111111111111');
+        const addressPk = new PublicKey(address);
+
+        console.log("fetching lookup tables for "+address);
+
+        //let bytes = vec![1];
+        //bytes.extend_from_slice(pubkey.as_ref());
+        //const bytes = [1].concat(Array.from(addressPk.toBytes())); //[1].concat(addressPk.toBytes());
+
+        const filters = [
+            {
+              memcmp: {
+                offset: 13,//21,
+                bytes: addressPk.toBase58()
+              },
+            },
+          ];
+        
+        //  console.log("filter: "+JSON.stringify(filters));
+        //  console.log("pkey: "+JSON.stringify(addressPk.toBase58()));
+        const programAccounts = await RPC_CONNECTION.getProgramAccounts(//.getParsedProgramAccounts( //.getProgramAccounts(
+            lookupTableProgramId, {
+                filters
+        });
+        
+
+
+        console.log("programAccounts: "+JSON.stringify(programAccounts));
+
+        for (var item of programAccounts){
+            console.log("programItem "+JSON.stringify(item));
         }
-        */
-       
-        //RPC_CONNECTION.getAddressLookupTable
+
         return null;
     }
 
@@ -206,7 +232,7 @@ export default function LookupTableView(props: any) {
             setLoadingWallet(true);
             
             // get records here
-            //const records = await getAllLookupTables(wallet);
+            const records = await getAllLookupTables(wallet);
             
             //setSNSRecords(records);
 
