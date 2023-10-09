@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Signer, Connection, PublicKey, Keypair, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, createTransferInstruction } from "@solana/spl-token-v2";
 import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
-import { AnchorProvider, Wallet } from "@project-serum/anchor";
+//import { AnchorProvider, Wallet } from "@project-serum/anchor";
 import { useWallet } from '@solana/wallet-adapter-react';
 
 import { 
@@ -134,9 +134,11 @@ export default function ListOnMEView(props: any) {
         
         const conn = new Connection("https://api.mainnet-beta.solana.com");
         //const provider = new AnchorProvider(conn, fromWallet, {});
+       /*
         const provider = new AnchorProvider(conn, new Wallet(Keypair.generate()), {});
         const swapSdk = new TensorSwapSDK({ provider });
         const wlSdk = new TensorWhitelistSDK({ provider });
+        */
         
         try {
 
@@ -150,45 +152,13 @@ export default function ListOnMEView(props: any) {
             );
             
             
-            /*
-            console.log("buyer: "+publicKey.toBase58());
-            console.log("seller: "+meListing[0].seller);
-            console.log("auctionHouse: "+meListing[0].auctionHouse);
-            console.log("tokenAta: "+tokenAta.toBase58());
-            console.log("tokenMint: "+meListing[0].tokenMint);
-            console.log("tokenPDA: "+meListing[0].pdaAddress);
-            console.log("price: "+meListing[0].price);
-            console.log("seller_referral: "+seller_referral);
-            */
+            //const txSigned = res.data.txSigned;
+            //const txn = transaction.add(txSigned);
             
-            //const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/buy_now";
-            //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell";
-            const apiUrl = PROXY+"https://api.magiceden.dev/v2/instructions/sell"
-            const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
-            
-            axios.defaults.headers.common["Origin"] = "https://governance.so";
-            const res = await axios.get(
-                apiUrl,
-                {
-                params: {
-                    seller: fromWallet.toBase58(),
-                    auctionHouseAddress: meAuctionHouseAddress,
-                    tokenMint: tokenMint,
-                    tokenAccount: tokenAta.toBase58(),
-                    price: tokenAmount,
-                    //sellerReferal: 0,
-                    //expiry: -1,
-                },
-                headers: { Authorization: "Bearer " + ME_KEYBASE }
-                }
-            );
-            const txSigned = res.data.txSigned;
-            const txn = transaction.add(txSigned);
-            
-            console.log("LISTING TX: "+JSON.stringify(txn));
+            //console.log("LISTING TX: "+JSON.stringify(txn));
 
             //setPayerInstructions(pTransaction);
-            setTransactionInstructions(transaction);
+            //setTransactionInstructions(transaction);
             return transaction;
         }catch(e){
             console.log("FEE ERR: ",e);

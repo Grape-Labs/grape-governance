@@ -143,16 +143,28 @@ export default function LookupTableView(props: any) {
         const lookupTableProgramId = new PublicKey('AddressLookupTab1e1111111111111111111111111');
         const addressPk = new PublicKey(address);
 
-        console.log("fetching lookup tables for "+address);
+        console.log("Fetching lookup tables for "+address);
 
         //let bytes = vec![1];
         //bytes.extend_from_slice(pubkey.as_ref());
         //const bytes = [1].concat(Array.from(addressPk.toBytes())); //[1].concat(addressPk.toBytes());
 
+        /*
+        enum: 4 bytes
+        deactivation_slot: 8 bytes
+        last_extended_slot: 8 bytes
+        last_extended_slot_start_index: 1 byte
+        authority: 33 bytes (1 byte for optionality, 32 bytes for the pubkey)
+        */
+
+        const size = 56;
         const filters = [
             {
+                dataSize: size,
+            },
+            {
               memcmp: {
-                offset: 13,//21,
+                offset: 24,//21,
                 bytes: addressPk.toBase58()
               },
             },
