@@ -462,7 +462,7 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={3} disabled>Import from base58</MenuItem>
               <MenuItem value={20} 
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
-              >Create Address Book</MenuItem>
+              >Address Book</MenuItem>
               <MenuItem value={4}>Token Transfer</MenuItem>
               <MenuItem value={5}>SOL Transfer</MenuItem>
               <MenuItem value={10}>Close Token Account</MenuItem>
