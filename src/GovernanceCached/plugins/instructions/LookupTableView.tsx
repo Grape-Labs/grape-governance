@@ -43,7 +43,11 @@ import {
   Box,
   Alert,
   Checkbox,
-  InputAdornment
+  InputAdornment,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
 } from '@mui/material';
 
 import Confetti from 'react-dom-confetti';
@@ -58,6 +62,8 @@ import { useSnackbar } from 'notistack';
 
 //import { withSend } from "@cardinal/token-manager";
 import { findDisplayName } from '../../../utils/name-service';
+
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import WarningIcon from '@mui/icons-material/Warning';
 import SendIcon from '@mui/icons-material/Send';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
@@ -102,6 +108,7 @@ export default function LookupTableView(props: any) {
     const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
     const [entryAddress, setEntryAddress] = React.useState(null);
     const [entryAddresses, setEntryAddresses] = React.useState(null);
+    const [walletLookupTables, setWalletLookupTables] = React.useState(null);
     const [transactionInstructions, setTransactionInstructions] = React.useState(null);
     const [payerInstructions, setPayerInstructions] = React.useState(null);
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
@@ -157,33 +164,47 @@ export default function LookupTableView(props: any) {
         authority: 33 bytes (1 byte for optionality, 32 bytes for the pubkey)
         */
 
-        const size = 56;
+        const size = 58;
         const filters = [
+            /*
             {
                 dataSize: size,
-            },/*
+            },*/
             {
               memcmp: {
-                offset: 24,//21,
+                offset: 22,
                 bytes: addressPk.toBase58()
               },
-            },*/
+            },
           ];
         
-        //  console.log("filter: "+JSON.stringify(filters));
-        //  console.log("pkey: "+JSON.stringify(addressPk.toBase58()));
-        const programAccounts = await RPC_CONNECTION.getProgramAccounts(//.getParsedProgramAccounts( //.getProgramAccounts(
+        const programAccounts = await RPC_CONNECTION.getParsedProgramAccounts( //.getProgramAccounts(
             lookupTableProgramId, {
                 filters
         });
         
+        //console.log("programAccounts: "+JSON.stringify(programAccounts));
+        //const updatedSet = new Set();
 
-
-        console.log("programAccounts: "+JSON.stringify(programAccounts));
-
+        const plt = new Array();
         for (var item of programAccounts){
-            console.log("programItem "+JSON.stringify(item));
+            if (item.account.data.parsed.info.authority === addressPk.toBase58()){
+                //console.log("programItem Found "+JSON.stringify(item));
+                // we can explore pushing the object later on
+                plt.push({
+                    pubkey: item.pubkey,
+                    size: item.account.data.parsed.info?.addresses ? item.account.data.parsed.info.addresses.length : 0,
+                    info: item.account.data.parsed.info
+                })
+            }
         }
+
+        console.log("plt " +JSON.stringify(plt))
+       //const serializedPlt = plt.map((obj) => JSON.parse(JSON.stringify(obj)));
+        
+        //console.log("serializePlt: "+JSON.stringify(serializedPlt))
+        
+        setWalletLookupTables(plt);
 
         return null;
     }
@@ -391,18 +412,77 @@ export default function LookupTableView(props: any) {
 
                 }
 
+                
             <Grid sx={{textAlign:'right'}}>
-            <Button 
-                disabled={!(
-                    (transactionInstructions && JSON.stringify(transactionInstructions).length > 0)
-                )}
-                onClick={prepareAndReturnInstructions}
-                fullWidth
-                variant="contained"
-                color="warning"
-                sx={{borderRadius:'17px'}}>
-                Add to Proposal</Button>
+                <Button 
+                    disabled={!(
+                        (transactionInstructions && JSON.stringify(transactionInstructions).length > 0)
+                    )}
+                    onClick={prepareAndReturnInstructions}
+                    fullWidth
+                    variant="contained"
+                    color="warning"
+                    sx={{borderRadius:'17px'}}>
+                    Add to Proposal</Button>
             </Grid>
+
+            {(walletLookupTables && walletLookupTables.length > 0) ?
+                    <>  
+                        <Box
+                            sx={{ m:2,
+                                background: 'rgba(0, 0, 0, 0.2)',
+                                borderRadius: '17px',
+                                overflow: 'hidden',
+                                p:4
+                            }}
+                        >
+                            <Typography variant="h6">Current Address Books / Lookup Tables</Typography>
+                            <Typography variant="caption">
+                                <List sx={{ width: '100%' }}>
+                                    {walletLookupTables.map((item: any, key: number) => {
+                                        return (
+                                            <ListItem alignItems="flex-start">
+                                                <ListItemAvatar>
+                                                    <Avatar alt={item.pubkey.toBase58()}><MenuBookIcon /></Avatar>
+                                                </ListItemAvatar>
+                                                <ListItemText
+                                                    primary={`Account: ${item.pubkey.toBase58()}`}
+                                                    secondary={
+                                                        <React.Fragment>
+                                                            {item.size} Wallets<br/>
+                                                            
+                                                            
+                                                            {/*
+                                                            <Button 
+                                                                //onClick={e => closeLookup(item.account.user, item.publicKey, item.account.inputMint, item.account.outputMint, 0, parseInt(item.account.nextCycleAmountLeft,16))}
+                                                                size="small"
+                                                                variant="contained"
+                                                                color="error"
+                                                                sx={{borderRadius:'17px',mt:1}}>
+                                                                Close Lookup</Button>
+                                                            <Button 
+                                                                //onClick={e => closeLookup(item.account.user, item.publicKey, item.account.inputMint, item.account.outputMint, 0, parseInt(item.account.nextCycleAmountLeft,16))}
+                                                                size="small"
+                                                                variant="contained"
+                                                                color="info"
+                                                                sx={{borderRadius:'17px',mt:1}}>
+                                                                Add to Lookup</Button>
+                                                            */}
+                                                        </React.Fragment>
+                                                    }
+                                                    />
+                                            </ListItem>
+                                        );
+                                    })}
+                                </List>
+                                {/*JSON.stringify(currentDCAs)*/}
+                            </Typography>
+                        </Box>
+                        
+                    </>
+                :
+                    <></>
+                }
 
             
             <Box
