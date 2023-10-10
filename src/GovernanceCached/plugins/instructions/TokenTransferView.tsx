@@ -194,7 +194,7 @@ export default function TokenTransferView(props: any) {
                     
                     if (receiverAccount === null) {
                         const transactionInstruction = createAssociatedTokenAccountInstruction(
-                            payerWallet || fromPublicKey, // or use payerWallet
+                            publicKey || fromPublicKey, // or use payerWallet
                             destTokenAccount,
                             destPublicKey,
                             mintPubkey,

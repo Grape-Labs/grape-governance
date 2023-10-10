@@ -40,6 +40,7 @@ export async function createProposalInstructions(
     description:string, 
     connection: any, 
     transactionInstr: Transaction, //: InstructionsAndSignersSet, 
+    authTransaction: Transaction,
     wallet: WalletSigner,
     sendTransaction: any,
     isDraft?: boolean): Promise<any>{//Promise<Transaction> {
@@ -141,6 +142,13 @@ export async function createProposalInstructions(
     const insertInstructions: TransactionInstruction[] = [];
     //we don't have any prerequisiteInstructions to execute so we will leave this null
     const prerequisiteInstructions: TransactionInstruction[] = [];
+
+    if (authTransaction){
+      for(let r= 0; r < authTransaction.instructions.length; r++) {
+        prerequisiteInstructions.push(authTransaction[r]);
+      }
+    }
+      
 
     //loop InsertTransactions based on number of intrsuctions in transactionInstr
     let instructionData: InstructionData[]=[];
