@@ -22,6 +22,8 @@ import {
   AccountMetaData,
   getRealm,
   withSignOffProposal,
+  withAddSignatory,
+  getSignatoryRecordAddress,
   getAllProposals,
 } from '@solana/spl-governance';
 
@@ -120,7 +122,7 @@ export async function createProposalInstructions(
     const governanceAuthority = walletPk
     //const signatory = walletPk
     const payer = walletPk
-
+    
     const proposalAddress = await withCreateProposal(
       instructions,
       programId,
@@ -138,6 +140,24 @@ export async function createProposalInstructions(
       useDenyOption,
       payer
     );
+      
+    await withAddSignatory(
+      instructions,
+      programId,
+      programVersion,
+      proposalAddress,
+      tokenOwnerRecordPk,
+      governanceAuthority,
+      signatory,
+      payer
+    )
+
+    // TODO: Return signatoryRecordAddress from the SDK call
+    const signatoryRecordAddress = await getSignatoryRecordAddress(
+      programId,
+      proposalAddress,
+      signatory
+    )
     
     const insertInstructions: TransactionInstruction[] = [];
     //we don't have any prerequisiteInstructions to execute so we will leave this null
@@ -188,7 +208,7 @@ export async function createProposalInstructions(
     }
 
     console.log("6");
-    
+
     if (!isDraft){
       withSignOffProposal(
         insertInstructions, // Sign Off proposal needs to be executed after inserting instructions hence we add it to insertInstructions
@@ -198,10 +218,12 @@ export async function createProposalInstructions(
         governancePk,
         proposalAddress,
         signatory,
-        /*signatoryRecordAddress,
-        undefined*/
+        signatoryRecordAddress,
         undefined,
-        tokenOwnerRecordPk
+        /*signatoryRecordAddress,
+        undefined,
+        undefined,
+        tokenOwnerRecordPk*/
       );
     }
     
@@ -209,7 +231,6 @@ export async function createProposalInstructions(
     const signerChunks = Array(insertChunks.length).fill([]);
     //console.log('connection publicKey:', connection)
     console.log(`Creating proposal using ${insertChunks.length} chunks`);
-
 
     //return null;
     
@@ -220,7 +241,6 @@ export async function createProposalInstructions(
         const stresponse = await sendTransactions(
             connection,
             wallet,
-            //authTransaction,
             [prerequisiteInstructions, instructions, ...insertChunks],
             [[], [], ...signerChunks],
             SequenceType.Sequential
@@ -249,8 +269,6 @@ export async function createProposalInstructions(
     } else {
       // return transaction instructions here
     }
-
-  
     //return proposalAddress;
     
 
