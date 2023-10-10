@@ -142,10 +142,17 @@ export async function createProposalInstructions(
     const insertInstructions: TransactionInstruction[] = [];
     //we don't have any prerequisiteInstructions to execute so we will leave this null
     const prerequisiteInstructions: TransactionInstruction[] = [];
+    const authInstructions: TransactionInstruction[] = [];
 
     if (authTransaction){
+      /*
+      let authinstructionData: InstructionData[]=[];
+      for (var authinstruction of authTransaction.instructions){
+        instructionData.push(createInstructionData(authinstruction));
+      }
+      */
       for(let r= 0; r < authTransaction.instructions.length; r++) {
-        prerequisiteInstructions.push(authTransaction[r]);
+        authInstructions.push(authTransaction[r]);
       }
     }
       
@@ -205,6 +212,7 @@ export async function createProposalInstructions(
         const stresponse = await sendTransactions(
             connection,
             wallet,
+            authInstructions,
             [prerequisiteInstructions, instructions, ...insertChunks],
             [[], [], ...signerChunks],
             SequenceType.Sequential
