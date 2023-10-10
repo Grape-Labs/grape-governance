@@ -2148,6 +2148,7 @@ export function GovernanceProposalView(props: any){
                                     <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
                                         <Button
                                             color='inherit'
+                                            target='_blank'
                                             href={thisitem.account?.descriptionLink}
                                             sx={{borderRadius:'17px'}}
                                         >

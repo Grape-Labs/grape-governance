@@ -465,6 +465,9 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={20} 
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Address Book</MenuItem>
+              <MenuItem value={20} 
+                disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
+              >Create Token (Token 2022)</MenuItem>
               <MenuItem value={4}>Token Transfer</MenuItem>
               <MenuItem value={5}>SOL Transfer</MenuItem>
               <MenuItem value={10}>Close Token Account</MenuItem>
@@ -1226,6 +1229,7 @@ export default function GovernanceCreateProposalView(props: any){
                                     <Button
                                         color='inherit'
                                         size='small'
+                                        target='_blank'
                                         href={description}
                                         sx={{borderRadius:'17px'}}
                                     >

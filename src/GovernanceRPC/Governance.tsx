@@ -794,6 +794,7 @@ function GetParticipants(props: any){
                                     */}
                                     <Button
                                         color='inherit'
+                                        target='_blank'
                                         href={thisitem.account?.descriptionLink}
                                         sx={{borderRadius:'17px'}}
                                     >
