@@ -888,12 +888,13 @@ export function GovernanceCachedView(props: any) {
                             defeated++;
                     
                         let amountAsNum = 0;
+                        let amountAsCouncilNum = 0;
                         if (prop.account?.yesVotesCount && prop.account?.noVotesCount){
                             //console.log("tmap: "+JSON.stringify(tokenMap));
                             //console.log("item a: "+JSON.stringify(prop))
                             //if (tokenMap){
                             if (grealm.account.config?.councilMint && new PublicKey(grealm.account.config?.councilMint).toBase58() === new PublicKey(prop.account?.governingTokenMint).toBase58()){
-                                amountAsNum = +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))).toFixed(0))
+                                amountAsCouncilNum = +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))).toFixed(0))
                             } else{
                                 amountAsNum = +(((Number(""+prop.account?.yesVotesCount) + Number(""+prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
                             }
@@ -905,7 +906,7 @@ export function GovernanceCachedView(props: any) {
                             //console.log("item b: "+JSON.stringify(prop))
                             //if (tokenMap){
                             if (grealm.account.config?.councilMint && new PublicKey(grealm.account.config?.councilMint).toBase58() === new PublicKey(prop.account?.governingTokenMint).toBase58()){
-                                amountAsNum = +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))).toFixed(0))
+                                amountAsCouncilNum = +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))).toFixed(0))
                             } else{
                                 amountAsNum = +(((Number(""+prop.account?.options[0].voteWeight) + Number(""+prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
                             }
@@ -913,7 +914,8 @@ export function GovernanceCachedView(props: any) {
 
                         if (amountAsNum && amountAsNum > 0)
                             ttvc += amountAsNum;
-
+                        if (amountAsCouncilNum && amountAsCouncilNum > 0)
+                            tcvc += amountAsCouncilNum;
                         allprops.push(prop);
                         
                     }
