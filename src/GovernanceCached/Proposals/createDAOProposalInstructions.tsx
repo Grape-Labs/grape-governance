@@ -140,7 +140,7 @@ export async function createProposalInstructions(
       useDenyOption,
       payer
     );
-      
+
     await withAddSignatory(
       instructions,
       programId,
@@ -151,7 +151,7 @@ export async function createProposalInstructions(
       signatory,
       payer
     )
-
+    
     // TODO: Return signatoryRecordAddress from the SDK call
     const signatoryRecordAddress = await getSignatoryRecordAddress(
       programId,

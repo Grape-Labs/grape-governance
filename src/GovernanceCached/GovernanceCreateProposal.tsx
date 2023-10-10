@@ -66,6 +66,7 @@ import DiscordIcon from '../components/static/DiscordIcon';
 
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
+import { GovernanceGistDialog } from './GovernanceGistDialog';
 import LookupTableView from './plugins/instructions/LookupTableView';
 import SNSView from './plugins/instructions/SNSView';
 import CloseTokenView from './plugins/instructions/CloseTokenView';
@@ -1220,14 +1221,17 @@ export default function GovernanceCreateProposalView(props: any){
                               <Grid sx={{textAlign:'right',}}>
 
                                 {isGistDescription ?
-                                  <Button
-                                      color='inherit'
-                                      size='small'
-                                      href={description}
-                                      sx={{borderRadius:'17px'}}
-                                  >
-                                      <GitHubIcon sx={{mr:1}} /> GIST
-                                  </Button>
+                                  <>
+                                    <GovernanceGistDialog gist={description} />
+                                    <Button
+                                        color='inherit'
+                                        size='small'
+                                        href={description}
+                                        sx={{borderRadius:'17px'}}
+                                    >
+                                        <GitHubIcon sx={{mr:1}} /> GIST
+                                    </Button>
+                                  </>
                                 :
                                   <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
                                 }

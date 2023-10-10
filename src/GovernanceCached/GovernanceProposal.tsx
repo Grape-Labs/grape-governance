@@ -2146,9 +2146,6 @@ export function GovernanceProposalView(props: any){
                                         </Typography>
                                     </div>
                                     <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
-                                        {/*
-                                        <Gist id={gist} />
-                                        */}
                                         <Button
                                             color='inherit'
                                             href={thisitem.account?.descriptionLink}
