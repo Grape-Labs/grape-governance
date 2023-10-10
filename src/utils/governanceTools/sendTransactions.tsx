@@ -256,7 +256,7 @@ export enum SequenceType {
 export const sendTransactions = async (
   connection: Connection,
   wallet: WalletSigner,
-  authTransaction: Transaction,
+  //authTransaction: Transaction,
   instructionSet: TransactionInstruction[][],
   signersSet: Keypair[][],
   sequenceType: SequenceType = SequenceType.Parallel,
@@ -287,7 +287,10 @@ export const sendTransactions = async (
     const transaction = new Transaction()
     instructions.forEach((instruction) => transaction.add(instruction))
 
-    transaction.add(authTransaction);
+    //if (authTransaction && authTransaction.instructions.length > 0){
+    //  console.log("Has auth instructions: "+JSON.stringify(authTransaction));
+      //transaction.add(authTransaction);
+    //}
     
     transaction.recentBlockhash = block.blockhash
     transaction.setSigners(

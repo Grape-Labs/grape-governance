@@ -179,8 +179,16 @@ export async function createProposalInstructions(
         walletPk
       );
     }
-    console.log("5")
+    console.log("5");
 
+    if (authTransaction && authTransaction.instructions.length > 0){
+      for (var instruction of authTransaction.instructions){ 
+        instructions.push(instruction)
+      }
+    }
+
+    console.log("6");
+    
     if (!isDraft){
       withSignOffProposal(
         insertInstructions, // Sign Off proposal needs to be executed after inserting instructions hence we add it to insertInstructions
@@ -212,7 +220,7 @@ export async function createProposalInstructions(
         const stresponse = await sendTransactions(
             connection,
             wallet,
-            authTransaction,
+            //authTransaction,
             [prerequisiteInstructions, instructions, ...insertChunks],
             [[], [], ...signerChunks],
             SequenceType.Sequential
