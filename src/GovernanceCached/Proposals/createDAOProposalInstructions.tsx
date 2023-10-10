@@ -212,7 +212,7 @@ export async function createProposalInstructions(
         const stresponse = await sendTransactions(
             connection,
             wallet,
-            //authTransaction,
+            authTransaction,
             [prerequisiteInstructions, instructions, ...insertChunks],
             [[], [], ...signerChunks],
             SequenceType.Sequential
