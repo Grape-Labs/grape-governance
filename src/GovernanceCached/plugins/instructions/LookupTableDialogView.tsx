@@ -1,5 +1,5 @@
-import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { Transaction, PublicKey, AddressLookupTableAccount, AddressLookupTableInstruction, AddressLookupTableProgram } from '@solana/web3.js';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
 import React, { useCallback } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
@@ -56,6 +56,7 @@ import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import CloseIcon from '@mui/icons-material/Close';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import IconButton from '@mui/material/IconButton';
+import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
 
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
@@ -117,15 +118,18 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   }));
 
 export function LookupTableDialogView(props: any){
-  const ltMembers = props?.members;
+  const fromAddress = props?.fromAddress;
   const ltAddress = props?.address;
-    const [open, setOpen] = React.useState(false);
+  const [ltMembers, setLTMembers] = React.useState(props?.members);
+  const [toAddMembers, setToAddMembers] = React.useState(null);
+  const setTransactionInstructions = props?.setTransactionInstructions;
+  const [open, setOpen] = React.useState(false);
     
-    const [expanded, setExpanded] = React.useState<string | false>(false);
-    const handleChange =
-    (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
-        setExpanded(isExpanded ? panel : false);
-    };
+  const [expanded, setExpanded] = React.useState<string | false>(false);
+  const handleChange =
+  (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+      setExpanded(isExpanded ? panel : false);
+  };
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
@@ -148,20 +152,62 @@ export function LookupTableDialogView(props: any){
         setOpen(false);
     };
 
-    const getLookupTableDetails = async() => {
-      if (ltAddress){
-        // do something = await something
-        // set()
-      }
-
+  const getLookupTableDetails = async() => {
+    if (ltAddress){
+      // do something = await something
+      // set()
     }
+
+  }
+
+  const handleCloseLookupTable = () => {
+    closeLookupTable(ltAddress);
+};
+
+  const closeLookupTable = async (lookupTableAddress:string) => {
+    // Step 1 - Fetch our address lookup table
+    //const lookupTableAccount = await RPC_CONNECTION.getAddressLookupTable(new PublicKey(address))
+    const fromWallet = new PublicKey(fromAddress);
+               
+      const transaction = new Transaction();
+      
+      const closeAddressBookInstruction = await AddressLookupTableProgram.closeLookupTable({
+          lookupTable: new PublicKey(lookupTableAddress),
+          authority: fromWallet,
+          recipient: fromWallet,
+      });
+
+      transaction.add(closeAddressBookInstruction);
+
+      setTransactionInstructions(transaction);
+      setOpen(false);
+  }
+
+  const findAddressesInTable = async(address:string) => {
+    // Step 1 - Fetch our address lookup table
+    const lookupTableAccount = await RPC_CONNECTION.getAddressLookupTable(new PublicKey(address))
+    console.log(`Successfully found lookup table: `, lookupTableAccount.value?.key.toString());
+
+    // Step 2 - Make sure our search returns a valid table
+    if (!lookupTableAccount.value) return;
+
+    // Step 3 - Log each table address to console
+    const members = new Array();
+    for (let i = 0; i < lookupTableAccount.value.state.addresses.length; i++) {
+        const address = lookupTableAccount.value.state.addresses[i];
+        console.log(`   Address ${(i + 1)}: ${address.toBase58()}`);
+        members.push(address);
+    }
+    if (members.length > 0)
+      setLTMembers(members)
+  }
 
 
   React.useEffect(() => {
-    //if (!proposalDescription && gist){
-    //    getFormattedGist();
-    //}
-    console.log('members: '+JSON.stringify(ltMembers));
+    if (!ltMembers && ltAddress){
+        findAddressesInTable(ltAddress);
+    }
+    //console.log('members: '+JSON.stringify(ltMembers));
 
   }, [ltMembers]);
 
@@ -174,7 +220,7 @@ export function LookupTableDialogView(props: any){
                   onClick={handleClickOpen}
                   color='inherit'
                   sx={{color:'white',textTransform:'none',borderRadius:'17px',ml:1}}>
-                  <FindInPageIcon />
+                  <FindInPageIcon sx={{fontSize:'18px'}} />
                 </Button>
             </Tooltip>
             
@@ -219,8 +265,8 @@ export function LookupTableDialogView(props: any){
                                 </Button>
                                 <Button
                                     color='error'
+                                    onClick={handleCloseLookupTable}
                                     sx={{borderRadius:'17px'}}
-                                    disabled
                                 >
                                     Delete
                                 </Button>
