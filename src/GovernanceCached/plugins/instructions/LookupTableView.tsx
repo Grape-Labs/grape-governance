@@ -207,7 +207,7 @@ export default function LookupTableView(props: any) {
             }
         }
 
-        console.log("plt " +JSON.stringify(plt))
+        //console.log("plt " +JSON.stringify(plt))
        //const serializedPlt = plt.map((obj) => JSON.parse(JSON.stringify(obj)));
         
         //console.log("serializePlt: "+JSON.stringify(serializedPlt))

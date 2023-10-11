@@ -31,6 +31,9 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
+  TextField,
+  InputAdornment,
+  FormControl,
 } from '@mui/material/';
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
@@ -121,7 +124,9 @@ export function LookupTableDialogView(props: any){
   const fromAddress = props?.fromAddress;
   const ltAddress = props?.address;
   const [ltMembers, setLTMembers] = React.useState(props?.members);
-  const [toAddMembers, setToAddMembers] = React.useState(null);
+  const [toAddAddresses, setToAddAddresses] = React.useState(null);
+  const [entryAddress, setEntryAddress] = React.useState(null);
+    
   const setTransactionInstructions = props?.setTransactionInstructions;
   const [open, setOpen] = React.useState(false);
     
@@ -152,19 +157,35 @@ export function LookupTableDialogView(props: any){
         setOpen(false);
     };
 
-  const getLookupTableDetails = async() => {
-    if (ltAddress){
-      // do something = await something
-      // set()
-    }
+  const handleAddToLookupTable = () => {
+    addToLookupTable(new PublicKey(ltAddress));
+  };
+  const addToLookupTable = async (lookupTableAddress: PublicKey) => {
+    // Step 1 - Fetch our address lookup table
+    //const lookupTableAccount = await RPC_CONNECTION.getAddressLookupTable(new PublicKey(address))
+    const fromWallet = new PublicKey(fromAddress);
+               
+      const transaction = new Transaction();
+      
+      const addAddressesInstruction = await AddressLookupTableProgram.extendLookupTable({
+        payer: fromWallet,
+        authority: fromWallet,
+        lookupTable: lookupTableAddress,
+        addresses: toAddAddresses,
+    });
 
+      transaction.add(addAddressesInstruction);
+
+      setTransactionInstructions(transaction);
+      setOpen(false);
   }
 
-  const handleCloseLookupTable = () => {
-    closeLookupTable(ltAddress);
-};
 
-  const closeLookupTable = async (lookupTableAddress:string) => {
+  const handleCloseLookupTable = () => {
+    closeLookupTable(new PublicKey(ltAddress));
+  };
+
+  const closeLookupTable = async (lookupTableAddress: PublicKey) => {
     // Step 1 - Fetch our address lookup table
     //const lookupTableAccount = await RPC_CONNECTION.getAddressLookupTable(new PublicKey(address))
     const fromWallet = new PublicKey(fromAddress);
@@ -172,7 +193,7 @@ export function LookupTableDialogView(props: any){
       const transaction = new Transaction();
       
       const closeAddressBookInstruction = await AddressLookupTableProgram.closeLookupTable({
-          lookupTable: new PublicKey(lookupTableAddress),
+          lookupTable: lookupTableAddress,
           authority: fromWallet,
           recipient: fromWallet,
       });
@@ -182,6 +203,58 @@ export function LookupTableDialogView(props: any){
       setTransactionInstructions(transaction);
       setOpen(false);
   }
+
+  function isValidSolanaPublicKey(publicKeyString:string) {
+    // Regular expression for Solana public key validation
+    if (typeof publicKeyString !== 'string' || publicKeyString.length === 0) {
+        return false;
+    }
+    
+    // Regular expression for Solana public key validation
+    const solanaPublicKeyRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+    
+    // Check if the publicKey matches the Solana public key pattern
+    let status = solanaPublicKeyRegex.test(publicKeyString);
+    try{
+        if (status){
+            const pk = new PublicKey(publicKeyString);
+            if (pk)
+                return true;
+            else
+                return false;
+        }
+    }catch(e){
+        return false;
+    }
+  }
+
+  function handleAddEntry(){
+    if (entryAddress && entryAddress.length > 0){
+
+        if (toAddAddresses){
+            if (!toAddAddresses.includes(entryAddress) && !ltMembers.includes(entryAddress)){
+                if (isValidSolanaPublicKey(entryAddress)){
+                    toAddAddresses.push(new PublicKey(entryAddress));
+                    setEntryAddress(null);
+                }
+            }
+        }else{
+          if (!ltMembers.includes(entryAddress)){
+            if (isValidSolanaPublicKey(entryAddress)){
+                setToAddAddresses(new Array(new PublicKey(entryAddress)));
+                setEntryAddress(null);
+            }
+          }
+        }
+    }  
+  }
+  function handleAddressChange(text:string){
+    // add validation here
+    if (isValidSolanaPublicKey(text)){
+        setEntryAddress(text);
+    }
+  }
+
 
   const findAddressesInTable = async(address:string) => {
     // Step 1 - Fetch our address lookup table
@@ -207,8 +280,6 @@ export function LookupTableDialogView(props: any){
     if (!ltMembers && ltAddress){
         findAddressesInTable(ltAddress);
     }
-    //console.log('members: '+JSON.stringify(ltMembers));
-
   }, [ltMembers]);
 
 
@@ -238,13 +309,72 @@ export function LookupTableDialogView(props: any){
                     }}
                 >
                 <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog}>
-                    Address Book {ltMembers.length} Members
+                    Address Book<br/>
+                    <Typography variant="caption">
+                      <ExplorerView address={ltAddress} type='address' shorten={8} title={`${ltAddress.slice(0, 3)}...${ltAddress.slice(-3)} with ${ltMembers.length} entries`} hideTitle={false} style='text' color='white' fontSize='12px' /> 
+                    </Typography>
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
                     {ltMembers &&
                       <>
                         <Box sx={{ alignItems: 'center', textAlign: 'left', p:1}}>
+                            <FormControl fullWidth  sx={{mb:2}}>
+                              <TextField
+                                  fullWidth
+                                  label="Add Address to Address Book"
+                                  id="fullWidth"
+                                  type="text"
+                                  value={entryAddress ? entryAddress : ''}
+                                  onChange={(e) => {
+                                      handleAddressChange(e.target.value);
+                                  }}
+                                  InputProps={{
+                                      style: { textAlign: 'center' },
+                                      endAdornment: (
+                                      <InputAdornment position="end">
+                                          <Button variant="contained" color="primary"
+                                              onClick={handleAddEntry}
+                                              disabled={!entryAddress || !isValidSolanaPublicKey(entryAddress)}
+                                          >
+                                          Add
+                                          </Button>
+                                      </InputAdornment>
+                                      ),
+                                  }}
+                                  sx={{ borderRadius: '17px' }}
+                                  />
+                              </FormControl>  
+                            
+                            {(toAddAddresses && toAddAddresses.length > 0) &&
+                              <>
+                              <List>
+                                {toAddAddresses.map((member: any, key: number) => (
+                                  <ListItem key={key}>
+                                    <ListItemText primary={(
+                                      <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={member.toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
+                                    )} />
+                                  </ListItem>
+                                ))}
+
+                              </List>
+                              <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
+                                <Tooltip title="Add addresses to the existing Address Book">
+                                  <Button
+                                      variant="contained"
+                                      color='info'
+                                      onClick={handleAddToLookupTable}
+                                      sx={{}}
+                                  >
+                                      Add To Address Book
+                                  </Button>
+                                </Tooltip>
+                            </Box>
+                              </>
+                            }
+
+                            <Divider light />
+
                             <List>
                               {ltMembers.map((member: any, key: number) => (
                                 <ListItem key={key}>
@@ -256,20 +386,17 @@ export function LookupTableDialogView(props: any){
                             </List>
                             
                             <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
-                                <Button
-                                    color='primary'
-                                    sx={{borderRadius:'17px'}}
-                                    disabled
-                                >
-                                    Add Entry
-                                </Button>
-                                <Button
-                                    color='error'
-                                    onClick={handleCloseLookupTable}
-                                    sx={{borderRadius:'17px'}}
-                                >
-                                    Delete
-                                </Button>
+    
+                                <Tooltip title="Close account and return the rent to the treasury wallet">
+                                  <Button
+                                      variant="contained"
+                                      color='error'
+                                      onClick={handleCloseLookupTable}
+                                      sx={{}}
+                                  >
+                                      Delete
+                                  </Button>
+                                </Tooltip>
                             </Box>
                         </Box>
                       </>
