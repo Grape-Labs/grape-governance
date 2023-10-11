@@ -465,15 +465,13 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={20} 
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Address Book</MenuItem>
-              <MenuItem value={20} 
+              {/*MenuItem value={30} 
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
-              >Create Token (Token 2022)</MenuItem>
+              >Create Token *Token 2022</MenuItem>*/}
               <MenuItem value={4}>Token Transfer</MenuItem>
               <MenuItem value={5}>SOL Transfer</MenuItem>
               <MenuItem value={10}>Close Token Account</MenuItem>
-              
               <MenuItem value={11}>SNS Transfer</MenuItem>
-              
               <MenuItem value={9}
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Swap</MenuItem>

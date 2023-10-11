@@ -1,29 +1,9 @@
-import { 
-    getRealm, 
-    getAllProposals, 
-    getGovernance, 
-    getGovernanceAccounts, 
-    getGovernanceChatMessages, 
-    getTokenOwnerRecord, 
-    getTokenOwnerRecordsByOwner, 
-    getAllTokenOwnerRecords, 
-    getRealmConfigAddress, 
-    getGovernanceAccount, 
-    getAccountTypes, 
-    GovernanceAccountType, 
-    tryGetRealmConfig, 
-    getRealmConfig,
-    InstructionData  } from '@solana/spl-governance';
-import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
 import React, { useCallback } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
-import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
-import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
-import { InstructionMapping } from "../utils/grapeTools/InstructionMapping";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
@@ -47,26 +27,15 @@ import {
   AccordionDetails,
   AccordionSummary,
   Divider,
-  
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
 } from '@mui/material/';
-
-import {
-    Timeline,
-    TimelineItem,
-    TimelineSeparator,
-    TimelineConnector,
-    TimelineContent,
-    TimelineOppositeContent,
-    TimelineDot,
-} from '@mui/lab'
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
- 
-import { GovernanceProposalView } from './GovernanceProposal';
-
-import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
-import ExplorerView from '../utils/grapeTools/Explorer';
+import ExplorerView from '../../../utils/grapeTools/Explorer';
 import moment from 'moment';
 
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
@@ -86,13 +55,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import IconButton from '@mui/material/IconButton';
 
-import { 
-    PROXY, 
-    RPC_CONNECTION,
-    TX_RPC_ENDPOINT, 
-    GGAPI_STORAGE_POOL, 
-    GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
-import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
@@ -152,21 +114,9 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     },
   }));
 
-const GOVERNANCE_STATE = {
-    0:'Draft',
-    1:'Signing Off',
-    2:'Voting',
-    3:'Succeeded',
-    4:'Executing',
-    5:'Completed',
-    6:'Cancelled',
-    7:'Defeated',
-    8:'Executing w/errors!',
-}
-
-export function GovernanceGistDialog(props: any){
-    const gist = props?.gist;
-    const [proposalDescription, setProposalDescription] = React.useState(null);
+export function LookupTableDialogView(props: any){
+  const ltMembers = props?.members;
+  const ltAddress = props?.address;
     const [open, setOpen] = React.useState(false);
     
     const [expanded, setExpanded] = React.useState<string | false>(false);
@@ -196,39 +146,27 @@ export function GovernanceGistDialog(props: any){
         setOpen(false);
     };
 
-    const getFormattedGist = async() => {
-      if (gist){
-        const rpd = await resolveProposalDescription(gist);
-
-        // Regular expression to match image URLs
-        const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
-        const stringWithPreviews = rpd.replace(imageUrlRegex, (match:any, imageUrl:any) => {
-            return "![Image X]("+imageUrl+")";
-        });
-        
-        setProposalDescription(rpd);
+    const getLookupTableDetails = async() => {
+      if (ltAddress){
+        // do something = await something
+        // set()
       }
 
     }
 
-    const transformImageUri = (uri) => {
-        // Add your image resizing logic here
-        // Example: Append the query parameter "w=500" to resize the image to a width of 500px
-        const resizedUri = `${uri}?w=500`;
-        return resizedUri;
-    };
-
 
   React.useEffect(() => {
-    if (!proposalDescription && gist){
-        getFormattedGist();
-    }
-  }, [gist]);
+    //if (!proposalDescription && gist){
+    //    getFormattedGist();
+    //}
+    console.log('members: '+JSON.stringify(ltMembers));
+
+  }, [ltMembers]);
 
 
     return (
         <>
-            <Tooltip title='Preview GIST'>
+            <Tooltip title='View Address Book Details'>
                 <Button 
                     onClick={handleClickOpen}
                     sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
@@ -250,46 +188,35 @@ export function GovernanceGistDialog(props: any){
                     }}
                 >
                 <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog}>
-                    GIST Preview
+                    Address Book {ltMembers.length} Members
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
-                    {proposalDescription &&
+                    {ltMembers &&
                       <>
                         <Box sx={{ alignItems: 'center', textAlign: 'left', p:1}}>
-                            <div
-                                style={{
-                                    border: 'solid',
-                                    borderRadius: 15,
-                                    borderColor:'rgba(255,255,255,0.05)',
-                                    padding:4,
-                                }} 
-                            >
-                                <Typography variant='body2'>
-                                    <ReactMarkdown 
-                                        remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
-                                        transformImageUri={transformImageUri}
-                                        children={proposalDescription}
-                                        components={{
-                                            // Custom component for overriding the image rendering
-                                            img: ({ node, ...props }) => (
-                                            <img
-                                                {...props}
-                                                style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
-                                            />
-                                            ),
-                                        }}
-                                    />
-                                </Typography>
-                            </div>
+                            <List>
+                              {ltMembers.map((member: any, key: number) => (
+                                <ListItem key={key}>
+                                  <ListItemText primary={member} />
+                                </ListItem>
+                              ))}
+                            </List>
+                            
                             <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
                                 <Button
-                                    color='inherit'
-                                    target='_blank'
-                                    href={gist}
+                                    color='primary'
                                     sx={{borderRadius:'17px'}}
+                                    disabled
                                 >
-                                    <GitHubIcon sx={{mr:1}} /> GIST
+                                    Add Entry
+                                </Button>
+                                <Button
+                                    color='error'
+                                    sx={{borderRadius:'17px'}}
+                                    disabled
+                                >
+                                    Delete
                                 </Button>
                             </Box>
                         </Box>

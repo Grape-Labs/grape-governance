@@ -63,6 +63,8 @@ import { useSnackbar } from 'notistack';
 //import { withSend } from "@cardinal/token-manager";
 import { findDisplayName } from '../../../utils/name-service';
 
+import { LookupTableDialogView } from "./LookupTableDialogView";
+
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import WarningIcon from '@mui/icons-material/Warning';
 import SendIcon from '@mui/icons-material/Send';
@@ -116,6 +118,12 @@ export default function LookupTableView(props: any) {
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     
+    function clearLookupTable() {
+        setEntryAddress(null);
+        setEntryAddresses(null);
+        setTransactionInstructions(null);
+    }
+
     async function createLookupTable() {
         //const payerWallet = new PublicKey(payerAddress);
         const fromWallet = new PublicKey(fromAddress);
@@ -228,17 +236,26 @@ export default function LookupTableView(props: any) {
 
     function isValidSolanaPublicKey(publicKeyString:string) {
         // Regular expression for Solana public key validation
-        //const solanaPublicKeyRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
-        //return solanaPublicKeyRegex.test(publicKey);
         if (typeof publicKeyString !== 'string' || publicKeyString.length === 0) {
             return false;
-          }
+        }
         
-          // Regular expression for Solana public key validation
-          const solanaPublicKeyRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+        // Regular expression for Solana public key validation
+        const solanaPublicKeyRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
         
-          // Check if the publicKey matches the Solana public key pattern
-          return solanaPublicKeyRegex.test(publicKeyString);
+        // Check if the publicKey matches the Solana public key pattern
+        let status = solanaPublicKeyRegex.test(publicKeyString);
+        try{
+            if (status){
+                const pk = new PublicKey(publicKeyString);
+                if (pk)
+                    return true;
+                else
+                    return false;
+            }
+        }catch(e){
+            return false;
+        }
     }
 
     function handleAddressChange(text:string){
@@ -251,13 +268,20 @@ export default function LookupTableView(props: any) {
     function handleAddEntry(){
         if (entryAddress && entryAddress.length > 0){
             if (entryAddresses){
-                if (!entryAddresses.includes(entryAddress))
-                    entryAddresses.push(new PublicKey(entryAddress));
+                if (!entryAddresses.includes(entryAddress)){
+                    if (isValidSolanaPublicKey(entryAddress)){
+                        entryAddresses.push(new PublicKey(entryAddress));
+                        setEntryAddress(null);
+                    }
+                }
             }else{
-                setEntryAddresses(new Array(new PublicKey(entryAddress)));
+                if (isValidSolanaPublicKey(entryAddress)){
+                    setEntryAddresses(new Array(new PublicKey(entryAddress)));
+                    setEntryAddress(null);
+                }
             }
         }
-        setEntryAddress(null);
+        
     }
 
     async function getAndUpdateWalletHoldings(wallet:string){
@@ -306,7 +330,7 @@ export default function LookupTableView(props: any) {
                     label="Address"
                     id="fullWidth"
                     type="text"
-                    value={(entryAddress && entryAddress.length > 0) ? entryAddress : ''}
+                    value={entryAddress ? entryAddress : ''}
                     onChange={(e) => {
                         handleAddressChange(e.target.value);
                     }}
@@ -316,7 +340,7 @@ export default function LookupTableView(props: any) {
                         <InputAdornment position="end">
                             <Button variant="contained" color="primary"
                                 onClick={handleAddEntry}
-                                disabled={!entryAddress}
+                                disabled={!entryAddress || !isValidSolanaPublicKey(entryAddress)}
                             >
                             Add
                             </Button>
@@ -352,6 +376,12 @@ export default function LookupTableView(props: any) {
                                 To <strong>{JSON.stringify(entryAddresses)}</strong>
                                 </>
                             }
+                            <Button
+                                onClick={clearLookupTable}
+                                color="error"
+                                size="small"
+                                sx={{borderRadius:'17px'}}
+                            >Clear</Button>
                         </Typography>
                     </Box>
                 
@@ -451,23 +481,7 @@ export default function LookupTableView(props: any) {
                                                         <React.Fragment>
                                                             {item.size} Wallets<br/>
                                                             
-                                                            
-                                                            {/*
-                                                            <Button 
-                                                                //onClick={e => closeLookup(item.account.user, item.publicKey, item.account.inputMint, item.account.outputMint, 0, parseInt(item.account.nextCycleAmountLeft,16))}
-                                                                size="small"
-                                                                variant="contained"
-                                                                color="error"
-                                                                sx={{borderRadius:'17px',mt:1}}>
-                                                                Close Lookup</Button>
-                                                            <Button 
-                                                                //onClick={e => closeLookup(item.account.user, item.publicKey, item.account.inputMint, item.account.outputMint, 0, parseInt(item.account.nextCycleAmountLeft,16))}
-                                                                size="small"
-                                                                variant="contained"
-                                                                color="info"
-                                                                sx={{borderRadius:'17px',mt:1}}>
-                                                                Add to Lookup</Button>
-                                                            */}
+                                                            <LookupTableDialogView address={item.pubkey.toBase58()} members={item.info.addresses}/>
                                                         </React.Fragment>
                                                     }
                                                     />
