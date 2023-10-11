@@ -164,7 +164,7 @@ export default function GovernanceCreateProposalView(props: any){
     const maxTitleLen = 130;
     const maxDescriptionLen = 350;//512;
     const [proposalType, setProposalType] = React.useState(null);
-    const [isCouncilVote, setIsCouncilVote] = React.useState(false);
+    const [isCouncilVote, setIsCouncilVote] = React.useState(true);
     const [governanceWallet, setGovernanceWallet] = React.useState(null);
     const [governanceRulesWallet, setGovernanceRulesWallet] = React.useState(null);
     const [isGistDescription, setIsGistDescription] = React.useState(false);
@@ -188,6 +188,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [createDisabled, setCreateDisabled] = React.useState(false);
     const [instructionsObject, setInstructionsObject] = React.useState(null);
     const [instructionsArray, setInstructionsArray] = React.useState([]);
+    const [communitySupport, setCommunitySupport] = React.useState(false);
 
     const [governanceRules, setGovernanceRules] = React.useState(null);
     const [totalGovernanceValue, setTotalGovernanceValue] = React.useState(null);
@@ -538,21 +539,26 @@ export default function GovernanceCreateProposalView(props: any){
         //console.log("menu item: "+JSON.stringify(nativeWallet))
         
         setGovernanceWallet(nativeWallet);
-
+        setCommunitySupport(false);
         // get rules wallet:
         let rulesWallet = null;
         {cachedTreasury && cachedTreasury
           .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
           .map((item: any, key: number) => {
-            if (nativeWallet === item.vault?.nativeTreasury)
+            if (nativeWallet === item.vault?.nativeTreasury){
               rulesWallet = item.vault.pubkey;
+              console.log("Selected Item: "+JSON.stringify(item));
+
+              if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff')
+                setCommunitySupport(true);
+            }
           }
         )}
 
         // use RPC here to get teh rules wallet details
         
         setGovernanceRulesWallet(rulesWallet);
-
+        
         getGovernanceRules(rulesWallet);
         setProposalType(1);
 
@@ -658,9 +664,12 @@ export default function GovernanceCreateProposalView(props: any){
                                             {(() => {
                                               //const stringValue = item?.vault?.governance?.account?.config?.minCommunityTokensToCreateProposal;
                                               
-                                              const numericValue = Number("0x"+item.vault.governance.account.config.minCommunityTokensToCreateProposal);
+                                              let numericValue = null; 
                                               
-                                              if (!isNaN(numericValue)) {
+                                              if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff')
+                                                numericValue = Number("0x"+item.vault.governance.account.config.minCommunityTokensToCreateProposal);
+                                              
+                                              if (numericValue && !isNaN(numericValue)) {
                                                 const u64BigInt = BigInt(numericValue);
                                                 const u64Number = Number(u64BigInt);
                                                 return (
@@ -1398,11 +1407,13 @@ export default function GovernanceCreateProposalView(props: any){
                               <FormControlLabel 
                                 control={
                                   <Switch 
+                                    defaultChecked
                                     onChange={
                                       (e) => {
                                         setIsCouncilVote(e.target.checked)
                                       }
                                     }
+                                    disabled={!communitySupport}
                                   />
                                 } 
                                 label="Council Vote" />

@@ -226,7 +226,7 @@ export default function LookupTableView(props: any) {
         description = `LookupTable: ${JSON.stringify(entryAddresses)}`;
         
         setInstructionsObject({
-            "type":`Create Address Book / LookupTable`,
+            "type":`Address Book / LookupTable`,
             "description":description,
             "governanceInstructions":transactionInstructions,
             "authorInstructions":payerInstructions,
