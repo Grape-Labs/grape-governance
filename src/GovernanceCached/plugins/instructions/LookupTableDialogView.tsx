@@ -38,6 +38,8 @@ import { useSnackbar } from 'notistack';
 import ExplorerView from '../../../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import FindInPageIcon from '@mui/icons-material/FindInPage';
+import DescriptionIcon from '@mui/icons-material/Description';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
 import EditIcon from '@mui/icons-material/Edit';
@@ -168,9 +170,11 @@ export function LookupTableDialogView(props: any){
         <>
             <Tooltip title='View Address Book Details'>
                 <Button 
-                    onClick={handleClickOpen}
-                    sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
-                    <FitScreenIcon />
+                  size="small"
+                  onClick={handleClickOpen}
+                  color='inherit'
+                  sx={{color:'white',textTransform:'none',borderRadius:'17px',ml:1}}>
+                  <FindInPageIcon />
                 </Button>
             </Tooltip>
             

@@ -479,7 +479,7 @@ export default function LookupTableView(props: any) {
                                                     primary={`Account: ${item.pubkey.toBase58()}`}
                                                     secondary={
                                                         <React.Fragment>
-                                                            {item.size} Wallets<br/>
+                                                            {item.size} Wallets 
                                                             
                                                             <LookupTableDialogView address={item.pubkey.toBase58()} members={item.info.addresses}/>
                                                         </React.Fragment>
