@@ -202,7 +202,9 @@ export function LookupTableDialogView(props: any){
                             <List>
                               {ltMembers.map((member: any, key: number) => (
                                 <ListItem key={key}>
-                                  <ListItemText primary={member} />
+                                  <ListItemText primary={(
+                                    <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={member} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
+                                  )} />
                                 </ListItem>
                               ))}
                             </List>

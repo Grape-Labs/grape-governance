@@ -481,7 +481,7 @@ export default function LookupTableView(props: any) {
                                                         <React.Fragment>
                                                             {item.size} Wallets 
                                                             
-                                                            <LookupTableDialogView address={item.pubkey.toBase58()} members={item.info.addresses}/>
+                                                            <LookupTableDialogView address={item.pubkey.toBase58()} members={item.info.addresses} setTransactionInstructions={setTransactionInstructions}/>
                                                         </React.Fragment>
                                                     }
                                                     />
