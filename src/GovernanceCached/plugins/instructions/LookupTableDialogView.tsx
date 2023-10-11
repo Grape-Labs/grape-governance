@@ -157,6 +157,12 @@ export function LookupTableDialogView(props: any){
         setOpen(false);
     };
 
+  function clearLookupTable() {
+      setEntryAddress(null);
+      setToAddAddresses(null);
+      setTransactionInstructions(null);
+  }
+
   const handleAddToLookupTable = () => {
     addToLookupTable(new PublicKey(ltAddress));
   };
@@ -356,7 +362,12 @@ export function LookupTableDialogView(props: any){
                                     )} />
                                   </ListItem>
                                 ))}
-
+                                <Button
+                                  onClick={clearLookupTable}
+                                  color="error"
+                                  size="small"
+                                  sx={{borderRadius:'17px'}}
+                                >Clear</Button>
                               </List>
                               <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
                                 <Tooltip title="Add addresses to the existing Address Book">
