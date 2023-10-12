@@ -480,16 +480,15 @@ export default function GovernanceCreateProposalView(props: any){
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >DCA / Scheduled Swap</MenuItem>
 
-              {/*governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
+              {governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
                 <MenuItem value={15}>List on Magic Eden</MenuItem>
-              */}
+              }
               {/*governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
                 <MenuItem value={16}>List on Tensor</MenuItem>
               */}
               {/*
                   <MenuItem value={12} disabled>Lending</MenuItem>
                   <MenuItem value={13} disabled>Staking</MenuItem>
-                  <MenuItem value={15}>List on Magic Eden</MenuItem>
                   <MenuItem value={16}>List on Tensor</MenuItem>
               */}
             </Select>
@@ -547,7 +546,7 @@ export default function GovernanceCreateProposalView(props: any){
           .map((item: any, key: number) => {
             if (nativeWallet === item.vault?.nativeTreasury){
               rulesWallet = item.vault.pubkey;
-              console.log("Selected Item: "+JSON.stringify(item));
+              //console.log("Selected Item: "+JSON.stringify(item));
 
               if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff')
                 setCommunitySupport(true);

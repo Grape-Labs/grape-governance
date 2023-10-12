@@ -7,7 +7,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 
 import { 
     RPC_CONNECTION, 
-    ME_KEYBASE,
+    ME_API,
     PROXY,
 } from '../../../utils/grapeTools/constants';
 import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
@@ -152,7 +152,7 @@ export default function ListOnMEView(props: any) {
             const apiUrl = PROXY+"https://api.magiceden.dev/v2/instructions/sell"
             const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
             
-            axios.defaults.headers.common["Origin"] = "https://governance.so";
+            //axios.defaults.headers.common["Origin"] = "https://governance.so";
             const res = await axios.get(
                 apiUrl,
                 {
@@ -165,7 +165,7 @@ export default function ListOnMEView(props: any) {
                     //sellerReferal: 0,
                     //expiry: -1,
                 },
-                headers: { Authorization: "Bearer " + ME_KEYBASE }
+                headers: { Authorization: "Bearer " + ME_API }
                 }
             );
             const txSigned = res.data.txSigned;
