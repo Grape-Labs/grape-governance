@@ -1121,7 +1121,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         const govTx = new Array();
 
         // before checking solscan, fetch what we already have:
-        if (governanceLookupItem.governanceTransactionsFilename){
+        if (governanceLookupItem?.governanceTransactionsFilename){
             console.log("governanceLookupItem: "+JSON.stringify(governanceLookupItem));
             const cached_transaction_map = await getFileFromLookup(governanceLookupItem.governanceTransactionsFilename, storagePool);
             console.log("HERE cached_transaction_map: "+JSON.stringify(cached_transaction_map))

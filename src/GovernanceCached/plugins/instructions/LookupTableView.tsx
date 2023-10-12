@@ -158,7 +158,7 @@ export default function LookupTableView(props: any) {
         const lookupTableProgramId = new PublicKey('AddressLookupTab1e1111111111111111111111111');
         const addressPk = new PublicKey(address);
 
-        console.log("Fetching lookup tables for "+address);
+        console.log("Fetching Address Books / LookupTables for "+address);
 
         //let bytes = vec![1];
         //bytes.extend_from_slice(pubkey.as_ref());

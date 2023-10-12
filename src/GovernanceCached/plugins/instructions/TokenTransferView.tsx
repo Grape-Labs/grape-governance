@@ -51,7 +51,7 @@ import SolIcon from '../../../components/static/SolIcon';
 import SolCurrencyIcon from '../../../components/static/SolCurrencyIcon';
 
 import ExplorerView from '../../../utils/grapeTools/Explorer';
-
+import { LookupTableIntegratedDialogView } from './LookupTableIntegratedDialogView';
 import { SelectChangeEvent } from '@mui/material/Select';
 import { MakeLinkableAddress, ValidateAddress } from '../../../utils/grapeTools/WalletAddress'; // global key handling
 import { useSnackbar } from 'notistack';
@@ -818,14 +818,17 @@ export default function TokenTransferView(props: any) {
                     multiline
                     rows={4}
                     maxRows={4}
-                    //value={destinationWallets}
+                    value={destinationString}
+                    //defaultValue={destinationString}
                     onChange={(e) => {
                             handleDestinationWalletChange(e.target.value)
                     }}
+                    InputLabelProps={{ shrink: true }}
                     //sx={{maxlength:maxDestinationWalletLen}}
                     />
                 <Grid sx={{textAlign:'right',}}>
                     <Typography variant="caption">{destinationWalletArray ? destinationWalletArray.length > 0 ? maxDestinationWalletLen - destinationWalletArray.length : maxDestinationWalletLen : maxDestinationWalletLen} wallets remaining</Typography>
+                    <LookupTableIntegratedDialogView address={fromAddress} integrationType={1} buttonSize={12} setDestinationString={setDestinationString} destinationString={destinationString} />
                 </Grid>
             </FormControl>    
                 

@@ -464,7 +464,7 @@ export default function GovernanceCreateProposalView(props: any){
               {/*<MenuItem value={2} disabled>Custom</MenuItem>*/}
               <MenuItem value={3} disabled>Import from base58</MenuItem>
               <MenuItem value={20} 
-                disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
+              //  disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Address Book</MenuItem>
               {/*MenuItem value={30} 
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
@@ -479,7 +479,7 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={8} 
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >DCA / Scheduled Swap</MenuItem>
-
+              
               {governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
                 <MenuItem value={15}>List on Magic Eden</MenuItem>
               }
@@ -489,7 +489,6 @@ export default function GovernanceCreateProposalView(props: any){
               {/*
                   <MenuItem value={12} disabled>Lending</MenuItem>
                   <MenuItem value={13} disabled>Staking</MenuItem>
-                  <MenuItem value={16}>List on Tensor</MenuItem>
               */}
             </Select>
           </FormControl>
