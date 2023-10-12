@@ -41,6 +41,7 @@ import { useSnackbar } from 'notistack';
 import ExplorerView from '../../../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import DescriptionIcon from '@mui/icons-material/Description';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
@@ -125,9 +126,10 @@ export function LookupTableIntegratedDialogView(props: any){
   const [addressBooks, setAddressBooks] = React.useState(null);
   const setDestinationString = props?.setDestinationString;
   const destinationString = props?.destinationString;
+  const integrationType = props?.integrationType;
   //const setTransactionInstructions = props?.setTransactionInstructions;
   const [open, setOpen] = React.useState(false);
-    
+  const [loading, setLoading] = React.useState(true);
   const [expanded, setExpanded] = React.useState<string | false>(false);
   const handleChange =
   (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
@@ -154,6 +156,16 @@ export function LookupTableIntegratedDialogView(props: any){
     const handleClose = () => {
         setOpen(false);
     };
+
+  const handleAddSingleAddress = (addressToAdd: string) => {
+    if (addressToAdd){
+      if (!destinationString || destinationString.length <= 0)
+        setDestinationString(addressToAdd);
+      else
+        setDestinationString(destinationString+'\n'+addressToAdd);
+      setOpen(false);
+    }
+  }
 
   const handleAddAllAddresses = (address:string) => {
     
@@ -201,7 +213,7 @@ export function LookupTableIntegratedDialogView(props: any){
   }
 
   const getAllLookupTables = async(address: string) => {
-        
+    setLoading(true);
     const lookupTableProgramId = new PublicKey('AddressLookupTab1e1111111111111111111111111');
     const addressPk = new PublicKey(address);
 
@@ -240,9 +252,9 @@ export function LookupTableIntegratedDialogView(props: any){
     }
 
     setAddressBooks(plt);
-
+    setLoading(false);
     return null;
-    }
+  }
 
   React.useEffect(() => {
     // we need to change the logic here to fetch all lookup tables and then parse through them accordingly
@@ -284,7 +296,7 @@ export function LookupTableIntegratedDialogView(props: any){
                 <DialogContent>
                     
                     {/* THIS IS AN INNER LOOP */}
-                    {addressBooks &&
+                    {(addressBooks && addressBooks.length > 0) ?
                       <>
                         <Divider />
                         {addressBooks.map((members: any, key: number) => (
@@ -301,7 +313,24 @@ export function LookupTableIntegratedDialogView(props: any){
                                       {members.info.addresses.map((member: any, key: number) => (
                                         <ListItem key={key}>
                                           <ListItemText primary={(
-                                            <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={member} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
+                                            <Grid container direction="row">
+                                              <Grid item>
+                                                  <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={member} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
+                                              </Grid>
+                                              <Grid item>
+                                                  <Tooltip title="Add address to Instruction">
+                                                    <Button
+                                                        variant="text"
+                                                        color='primary'
+                                                        onClick={() => {handleAddSingleAddress(member)}}
+                                                        sx={{borderRadius:'17px'}}
+                                                    >
+                                                        <AddCircleIcon />
+                                                    </Button>
+                                                  </Tooltip>
+                                              </Grid>
+                                            </Grid>
+
                                           )} />
                                         </ListItem>
                                       ))}
@@ -327,6 +356,26 @@ export function LookupTableIntegratedDialogView(props: any){
                           </>
                         ))}
                       </>
+                    :
+                        <>
+                        {loading ?
+                          <LinearProgress color="inherit" />
+                        :
+                          <Grid 
+                            container 
+                            justifyContent='center'
+                            alignItems='center'
+                            sx={{p:2,m:2}}
+                            >
+                              <Grid item xs={12} justifyContent='center' alignItems='center'>
+                                <Typography variant='h6'>Address Book Not Found!</Typography>
+                              </Grid>
+                              <Grid item xs={12} justifyContent='center' alignItems='center'>
+                                <Typography variant="body2">To get started using a verified on chain Address Book make a proposal to create a new Address Book using the plugin, and build a list of trusted DAO addresses</Typography>
+                              </Grid>
+                          </Grid>
+                        }
+                        </>
                     }
                                             
                 </DialogContent> 
