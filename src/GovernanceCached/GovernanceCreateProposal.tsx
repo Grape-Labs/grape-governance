@@ -887,7 +887,7 @@ export default function GovernanceCreateProposalView(props: any){
                           }
                         }
 
-                        console.log("merged_treasury: "+JSON.stringify(cached_treasury))
+                        //console.log("merged_treasury: "+JSON.stringify(cached_treasury))
 
                         setCachedTreasury(cached_treasury);
                     }

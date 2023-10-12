@@ -233,7 +233,7 @@ export async function findObjectByGoverningTokenOwner(memberMap: any, tokenOwner
     if (rawTokenOwnerRecords){
       //memberMap = JSON.parse(JSON.stringify(rawTokenOwnerRecords));
       const foundRawObject = await rawTokenOwnerRecords.find(item => (Number(item.account.governingTokenDepositAmount) > (minDepositedAmount || 0)) && item.account.governingTokenOwner?.toBase58() === tokenOwner);
-      console.log("foundRawObject: "+JSON.stringify(foundRawObject));
+      //console.log("foundRawObject: "+JSON.stringify(foundRawObject));
       if (foundRawObject)
         return foundRawObject || false; // Return null if not found
       else  
