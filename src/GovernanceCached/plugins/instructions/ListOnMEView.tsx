@@ -149,7 +149,7 @@ export default function ListOnMEView(props: any) {
             
             //const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/buy_now";
             //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell";
-            const apiUrl = PROXY+"https://api.magiceden.dev/v2/instructions/sell"
+            const apiUrl = "https://api.magiceden.dev/v2/instructions/sell"
             const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
             
             //axios.defaults.headers.common["Origin"] = "https://governance.so";
