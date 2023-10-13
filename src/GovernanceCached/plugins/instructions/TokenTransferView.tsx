@@ -51,6 +51,7 @@ import SolIcon from '../../../components/static/SolIcon';
 import SolCurrencyIcon from '../../../components/static/SolCurrencyIcon';
 
 import ExplorerView from '../../../utils/grapeTools/Explorer';
+import { GrapeVerificationAddressBook } from './GrapeVerificationAddressBook';
 import { LookupTableIntegratedDialogView } from './LookupTableIntegratedDialogView';
 import { SelectChangeEvent } from '@mui/material/Select';
 import { MakeLinkableAddress, ValidateAddress } from '../../../utils/grapeTools/WalletAddress'; // global key handling
@@ -58,6 +59,7 @@ import { useSnackbar } from 'notistack';
 
 //import { withSend } from "@cardinal/token-manager";
 
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import SendIcon from '@mui/icons-material/Send';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
@@ -105,6 +107,7 @@ export default function TokenTransferView(props: any) {
     const [tokenMaxAmount, setTokenMaxAmount] = React.useState(null);
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
     let maxDestinationWalletLen = 20;
+    const [verifiedDestinationWalletArray, setVerifiedDestinationWalletArray] = React.useState(null);
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
     const [destinationString, setDestinationString] = React.useState(null);
     const [distributionType, setDistributionType] = React.useState(false);
@@ -714,6 +717,24 @@ export default function TokenTransferView(props: any) {
         }
     },[publicKey]);
 
+    const findPubkey = (address:string) => {
+        try{
+            const entry = verifiedDestinationWalletArray.find((item) => item.info.addresses.includes(address));
+            console.log("checking: "+address+" vs "+entry)
+            if (entry) {
+                return entry.pubkey.toBase58();
+            }
+            return null; // Address not found
+        }catch(e){console.log("ERR: "+e)}
+    };
+    
+    /*
+    React.useEffect(() => {
+        //const addressToFind = 'XYZ';
+        //const pubkey = findPubkey(addressToFind);
+    }, []);
+    */
+    
     React.useState(() => {
         if (governanceWallet && !consolidatedGovernanceWallet && !loadingWallet) {
             getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
@@ -845,9 +866,23 @@ export default function TokenTransferView(props: any) {
                                     p:4
                                 }}
                             >
-                                <Typography variant="h6">Preview/Summary</Typography>
+                                <Typography variant="h6">Preview/Summary <GrapeVerificationAddressBook address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} /></Typography>
                                 <Typography variant="caption">
-                                Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to <strong>{destinationWalletArray[0].address}</strong>
+                                Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to <strong>{destinationWalletArray[0].address} {verifiedDestinationWalletArray ? 
+                                    (
+                                        findPubkey(destinationWalletArray[0].address) ? (
+                                            <Tooltip title={`Verified on ${findPubkey(destinationWalletArray[0].address)}`}>
+                                                <Button
+                                                    size="small" sx={{borderRadius:'17px',p:0,m:0}}
+                                                >
+                                                    <CheckCircleIcon color='success' sx={{ fontSize: '12px' }}/>
+                                                </Button>
+                                            </Tooltip>
+                                        ) : (
+                                            <></>
+                                        )
+                                    ):<></>}
+                                </strong>
                                 </Typography>
                             </Box>
                         :
@@ -859,12 +894,26 @@ export default function TokenTransferView(props: any) {
                                     p:4
                                 }}
                             >
-                                <Typography variant="h6">Preview/Summary</Typography>
+                                <Typography variant="h6">Preview/Summary <GrapeVerificationAddressBook address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}/></Typography>
                                 <Typography variant="caption">
                                     Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to {destinationWalletArray.length} recipient(s):<br/>
                                     {destinationWalletArray.map((destination:any, index:number) => (
                                         <li key={index}>
-                                            {destination.address.trim()} - {destination.amount.toLocaleString()} tokens
+                                            {destination.address.trim()}{' '}
+                                                {verifiedDestinationWalletArray ? (
+                                                findPubkey(destination.address) ? (
+                                                    <Tooltip title={`Verified on ${findPubkey(destination.address)}`}>
+                                                        <Button size="small" sx={{borderRadius:'17px',p:0,m:0}}>
+                                                            <CheckCircleIcon color='success' sx={{ fontSize: '12px' }}/>
+                                                        </Button>
+                                                    </Tooltip>
+                                                ) : (
+                                                    <></>
+                                                )
+                                                ) : (
+                                                ''
+                                                )}{' '}
+                                                - {destination.amount.toLocaleString()} tokens
                                         </li>
                                     ))}
                                 </Typography>

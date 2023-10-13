@@ -158,7 +158,7 @@ export function LookupTableIntegratedDialogView(props: any){
     };
 
   const handleAddSingleAddress = (addressToAdd: string) => {
-    if (addressToAdd){
+    if (addressToAdd && setDestinationString){
       if (!destinationString || destinationString.length <= 0)
         setDestinationString(addressToAdd);
       else

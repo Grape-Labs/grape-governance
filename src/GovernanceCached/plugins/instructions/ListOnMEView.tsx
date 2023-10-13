@@ -152,7 +152,7 @@ export default function ListOnMEView(props: any) {
             const apiUrl = PROXY+"https://api.magiceden.dev/v2/instructions/sell"
             const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
             
-            axios.defaults.headers.common["Origin"] = "https://governance.so";
+            //axios.defaults.headers.common["Origin"] = "https://governance.so";
             const res = await axios.get(
                 apiUrl,
                 {

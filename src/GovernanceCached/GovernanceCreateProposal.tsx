@@ -73,6 +73,7 @@ import CloseTokenView from './plugins/instructions/CloseTokenView';
 import TokenTransferView from './plugins/instructions/TokenTransferView';
 import JupiterDCAView from './plugins/instructions/JupiterDCAView';
 import JupiterSwapView from './plugins/instructions/JupiterSwapView';
+import PhoenixSwapView from './plugins/instructions/PhoenixSwapView';
 import ListOnMEView from './plugins/instructions/ListOnMEView';
 import ListOnTensorView from './plugins/instructions/ListOnTensorView';
 import { Title } from '@devexpress/dx-react-chart';
@@ -1273,11 +1274,19 @@ export default function GovernanceCreateProposalView(props: any){
                                 <JupiterDCAView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
-                            {proposalType === 9 &&
+                            {/*proposalType === 9 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <JupiterSwapView payerWallet={publicKey} pluginType={9} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
+                            */}
+
+                            {proposalType === 9 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <PhoenixSwapView payerWallet={publicKey} pluginType={9} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                              </FormControl>
                             }
+
+
 
                             {proposalType === 10 &&
                               <FormControl fullWidth sx={{mb:2}}>
