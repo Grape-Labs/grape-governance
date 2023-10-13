@@ -268,13 +268,13 @@ export function LookupTableIntegratedDialogView(props: any){
     return (
         <>
             <Tooltip title='Use Speed Dial'>
-                <Button 
+                <IconButton 
                   size="small"
                   onClick={handleClickOpen}
                   color='inherit'
-                  sx={{color:'white',textTransform:'none',borderRadius:'17px',ml:1}}>
+                  sx={{color:'white',textTransform:'none',ml:1}}>
                   <DialpadIcon sx={{fontSize:'18px'}} />
-                </Button>
+                </IconButton>
             </Tooltip>
             
             <BootstrapDialog 
