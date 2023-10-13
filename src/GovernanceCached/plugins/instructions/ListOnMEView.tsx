@@ -166,6 +166,7 @@ export default function ListOnMEView(props: any) {
                     tokenMint: tokenMint,
                     tokenAccount: tokenAta.toBase58(),
                     price: listPrice,
+                    expiry: 0,
                     //sellerReferal: 0,
                     //expiry: -1,
                 },
@@ -174,12 +175,16 @@ export default function ListOnMEView(props: any) {
             );
 
             //console.log("TX: "+JSON.stringify(res));
-
+            
             const txSigned = res.data.txSigned;
             // convert tx
             const txSignedBuf = Buffer.from(txSigned, 'base64');
             const tx = Transaction.from(txSignedBuf);
 
+            const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
+            tx.recentBlockhash = latestBlockHash;
+            tx.feePayer = fromWallet;
+            
             //const txn = transaction.add(txSigned);
             
             //console.log("LISTING TX: "+JSON.stringify(tx));
