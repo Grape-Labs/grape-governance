@@ -115,8 +115,8 @@ export default function ListOnMEView(props: any) {
         const fromWallet = new PublicKey(fromAddress);
         //const toWallet = new PublicKey(toAddress);
         const mintPubkey = new PublicKey(tokenMint);
-        const amountToSend = +tokenAmount;
-        console.log("amountToSend: "+amountToSend)
+        const listPrice = +tokenAmount;
+        console.log("List Price: "+listPrice)
         const tokenAccount = new PublicKey(mintPubkey);
                 
         const transaction = new Transaction();
@@ -165,20 +165,26 @@ export default function ListOnMEView(props: any) {
                     auctionHouseAddress: meAuctionHouseAddress,
                     tokenMint: tokenMint,
                     tokenAccount: tokenAta.toBase58(),
-                    price: tokenAmount,
+                    price: listPrice,
                     //sellerReferal: 0,
                     //expiry: -1,
                 },
                 headers: { Authorization: "Bearer " + ME_API }
                 }
             );
+
+            //console.log("TX: "+JSON.stringify(res));
+
             const txSigned = res.data.txSigned;
+            // convert tx
+            const txSignedBuf = Buffer.from(txSigned, 'base64');
+            const tx = Transaction.from(txSignedBuf);
+
             //const txn = transaction.add(txSigned);
             
-            //console.log("LISTING TX: "+JSON.stringify(txn));
-            
+            //console.log("LISTING TX: "+JSON.stringify(tx));
             //setPayerInstructions(pTransaction);
-            setTransactionInstructions(txSigned);
+            setTransactionInstructions(tx);
             return transaction;
         }catch(e){
             console.log("FEE ERR: ",e);
