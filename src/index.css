@@ -21,7 +21,7 @@ html {
 
 body .app-body{
   background: #4d4855;  /* fallback for old browsers */
-  background: linear-gradient(147deg, #4d4855 0%, #000000 74%);
+  background: linear-gradient(147deg, #000000 0%, #923CB5 74%);
   height:100%;
   min-height: 100vh;
   padding:0;
