@@ -180,14 +180,25 @@ export default function ListOnMEView(props: any) {
             // convert tx
             const txSignedBuf = Buffer.from(txSigned, 'base64');
             const tx = Transaction.from(txSignedBuf);
-
+            
             const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
             tx.recentBlockhash = latestBlockHash;
             tx.feePayer = fromWallet;
             
             //const txn = transaction.add(txSigned);
             
-            //console.log("LISTING TX: "+JSON.stringify(tx));
+            // remove ME as a signer
+            const meSigner = "NTYeYJ1wr4bpM5xo6zx5En44SvJFAd35zTxxNoERYqd";
+            for (var instruction of tx.instructions){
+                for (var key of instruction.keys){
+                    if (key.pubkey.toBase58() === meSigner){
+                        key.isSigner = false;
+                    }
+                }
+            }
+            
+
+            console.log("LISTING TX: "+JSON.stringify(tx));
             //setPayerInstructions(pTransaction);
             setTransactionInstructions(tx);
             return transaction;
