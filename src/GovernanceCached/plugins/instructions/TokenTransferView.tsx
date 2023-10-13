@@ -872,11 +872,11 @@ export default function TokenTransferView(props: any) {
                                     (
                                         findPubkey(destinationWalletArray[0].address) ? (
                                             <Tooltip title={`Verified on ${findPubkey(destinationWalletArray[0].address)}`}>
-                                                <Button
-                                                    size="small" sx={{borderRadius:'17px',p:0,m:0}}
+                                                <IconButton
+                                                    size="small" sx={{}}
                                                 >
                                                     <CheckCircleIcon color='success' sx={{ fontSize: '12px' }}/>
-                                                </Button>
+                                                </IconButton>
                                             </Tooltip>
                                         ) : (
                                             <></>
@@ -903,9 +903,9 @@ export default function TokenTransferView(props: any) {
                                                 {verifiedDestinationWalletArray ? (
                                                 findPubkey(destination.address) ? (
                                                     <Tooltip title={`Verified on ${findPubkey(destination.address)}`}>
-                                                        <Button size="small" sx={{borderRadius:'17px',p:0,m:0}}>
+                                                        <IconButton size="small" sx={{}}>
                                                             <CheckCircleIcon color='success' sx={{ fontSize: '12px' }}/>
-                                                        </Button>
+                                                        </IconButton>
                                                     </Tooltip>
                                                 ) : (
                                                     <></>

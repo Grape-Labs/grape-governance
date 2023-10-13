@@ -65,7 +65,7 @@ import { findDisplayName } from '../../../utils/name-service';
 
 import { LookupTableDialogView } from "./LookupTableDialogView";
 
-import MenuBookIcon from '@mui/icons-material/MenuBook';
+import DialpadIcon from '@mui/icons-material/Dialpad';
 import WarningIcon from '@mui/icons-material/Warning';
 import SendIcon from '@mui/icons-material/Send';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
@@ -158,7 +158,7 @@ export default function LookupTableView(props: any) {
         const lookupTableProgramId = new PublicKey('AddressLookupTab1e1111111111111111111111111');
         const addressPk = new PublicKey(address);
 
-        console.log("Fetching Address Books / LookupTables for "+address);
+        console.log("Fetching Speed Dial for "+address);
 
         //let bytes = vec![1];
         //bytes.extend_from_slice(pubkey.as_ref());
@@ -226,7 +226,7 @@ export default function LookupTableView(props: any) {
         description = `LookupTable: ${JSON.stringify(entryAddresses)}`;
         
         setInstructionsObject({
-            "type":`Address Book / LookupTable`,
+            "type":`Speed Dial`,
             "description":description,
             "governanceInstructions":transactionInstructions,
             "authorInstructions":payerInstructions,
@@ -321,7 +321,7 @@ export default function LookupTableView(props: any) {
             <Box
                 sx={{mb:4}}
             >
-                <Typography variant="h5">Address Book Plugin</Typography>
+                <Typography variant="h5">Speed Dial Plugin</Typography>
             </Box>
 
             <FormControl fullWidth  sx={{mb:2}}>
@@ -466,14 +466,14 @@ export default function LookupTableView(props: any) {
                                 p:4
                             }}
                         >
-                            <Typography variant="h6">Current Address Books / Lookup Tables</Typography>
+                            <Typography variant="h6">Current Speed Dial Accounts</Typography>
                             <Typography variant="caption">
                                 <List sx={{ width: '100%' }}>
                                     {walletLookupTables.map((item: any, key: number) => {
                                         return (
                                             <ListItem alignItems="flex-start">
                                                 <ListItemAvatar>
-                                                    <Avatar alt={item.pubkey.toBase58()}><MenuBookIcon /></Avatar>
+                                                    <Avatar alt={item.pubkey.toBase58()}><DialpadIcon /></Avatar>
                                                 </ListItemAvatar>
                                                 <ListItemText
                                                     primary={`Account: ${item.pubkey.toBase58()}`}
@@ -502,7 +502,7 @@ export default function LookupTableView(props: any) {
             <Box
                 sx={{mt:4,textAlign:'center'}}
             >
-                <Typography variant="caption" sx={{color:'#ccc'}}>Governance Address Book Plugin developed by Grape Protocol</Typography>
+                <Typography variant="caption" sx={{color:'#ccc'}}>Governance Speed Dial Plugin developed by Grape Protocol</Typography>
             </Box>
 
             

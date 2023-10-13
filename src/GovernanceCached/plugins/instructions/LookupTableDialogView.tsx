@@ -291,7 +291,7 @@ export function LookupTableDialogView(props: any){
 
     return (
         <>
-            <Tooltip title='View Address Book Details'>
+            <Tooltip title='View Speed Dial Details'>
                 <Button 
                   size="small"
                   onClick={handleClickOpen}
@@ -315,7 +315,7 @@ export function LookupTableDialogView(props: any){
                     }}
                 >
                 <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog}>
-                    Address Book<br/>
+                    Speed Dial<br/>
                     <Typography variant="caption">
                       <ExplorerView address={ltAddress} type='address' shorten={8} title={`${ltAddress.slice(0, 3)}...${ltAddress.slice(-3)} with ${ltMembers.length} entries`} hideTitle={false} style='text' color='white' fontSize='12px' /> 
                     </Typography>
@@ -328,7 +328,7 @@ export function LookupTableDialogView(props: any){
                             <FormControl fullWidth  sx={{mb:2}}>
                               <TextField
                                   fullWidth
-                                  label="Add Address to Address Book"
+                                  label="Add Address to Speed Dial"
                                   id="fullWidth"
                                   type="text"
                                   value={entryAddress ? entryAddress : ''}
@@ -370,14 +370,14 @@ export function LookupTableDialogView(props: any){
                                 >Clear</Button>
                               </List>
                               <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
-                                <Tooltip title="Add addresses to the existing Address Book">
+                                <Tooltip title="Add addresses to the existing Speed Dial">
                                   <Button
                                       variant="contained"
                                       color='info'
                                       onClick={handleAddToLookupTable}
                                       sx={{}}
                                   >
-                                      Add To Address Book
+                                      Add To Speed Dial
                                   </Button>
                                 </Tooltip>
                             </Box>

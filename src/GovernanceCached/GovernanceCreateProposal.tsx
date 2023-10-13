@@ -466,7 +466,7 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={3} disabled>Import from base58</MenuItem>
               <MenuItem value={20} 
               //  disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
-              >Address Book</MenuItem>
+              >Speed Dial</MenuItem>
               {/*MenuItem value={30} 
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Create Token *Token 2022</MenuItem>*/}

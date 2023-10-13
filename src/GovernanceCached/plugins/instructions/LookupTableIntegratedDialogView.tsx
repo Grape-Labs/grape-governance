@@ -11,6 +11,7 @@ import remarkImages from 'remark-images';
 import {
   Typography,
   Button,
+  IconButton,
   Grid,
   Box,
   Table,
@@ -42,7 +43,7 @@ import ExplorerView from '../../../utils/grapeTools/Explorer';
 import moment from 'moment';
 
 import AddCircleIcon from '@mui/icons-material/AddCircle';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
+import DialpadIcon from '@mui/icons-material/Dialpad';
 import DescriptionIcon from '@mui/icons-material/Description';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
@@ -59,7 +60,6 @@ import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import CloseIcon from '@mui/icons-material/Close';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import IconButton from '@mui/material/IconButton';
 import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
 
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
@@ -267,13 +267,13 @@ export function LookupTableIntegratedDialogView(props: any){
 
     return (
         <>
-            <Tooltip title='Use Address Book'>
+            <Tooltip title='Use Speed Dial'>
                 <Button 
                   size="small"
                   onClick={handleClickOpen}
                   color='inherit'
                   sx={{color:'white',textTransform:'none',borderRadius:'17px',ml:1}}>
-                  <MenuBookIcon sx={{fontSize:'18px'}} />
+                  <DialpadIcon sx={{fontSize:'18px'}} />
                 </Button>
             </Tooltip>
             
@@ -319,14 +319,12 @@ export function LookupTableIntegratedDialogView(props: any){
                                               </Grid>
                                               <Grid item>
                                                   <Tooltip title="Add address to Instruction">
-                                                    <Button
-                                                        variant="text"
+                                                    <IconButton
                                                         color='primary'
                                                         onClick={() => {handleAddSingleAddress(member)}}
-                                                        sx={{borderRadius:'17px'}}
                                                     >
                                                         <AddCircleIcon />
-                                                    </Button>
+                                                    </IconButton>
                                                   </Tooltip>
                                               </Grid>
                                             </Grid>
