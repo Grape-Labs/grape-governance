@@ -706,8 +706,9 @@ export default function TokenTransferView(props: any) {
         if (destinationString && tokenAmount && distributionType){
             calculateDestinationsEvenly(destinationString, tokenAmount);
         } else if (destinationString){
-
             calculateDestinations(destinationString);
+        } else{
+            setDestinationWalletArray(null);
         }
     }, [destinationString, tokenAmount, distributionType]);
 
@@ -857,67 +858,72 @@ export default function TokenTransferView(props: any) {
             
                 {(tokenAmount && destinationWalletArray && destinationWalletArray.length > 0 && tokenMint) ?
                     <>  
-                        {destinationWalletArray.length === 1 ?
-                            <Box
-                                sx={{ m:2,
-                                    background: 'rgba(0, 0, 0, 0.2)',
-                                    borderRadius: '17px',
-                                    overflow: 'hidden',
-                                    p:4
-                                }}
-                            >
-                                <Typography variant="h6">Preview/Summary <GrapeVerificationAddressBook address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} /></Typography>
-                                <Typography variant="caption">
-                                Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to <strong>{destinationWalletArray[0].address} {verifiedDestinationWalletArray ? 
-                                    (
-                                        findPubkey(destinationWalletArray[0].address) ? (
-                                            <Tooltip title={`Verified on ${findPubkey(destinationWalletArray[0].address)}`}>
-                                                <IconButton
-                                                    size="small" sx={{}}
-                                                >
-                                                    <CheckCircleIcon color='success' sx={{ fontSize: '12px' }}/>
-                                                </IconButton>
-                                            </Tooltip>
-                                        ) : (
-                                            <></>
-                                        )
-                                    ):<></>}
-                                </strong>
-                                </Typography>
-                            </Box>
-                        :
-                            <Box
-                                sx={{ m:2,
-                                    background: 'rgba(0, 0, 0, 0.2)',
-                                    borderRadius: '17px',
-                                    overflow: 'hidden',
-                                    p:4
-                                }}
-                            >
-                                <Typography variant="h6">Preview/Summary <GrapeVerificationAddressBook address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}/></Typography>
-                                <Typography variant="caption">
-                                    Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to {destinationWalletArray.length} recipient(s):<br/>
-                                    {destinationWalletArray.map((destination:any, index:number) => (
-                                        <li key={index}>
-                                            {destination.address.trim()}{' '}
-                                                {verifiedDestinationWalletArray ? (
-                                                findPubkey(destination.address) ? (
-                                                    <Tooltip title={`Verified on ${findPubkey(destination.address)}`}>
-                                                        <IconButton size="small" sx={{}}>
-                                                            <CheckCircleIcon color='success' sx={{ fontSize: '12px' }}/>
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                ) : (
-                                                    <></>
-                                                )
-                                                ) : (
-                                                ''
-                                                )}{' '}
-                                                - {destination.amount.toLocaleString()} tokens
-                                        </li>
-                                    ))}
-                                </Typography>
-                            </Box>
+                        {destinationWalletArray.length > 0 ?
+                        <>
+                            {destinationWalletArray.length === 1 ?
+                                <Box
+                                    sx={{ m:2,
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                        borderRadius: '17px',
+                                        overflow: 'hidden',
+                                        p:4
+                                    }}
+                                >
+                                    <Typography variant="h6">Preview/Summary <GrapeVerificationAddressBook address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} /></Typography>
+                                    <Typography variant="caption">
+                                    Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to <strong>{destinationWalletArray[0].address} {verifiedDestinationWalletArray ? 
+                                        (
+                                            findPubkey(destinationWalletArray[0].address) ? (
+                                                <Tooltip title={`Verified on ${findPubkey(destinationWalletArray[0].address)}`}>
+                                                    <IconButton
+                                                        size="small" sx={{}}
+                                                    >
+                                                        <CheckCircleIcon color='success' sx={{ fontSize: '12px' }}/>
+                                                    </IconButton>
+                                                </Tooltip>
+                                            ) : (
+                                                <></>
+                                            )
+                                        ):<></>}
+                                    </strong>
+                                    </Typography>
+                                </Box>
+                            :
+                                <Box
+                                    sx={{ m:2,
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                        borderRadius: '17px',
+                                        overflow: 'hidden',
+                                        p:4
+                                    }}
+                                >
+                                    <Typography variant="h6">Preview/Summary <GrapeVerificationAddressBook address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}/></Typography>
+                                    <Typography variant="caption">
+                                        Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to {destinationWalletArray.length} recipient(s):<br/>
+                                        {destinationWalletArray.map((destination:any, index:number) => (
+                                            <li key={index}>
+                                                {destination.address.trim()}{' '}
+                                                    {verifiedDestinationWalletArray ? (
+                                                    findPubkey(destination.address) ? (
+                                                        <Tooltip title={`Verified on ${findPubkey(destination.address)}`}>
+                                                            <IconButton size="small" sx={{}}>
+                                                                <CheckCircleIcon color='success' sx={{ fontSize: '12px' }}/>
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    ) : (
+                                                        <></>
+                                                    )
+                                                    ) : (
+                                                    ''
+                                                    )}{' '}
+                                                    - {destination.amount.toLocaleString()} tokens
+                                            </li>
+                                        ))}
+                                    </Typography>
+                                </Box>
+                            }
+                        </>
+                        :<></>
                         }
                     </>
                 :

@@ -150,7 +150,9 @@ export default function ListOnMEView(props: any) {
             //const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/buy_now";
             //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell";
             //const apiUrl = PROXY+"https://api.magiceden.dev/v2/instructions/sell"
-            const apiUrl = "https://api.magiceden.dev/v2/instructions/sell"
+            //const apiUrl = "https://api.magiceden.dev/v2/instructions/sell";
+            const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell";
+            
             const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
             
             //axios.defaults.headers.common["Origin"] = "https://governance.so";
@@ -158,6 +160,7 @@ export default function ListOnMEView(props: any) {
                 apiUrl,
                 {
                 params: {
+                    network:"mainnet",
                     seller: fromWallet.toBase58(),
                     auctionHouseAddress: meAuctionHouseAddress,
                     tokenMint: tokenMint,
@@ -170,12 +173,12 @@ export default function ListOnMEView(props: any) {
                 }
             );
             const txSigned = res.data.txSigned;
-            const txn = transaction.add(txSigned);
+            //const txn = transaction.add(txSigned);
             
-            console.log("LISTING TX: "+JSON.stringify(txn));
-
+            //console.log("LISTING TX: "+JSON.stringify(txn));
+            
             //setPayerInstructions(pTransaction);
-            setTransactionInstructions(transaction);
+            setTransactionInstructions(txSigned);
             return transaction;
         }catch(e){
             console.log("FEE ERR: ",e);
@@ -423,6 +426,8 @@ export default function ListOnMEView(props: any) {
 
         let description = "";
 
+        description = `Listing ${tokenMint} for ${tokenAmount.toLocaleString()} on Magic Eden`;
+        /*
         if (destinationWalletArray.length === 1){
             description = `Sending ${tokenAmount.toLocaleString()} ${tokenMint} to ${destinationWalletArray[0].address}`;
         } else{
@@ -431,9 +436,10 @@ export default function ListOnMEView(props: any) {
                 .map((destination: any) => `${destination.address.trim()} - ${destination.amount.toLocaleString()} tokens`)
                 .join(', ');
         }
+        */
         
         setInstructionsObject({
-            "type":`${pluginType === 4 ? `Token` : 'SOL'} Transfer`,
+            "type":`Magic Eden Plugin`,
             "description":description,
             "governanceInstructions":transactionInstructions,
             "authorInstructions":payerInstructions,
