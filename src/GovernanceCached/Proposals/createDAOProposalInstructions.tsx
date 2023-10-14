@@ -204,6 +204,7 @@ export async function createProposalInstructions(
     if (authTransaction && authTransaction.instructions.length > 0){
       for (var instruction of authTransaction.instructions){ 
         instructions.push(instruction)
+        //instructions.unshift(instruction);
       }
     }
 
@@ -238,6 +239,9 @@ export async function createProposalInstructions(
       
       console.log(`Sending Transactions...`);
       try{
+
+        console.log("instructions: "+JSON.stringify(instructions));
+
         const stresponse = await sendTransactions(
             connection,
             wallet,

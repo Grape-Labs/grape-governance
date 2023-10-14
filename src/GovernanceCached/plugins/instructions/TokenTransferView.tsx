@@ -205,7 +205,10 @@ export default function TokenTransferView(props: any) {
                             ASSOCIATED_TOKEN_PROGRAM_ID
                         );
                         //transaction.add(transactionInstruction);
-                        pTransaction.add(transactionInstruction);
+                        if (publicKey)
+                            pTransaction.add(transactionInstruction);
+                        else
+                            transaction.add(transactionInstruction);
                     }
 
                     const amount = Math.floor((destinationObject.amount * Math.pow(10, decimals)));

@@ -292,12 +292,14 @@ export const sendTransactions = async (
       //transaction.add(authTransaction);
     //}
     
-    transaction.recentBlockhash = block.blockhash
+    transaction.recentBlockhash = block.blockhash;
+    transaction.feePayer = wallet.publicKey;
+    /*
     transaction.setSigners(
       // fee payed by the wallet owner
       wallet.publicKey,
       ...signers.map((s) => s.publicKey)
-    )
+    )*/
 
     if (signers.length > 0) {
       transaction.partialSign(...signers)

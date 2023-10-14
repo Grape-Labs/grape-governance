@@ -242,10 +242,10 @@ export default function GovernanceCreateProposalView(props: any){
       // using instructionsArray iterate and generate the transaction
       if (instructionsArray && instructionsArray.length > 0){
         for (let instructionItem of instructionsArray){
-          if (instructionItem.governanceInstructions)
-            transaction.add(instructionItem.governanceInstructions);
           if (instructionItem?.authorInstructions)
             authTransaction.add(instructionItem.authorInstructions);
+          if (instructionItem.governanceInstructions)
+            transaction.add(instructionItem.governanceInstructions);
         }
       }
 
@@ -270,6 +270,7 @@ export default function GovernanceCreateProposalView(props: any){
           description,
           connection,
           transaction,
+          authTransaction,
           anchorWallet,//anchorWallet,
           null,
           true,

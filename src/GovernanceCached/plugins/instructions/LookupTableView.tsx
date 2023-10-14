@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Signer, Connection, PublicKey, AddressLookupTableAccount, AddressLookupTableInstruction, AddressLookupTableProgram, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
+import { Signer, Connection, TransactionMessage, PublicKey, AddressLookupTableAccount, AddressLookupTableInstruction, AddressLookupTableProgram, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
 import { 
     TOKEN_PROGRAM_ID, 
     ASSOCIATED_TOKEN_PROGRAM_ID, 
@@ -17,6 +17,10 @@ import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
 import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
 
 import { styled } from '@mui/material/styles';
+
+import { 
+    serializeInstructionToBase64,
+  } from '@solana/spl-governance';
 
 import {
   Dialog,
@@ -98,10 +102,6 @@ const CustomTextarea = styled(TextareaAutosize)(({ theme }) => ({
     padding: theme.spacing(1), // Add padding (optional)
 }));
 
-const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
-    'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
-);
-
 export default function LookupTableView(props: any) {
     const payerWallet = props?.payerWallet || null;
     const setInstructionsObject = props?.setInstructionsObject;
@@ -115,13 +115,67 @@ export default function LookupTableView(props: any) {
     const [payerInstructions, setPayerInstructions] = React.useState(null);
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
-    const { publicKey } = useWallet();
+    const { wallet, publicKey, sendTransaction, signTransaction } = useWallet();
     const connection = RPC_CONNECTION;
-    
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+
     function clearLookupTable() {
         setEntryAddress(null);
         setEntryAddresses(null);
         setTransactionInstructions(null);
+    }
+
+    async function createAndSendV0Tx(txInstructions: TransactionInstruction[]) {
+        // Step 1 - Fetch Latest Blockhash
+        let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+        console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
+    
+        // Step 2 - Generate Transaction Message
+        const messageV0 = new TransactionMessage({
+            payerKey: publicKey,
+            recentBlockhash: latestBlockhash.blockhash,
+            instructions: txInstructions
+        }).compileToV0Message();
+        console.log("   ✅ - Compiled transaction message");
+        const transaction = new VersionedTransaction(messageV0);
+    
+        // Step 3 - Sign your transaction with the required `Signers`
+        //transaction.addSignature(publicKey);
+        //transaction.sign(wallet);
+        //const signedTransaction = await signTransaction(transaction);
+        //const signedTx = await signTransaction(transaction);
+        console.log("   ✅ - Transaction Signed");
+    
+        // Step 4 - Send our v0 transaction to the cluster
+        //const txid = await RPC_CONNECTION.sendTransaction(signedTransaction, { maxRetries: 5 });
+        
+        //const tx = new Transaction();
+        //tx.add(txInstructions[0]);
+
+        const txid = await sendTransaction(transaction, RPC_CONNECTION, {
+            skipPreflight: true,
+            preflightCommitment: "confirmed"
+        });
+        
+        console.log("   ✅ - Transaction sent to network with txid: "+txid);
+    
+        // Step 5 - Confirm Transaction 
+        const snackprogress = (key:any) => (
+            <CircularProgress sx={{padding:'10px'}} />
+        );
+        const cnfrmkey = enqueueSnackbar(`Confirming Speed Dial Creation`,{ variant: 'info', action:snackprogress, persist: true });
+        const confirmation = await RPC_CONNECTION.confirmTransaction({
+            signature: txid,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+        });
+        closeSnackbar(cnfrmkey);
+        if (confirmation.value.err) { 
+            enqueueSnackbar(`Speed Dial Error`,{ variant: 'error' });
+            throw new Error("   ❌ - Transaction not confirmed.") }
+
+        console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
+        return txid;
     }
 
     async function createLookupTable() {
@@ -130,28 +184,73 @@ export default function LookupTableView(props: any) {
                
         const transaction = new Transaction();
         const pTransaction = new Transaction();
+        const iTransaction = new Transaction();
         
         const [lookupTableInst, lookupTableAddress] =
             AddressLookupTableProgram.createLookupTable({
                 authority: fromWallet,
-                payer: publicKey,
+                payer: publicKey || fromWallet,
                 recentSlot: await RPC_CONNECTION.getSlot(),
             });
         
         //transaction.add(lookupTableInst);
-        pTransaction.add(lookupTableInst);
+        
+        //if (publicKey)
+        console.log("Original lookupTableInst: "+JSON.stringify(lookupTableInst))
+        //const meSigner = fromAddress;
+        
+        for (var key of lookupTableInst.keys){
+            if (key.pubkey === fromWallet){
+                console.log("Found key!")
+                key.isSigner = false;
+            }
+        }
 
-        const addAddressesInstruction = AddressLookupTableProgram.extendLookupTable({
-            payer: fromWallet,
+        console.log("Updated lookupTableInst: "+JSON.stringify(lookupTableInst))
+        
+        //const signData = lookupTableInst.serializeMessage()
+        // @ts-ignore
+        //const b64 = serializeInstructionToBase64(lookupTableInst)
+        //console.log("encodedTransaction "+JSON.stringify(lookupTableInst))
+
+            iTransaction.add(lookupTableInst);
+        /*
+        const changeAuthority = AddressLookupTableProgram.extendLookupTable({
+            payer: publicKey,
             authority: fromWallet,
             lookupTable: lookupTableAddress,
-            addresses: entryAddresses,
+            addresses: [],
         });
 
-        transaction.add(addAddressesInstruction);
+        iTransaction.add(changeAuthority);
+        */
+        enqueueSnackbar(`Creating Speed Dial`,{ variant: 'info' });
+        //console.log("transactions: "+JSON.stringify(transactions))
+        //const signed = await signTransaction(transactions);
+        //enqueueSnackbar(`Signed transaction`,{ variant: 'info' });
+        
+        const signature = await createAndSendV0Tx([lookupTableInst]);
 
-        setPayerInstructions(pTransaction);
-        setTransactionInstructions(transaction);
+        if (signature){
+            enqueueSnackbar(`New Speed Dial Created - ${signature}`,{ variant: 'success' });
+            //pTransaction.add(lookupTableInst);
+            //pTransaction.feePayer = publicKey;
+            
+            const addAddressesInstruction = AddressLookupTableProgram.extendLookupTable({
+                payer: fromWallet,
+                authority: fromWallet,
+                lookupTable: lookupTableAddress,
+                addresses: entryAddresses,
+            });
+
+            transaction.add(addAddressesInstruction);
+            
+            if (pTransaction && pTransaction.instructions.length > 0)
+                setPayerInstructions(pTransaction);
+            setTransactionInstructions(transaction);
+        } else{
+            enqueueSnackbar(`Speed Dial Error`,{ variant: 'error' });
+        }
         
         return null;
     }
