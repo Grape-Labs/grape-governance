@@ -22,6 +22,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  DialogContentText,
   TextField,
   TextareaAutosize,
   FormControl,
@@ -110,10 +111,91 @@ export default function ListOnMEView(props: any) {
     const [destinationString, setDestinationString] = React.useState(null);
     const [distributionType, setDistributionType] = React.useState(false);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
+    const [mintMECollection, setMintMECollection] = React.useState(null);
+    const [selectedTokenStats, setSelectedTokenStats] = React.useState(null);
+    const [allMintAssociations, setAllMintAssociations] = React.useState(null);
+    const [allWalletHoldingsOnME, setAllWalletHoldingsOnME] = React.useState(null);
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
+    async function generateMEEditListingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, price: number, newPrice: number) {
+        //const payerWallet = new PublicKey(payerAddress);
+        const fromWallet = new PublicKey(fromAddress);
+        //const toWallet = new PublicKey(toAddress);
+        const mintPubkey = new PublicKey(selectedTokenMint);
+        const listPrice = +tokenAmount;
+        console.log("List Price: "+listPrice)
+        const tokenAccount = new PublicKey(mintPubkey);
+                
+        const transaction = new Transaction();
+        const pTransaction = new Transaction();
+                     
+        try {
+
+            const buyer_referral = ''//publicKey.toBase58();
+            const seller_referral = 0;
+            
+            let tokenAta = null;
+            
+            if (selectedTokenAtaString){
+                tokenAta = new PublicKey(selectedTokenAtaString);
+            } else{
+                tokenAta = await getAssociatedTokenAddress(
+                    mintPubkey,
+                    fromWallet,
+                    true
+                );
+            }
+            
+            //const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell_change_price";
+            const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell_change_price";
+            const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
+            
+            const res = await axios.get(
+                apiUrl,
+                {
+                params: {
+                    network:"mainnet",
+                    seller: fromWallet.toBase58(),
+                    auctionHouseAddress: meAuctionHouseAddress,
+                    tokenMint: selectedTokenMint,
+                    tokenAccount: tokenAta.toBase58(),
+                    price: price,
+                    newPrice: newPrice,
+                    expiry: 0,
+                    //sellerReferal: 0,
+                    //expiry: -1,
+                },
+                headers: { Authorization: "Bearer " + ME_API }
+                }
+            );
+            const txSigned = res.data.txSigned;
+            // convert tx
+            const txSignedBuf = Buffer.from(txSigned, 'base64');
+            const tx = Transaction.from(txSignedBuf);
+            
+            const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
+            tx.recentBlockhash = latestBlockHash;
+            tx.feePayer = fromWallet;
+            
+            const meSigner = "NTYeYJ1wr4bpM5xo6zx5En44SvJFAd35zTxxNoERYqd";
+            for (var instruction of tx.instructions){
+                for (var key of instruction.keys){
+                    if (key.pubkey.toBase58() === meSigner){
+                        key.isSigner = false;
+                    }
+                }
+            }
+            
+            setTransactionInstructions(tx);
+            return transaction;
+        }catch(e){
+            console.log("FEE ERR: ",e);
+            return null;
+        }
+        
+    }
 
     async function generateMECancelLlistingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, price: number) {
         //const payerWallet = new PublicKey(payerAddress);
@@ -146,10 +228,8 @@ export default function ListOnMEView(props: any) {
             
             //const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell_cancel";
             const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell_cancel";
-            
             const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
             
-            //axios.defaults.headers.common["Origin"] = "https://governance.so";
             const res = await axios.get(
                 apiUrl,
                 {
@@ -167,9 +247,6 @@ export default function ListOnMEView(props: any) {
                 headers: { Authorization: "Bearer " + ME_API }
                 }
             );
-
-            //console.log("TX: "+JSON.stringify(res));
-            
             const txSigned = res.data.txSigned;
             // convert tx
             const txSignedBuf = Buffer.from(txSigned, 'base64');
@@ -179,9 +256,6 @@ export default function ListOnMEView(props: any) {
             tx.recentBlockhash = latestBlockHash;
             tx.feePayer = fromWallet;
             
-            //const txn = transaction.add(txSigned);
-            
-            // remove ME as a signer
             const meSigner = "NTYeYJ1wr4bpM5xo6zx5En44SvJFAd35zTxxNoERYqd";
             for (var instruction of tx.instructions){
                 for (var key of instruction.keys){
@@ -191,9 +265,6 @@ export default function ListOnMEView(props: any) {
                 }
             }
             
-
-            //console.log("LISTING TX: "+JSON.stringify(tx));
-            //setPayerInstructions(pTransaction);
             setTransactionInstructions(tx);
             return transaction;
         }catch(e){
@@ -302,9 +373,35 @@ export default function ListOnMEView(props: any) {
         
     }
 
+    async function getCollectionStats(collection:string){
+        //const fromWallet = new PublicKey(fromAddress);
+            
+        //const apiUrl = PROXY+"https://hyper.solana.fm/v3/collections/"+collection+"/stats";
+        const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/collections/"+collection+"/stats";
+
+        const options = {method: 'GET', headers: {accept: 'application/json'}};
+        //axios.defaults.headers.common["Origin"] = "https://governance.so";
+        //const resp = await axios.get(apiUrl, {
+        const resp = await window.fetch(apiUrl, options)
+            .then(response => response.json())
+            .then(response => {
+                //console.log("Tokens: "+JSON.stringify(response))
+                return response;
+            }
+            )
+            .catch(err => console.error(err));
+
+        //const json = await resp.json();
+        // set only listed NFTs
+        if (resp){
+            return resp;
+        }
+        return null;
+    }
+
     function ViewAllListings (){
         const fromWallet = new PublicKey(fromAddress);
-        const [listings, setListings] = React.useState(null);
+        //const [listings, setListings] = React.useState(null);
 
         const fetchListingsForToken = async() => {
             
@@ -325,21 +422,196 @@ export default function ListOnMEView(props: any) {
 
             //const json = await resp.json();
             // set only listed NFTs
-            if (resp){
-                const listed = new Array();
-                for (var token of resp){
-                    // check if listed and push to a new listings array
-                    if (token.listStatus === "listed"){
-                        listed.push(token);
+            setAllWalletHoldingsOnME(resp);
+            return resp;
+        }
+
+        function EditListingPriceView(props: any){
+            const selectedTokenName = props?.selectedTokenName;
+            const selectedTokenMint = props?.selectedTokenMint;
+            const selectedTokenAtaString = props?.selectedTokenAtaString;
+            const price = props?.price;
+            const [meStats, setMEStats] = React.useState(null);
+            // generateMEEditListingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, price: number, newPrice: number)
+
+            const [open, setOpen] = React.useState(false);
+            const [newListPrice, setNewListPrice] = React.useState(null);
+
+            const handleClickOpen = () => {
+                setOpen(true);
+            };
+
+            const handleClose = () => {
+                setOpen(false);
+            };
+
+            function handleChangeListPrice(){
+                if (selectedTokenMint && selectedTokenAtaString && price && newListPrice)
+                    generateMEEditListingInstructions(selectedTokenMint, selectedTokenAtaString, price, newListPrice)
+            }
+
+            const fetchEditCollectionStats = async(selectedTokenMint:string) => {
+                let meCollection = null;
+                if (allWalletHoldingsOnME){
+                    for (let item of allWalletHoldingsOnME){
+                        if (item.mintAddress === selectedTokenMint){
+                            //console.log("checking: "+JSON.stringify(item));
+                            meCollection = item.collection;
+                        }
                     }
                 }
-                if (listed)
-                    setListings(listed);
+                if (meCollection){
+                    const collectionStats = await getCollectionStats(meCollection);
+                    console.log("Collection Stats: "+JSON.stringify(collectionStats));
+                    setMEStats(collectionStats);
+                }
             }
+
+            const handleFetchTokenStats = async() => {
+                fetchEditCollectionStats(selectedTokenMint);
+                //const stats = fetchCollectionStats(selectedTokenMint);
+                //setMEStats(stats);
+            }
+
+            React.useEffect(() => {
+                if (selectedTokenMint && !meStats){
+                    // fetch all listings in an async call
+                    handleFetchTokenStats();
+                }
+            },[selectedTokenMint]);
+
+            return (
+                <>
+                <Button
+                    onClick={handleClickOpen}
+                >Edit Price</Button>
+
+                <Dialog open={open} onClose={handleClose}>
+                    <DialogTitle>Edit Mint List Price</DialogTitle>
+                    <DialogContent>
+                    <DialogContentText>
+                        <Grid container>
+
+                            <Box
+                                sx={{
+                                    m:2,
+                                    background: 'rgba(0, 0, 0, 0.1)',
+                                    borderRadius: '17px',
+                                    overflow: 'hidden',
+                                    p:1,
+                                    width:"100%"
+                                }}
+                            >
+                                <Grid container>
+
+                                    <Grid container alignItems="center">
+                                        <Grid item xs={12}>
+                                            <Typography variant="h6">
+                                                {selectedTokenName}
+                                            </Typography>
+                                        </Grid>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        Address: <ExplorerView address={selectedTokenMint} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' /> 
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        Current List Price: <strong>{price} SOL</strong>
+                                    </Grid>
+                                    <Grid item xs={12} alignItems='right'>
+                                        <Button
+                                            size="small"
+                                            color="info"
+                                            variant="text"
+                                            href={`https://magiceden.io/item-details/${selectedTokenMint}`}
+                                            target="_blank"
+
+                                        >View Listing on Magic Eden
+                                        </Button>
+                                    </Grid>
+                                </Grid>
+                            </Box>
+
+                            <Divider />
+
+                            {meStats &&
+                                <Box
+                                    sx={{
+                                        m:2,
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                        borderRadius: '17px',
+                                        overflow: 'hidden',
+                                        p:1,
+                                        width:"100%"
+                                    }}
+                                >
+                                    <Grid container alignItems="center">
+                                        <Grid item xs={12}>
+                                            <Typography variant="h6">
+                                                Collection Stats
+                                            </Typography>
+                                        </Grid>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Typography variant="caption">
+                                            Currently Listed: {meStats.listedCount}<br/>
+                                            Floor: {(meStats.floorPrice / 10 ** 9).toLocaleString()} SOL<br/>
+                                            Volume: {(meStats.volumeAll / 10 ** 9).toLocaleString()} SOL<br/>
+                                        </Typography>
+                                    </Grid>
+                                </Box>
+                            }
+                        </Grid>
+                    </DialogContentText>
+                    
+                    <RegexTextField
+                        regex={/[^0-9]+\.?[^0-9]/gi}
+                        autoFocus
+                        autoComplete='off'
+                        margin="dense"
+                        id="preview_sell_now_id"
+                        label='Edit Listing Price'
+                        type="text"
+                        fullWidth
+                        variant="standard"
+                        //value={sell_now_amount}
+                        onChange={(e: any) => {
+                            setNewListPrice(e.target.value)}
+                        }
+                        inputProps={{
+                            style: { 
+                                textAlign:'center', 
+                                fontSize: '34px'
+                            }
+                        }}
+                    />
+                    {/*
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        id="newlistprice"
+                        label="New List Price"
+                        type="text"
+                        fullWidth
+                        variant="standard"
+                        onChange={(e) => setNewListPrice(e.target.value)}
+                        />*/}
+                    </DialogContent>
+                    <DialogActions>
+                    <Button color="info" onClick={handleClose}>Cancel</Button>
+                    <Button color="primary" onClick={handleChangeListPrice}
+                        disabled={
+                            newListPrice ? false : true
+                        }
+                    >Change Price</Button>
+                    </DialogActions>
+                </Dialog>
+                </>
+
+            )
         }
         
         React.useEffect(() => {
-            if (fromAddress && !listings){
+            if (fromAddress && !allWalletHoldingsOnME){
                 // fetch all listings in an async call
                 fetchListingsForToken();
             }
@@ -347,16 +619,17 @@ export default function ListOnMEView(props: any) {
 
         return (
             <>
-            {listings ?
+            {allWalletHoldingsOnME ?
 
             <>
-                {listings.length > 0 &&
+                {(allWalletHoldingsOnME.length > 0 && allWalletHoldingsOnME.filter((item) => item.listStatus === "listed")) &&
                     <Typography variant="h6">Current Listings</Typography>
                 }
                 <List sx={{ width: '100%' }}>
-                    
+                
+                {allWalletHoldingsOnME.map((item: any, key: number) => {
+                    if (item.listStatus === "listed") {
 
-                {listings.map((item: any, key: number) => {
                         return(
                             <>
                                 <ListItem alignItems="flex-start">
@@ -378,9 +651,12 @@ export default function ListOnMEView(props: any) {
                                                 {item.price} SOL
                                             </Typography> - {item.collectionName}
                                             <ButtonGroup sx={{ml:1}}>
-                                                <Button
-                                                    disabled
-                                                >Edit Price</Button>
+                                                <EditListingPriceView 
+                                                    selectedTokenName={item.name}
+                                                    selectedTokenMint={item.mintAddress}
+                                                    selectedTokenAtaString={item.tokenAddress}
+                                                    price={item.price}
+                                                />
                                                 <Button
                                                     color="error"
                                                     onClick={() => generateMECancelLlistingInstructions(item.mintAddress, item.tokenAddress, item.price)}
@@ -395,8 +671,9 @@ export default function ListOnMEView(props: any) {
                             
                             </>
                         );
-                    })
-                }
+                    }
+                    return null;
+                })}
                 </List>
                 </>
             :
@@ -405,11 +682,36 @@ export default function ListOnMEView(props: any) {
         )
     }
 
+    const fetchCollectionStats = async(selectedTokenMint:string) => {
+        let meCollection = null;
+        if (allWalletHoldingsOnME){
+            for (let item of allWalletHoldingsOnME){
+                if (item.mintAddress === selectedTokenMint){
+                    //console.log("checking: "+JSON.stringify(item));
+                    meCollection = item.collection;
+                }
+            }
+        }
+        if (meCollection){
+            const collectionStats = await getCollectionStats(meCollection);
+            console.log("Collection Stats: "+JSON.stringify(collectionStats));
+            setSelectedTokenStats(collectionStats);
+        }
+    }
+
+    React.useEffect(() => {
+        if (tokenMint && allWalletHoldingsOnME){
+            //fetchCollectionStats(tokenMint);
+        }
+    },[tokenMint]);
+
     function TokenSelect() {
 
         const handleMintSelected = (event: SelectChangeEvent) => {
             const selectedTokenMint = event.target.value as string;
             setTokenMint(selectedTokenMint);
+
+            fetchCollectionStats(selectedTokenMint);
 
             // with token mint traverse to get the mint info if > 0 amount
             {governanceWallet && governanceWallet.tokens.value
@@ -423,6 +725,7 @@ export default function ListOnMEView(props: any) {
                             }
                     }
             })}
+
         
         };
 
@@ -594,6 +897,25 @@ export default function ListOnMEView(props: any) {
                             })}
                     
                 </Select>
+                {selectedTokenStats &&
+                    <Box
+                        sx={{
+                            m:1,
+                            background: 'rgba(0, 0, 0, 0.1)',
+                            borderRadius: '17px',
+                            overflow: 'hidden',
+                            p:1,
+                        }}
+                    >
+                        <Grid sx={{textAlign:'right',}}>
+                            <Typography variant="caption">
+                                Currently Listed: {selectedTokenStats.listedCount}<br/>
+                                Floor: {(selectedTokenStats.floorPrice / 10 ** 9).toLocaleString()} SOL<br/>
+                                Volume: {(selectedTokenStats.volumeAll / 10 ** 9).toLocaleString()} SOL<br/>
+                            </Typography>
+                        </Grid>
+                    </Box>
+                }
               </FormControl>
             </Box>
           </>
@@ -763,6 +1085,7 @@ export default function ListOnMEView(props: any) {
             
             <FormControl fullWidth  sx={{mb:2}}>
                 
+                {/*
                 <TextField 
                     fullWidth 
                     label="List Price" 
@@ -780,6 +1103,28 @@ export default function ListOnMEView(props: any) {
                     }}
                     sx={{borderRadius:'17px'}} 
                 />
+                */}
+                <RegexTextField
+                        regex={/[^0-9]+\.?[^0-9]/gi}
+                        autoFocus
+                        autoComplete='off'
+                        margin="dense"
+                        id="setListingPrice"
+                        label='List Price'
+                        type="text"
+                        fullWidth
+                        variant="outlined"
+                        //value={tokenAmount}
+                        onChange={(e: any) => {
+                            handleTokenAmountChange(e.target.value)}
+                        }
+                        inputProps={{
+                            style: { 
+                                textAlign:'center', 
+                                fontSize: '20px'
+                            }
+                        }}
+                    />
                 {(tokenAmount && tokenAmount < tokenFloorPrice) ? 
                     <Grid sx={{textAlign:'right',}}>
                         <Typography variant="caption" color="error">WARNING: You are listing bellow floor price!</Typography>
