@@ -198,7 +198,15 @@ export function LookupTableDialogView(props: any){
                
       const transaction = new Transaction();
       
-      const closeAddressBookInstruction = await AddressLookupTableProgram.closeLookupTable({
+      const deactivateAddressBookInstruction = AddressLookupTableProgram.deactivateLookupTable({
+        lookupTable: lookupTableAddress,
+          authority: fromWallet,
+      });
+
+      transaction.add(deactivateAddressBookInstruction);
+
+
+      const closeAddressBookInstruction = AddressLookupTableProgram.closeLookupTable({
           lookupTable: lookupTableAddress,
           authority: fromWallet,
           recipient: fromWallet,

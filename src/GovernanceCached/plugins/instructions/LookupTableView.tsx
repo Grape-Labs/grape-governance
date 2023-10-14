@@ -129,15 +129,17 @@ export default function LookupTableView(props: any) {
         const fromWallet = new PublicKey(fromAddress);
                
         const transaction = new Transaction();
+        const pTransaction = new Transaction();
         
         const [lookupTableInst, lookupTableAddress] =
             AddressLookupTableProgram.createLookupTable({
                 authority: fromWallet,
-                payer: fromWallet,
+                payer: publicKey,
                 recentSlot: await RPC_CONNECTION.getSlot(),
             });
-
-        transaction.add(lookupTableInst);
+        
+        //transaction.add(lookupTableInst);
+        pTransaction.add(lookupTableInst);
 
         const addAddressesInstruction = AddressLookupTableProgram.extendLookupTable({
             payer: fromWallet,
@@ -148,6 +150,7 @@ export default function LookupTableView(props: any) {
 
         transaction.add(addAddressesInstruction);
 
+        setPayerInstructions(pTransaction);
         setTransactionInstructions(transaction);
         
         return null;

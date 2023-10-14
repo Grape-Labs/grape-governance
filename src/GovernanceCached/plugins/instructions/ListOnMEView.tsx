@@ -150,7 +150,7 @@ export default function ListOnMEView(props: any) {
             //const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/buy_now";
             //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell";
             //const apiUrl = PROXY+"https://api.magiceden.dev/v2/instructions/sell"
-            //const apiUrl = "https://api.magiceden.dev/v2/instructions/sell";
+            //const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell";
             const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell";
             
             const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
@@ -198,7 +198,7 @@ export default function ListOnMEView(props: any) {
             }
             
 
-            console.log("LISTING TX: "+JSON.stringify(tx));
+            //console.log("LISTING TX: "+JSON.stringify(tx));
             //setPayerInstructions(pTransaction);
             setTransactionInstructions(tx);
             return transaction;
@@ -207,6 +207,66 @@ export default function ListOnMEView(props: any) {
             return null;
         }
         
+    }
+
+    function ViewAllListings (){
+        const fromWallet = new PublicKey(fromAddress);
+        const [listings, setListings] = React.useState(null);
+
+        const fetchListingsForToken = async() => {
+            
+            //const apiUrl = PROXY+"https://hyper.solana.fm/v3/wallets/"+fromAddress+"/activities";
+            const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/wallets/"+fromAddress+"/tokens";
+
+            const options = {method: 'GET', headers: {accept: 'application/json'}};
+            //axios.defaults.headers.common["Origin"] = "https://governance.so";
+            //const resp = await axios.get(apiUrl, {
+            const resp = await window.fetch(apiUrl, options)
+                .then(response => response.json())
+                .then(response => {
+                    //console.log("Tokens: "+JSON.stringify(response))
+                    return response;
+                }
+                )
+                .catch(err => console.error(err));
+
+            //const json = await resp.json();
+            // set only listed NFTs
+            if (resp){
+                const listed = new Array();
+                for (var token of resp){
+                    // check if listed and push to a new listings array
+                    if (token.listStatus === "listed"){
+                        listed.push(token);
+                    }
+                }
+                if (listed)
+                    setListings(listed);
+            }
+        }
+        
+        React.useEffect(() => {
+            if (fromAddress && !listings){
+                // fetch all listings in an async call
+                fetchListingsForToken();
+            }
+        },[fromAddress]);
+
+        return (
+            <>
+            {listings ?
+
+            <>
+                {listings.map((item: any, key: number) => {
+                        return(
+                            <>{key+1}: {JSON.stringify(item)}</>
+                        );
+                    })
+                }</>
+            :
+                <></>
+            }</>
+        )
     }
 
     function TokenSelect() {
@@ -403,22 +463,6 @@ export default function ListOnMEView(props: any) {
           </>
         );
       }
-
-    
-    function isValidSolanaPublicKey(publicKeyString:string) {
-        // Regular expression for Solana public key validation
-        //const solanaPublicKeyRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
-        //return solanaPublicKeyRegex.test(publicKey);
-        if (typeof publicKeyString !== 'string' || publicKeyString.length === 0) {
-            return false;
-          }
-        
-          // Regular expression for Solana public key validation
-          const solanaPublicKeyRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
-        
-          // Check if the publicKey matches the Solana public key pattern
-          return solanaPublicKeyRegex.test(publicKeyString);
-    }
 
     function handleTokenAmountChange(text:string){
         // Use a regular expression to allow numeric input with optional decimals
@@ -650,7 +694,7 @@ export default function ListOnMEView(props: any) {
                     <Box
                         sx={{textAlign:'center'}}
                     >
-                        <Typography variant="caption">Start by selecting a token & list price</Typography>
+                        <Typography variant="caption">Start by selecting a mint & set a list price</Typography>
                     </Box>
                 }
 
@@ -679,6 +723,8 @@ export default function ListOnMEView(props: any) {
                         Add to Proposal</Button>
                     */}
                 </Grid>
+
+                <ViewAllListings />
                 
                 {transactionInstructions && 
                     <Box
