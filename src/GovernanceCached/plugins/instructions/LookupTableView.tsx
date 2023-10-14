@@ -7,6 +7,7 @@ import {
     createCloseAccountInstruction,
     createBurnInstruction
 } from "@solana/spl-token-v2";
+import { BorshCoder } from "@coral-xyz/anchor";
 import * as anchor from '@project-serum/anchor';
 //import { getMasterEdition, getMetadata } from '../utils/auctionHouse/helpers/accounts';
 //import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
@@ -206,7 +207,17 @@ export default function LookupTableView(props: any) {
             }
         }
 
+        /*
+        const borshCoder = new BorshCoder(null);
+        const instruction = lookupTableInst;
+        const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
+        const decodedIx = borshCoder.instruction.decode(hexString, 'hex');
+        //const decodedIx = borshCoder.instruction.decode(lookupTableInst.data, 'base58')
+        
+        //console.log("decodedIx: "+JSON.stringify(borshCoder));
+
         console.log("Updated lookupTableInst: "+JSON.stringify(lookupTableInst))
+        */
         
         //const signData = lookupTableInst.serializeMessage()
         // @ts-ignore

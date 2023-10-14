@@ -38,7 +38,12 @@ import {
   Typography,
   Box,
   Alert,
-  Checkbox
+  Checkbox,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Divider,
 } from '@mui/material';
 
 import Confetti from 'react-dom-confetti';
@@ -110,7 +115,95 @@ export default function ListOnMEView(props: any) {
     
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
-    async function generateMEInstructions() {
+    async function generateMECancelLlistingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, price: number) {
+        //const payerWallet = new PublicKey(payerAddress);
+        const fromWallet = new PublicKey(fromAddress);
+        //const toWallet = new PublicKey(toAddress);
+        const mintPubkey = new PublicKey(selectedTokenMint);
+        const listPrice = +tokenAmount;
+        console.log("List Price: "+listPrice)
+        const tokenAccount = new PublicKey(mintPubkey);
+                
+        const transaction = new Transaction();
+        const pTransaction = new Transaction();
+                     
+        try {
+
+            const buyer_referral = ''//publicKey.toBase58();
+            const seller_referral = 0;
+            
+            let tokenAta = null;
+            
+            if (selectedTokenAtaString){
+                tokenAta = new PublicKey(selectedTokenAtaString);
+            } else{
+                tokenAta = await getAssociatedTokenAddress(
+                    mintPubkey,
+                    fromWallet,
+                    true
+                );
+            }
+            
+            //const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell_cancel";
+            const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell_cancel";
+            
+            const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
+            
+            //axios.defaults.headers.common["Origin"] = "https://governance.so";
+            const res = await axios.get(
+                apiUrl,
+                {
+                params: {
+                    network:"mainnet",
+                    seller: fromWallet.toBase58(),
+                    auctionHouseAddress: meAuctionHouseAddress,
+                    tokenMint: selectedTokenMint,
+                    tokenAccount: tokenAta.toBase58(),
+                    price: price,
+                    expiry: 0,
+                    //sellerReferal: 0,
+                    //expiry: -1,
+                },
+                headers: { Authorization: "Bearer " + ME_API }
+                }
+            );
+
+            //console.log("TX: "+JSON.stringify(res));
+            
+            const txSigned = res.data.txSigned;
+            // convert tx
+            const txSignedBuf = Buffer.from(txSigned, 'base64');
+            const tx = Transaction.from(txSignedBuf);
+            
+            const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
+            tx.recentBlockhash = latestBlockHash;
+            tx.feePayer = fromWallet;
+            
+            //const txn = transaction.add(txSigned);
+            
+            // remove ME as a signer
+            const meSigner = "NTYeYJ1wr4bpM5xo6zx5En44SvJFAd35zTxxNoERYqd";
+            for (var instruction of tx.instructions){
+                for (var key of instruction.keys){
+                    if (key.pubkey.toBase58() === meSigner){
+                        key.isSigner = false;
+                    }
+                }
+            }
+            
+
+            //console.log("LISTING TX: "+JSON.stringify(tx));
+            //setPayerInstructions(pTransaction);
+            setTransactionInstructions(tx);
+            return transaction;
+        }catch(e){
+            console.log("FEE ERR: ",e);
+            return null;
+        }
+        
+    }
+
+    async function generateMEListInstructions() {
         //const payerWallet = new PublicKey(payerAddress);
         const fromWallet = new PublicKey(fromAddress);
         //const toWallet = new PublicKey(toAddress);
@@ -257,12 +350,55 @@ export default function ListOnMEView(props: any) {
             {listings ?
 
             <>
+                {listings.length > 0 &&
+                    <Typography variant="h6">Current Listings</Typography>
+                }
+                <List sx={{ width: '100%' }}>
+                    
+
                 {listings.map((item: any, key: number) => {
                         return(
-                            <>{key+1}: {JSON.stringify(item)}</>
+                            <>
+                                <ListItem alignItems="flex-start">
+                                    <ListItemAvatar>
+                                    <Avatar alt={item.name} src={item.image} />
+                                    </ListItemAvatar>
+                                    <ListItemText
+                                    primary={
+                                        <>{item.name}</>
+                                    }
+                                    secondary={
+                                        <React.Fragment>
+                                            <Typography
+                                                sx={{ display: 'inline' }}
+                                                component="span"
+                                                variant="body2"
+                                                color="text.primary"
+                                            >
+                                                {item.price} SOL
+                                            </Typography> - {item.collectionName}
+                                            <ButtonGroup sx={{ml:1}}>
+                                                <Button
+                                                    disabled
+                                                >Edit Price</Button>
+                                                <Button
+                                                    color="error"
+                                                    onClick={() => generateMECancelLlistingInstructions(item.mintAddress, item.tokenAddress, item.price)}
+                                                >Cancel Listing</Button>
+                                            </ButtonGroup>
+                                        </React.Fragment>
+                                    }
+                                    />
+                                </ListItem>
+
+                                <Divider variant="inset" component="li" />
+                            
+                            </>
                         );
                     })
-                }</>
+                }
+                </List>
+                </>
             :
                 <></>
             }</>
@@ -705,7 +841,7 @@ export default function ListOnMEView(props: any) {
                             (tokenAmount && tokenAmount > 0)
                         )
                         }
-                        onClick={generateMEInstructions}
+                        onClick={generateMEListInstructions}
                         variant="contained"
                         color="info"
                         sx={{borderRadius:'17px'}}>
