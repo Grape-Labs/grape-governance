@@ -76,6 +76,7 @@ import TokenTransferView from './plugins/instructions/TokenTransferView';
 import JupiterDCAView from './plugins/instructions/JupiterDCAView';
 import JupiterSwapView from './plugins/instructions/JupiterSwapView';
 import PhoenixSwapView from './plugins/instructions/PhoenixSwapView';
+import BuyOnMEView from './plugins/instructions/BuyOnMEView';
 import ListOnMEView from './plugins/instructions/ListOnMEView';
 import ListOnTensorView from './plugins/instructions/ListOnTensorView';
 import { Title } from '@devexpress/dx-react-chart';
@@ -488,7 +489,10 @@ export default function GovernanceCreateProposalView(props: any){
               >DCA / Scheduled Swap</MenuItem>
               
               {governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
-                <MenuItem value={15}>List on Magic Eden</MenuItem>
+                <MenuItem value={40}>List on Magic Eden</MenuItem>
+              }
+              {governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
+                <MenuItem value={41}>Buy from Magic Eden</MenuItem>
               }
 
               {/*governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
@@ -1307,11 +1311,17 @@ export default function GovernanceCreateProposalView(props: any){
                               </FormControl>
                             }
 
-                            {proposalType === 15 &&
+                            {proposalType === 40 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <ListOnMEView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
+                            {proposalType === 41 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <BuyOnMEView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                              </FormControl>
+                            }
+
 
                             {proposalType === 16 &&
                               <FormControl fullWidth sx={{mb:2}}>

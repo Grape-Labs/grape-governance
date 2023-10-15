@@ -69,6 +69,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import ArrowCircleRightIcon from '@mui/icons-material/ArrowCircleRight';
 import ArrowCircleRightOutlinedIcon from '@mui/icons-material/ArrowCircleRightOutlined';
 import { number } from 'prop-types';
+import { getMint } from '@solana/spl-token';
 
 const confettiConfig = {
     angle: 90,
@@ -149,22 +150,22 @@ export default function ListOnMEView(props: any) {
                 );
             }
             
-            //const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell_change_price";
-            const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell_change_price";
+            const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell_change_price";
+            //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell_change_price";
             const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
             
             const res = await axios.get(
                 apiUrl,
                 {
                 params: {
-                    network:"mainnet",
+                    //network:"mainnet",
                     seller: fromWallet.toBase58(),
                     auctionHouseAddress: meAuctionHouseAddress,
                     tokenMint: selectedTokenMint,
                     tokenAccount: tokenAta.toBase58(),
                     price: price,
                     newPrice: newPrice,
-                    expiry: 0,
+                    expiry: -1,
                     //sellerReferal: 0,
                     //expiry: -1,
                 },
@@ -172,6 +173,7 @@ export default function ListOnMEView(props: any) {
                 }
             );
             const txSigned = res.data.txSigned;
+            //const txSigned = res.data.v0.txSigned;
             // convert tx
             const txSignedBuf = Buffer.from(txSigned, 'base64');
             const tx = Transaction.from(txSignedBuf);
@@ -201,6 +203,32 @@ export default function ListOnMEView(props: any) {
         
     }
 
+    async function getMintInfo(address:string){
+        //const fromWallet = new PublicKey(fromAddress);
+        
+        //const apiUrl = PROXY+"https://hyper.solana.fm/v3/collections/"+collection+"/stats";
+        const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/tokens/"+address+"/listings";
+
+        const options = {method: 'GET', headers: {accept: 'application/json'}};
+        //axios.defaults.headers.common["Origin"] = "https://governance.so";
+        //const resp = await axios.get(apiUrl, {
+        const resp = await window.fetch(apiUrl, options)
+            .then(response => response.json())
+            .then(response => {
+                //console.log("Tokens: "+JSON.stringify(response))
+                return response;
+            }
+            )
+            .catch(err => console.error(err));
+
+        //const json = await resp.json();
+        // set only listed NFTs
+        if (resp){
+            return resp[0];
+        }
+        return null;
+    }
+
     async function generateMECancelLlistingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, price: number) {
         //const payerWallet = new PublicKey(payerAddress);
         const fromWallet = new PublicKey(fromAddress);
@@ -209,7 +237,10 @@ export default function ListOnMEView(props: any) {
                 
         const transaction = new Transaction();
         const pTransaction = new Transaction();
-                     
+           
+        //const mintInfo = await getMintInfo(selectedTokenMint);
+        //console.log("mintInfo: "+JSON.stringify(mintInfo));
+
         try {
 
             const buyer_referral = ''//publicKey.toBase58();
@@ -227,21 +258,28 @@ export default function ListOnMEView(props: any) {
                 );
             }
             
-            //const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell_cancel";
-            const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell_cancel";
+            const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell_cancel";
+            //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell_cancel";
             const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
             
+            console.log("seller: "+fromWallet.toBase58());
+            console.log("meAuctionHouseAddress: "+meAuctionHouseAddress);
+            console.log("tokenAta: "+tokenAta.toBase58());
+            console.log("selectedTokenMint: "+selectedTokenMint);
+            console.log("price: "+price);
+
+
             const res = await axios.get(
                 apiUrl,
                 {
                 params: {
-                    network:"mainnet",
+                    //network:"mainnet",
                     seller: fromWallet.toBase58(),
                     auctionHouseAddress: meAuctionHouseAddress,
                     tokenMint: selectedTokenMint,
                     tokenAccount: tokenAta.toBase58(),
                     price: price,
-                    expiry: 0,
+                    expiry: -1,
                     //sellerReferal: 0,
                     //expiry: -1,
                 },
@@ -256,12 +294,8 @@ export default function ListOnMEView(props: any) {
             // convert tx
             
             //const txn = anchor.web3.Transaction.from(Buffer.from(txSigned.data));
-                
             const txSignedBuf = Buffer.from(txSigned, 'base64');
-            console.log("HERE 1")
             const tx = Transaction.from(txSignedBuf);
-            
-            console.log("Here 2")
             //const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
             //tx.recentBlockhash = latestBlockHash;
             tx.feePayer = fromWallet;
@@ -269,8 +303,7 @@ export default function ListOnMEView(props: any) {
             //console.log("tx 2: "+JSON.stringify(res.data));
 
             const meSigner = "NTYeYJ1wr4bpM5xo6zx5En44SvJFAd35zTxxNoERYqd";
-            
-            for (var instruction of tx.instructions){
+            for (var instruction of tx.instructions){// remove ME signer
                 for (var key of instruction.keys){
                     if (key.pubkey.toBase58() === meSigner){
                         key.isSigner = false;
@@ -282,7 +315,6 @@ export default function ListOnMEView(props: any) {
             //tx.signatures = null;
             //tx.addSignature(fromWallet, null);
             //console.log("sigs: "+ JSON.stringify(tx.signatures))
-            
             
             console.log("*** SERIALIZED ***");
             console.log(tx.serializeMessage().toString("base64"));
@@ -336,8 +368,8 @@ export default function ListOnMEView(props: any) {
             //const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/buy_now";
             //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell";
             //const apiUrl = PROXY+"https://api.magiceden.dev/v2/instructions/sell"
-            //const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell";
-            const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell";
+            const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell";
+            //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell";
             
             const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
             
@@ -346,20 +378,19 @@ export default function ListOnMEView(props: any) {
                 apiUrl,
                 {
                 params: {
-                    network:"mainnet",
+                    //network:"mainnet",
                     seller: fromWallet.toBase58(),
                     auctionHouseAddress: meAuctionHouseAddress,
                     tokenMint: tokenMint,
                     tokenAccount: tokenAta.toBase58(),
                     price: listPrice,
-                    expiry: 0,
+                    expiry: -1,
                     //sellerReferal: 0,
                     //expiry: -1,
                 },
                 headers: { Authorization: "Bearer " + ME_API }
                 }
             );
-
             //console.log("TX: "+JSON.stringify(res));
             
             const txSigned = res.data.txSigned;
@@ -655,7 +686,7 @@ export default function ListOnMEView(props: any) {
                             <>
                                 <ListItem alignItems="flex-start">
                                     <ListItemAvatar>
-                                    <Avatar alt={item.name} src={item.image} />
+                                        <Avatar alt={item.name} src={item.image} />
                                     </ListItemAvatar>
                                     <ListItemText
                                     primary={
@@ -971,6 +1002,7 @@ export default function ListOnMEView(props: any) {
 
         let description = "";
 
+        // IMPORTANT: Fix description here for edit & cancel
         description = `Listing ${tokenMint} for ${tokenAmount.toLocaleString()} on Magic Eden`;
         /*
         if (destinationWalletArray.length === 1){
@@ -984,7 +1016,7 @@ export default function ListOnMEView(props: any) {
         */
         
         setInstructionsObject({
-            "type":`Magic Eden Plugin`,
+            "type":`Magic Eden Listing Plugin`,
             "description":description,
             "governanceInstructions":transactionInstructions,
             "authorInstructions":payerInstructions,
@@ -1036,16 +1068,6 @@ export default function ListOnMEView(props: any) {
         }
 
     }
-
-    React.useEffect(() => { 
-       
-    }, [destinationString, tokenAmount, distributionType]);
-
-    React.useEffect(() => {
-        if (publicKey.toBase58() === 'FDw92PNX4FtibvkDm7nd5XJUAg6ChTcVqMaFmG7kQ9JP'){
-            maxDestinationWalletLen = 2000;
-        }
-    },[publicKey]);
 
     React.useState(() => {
         if (governanceWallet && !consolidatedGovernanceWallet && !loadingWallet) {
@@ -1155,42 +1177,9 @@ export default function ListOnMEView(props: any) {
             </FormControl>
             
             
-                {(tokenAmount && destinationWalletArray && destinationWalletArray.length > 0 && tokenMint) ?
+                {(tokenAmount && tokenMint) ?
                     <>  
-                        {destinationWalletArray.length === 1 ?
-                            <Box
-                                sx={{ m:2,
-                                    background: 'rgba(0, 0, 0, 0.2)',
-                                    borderRadius: '17px',
-                                    overflow: 'hidden',
-                                    p:4
-                                }}
-                            >
-                                <Typography variant="h6">Preview/Summary</Typography>
-                                <Typography variant="caption">
-                                Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to <strong>{destinationWalletArray[0].address}</strong>
-                                </Typography>
-                            </Box>
-                        :
-                            <Box
-                                sx={{ m:2,
-                                    background: 'rgba(0, 0, 0, 0.2)',
-                                    borderRadius: '17px',
-                                    overflow: 'hidden',
-                                    p:4
-                                }}
-                            >
-                                <Typography variant="h6">Preview/Summary</Typography>
-                                <Typography variant="caption">
-                                    Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to {destinationWalletArray.length} recipient(s):<br/>
-                                    {destinationWalletArray.map((destination:any, index:number) => (
-                                        <li key={index}>
-                                            {destination.address.trim()} - {destination.amount.toLocaleString()} tokens
-                                        </li>
-                                    ))}
-                                </Typography>
-                            </Box>
-                        }
+                        
                     </>
                 :
                     <Box
