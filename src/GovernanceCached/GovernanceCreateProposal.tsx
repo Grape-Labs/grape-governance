@@ -68,6 +68,7 @@ import DiscordIcon from '../components/static/DiscordIcon';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import { GovernanceGistDialog } from './GovernanceGistDialog';
+import JoinDAOView from './plugins/instructions/JoinDAOView';
 import LookupTableView from './plugins/instructions/LookupTableView';
 import SNSView from './plugins/instructions/SNSView';
 import CloseTokenView from './plugins/instructions/CloseTokenView';
@@ -466,6 +467,9 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={1}>None</MenuItem>
               {/*<MenuItem value={2} disabled>Custom</MenuItem>*/}
               <MenuItem value={3} disabled>Import from base58</MenuItem>
+              <MenuItem value={30}
+                disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
+              >Join a DAO</MenuItem>
               <MenuItem value={20} 
               //  disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Speed Dial</MenuItem>
@@ -486,6 +490,7 @@ export default function GovernanceCreateProposalView(props: any){
               {governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
                 <MenuItem value={15}>List on Magic Eden</MenuItem>
               }
+
               {/*governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
                 <MenuItem value={16}>List on Tensor</MenuItem>
               */}
@@ -1319,6 +1324,13 @@ export default function GovernanceCreateProposalView(props: any){
                                 <LookupTableView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
+
+                            {proposalType === 30 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <JoinDAOView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
+                              </FormControl>
+                            }
+                            
                           
                           {(instructionsArray && instructionsArray.length > 0) &&
                               <Box

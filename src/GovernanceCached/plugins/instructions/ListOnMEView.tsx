@@ -4,6 +4,7 @@ import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTra
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, createTransferInstruction } from "@solana/spl-token-v2";
 import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 import { useWallet } from '@solana/wallet-adapter-react';
+import * as anchor from '@project-serum/anchor';
 
 import { 
     RPC_CONNECTION, 
@@ -187,6 +188,9 @@ export default function ListOnMEView(props: any) {
                     }
                 }
             }
+
+            console.log("*** SERIALIZED ***");
+            console.log(tx.serializeMessage().toString("base64"));
             
             setTransactionInstructions(tx);
             return transaction;
@@ -200,11 +204,8 @@ export default function ListOnMEView(props: any) {
     async function generateMECancelLlistingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, price: number) {
         //const payerWallet = new PublicKey(payerAddress);
         const fromWallet = new PublicKey(fromAddress);
-        //const toWallet = new PublicKey(toAddress);
-        const mintPubkey = new PublicKey(selectedTokenMint);
-        const listPrice = +tokenAmount;
-        console.log("List Price: "+listPrice)
-        const tokenAccount = new PublicKey(mintPubkey);
+        console.log("List Price: "+price)
+        const tokenAccount = new PublicKey(selectedTokenMint);
                 
         const transaction = new Transaction();
         const pTransaction = new Transaction();
@@ -220,7 +221,7 @@ export default function ListOnMEView(props: any) {
                 tokenAta = new PublicKey(selectedTokenAtaString);
             } else{
                 tokenAta = await getAssociatedTokenAddress(
-                    mintPubkey,
+                    new PublicKey(selectedTokenMint),
                     fromWallet,
                     true
                 );
@@ -247,24 +248,45 @@ export default function ListOnMEView(props: any) {
                 headers: { Authorization: "Bearer " + ME_API }
                 }
             );
+
+            //console.log("tx: "+JSON.stringify(res.data));
+
             const txSigned = res.data.txSigned;
+            //const txSigned = res.data.tx;
             // convert tx
+            
+            //const txn = anchor.web3.Transaction.from(Buffer.from(txSigned.data));
+                
             const txSignedBuf = Buffer.from(txSigned, 'base64');
+            console.log("HERE 1")
             const tx = Transaction.from(txSignedBuf);
             
-            const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
-            tx.recentBlockhash = latestBlockHash;
+            console.log("Here 2")
+            //const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
+            //tx.recentBlockhash = latestBlockHash;
             tx.feePayer = fromWallet;
             
+            //console.log("tx 2: "+JSON.stringify(res.data));
+
             const meSigner = "NTYeYJ1wr4bpM5xo6zx5En44SvJFAd35zTxxNoERYqd";
+            
             for (var instruction of tx.instructions){
                 for (var key of instruction.keys){
                     if (key.pubkey.toBase58() === meSigner){
                         key.isSigner = false;
                     }
                 }
+                
             }
             
+            //tx.signatures = null;
+            //tx.addSignature(fromWallet, null);
+            //console.log("sigs: "+ JSON.stringify(tx.signatures))
+            
+            
+            console.log("*** SERIALIZED ***");
+            console.log(tx.serializeMessage().toString("base64"));
+
             setTransactionInstructions(tx);
             return transaction;
         }catch(e){
@@ -361,9 +383,8 @@ export default function ListOnMEView(props: any) {
                 }
             }
             
-
-            //console.log("LISTING TX: "+JSON.stringify(tx));
-            //setPayerInstructions(pTransaction);
+            console.log("*** SERIALIZED ***");
+            console.log(tx.serializeMessage().toString("base64"));
             setTransactionInstructions(tx);
             return transaction;
         }catch(e){

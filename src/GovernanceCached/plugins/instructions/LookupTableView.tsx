@@ -434,7 +434,20 @@ export default function LookupTableView(props: any) {
             <Box
                 sx={{mb:4}}
             >
-                <Typography variant="h5">Speed Dial Plugin</Typography>
+                <Typography variant="h5">
+                    <Grid 
+                            container
+                            direction="row"
+                            alignItems="center"
+                        >
+                        <Grid item>
+                            <DialpadIcon sx={{ fontSize: 40, display: 'flex', alignItems: 'center', color:'white'}} />
+                        </Grid>
+                        <Grid item xs sx={{ml:1, display: 'flex', alignItems: 'center'}}>
+                            <strong>Speed Dial</strong> Plugin
+                        </Grid>
+                    </Grid>
+                </Typography>
             </Box>
 
             <FormControl fullWidth  sx={{mb:2}}>

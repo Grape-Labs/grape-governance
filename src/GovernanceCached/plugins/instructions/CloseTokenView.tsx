@@ -67,6 +67,7 @@ import { useSnackbar } from 'notistack';
 
 //import { withSend } from "@cardinal/token-manager";
 
+import WhatshotIcon from '@mui/icons-material/Whatshot';
 import WarningIcon from '@mui/icons-material/Warning';
 import SendIcon from '@mui/icons-material/Send';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
@@ -534,7 +535,20 @@ export default function TokenTransferView(props: any) {
             <Box
                 sx={{mb:4}}
             >
-                <Typography variant="h5">Close Token Plugin</Typography>
+                <Typography variant="h5">
+                    <Grid 
+                            container
+                            direction="row"
+                            alignItems="center"
+                        >
+                        <Grid item>
+                            <WhatshotIcon sx={{ fontSize: 40, display: 'flex', alignItems: 'center', color:'yellow'}} />
+                        </Grid>
+                        <Grid item xs sx={{ml:1, display: 'flex', alignItems: 'center'}}>
+                            <strong>Close Token</strong> Plugin
+                        </Grid>
+                    </Grid>
+                </Typography>
             </Box>
 
             {/*
