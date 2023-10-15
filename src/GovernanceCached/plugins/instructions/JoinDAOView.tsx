@@ -5,8 +5,11 @@ import {
     ASSOCIATED_TOKEN_PROGRAM_ID, 
     getAssociatedTokenAddress, 
     createCloseAccountInstruction,
-    createBurnInstruction
+    createBurnInstruction,
+    getMint,
 } from "@solana/spl-token-v2";
+import { Buffer } from "buffer";
+import BN from "bn.js";
 import * as anchor from '@project-serum/anchor';
 //import { getMasterEdition, getMetadata } from '../utils/auctionHouse/helpers/accounts';
 //import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
@@ -21,6 +24,8 @@ import { styled } from '@mui/material/styles';
 import { 
     getGovernanceProgramVersion,
     withDepositGoverningTokens,
+    getRealm,
+    serializeInstructionToBase64,
   } from '@solana/spl-governance';
 
 import {
@@ -101,10 +106,10 @@ const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
 );
 
 export default function JoinDAOView(props: any) {
-    const [snsRecords, setSNSRecords] = React.useState(props?.snsrecords || null);
     const payerWallet = props?.payerWallet || null;
-    const pluginType = props?.pluginType || 4; // 1 Token 2 SOL
     const setInstructionsObject = props?.setInstructionsObject;
+    const governanceLookup = props?.governanceLookup;
+    const [governance, setGovernance] = React.useState(null);
     const [governanceWallet, setGovernanceWallet] = React.useState(props?.governanceWallet);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
     const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
@@ -116,7 +121,7 @@ export default function JoinDAOView(props: any) {
     const [tokenMaxAmountRaw, setTokenMaxAmountRaw] = React.useState(null);
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
     const [selectedRecord, setSelectedRecord] = React.useState(null);
-    const [destinationAddress, setDestinationAddress] = React.useState(null);
+    const [daoToJoinAddress, setDaoToJoinAddress] = React.useState(null);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
     
     const { publicKey } = useWallet();
@@ -129,7 +134,7 @@ export default function JoinDAOView(props: any) {
     async function joinDAO() {
         //const payerWallet = new PublicKey(payerAddress);
         const fromWallet = new PublicKey(fromAddress);
-        const toWallet = new PublicKey(destinationAddress);
+        const toJoinPk = new PublicKey(daoToJoinAddress);
                
         const transaction = new Transaction();
         
@@ -143,28 +148,61 @@ export default function JoinDAOView(props: any) {
             connection.current,
             form.realm.programId
         )*/
-
-        const instructions: TransactionInstruction[] = []
         
         // we need to fetch the governance details either her or a step before
         
-        /*
-        const txi = await withDepositGoverningTokens(
+        const programId = governance.owner;
+        console.log("programId: "+JSON.stringify(programId));
+        const programVersion = await getGovernanceProgramVersion(
+            connection,
+            programId,
+          )
+        console.log("programVersion: "+JSON.stringify(programVersion));
+
+        const realmPk = governance.pubkey;
+        
+        const communityMint = governance.account.communityMint;
+
+        const tokenInfo = await getMint(RPC_CONNECTION, communityMint);
+        
+        // Extract the mint authority
+        const mintAuthority = tokenInfo.mintAuthority;
+        const decimals = tokenInfo.decimals;
+
+        const atomicAmount = new BN(500 / 10 ** decimals);        
+        
+        const instructions: TransactionInstruction[] = []
+        await withDepositGoverningTokens(
             instructions,
-            form.realm.programId,
+            programId,
             programVersion,
-            form.realm.realmId,
-            form.governedAccount.pubkey,
-            selectedRealm?.account.communityMint,
-            form.governedAccount.extensions.token.account.owner,
-            form.governedAccount.extensions.token.account.owner,
+            realmPk, //form.realm.realmId,
+            communityMint,//form.governedAccount.pubkey,
+            communityMint,
+            fromWallet,//authority,//form.governedAccount.extensions.token.account.owner,
+            mintAuthority,//fromWallet,//authority,//form.governedAccount.extensions.token.account.owner,
             fromWallet,
             atomicAmount // amount to participate with
           )
-        
-        transaction.add(txi)
-        */
-        setTransactionInstructions(transaction);
+
+        if (instructions.length != 1) {
+            console.log("ERROR: Something went wrong");
+        } else{
+            console.log("Something returned...")
+            //console.log("ix: "+JSON.stringify(ix))
+            const serialized = serializeInstructionToBase64(instructions[0]);
+            
+            //const buff = Buffer.from(serialized, 'base64');
+            //const tx = Transaction.from(ix);
+
+            console.log("serialized "+JSON.stringify(serialized));
+            
+            if (serialized){
+                //transaction.add(ix)
+                
+                //setTransactionInstructions(transaction);
+            }
+        }
         
         return null;
     }
@@ -203,17 +241,22 @@ export default function JoinDAOView(props: any) {
           return solanaPublicKeyRegex.test(publicKeyString);
     }
 
-    function handleDestinationAddressChange(text:string){
+    function handleSetDaoToJoinAddressChange(text:string){
         // add validation here
+        console.log("checking: "+text);
         if (isValidSolanaPublicKey(text)){
-            setDestinationAddress(text);
+            console.log("setDaoToJoinAddress complete!");
+            setDaoToJoinAddress(text);
+        } else{
+            setDaoToJoinAddress(null);
         }
     }
 
     async function getAndUpdateWalletHoldings(wallet:string){
         try{
             setLoadingWallet(true);
-            
+            // we will need this so we can review what eligible tokens the user has
+
             setLoadingWallet(false);
         } catch(e){
             console.log("ERR: "+e);
@@ -221,13 +264,31 @@ export default function JoinDAOView(props: any) {
         }
 
     }
+
+    async function fetchGovernanceSpecifications(address:string){
+        console.log("fetching specs");
+        const rlm = await getRealm(RPC_CONNECTION, new PublicKey(address || daoToJoinAddress));
+        if (rlm){
+            console.log("realm: "+JSON.stringify(rlm));
+            setGovernance(rlm);
+        }
+    }
+
     
-    React.useState(() => {
+    
+    React.useEffect(() => {
         if (governanceWallet && !consolidatedGovernanceWallet && !loadingWallet) {
             getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
             //setConsolidatedGovernanceWallet(gWallet);
         }
     }, [governanceWallet, consolidatedGovernanceWallet]);
+
+    React.useEffect(() => {
+        if (daoToJoinAddress){
+            console.log("here we go!");
+            fetchGovernanceSpecifications(null);
+        }
+    }, [daoToJoinAddress]);
 
     return (
         <Box
@@ -252,7 +313,7 @@ export default function JoinDAOView(props: any) {
                             <JoinLeftIcon sx={{ fontSize: 50, display: 'flex', alignItems: 'center' }} />
                         </Grid>
                         <Grid item xs sx={{ml:1, display: 'flex', alignItems: 'center'}}>
-                            <strong>Join DAO</strong> Transfer Plugin
+                            <strong>Join DAO</strong> Plugin
                         </Grid>
                     </Grid>
                 </Typography>
@@ -283,6 +344,48 @@ export default function JoinDAOView(props: any) {
                     id="fullWidth"
                     type="text"
                     onChange={(e) => {
+                        handleSetDaoToJoinAddressChange(e.target.value);
+                        
+                    }}
+                    inputProps={{
+                        style: { textAlign: 'center' },
+                    }}
+                    sx={{borderRadius:'17px'}} 
+                />
+                {(!daoToJoinAddress) ? 
+                    <Grid sx={{textAlign:'right',}}>
+                        <Typography variant="caption" color="error">WARNING: Invalid DAO address!</Typography>
+                    </Grid>
+                : 
+                    <>{governance ?
+                            <>
+                                <Grid sx={{textAlign:'right',}}>
+                                    <Typography variant="caption" color="success">
+                                        {governance.account.name}<br/>
+                                        Community Mint: {governance.account.communityMint.toBase58()}
+                                        {governance.account.config.councilMint &&
+                                            <>
+                                            <br/>Council Mint: {governance.account.config.councilMint.toBase58()}
+                                            </>
+                                        }
+                                    </Typography>
+                                </Grid>
+                            </>
+                        :
+                            <></>
+                    }
+                    </>
+                }
+            </FormControl>
+
+            <FormControl fullWidth  sx={{mb:2}}>
+                {/*
+                <TextField 
+                    fullWidth 
+                    label="DAO Address" 
+                    id="fullWidth"
+                    type="text"
+                    onChange={(e) => {
                         handleDestinationAddressChange(e.target.value);
                         
                     }}
@@ -296,10 +399,16 @@ export default function JoinDAOView(props: any) {
                         <Typography variant="caption" color="error">WARNING: Invalid DAO address!</Typography>
                     </Grid>
                 : <></>
-                }
+                }*/}
+                <Box
+                    sx={{textAlign:'center'}}
+                >
+                    <Typography variant="caption">ToDo: Use verified DAO Dropdown, ADD Eligibility Check & Custom amount up to Max avail to Join</Typography>
+                </Box>
+                
             </FormControl>
 
-            {(selectedRecord && destinationAddress) ?
+            {(selectedRecord && daoToJoinAddress) ?
                 <>  
                     <Box
                         sx={{ m:2,
@@ -311,9 +420,9 @@ export default function JoinDAOView(props: any) {
                     >
                         <Typography variant="h6">Preview/Summary</Typography>
                         <Typography variant="caption">
-                            DAO to Join <strong>{destinationAddress}</strong><br/>
-                            Using Mint: <strong>{destinationAddress}</strong><br/>
-                            With <strong>{destinationAddress}</strong> Tokens<br/>
+                            DAO to Join <strong>{daoToJoinAddress}</strong><br/>
+                            Using Mint: <strong>???</strong><br/>
+                            With <strong>???</strong> Tokens<br/>
                         </Typography>
                     </Box>
                 
@@ -329,7 +438,7 @@ export default function JoinDAOView(props: any) {
                 <Grid sx={{textAlign:'right', mb:2}}>
                     <Button 
                         disabled={!(
-                            (destinationAddress)
+                            (daoToJoinAddress)
                         )
                         }
                         onClick={joinDAO}
