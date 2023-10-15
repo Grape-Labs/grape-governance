@@ -159,7 +159,7 @@ export function GrapeVerificationAddressBook(props: any){
     const lookupTableProgramId = new PublicKey('AddressLookupTab1e1111111111111111111111111');
     const addressPk = new PublicKey(address);
 
-    console.log("Fetching Address Books / LookupTables for "+address);
+    console.log("Fetching Speed Dial for "+address);
 
     const size = 58;
     const filters = [
@@ -210,7 +210,7 @@ export function GrapeVerificationAddressBook(props: any){
 
     return (
         <>
-            <Tooltip title='Grape Verification: using your on-chain Address Books'>
+            <Tooltip title='Grape Verification: using your on-chain Speed Dial'>
                 <Button 
                   size="small"
                   onClick={handleVerifyAllAddressBooks}

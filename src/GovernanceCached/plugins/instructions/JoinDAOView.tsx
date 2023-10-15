@@ -68,6 +68,8 @@ import { useSnackbar } from 'notistack';
 //import { withSend } from "@cardinal/token-manager";
 import { findDisplayName } from '../../../utils/name-service';
 
+import { chunks } from '../../../utils/governanceTools/helpers';
+
 import JoinLeftIcon from '@mui/icons-material/JoinLeft';
 import WarningIcon from '@mui/icons-material/Warning';
 import SendIcon from '@mui/icons-material/Send';
@@ -172,6 +174,7 @@ export default function JoinDAOView(props: any) {
         const atomicAmount = new BN(500 / 10 ** decimals);        
         
         const instructions: TransactionInstruction[] = []
+        console.log("withDepositGoverningTokens...")
         await withDepositGoverningTokens(
             instructions,
             programId,
@@ -183,12 +186,15 @@ export default function JoinDAOView(props: any) {
             mintAuthority,//fromWallet,//authority,//form.governedAccount.extensions.token.account.owner,
             fromWallet,
             atomicAmount // amount to participate with
-          )
-
+        )
+        
         if (instructions.length != 1) {
             console.log("ERROR: Something went wrong");
         } else{
-            console.log("Something returned...")
+
+            const insertChunks = chunks(instructions, 1);
+            
+            console.log("Something returned... "+JSON.stringify(instructions));
             //console.log("ix: "+JSON.stringify(ix))
             const serialized = serializeInstructionToBase64(instructions[0]);
             

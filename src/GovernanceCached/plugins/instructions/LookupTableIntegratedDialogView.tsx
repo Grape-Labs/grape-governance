@@ -217,7 +217,7 @@ export function LookupTableIntegratedDialogView(props: any){
     const lookupTableProgramId = new PublicKey('AddressLookupTab1e1111111111111111111111111');
     const addressPk = new PublicKey(address);
 
-    console.log("Fetching Address Books / LookupTables for "+address);
+    console.log("Fetching Speed Dial Addresses for "+address);
 
     const size = 58;
     const filters = [
@@ -291,7 +291,7 @@ export function LookupTableIntegratedDialogView(props: any){
                     }}
                 >
                 <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog}>
-                    Address Book<br/>
+                    Speed Dial<br/>
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
@@ -366,10 +366,10 @@ export function LookupTableIntegratedDialogView(props: any){
                             sx={{p:2,m:2}}
                             >
                               <Grid item xs={12} justifyContent='center' alignItems='center'>
-                                <Typography variant='h6'>Address Book Not Found!</Typography>
+                                <Typography variant='h6'>Speed Dial Not Found!</Typography>
                               </Grid>
                               <Grid item xs={12} justifyContent='center' alignItems='center'>
-                                <Typography variant="body2">To get started using a verified on chain Address Book make a proposal to create a new Address Book using the plugin, and build a list of trusted DAO addresses</Typography>
+                                <Typography variant="body2">To get started using a verified on chain Speed Dial make a proposal to create a new Speed Dial for your DAO using the plugin, and build a list of trusted DAO addresses</Typography>
                               </Grid>
                           </Grid>
                         }

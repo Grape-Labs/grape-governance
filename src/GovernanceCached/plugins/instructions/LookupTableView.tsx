@@ -444,7 +444,7 @@ export default function LookupTableView(props: any) {
                             <DialpadIcon sx={{ fontSize: 40, display: 'flex', alignItems: 'center', color:'white'}} />
                         </Grid>
                         <Grid item xs sx={{ml:1, display: 'flex', alignItems: 'center'}}>
-                            <strong>Speed Dial</strong> Plugin
+                            <strong>Speed Dial</strong>&nbsp;Plugin
                         </Grid>
                     </Grid>
                 </Typography>
