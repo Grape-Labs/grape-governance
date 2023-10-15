@@ -257,7 +257,7 @@ export default function ListOnMEView(props: any) {
                     true
                 );
             }
-            
+
             const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell_cancel";
             //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell_cancel";
             const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
@@ -288,7 +288,6 @@ export default function ListOnMEView(props: any) {
             );
 
             //console.log("tx: "+JSON.stringify(res.data));
-
             const txSigned = res.data.txSigned;
             //const txSigned = res.data.tx;
             // convert tx
@@ -308,16 +307,25 @@ export default function ListOnMEView(props: any) {
                     if (key.pubkey.toBase58() === meSigner){
                         key.isSigner = false;
                     }
-                }
-                
+                } 
             }
+            
+            //const meSigner = "NTYeYJ1wr4bpM5xo6zx5En44SvJFAd35zTxxNoERYqd";
+            /*
+            for (var instruction of tx.instructions){// remove ME signer
+                for (var key of instruction.keys){
+                    if (key.pubkey.toBase58() === fromAddress){
+                        key.isSigner = true;
+                    }
+                } 
+            }*/
             
             //tx.signatures = null;
             //tx.addSignature(fromWallet, null);
             //console.log("sigs: "+ JSON.stringify(tx.signatures))
             
-            console.log("*** SERIALIZED ***");
-            console.log(tx.serializeMessage().toString("base64"));
+            //console.log("*** SERIALIZED ***");
+            //console.log(tx.serializeMessage().toString("base64"));
 
             setTransactionInstructions(tx);
             return transaction;
