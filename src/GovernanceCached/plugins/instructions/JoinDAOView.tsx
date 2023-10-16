@@ -11,9 +11,7 @@ import {
 import { Buffer } from "buffer";
 import BN from "bn.js";
 import * as anchor from '@project-serum/anchor';
-//import { getMasterEdition, getMetadata } from '../utils/auctionHouse/helpers/accounts';
-//import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
-//import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
+import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 import { useWallet } from '@solana/wallet-adapter-react';
 
 import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
@@ -52,7 +50,8 @@ import {
   Typography,
   Box,
   Alert,
-  Checkbox
+  Checkbox,
+  SelectChangeEvent
 } from '@mui/material';
 
 import { parseMintNaturalAmountFromDecimalAsBN } from '../../../utils/grapeTools/helpers';
@@ -124,7 +123,7 @@ export default function JoinDAOView(props: any) {
         //const payerWallet = new PublicKey(payerAddress);
         const fromWallet = new PublicKey(fromAddress);
         const toJoinPk = new PublicKey(daoToJoinAddress);
-               
+        const withMint = new PublicKey(tokenMint);    
         const transaction = new Transaction();
         
         // we need to fetch the governance details either her or a step before
@@ -140,17 +139,17 @@ export default function JoinDAOView(props: any) {
 
         const realmPk = new PublicKey(governance.pubkey);
         
-        const communityMint = new PublicKey(governance.account.communityMint);
+        //const communityMint = new PublicKey(governance.account.communityMint);
 
         //const testInfo = await connection.getAccountInfo(communityMint);
         //const testInfo = await connection.getParsedAccountInfo(communityMint);
 
         //console.log("testInfo: "+JSON.stringify(testInfo))
 
-        const tokenInfo = await getMint(RPC_CONNECTION, communityMint);
+        const tokenInfo = await getMint(RPC_CONNECTION, withMint);
         
         const userAtaPk = await getAssociatedTokenAddress(
-            new PublicKey(communityMint),
+            withMint,
             fromWallet, // owner
             true
           )
@@ -163,7 +162,7 @@ export default function JoinDAOView(props: any) {
         console.log("decimals: "+decimals);
         
         const atomicAmount = parseMintNaturalAmountFromDecimalAsBN(
-            500,
+            tokenAmount,
             decimals
         )
 
@@ -183,7 +182,7 @@ export default function JoinDAOView(props: any) {
             programVersion,
             realmPk,
             userAtaPk,
-            communityMint,
+            withMint,
             fromWallet,
             fromWallet,
             fromWallet,
@@ -217,7 +216,7 @@ export default function JoinDAOView(props: any) {
 
         let description = "";
 
-        description = `Closing ${tokenAmount.toLocaleString()} ${tokenMint}`;
+        description = `Joining DAO with ${tokenMint} using ${tokenAmount.toLocaleString()} Governance Power`;
         
         setInstructionsObject({
             "type":`Join DAO`,
@@ -257,8 +256,40 @@ export default function JoinDAOView(props: any) {
     async function getAndUpdateWalletHoldings(wallet:string){
         try{
             setLoadingWallet(true);
-            // we will need this so we can review what eligible tokens the user has
+            const solBalance = await connection.getBalance(new PublicKey(wallet));
 
+            const tokenBalance = await connection.getParsedTokenAccountsByOwner(
+                new PublicKey(wallet),
+                {
+                programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+                }
+            )
+            // loop through governanceWallet
+            governanceWallet.solBalance = solBalance;
+            const itemsToAdd = [];
+
+            console.log("governanceWallet "+JSON.stringify(governanceWallet));
+            if (tokenBalance?.value){
+                for (let titem of tokenBalance?.value){
+                    if (governanceWallet.tokens.value){
+                        let foundCached = false;
+                        for (let gitem of governanceWallet.tokens.value){
+                            if (titem.pubkey.toBase58() === gitem.pubkey){
+                                foundCached = true;
+                                gitem.account.data.parsed.info.tokenAmount.amount = titem.account.data.parsed.info.tokenAmount.amount;
+                                gitem.account.data.parsed.info.tokenAmount.uiAmount = titem.account.data.parsed.info.tokenAmount.uiAmount;
+                                itemsToAdd.push(gitem);
+                            }
+                        }
+                        if (!foundCached) {
+                            itemsToAdd.push(titem);
+                        }
+                    }
+                }
+            }
+
+            governanceWallet.tokens.value = itemsToAdd;//[...governanceWallet.tokens.value, ...itemsToAdd];
+            setConsolidatedGovernanceWallet(governanceWallet);
             setLoadingWallet(false);
         } catch(e){
             console.log("ERR: "+e);
@@ -276,8 +307,212 @@ export default function JoinDAOView(props: any) {
         }
     }
 
+    function TokenSelect(props:any) {
+        const filter = props.filter;
+
+        const handleMintSelected = (event: SelectChangeEvent) => {
+            const selectedTokenMint = event.target.value as string;
+            setTokenMint(selectedTokenMint);
+
+            
+            // with token mint traverse to get the mint info if > 0 amount
+            {governanceWallet && governanceWallet.tokens.value
+                //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
+                .map((item: any, key: number) => {
+                    if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
+                        item.account.data.parsed.info.tokenAmount.amount > 0) {
+                            if (item.account.data.parsed.info.mint === selectedTokenMint){
+                                setTokenMaxAmount(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals);
+                                setTokenAmount(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals);
+                            }
+                    }
+            })}
+            
+        };
+
+        function ShowTokenMintInfo(props: any){
+            const mintAddress = props.mintAddress;
+            const [mintName, setMintName] = React.useState(null);
+            const [mintLogo, setMintLogo] = React.useState(null);
+
+            const getTokenMintInfo = async() => {
+                
+                    const mint_address = new PublicKey(mintAddress)
+                    const [pda, bump] = await PublicKey.findProgramAddress([
+                        Buffer.from("metadata"),
+                        PROGRAM_ID.toBuffer(),
+                        new PublicKey(mint_address).toBuffer(),
+                    ], PROGRAM_ID)
+                    const tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
+                    
+                    if (tokenMetadata?.data?.name)
+                        setMintName(tokenMetadata.data.name);
+                    
+                    if (tokenMetadata?.data?.uri){
+                        try{
+                            const metadata = await window.fetch(tokenMetadata.data.uri)
+                            .then(
+                                (res: any) => res.json())
+                            .catch((error) => {
+                                // Handle any errors that occur during the fetch or parsing JSON
+                                console.error("Error fetching data:", error);
+                            });
+                            
+                            if (metadata && metadata?.image){
+                                if (metadata.image)
+                                    setMintLogo(metadata.image);
+                            }
+                        }catch(err){
+                            console.log("ERR: ",err);
+                        }
+                    }
+            }
+
+            React.useEffect(() => { 
+                if (mintAddress && !mintName){
+                    getTokenMintInfo();
+                }
+            }, [mintAddress]);
+
+            return ( 
+                <>
+
+                    {mintName ?
+                        <Grid 
+                            container
+                            direction="row"
+                            alignItems="center"
+                        >
+                            <Grid item>
+                                <Avatar alt={mintName} src={mintLogo} />
+                            </Grid>
+                            <Grid item sx={{ml:1}}>
+                                <Typography variant="h6">
+                                {mintName}
+                                </Typography>
+                            </Grid>
+                        </Grid>       
+                    :
+                        <>{mintAddress}</>
+                    }
+                </>
+            )
+
+        }
+      
+        return (
+          <>
+            <Box sx={{ minWidth: 120, ml:1 }}>
+              <FormControl fullWidth sx={{mb:2}}>
+                <InputLabel id="governance-token-select-label">Select Token</InputLabel>
+                <Select
+                  labelId="governance-token-select-label"
+                  id="governance-token-select"
+                  value={tokenMint}
+                  label="Select Token"
+                  onChange={handleMintSelected}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 200, // Adjust this value as needed
+                        overflowY: 'auto', // Add vertical scrollbar if content overflows maxHeight
+                      },
+                    },
+                  }}
+                >
+                    {governanceWallet && governanceWallet.tokens.value
+                    // ? item.account.data.parsed.info.mint === filter
+                            .filter((item: any) => 
+                                item.account.data?.parsed?.info?.tokenAmount?.amount > 0
+                            )
+                            .sort((a: any, b: any) => 
+                                b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount
+                            )
+                            .map((item: any, key: number) => {
+                                
+                                if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
+                                    item.account.data.parsed.info.tokenAmount.amount > 0 &&
+                                    (item.account.data.parsed.info.mint === filter[0] || item.account.data.parsed.info.mint === filter[1])) {
+                                
+                                    //console.log("mint: "+item.account.data.parsed.info.mint)
+
+                                    return (
+                                        <MenuItem key={key} value={item.account.data.parsed.info.mint}>
+                                            {/*console.log("wallet: "+JSON.stringify(item))*/}
+                                            
+                                            <Grid container
+                                                alignItems="center"
+                                            >
+                                                <Grid item xs={12}>
+                                                <Grid container>
+                                                    <Grid item sm={8}>
+                                                    <Grid
+                                                        container
+                                                        direction="row"
+                                                        justifyContent="left"
+                                                        alignItems="left"
+                                                    >
+
+                                                        {item.account?.tokenMap?.tokenName ?
+                                                            <Grid 
+                                                                container
+                                                                direction="row"
+                                                                alignItems="center"
+                                                            >
+                                                                <Grid item>
+                                                                    <Avatar alt={item.account.tokenMap.tokenName} src={item.account.tokenMap.tokenLogo} />
+                                                                </Grid>
+                                                                <Grid item sx={{ml:1}}>
+                                                                    <Typography variant="h6">
+                                                                    {item.account.tokenMap.tokenName}
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Grid>
+                                                        :
+                                                            <>
+                                                                <ShowTokenMintInfo mintAddress={item.account.data.parsed.info.mint} />
+                                                            </>
+                                                        }
+                                                    </Grid>
+                                                    </Grid>
+                                                    <Grid item xs sx={{textAlign:'right'}}>
+                                                    <Typography variant="h6">
+                                                        {/*item.vault?.nativeTreasury?.solBalance/(10 ** 9)*/}
+
+                                                        {(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals).toLocaleString()}
+                                                    </Typography>
+                                                    </Grid>
+                                                </Grid>  
+
+                                                <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
+                                                    <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
+                                                        {item.account.data.parsed.info.mint}
+                                                    </Typography>
+                                                </Grid>
+                                                </Grid>
+                                            </Grid>
+                                        </MenuItem>
+                                    );
+                                } else {
+                                    return null; // Don't render anything for items without nativeTreasuryAddress
+                                }
+                            })}
+                    
+                </Select>
+              </FormControl>
+            </Box>
+          </>
+        );
+      }
     
+    const handleTokenAmountChange = (e) => {
+        // Remove leading zeros using a regular expression
+        const cleanedValue = e.target.value.replace(/^0+/, '');
     
+        setTokenAmount(cleanedValue);
+    };
+    
+
     React.useEffect(() => {
         if (governanceWallet && !consolidatedGovernanceWallet && !loadingWallet) {
             getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
@@ -409,8 +644,55 @@ export default function JoinDAOView(props: any) {
                 </Box>
                 
             </FormControl>
+            
+            {(daoToJoinAddress && governance) &&
+                <>
 
-            {(selectedRecord && daoToJoinAddress) ?
+                    <TokenSelect filter={[governance.account.communityMint.toBase58(), governance.account.config.councilMint ? governance.account.config.councilMint.toBase58() : '']} /> 
+                    {/*
+                    [{governance.account.communityMint.toBase58()}, governance.account.config.councilMint ? governance.account.config.councilMint : ''] }/>
+                    */}
+
+                    {tokenMint &&
+                        <FormControl fullWidth sx={{mb:2}}>
+
+                            <RegexTextField
+                                regex={/[^0-9]+\.?[^0-9]/gi}
+                                autoFocus
+                                autoComplete='off'
+                                margin="dense"
+                                id="amount_to_deposit"
+                                label='Select Amount to Deposit'
+                                type="text"
+                                fullWidth
+                                variant="standard"
+                                value={tokenAmount > 0 ? tokenAmount : ''}
+                                default={tokenMaxAmount}
+                                onChange={handleTokenAmountChange}
+                                inputProps={{
+                                    style: { 
+                                        textAlign:'center', 
+                                        fontSize: '34px'
+                                    }
+                                }}
+                            />
+                            <Grid sx={{textAlign:'right',}}>
+                                <Typography variant="caption" color="info">
+                                    <Button
+                                        variant="text"
+                                        size="small"
+                                        onClick={(e) => setTokenAmount(tokenMaxAmount)}
+                                    >
+                                        Max
+                                    </Button>
+                                </Typography>
+                            </Grid>
+                        </FormControl>
+                    }
+                </>
+            }
+
+            {(daoToJoinAddress && tokenMint && tokenAmount) ?
                 <>  
                     <Box
                         sx={{ m:2,
@@ -423,8 +705,8 @@ export default function JoinDAOView(props: any) {
                         <Typography variant="h6">Preview/Summary</Typography>
                         <Typography variant="caption">
                             DAO to Join <strong>{daoToJoinAddress}</strong><br/>
-                            Using Mint: <strong>???</strong><br/>
-                            With <strong>???</strong> Tokens<br/>
+                            Using Mint: <strong>{tokenMint}</strong><br/>
+                            With <strong>{tokenAmount}</strong> Tokens<br/>
                         </Typography>
                     </Box>
                 
@@ -433,14 +715,16 @@ export default function JoinDAOView(props: any) {
                 <Box
                     sx={{textAlign:'center'}}
                 >
-                    <Typography variant="caption">Enter a valid DAO address</Typography>
+                    <Typography variant="caption">Enter a valid DAO address, select the token</Typography>
                 </Box>
             }
 
                 <Grid sx={{textAlign:'right', mb:2}}>
                     <Button 
                         disabled={!(
-                            (daoToJoinAddress)
+                            (daoToJoinAddress) &&
+                            ((tokenAmount > 0) &&
+                            (tokenAmount <= tokenMaxAmount))
                         )
                         }
                         onClick={joinDAO}
