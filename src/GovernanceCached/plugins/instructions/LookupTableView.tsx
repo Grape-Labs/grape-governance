@@ -196,28 +196,28 @@ export default function LookupTableView(props: any) {
         
         //transaction.add(lookupTableInst);
         
-        //if (publicKey)
-        console.log("Original lookupTableInst: "+JSON.stringify(lookupTableInst))
-        //const meSigner = fromAddress;
-        
+        console.log("Pre lookupTableInst: "+JSON.stringify(lookupTableInst))
+
+        // remove authority as a signer:
         for (var key of lookupTableInst.keys){
-            if (key.pubkey === fromWallet){
-                console.log("Found key!")
+            if (key.pubkey.toBase58() === fromAddress){
+                console.log("setting signer to false")
                 key.isSigner = false;
             }
         }
+        
+        //if (publicKey)
+        console.log("Updated lookupTableInst: "+JSON.stringify(lookupTableInst));
 
-        /*
+
+        //const meSigner = fromAddress;
+        
+        const jsonData = require('./plugins/idl/LookupTable.json');
         const borshCoder = new BorshCoder(null);
         const instruction = lookupTableInst;
         const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
         const decodedIx = borshCoder.instruction.decode(hexString, 'hex');
         //const decodedIx = borshCoder.instruction.decode(lookupTableInst.data, 'base58')
-        
-        //console.log("decodedIx: "+JSON.stringify(borshCoder));
-
-        console.log("Updated lookupTableInst: "+JSON.stringify(lookupTableInst))
-        */
         
         //const signData = lookupTableInst.serializeMessage()
         // @ts-ignore

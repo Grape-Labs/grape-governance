@@ -229,23 +229,25 @@ export default function ListOnMEView(props: any) {
         return null;
     }
 
-    async function generateMECancelLlistingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, price: number) {
+    async function generateMECancelLlistingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, sentPrice?: number) {
         //const payerWallet = new PublicKey(payerAddress);
         const fromWallet = new PublicKey(fromAddress);
-        console.log("List Price: "+price)
         const tokenAccount = new PublicKey(selectedTokenMint);
                 
         const transaction = new Transaction();
         const pTransaction = new Transaction();
            
-        //const mintInfo = await getMintInfo(selectedTokenMint);
-        //console.log("mintInfo: "+JSON.stringify(mintInfo));
+        const mintInfo = await getMintInfo(selectedTokenMint);
+        console.log("mintInfo: "+JSON.stringify(mintInfo));
 
+        const sellerReferral = mintInfo?.sellerReferral;
+        const expiry = mintInfo?.expiry;
+        const meAuctionHouseAddress = mintInfo?.auctionHouse ? mintInfo.auctionHouse : "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
+        const price = mintInfo?.price ? mintInfo.price : sentPrice;
+        // fetch token info here before we push again
+        
         try {
 
-            const buyer_referral = ''//publicKey.toBase58();
-            const seller_referral = 0;
-            
             let tokenAta = null;
             
             if (selectedTokenAtaString){
@@ -260,14 +262,13 @@ export default function ListOnMEView(props: any) {
 
             const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell_cancel";
             //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell_cancel";
-            const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
             
             console.log("seller: "+fromWallet.toBase58());
             console.log("meAuctionHouseAddress: "+meAuctionHouseAddress);
             console.log("tokenAta: "+tokenAta.toBase58());
             console.log("selectedTokenMint: "+selectedTokenMint);
             console.log("price: "+price);
-
+            console.log("sellerReferral: "+sellerReferral);
 
             const res = await axios.get(
                 apiUrl,
@@ -279,9 +280,8 @@ export default function ListOnMEView(props: any) {
                     tokenMint: selectedTokenMint,
                     tokenAccount: tokenAta.toBase58(),
                     price: price,
-                    expiry: -1,
-                    //sellerReferal: 0,
-                    //expiry: -1,
+                    //sellerReferal: sellerReferral,
+                    expiry: expiry,
                 },
                 headers: { Authorization: "Bearer " + ME_API }
                 }
@@ -310,12 +310,21 @@ export default function ListOnMEView(props: any) {
                 } 
             }
             
+            // Remove from instructions
+            /*
+            for (var instruction of tx.instructions) {
+                instruction.keys = instruction.keys.filter((key) => {
+                  return key.pubkey.toBase58() !== sellerReferral;
+                });
+            }*/
+            
+
             //const meSigner = "NTYeYJ1wr4bpM5xo6zx5En44SvJFAd35zTxxNoERYqd";
             /*
             for (var instruction of tx.instructions){// remove ME signer
                 for (var key of instruction.keys){
-                    if (key.pubkey.toBase58() === fromAddress){
-                        key.isSigner = true;
+                    if (key.pubkey.toBase58() === sellerReferral){
+                        key.pubkey = fromWallet;
                     }
                 } 
             }*/

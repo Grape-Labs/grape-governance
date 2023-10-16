@@ -28,6 +28,7 @@ import {
 } from '@mui/material/';
 
 import { useWallet } from '@solana/wallet-adapter-react';
+import { PublicKey } from '@solana/web3.js';
 
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
@@ -72,6 +73,30 @@ interface Props {
      */
     window?: () => Window;
     children: React.ReactElement;
+}
+
+function isValidSolanaPublicKey(publicKeyString:string) {
+    // Regular expression for Solana public key validation
+    if (typeof publicKeyString !== 'string' || publicKeyString.length === 0) {
+        return false;
+    }
+    
+    // Regular expression for Solana public key validation
+    const solanaPublicKeyRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+    
+    // Check if the publicKey matches the Solana public key pattern
+    let status = solanaPublicKeyRegex.test(publicKeyString);
+    try{
+        if (status){
+            const pk = new PublicKey(publicKeyString);
+            if (pk)
+                return true;
+            else
+                return false;
+        }
+    }catch(e){
+        return false;
+    }
 }
 
 function ScrollTop(props: Props) {
@@ -949,36 +974,16 @@ export function GovernanceDirectoryView(props: Props) {
                                         </Grid>
                                         :
                                         <>
-                                            {item.governanceAddress.includes(searchFilter) ?
-                                                <Grid item xs={12} sm={6} md={4} key={key}>
-                                                <GovernanceCardView 
-                                                    item={item}
-                                                />
-                                            </Grid>
-                                            :<>
-                                                {item?.communityMint &&
-                                                    <>
-                                                    {item.communityMint.includes(searchFilter) ?
-                                                        <Grid item xs={12} sm={6} md={4} key={key}>
-                                                        <GovernanceCardView 
-                                                            item={item}
-                                                        />
+                                            {isValidSolanaPublicKey(searchFilter) && 
+                                                (item.governanceAddress.includes(searchFilter) || 
+                                                (item?.communityMint && item.communityMint.includes(searchFilter)) || 
+                                                (item?.councilMint && item.councilMint.includes(searchFilter))) && 
+                                                (
+                                                    <Grid item xs={12} sm={6} md={4} key={key}>
+                                                        <GovernanceCardView item={item} />
                                                     </Grid>
-                                                    :<></>}
-                                                    </>
-                                                }
-                                                {item?.councilMint &&
-                                                    <>
-                                                    {item.councilMint.includes(searchFilter) ?
-                                                        <Grid item xs={12} sm={6} md={4} key={key}>
-                                                            <GovernanceCardView 
-                                                                item={item}
-                                                            />
-                                                        </Grid>
-                                                    :<></>}
-                                                    </>
-                                                }
-                                            </>}
+                                                )
+                                            }
                                         </>
                                     }
                                 </>

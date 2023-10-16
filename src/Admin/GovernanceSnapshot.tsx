@@ -1279,6 +1279,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
         // check token owner records
         let mcount = 0;
+        
         for (const owner of rawTokenOwnerRecords){
             mcount++;
             if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance");

@@ -1,5 +1,6 @@
 import React from "react";
 import { BN, web3 } from '@project-serum/anchor';
+import { BigNumber } from 'bignumber.js'
 import { Connection, PublicKey, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import {
@@ -309,4 +310,37 @@ export function convertSecondsToLegibleFormat(secondsStr:string, showOnlyUnit?: 
           return `${seconds} seconds`;
       }
   }
+}
+
+export function parseMintNaturalAmountFromDecimal(
+  decimalAmount: string | number,
+  mintDecimals: number
+) {
+  if (typeof decimalAmount === 'number') {
+    return getMintNaturalAmountFromDecimal(decimalAmount, mintDecimals)
+  }
+
+  if (mintDecimals === 0) {
+    return parseInt(decimalAmount)
+  }
+
+  const floatAmount = parseFloat(decimalAmount)
+  return getMintNaturalAmountFromDecimal(floatAmount, mintDecimals)
+}
+
+export function parseMintNaturalAmountFromDecimalAsBN(
+  decimalAmount: string | number,
+  mintDecimals: number
+) {
+  return new BN(
+    parseMintNaturalAmountFromDecimal(decimalAmount, mintDecimals).toString()
+  )
+}
+
+// Converts amount in decimals to mint amount (natural units)
+export function getMintNaturalAmountFromDecimal(
+  decimalAmount: number,
+  decimals: number
+) {
+  return new BigNumber(decimalAmount).shiftedBy(decimals).toNumber()
 }

@@ -55,20 +55,7 @@ import {
   Checkbox
 } from '@mui/material';
 
-import Confetti from 'react-dom-confetti';
-import SolIcon from '../../../components/static/SolIcon';
-import SolCurrencyIcon from '../../../components/static/SolCurrencyIcon';
-
-import ExplorerView from '../../../utils/grapeTools/Explorer';
-
-import { SelectChangeEvent } from '@mui/material/Select';
-import { MakeLinkableAddress, ValidateAddress } from '../../../utils/grapeTools/WalletAddress'; // global key handling
-import { useSnackbar } from 'notistack';
-
-//import { withSend } from "@cardinal/token-manager";
-import { findDisplayName } from '../../../utils/name-service';
-
-import { chunks } from '../../../utils/governanceTools/helpers';
+import { parseMintNaturalAmountFromDecimalAsBN } from '../../../utils/grapeTools/helpers';
 
 import JoinLeftIcon from '@mui/icons-material/JoinLeft';
 import WarningIcon from '@mui/icons-material/Warning';
@@ -140,17 +127,6 @@ export default function JoinDAOView(props: any) {
                
         const transaction = new Transaction();
         
-        /*
-        const atomicAmount = parseMintNaturalAmountFromDecimalAsBN(
-            form.amount,
-            form.mintInfo.decimals
-        )
-            
-        const programVersion = await fetchProgramVersion(
-            connection.current,
-            form.realm.programId
-        )*/
-        
         // we need to fetch the governance details either her or a step before
         
         const programId = governance.owner;
@@ -159,54 +135,74 @@ export default function JoinDAOView(props: any) {
             connection,
             programId,
           )
+        
         console.log("programVersion: "+JSON.stringify(programVersion));
 
-        const realmPk = governance.pubkey;
+        const realmPk = new PublicKey(governance.pubkey);
         
-        const communityMint = governance.account.communityMint;
+        const communityMint = new PublicKey(governance.account.communityMint);
+
+        //const testInfo = await connection.getAccountInfo(communityMint);
+        //const testInfo = await connection.getParsedAccountInfo(communityMint);
+
+        //console.log("testInfo: "+JSON.stringify(testInfo))
 
         const tokenInfo = await getMint(RPC_CONNECTION, communityMint);
         
+        const userAtaPk = await getAssociatedTokenAddress(
+            new PublicKey(communityMint),
+            fromWallet, // owner
+            true
+          )
+
         // Extract the mint authority
-        const mintAuthority = tokenInfo.mintAuthority;
+        const mintAuthority = tokenInfo.mintAuthority ? new PublicKey(tokenInfo.mintAuthority) : null;
         const decimals = tokenInfo.decimals;
 
-        const atomicAmount = new BN(500 / 10 ** decimals);        
+        //console.log("mintAuthority: "+mintAuthority.toBase58());
+        console.log("decimals: "+decimals);
         
+        const atomicAmount = parseMintNaturalAmountFromDecimalAsBN(
+            500,
+            decimals
+        )
+s
         const instructions: TransactionInstruction[] = []
-        console.log("withDepositGoverningTokens...")
+        /*
+        console.log("realm: "+realmPk.toBase58())
+        console.log("governingTokenSource / userAtaPk: "+userAtaPk.toBase58())
+        console.log("governingTokenMint: "+communityMint.toBase58())
+        console.log("governingTokenOwner: "+fromWallet.toBase58())
+        console.log("governingTokenSourceAuthority: "+mintAuthority?.toBase58())
+        console.log("payer: "+fromWallet.toBase58())
+        console.log("amount: "+atomicAmount);
+        */
         await withDepositGoverningTokens(
             instructions,
             programId,
             programVersion,
-            realmPk, //form.realm.realmId,
-            communityMint,//form.governedAccount.pubkey,
+            realmPk,
+            userAtaPk,
             communityMint,
-            fromWallet,//authority,//form.governedAccount.extensions.token.account.owner,
-            mintAuthority,//fromWallet,//authority,//form.governedAccount.extensions.token.account.owner,
             fromWallet,
-            atomicAmount // amount to participate with
+            fromWallet,
+            fromWallet,
+            atomicAmount
         )
         
         if (instructions.length != 1) {
             console.log("ERROR: Something went wrong");
         } else{
 
-            const insertChunks = chunks(instructions, 1);
-            
-            console.log("Something returned... "+JSON.stringify(instructions));
-            //console.log("ix: "+JSON.stringify(ix))
-            const serialized = serializeInstructionToBase64(instructions[0]);
-            
-            //const buff = Buffer.from(serialized, 'base64');
-            //const tx = Transaction.from(ix);
+            if (instructions){
 
-            console.log("serialized "+JSON.stringify(serialized));
-            
-            if (serialized){
-                //transaction.add(ix)
-                
-                //setTransactionInstructions(transaction);
+                const transaction = new Transaction();
+                transaction.add(...instructions);
+
+                console.log("TX: "+JSON.stringify(transaction));
+                setTransactionInstructions(transaction);
+            } else{
+                console.log("No instructions!");
             }
         }
         
