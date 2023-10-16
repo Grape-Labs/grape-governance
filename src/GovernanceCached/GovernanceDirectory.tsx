@@ -956,7 +956,7 @@ export function GovernanceDirectoryView(props: Props) {
                                                 />
                                             </Grid>
                                             :<>
-                                                {(item?.communityMint && item?.councilMint) &&
+                                                {item?.communityMint &&
                                                     <>
                                                     {item.communityMint.includes(searchFilter) ?
                                                         <Grid item xs={12} sm={6} md={4} key={key}>
@@ -964,15 +964,18 @@ export function GovernanceDirectoryView(props: Props) {
                                                             item={item}
                                                         />
                                                     </Grid>
-                                                    :<>
-                                                        {item.councilMint.includes(searchFilter) ?
-                                                            <Grid item xs={12} sm={6} md={4} key={key}>
-                                                                <GovernanceCardView 
-                                                                    item={item}
-                                                                />
-                                                            </Grid>
-                                                        :<></>}
-                                                    </>}
+                                                    :<></>}
+                                                    </>
+                                                }
+                                                {item?.councilMint &&
+                                                    <>
+                                                    {item.councilMint.includes(searchFilter) ?
+                                                        <Grid item xs={12} sm={6} md={4} key={key}>
+                                                            <GovernanceCardView 
+                                                                item={item}
+                                                            />
+                                                        </Grid>
+                                                    :<></>}
                                                     </>
                                                 }
                                             </>}
