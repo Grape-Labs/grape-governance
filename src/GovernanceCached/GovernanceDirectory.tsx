@@ -941,12 +941,42 @@ export function GovernanceDirectoryView(props: Props) {
                             <>
                             {searchFilter ?
                                 <>
-                                    {item.governanceName.toUpperCase().includes(searchFilter.toUpperCase()) &&
+                                    {item.governanceName.toUpperCase().includes(searchFilter.toUpperCase()) ?
                                         <Grid item xs={12} sm={6} md={4} key={key}>
                                             <GovernanceCardView 
                                                 item={item}
                                             />
                                         </Grid>
+                                        :
+                                        <>
+                                            {item.governanceAddress.includes(searchFilter) ?
+                                                <Grid item xs={12} sm={6} md={4} key={key}>
+                                                <GovernanceCardView 
+                                                    item={item}
+                                                />
+                                            </Grid>
+                                            :<>
+                                                {(item?.communityMint && item?.councilMint) &&
+                                                    <>
+                                                    {item.communityMint.includes(searchFilter) ?
+                                                        <Grid item xs={12} sm={6} md={4} key={key}>
+                                                        <GovernanceCardView 
+                                                            item={item}
+                                                        />
+                                                    </Grid>
+                                                    :<>
+                                                        {item.councilMint.includes(searchFilter) ?
+                                                            <Grid item xs={12} sm={6} md={4} key={key}>
+                                                                <GovernanceCardView 
+                                                                    item={item}
+                                                                />
+                                                            </Grid>
+                                                        :<></>}
+                                                    </>}
+                                                    </>
+                                                }
+                                            </>}
+                                        </>
                                     }
                                 </>
                                 :
