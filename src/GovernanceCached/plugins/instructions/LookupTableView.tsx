@@ -207,16 +207,17 @@ export default function LookupTableView(props: any) {
         }
         
         //if (publicKey)
-        console.log("Updated lookupTableInst: "+JSON.stringify(lookupTableInst));
+        //console.log("Updated lookupTableInst: "+JSON.stringify(lookupTableInst));
 
 
         //const meSigner = fromAddress;
-        
+        /*
         const jsonData = require('./plugins/idl/LookupTable.json');
         const borshCoder = new BorshCoder(null);
         const instruction = lookupTableInst;
         const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
         const decodedIx = borshCoder.instruction.decode(hexString, 'hex');
+        */
         //const decodedIx = borshCoder.instruction.decode(lookupTableInst.data, 'base58')
         
         //const signData = lookupTableInst.serializeMessage()
