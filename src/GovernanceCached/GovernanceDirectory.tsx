@@ -124,11 +124,33 @@ function GovernanceCardView(props:any) {
             <Grid container>
                 <Grid item xs={12} sm={8} container justifyContent="flex-start">
                     <Typography sx={{ fontSize: 10, color:'rgba(255,255,255,0.1)' }} gutterBottom>
-                        Governance {item?.governanceAddress &&
-                            <>{item.governanceAddress}</>
-                        }
+                            <Tooltip title={
+                                <>
+                                    {item?.communityMint &&
+                                        <Grid item xs={12} container>
+                                            <Typography sx={{fontSize:'10px'}} gutterBottom>
+                                                Community Mint {item.communityMint}
+                                            </Typography>
+                                        </Grid>
+                                        }
+                                        {item?.councilMint &&
+                                        <Grid item xs={12} container>
+                                            <Typography sx={{fontSize:'10px'}} variant="caption" gutterBottom>
+                                                Council Mint {item.councilMint}
+                                            </Typography>
+                                        </Grid>
+                                        }
+                                </>
+                            }>
+                                <Button variant="text" size="small" sx={{fontSize:'10px',textAlign:'left'}}>
+                                    Governance {item?.governanceAddress &&
+                                        <>{item.governanceAddress}</>
+                                    }
+                                </Button>
+                            </Tooltip>
                     </Typography>
                 </Grid>
+
                 <Grid item xs={12} sm={4} container justifyContent="flex-end">
                     {item.totalProposalsVoting && item.totalProposalsVoting > 0 ?
                         <Tooltip title={

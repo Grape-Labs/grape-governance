@@ -1143,7 +1143,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     govTx.splice(-offsetDiff);
                 }
                 */
-
             }
         }
 
@@ -2462,6 +2461,7 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
     let this_realm = sentRealm;// || realm;
     const lookup = new Array();
     console.log("Storage Pool: "+storagePool+" | Lookup File found: "+JSON.stringify(lookupFound))
+    
     //console.log("this_realm: "+JSON.stringify(this_realm));
     //console.log("governanceLookup: "+JSON.stringify(governanceLookup));
 
@@ -2470,6 +2470,8 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
     const freshGovernanceLookup = await fetchGovernanceLookupFile(storagePool);
 
     if (this_realm){
+        const communityMint = this_realm.account.communityMint;
+        const councilMint = this_realm.account.config?.councilMint ? this_realm.account.config.councilMint : null;
         //console.log("realm: "+JSON.stringify(realm))
         const governingMintDetails = 
             await connection.getParsedAccountInfo(
@@ -2519,6 +2521,8 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                     item.totalVaultSolValue = governanceFetchedDetails?.totalVaultSolValue;
                     item.totalVaultStableCoinValue = governanceFetchedDetails?.totalVaultStableCoinValue;
                     item.totalVaultNftValue = governanceFetchedDetails?.totalVaultNftValue;
+                    item.communityMint = communityMint;
+                    item.councilMint = councilMint;
                     govFound = true;
                 }
 
@@ -2564,7 +2568,8 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                     totalVaultSol: governanceFetchedDetails?.totalVaultSol,
                     totalVaultStableCoinValue: governanceFetchedDetails?.totalVaultStableCoinValue,
                     totalVaultNftValue: governanceFetchedDetails?.totalVaultNftValue,
-
+                    communityMint: communityMint,
+                    councilMint: councilMint,
                 });
             }
             
