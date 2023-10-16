@@ -166,7 +166,7 @@ export default function JoinDAOView(props: any) {
             500,
             decimals
         )
-s
+
         const instructions: TransactionInstruction[] = []
         /*
         console.log("realm: "+realmPk.toBase58())
