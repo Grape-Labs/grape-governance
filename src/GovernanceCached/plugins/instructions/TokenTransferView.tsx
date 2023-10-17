@@ -1085,7 +1085,7 @@ export default function TokenTransferView(props: any) {
                                                     </IconButton>
                                                 </Tooltip>
                                             ) : (
-                                                <Tooltip title={`Could not find a voter record for this address`}>
+                                                <Tooltip title={`Could not find a voter record for this address, or voter has no voting power`}>
                                                     <IconButton
                                                         size="small" sx={{}}
                                                     >
@@ -1147,7 +1147,7 @@ export default function TokenTransferView(props: any) {
                                                                     </IconButton>
                                                                 </Tooltip>
                                                             ) : (
-                                                                <Tooltip title={`Could not find a voter record for this address`}>
+                                                                <Tooltip title={`Could not find a voter record for this address, or voter has no voting power`}>
                                                                     <IconButton
                                                                         size="small" sx={{}}
                                                                     >

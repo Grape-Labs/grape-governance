@@ -145,13 +145,16 @@ export function GrapeVerificationDAO(props: any){
 
         if (cached_members){
           
+          //console.log("cached_members: "+JSON.stringify(cached_members))
+
           const simpleArray = cached_members
-            //.filter((item: any) => 
-            //    item.account.data?.parsed?.info?.tokenAmount?.amount > 0)  
+            .filter((item: any) => 
+                Number("0x"+item.account.governingTokenDepositAmount) > 0)  
             .map((item: any, key: number) => {
               return item.account.governingTokenOwner;
             });
           
+
           plt.push({
             pubkey: governanceAddress, //item.account.governingTokenOwner,
             size: simpleArray.length,
@@ -164,7 +167,7 @@ export function GrapeVerificationDAO(props: any){
 
     
     if (setVerifiedDAODestinationWalletArray){
-      console.log("plt: "+JSON.stringify(plt))
+      //console.log("plt: "+JSON.stringify(plt))
       setVerifiedDAODestinationWalletArray(plt);
     }
     
