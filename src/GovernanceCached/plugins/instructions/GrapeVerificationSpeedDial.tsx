@@ -122,7 +122,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     },
   }));
 
-export function GrapeVerificationAddressBook(props: any){
+export function GrapeVerificationSpeedDial(props: any){
   const ownerAddress = props?.address;
   const [addressBooks, setAddressBooks] = React.useState(null);
   const setVerifiedDestinationWalletArray = props?.setVerifiedDestinationWalletArray;

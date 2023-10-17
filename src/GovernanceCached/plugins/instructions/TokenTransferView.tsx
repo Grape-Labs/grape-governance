@@ -53,7 +53,8 @@ import SolIcon from '../../../components/static/SolIcon';
 import SolCurrencyIcon from '../../../components/static/SolCurrencyIcon';
 
 import ExplorerView from '../../../utils/grapeTools/Explorer';
-import { GrapeVerificationAddressBook } from './GrapeVerificationAddressBook';
+import { GrapeVerificationSpeedDial } from './GrapeVerificationSpeedDial';
+import { GrapeVerificationDAO } from './GrapeVerificationDAO';
 import { LookupTableIntegratedDialogView } from './LookupTableIntegratedDialogView';
 import { SelectChangeEvent } from '@mui/material/Select';
 import { MakeLinkableAddress, ValidateAddress } from '../../../utils/grapeTools/WalletAddress'; // global key handling
@@ -146,13 +147,16 @@ export default function TokenTransferView(props: any) {
                     })
                 })}
 
+        
+        console.log("tokenATA: "+tokenAta);
+
 
         //const toWallet = new PublicKey(toAddress);
         const mintPubkey = new PublicKey(tokenMint);
         const amountToSend = +tokenAmount;
         console.log("amountToSend: "+amountToSend)
         const tokenAccount = new PublicKey(mintPubkey);
-                
+        
         const transaction = new Transaction();
         const pTransaction = new Transaction();
 
@@ -242,7 +246,7 @@ export default function TokenTransferView(props: any) {
 
                     transaction.add(
                         createTransferInstruction(
-                            fromTokenAccount,
+                            new PublicKey(tokenAta || fromTokenAccount),
                             destTokenAccount,
                             fromPublicKey,
                             amount
@@ -899,6 +903,8 @@ export default function TokenTransferView(props: any) {
                         </Tooltip>
                     </Grid>
                     <Grid item xs>
+                        
+                        {/*
                         <TextField 
                             fullWidth 
                             label="Amount" 
@@ -907,7 +913,6 @@ export default function TokenTransferView(props: any) {
                             type="text"
                             onChange={(e) => {
                                 handleTokenAmountChange(e.target.value);
-                                
                             }}
                             inputProps={{
                                 inputMode: 'numeric', // Set inputMode for mobile support
@@ -916,6 +921,45 @@ export default function TokenTransferView(props: any) {
                             }}
                             sx={{borderRadius:'17px'}} 
                         />
+                        */}
+                        <RegexTextField
+                            regex={/[^0-9]+\.?[^0-9]/gi}
+                            autoFocus
+                            autoComplete='off'
+                            margin="dense"
+                            id="amount"
+                            label='Amount'
+                            type="text"
+                            fullWidth
+                            variant="outlined"
+                            value={tokenAmount}
+                            onChange={(e:any) => {
+                                handleTokenAmountChange(e.target.value);
+                            }}
+                            inputProps={{
+                                style: { 
+                                    textAlign:'center', 
+                                    fontSize: '20px'
+                                }
+                            }}
+                        />
+                        {tokenMaxAmount ?
+                            <Grid sx={{textAlign:'right',}}>
+                                <ButtonGroup size='small'>
+                                    <Button
+                                        onClick={(e:any)=> {
+                                            setTokenAmount(tokenMaxAmount);
+                                        }}
+                                    >Max</Button>
+                                    <Button
+                                        onClick={(e:any)=> {
+                                            setTokenAmount(tokenMaxAmount/2);
+                                        }}
+                                    >Half</Button>
+                                </ButtonGroup>
+                            </Grid>
+                        : <></>
+                        }
                         {tokenMaxAmount && tokenAmount > tokenMaxAmount ? 
                             <Grid sx={{textAlign:'right',}}>
                                 <Typography variant="caption" color="error">WARNING: This proposal may fail if the token balance is insufficient!</Typography>
@@ -968,7 +1012,7 @@ export default function TokenTransferView(props: any) {
                                         p:4
                                     }}
                                 >
-                                    <Typography variant="h6">Preview/Summary <GrapeVerificationAddressBook address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} /></Typography>
+                                    <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} />{/*<GrapeVerificationDAO address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} />*/}</Typography>
                                     <Typography variant="caption">
                                     Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to <strong>{destinationWalletArray[0].address} {verifiedDestinationWalletArray ? 
                                         (
@@ -996,7 +1040,7 @@ export default function TokenTransferView(props: any) {
                                         p:4
                                     }}
                                 >
-                                    <Typography variant="h6">Preview/Summary <GrapeVerificationAddressBook address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}/></Typography>
+                                    <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}/> {/*<GrapeVerificationDAO address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} />*/}</Typography>
                                     <Typography variant="caption">
                                         Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to {destinationWalletArray.length} recipient(s):<br/>
                                         {destinationWalletArray.map((destination:any, index:number) => (
