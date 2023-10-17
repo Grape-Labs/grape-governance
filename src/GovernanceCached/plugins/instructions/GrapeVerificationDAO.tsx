@@ -47,7 +47,7 @@ import {
 import {  
   GGAPI_STORAGE_POOL } from '../../../utils/grapeTools/constants';
 
-
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
@@ -190,7 +190,7 @@ export function GrapeVerificationDAO(props: any){
                     <CircularProgress color="inherit" sx={{p:'10px'}} />
                   :
                     <>
-                      <VerifiedIcon sx={{mr:1, fontSize:'12px'}}/> DAO
+                      <CheckCircleIcon sx={{mr:1, fontSize:'12px'}}/> DAO
                     </>
                   }
                 </Button>
