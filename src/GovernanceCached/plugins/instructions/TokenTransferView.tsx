@@ -849,9 +849,9 @@ export default function TokenTransferView(props: any) {
     };
     const findDAOPubkey = (address:string) => {
         try{
-            console.log("verifiedDAODestinationWalletArray: "+JSON.stringify(verifiedDAODestinationWalletArray))
+            //console.log("verifiedDAODestinationWalletArray: "+JSON.stringify(verifiedDAODestinationWalletArray))
             const entry = verifiedDAODestinationWalletArray.find((item) => item.info.includes(address));
-            console.log("checking: "+address+" entry "+JSON.stringify(entry))
+            //console.log("checking: "+address+" entry "+JSON.stringify(entry))
             if (entry) {
                 return entry.pubkey;
             }
