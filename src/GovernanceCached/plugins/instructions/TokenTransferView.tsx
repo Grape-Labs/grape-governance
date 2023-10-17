@@ -62,6 +62,7 @@ import { useSnackbar } from 'notistack';
 
 //import { withSend } from "@cardinal/token-manager";
 
+import PersonIcon from '@mui/icons-material/Person';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
@@ -688,6 +689,16 @@ export default function TokenTransferView(props: any) {
         }
     } 
     
+    function handleAddMyWallet(){
+        if (!destinationString)
+            setDestinationString(publicKey.toBase58());
+        else if (destinationString.length <= 0)
+            setDestinationString(publicKey.toBase58());
+        else if (destinationString.includes(publicKey.toBase58()))
+            return;
+        else
+            setDestinationString(destinationString + "\n" + publicKey.toBase58());
+    }
 
     function handleDestinationWalletChange(destinations:string){
         //console.log("String changed...")
@@ -1010,6 +1021,15 @@ export default function TokenTransferView(props: any) {
                 <Grid sx={{textAlign:'right',}}>
                     <Typography variant="caption">{destinationWalletArray ? destinationWalletArray.length > 0 ? maxDestinationWalletLen - destinationWalletArray.length : maxDestinationWalletLen : maxDestinationWalletLen} wallets remaining</Typography>
                     <LookupTableIntegratedDialogView address={fromAddress} integrationType={1} buttonSize={12} setDestinationString={setDestinationString} destinationString={destinationString} />
+                    <Tooltip title='Add my Wallet'>
+                        <IconButton 
+                                size="small"
+                                onClick={handleAddMyWallet}
+                                color='inherit'
+                                sx={{color:'white',textTransform:'none',ml:1}}>
+                            <PersonIcon sx={{fontSize:'18px'}} />
+                        </IconButton>
+                    </Tooltip>
                 </Grid>
             </FormControl>    
                 
