@@ -1273,12 +1273,12 @@ export default function GovernanceCreateProposalView(props: any){
 
                             {proposalType === 4 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <TokenTransferView payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} setInstructionsObject={setInstructionsObject} />
+                                <TokenTransferView governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
                             {proposalType === 5 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <TokenTransferView payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                                <TokenTransferView governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
                             {proposalType === 8 &&

@@ -62,8 +62,10 @@ import { useSnackbar } from 'notistack';
 
 //import { withSend } from "@cardinal/token-manager";
 
+import VerifiedIcon from '@mui/icons-material/Verified';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
+import ErrorIcon from '@mui/icons-material/Error';
 import SendIcon from '@mui/icons-material/Send';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -96,6 +98,8 @@ const CustomTextarea = styled(TextareaAutosize)(({ theme }) => ({
 }));
 
 export default function TokenTransferView(props: any) {
+    const governanceAddress = props?.governanceAddress;
+    const governanceLookup = props?.governanceLookup;
     const payerWallet = props?.payerWallet || null;
     const pluginType = props?.pluginType || 4; // 1 Token 2 SOL
     const setInstructionsObject = props?.setInstructionsObject;
@@ -114,6 +118,7 @@ export default function TokenTransferView(props: any) {
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
     let maxDestinationWalletLen = 40;
     const [verifiedDestinationWalletArray, setVerifiedDestinationWalletArray] = React.useState(null);
+    const [verifiedDAODestinationWalletArray, setVerifiedDAODestinationWalletArray] = React.useState(null);
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
     const [destinationString, setDestinationString] = React.useState(null);
     const [distributionType, setDistributionType] = React.useState(false);
@@ -824,9 +829,20 @@ export default function TokenTransferView(props: any) {
     const findPubkey = (address:string) => {
         try{
             const entry = verifiedDestinationWalletArray.find((item) => item.info.addresses.includes(address));
-            console.log("checking: "+address+" vs "+entry)
+            //console.log("checking: "+address+" vs "+entry)
             if (entry) {
                 return entry.pubkey.toBase58();
+            }
+            return null; // Address not found
+        }catch(e){console.log("ERR: "+e)}
+    };
+    const findDAOPubkey = (address:string) => {
+        try{
+            console.log("verifiedDAODestinationWalletArray: "+JSON.stringify(verifiedDAODestinationWalletArray))
+            const entry = verifiedDAODestinationWalletArray.find((item) => item.info.includes(address));
+            console.log("checking: "+address+" entry "+JSON.stringify(entry))
+            if (entry) {
+                return entry.pubkey;
             }
             return null; // Address not found
         }catch(e){console.log("ERR: "+e)}
@@ -1012,20 +1028,50 @@ export default function TokenTransferView(props: any) {
                                         p:4
                                     }}
                                 >
-                                    <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} />{/*<GrapeVerificationDAO address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} />*/}</Typography>
+                                    <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} /> <GrapeVerificationDAO governanceAddress={governanceAddress} governanceLookup={governanceLookup} address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray} /></Typography>
                                     <Typography variant="caption">
                                     Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to <strong>{destinationWalletArray[0].address} {verifiedDestinationWalletArray ? 
                                         (
                                             findPubkey(destinationWalletArray[0].address) ? (
-                                                <Tooltip title={`Verified on ${findPubkey(destinationWalletArray[0].address)}`}>
+                                                <Tooltip title={`Grape Verified on ${findPubkey(destinationWalletArray[0].address)} via Speed Dial`}>
                                                     <IconButton
                                                         size="small" sx={{}}
                                                     >
-                                                        <CheckCircleIcon color='success' sx={{ fontSize: '12px' }}/>
+                                                        <VerifiedIcon sx={{ color:'yellow',fontSize: '12px' }}/>
                                                     </IconButton>
                                                 </Tooltip>
                                             ) : (
-                                                <></>
+                                                <>
+                                                {verifiedDestinationWalletArray.length > 0 &&
+                                                    <Tooltip title={`This address is not part of a Speed Dial`}>
+                                                        <IconButton
+                                                            size="small" sx={{}}
+                                                        >
+                                                            <WarningIcon color="warning" sx={{ fontSize: '12px' }}/>
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                }
+                                                </>
+                                            )
+                                        ):<></>}
+                                        {verifiedDAODestinationWalletArray ? 
+                                        (
+                                            findDAOPubkey(destinationWalletArray[0].address) ? (
+                                                <Tooltip title={`DAO Verified on ${findDAOPubkey(destinationWalletArray[0].address)}`}>
+                                                    <IconButton
+                                                        size="small" sx={{}}
+                                                    >
+                                                        <CheckCircleIcon color='primary' sx={{ fontSize: '12px' }}/>
+                                                    </IconButton>
+                                                </Tooltip>
+                                            ) : (
+                                                <Tooltip title={`Could not find a voter record for this address`}>
+                                                    <IconButton
+                                                        size="small" sx={{}}
+                                                    >
+                                                        <WarningIcon color="error" sx={{ fontSize: '12px' }}/>
+                                                    </IconButton>
+                                                </Tooltip>
                                             )
                                         ):<></>}
                                     </strong>
@@ -1040,25 +1086,58 @@ export default function TokenTransferView(props: any) {
                                         p:4
                                     }}
                                 >
-                                    <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}/> {/*<GrapeVerificationDAO address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} />*/}</Typography>
+                                    <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}/> <GrapeVerificationDAO governanceAddress={governanceAddress} governanceLookup={governanceLookup} address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray}  /></Typography>
                                     <Typography variant="caption">
                                         Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to {destinationWalletArray.length} recipient(s):<br/>
                                         {destinationWalletArray.map((destination:any, index:number) => (
                                             <li key={index}>
                                                 {destination.address.trim()}{' '}
                                                     {verifiedDestinationWalletArray ? (
-                                                    findPubkey(destination.address) ? (
-                                                        <Tooltip title={`Verified on ${findPubkey(destination.address)}`}>
-                                                            <IconButton size="small" sx={{}}>
-                                                                <CheckCircleIcon color='success' sx={{ fontSize: '12px' }}/>
-                                                            </IconButton>
-                                                        </Tooltip>
-                                                    ) : (
-                                                        <></>
-                                                    )
-                                                    ) : (
-                                                    ''
-                                                    )}{' '}
+                                                        findPubkey(destination.address) ? (
+                                                            <Tooltip title={`Grape Verified on ${findPubkey(destination.address)} via Speed Dial`}>
+                                                                <IconButton size="small" sx={{}}>
+                                                                    <VerifiedIcon sx={{ color:'yellow', fontSize: '12px' }}/>
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        ) : (
+                                                            <>
+                                                                {verifiedDestinationWalletArray.length > 0 &&
+                                                                    <Tooltip title={`This address is not part of a Speed Dial`}>
+                                                                        <IconButton
+                                                                            size="small" sx={{}}
+                                                                        >
+                                                                            <WarningIcon color="error" sx={{ fontSize: '12px' }}/>
+                                                                        </IconButton>
+                                                                    </Tooltip>
+                                                                }
+                                                            </>
+                                                        )
+                                                        ) : (
+                                                        ''
+                                                    )}
+                                                    
+                                                    {verifiedDAODestinationWalletArray ? 
+                                                        (
+                                                            findDAOPubkey(destination.address) ? (
+                                                                <Tooltip title={`DAO Verified on ${findDAOPubkey(destination.address)}`}>
+                                                                    <IconButton
+                                                                        size="small" sx={{}}
+                                                                    >
+                                                                        <CheckCircleIcon color='primary' sx={{ fontSize: '12px' }}/>
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                            ) : (
+                                                                <Tooltip title={`Could not find a voter record for this address`}>
+                                                                    <IconButton
+                                                                        size="small" sx={{}}
+                                                                    >
+                                                                        <WarningIcon color="error" sx={{ fontSize: '12px' }}/>
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                            )
+                                                        ):<></>}
+                                                      
+                                                    {' '}
                                                     - {destination.amount.toLocaleString()} tokens
                                             </li>
                                         ))}

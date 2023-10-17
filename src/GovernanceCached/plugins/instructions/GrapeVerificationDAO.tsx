@@ -38,30 +38,19 @@ import {
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
-import ExplorerView from '../../../utils/grapeTools/Explorer';
-import moment from 'moment';
+
+import {
+  fetchGovernanceLookupFile,
+  getFileFromLookup
+} from '../../CachedStorageHelpers';
+
+import {  
+  GGAPI_STORAGE_POOL } from '../../../utils/grapeTools/constants';
+
 
 import VerifiedIcon from '@mui/icons-material/Verified';
-import AddCircleIcon from '@mui/icons-material/AddCircle';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
-import DescriptionIcon from '@mui/icons-material/Description';
-import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
-import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
-import EditIcon from '@mui/icons-material/Edit';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CodeIcon from '@mui/icons-material/Code';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import FitScreenIcon from '@mui/icons-material/FitScreen';
-import CheckIcon from '@mui/icons-material/Check';
-import GitHubIcon from '@mui/icons-material/GitHub';
-import DownloadIcon from '@mui/icons-material/Download';
-import ThumbUpIcon from '@mui/icons-material/ThumbUp';
-import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import CloseIcon from '@mui/icons-material/Close';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import IconButton from '@mui/material/IconButton';
-import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
 
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
@@ -124,8 +113,9 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 
 export function GrapeVerificationDAO(props: any){
   const ownerAddress = props?.address;
-  const [addressBooks, setAddressBooks] = React.useState(null);
-  const setVerifiedDestinationWalletArray = props?.setVerifiedDestinationWalletArray;
+  const setVerifiedDAODestinationWalletArray = props?.setVerifiedDAODestinationWalletArray;
+  const governanceLookup = props?.governanceLookup;
+  const governanceAddress = props?.governanceAddress;
   
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -135,39 +125,56 @@ export function GrapeVerificationDAO(props: any){
       setExpanded(isExpanded ? panel : false);
   };
 
-  const getAndVerifyFromAllLookupTables = async(address: string) => {
+  const getAndVerifyFromDAOMembers = async(address: string) => {
     setLoading(true);
     
     console.log("Fetching DAO Cached Members "+address);
 
+    const plt = new Array();
+    if (governanceAddress){
+      let cached_members = new Array();
+      
+      let mfile = null;
+      for (let glitem of governanceLookup){
+        if (glitem.governanceAddress === governanceAddress)
+          mfile = glitem.memberFilename;
+      }
+      if (mfile){
+
+        cached_members = await getFileFromLookup(mfile, GGAPI_STORAGE_POOL);
+
+        if (cached_members){
+          
+          const simpleArray = cached_members
+            //.filter((item: any) => 
+            //    item.account.data?.parsed?.info?.tokenAmount?.amount > 0)  
+            .map((item: any, key: number) => {
+              return item.account.governingTokenOwner;
+            });
+          
+          plt.push({
+            pubkey: governanceAddress, //item.account.governingTokenOwner,
+            size: simpleArray.length,
+            info: simpleArray
+          });
+          
+        }
+      }
+    }
 
     
-    /*
-    const plt = new Array();
-    for (var item of programAccounts){
-        if (item.account.data.parsed.info.authority === addressPk.toBase58()){
-            //console.log("programItem Found "+JSON.stringify(item));
-            // we can explore pushing the object later on
-            plt.push({
-                pubkey: item.pubkey,
-                size: item.account.data.parsed.info?.addresses ? item.account.data.parsed.info.addresses.length : 0,
-                info: item.account.data.parsed.info
-            })
-        }
+    if (setVerifiedDAODestinationWalletArray){
+      console.log("plt: "+JSON.stringify(plt))
+      setVerifiedDAODestinationWalletArray(plt);
     }
-
-    setAddressBooks(plt);
-    if (setVerifiedDestinationWalletArray){
-      setVerifiedDestinationWalletArray(plt);
-    }
-    */
+    
     setLoading(false);
     return null;
   }
 
   const handleVerifyAllAddressBooks = () => {
-    if (!addressBooks && ownerAddress){
-      getAndVerifyFromAllLookupTables(ownerAddress);
+    if (!loading && ownerAddress){
+      getAndVerifyFromDAOMembers(ownerAddress);
     }
 };
 
