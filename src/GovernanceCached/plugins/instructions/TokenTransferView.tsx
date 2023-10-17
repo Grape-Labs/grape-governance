@@ -106,7 +106,7 @@ export default function TokenTransferView(props: any) {
     const [payerInstructions, setPayerInstructions] = React.useState(null);
     const [tokenMaxAmount, setTokenMaxAmount] = React.useState(null);
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
-    let maxDestinationWalletLen = 20;
+    let maxDestinationWalletLen = 40;
     const [verifiedDestinationWalletArray, setVerifiedDestinationWalletArray] = React.useState(null);
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
     const [destinationString, setDestinationString] = React.useState(null);

@@ -1407,7 +1407,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 //}
             //}
             */
-
+            
             if (!hasWalletCommunityBalance || hoursDiff > (24*3)){ // refresh every 3 days
                 if (grealm.account?.communityMint){
                     const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.communityMint});
