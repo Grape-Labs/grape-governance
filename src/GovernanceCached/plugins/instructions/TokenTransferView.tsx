@@ -17,6 +17,8 @@ import {
     getTwitterRegistry,
 } from '@bonfida/spl-name-service';
 
+import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
+
 import { styled } from '@mui/material/styles';
 
 import {
@@ -97,11 +99,14 @@ export default function TokenTransferView(props: any) {
     const pluginType = props?.pluginType || 4; // 1 Token 2 SOL
     const setInstructionsObject = props?.setInstructionsObject;
     const [governanceWallet, setGovernanceWallet] = React.useState(props?.governanceWallet);
+    const [governanceRulesWallet, setGovernanceRulesWallet] = React.useState(props?.governanceRulesWallet);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
     const [hasBeenCalled, setHasBeenCalled] = React.useState(false);
     const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
+    const [tokenMap, setTokenMap] = React.useState(null);
+    const [tokenAta, setTokenAta] = React.useState(null);
     const [transactionInstructions, setTransactionInstructions] = React.useState(null);
     const [payerInstructions, setPayerInstructions] = React.useState(null);
     const [tokenMaxAmount, setTokenMaxAmount] = React.useState(null);
@@ -119,7 +124,29 @@ export default function TokenTransferView(props: any) {
 
     async function transferTokens() {
         //const payerWallet = new PublicKey(payerAddress);
-        const fromWallet = new PublicKey(fromAddress);
+        //const fromWallet = new PublicKey(fromAddress);
+
+        let fromWallet = null;
+        {consolidatedGovernanceWallet && consolidatedGovernanceWallet
+            //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
+            .map((governanceItem: any, key: number) => {
+                governanceItem.tokens
+                    .map((item: any, key: number) => {
+                        if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
+                            item.account.data.parsed.info.tokenAmount.amount > 0) {
+                                //if (item.account.data.parsed.info.mint === selectedTokenMint){
+                                if (item.pubkey === tokenAta){
+                                    console.log("Found Token: "+JSON.stringify(item)) // item.account.data.parsed.info.owner?
+                                    console.log("Found Owner: "+JSON.stringify(item.account.data.parsed.info.owner)) // item.account.data.parsed.info.owner?
+                                    fromWallet = new PublicKey(item.account.data.parsed.info.owner);
+                                    //setTokenMaxAmount(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals);
+                                    //setTokenMint(item.account.data.parsed.info.mint);
+                                }
+                        }
+                    })
+                })}
+
+
         //const toWallet = new PublicKey(toAddress);
         const mintPubkey = new PublicKey(tokenMint);
         const amountToSend = +tokenAmount;
@@ -275,21 +302,31 @@ export default function TokenTransferView(props: any) {
     function TokenSelect() {
 
         const handleMintSelected = (event: SelectChangeEvent) => {
-            const selectedTokenMint = event.target.value as string;
-            setTokenMint(selectedTokenMint);
+            //const selectedTokenMint = event.target.value as string;
+            // use the ATA not the mint:
+            const selectedTokenAta = event.target.value as string;
 
+            //setTokenMint(selectedTokenMint);
+            setTokenAta(selectedTokenAta);
             if (pluginType === 4){
                 // with token mint traverse to get the mint info if > 0 amount
-                {governanceWallet && governanceWallet.tokens.value
+                {consolidatedGovernanceWallet && consolidatedGovernanceWallet
                     //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
-                    .map((item: any, key: number) => {
-                        if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
-                            item.account.data.parsed.info.tokenAmount.amount > 0) {
-                                if (item.account.data.parsed.info.mint === selectedTokenMint){
-                                    setTokenMaxAmount(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals);
+                    .map((governanceItem: any, key: number) => {
+                        governanceItem.tokens
+                            .map((item: any, key: number) => {
+                        
+                                if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
+                                    item.account.data.parsed.info.tokenAmount.amount > 0) {
+                                        //if (item.account.data.parsed.info.mint === selectedTokenMint){
+                                        if (item.pubkey === selectedTokenAta){
+                                            console.log("Found Token: "+item.account.data.parsed.info.mint)
+                                            setTokenMaxAmount(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals);
+                                            setTokenMint(item.account.data.parsed.info.mint);
+                                        }
                                 }
-                        }
-                })}
+                            })
+                        })}
             } else{
                 setTokenMaxAmount(governanceWallet.solBalance/10 ** 9)
             }
@@ -301,7 +338,6 @@ export default function TokenTransferView(props: any) {
             const [mintLogo, setMintLogo] = React.useState(null);
 
             const getTokenMintInfo = async() => {
-                
                     const mint_address = new PublicKey(mintAddress)
                     const [pda, bump] = await PublicKey.findProgramAddress([
                         Buffer.from("metadata"),
@@ -310,9 +346,12 @@ export default function TokenTransferView(props: any) {
                     ], PROGRAM_ID)
                     const tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
                     
+                    //console.log("tokenMetadata: "+JSON.stringify(tokenMetadata));
+
                     if (tokenMetadata?.data?.name)
                         setMintName(tokenMetadata.data.name);
                     
+                    let foundImage = false;
                     if (tokenMetadata?.data?.uri){
                         try{
                             const metadata = await window.fetch(tokenMetadata.data.uri)
@@ -324,17 +363,27 @@ export default function TokenTransferView(props: any) {
                             });
                             
                             if (metadata && metadata?.image){
-                                if (metadata.image)
+                                if (metadata.image){
+                                    foundImage = true;
                                     setMintLogo(metadata.image);
+                                }
                             }
                         }catch(err){
                             console.log("ERR: ",err);
                         }
+                    } 
+
+                    if (!foundImage){
+                        //let tn = tokenMap.get(mintAddress)?.name;
+                        let tl = tokenMap.get(mintAddress)?.logoURI;
+                        if (tl)
+                            setMintLogo(tl);
                     }
             }
 
             React.useEffect(() => { 
                 if (mintAddress && !mintName){
+
                     getTokenMintInfo();
                 }
             }, [mintAddress]);
@@ -373,7 +422,7 @@ export default function TokenTransferView(props: any) {
                 <Select
                   labelId="governance-token-select-label"
                   id="governance-token-select"
-                  value={tokenMint}
+                  value={tokenAta}
                   label="Token"
                   onChange={handleMintSelected}
                   MenuProps={{
@@ -385,82 +434,87 @@ export default function TokenTransferView(props: any) {
                     },
                   }}
                 >
-                    {(pluginType === 4 && governanceWallet) && governanceWallet.tokens.value
-                            .filter((item: any) => 
-                                item.account.data?.parsed?.info?.tokenAmount?.amount > 0
-                            )
-                            .sort((a: any, b: any) => 
-                                b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount
-                            )
-                            .map((item: any, key: number) => {
-                                
-                                if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
-                                    item.account.data.parsed.info.tokenAmount.amount > 0) {
-                                
-                                    //console.log("mint: "+item.account.data.parsed.info.mint)
+                    {(pluginType === 4 && consolidatedGovernanceWallet) && 
+                        
+                        consolidatedGovernanceWallet.map((governanceItem: any, key: number) => {
+                            
+                            return (
+                            governanceItem.tokens
+                                    .filter((item: any) => 
+                                        item.account.data?.parsed?.info?.tokenAmount?.amount > 0
+                                    )
+                                    .sort((a: any, b: any) => 
+                                        b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount
+                                    )
+                                    .map((item: any, key: number) => {
+                                        
+                                        //if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
+                                        //    item.account.data.parsed.info.tokenAmount.amount > 0) {
 
-                                    return (
-                                        <MenuItem key={key} value={item.account.data.parsed.info.mint}>
-                                            {/*console.log("wallet: "+JSON.stringify(item))*/}
-                                            
-                                            <Grid container
-                                                alignItems="center"
-                                            >
-                                                <Grid item xs={12}>
-                                                <Grid container>
-                                                    <Grid item sm={8}>
-                                                    <Grid
-                                                        container
-                                                        direction="row"
-                                                        justifyContent="left"
-                                                        alignItems="left"
+                                            return (
+                                                <MenuItem key={key} value={item.pubkey}>
+                                                    
+                                                    <Grid container
+                                                        alignItems="center"
                                                     >
-
-                                                        {item.account?.tokenMap?.tokenName ?
-                                                            <Grid 
+                                                        <Grid item xs={12}>
+                                                        <Grid container>
+                                                            <Grid item sm={8}>
+                                                            <Grid
                                                                 container
                                                                 direction="row"
-                                                                alignItems="center"
+                                                                justifyContent="left"
+                                                                alignItems="left"
                                                             >
-                                                                <Grid item>
-                                                                    <Avatar alt={item.account.tokenMap.tokenName} src={item.account.tokenMap.tokenLogo} />
-                                                                </Grid>
-                                                                <Grid item sx={{ml:1}}>
-                                                                    <Typography variant="h6">
-                                                                    {item.account.tokenMap.tokenName}
-                                                                    </Typography>
-                                                                </Grid>
+
+                                                                {item.account?.tokenMap?.tokenName ?
+                                                                    <Grid 
+                                                                        container
+                                                                        direction="row"
+                                                                        alignItems="center"
+                                                                    >
+                                                                        <Grid item>
+                                                                            <Avatar alt={item.account.tokenMap.tokenName} src={item.account.tokenMap.tokenLogo} />
+                                                                        </Grid>
+                                                                        <Grid item sx={{ml:1}}>
+                                                                            <Typography variant="h6">
+                                                                            {item.account.tokenMap.tokenName}
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                    </Grid>
+                                                                :
+                                                                    <>
+                                                                        <ShowTokenMintInfo mintAddress={item.account.data.parsed.info.mint} />
+                                                                    </>
+                                                                }
                                                             </Grid>
-                                                        :
-                                                            <>
-                                                                <ShowTokenMintInfo mintAddress={item.account.data.parsed.info.mint} />
-                                                            </>
-                                                        }
-                                                    </Grid>
-                                                    </Grid>
-                                                    <Grid item xs sx={{textAlign:'right'}}>
-                                                    <Typography variant="h6">
-                                                        {/*item.vault?.nativeTreasury?.solBalance/(10 ** 9)*/}
+                                                            </Grid>
+                                                            <Grid item xs sx={{textAlign:'right'}}>
+                                                            <Typography variant="h6">
 
-                                                        {(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals).toLocaleString()}
-                                                    </Typography>
-                                                    </Grid>
-                                                </Grid>  
+                                                                {(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals).toLocaleString()}
+                                                            </Typography>
+                                                            </Grid>
+                                                        </Grid>  
 
-                                                <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
-                                                    <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
-                                                        {item.account.data.parsed.info.mint}
-                                                    </Typography>
-                                                </Grid>
-                                                </Grid>
-                                            </Grid>
-                                        </MenuItem>
-                                    );
-                                } else {
-                                    return null; // Don't render anything for items without nativeTreasuryAddress
-                                }
-                            })}
-                    
+                                                        <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
+                                                            <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
+                                                                {item.account.data.parsed.info.mint}
+                                                            </Typography>
+                                                        </Grid>
+                                                        </Grid>
+                                                    </Grid>
+                                                </MenuItem>
+                                            );
+                                        //} else {
+                                        //    return null; // Don't render anything for items without nativeTreasuryAddress
+                                        //}
+                                    })
+                            )
+                            })
+                            
+                        }
+                        
                     {pluginType === 5 &&
                         
                         <MenuItem key={1} value={'So11111111111111111111111111111111111111112'} selected>
@@ -638,8 +692,6 @@ export default function TokenTransferView(props: any) {
     function prepareAndReturnInstructions(){
 
         //await transferTokens;
-
-
         let description = "";
 
         if (destinationWalletArray.length === 1){
@@ -660,43 +712,87 @@ export default function TokenTransferView(props: any) {
         });
     }
 
-    async function getAndUpdateWalletHoldings(wallet:string){
+    const getTokens = async (setTokenMap:any) => {
+        const tarray:any[] = [];
         try{
-            setLoadingWallet(true);
-            const solBalance = await connection.getBalance(new PublicKey(wallet));
+            const tlp = await new TokenListProvider().resolve().then(tokens => {
+                const tokenList = tokens.filterByChainId(ENV.MainnetBeta).getList();
+                const tmap = tokenList.reduce((map, item) => {
+                    tarray.push({address:item.address, decimals:item.decimals})
+                    map.set(item.address, item);
+                    return map;
+                },new Map())
+                if (setTokenMap) setTokenMap(tmap);
+                return tmap;
+            });
+    } catch(e){console.log("ERR: "+e)}
+    }
 
-            const tokenBalance = await connection.getParsedTokenAccountsByOwner(
-                new PublicKey(wallet),
-                {
-                programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-                }
-            )
-            // loop through governanceWallet
+    async function fetchWalletHoldings(wallet:string){
+
+        const tmap = await getTokens(setTokenMap);
+
+        let solBalance = 0;
+        solBalance = await connection.getBalance(new PublicKey(wallet));
+        if (wallet === governanceWallet.vault.pubkey){
             governanceWallet.solBalance = solBalance;
-            const itemsToAdd = [];
+        }
 
-            console.log("governanceWallet "+JSON.stringify(governanceWallet));
-            if (tokenBalance?.value){
-                for (let titem of tokenBalance?.value){
-                    if (governanceWallet.tokens.value){
-                        let foundCached = false;
-                        for (let gitem of governanceWallet.tokens.value){
-                            if (titem.pubkey.toBase58() === gitem.pubkey){
-                                foundCached = true;
-                                gitem.account.data.parsed.info.tokenAmount.amount = titem.account.data.parsed.info.tokenAmount.amount;
-                                gitem.account.data.parsed.info.tokenAmount.uiAmount = titem.account.data.parsed.info.tokenAmount.uiAmount;
-                                itemsToAdd.push(gitem);
-                            }
-                        }
-                        if (!foundCached) {
-                            itemsToAdd.push(titem);
+        const tokenBalance = await connection.getParsedTokenAccountsByOwner(
+            new PublicKey(wallet),
+            {
+            programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+            }
+        )
+        // loop through governanceWallet
+        const itemsToAdd = [];
+
+        if (tokenBalance && tokenBalance?.value){
+            for (let titem of tokenBalance.value){
+                itemsToAdd.push(titem);
+                    
+                    /*
+                    let foundCached = false;
+                    for (let gitem of governanceWallet.tokens.value){
+                        if (titem.pubkey.toBase58() === gitem.pubkey){
+                            foundCached = true;
+                            gitem.account.data.parsed.info.tokenAmount.amount = titem.account.data.parsed.info.tokenAmount.amount;
+                            gitem.account.data.parsed.info.tokenAmount.uiAmount = titem.account.data.parsed.info.tokenAmount.uiAmount;
+                            itemsToAdd.push(gitem);
                         }
                     }
-                }
+                    if (!foundCached) {
+                        itemsToAdd.push(titem);
+                    }*/
+                
             }
+        }
 
-            governanceWallet.tokens.value = itemsToAdd;//[...governanceWallet.tokens.value, ...itemsToAdd];
-            setConsolidatedGovernanceWallet(governanceWallet);
+        // return a more easy to read object?
+        const walletObject = {
+            pubkey: wallet,
+            solBalance: solBalance,
+            tokens: itemsToAdd,
+        }
+
+        return walletObject;
+    }
+
+    async function getAndUpdateWalletHoldings(){
+        try{
+            setLoadingWallet(true);
+            const gwToAdd = await fetchWalletHoldings(governanceWallet.vault.pubkey);
+            console.log("fetching rules now");
+            const rwToAdd = await fetchWalletHoldings(governanceRulesWallet);
+
+            //governanceWallet.tokens.value = gwToAdd;//[...governanceWallet.tokens.value, ...itemsToAdd];
+            //governanceRulesWallet. = rwToAdd;
+
+            //console.log("Rules Wallet: " +JSON.stringify(rwToAdd));
+
+            const walletObjects = [gwToAdd, rwToAdd];
+
+            setConsolidatedGovernanceWallet(walletObjects);
             setLoadingWallet(false);
         } catch(e){
             console.log("ERR: "+e);
@@ -741,7 +837,7 @@ export default function TokenTransferView(props: any) {
     
     React.useState(() => {
         if (governanceWallet && !consolidatedGovernanceWallet && !loadingWallet) {
-            getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
+            getAndUpdateWalletHoldings();
             //setConsolidatedGovernanceWallet(gWallet);
         }
     }, [governanceWallet, consolidatedGovernanceWallet]);
