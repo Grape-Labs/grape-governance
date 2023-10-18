@@ -1299,7 +1299,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         hasBeenFound = true;
                         
                         // get any handles / domains linked
-                        if (cachedOwner?.socialConnections){
+                        if (cachedOwner?.socialConnections && cachedOwner.account.governingTokenOwner !== '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8'){
                             owner.socialConnections = cachedOwner?.socialConnections;
                         } else{
                             const socialConnections = await getSocialConnections(tokenOwnerRecord.toBase58());
@@ -1407,7 +1407,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 //}
             //}
             */
-            
+
             if (!hasWalletCommunityBalance || hoursDiff > (24*3)){ // refresh every 3 days
                 if (grealm.account?.communityMint){
                     const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.communityMint});

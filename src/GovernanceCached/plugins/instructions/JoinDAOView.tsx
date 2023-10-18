@@ -203,7 +203,7 @@ export default function JoinDAOView(props: any) {
     function prepareAndReturnInstructions(){
 
         //await transferTokens;
-        
+
         let description = "";
 
         description = `Joining DAO with ${tokenMint} using ${tokenAmount.toLocaleString()} Governance Power`;
@@ -585,17 +585,27 @@ export default function JoinDAOView(props: any) {
                 : 
                     <>{governance ?
                             <>
-                                <Grid sx={{textAlign:'right',}}>
-                                    <Typography variant="caption" color="success">
-                                        {governance.account.name}<br/>
-                                        Community Mint: {governance.account.communityMint.toBase58()}
-                                        {governance.account.config.councilMint &&
-                                            <>
-                                            <br/>Council Mint: {governance.account.config.councilMint.toBase58()}
-                                            </>
-                                        }
-                                    </Typography>
-                                </Grid>
+                                 <Box
+                                    sx={{ m:2,
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                        borderRadius: '17px',
+                                        overflow: 'hidden',
+                                        p:4
+                                    }}
+                                >
+                                    <Grid sx={{textAlign:'right',}}>
+                                        <Typography variant="h6">{governance.account.name}<br/></Typography>
+                                        <Typography variant="caption" color="success">
+                                            
+                                            Community Mint: {governance.account.communityMint.toBase58()}
+                                            {governance.account.config.councilMint &&
+                                                <>
+                                                <br/>Council Mint: {governance.account.config.councilMint.toBase58()}
+                                                </>
+                                            }
+                                        </Typography>
+                                    </Grid>
+                                </Box>
                             </>
                         :
                             <></>

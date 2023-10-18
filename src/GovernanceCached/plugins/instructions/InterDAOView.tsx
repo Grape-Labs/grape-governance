@@ -912,17 +912,27 @@ export default function InterDAOView(props: any) {
                     <>
                     {governance ?
                             <>
-                                <Grid sx={{textAlign:'right',}}>
-                                    <Typography variant="caption" color="success">
-                                        {governance.account.name}<br/>
-                                        Community Mint: {governance.account.communityMint.toBase58()}
-                                        {governance.account.config.councilMint &&
-                                            <>
-                                            <br/>Council Mint: {governance.account.config.councilMint.toBase58()}
-                                            </>
-                                        }
-                                    </Typography>
-                                </Grid>
+                                <Box
+                                    sx={{ m:2,
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                        borderRadius: '17px',
+                                        overflow: 'hidden',
+                                        p:4
+                                    }}
+                                >
+                                    <Grid sx={{textAlign:'right',}}>
+                                        <Typography variant="h6">{governance.account.name}<br/></Typography>
+                                        <Typography variant="caption" color="success">
+                                            
+                                            Community Mint: {governance.account.communityMint.toBase58()}
+                                            {governance.account.config.councilMint &&
+                                                <>
+                                                <br/>Council Mint: {governance.account.config.councilMint.toBase58()}
+                                                </>
+                                            }
+                                        </Typography>
+                                    </Grid>
+                                </Box>
 
 
                                 <FormControl fullWidth  sx={{mb:2}}>
@@ -1031,10 +1041,16 @@ export default function InterDAOView(props: any) {
                     >
                         <Typography variant="h6">Preview/Summary</Typography>
                         <Typography variant="caption">
-                            DAO to Vote <strong></strong><br/>
+                            Voting for DAO: <strong>{daoToParticipateAddress}</strong><br/>
                             Proposal Voting: <strong>{daoToParticipatePropAddress}</strong><br/>
                             Vote Type <strong>???</strong><br/>
                             Vote Weight <strong>???</strong> Tokens<br/>
+                            <Button
+                                href={`https://governance.so/proposal/${daoToParticipateAddress}/${daoToParticipatePropAddress}`}
+                                target="_blank"
+                            >
+                                View Proposal
+                            </Button>
                         </Typography>
                     </Box>
                 
