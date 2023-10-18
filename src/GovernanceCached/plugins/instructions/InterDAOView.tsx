@@ -57,11 +57,13 @@ import {
   Box,
   Alert,
   Checkbox,
-  SelectChangeEvent
+  SelectChangeEvent,
+  Switch,
 } from '@mui/material';
 
 import { parseMintNaturalAmountFromDecimalAsBN } from '../../../utils/grapeTools/helpers';
 
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import JoinLeftIcon from '@mui/icons-material/JoinLeft';
 import WarningIcon from '@mui/icons-material/Warning';
 import SendIcon from '@mui/icons-material/Send';
@@ -120,6 +122,15 @@ export default function InterDAOView(props: any) {
     const [loadingWallet, setLoadingWallet] = React.useState(false);
     const [participatingGovernanceRecordRows, setParticipatingGovernanceRecordRows] = React.useState(null);
     const [participatingGovernanceProposalsRecordRows, setParticipatingGovernanceProposalsRecordRows] = React.useState(null);
+    const [votingFor, setVotingFor] = React.useState(true);
+    const [walletSelectedTokenType, setWalletSelectedTokenType] = React.useState(true);// community
+    const [walletGoverningSelectedMint, setWalletGoverningSelectedMint] = React.useState(true);
+    const [selectedCouncilMint, setSelectedCouncilMint] = React.useState(null);
+    const [selectedCommunityMint, setSelectedCommunityMint] = React.useState(null);
+    const [proposalLoading, setProposalLoading] = React.useState(null);
+    const [daoLoading, setDaoLoading] = React.useState(null);
+    
+    const [daoPropMaxVotes, setDaoPropMaxVotes] = React.useState(null);
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     
@@ -150,6 +161,7 @@ export default function InterDAOView(props: any) {
         console.log("daoToParticipateAddress: "+daoToParticipateAddress);
         console.log("daoToParticipatePropAddress: "+daoToParticipatePropAddress);
         
+        let proposalType = true; // community
         let selgovernance = null;
         let proposalId = daoToParticipatePropAddress;
         let tokenOwnerRecord = null;
@@ -158,11 +170,12 @@ export default function InterDAOView(props: any) {
         for (let prop of participatingGovernanceProposalsRecordRows){
             
             if (prop.pubkey.toBase58() === daoToParticipatePropAddress){
-                console.log("boom "+JSON.stringify(prop));
                 selgovernance = prop.account.governance;
                 governingTokenMint = prop.account.governingTokenMint;
                 tokenOwnerRecord = prop.account.tokenOwnerRecord;
                 programId = prop.owner;
+                if (governance.account.governingTokenMint !== governingTokenMint)
+                    proposalType = false; // council
             }
         }
         
@@ -185,8 +198,6 @@ export default function InterDAOView(props: any) {
 
         console.log("memberItem: "+JSON.stringify(memberItem));
         
-        
-        
         //console.log("memberItemSimple: "+JSON.stringify(memberItemSimple));
         //console.log("memberItem: "+JSON.stringify(memberItem));
 
@@ -199,10 +210,14 @@ export default function InterDAOView(props: any) {
         //console.log("memberMapReduced: "+JSON.stringify(memberMapReduced));
 
         // check if voter can participate
+        let votingType = 0;
+        if (!votingFor){
+            votingType = 1;
+        }
 
-        const type = 0;//props?.type || 0;
+        const type = votingType;
         const multiChoice = null;//props?.multiChoice || null;
-        const isCommunityVote = true; //propVoteType !== 'Council';
+        const isCommunityVote = proposalType; //propVoteType !== 'Council';
 
         if (publicKey && memberItem) {
             
@@ -222,71 +237,12 @@ export default function InterDAOView(props: any) {
                 //const transaction = new Transaction();
                 //transaction.add(...instructions);
 
-                //console.log("TX: "+JSON.stringify(transaction));
+                console.log("TX: "+JSON.stringify(vvvt));
                 setTransactionInstructions(vvvt);
             } else{
                 console.log("No instructions!");
             }
         }
-        /*
-            //console.log("vvvt: "+JSON.stringify(vvvt));
-            /*
-            if (vvvt){
-                try{
-                    enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
-                    const signature = await sendTransaction(vvvt, connection, {
-                        skipPreflight: true,
-                        preflightCommitment: "confirmed",
-                    });
-                    const snackprogress = (key:any) => (
-                        <CircularProgress sx={{padding:'10px'}} />
-                    );
-                    const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
-                    //await connection.confirmTransaction(signature, 'processed');
-                    const latestBlockHash = await connection.getLatestBlockhash();
-                    await connection.confirmTransaction({
-                        blockhash: latestBlockHash.blockhash,
-                        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-                        signature: signature}, 
-                        'finalized'
-                    );
-                    closeSnackbar(cnfrmkey);
-                    const action = (key:any) => (
-                            <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                                Signature: {signature}
-                            </Button>
-                    );
-                    
-                    enqueueSnackbar(`Congratulations, you have participated in voting for this Proposal`,{ variant: 'success', action });
-
-                    // trigger a refresh here...
-                    getVotingParticipants();
-                }catch(e:any){
-                    enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
-                } 
-            } else{
-                alert("No voter record!")
-            }
-           
-        }
-         */
-        /*
-        if (instructions.length != 1) {
-            console.log("ERROR: Something went wrong");
-        } else{
-
-            if (instructions){
-
-                const transaction = new Transaction();
-                transaction.add(...instructions);
-
-                console.log("TX: "+JSON.stringify(transaction));
-                setTransactionInstructions(transaction);
-            } else{
-                console.log("No instructions!");
-            }
-        }
-        */
         
         return null;
     }
@@ -298,7 +254,7 @@ export default function InterDAOView(props: any) {
 
         let description = "";
 
-        description = `Inter DAO voting ${daoToParticipateAddress} on proposal${daoToParticipatePropAddress} with full Governance Power`;
+        description = `Voting ${daoToParticipateAddress} on proposal ${votingFor ? 'For':'Against'} ${daoToParticipatePropAddress} with ${token} Governance Power`;
         
         setInstructionsObject({
             "type":`Inter DAO Participation`,
@@ -422,6 +378,80 @@ export default function InterDAOView(props: any) {
             console.log("realm: "+JSON.stringify(rlm));
             setGovernance(rlm);
         }
+    }
+
+    const handleVoteDirectionChange = () => {
+        setVotingFor(!votingFor);
+    }
+
+    function ShowTokenMintInfo(props: any){
+        const mintAddress = props.mintAddress;
+        const [mintName, setMintName] = React.useState(null);
+        const [mintLogo, setMintLogo] = React.useState(null);
+
+        const getTokenMintInfo = async() => {
+            
+                const mint_address = new PublicKey(mintAddress)
+                const [pda, bump] = await PublicKey.findProgramAddress([
+                    Buffer.from("metadata"),
+                    PROGRAM_ID.toBuffer(),
+                    new PublicKey(mint_address).toBuffer(),
+                ], PROGRAM_ID)
+                const tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
+                
+                if (tokenMetadata?.data?.name)
+                    setMintName(tokenMetadata.data.name);
+                
+                if (tokenMetadata?.data?.uri){
+                    try{
+                        const metadata = await window.fetch(tokenMetadata.data.uri)
+                        .then(
+                            (res: any) => res.json())
+                        .catch((error) => {
+                            // Handle any errors that occur during the fetch or parsing JSON
+                            console.error("Error fetching data:", error);
+                        });
+                        
+                        if (metadata && metadata?.image){
+                            if (metadata.image)
+                                setMintLogo(metadata.image);
+                        }
+                    }catch(err){
+                        console.log("ERR: ",err);
+                    }
+                }
+        }
+
+        React.useEffect(() => { 
+            if (mintAddress && !mintName){
+                getTokenMintInfo();
+            }
+        }, [mintAddress]);
+
+        return ( 
+            <>
+
+                {mintName ?
+                    <Grid 
+                        container
+                        direction="row"
+                        alignItems="center"
+                    >
+                        <Grid item>
+                            <Avatar alt={mintName} src={mintLogo} />
+                        </Grid>
+                        <Grid item sx={{ml:1}}>
+                            <Typography variant="h6">
+                            {mintName}
+                            </Typography>
+                        </Grid>
+                    </Grid>       
+                :
+                    <>{mintAddress}</>
+                }
+            </>
+        )
+
     }
 
     function TokenSelect(props:any) {
@@ -639,6 +669,7 @@ export default function InterDAOView(props: any) {
 
 
     const fetchGovernanceProposals = async () => {
+        setProposalLoading(true);
 
         const gprops = await getAllProposals(RPC_CONNECTION, governance.owner, new PublicKey(daoToParticipateAddress))
 
@@ -646,8 +677,14 @@ export default function InterDAOView(props: any) {
         for (const props of gprops){
             for (const prop of props){
                 if (prop){
-                    if (prop.account.state === 2)
-                        rpcprops.push(prop);
+                    if (prop.account.state === 2){
+                        //console.log("prop: "+JSON.stringify(prop))
+                        if (prop.account.governingTokenMint.toBase58() === selectedCommunityMint){
+                            rpcprops.push(prop);
+                        } else if (prop.account.governingTokenMint.toBase58() === selectedCouncilMint){
+                            rpcprops.push(prop);
+                        }
+                    }
                 }
             }
         }
@@ -655,7 +692,7 @@ export default function InterDAOView(props: any) {
         
         setParticipatingGovernanceProposalsRecordRows(sortedRPCResults);
         //console.log("sortedRPCResults: "+JSON.stringify(sortedRPCResults));
-
+        setProposalLoading(false);
     }
 
     React.useEffect(() => {
@@ -667,7 +704,7 @@ export default function InterDAOView(props: any) {
     
     React.useEffect(() => {
         if (daoToParticipateAddress){
-            console.log("here we go!");
+            //console.log("here we go!");
             fetchGovernanceSpecifications(null);
         }
     }, [daoToParticipateAddress]);
@@ -710,8 +747,15 @@ export default function InterDAOView(props: any) {
                 
                 if (realm.account.config?.councilMint?.toBase58() === item?.account?.governingTokenMint?.toBase58()){
                     votes = item.account.governingTokenDepositAmount.toNumber() + ' Council';
+                    setWalletSelectedTokenType(false)
+                    setDaoPropMaxVotes(votes);
+                    setSelectedCouncilMint(item.account.governingTokenMint.toBase58())
                 }else{
-                    votes = Number("0x"+item.account.governingTokenDepositAmount) + ' Community';
+                    
+                    votes = Number(item.account.governingTokenDepositAmount) + ' Community';
+                    setWalletSelectedTokenType(true)
+                    setDaoPropMaxVotes(votes)
+                    setSelectedCommunityMint(item.account.governingTokenMint.toBase58())
                     /*
                     const thisToken = tokenMap.get(item.account.governingTokenMint.toBase58());
                     if (thisToken){
@@ -763,9 +807,9 @@ export default function InterDAOView(props: any) {
     }
 
     const fetchGovernancePositions = async () => {
-        //setLoadingGovernance(true);
+        setDaoLoading(true);
         await fetchGovernance();
-        //setLoadingGovernance(false);
+        setDaoLoading(false);
     }
 
     React.useEffect(() => {
@@ -824,20 +868,28 @@ export default function InterDAOView(props: any) {
                 <FormControl fullWidth  sx={{mb:2}}>
                     
                     {!participatingGovernanceRecordRows ?
-                        <TextField 
-                            fullWidth 
-                            label="DAO Address" 
-                            id="fullWidth"
-                            type="text"
-                            onChange={(e) => {
-                                handleSetDaoToJoinAddressChange(e.target.value);
-                                
-                            }}
-                            inputProps={{
-                                style: { textAlign: 'center' },
-                            }}
-                            sx={{borderRadius:'17px'}} 
-                        />
+                        <>
+                        {daoLoading ?
+                            <>
+                                <Grid sx={{textAlign:'center'}}><CircularProgress sx={{padding:'10px'}} /><br/>Loading...</Grid>
+                            </>
+                        :
+                            <TextField 
+                                fullWidth 
+                                label="DAO Address" 
+                                id="fullWidth"
+                                type="text"
+                                onChange={(e) => {
+                                    handleSetDaoToJoinAddressChange(e.target.value);
+                                    
+                                }}
+                                inputProps={{
+                                    style: { textAlign: 'center' },
+                                }}
+                                sx={{borderRadius:'17px'}} 
+                            />
+                        }
+                        </>
                     :
                         <>
                             <InputLabel id="governance-token-select-label">Select a DAO</InputLabel>
@@ -906,7 +958,7 @@ export default function InterDAOView(props: any) {
                 </FormControl>
                 {(!daoToParticipateAddress) ? 
                     <Grid sx={{textAlign:'right',}}>
-                        <Typography variant="caption" color="error">WARNING: Invalid DAO address!</Typography>
+                        {/*<Typography variant="caption" color="error">WARNING: Invalid DAO address!</Typography>*/}
                     </Grid>
                 : 
                     <>
@@ -939,21 +991,28 @@ export default function InterDAOView(props: any) {
                 
 
                                 {!participatingGovernanceProposalsRecordRows ?
-                                    
-                                    <TextField 
-                                        fullWidth 
-                                        label="Proposal Address" 
-                                        id="governance-daoprop-select"
-                                        type="text"
-                                        onChange={(e) => {
-                                            handleSetDaoToParticipateAddressChange(e.target.value);
-                                            
-                                        }}
-                                        inputProps={{
-                                            style: { textAlign: 'center' },
-                                        }}
-                                        sx={{borderRadius:'17px'}} 
-                                    />
+                                    <>
+                                    {proposalLoading ?
+                                        <>
+                                             <Grid sx={{textAlign:'center'}}><CircularProgress sx={{padding:'10px'}} /><br/>Loading...</Grid>
+                                        </>
+                                    :
+                                        <TextField 
+                                            fullWidth 
+                                            label="Proposal Address" 
+                                            id="governance-daoprop-select"
+                                            type="text"
+                                            onChange={(e) => {
+                                                handleSetDaoToParticipateAddressChange(e.target.value);
+                                                
+                                            }}
+                                            inputProps={{
+                                                style: { textAlign: 'center' },
+                                            }}
+                                            sx={{borderRadius:'17px'}} 
+                                        />
+                                    }
+                                    </>
                                 :
                                     <>
                                         <InputLabel id="governance-token-select-label">Select a proposal</InputLabel>
@@ -1016,7 +1075,17 @@ export default function InterDAOView(props: any) {
 
                                 }
                             </FormControl>
-
+                            
+                            <FormControl fullWidth  sx={{mb:2}}>
+                                <Grid sx={{textAlign:'right',}}>
+                                    <FormControlLabel
+                                        control={
+                                            <Switch checked={votingFor} onChange={handleVoteDirectionChange} name="otingFor" />
+                                        }
+                                        label={votingFor ? "Voting For" : "Voting Against"}
+                                        />
+                                </Grid>
+                            </FormControl>
                             </>
                         :
                             <></>
@@ -1025,10 +1094,6 @@ export default function InterDAOView(props: any) {
                 }
             </>
 
-            <FormControl fullWidth  sx={{mb:2}}>
-                
-            </FormControl>
-            
             {(daoToParticipateAddress && daoToParticipatePropAddress) ?
                 <>  
                     <Box
@@ -1043,13 +1108,14 @@ export default function InterDAOView(props: any) {
                         <Typography variant="caption">
                             Voting for DAO: <strong>{daoToParticipateAddress}</strong><br/>
                             Proposal Voting: <strong>{daoToParticipatePropAddress}</strong><br/>
-                            Vote Type <strong>???</strong><br/>
-                            Vote Weight <strong>???</strong> Tokens<br/>
+                            Vote Type <strong>{votingFor ? 'For':'Against'}</strong><br/>
+                            Vote Weight <strong>{daoPropMaxVotes}</strong> Tokens<br/>
                             <Button
+                                size='small'
                                 href={`https://governance.so/proposal/${daoToParticipateAddress}/${daoToParticipatePropAddress}`}
                                 target="_blank"
                             >
-                                View Proposal
+                                View Proposal <OpenInNewIcon fontSize="small" sx={{ml:1}}/>
                             </Button>
                         </Typography>
                     </Box>
@@ -1059,7 +1125,7 @@ export default function InterDAOView(props: any) {
                 <Box
                     sx={{textAlign:'center'}}
                 >
-                    <Typography variant="caption">Enter a valid DAO address, select the token</Typography>
+                    <Typography variant="caption">Select a DAO, if your DAO has not yet joined a DAO, use the Join DAO plugin first</Typography>
                 </Box>
             }
 

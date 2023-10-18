@@ -1299,8 +1299,9 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         hasBeenFound = true;
                         
                         // get any handles / domains linked
-                        if (cachedOwner?.socialConnections && cachedOwner.account.governingTokenOwner !== '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8'){
-                            owner.socialConnections = cachedOwner?.socialConnections;
+                        //if (cachedOwner?.socialConnections && cachedOwner.account.governingTokenOwner !== '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8'){
+                        if (cachedOwner?.socialConnections){
+                                owner.socialConnections = cachedOwner?.socialConnections;
                         } else{
                             const socialConnections = await getSocialConnections(tokenOwnerRecord.toBase58());
                             if (socialConnections){
