@@ -649,7 +649,7 @@ export default function TokenTransferView(props: any) {
     }
     
     function calculateDestinations(destination:string) {
-        const destinationsStr = destination.replace(/['"]/g, '');
+        const destinationsStr = destination.replace(/['"]/g, '').replace(/[\t]/g, ',');
         const destinationArray = destinationsStr.split('\n').map(item => item.trim()).filter(item => item !== '');
         
         const uniqueDestinationsMap = new Map();
@@ -657,7 +657,11 @@ export default function TokenTransferView(props: any) {
 
         for (const destination of destinationArray) {
           const [address, amountStr] = destination.split(',');
-            
+          //const [address2, amountStr2] = destination.split('\t');
+          //const [address, amountStr] = destination.split('    ');
+          //const [address, amountStr] = destination.split(/[,|\t| {4}| {1}|⟶]/);
+        
+
           if (isValidSolanaPublicKey(address)) {
             const amount = parseFloat(amountStr);
             
