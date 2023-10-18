@@ -1010,7 +1010,7 @@ export default function TokenTransferView(props: any) {
             <FormControl fullWidth  sx={{mb:2}}>
                 <TextField 
                     fullWidth
-                    label="Enter destination Wallet *for multiple wallets add 1 wallet per line (seperate with a comma for custom distribution per wallet)"
+                    label="Enter destination Wallet *for multiple wallets add 1 wallet per line (seperate with a comma/tab for custom distribution per wallet)"
                     multiline
                     rows={4}
                     maxRows={4}

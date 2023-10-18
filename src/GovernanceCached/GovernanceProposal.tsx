@@ -1553,7 +1553,7 @@ export function GovernanceProposalView(props: any){
     function VoteForProposal(props:any){
         const type = props.type || 0;
         const multiChoice = props.multiChoice || null;
-
+        
         /*
         console.log("memberMap: "+JSON.stringify(memberMap));
         const memberMapReduced = memberMap.reduce((map: any, item: any) => {
@@ -1567,10 +1567,9 @@ export function GovernanceProposalView(props: any){
         const item = memberMap.find(item => 
             item.account.governingTokenOwner === "KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT"
             && item.account.governingTokenMint === thisitem.account.governingTokenMint);
-
+        
         console.log("memberMap Item: "+JSON.stringify(item));
         */
-
         const isCommunityVote = propVoteType !== 'Council'; //realm.account.config?.councilMint?.toBase58() !== thisitem?.account.governingTokenMint;// realm?.communityMint === thisitem?.account.governingTokenMint;
         //console.log("isCommunityVote: "+JSON.stringify(isCommunityVote));
         
@@ -1609,12 +1608,13 @@ export function GovernanceProposalView(props: any){
             //console.log("thisitem/proposal: "+JSON.stringify(thisitem));
             //console.log("thisGovernance: "+JSON.stringify(thisGovernance));
             
+            /*
             const realmData = {
                 pubKey:thisGovernance.pubkey,
                 realmId:thisitem.pubkey,
                 governanceId:thisitem.account.governance,
                 communityMint: thisitem.account.governingTokenMint
-            }
+            }*/
 
             //console.log("Proposal: "+JSON.stringify(proposal));
             //console.log("realmData: "+JSON.stringify(realmData));

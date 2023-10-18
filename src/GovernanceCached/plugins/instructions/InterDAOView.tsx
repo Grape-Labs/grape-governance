@@ -19,10 +19,16 @@ import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
 
 import { styled } from '@mui/material/styles';
 
+import { createCastVoteTransaction } from '../../../utils/governanceTools/components/instructions/createVote';
+
 import { 
     getGovernanceProgramVersion,
     withDepositGoverningTokens,
     getRealm,
+    getRealms,
+    getAllProposals,
+    getTokenOwnerRecordsByOwner,
+    getAllTokenOwnerRecords,
     serializeInstructionToBase64,
   } from '@solana/spl-governance';
 
@@ -93,7 +99,7 @@ const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
     'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
 );
 
-export default function JoinDAOView(props: any) {
+export default function InterDAOView(props: any) {
     const payerWallet = props?.payerWallet || null;
     const setInstructionsObject = props?.setInstructionsObject;
     const governanceLookup = props?.governanceLookup;
@@ -109,77 +115,162 @@ export default function JoinDAOView(props: any) {
     const [tokenMaxAmountRaw, setTokenMaxAmountRaw] = React.useState(null);
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
     const [selectedRecord, setSelectedRecord] = React.useState(null);
-    const [daoToJoinAddress, setDaoToJoinAddress] = React.useState(null);
+    const [daoToParticipateAddress, setDaoToParticipateAddress] = React.useState(null);
+    const [daoToParticipatePropAddress, setDaoToParticipatePropAddress] = React.useState(null);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
-    
+    const [participatingGovernanceRecordRows, setParticipatingGovernanceRecordRows] = React.useState(null);
+    const [participatingGovernanceProposalsRecordRows, setParticipatingGovernanceProposalsRecordRows] = React.useState(null);
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
-    async function joinDAO() {
-        //const payerWallet = new PublicKey(payerAddress);
-        const fromWallet = new PublicKey(fromAddress);
-        const toJoinPk = new PublicKey(daoToJoinAddress);
-        const withMint = new PublicKey(tokenMint);    
+    
+
+    async function participateInDAOProposal() {
         const transaction = new Transaction();
         
         // we need to fetch the governance details either her or a step before
         
+        /*
         const programId = governance.owner;
         console.log("programId: "+JSON.stringify(programId));
         const programVersion = await getGovernanceProgramVersion(
             connection,
             programId,
           )
-        
         console.log("programVersion: "+JSON.stringify(programVersion));
 
-        const realmPk = new PublicKey(governance.pubkey);
-        
-        const tokenInfo = await getMint(RPC_CONNECTION, withMint);
-        
-        const userAtaPk = await getAssociatedTokenAddress(
-            withMint,
-            fromWallet, // owner
-            true
-          )
-
-        // Extract the mint authority
-        const mintAuthority = tokenInfo.mintAuthority ? new PublicKey(tokenInfo.mintAuthority) : null;
-        const decimals = tokenInfo.decimals;
-
-        //console.log("mintAuthority: "+mintAuthority.toBase58());
-        console.log("decimals: "+decimals);
-        
-        const atomicAmount = parseMintNaturalAmountFromDecimalAsBN(
-            tokenAmount,
-            decimals
-        )
-
-        const instructions: TransactionInstruction[] = []
-        /*
-        console.log("realm: "+realmPk.toBase58())
-        console.log("governingTokenSource / userAtaPk: "+userAtaPk.toBase58())
-        console.log("governingTokenMint: "+communityMint.toBase58())
-        console.log("governingTokenOwner: "+fromWallet.toBase58())
-        console.log("governingTokenSourceAuthority: "+mintAuthority?.toBase58())
-        console.log("payer: "+fromWallet.toBase58())
-        console.log("amount: "+atomicAmount);
         */
-        await withDepositGoverningTokens(
-            instructions,
-            programId,
-            programVersion,
-            realmPk,
-            userAtaPk,
-            withMint,
-            fromWallet,
-            fromWallet,
-            fromWallet,
-            atomicAmount
-        )
         
+        //    setMemberMap(rawTokenOwnerRecords);
+       
+        const realmPk = new PublicKey(daoToParticipateAddress);
+        
+        console.log("daoToParticipateAddress: "+daoToParticipateAddress);
+        console.log("daoToParticipatePropAddress: "+daoToParticipatePropAddress);
+        
+        let selgovernance = null;
+        let proposalId = daoToParticipatePropAddress;
+        let tokenOwnerRecord = null;
+        let governingTokenMint = null;
+        let programId = null;
+        for (let prop of participatingGovernanceProposalsRecordRows){
+            
+            if (prop.pubkey.toBase58() === daoToParticipatePropAddress){
+                console.log("boom "+JSON.stringify(prop));
+                selgovernance = prop.account.governance;
+                governingTokenMint = prop.account.governingTokenMint;
+                tokenOwnerRecord = prop.account.tokenOwnerRecord;
+                programId = prop.owner;
+            }
+        }
+        
+        const proposal = {
+            governanceId: selgovernance,
+            proposalId: proposalId,
+            tokenOwnerRecord: tokenOwnerRecord,
+            governingTokenMint: governingTokenMint
+        }
+        const transactionData = {proposal:proposal,action:0} // 0 = yes
+
+        //console.log("governance: "+JSON.stringify(governance));
+
+        const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, realmPk)
+        
+        
+        const memberItem = rawTokenOwnerRecords.find(item => 
+            (item.account.governingTokenOwner.toBase58() === fromAddress && 
+            item.account.governingTokenMint.toBase58() === governingTokenMint.toBase58()));
+
+        console.log("memberItem: "+JSON.stringify(memberItem));
+        
+        
+        
+        //console.log("memberItemSimple: "+JSON.stringify(memberItemSimple));
+        //console.log("memberItem: "+JSON.stringify(memberItem));
+
+        //console.log("tokenOwnerRecord: "+JSON.stringify(thisitem.account.tokenOwnerRecord));
+        
+        //console.log("Proposal: "+JSON.stringify(proposal));
+        //console.log("realmData: "+JSON.stringify(realmData));
+        //console.log("memberItem: "+JSON.stringify(memberItem));
+
+        //console.log("memberMapReduced: "+JSON.stringify(memberMapReduced));
+
+        // check if voter can participate
+
+        const type = 0;//props?.type || 0;
+        const multiChoice = null;//props?.multiChoice || null;
+        const isCommunityVote = true; //propVoteType !== 'Council';
+
+        if (publicKey && memberItem) {
+            
+            const vvvt = await createCastVoteTransaction(
+                governance,//realm,
+                new PublicKey(fromAddress),//publicKey,
+                transactionData,
+                memberItem,
+                null,
+                isCommunityVote,
+                multiChoice,
+                type
+            );
+
+            if (vvvt){
+
+                //const transaction = new Transaction();
+                //transaction.add(...instructions);
+
+                //console.log("TX: "+JSON.stringify(transaction));
+                setTransactionInstructions(vvvt);
+            } else{
+                console.log("No instructions!");
+            }
+        }
+        /*
+            //console.log("vvvt: "+JSON.stringify(vvvt));
+            /*
+            if (vvvt){
+                try{
+                    enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
+                    const signature = await sendTransaction(vvvt, connection, {
+                        skipPreflight: true,
+                        preflightCommitment: "confirmed",
+                    });
+                    const snackprogress = (key:any) => (
+                        <CircularProgress sx={{padding:'10px'}} />
+                    );
+                    const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
+                    //await connection.confirmTransaction(signature, 'processed');
+                    const latestBlockHash = await connection.getLatestBlockhash();
+                    await connection.confirmTransaction({
+                        blockhash: latestBlockHash.blockhash,
+                        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+                        signature: signature}, 
+                        'finalized'
+                    );
+                    closeSnackbar(cnfrmkey);
+                    const action = (key:any) => (
+                            <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
+                                Signature: {signature}
+                            </Button>
+                    );
+                    
+                    enqueueSnackbar(`Congratulations, you have participated in voting for this Proposal`,{ variant: 'success', action });
+
+                    // trigger a refresh here...
+                    getVotingParticipants();
+                }catch(e:any){
+                    enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
+                } 
+            } else{
+                alert("No voter record!")
+            }
+           
+        }
+         */
+        /*
         if (instructions.length != 1) {
             console.log("ERROR: Something went wrong");
         } else{
@@ -195,6 +286,7 @@ export default function JoinDAOView(props: any) {
                 console.log("No instructions!");
             }
         }
+        */
         
         return null;
     }
@@ -203,13 +295,13 @@ export default function JoinDAOView(props: any) {
     function prepareAndReturnInstructions(){
 
         //await transferTokens;
-        
+
         let description = "";
 
-        description = `Joining DAO with ${tokenMint} using ${tokenAmount.toLocaleString()} Governance Power`;
+        description = `Inter DAO voting ${daoToParticipateAddress} on proposal${daoToParticipatePropAddress} with full Governance Power`;
         
         setInstructionsObject({
-            "type":`Join DAO`,
+            "type":`Inter DAO Participation`,
             "description":description,
             "governanceInstructions":transactionInstructions,
             "authorInstructions":payerInstructions,
@@ -234,12 +326,45 @@ export default function JoinDAOView(props: any) {
 
     function handleSetDaoToJoinAddressChange(text:string){
         // add validation here
-        console.log("checking: "+text);
+        //console.log("checking: "+text);
         if (isValidSolanaPublicKey(text)){
-            console.log("setDaoToJoinAddress complete!");
-            setDaoToJoinAddress(text);
+            //console.log("setDaoToJoinAddress complete!");
+            setDaoToParticipateAddress(text);
         } else{
-            setDaoToJoinAddress(null);
+            setDaoToParticipateAddress(null);
+        }
+    }
+
+    function handleSetDaoToParticipateAddressChange(text:string){
+        // add validation here
+        //console.log("checking: "+text);
+        if (isValidSolanaPublicKey(text)){
+            //console.log("setDaoToJoinAddress complete!");
+            setDaoToParticipatePropAddress(text);
+        } else{
+            setDaoToParticipatePropAddress(null);
+        }
+    }
+
+    
+    const handleDaoProposalSelected = (event: SelectChangeEvent) => {
+        const selectedDaoProp = event.target.value as string;
+        console.log("checking: "+selectedDaoProp)
+        if (isValidSolanaPublicKey(selectedDaoProp)){
+            //console.log("setDaoToJoinAddress complete!");
+            setDaoToParticipatePropAddress(selectedDaoProp);
+        } else{
+            setDaoToParticipatePropAddress(null);
+        }
+    }
+    const handleDaoSelected = (event: SelectChangeEvent) => {
+        const selectedDao = event.target.value as string;
+        console.log("checking: "+selectedDao)
+        if (isValidSolanaPublicKey(selectedDao)){
+            //console.log("setDaoToJoinAddress complete!");
+            setDaoToParticipateAddress(selectedDao);
+        } else{
+            setDaoToParticipateAddress(null);
         }
     }
 
@@ -288,9 +413,11 @@ export default function JoinDAOView(props: any) {
 
     }
 
+
+
     async function fetchGovernanceSpecifications(address:string){
         console.log("fetching specs");
-        const rlm = await getRealm(RPC_CONNECTION, new PublicKey(address || daoToJoinAddress));
+        const rlm = await getRealm(RPC_CONNECTION, new PublicKey(address || daoToParticipateAddress));
         if (rlm){
             console.log("realm: "+JSON.stringify(rlm));
             setGovernance(rlm);
@@ -510,11 +637,143 @@ export default function JoinDAOView(props: any) {
         }
     }, [governanceWallet, consolidatedGovernanceWallet]);
 
+
+    const fetchGovernanceProposals = async () => {
+
+        const gprops = await getAllProposals(RPC_CONNECTION, governance.owner, new PublicKey(daoToParticipateAddress))
+
+        const rpcprops = new Array();
+        for (const props of gprops){
+            for (const prop of props){
+                if (prop){
+                    if (prop.account.state === 2)
+                        rpcprops.push(prop);
+                }
+            }
+        }
+        const sortedRPCResults = rpcprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
+        
+        setParticipatingGovernanceProposalsRecordRows(sortedRPCResults);
+        //console.log("sortedRPCResults: "+JSON.stringify(sortedRPCResults));
+
+    }
+
     React.useEffect(() => {
-        if (daoToJoinAddress){
+        if (daoToParticipateAddress && governance){
+            //console.log("here we go!");
+            fetchGovernanceProposals();
+        }
+    }, [daoToParticipateAddress, governance]);
+    
+    React.useEffect(() => {
+        if (daoToParticipateAddress){
+            console.log("here we go!");
             fetchGovernanceSpecifications(null);
         }
-    }, [daoToJoinAddress]);
+    }, [daoToParticipateAddress]);
+
+    const fetchGovernance = async () => {
+        //setLoadingPosition('Governance');
+        const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+        const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
+        
+        /*
+        try{
+            //console.log("fetching tor ");
+            const tor = await getTokenOwnerRecord(txonnection, new PublicKey(pubkey));
+            //console.log("tor "+JSON.stringify(tor));
+        }catch(e){
+            console.log("ERR: "+e);
+        }*/
+
+        try{
+            //console.log("fetching realms ");
+            const rlms = await getRealms(RPC_CONNECTION, [programId]);
+            //console.log("rlms "+JSON.stringify(rlms));
+
+            const uTable = rlms.reduce((acc, it) => (acc[it.pubkey.toBase58()] = it, acc), {})
+            //setRealms(uTable);
+            
+            const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, new PublicKey(fromAddress));
+        
+            //console.log("ownerRecordsbyOwner "+JSON.stringify(ownerRecordsbyOwner))
+            const selectedDao: any[] = [];
+            
+            let cnt = 0;
+            //console.log("all uTable "+JSON.stringify(uTable))
+        
+            for (const item of ownerRecordsbyOwner){
+                const realm = uTable[item.account.realm.toBase58()];
+                //console.log("realm: "+JSON.stringify(realm))
+                const name = realm.account.name;
+                let votes = item.account.governingTokenDepositAmount.toNumber().toString();
+                
+                if (realm.account.config?.councilMint?.toBase58() === item?.account?.governingTokenMint?.toBase58()){
+                    votes = item.account.governingTokenDepositAmount.toNumber() + ' Council';
+                }else{
+                    votes = Number("0x"+item.account.governingTokenDepositAmount) + ' Community';
+                    /*
+                    const thisToken = tokenMap.get(item.account.governingTokenMint.toBase58());
+                    if (thisToken){
+                        votes = (new TokenAmount(+item.account.governingTokenDepositAmount, thisToken.decimals).format())
+                    } else{
+                        const btkn = await getBackedTokenMetadata(realm.account?.communityMint.toBase58(), wallet);
+                        if (btkn){
+                            const parentToken = tokenMap.get(btkn.parentToken).name;
+                            const vote_count =  (new TokenAmount(+item.account.governingTokenDepositAmount, btkn.decimals).format());
+                            if (+vote_count > 0)
+                                votes = (new TokenAmount(+item.account.governingTokenDepositAmount, btkn.decimals).format());
+                            else
+                                votes = parentToken + ' Backed Token';
+
+                        }else{
+                            votes = 'NFT';
+                        }
+                    }
+                    */
+                } 
+                
+                console.log("Participating in "+name);
+                console.log("With "+votes+" of "+item.account.governingTokenMint.toBase58()+" votes");
+
+                console.log("gov: "+JSON.stringify(item))
+
+                selectedDao.push({
+                    id:cnt,
+                    pubkey:item.pubkey,
+                    name:name,
+                    realm:item.account.realm,
+                    owner:item.owner,
+                    governingTokenMint:item.account.governingTokenMint.toBase58(),
+                    governingTokenDepositAmount:votes,
+                    unrelinquishedVotesCount:item.account.unrelinquishedVotesCount,
+                    totalVotesCount:item.account.totalVotesCount,
+                    details:item.account.realm.toBase58(),
+                    link:item.account.realm
+                });
+                cnt++;
+            }
+            
+            setParticipatingGovernanceRecordRows(selectedDao);
+
+        }catch(e){
+            console.log("ERR: "+e);
+        }
+        
+    }
+
+    const fetchGovernancePositions = async () => {
+        //setLoadingGovernance(true);
+        await fetchGovernance();
+        //setLoadingGovernance(false);
+    }
+
+    React.useEffect(() => {
+        if (fromAddress){
+            fetchGovernancePositions();
+        }
+    }, [fromAddress]);
+
 
     return (
         <Box
@@ -539,7 +798,7 @@ export default function JoinDAOView(props: any) {
                             <JoinLeftIcon sx={{ fontSize: 50, display: 'flex', alignItems: 'center' }} />
                         </Grid>
                         <Grid item xs sx={{ml:1, display: 'flex', alignItems: 'center'}}>
-                            <strong>Join DAO</strong>&nbsp;Plugin
+                            <strong>Inter DAO</strong>&nbsp;Plugin
                         </Grid>
                     </Grid>
                 </Typography>
@@ -561,29 +820,97 @@ export default function JoinDAOView(props: any) {
                 />
             </FormControl>
             */}
-            
-            <FormControl fullWidth  sx={{mb:2}}>
-                
-                <TextField 
-                    fullWidth 
-                    label="DAO Address" 
-                    id="fullWidth"
-                    type="text"
-                    onChange={(e) => {
-                        handleSetDaoToJoinAddressChange(e.target.value);
+            <>
+                <FormControl fullWidth  sx={{mb:2}}>
+                    
+                    {!participatingGovernanceRecordRows ?
+                        <TextField 
+                            fullWidth 
+                            label="DAO Address" 
+                            id="fullWidth"
+                            type="text"
+                            onChange={(e) => {
+                                handleSetDaoToJoinAddressChange(e.target.value);
+                                
+                            }}
+                            inputProps={{
+                                style: { textAlign: 'center' },
+                            }}
+                            sx={{borderRadius:'17px'}} 
+                        />
+                    :
+                        <>
+                            <InputLabel id="governance-token-select-label">Select a DAO</InputLabel>
+                            <Select
+                                labelId="governance-dao-select-label"
+                                id="governance-dao-select"
+                                label="Select a DAO"
+                                onChange={handleDaoSelected}
+                                MenuProps={{
+                                    PaperProps: {
+                                    style: {
+                                        maxHeight: 200, // Adjust this value as needed
+                                        overflowY: 'auto', // Add vertical scrollbar if content overflows maxHeight
+                                    },
+                                    },
+                                }}
+                            >
+                            {(participatingGovernanceRecordRows
+                                //.filter((item: any) => 
+                                //    item.account.data?.parsed?.info?.tokenAmount?.amount > 0
+                                //)
+                                //.sort((a: any, b: any) => 
+                                //    b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount
+                                //)
+                                .map((item: any, key: number) => {
+                                    
+                                    //console.log("mint: "+item.account.data.parsed.info.mint)
+
+                                    return (
+                                        <MenuItem key={key} value={item.realm.toBase58()}>
+                                            {/*console.log("wallet: "+JSON.stringify(item))*/}
+                                            
+                                            <Grid container
+                                                alignItems="center"
+                                            >
+                                                <Grid item xs={12}>
+                                                <Grid container>
+                                                    <Grid item sm={8}>
+                                                    <Grid
+                                                        container
+                                                        direction="row"
+                                                        justifyContent="left"
+                                                        alignItems="left"
+                                                    >
+                                                        {item.name}
+                                                    </Grid>
+                                                    </Grid>
+                                                    <Grid item xs sx={{textAlign:'right'}}>
+                                                        <Typography variant="h6">
+                                                            {item.governingTokenDepositAmount}
+                                                        </Typography>
+                                                    </Grid>
+                                                </Grid>  
+                                                </Grid>
+                                            </Grid>
+                                        </MenuItem>
+                                    );
+                                }))}
                         
-                    }}
-                    inputProps={{
-                        style: { textAlign: 'center' },
-                    }}
-                    sx={{borderRadius:'17px'}} 
-                />
-                {(!daoToJoinAddress) ? 
+                            </Select>
+                        
+                        </>
+
+
+                    }
+                </FormControl>
+                {(!daoToParticipateAddress) ? 
                     <Grid sx={{textAlign:'right',}}>
                         <Typography variant="caption" color="error">WARNING: Invalid DAO address!</Typography>
                     </Grid>
                 : 
-                    <>{governance ?
+                    <>
+                    {governance ?
                             <>
                                 <Grid sx={{textAlign:'right',}}>
                                     <Typography variant="caption" color="success">
@@ -596,92 +923,103 @@ export default function JoinDAOView(props: any) {
                                         }
                                     </Typography>
                                 </Grid>
+
+
+                                <FormControl fullWidth  sx={{mb:2}}>
+                
+
+                                {!participatingGovernanceProposalsRecordRows ?
+                                    
+                                    <TextField 
+                                        fullWidth 
+                                        label="Proposal Address" 
+                                        id="governance-daoprop-select"
+                                        type="text"
+                                        onChange={(e) => {
+                                            handleSetDaoToParticipateAddressChange(e.target.value);
+                                            
+                                        }}
+                                        inputProps={{
+                                            style: { textAlign: 'center' },
+                                        }}
+                                        sx={{borderRadius:'17px'}} 
+                                    />
+                                :
+                                    <>
+                                        <InputLabel id="governance-token-select-label">Select a proposal</InputLabel>
+                                        <Select
+                                            labelId="governance-daoprop-select-label"
+                                            id="governance-daoprop-select"
+                                            label="Select a proposal"
+                                            onChange={handleDaoProposalSelected}
+                                            MenuProps={{
+                                                PaperProps: {
+                                                style: {
+                                                    maxHeight: 200, // Adjust this value as needed
+                                                    overflowY: 'auto', // Add vertical scrollbar if content overflows maxHeight
+                                                },
+                                                },
+                                            }}
+                                        >
+                                        {(participatingGovernanceProposalsRecordRows
+                                            //.filter((item: any) => 
+                                            //    item.account.data?.parsed?.info?.tokenAmount?.amount > 0
+                                            //)
+                                            //.sort((a: any, b: any) => 
+                                            //    b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount
+                                            //)
+                                            .map((item: any, key: number) => {
+                                                
+                                                return (
+                                                    <MenuItem key={key} value={item.pubkey.toBase58()}>
+                                                        <Grid container
+                                                            alignItems="center"
+                                                        >
+                                                            <Grid item xs={12}>
+                                                            <Grid container>
+                                                                <Grid item sm={8}>
+                                                                <Grid
+                                                                    container
+                                                                    direction="row"
+                                                                    justifyContent="left"
+                                                                    alignItems="left"
+                                                                >
+                                                                    {item.account.name}
+                                                                </Grid>
+                                                                </Grid>
+                                                                <Grid item xs sx={{textAlign:'center'}}>
+                                                                    <Typography variant="caption">
+                                                                        {item.account.descriptionLink}
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Grid>  
+                                                            </Grid>
+                                                        </Grid>
+                                                    </MenuItem>
+                                                );
+                                            }))}
+                                    
+                                        </Select>
+                                    
+                                    </>
+
+
+                                }
+                            </FormControl>
+
                             </>
                         :
                             <></>
                     }
                     </>
                 }
-            </FormControl>
+            </>
 
             <FormControl fullWidth  sx={{mb:2}}>
-                {/*
-                <TextField 
-                    fullWidth 
-                    label="DAO Address" 
-                    id="fullWidth"
-                    type="text"
-                    onChange={(e) => {
-                        handleDestinationAddressChange(e.target.value);
-                        
-                    }}
-                    inputProps={{
-                        style: { textAlign: 'center' },
-                    }}
-                    sx={{borderRadius:'17px'}} 
-                />
-                {(!destinationAddress) ? 
-                    <Grid sx={{textAlign:'right',}}>
-                        <Typography variant="caption" color="error">WARNING: Invalid DAO address!</Typography>
-                    </Grid>
-                : <></>
-                }*/}
-                <Box
-                    sx={{textAlign:'center'}}
-                >
-                    <Typography variant="caption">ToDo: Use verified DAO Dropdown, ADD Eligibility Check & Custom amount up to Max avail to Join</Typography>
-                </Box>
                 
             </FormControl>
             
-            {(daoToJoinAddress && governance) &&
-                <>
-
-                    <TokenSelect filter={[governance.account.communityMint.toBase58(), governance.account.config.councilMint ? governance.account.config.councilMint.toBase58() : '']} /> 
-                    {/*
-                    [{governance.account.communityMint.toBase58()}, governance.account.config.councilMint ? governance.account.config.councilMint : ''] }/>
-                    */}
-
-                    {tokenMint &&
-                        <FormControl fullWidth sx={{mb:2}}>
-
-                            <RegexTextField
-                                regex={/[^0-9]+\.?[^0-9]/gi}
-                                autoFocus
-                                autoComplete='off'
-                                margin="dense"
-                                id="amount_to_deposit"
-                                label='Select Amount to Deposit'
-                                type="text"
-                                fullWidth
-                                variant="standard"
-                                value={tokenAmount > 0 ? tokenAmount : ''}
-                                default={tokenMaxAmount}
-                                onChange={handleTokenAmountChange}
-                                inputProps={{
-                                    style: { 
-                                        textAlign:'center', 
-                                        fontSize: '34px'
-                                    }
-                                }}
-                            />
-                            <Grid sx={{textAlign:'right',}}>
-                                <Typography variant="caption" color="info">
-                                    <Button
-                                        variant="text"
-                                        size="small"
-                                        onClick={(e) => setTokenAmount(tokenMaxAmount)}
-                                    >
-                                        Max
-                                    </Button>
-                                </Typography>
-                            </Grid>
-                        </FormControl>
-                    }
-                </>
-            }
-
-            {(daoToJoinAddress && tokenMint && tokenAmount) ?
+            {(daoToParticipateAddress && daoToParticipatePropAddress) ?
                 <>  
                     <Box
                         sx={{ m:2,
@@ -693,9 +1031,10 @@ export default function JoinDAOView(props: any) {
                     >
                         <Typography variant="h6">Preview/Summary</Typography>
                         <Typography variant="caption">
-                            DAO to Join <strong>{daoToJoinAddress}</strong><br/>
-                            Using Mint: <strong>{tokenMint}</strong><br/>
-                            With <strong>{tokenAmount}</strong> Tokens<br/>
+                            DAO to Vote <strong></strong><br/>
+                            Proposal Voting: <strong>{daoToParticipatePropAddress}</strong><br/>
+                            Vote Type <strong>???</strong><br/>
+                            Vote Weight <strong>???</strong> Tokens<br/>
                         </Typography>
                     </Box>
                 
@@ -711,12 +1050,11 @@ export default function JoinDAOView(props: any) {
                 <Grid sx={{textAlign:'right', mb:2}}>
                     <Button 
                         disabled={!(
-                            (daoToJoinAddress) &&
-                            ((tokenAmount > 0) &&
-                            (tokenAmount <= tokenMaxAmount))
+                            (daoToParticipateAddress) &&
+                            (daoToParticipatePropAddress)
                         )
                         }
-                        onClick={joinDAO}
+                        onClick={participateInDAOProposal}
                         variant="contained"
                         color="info"
                         sx={{borderRadius:'17px'}}>
@@ -778,7 +1116,7 @@ export default function JoinDAOView(props: any) {
             <Box
                 sx={{mt:4,textAlign:'center'}}
             >
-                <Typography variant="caption" sx={{color:'#ccc'}}>Governance Join DAO Plugin developed by Grape Protocol</Typography>
+                <Typography variant="caption" sx={{color:'#ccc'}}>Governance Inter DAO Plugin developed by Grape Protocol</Typography>
             </Box>
 
             

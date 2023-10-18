@@ -69,6 +69,7 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import { GovernanceGistDialog } from './GovernanceGistDialog';
 import JoinDAOView from './plugins/instructions/JoinDAOView';
+import InterDAOView from './plugins/instructions/InterDAOView';
 import LookupTableView from './plugins/instructions/LookupTableView';
 import SNSView from './plugins/instructions/SNSView';
 import CloseTokenView from './plugins/instructions/CloseTokenView';
@@ -471,6 +472,9 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={30}
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Join a DAO</MenuItem>
+              <MenuItem value={31}
+                disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
+              >Vote on a DAO Proposal</MenuItem>
               <MenuItem value={20} 
               //  disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Speed Dial</MenuItem>
@@ -1341,8 +1345,13 @@ export default function GovernanceCreateProposalView(props: any){
                                 <JoinDAOView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
                               </FormControl>
                             }
-                            
-                          
+
+                            {proposalType === 31 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <InterDAOView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
+                              </FormControl>
+                            }
+
                           {(instructionsArray && instructionsArray.length > 0) &&
                               <Box
                                   sx={{
