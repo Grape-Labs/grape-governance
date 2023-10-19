@@ -1171,22 +1171,24 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 //console.log("response: "+JSON.stringify(response.data.data.tx.transactions));
                 //console.log("total: "+JSON.stringify(response.data.data.tx.total));
                 //console.log("hasnext: "+JSON.stringify(response.data.data.tx.hasNext));
-                hasnext = response.data.data.tx.hasNext;
+                hasnext = response?.data?.data?.tx?.hasNext;
                 // total = response.data.data.total
                 // hasnext = response.data.data.hasnext
                 //setGovernanceTransactions(response.data.transactions);
-                for (var tx of response.data.data.tx.transactions){
-                    // check if there are no duplicates:
-                    let foundGtx = false;
-                    for (var gtx of govTx){
-                        if (JSON.stringify(gtx) === JSON.stringify(tx)){
-                            foundGtx = true;
-                            console.log("Skipping tx: "+gtx);
+                if (response?.data?.data?.tx?.transactions){
+                    for (var tx of response.data.data.tx.transactions){
+                        // check if there are no duplicates:
+                        let foundGtx = false;
+                        for (var gtx of govTx){
+                            if (JSON.stringify(gtx) === JSON.stringify(tx)){
+                                foundGtx = true;
+                                console.log("Skipping tx: "+gtx);
+                            }
                         }
-                    }
-                    if (!foundGtx){
-                        govTx.push(tx);
-                        console.log("Adding tx: "+tx);
+                        if (!foundGtx){
+                            govTx.push(tx);
+                            console.log("Adding tx: "+tx);
+                        }
                     }
                 }
             } else{

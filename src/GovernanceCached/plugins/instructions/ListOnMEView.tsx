@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import axios from 'axios';
 import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, createTransferInstruction } from "@solana/spl-token-v2";
@@ -60,16 +60,7 @@ import { useSnackbar } from 'notistack';
 
 //import { withSend } from "@cardinal/token-manager";
 
-import WarningIcon from '@mui/icons-material/Warning';
-import SendIcon from '@mui/icons-material/Send';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import CircularProgress from '@mui/material/CircularProgress';
-import HelpIcon from '@mui/icons-material/Help';
-import CloseIcon from '@mui/icons-material/Close';
-import ArrowCircleRightIcon from '@mui/icons-material/ArrowCircleRight';
-import ArrowCircleRightOutlinedIcon from '@mui/icons-material/ArrowCircleRightOutlined';
-import { number } from 'prop-types';
-import { getMint } from '@solana/spl-token';
+import moment from 'moment';
 
 const confettiConfig = {
     angle: 90,
@@ -229,7 +220,140 @@ export default function ListOnMEView(props: any) {
         return null;
     }
 
-    async function generateMECancelLlistingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, sentPrice?: number) {
+    async function generateMEAcceptOfferInstructions(selectedTokenMint:string, selectedTokenAtaString: string, offerPrice: number, buyer: string, buyerReferral: string, tokenSize: number, bidExpiry: number) {
+        
+        //const payerWallet = new PublicKey(payerAddress);
+        const fromWallet = new PublicKey(fromAddress);
+        //const tokenAccount = new PublicKey(selectedTokenMint);
+                
+        const transaction = new Transaction();
+        const pTransaction = new Transaction();
+           
+        const mintInfo = await getMintInfo(selectedTokenMint);
+        console.log("mintInfo: "+JSON.stringify(mintInfo));
+
+        const sellerReferral = mintInfo?.sellerReferral;
+        const expiry = mintInfo?.expiry || -1;
+        const meAuctionHouseAddress = mintInfo?.auctionHouse ? mintInfo.auctionHouse : "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
+        const listPrice = mintInfo.price;
+        // fetch token info here before we push again
+        
+        try {
+
+            let tokenAta = null;
+            
+            if (selectedTokenAtaString){
+                tokenAta = new PublicKey(selectedTokenAtaString);
+            } else{
+                tokenAta = await getAssociatedTokenAddress(
+                    new PublicKey(selectedTokenMint),
+                    fromWallet,
+                    true
+                );
+            }
+
+            const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell_now";
+            //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell_now";
+
+            console.log("buyer: "+buyer);
+            console.log("seller: "+fromWallet.toBase58());
+            console.log("meAuctionHouseAddress: "+meAuctionHouseAddress);
+            console.log("tokenAta: "+tokenAta.toBase58());
+            console.log("selectedTokenMint: "+selectedTokenMint);
+            console.log("listPrice: "+listPrice);
+            console.log("offerPrice: "+offerPrice);
+            console.log("buyerReferral: "+buyerReferral);
+
+            const sellerTokenAta = tokenAta = await getAssociatedTokenAddress(
+                new PublicKey(selectedTokenMint),
+                fromWallet,
+                true
+            );
+
+            console.log("buyerTokenAta: "+sellerTokenAta.toBase58())
+            
+            const res = await axios.get(
+                apiUrl,
+                {
+                params: {
+                    //network:"mainnet",
+                    buyer: buyer,
+                    seller: fromWallet.toBase58(),
+                    auctionHouseAddress: meAuctionHouseAddress,
+                    tokenMint: selectedTokenMint,
+                    tokenATA: sellerTokenAta.toBase58(),//tokenAta.toBase58(),
+                    price: listPrice,
+                    newPrice: offerPrice,
+                    sellerExpiry:0,
+                    //buyerReferral:buyerReferral,
+                    //buyerExpiry:bidExpiry
+                },
+                headers: { Authorization: "Bearer " + ME_API }
+                }
+            );
+
+            //console.log("tx: "+JSON.stringify(res.data));
+            const txSigned = res.data.txSigned;
+            //const txSigned = res.data.tx;
+            // convert tx
+            
+            //const txn = anchor.web3.Transaction.from(Buffer.from(txSigned.data));
+            const txSignedBuf = Buffer.from(txSigned, 'base64');
+            const tx = Transaction.from(txSignedBuf);
+            //const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
+            //tx.recentBlockhash = latestBlockHash;
+            tx.feePayer = fromWallet;
+            
+            //console.log("tx 2: "+JSON.stringify(res.data));
+            
+            let found = false;
+            const meSigner = "NTYeYJ1wr4bpM5xo6zx5En44SvJFAd35zTxxNoERYqd";
+            for (var instruction of tx.instructions){// remove ME signer
+                for (var key of instruction.keys){
+                    if (key.pubkey.toBase58() === meSigner){
+                        //if (!found)
+                            key.isSigner = false;
+                        found = true;
+                    }
+                } 
+            }
+            
+            // Remove from instructions
+            /*
+            for (var instruction of tx.instructions) {
+                instruction.keys = instruction.keys.filter((key) => {
+                  return key.pubkey.toBase58() !== sellerReferral;
+                });
+            }*/
+            
+
+            //const meSigner = "NTYeYJ1wr4bpM5xo6zx5En44SvJFAd35zTxxNoERYqd";
+            /*
+            for (var instruction of tx.instructions){// remove ME signer
+                for (var key of instruction.keys){
+                    if (key.pubkey.toBase58() === sellerReferral){
+                        key.pubkey = fromWallet;
+                    }
+                } 
+            }*/
+            
+            //tx.signatures = null;
+            //tx.addSignature(fromWallet, null);
+            //console.log("sigs: "+ JSON.stringify(tx.signatures))
+            
+            //console.log("*** SERIALIZED ***");
+            //console.log(tx.serializeMessage().toString("base64"));
+
+            setTransactionInstructions(tx);
+            return transaction;
+        }catch(e){
+            console.log("FEE ERR: ",e);
+            return null;
+        }
+    }
+    
+
+    async function generateMECancelListingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, sentPrice?: number) {
         //const payerWallet = new PublicKey(payerAddress);
         const fromWallet = new PublicKey(fromAddress);
         const tokenAccount = new PublicKey(selectedTokenMint);
@@ -440,6 +564,27 @@ export default function ListOnMEView(props: any) {
             return null;
         }
         
+    }
+
+    async function getMintOffers(address:string){
+        const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/tokens/"+address+"/offers_received";
+
+        const options = {method: 'GET', headers: {accept: 'application/json'}};
+        const resp = await window.fetch(apiUrl, options)
+            .then(response => response.json())
+            .then(response => {
+                //console.log("Tokens: "+JSON.stringify(response))
+                return response;
+            }
+            )
+            .catch(err => console.error(err));
+
+        //const json = await resp.json();
+        // set only listed NFTs
+        if (resp){
+            return resp;
+        }
+        return null;
     }
 
     async function getCollectionStats(collection:string){
@@ -678,6 +823,51 @@ export default function ListOnMEView(props: any) {
 
             )
         }
+
+        function ViewMintOffers(props:any){
+            const address = props?.address;
+            const [offers, setOffers] = React.useState(null);
+
+            const getOffers = async() => {
+                if (address){
+                    const mintOffers = await getMintOffers(address);
+                    setOffers(mintOffers);
+                }
+            }
+            React.useEffect(() => {
+                if (address && !offers){
+                    getOffers();
+                }
+            },[address]);
+
+            return ( 
+                <>{offers ?
+                    <>  
+                        {offers.length > 0 &&
+                            <List dense={true}>
+                                {offers.map((item: any, key: number) => {
+                                    return (
+                                        <ListItem key={key}>
+                                            {item.price} SOL from <ExplorerView grapeArtProfile={true} address={item.buyer} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />  (expires: {moment.unix(item.expiry).format()})
+                                            <Button
+
+                                                size="small"
+                                                variant="outlined"
+                                                color="primary"
+                                                onClick={() => generateMEAcceptOfferInstructions(item.tokenMint, item.pdaAddress, item.price, item.buyer, item.buyerReferral, item.tokenSize, item.expiry)}
+                                                sx={{ml:1}}
+                                            >Accept Offer</Button>
+                                        </ListItem>
+                                    )
+                                })}
+                            </List>
+                        }
+                    </>
+                    :
+                    <><br/><br/><Typography variant="caption">Loading offers...</Typography></>
+                }</>
+            );
+        }
         
         React.useEffect(() => {
             if (fromAddress && !allWalletHoldingsOnME){
@@ -736,10 +926,15 @@ export default function ListOnMEView(props: any) {
                                                         price={item.price}
                                                     />
                                                     <Button
+                                                        disabled
                                                         color="error"
-                                                        onClick={() => generateMECancelLlistingInstructions(item.mintAddress, item.tokenAddress, item.price)}
+                                                        onClick={() => generateMECancelListingInstructions(item.mintAddress, item.tokenAddress, item.price)}
                                                     >Cancel Listing</Button>
                                                 </ButtonGroup>
+
+                                                <ViewMintOffers address={item.mintAddress}/>
+                                                
+
                                             </React.Fragment>
                                         }
                                         />
