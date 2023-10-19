@@ -45,6 +45,7 @@ import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
 
 import GovernanceNavigation from './GovernanceNavigation'; 
+import GovernancePower from './GovernancePower';
 import {
     fetchGovernanceLookupFile,
     getFileFromLookup
@@ -1241,6 +1242,7 @@ export function GovernanceCachedView(props: any) {
                                         {showGovernanceNavigation ?
                                             <Grid item xs={12} sm={6} container justifyContent="flex-end">
                                                 <GovernanceNavigation governanceAddress={governanceAddress} cachedMemberMap={cachedMemberMap} realm={realm} />
+                                                <GovernancePower governanceAddress={governanceAddress} realm={realm} />
                                             </Grid>
                                             :<></>
                                         }

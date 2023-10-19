@@ -214,7 +214,7 @@ export function GovernanceProposalView(props: any){
     const [exceededQuorum, setExceededQuorum] = React.useState(null);
     const [exceededQuorumPercentage, setExceededQuorumPercentage] = React.useState(null);
     const [selectedDelegate, setSelectedDelegate] = React.useState("");
-    const { publicKey, wallet, sendTransaction, signTransaction } = useWallet();
+    const { publicKey, wallet, sendTransaction } = useWallet();
     const [loadingParticipants, setLoadingParticipants] = React.useState(false);
     const [forVotes, setForVotes] = React.useState(0);
     const [againstVotes, setAgainstVotes] = React.useState(0);
@@ -1553,7 +1553,7 @@ export function GovernanceProposalView(props: any){
     function VoteForProposal(props:any){
         const type = props.type || 0;
         const multiChoice = props.multiChoice || null;
-        
+
         /*
         console.log("memberMap: "+JSON.stringify(memberMap));
         const memberMapReduced = memberMap.reduce((map: any, item: any) => {

@@ -93,99 +93,101 @@ export default function GovernanceNavigation(props: any){
     }, [cachedMemberMap, publicKey]);
 
     return(
-        <Box
-            m={1}
-            //margin
-            display="flex"
-            justifyContent="flex-end"
-            alignItems="flex-end"
-            >
-                {/*publicKey &&
-                <Tooltip title={
-                        <><strong>Create Proposal</strong><br/> (coming soon)
-                        </>
-                    }>
-                    <Button
-                        variant="text"
-                        color="warning"
-                        size='small'
-                        //component={Link}
-                        //to={'/newproposal/'+governanceAddress}
-                        sx={{mr:1}}
-                    ><AddCircleIcon /></Button>
-                </Tooltip>
-                */}
-                <ButtonGroup
-                    color='inherit'
-                    size='small'
-                    variant='outlined'
-                    sx={{borderRadius:'17px'}}
+        <Grid xs={12}>
+            <Box
+                m={1}
+                //margin
+                display="flex"
+                justifyContent="flex-end"
+                alignItems="flex-end"
                 >
+                    {/*publicKey &&
                     <Tooltip title={
-                            <><strong>Proposals</strong><br/>* Via Cached Storage
+                            <><strong>Create Proposal</strong><br/> (coming soon)
                             </>
                         }>
                         <Button
-                            component={Link}
-                            to={'/dao/'+governanceAddress}
-                        ><HowToVoteIcon /></Button>
-                    </Tooltip>
-                    <Tooltip title={
-                        <><strong>Metrics</strong><br/>* Via Cached Storage<br/>** Premium Feature
-                        </>}>
-                        <Button
-                            component={Link}
-                            to={'/metrics/'+governanceAddress}
-                        ><BarChartIcon /></Button>
-                    </Tooltip>
-                    <Tooltip title={
-                        <><strong>Members</strong><br/>* Via Cached Storage
-                        </>}>
-                        <Button
-                            component={Link}
-                            to={'/members/'+governanceAddress}
-                        ><GroupIcon /></Button>
-                    </Tooltip>
-                    <Tooltip title={
-                        <><strong>Treasury</strong><br/>* Via Cached Storage</>
-                        }>
-                        <Button
-                            component={Link}
-                            to={'/treasury/'+governanceAddress}
-                        ><AccountBalanceIcon /></Button>
-                    </Tooltip>
-                    {/*
-                    <Tooltip title={
-                        <><strong>Reputation</strong><br/> (coming soon)</>
-                        }>
-                        <Button
-                            sx={{color:'#999', ml:1}}
-                        ><MilitaryTechIcon /></Button>
-                    </Tooltip>
-
-                    <Tooltip title={
-                        <><strong>Configuration</strong><br/> (coming soon)</>
-                        }>
-                        <Button
-                            sx={{color:'#999', ml:1}}
-                        ><SettingsIcon /></Button>
+                            variant="text"
+                            color="warning"
+                            size='small'
+                            //component={Link}
+                            //to={'/newproposal/'+governanceAddress}
+                            sx={{mr:1}}
+                        ><AddCircleIcon /></Button>
                     </Tooltip>
                     */}
-
-                    {isParticipatingInDao &&
+                    <ButtonGroup
+                        color='inherit'
+                        size='small'
+                        variant='outlined'
+                        sx={{borderRadius:'17px'}}
+                    >
                         <Tooltip title={
-                            <><strong>Proposal Builder</strong><br/></>
+                                <><strong>Proposals</strong><br/>* Via Cached Storage
+                                </>
                             }>
                             <Button
-                                color='warning'
                                 component={Link}
-                                to={'/newproposal/'+governanceAddress}
-                            ><AddCircle /></Button>
+                                to={'/dao/'+governanceAddress}
+                            ><HowToVoteIcon /></Button>
                         </Tooltip>
-                    }
+                        <Tooltip title={
+                            <><strong>Metrics</strong><br/>* Via Cached Storage<br/>** Premium Feature
+                            </>}>
+                            <Button
+                                component={Link}
+                                to={'/metrics/'+governanceAddress}
+                            ><BarChartIcon /></Button>
+                        </Tooltip>
+                        <Tooltip title={
+                            <><strong>Members</strong><br/>* Via Cached Storage
+                            </>}>
+                            <Button
+                                component={Link}
+                                to={'/members/'+governanceAddress}
+                            ><GroupIcon /></Button>
+                        </Tooltip>
+                        <Tooltip title={
+                            <><strong>Treasury</strong><br/>* Via Cached Storage</>
+                            }>
+                            <Button
+                                component={Link}
+                                to={'/treasury/'+governanceAddress}
+                            ><AccountBalanceIcon /></Button>
+                        </Tooltip>
+                        {/*
+                        <Tooltip title={
+                            <><strong>Reputation</strong><br/> (coming soon)</>
+                            }>
+                            <Button
+                                sx={{color:'#999', ml:1}}
+                            ><MilitaryTechIcon /></Button>
+                        </Tooltip>
 
-                </ButtonGroup>
-                
-        </Box>
+                        <Tooltip title={
+                            <><strong>Configuration</strong><br/> (coming soon)</>
+                            }>
+                            <Button
+                                sx={{color:'#999', ml:1}}
+                            ><SettingsIcon /></Button>
+                        </Tooltip>
+                        */}
+
+                        {isParticipatingInDao &&
+                            <Tooltip title={
+                                <><strong>Proposal Builder</strong><br/></>
+                                }>
+                                <Button
+                                    color='warning'
+                                    component={Link}
+                                    to={'/newproposal/'+governanceAddress}
+                                ><AddCircle /></Button>
+                            </Tooltip>
+                        }
+
+                    </ButtonGroup>
+                    
+            </Box>
+        </Grid>
     );
 }
