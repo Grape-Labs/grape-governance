@@ -247,12 +247,12 @@ export default function GovernancePower(props: any){
         const mintAuthority = tokenInfo.mintAuthority ? new PublicKey(tokenInfo.mintAuthority) : null;
         const decimals = tokenInfo.decimals;
 
-        const atomicAmount = tokenAmount;
-        /*
+        //const atomicAmount = tokenAmount;
+        
         const atomicAmount = parseMintNaturalAmountFromDecimalAsBN(
             tokenAmount,
-            decimals
-        )*/
+            0//decimals
+        )
 
         const instructions: TransactionInstruction[] = []
         /*
@@ -290,7 +290,7 @@ export default function GovernancePower(props: any){
                 transaction.add(...instructions);
 
                 try{
-                    enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
+                    enqueueSnackbar(`Preparing to deposit governance power`,{ variant: 'info' });
                     const signature = await sendTransaction(transaction, RPC_CONNECTION, {
                         skipPreflight: true,
                         preflightCommitment: "confirmed",
@@ -318,6 +318,7 @@ export default function GovernancePower(props: any){
 
                     // trigger a refresh here...
                     // ???
+                    
                 }catch(e:any){
                     enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
                 } 
