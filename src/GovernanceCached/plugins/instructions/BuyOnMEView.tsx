@@ -254,13 +254,21 @@ export default function BuyOnMEView(props: any) {
 
     const fetchMintStatsInfo = async(address:string) => {
         // use /listings first
+        console.log("mint address: "+address)
         const mintInfo = await getMintInfo(address);
         console.log("Mint Info: "+JSON.stringify(mintInfo));
         if (mintInfo){
             setSelectedMintInfo(mintInfo);
             const collectionStats = await getCollectionStats(mintInfo.token.collection);
-            setSelectedTokenStats(collectionStats);
-            console.log("Collection Stats: "+JSON.stringify(collectionStats));
+            if (collectionStats){
+                setSelectedTokenStats(collectionStats);
+                console.log("Collection Stats: "+JSON.stringify(collectionStats));
+            }else{
+                setSelectedMintInfo(null);
+                setSelectedTokenStats(null);
+            }
+        } else{
+            
         }
     }
 
@@ -366,7 +374,7 @@ export default function BuyOnMEView(props: any) {
     }, [tokenMint]);
 
 
-    function handleTokenMintAddress(address){
+    function handleTokenMintAddress(address:string){
         if (isValidSolanaPublicKey(address))
             setTokenMint(address);
     }
@@ -425,61 +433,71 @@ export default function BuyOnMEView(props: any) {
                 {(tokenMint) ?
                     <> 
                         {selectedMintInfo &&   
-                            <List>
-                                
-                                <ListItem alignItems="flex-start">
-                                    <ListItemAvatar>
-                                        <Avatar alt={selectedMintInfo.token.name} src={selectedMintInfo.token.image} />
-                                    </ListItemAvatar>
-                                    <ListItemText
-                                    primary={
-                                        <>{selectedMintInfo.token.name}</>
-                                    }
-                                    secondary={
-                                        <>
-                                            <Typography
-                                                sx={{ display: 'inline' }}
-                                                component="span"
-                                                variant="body2"
-                                                color="text.primary"
-                                            >
-                                                {selectedMintInfo.token.listStatus === "listed" ?
-                                                    <>
-                                                    {selectedMintInfo.token.price} SOL
-                                                    </>
-                                                :
-                                                    <>Not Listed</>
-                                                }
-                                            </Typography> - {selectedMintInfo.token.collectionName}
-                                            {selectedMintInfo.token.listStatus === "listed" &&
-                                                <>
-                                                    <ButtonGroup variant="contained" sx={{ml:2}}>
-                                                        {fromAddress===selectedMintInfo.seller ?
-                                                            <Button disabled>This address is the lister!</Button>
-                                                        :
-                                                            <Button
-                                                                color="primary"
-                                                                disabled={(fromAddress === selectedMintInfo.seller)}
-                                                                onClick={() => generateMEBuyInstructions(selectedMintInfo.token.mintAddress, selectedMintInfo.token.tokenAddress, selectedMintInfo.token.price, selectedMintInfo.seller, selectedMintInfo.auctionHouse)}
-                                                            >Buy</Button>
-                                                        }
-                                                        <Button
-                                                            color="info"
-                                                            href={`https://magiceden.io/item-details/${selectedMintInfo.token.mintAddress}`}
-                                                            target="_blank"
-                                                            sx={{ml:1}}
-                                                        >
-                                                            View listing on Magic Eden
-                                                        </Button>
-                                                    </ButtonGroup>
-                                                </>
-                                            }
-                                        </>
-                                    }
-                                    />
-                                </ListItem>
                             
-                            </List>
+                            <Box
+                                sx={{ m:2,
+                                    background: 'rgba(0, 0, 0, 0.2)',
+                                    borderRadius: '17px',
+                                    overflow: 'hidden',
+                                    p:4
+                                }}
+                            >
+                                <List>
+                                    
+                                    <ListItem alignItems="flex-start">
+                                        <ListItemAvatar>
+                                            <Avatar alt={selectedMintInfo.token.name} src={selectedMintInfo.token.image} />
+                                        </ListItemAvatar>
+                                        <ListItemText
+                                        primary={
+                                            <>{selectedMintInfo.token.name}</>
+                                        }
+                                        secondary={
+                                            <>
+                                                <Typography
+                                                    sx={{ display: 'inline' }}
+                                                    component="span"
+                                                    variant="body2"
+                                                    color="text.primary"
+                                                >
+                                                    {selectedMintInfo.token.listStatus === "listed" ?
+                                                        <>
+                                                        {selectedMintInfo.token.price} SOL
+                                                        </>
+                                                    :
+                                                        <>Not Listed</>
+                                                    }
+                                                </Typography> - {selectedMintInfo.token.collectionName}
+                                                {selectedMintInfo.token.listStatus === "listed" &&
+                                                    <>
+                                                        <ButtonGroup variant="contained" sx={{ml:2}}>
+                                                            {fromAddress===selectedMintInfo.seller ?
+                                                                <Button disabled>This address is the lister!</Button>
+                                                            :
+                                                                <Button
+                                                                    color="primary"
+                                                                    disabled={(fromAddress === selectedMintInfo.seller)}
+                                                                    onClick={() => generateMEBuyInstructions(selectedMintInfo.token.mintAddress, selectedMintInfo.token.tokenAddress, selectedMintInfo.token.price, selectedMintInfo.seller, selectedMintInfo.auctionHouse)}
+                                                                >Buy</Button>
+                                                            }
+                                                            <Button
+                                                                color="info"
+                                                                href={`https://magiceden.io/item-details/${selectedMintInfo.token.mintAddress}`}
+                                                                target="_blank"
+                                                                sx={{ml:1}}
+                                                            >
+                                                                View listing on Magic Eden
+                                                            </Button>
+                                                        </ButtonGroup>
+                                                    </>
+                                                }
+                                            </>
+                                        }
+                                        />
+                                    </ListItem>
+                                
+                                </List>
+                            </Box>
                         }
 
                         {selectedTokenStats &&
@@ -492,7 +510,9 @@ export default function BuyOnMEView(props: any) {
                                     p:1,
                                 }}
                             >
+                                
                                 <Grid sx={{textAlign:'right',}}>
+                                    <Typography variant="h6">Collection Stats</Typography>
                                     <Typography variant="caption">
                                         Currently Listed: {selectedTokenStats.listedCount}<br/>
                                         Floor: {(selectedTokenStats.floorPrice / 10 ** 9).toLocaleString()} SOL<br/>

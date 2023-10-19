@@ -691,59 +691,68 @@ export default function ListOnMEView(props: any) {
             {allWalletHoldingsOnME ?
 
             <>
-                {(allWalletHoldingsOnME.length > 0 && allWalletHoldingsOnME.filter((item) => item.listStatus === "listed")) &&
-                    <Typography variant="h6">Current Listings</Typography>
-                }
-                <List sx={{ width: '100%' }}>
-                
-                {allWalletHoldingsOnME.map((item: any, key: number) => {
-                    if (item.listStatus === "listed") {
-
-                        return(
-                            <>
-                                <ListItem alignItems="flex-start">
-                                    <ListItemAvatar>
-                                        <Avatar alt={item.name} src={item.image} />
-                                    </ListItemAvatar>
-                                    <ListItemText
-                                    primary={
-                                        <>{item.name}</>
-                                    }
-                                    secondary={
-                                        <React.Fragment>
-                                            <Typography
-                                                sx={{ display: 'inline' }}
-                                                component="span"
-                                                variant="body2"
-                                                color="text.primary"
-                                            >
-                                                {item.price} SOL
-                                            </Typography> - {item.collectionName}
-                                            <ButtonGroup sx={{ml:1}}>
-                                                <EditListingPriceView 
-                                                    selectedTokenName={item.name}
-                                                    selectedTokenMint={item.mintAddress}
-                                                    selectedTokenAtaString={item.tokenAddress}
-                                                    price={item.price}
-                                                />
-                                                <Button
-                                                    color="error"
-                                                    onClick={() => generateMECancelLlistingInstructions(item.mintAddress, item.tokenAddress, item.price)}
-                                                >Cancel Listing</Button>
-                                            </ButtonGroup>
-                                        </React.Fragment>
-                                    }
-                                    />
-                                </ListItem>
-
-                                <Divider variant="inset" component="li" />
-                            
-                            </>
-                        );
+                <Box
+                    sx={{ m:2,
+                        background: 'rgba(0, 0, 0, 0.2)',
+                        borderRadius: '17px',
+                        overflow: 'hidden',
+                        p:4
+                    }}
+                >
+                    {(allWalletHoldingsOnME.length > 0 && allWalletHoldingsOnME.filter((item) => item.listStatus === "listed")) &&
+                        <Typography variant="h6">Current Listings</Typography>
                     }
-                    return null;
-                })}
-                </List>
+                    <List sx={{ width: '100%' }}>
+                    
+                    {allWalletHoldingsOnME.map((item: any, key: number) => {
+                        if (item.listStatus === "listed") {
+
+                            return(
+                                <>
+                                    <ListItem alignItems="flex-start">
+                                        <ListItemAvatar>
+                                            <Avatar alt={item.name} src={item.image} />
+                                        </ListItemAvatar>
+                                        <ListItemText
+                                        primary={
+                                            <>{item.name}</>
+                                        }
+                                        secondary={
+                                            <React.Fragment>
+                                                <Typography
+                                                    sx={{ display: 'inline' }}
+                                                    component="span"
+                                                    variant="body2"
+                                                    color="text.primary"
+                                                >
+                                                    {item.price} SOL
+                                                </Typography> - {item.collectionName}
+                                                <ButtonGroup sx={{ml:1}}>
+                                                    <EditListingPriceView 
+                                                        selectedTokenName={item.name}
+                                                        selectedTokenMint={item.mintAddress}
+                                                        selectedTokenAtaString={item.tokenAddress}
+                                                        price={item.price}
+                                                    />
+                                                    <Button
+                                                        color="error"
+                                                        onClick={() => generateMECancelLlistingInstructions(item.mintAddress, item.tokenAddress, item.price)}
+                                                    >Cancel Listing</Button>
+                                                </ButtonGroup>
+                                            </React.Fragment>
+                                        }
+                                        />
+                                    </ListItem>
+
+                                    <Divider variant="inset" component="li" />
+                                
+                                </>
+                            );
+                        }
+                        return null;
+                    })}
+                    </List>
+                </Box>
                 </>
             :
                 <></>
