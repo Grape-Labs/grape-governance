@@ -446,11 +446,11 @@ export default function BuyOnMEView(props: any) {
                                     
                                     <ListItem alignItems="flex-start">
                                         <ListItemAvatar>
-                                            <Avatar alt={selectedMintInfo.token.name} src={selectedMintInfo.token.image} />
+                                            <Avatar alt={selectedMintInfo.token.name} src={selectedMintInfo.token.image} sx={{ width: 56, height: 56 }} />
                                         </ListItemAvatar>
                                         <ListItemText
                                         primary={
-                                            <>{selectedMintInfo.token.name}</>
+                                            <><Typography variant='h5'>{selectedMintInfo.token.name}</Typography></>
                                         }
                                         secondary={
                                             <>
@@ -462,15 +462,19 @@ export default function BuyOnMEView(props: any) {
                                                 >
                                                     {selectedMintInfo.token.listStatus === "listed" ?
                                                         <>
-                                                        {selectedMintInfo.token.price} SOL
+                                                            <strong>{selectedMintInfo.token.price} SOL</strong>
                                                         </>
                                                     :
                                                         <>Not Listed</>
                                                     }
-                                                </Typography> - {selectedMintInfo.token.collectionName}
+                                                </Typography>
+                                                <br/>
+                                                Collection {selectedMintInfo.token.collectionName}<br/>
+                                                Owner: <ExplorerView grapeArtProfile={true} showSolanaProfile={true} address={selectedMintInfo.seller} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                                
                                                 {selectedMintInfo.token.listStatus === "listed" &&
                                                     <>
-                                                        <ButtonGroup variant="contained" sx={{ml:2}}>
+                                                        <ButtonGroup variant="contained" sx={{mt:2}}>
                                                             {fromAddress===selectedMintInfo.seller ?
                                                                 <Button disabled>This address is the lister!</Button>
                                                             :
@@ -507,12 +511,12 @@ export default function BuyOnMEView(props: any) {
                                     background: 'rgba(0, 0, 0, 0.1)',
                                     borderRadius: '17px',
                                     overflow: 'hidden',
-                                    p:1,
+                                    p:2,
                                 }}
                             >
                                 
                                 <Grid sx={{textAlign:'right',}}>
-                                    <Typography variant="h6">Collection Stats</Typography>
+                                    <Typography variant="h5">Collection Stats</Typography>
                                     <Typography variant="caption">
                                         Currently Listed: {selectedTokenStats.listedCount}<br/>
                                         Floor: {(selectedTokenStats.floorPrice / 10 ** 9).toLocaleString()} SOL<br/>

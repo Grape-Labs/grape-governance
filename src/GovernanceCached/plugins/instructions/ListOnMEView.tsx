@@ -711,11 +711,11 @@ export default function ListOnMEView(props: any) {
                                 <>
                                     <ListItem alignItems="flex-start">
                                         <ListItemAvatar>
-                                            <Avatar alt={item.name} src={item.image} />
+                                            <Avatar alt={item.name} src={item.image} sx={{ width: 56, height: 56 }} />
                                         </ListItemAvatar>
                                         <ListItemText
                                         primary={
-                                            <>{item.name}</>
+                                            <><Typography variant="h5">{item.name}</Typography></>
                                         }
                                         secondary={
                                             <React.Fragment>
@@ -725,9 +725,10 @@ export default function ListOnMEView(props: any) {
                                                     variant="body2"
                                                     color="text.primary"
                                                 >
-                                                    {item.price} SOL
+                                                    <strong>{item.price} SOL</strong>
                                                 </Typography> - {item.collectionName}
-                                                <ButtonGroup sx={{ml:1}}>
+                                                <br/>
+                                                <ButtonGroup sx={{mt:2}}>
                                                     <EditListingPriceView 
                                                         selectedTokenName={item.name}
                                                         selectedTokenMint={item.mintAddress}
@@ -982,10 +983,12 @@ export default function ListOnMEView(props: any) {
                             background: 'rgba(0, 0, 0, 0.1)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:1,
+                            p:2,
                         }}
                     >
+                    
                         <Grid sx={{textAlign:'right',}}>
+                            <Typography variant="h5">Collection Stats</Typography>
                             <Typography variant="caption">
                                 Currently Listed: {selectedTokenStats.listedCount}<br/>
                                 Floor: {(selectedTokenStats.floorPrice / 10 ** 9).toLocaleString()} SOL<br/>
