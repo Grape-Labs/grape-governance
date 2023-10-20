@@ -32,6 +32,10 @@ import {
   DialogActions,
   DialogContentText,
   IconButton,
+  Divider,
+  List, 
+  ListItem, 
+  ListItemText,
 } from '@mui/material/';
 
 import { useSnackbar } from 'notistack';
@@ -408,6 +412,9 @@ export default function GovernancePower(props: any){
             if (newDepositAmount && newDepositAmount > 0){
                 depositVotesToGovernance(newDepositAmount, decimals, walletCommunityMintAddress);
                 setOpen(false);
+            } else {
+                handleDepositCommunityMax();
+                setOpen(false);
             }
         }
         function handleAdvancedDepositMaxVotesToGovernance(){
@@ -443,37 +450,93 @@ export default function GovernancePower(props: any){
                     }}
                 >
                     <BootstrapDialogTitle id="create-storage-pool" onClose={handleClose}>
-                        Set the {selectedMintName} to deposit
+                        Advanced Deposit
                     </BootstrapDialogTitle>
                     
                     <DialogContent>
                     <DialogContentText>
                         <Grid container>
-
-                            <Box
-                                sx={{
+                            <Box sx={{
                                     m:2,
                                     background: 'rgba(0, 0, 0, 0.1)',
                                     borderRadius: '17px',
-                                    overflow: 'hidden',
                                     p:1,
-                                    width:"100%"
-                                }}
-                            >
-                                <Grid container>
+                                    width:"100%",
+                                    minWidth:'360px'
+                                }}>
+                                <Box sx={{ my: 3, mx: 2 }}>
+                                    <Grid container alignItems="center">
+                                    <Grid item xs>
+                                        <Typography gutterBottom variant="h5" component="div">
+                                        New Voting Power
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item>
+                                        {newDepositAmount ?
+                                        <Typography gutterBottom variant="h6" component="div">
+                                            {(Number(((selectedMintDepositedAmount/10**decimals)+(+newDepositAmount)).toFixed(0))).toLocaleString()}
+                                        </Typography>
+                                        :
+                                        <Typography gutterBottom variant="h6" component="div">
+                                            {(Number((((+selectedMintDepositedAmount + +selectedMintAvailableAmount)/10**decimals)).toFixed(0))).toLocaleString()}
+                                        </Typography>
+                                        }
+                                    </Grid>
+                                    </Grid>
+                                    <Typography color="text.secondary" variant="body2">
+                                        Total voting power after depositing
+                                    </Typography>
+                                </Box>
 
-                                    <Grid item xs={12}>
-                                        Governing Mint: <ExplorerView address={selectedMintAddress} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' /> 
+                                <Divider variant="middle" />
+                                <Box sx={{ my: 3, mx: 2 }}>
+                                    <Grid container alignItems="center">
+                                    <Grid item xs>
+                                        <Typography gutterBottom variant="subtitle1" component="div">
+                                            Voting Power
+                                        </Typography>
                                     </Grid>
-                                    <Grid item xs={12}>
-                                        Voting Power: <strong>{(Number((selectedMintDepositedAmount/10**decimals).toFixed(0))).toLocaleString()}</strong>
+                                    <Grid item>
+                                        <Typography gutterBottom variant="body1" component="div">
+                                            {(Number((selectedMintDepositedAmount/10**decimals).toFixed(0))).toLocaleString()}
+                                        </Typography>
                                     </Grid>
-                                    <Grid item xs={12}>
-                                        Available to Deposit: <strong>{(selectedMintAvailableAmount/10**decimals).toLocaleString()}</strong>
                                     </Grid>
-                                </Grid>
+                                    <Typography color="text.secondary" variant="caption">
+                                        This is your current voting power
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ my: 3, mx: 2 }}>
+                                    <Grid container alignItems="center">
+                                    <Grid item xs>
+                                        <Typography gutterBottom variant="subtitle1" component="div">
+                                        Available to Deposit
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item>
+                                        <Typography gutterBottom variant="body1" component="div">
+                                        {(selectedMintAvailableAmount/10**decimals).toLocaleString()}
+                                        </Typography>
+                                    </Grid>
+                                    </Grid>
+                                    <Typography color="text.secondary" variant="caption">
+                                    This is the voting power you have in your wallet
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ my: 3, mx: 2 }}>
+                                    <Grid container alignItems="center">
+                                    <Grid item xs>
+                                        
+                                    </Grid>
+                                    <Grid item>
+                                        <Typography gutterBottom variant="body1" component="div">
+                                            <ExplorerView address={selectedMintAddress} title={`Governing Mint ${mintName ? mintName : `${selectedMintAddress.slice(0, 3)}...${selectedMintAddress.slice(-3)}`}`} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' /> 
+                                        </Typography>
+                                    </Grid>
+                                    </Grid>
+                                </Box>
+
                             </Box>
-
                         </Grid>
                     </DialogContentText>
                     
@@ -488,6 +551,21 @@ export default function GovernancePower(props: any){
                         fullWidth
                         variant="standard"
                         value={newDepositAmount}
+                        defaultValue={(selectedMintAvailableAmount/10**decimals)}
+                        helperText={
+                            <Grid sx={{textAlign:'right',}}>
+                                <Typography variant="caption" color="info">
+                                    <Button
+                                        variant="text"
+                                        size="small"
+                                        onClick={(e) => setNewDepositAmount(selectedMintAvailableAmount/10**decimals)}
+                                        sx={{borderRadius:'17px'}}
+                                    >
+                                        Max
+                                    </Button>
+                                </Typography>
+                            </Grid>
+                        }
                         onChange={(e: any) => {
                             setNewDepositAmount(e.target.value)}
                         }
@@ -498,18 +576,7 @@ export default function GovernancePower(props: any){
                             }
                         }}
                     />
-                        <Grid sx={{textAlign:'right',}}>
-                            <Typography variant="caption" color="info">
-                                <Button
-                                    variant="text"
-                                    size="small"
-                                    onClick={(e) => setNewDepositAmount(selectedMintAvailableAmount/10**decimals)}
-                                    sx={{borderRadius:'17px'}}
-                                >
-                                    Max
-                                </Button>
-                            </Typography>
-                        </Grid>
+                        
                     {/*
                     <TextField
                         autoFocus
@@ -523,6 +590,13 @@ export default function GovernancePower(props: any){
                         />*/}
                     </DialogContent>
                     <DialogActions>
+                        <Button color="success" onClick={handleAdvancedDepositVotesToGovernance}
+                            sx={{borderRadius:'17px'}}
+                            disabled={
+                                (newDepositAmount <= (selectedMintAvailableAmount/10**decimals)) ? false : true
+                            }
+                        ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
+                        {/*
                         <ButtonGroup>
                             <Button color="success" onClick={handleAdvancedDepositVotesToGovernance}
                                 sx={{borderTopLeftRadius:'17px',borderBottomLeftRadius:'17px'}}
@@ -534,6 +608,7 @@ export default function GovernancePower(props: any){
                                 sx={{borderTopRightRadius:'17px',borderBottomRightRadius:'17px'}}
                             ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit Max</Button>
                         </ButtonGroup>
+                        */}
                     </DialogActions>
                 </Dialog>
             </>
@@ -605,7 +680,6 @@ export default function GovernancePower(props: any){
                                 color='inherit'
                                 onClick={handleDepositCouncilMax}
                                 sx={{
-                                    borderRadius:'17px',
                                     borderRadius:'17px',
                                     borderColor:'rgba(255,255,255,0.05)',
                                     fontSize:'10px',
