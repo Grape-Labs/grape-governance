@@ -112,6 +112,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   }));
 
 export function GrapeVerificationDAO(props: any){
+  const daoName = props?.title;
   const ownerAddress = props?.address;
   const setVerifiedDAODestinationWalletArray = props?.setVerifiedDAODestinationWalletArray;
   const governanceLookup = props?.governanceLookup;
@@ -193,7 +194,7 @@ export function GrapeVerificationDAO(props: any){
                     <CircularProgress color="inherit" sx={{p:'10px'}} />
                   :
                     <>
-                      <CheckCircleIcon sx={{mr:1, fontSize:'12px'}}/> DAO
+                      <CheckCircleIcon sx={{mr:1, fontSize:'12px'}}/> {daoName} DAO
                     </>
                   }
                 </Button>

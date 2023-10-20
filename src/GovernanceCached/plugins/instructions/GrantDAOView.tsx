@@ -183,13 +183,13 @@ export default function GrantDAOView(props: any) {
         try{
 
             const programId = governance.owner;
-            console.log("programId: "+JSON.stringify(programId));
+            //console.log("programId: "+JSON.stringify(programId));
             const programVersion = await getGovernanceProgramVersion(
                 connection,
                 programId,
             )
             
-            console.log("programVersion: "+JSON.stringify(programVersion));
+            //console.log("programVersion: "+JSON.stringify(programVersion));
 
             const realmPk = new PublicKey(governance.pubkey);
             
@@ -201,46 +201,43 @@ export default function GrantDAOView(props: any) {
                 true
             )
 
-            console.log("User Ata: "+userAtaPk.toBase58())            
-
             // Extract the mint authority
             //const mintAuthority = tokenInfo.mintAuthority ? new PublicKey(tokenInfo.mintAuthority) : null;
             const decimals = tokenInfo.decimals;
 
             //console.log("mintAuthority: "+mintAuthority.toBase58());
-            console.log("tokenAmount: "+tokenAmount);
-            console.log("decimals: "+decimals);
-            
-            const atomicAmount = parseMintNaturalAmountFromDecimalAsBN(
-                tokenAmount,
-                decimals
-            )
-
-            
-            console.log("atomic: "+JSON.stringify(atomicAmount));
             
 
             const instructions: TransactionInstruction[] = []
-            
+            const transaction = new Transaction();
             for (let index = 0; index < destinationWalletArray.length; index++) {
                 
                 const destinationObject = destinationWalletArray[index];
 
                 // getOrCreateAssociatedTokenAccount
+                /*
                 const fromTokenAccount = await getAssociatedTokenAddress(
                     mintPubkey,
                     new PublicKey(fromWallet),
                     true
-                )
+                )*/
 
                 const fromPublicKey = new PublicKey(fromWallet);
                 const destPublicKey = new PublicKey(destinationObject.address);
+                /*
                 const destTokenAccount = await getAssociatedTokenAddress(
                     mintPubkey,
                     destPublicKey,
                     true
-                )
+                )*/
 
+                const atomicAmount = parseMintNaturalAmountFromDecimalAsBN(
+                    destinationObject.amount,
+                    decimals
+                )
+    
+
+                
                 console.log("realm: "+realmPk.toBase58())
                 console.log("governingTokenSource / userAtaPk: "+userAtaPk.toBase58())
                 console.log("governingTokenMint: "+mintPubkey.toBase58())
@@ -249,6 +246,11 @@ export default function GrantDAOView(props: any) {
                 console.log("payer: "+fromWallet.toBase58())
                 console.log("amount: "+atomicAmount);
                 
+
+                await new Promise(resolve => {
+                    setTimeout(resolve, 500); // 1000 milliseconds = 1 second
+                });
+
                 await withDepositGoverningTokens(
                     instructions,
                     programId,
@@ -260,34 +262,20 @@ export default function GrantDAOView(props: any) {
                     fromWallet,
                     fromWallet,
                     atomicAmount
-                )
+                );
                 
                 if (instructions.length != 1) {
                     console.log("ERROR: Something went wrong");
                 } else{
         
                     if (instructions){
-                        
-
-
                         console.log("Adding IX: "+JSON.stringify(instructions));
-
-                        const transaction = new Transaction();
-
                         transaction.add(...instructions);
-                        setTransactionInstructions(transaction);
                     }
                 }
             }
-            
-            //console.log("setting TX")
-            //setTransactionInstructions(transaction);
-            // Estimate the transaction fee
-            
-            try{
-            }catch(e){
-                console.log("FEE ERR: ",e);
-            }
+
+            setTransactionInstructions(transaction);
             return transaction;
         } catch(err){
             console.log("GEN ERR: "+JSON.stringify(err));
@@ -300,11 +288,17 @@ export default function GrantDAOView(props: any) {
     function prepareAndReturnInstructions(){
 
         //await transferTokens;
-
         let description = "";
+        description = `Granting DAO Voting Power with ${tokenMint}`;
+        if (destinationWalletArray.length === 1){
+            description += ` using ${tokenAmount.toLocaleString()} Governance Power to ${destinationWalletArray[0].address}`;
+        } else{
+            description += ` using ${tokenAmount.toLocaleString()} Governance Power to ${destinationWalletArray.length} recipients: `;
+            description += destinationWalletArray
+                .map((destination: any) => `${destination.address.trim()} - ${destination.amount.toLocaleString()} tokens`)
+                .join(', ');
+        }
 
-        description = `Granting DAO Voting Power with ${tokenMint} using ${tokenAmount.toLocaleString()} Governance Power`;
-        
         setInstructionsObject({
             "type":`Grant DAO Voting Power`,
             "description":description,
@@ -832,6 +826,11 @@ export default function GrantDAOView(props: any) {
             setDestinationString(destinationString + "\n" + publicKey.toBase58());
     }
 
+    function handleDestinationWalletChange(destinations:string){
+        //console.log("String changed...")
+        setDestinationString(destinations);
+    }
+
     
     React.useEffect(() => {
         if (governanceWallet && !consolidatedGovernanceWallet && !loadingWallet) {
@@ -1086,7 +1085,7 @@ export default function GrantDAOView(props: any) {
                                         value={destinationString}
                                         defaultValue={destinationString}
                                         onChange={(e) => {
-                                                //handleDestinationWalletChange(e.target.value)
+                                                handleDestinationWalletChange(e.target.value)
                                         }}
                                         InputLabelProps={{ shrink: true }}
                                         //sx={{maxlength:maxDestinationWalletLen}}
@@ -1123,7 +1122,7 @@ export default function GrantDAOView(props: any) {
                                         p:4
                                     }}
                                 >
-                                    <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} /> <GrapeVerificationDAO governanceAddress={governanceAddress} governanceLookup={governanceLookup} address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray} /></Typography>
+                                    <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} /> {governance && <GrapeVerificationDAO title={governance ? governance.account.name : null} governanceAddress={daoToJoinAddress} governanceLookup={governanceLookup} address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray} />}</Typography>
                                     <Typography variant="caption">
                                     DAO to Grant Voting Power <strong>{daoToJoinAddress}</strong><br/>
                                     Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to <strong>{destinationWalletArray[0].address} {verifiedDestinationWalletArray ? 
@@ -1181,10 +1180,10 @@ export default function GrantDAOView(props: any) {
                                         overflow: 'hidden',
                                         p:4
                                     }}
-                                >
-                                    <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}/> <GrapeVerificationDAO governanceAddress={governanceAddress} governanceLookup={governanceLookup} address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray}  /></Typography>
+                                >   
+                                    <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}/> {governance && <GrapeVerificationDAO title={governance ? governance.account.name : null} governanceAddress={daoToJoinAddress} governanceLookup={governanceLookup} address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray} />}</Typography>
                                     <Typography variant="caption">
-                                        DAO to Grant Voting Power <strong>{daoToJoinAddress}</strong><br/>
+                                        DAO to Grant Voting Power <strong>{daoToJoinAddress} {governance && governance.account.name}</strong> <br/>
                                         Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to {destinationWalletArray.length} recipient(s):<br/>
                                         {destinationWalletArray.map((destination:any, index:number) => (
                                             <li key={index}>
