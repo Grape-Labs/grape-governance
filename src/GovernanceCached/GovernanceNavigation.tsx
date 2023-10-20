@@ -129,6 +129,7 @@ export default function GovernanceNavigation(props: any){
                             <Button
                                 component={Link}
                                 to={'/dao/'+governanceAddress}
+                                sx={{borderTopLeftRadius:'17px', borderBottomLeftRadius:'17px'}}
                             ><HowToVoteIcon /></Button>
                         </Tooltip>
                         <Tooltip title={
@@ -153,6 +154,7 @@ export default function GovernanceNavigation(props: any){
                             <Button
                                 component={Link}
                                 to={'/treasury/'+governanceAddress}
+                                sx={{borderTopRightRadius:'17px', borderBottomRightRadius:'17px'}}
                             ><AccountBalanceIcon /></Button>
                         </Tooltip>
                         {/*
@@ -181,6 +183,7 @@ export default function GovernanceNavigation(props: any){
                                     color='warning'
                                     component={Link}
                                     to={'/newproposal/'+governanceAddress}
+                                    sx={{borderTopRightRadius:'17px', borderBottomRightRadius:'17px'}}
                                 ><AddCircle /></Button>
                             </Tooltip>
                         }
