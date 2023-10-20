@@ -225,7 +225,7 @@ export default function GovernancePower(props: any){
             setRefresh(false);
         }
     }, [publicKey, refresh]);
-    
+
     const depositVotesToGovernance = async(tokenAmount: number, tokenDecimals: number, mintAddress: string) => {
         const withMint = new PublicKey(mintAddress);
         const programId = new PublicKey(realm.owner);
@@ -376,7 +376,7 @@ export default function GovernancePower(props: any){
                     <Button 
                         aria-label="Deposit"
                         variant="outlined" 
-                        color='inherit'
+                        color='success'
                         onClick={handleClickOpen}
                         sx={{
                             borderTopRightRadius:'17px',
@@ -492,13 +492,19 @@ export default function GovernancePower(props: any){
                     justifyContent="flex-end"
                     alignItems="flex-end"
                 >
-                    <Grid>
+                    <Grid
+                        sx={{
+                            background: 'rgba(0, 0, 0, 0.1)',
+                            borderRadius: '17px',
+                            p:1
+                        }}
+                    >
                         {(walletCommunityMintAmount && walletCommunityMintAmount > 0) &&
                             <ButtonGroup color='inherit' sx={{ ml: 1, fontSize:'10px', borderRadius:'17px' }}>
                                 <Button 
                                     aria-label="Deposit"
-                                    variant="outlined" 
-                                    color='inherit'
+                                    variant="contained" 
+                                    color='success'
                                     onClick={handleDepositCommunityMax}
                                     sx={{
                                         borderTopLeftRadius:'17px',
