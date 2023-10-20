@@ -207,7 +207,6 @@ export default function GrantDAOView(props: any) {
 
             //console.log("mintAuthority: "+mintAuthority.toBase58());
             
-
             const instructions: TransactionInstruction[] = []
             const transaction = new Transaction();
             for (let index = 0; index < destinationWalletArray.length; index++) {
@@ -235,22 +234,24 @@ export default function GrantDAOView(props: any) {
                     destinationObject.amount,
                     decimals
                 )
-    
-
                 
+
+                console.log("**********");
+                console.log("**********");
+                console.log("programId: "+JSON.stringify(programId));
+                console.log("programVersion: "+JSON.stringify(programVersion));
                 console.log("realm: "+realmPk.toBase58())
                 console.log("governingTokenSource / userAtaPk: "+userAtaPk.toBase58())
                 console.log("governingTokenMint: "+mintPubkey.toBase58())
-                console.log("governingTokenOwner: "+fromWallet.toBase58())
-                console.log("governingTokenSourceAuthority: "+destPublicKey?.toBase58())
+                console.log("governingTokenOwner: "+destPublicKey.toBase58())
+                console.log("governingTokenSourceAuthority: "+fromWallet.toBase58())
                 console.log("payer: "+fromWallet.toBase58())
                 console.log("amount: "+atomicAmount);
                 
-
                 await new Promise(resolve => {
                     setTimeout(resolve, 500); // 1000 milliseconds = 1 second
                 });
-
+                
                 await withDepositGoverningTokens(
                     instructions,
                     programId,
@@ -258,8 +259,8 @@ export default function GrantDAOView(props: any) {
                     realmPk,
                     userAtaPk,
                     mintPubkey,
-                    destPublicKey,//fromWallet,
-                    fromWallet,
+                    destPublicKey, //fromWallet,
+                    fromWallet, //destPublicKey,
                     fromWallet,
                     atomicAmount
                 );
@@ -267,7 +268,6 @@ export default function GrantDAOView(props: any) {
                 if (instructions.length != 1) {
                     console.log("ERROR: Something went wrong");
                 } else{
-        
                     if (instructions){
                         console.log("Adding IX: "+JSON.stringify(instructions));
                         transaction.add(...instructions);
