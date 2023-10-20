@@ -141,7 +141,7 @@ const BootstrapDialogTitle = (props: DialogTitleProps) => {
         ) : null}
       </DialogTitle>
     );
-  };
+};
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     '& .MuDialogContent-root': {
@@ -150,7 +150,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     '& .MuDialogActions-root': {
       padding: theme.spacing(1),
     },
-  }));
+}));
 
 const GOVERNANCE_STATE = {
     0:'Draft',

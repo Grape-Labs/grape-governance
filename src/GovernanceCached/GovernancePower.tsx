@@ -16,6 +16,8 @@ import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 import { RegexTextField } from '../utils/grapeTools/RegexTextField';
 import ExplorerView from '../utils/grapeTools/Explorer';
 
+import { styled, useTheme } from '@mui/material/styles';
+
 import {
   Typography,
   Tooltip,
@@ -29,10 +31,12 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
+  IconButton,
 } from '@mui/material/';
 
 import { useSnackbar } from 'notistack';
 
+import CloseIcon from '@mui/icons-material/Close';
 import DownloadIcon from '@mui/icons-material/Download';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
@@ -74,6 +78,45 @@ import {
 import { 
     findObjectByGoverningTokenOwner
   } from '../utils/grapeTools/helpers';
+
+  export interface DialogTitleProps {
+    id: string;
+    children?: React.ReactNode;
+    onClose: () => void;
+}
+
+  const BootstrapDialogTitle = (props: DialogTitleProps) => {
+    const { children, onClose, ...other } = props;
+  
+    return (
+      <DialogTitle sx={{ m: 0, p: 2 }} {...other}>
+        {children}
+        {onClose ? (
+          <IconButton
+            aria-label="close"
+            onClick={onClose}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              color: (theme) => theme.palette.grey[500],
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        ) : null}
+      </DialogTitle>
+    );
+};
+
+const BootstrapDialog = styled(Dialog)(({ theme }) => ({
+    '& .MuDialogContent-root': {
+      padding: theme.spacing(2),
+    },
+    '& .MuDialogActions-root': {
+      padding: theme.spacing(1),
+    },
+}));
 
 export default function GovernancePower(props: any){
     const governanceAddress = props.governanceAddress;
@@ -334,6 +377,7 @@ export default function GovernancePower(props: any){
         //const selectedTokenMint = event.target.value as string;
         //setTokenMint(selectedTokenMint);
         depositVotesToGovernance(walletCommunityMintAmount, 0, walletCommunityMintAddress);
+    
     }
     function handleDepositCouncilMax(){
         //const selectedTokenMint = event.target.value as string;
@@ -361,12 +405,14 @@ export default function GovernancePower(props: any){
         };
 
         function handleAdvancedDepositVotesToGovernance(){
-        //    if (selectedTokenMint && selectedTokenAtaString && price && newListPrice)
-        //        generateMEEditListingInstructions(selectedTokenMint, selectedTokenAtaString, price, newListPrice)
             if (newDepositAmount && newDepositAmount > 0){
                 depositVotesToGovernance(newDepositAmount, decimals, walletCommunityMintAddress);
                 setOpen(false);
             }
+        }
+        function handleAdvancedDepositMaxVotesToGovernance(){
+            handleDepositCommunityMax();
+            setOpen(false);
         }
 
         return (
@@ -386,8 +432,20 @@ export default function GovernancePower(props: any){
                     ><SettingsIcon  sx={{fontSize:'14px'}} /></Button>
                 </Tooltip>
 
-                <Dialog open={open} onClose={handleClose}>
-                    <DialogTitle>Set the {selectedMintName} to deposit</DialogTitle>
+                <Dialog open={open} onClose={handleClose}
+                    PaperProps={{
+                        style: {
+                            background: '#13151C',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                            borderTop: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '20px'
+                        }
+                    }}
+                >
+                    <BootstrapDialogTitle id="create-storage-pool" onClose={handleClose}>
+                        Set the {selectedMintName} to deposit
+                    </BootstrapDialogTitle>
+                    
                     <DialogContent>
                     <DialogContentText>
                         <Grid container>
@@ -465,15 +523,17 @@ export default function GovernancePower(props: any){
                         />*/}
                     </DialogContent>
                     <DialogActions>
-                        <Button color="secondary" onClick={handleClose}
-                            sx={{borderRadius:'17px'}}
-                        >Cancel</Button>
-                        <Button color="success" onClick={handleAdvancedDepositVotesToGovernance}
-                            sx={{borderRadius:'17px'}}
-                            disabled={
-                                newDepositAmount ? false : true
-                            }
-                        ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
+                        <ButtonGroup>
+                            <Button color="success" onClick={handleAdvancedDepositVotesToGovernance}
+                                sx={{borderTopLeftRadius:'17px',borderBottomLeftRadius:'17px'}}
+                                disabled={
+                                    newDepositAmount ? false : true
+                                }
+                            ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
+                            <Button color="success" onClick={handleAdvancedDepositMaxVotesToGovernance}
+                                sx={{borderTopRightRadius:'17px',borderBottomRightRadius:'17px'}}
+                            ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit Max</Button>
+                        </ButtonGroup>
                     </DialogActions>
                 </Dialog>
             </>
@@ -486,6 +546,8 @@ export default function GovernancePower(props: any){
         {(!publicKey && loading) ?
             <>loading...</>
         :
+            <>
+                {publicKey ?
                 <Box
                     m={1}
                     display="flex"
@@ -612,7 +674,10 @@ export default function GovernancePower(props: any){
                             </Typography>
                         </Grid>
                     </Grid>
-                </Box>
+                </Box>  
+                :<></>
+                }
+            </>
             }
         </Grid>
         
