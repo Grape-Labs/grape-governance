@@ -92,6 +92,7 @@ export default function GovernancePower(props: any){
     const [mintName, setMintName] = React.useState(null);
     const [mintDecimals, setMintDecimals] = React.useState(null);
     const [mintLogo, setMintLogo] = React.useState(null);
+    const [refresh, setRefresh] = React.useState(false);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
 
@@ -217,15 +218,14 @@ export default function GovernancePower(props: any){
     }, [rpcMemberMap]);
 
     React.useEffect(() => {
-        if (publicKey){
+        if (publicKey || refresh){
             setLoading(true);
             getWalletAndGovernanceOwner();
             setLoading(false);
+            setRefresh(false);
         }
-    }, [publicKey]);
-
-    // 
-
+    }, [publicKey, refresh]);
+    
     const depositVotesToGovernance = async(tokenAmount: number, tokenDecimals: number, mintAddress: string) => {
         const withMint = new PublicKey(mintAddress);
         const programId = new PublicKey(realm.owner);
@@ -320,8 +320,7 @@ export default function GovernancePower(props: any){
                     enqueueSnackbar(`Congratulations, you now have more governance power`,{ variant: 'success', action });
 
                     // trigger a refresh here...
-                    // ???
-                    
+                    setRefresh(true);
                 }catch(e:any){
                     enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
                 } 
@@ -366,6 +365,7 @@ export default function GovernancePower(props: any){
         //        generateMEEditListingInstructions(selectedTokenMint, selectedTokenAtaString, price, newListPrice)
             if (newDepositAmount && newDepositAmount > 0){
                 depositVotesToGovernance(newDepositAmount, decimals, walletCommunityMintAddress);
+                setOpen(false);
             }
         }
 
