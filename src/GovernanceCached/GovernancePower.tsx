@@ -13,6 +13,9 @@ import {
 } from "@solana/spl-token-v2";
 import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 
+import { RegexTextField } from '../utils/grapeTools/RegexTextField';
+import ExplorerView from '../utils/grapeTools/Explorer';
+
 import {
   Typography,
   Tooltip,
@@ -21,6 +24,11 @@ import {
   Box,
   ButtonGroup,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
 } from '@mui/material/';
 
 import { useSnackbar } from 'notistack';
@@ -78,15 +86,16 @@ export default function GovernancePower(props: any){
     const [depositedCouncilMint, setDepositedCouncilMint] = React.useState(null);
     const [walletCommunityMintAddress, setWalletCommunityMintAddress] = React.useState(null);
     const [walletCouncilMintAddress, setWalletCouncilMintAddress] = React.useState(null);
-    const [walletCommunityMint, setWalletCommunityMint] = React.useState(null);
-    const [walletCouncilMint, setWalletCouncilMint] = React.useState(null);
+    const [walletCommunityMintAmount, setWalletCommunityMintAmount] = React.useState(null);
+    const [walletCouncilMintAmount, setWalletCouncilMintAmount] = React.useState(null);
     const { publicKey, wallet, sendTransaction } = useWallet();
     const [mintName, setMintName] = React.useState(null);
     const [mintDecimals, setMintDecimals] = React.useState(null);
     const [mintLogo, setMintLogo] = React.useState(null);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+
+
     const getTokenMintInfo = async(mintAddress:string) => {
-        
         
         const mintInfo = await getMint(RPC_CONNECTION, new PublicKey(mintAddress));
 
@@ -188,17 +197,13 @@ export default function GovernancePower(props: any){
             if (tokenBalance?.value){
                 for (let titem of tokenBalance?.value){
                     if (titem.account.data.parsed.info.mint === communityMint){
-                        setWalletCommunityMint(titem.account.data.parsed.info.tokenAmount.amount);
+                        setWalletCommunityMintAmount(titem.account.data.parsed.info.tokenAmount.amount);
                     } else if (titem.account.data.parsed.info.mint === councilMint){
-                        setWalletCouncilMint(titem.account.data.parsed.info.tokenAmount.amount);
+                        setWalletCouncilMintAmount(titem.account.data.parsed.info.tokenAmount.amount);
                     }
                 }
             }
 
-            // 1. Get wallet holdings
-            // 2. Get Governance settings
-            // 3. With Governance Community Mint & Governance Council Mint check if user has those in their wallet
-            // 4. Also fetch user governance record and display the voting power accordingly
         }
     }
 
@@ -221,7 +226,7 @@ export default function GovernancePower(props: any){
 
     // 
 
-    const depositVotesToGovernance = async(tokenAmount: number, mintAddress: string) => {
+    const depositVotesToGovernance = async(tokenAmount: number, tokenDecimals: number, mintAddress: string) => {
         const withMint = new PublicKey(mintAddress);
         const programId = new PublicKey(realm.owner);
         console.log("programId: "+JSON.stringify(programId));
@@ -251,7 +256,7 @@ export default function GovernancePower(props: any){
         
         const atomicAmount = parseMintNaturalAmountFromDecimalAsBN(
             tokenAmount,
-            0//decimals
+            tokenDecimals
         )
 
         const instructions: TransactionInstruction[] = []
@@ -280,10 +285,8 @@ export default function GovernancePower(props: any){
         
         if (instructions.length != 1) {
             console.log("ERROR: Something went wrong");
+            enqueueSnackbar(`Instructions Error`, { variant: 'error' });
         } else{
-
-            
-            
             if (instructions){
 
                 const transaction = new Transaction();
@@ -328,10 +331,154 @@ export default function GovernancePower(props: any){
         }
     }
 
-    function handleDepositMax(){
+    function handleDepositCommunityMax(){
         //const selectedTokenMint = event.target.value as string;
         //setTokenMint(selectedTokenMint);
-        depositVotesToGovernance(walletCommunityMint, walletCommunityMintAddress);
+        depositVotesToGovernance(walletCommunityMintAmount, 0, walletCommunityMintAddress);
+    }
+    function handleDepositCouncilMax(){
+        //const selectedTokenMint = event.target.value as string;
+        //setTokenMint(selectedTokenMint);
+        depositVotesToGovernance(walletCouncilMintAmount, 0, walletCouncilMintAddress);
+    }
+
+    function AdvancedCommunityVoteDepositPrompt(props: any){
+        const selectedMintName = props?.mintName;
+        const selectedMintAddress = props?.mintAddress;
+        const selectedMintAvailableAmount = props?.mintAvailableAmount;
+        const selectedMintDepositedAmount = props?.mintVotingPower;
+        const decimals = mintDecimals;
+        // generateMEEditListingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, price: number, newPrice: number)
+
+        const [open, setOpen] = React.useState(false);
+        const [newDepositAmount, setNewDepositAmount] = React.useState(selectedMintAvailableAmount/10**decimals);
+
+        const handleClickOpen = () => {
+            setOpen(true);
+        };
+
+        const handleClose = () => {
+            setOpen(false);
+        };
+
+        function handleAdvancedDepositVotesToGovernance(){
+        //    if (selectedTokenMint && selectedTokenAtaString && price && newListPrice)
+        //        generateMEEditListingInstructions(selectedTokenMint, selectedTokenAtaString, price, newListPrice)
+            if (newDepositAmount && newDepositAmount > 0){
+                depositVotesToGovernance(newDepositAmount, decimals, walletCommunityMintAddress);
+            }
+        }
+
+        return (
+            <>
+            
+                <Tooltip title="Advanced Deposit">
+                    <Button 
+                        aria-label="Deposit"
+                        variant="outlined" 
+                        color='inherit'
+                        onClick={handleClickOpen}
+                        sx={{
+                            borderTopRightRadius:'17px',
+                            borderBottomRightRadius:'17px',
+                            borderColor:'rgba(255,255,255,0.05)',
+                            fontSize:'10px'}}
+                    ><SettingsIcon  fontSize='inherit' /></Button>
+                </Tooltip>
+
+                <Dialog open={open} onClose={handleClose}>
+                    <DialogTitle>Set the {selectedMintName} to deposit</DialogTitle>
+                    <DialogContent>
+                    <DialogContentText>
+                        <Grid container>
+
+                            <Box
+                                sx={{
+                                    m:2,
+                                    background: 'rgba(0, 0, 0, 0.1)',
+                                    borderRadius: '17px',
+                                    overflow: 'hidden',
+                                    p:1,
+                                    width:"100%"
+                                }}
+                            >
+                                <Grid container>
+
+                                    <Grid item xs={12}>
+                                        Governing Mint: <ExplorerView address={selectedMintAddress} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' /> 
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        Voting Power: <strong>{(Number((selectedMintDepositedAmount/10**decimals).toFixed(0))).toLocaleString()}</strong>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        Available to Deposit: <strong>{(selectedMintAvailableAmount/10**decimals).toLocaleString()}</strong>
+                                    </Grid>
+                                </Grid>
+                            </Box>
+
+                        </Grid>
+                    </DialogContentText>
+                    
+                    <RegexTextField
+                        regex={/[^0-9]+\.?[^0-9]/gi}
+                        autoFocus
+                        autoComplete='off'
+                        margin="dense"
+                        id="preview_deposit_id"
+                        label='Adjust the amount to deposit'
+                        type="text"
+                        fullWidth
+                        variant="standard"
+                        value={newDepositAmount}
+                        onChange={(e: any) => {
+                            setNewDepositAmount(e.target.value)}
+                        }
+                        inputProps={{
+                            style: { 
+                                textAlign:'center', 
+                                fontSize: '34px'
+                            }
+                        }}
+                    />
+                        <Grid sx={{textAlign:'right',}}>
+                            <Typography variant="caption" color="info">
+                                <Button
+                                    variant="text"
+                                    size="small"
+                                    onClick={(e) => setNewDepositAmount(selectedMintAvailableAmount/10**decimals)}
+                                    sx={{borderRadius:'17px'}}
+                                >
+                                    Max
+                                </Button>
+                            </Typography>
+                        </Grid>
+                    {/*
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        id="newlistprice"
+                        label="New List Price"
+                        type="text"
+                        fullWidth
+                        variant="standard"
+                        onChange={(e) => setNewListPrice(e.target.value)}
+                        />*/}
+                    </DialogContent>
+                    <DialogActions>
+                        <Button color="secondary" onClick={handleClose}
+                            sx={{borderRadius:'17px'}}
+                        >Cancel</Button>
+                        <Button color="success" onClick={handleAdvancedDepositVotesToGovernance}
+                            sx={{borderRadius:'17px'}}
+                            disabled={
+                                newDepositAmount ? false : true
+                            }
+                        ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
+                    </DialogActions>
+                </Dialog>
+            </>
+
+        )
     }
 
     return(
@@ -346,13 +493,13 @@ export default function GovernancePower(props: any){
                     alignItems="flex-end"
                 >
                     <Grid>
-                        {(walletCommunityMint && walletCommunityMint > 0) &&
+                        {(walletCommunityMintAmount && walletCommunityMintAmount > 0) &&
                             <ButtonGroup color='inherit' sx={{ ml: 1, fontSize:'10px', borderRadius:'17px' }}>
                                 <Button 
                                     aria-label="Deposit"
                                     variant="outlined" 
                                     color='inherit'
-                                    onClick={handleDepositMax}
+                                    onClick={handleDepositCommunityMax}
                                     sx={{
                                         borderTopLeftRadius:'17px',
                                         borderBottomLeftRadius:'17px',
@@ -363,11 +510,11 @@ export default function GovernancePower(props: any){
                                     
                                     {(mintDecimals) ? 
                                     <>
-                                        {(+(walletCommunityMint/10**mintDecimals)).toLocaleString()}
+                                        {(+(walletCommunityMintAmount/10**mintDecimals)).toLocaleString()}
                                     </>
                                     :
                                     <>
-                                        {walletCommunityMint}
+                                        {walletCommunityMintAmount}
                                     </>
                                     }
                                     {mintName ?
@@ -376,20 +523,24 @@ export default function GovernancePower(props: any){
 
                                     }
                                 </Button>
-                                <Tooltip title="Advanced Deposit">
-                                    <Button 
-                                        disabled
-                                        aria-label="Deposit"
-                                        variant="outlined" 
-                                        color='inherit'
-                                        sx={{
-                                            borderTopRightRadius:'17px',
-                                            borderBottomRightRadius:'17px',
-                                            borderColor:'rgba(255,255,255,0.05)',
-                                            fontSize:'10px'}}
-                                    ><SettingsIcon  fontSize='inherit' /></Button>
-                                </Tooltip>
+                                <AdvancedCommunityVoteDepositPrompt mintVotingPower={depositedCommunityMint} mintAvailableAmount={walletCommunityMintAmount} mintAddress={walletCommunityMintAddress} mintName={mintName} />
                             </ButtonGroup>
+                        }
+
+                        {(walletCouncilMintAmount && walletCouncilMintAmount > 0) &&
+                            <Button 
+                                aria-label="Deposit"
+                                variant="outlined" 
+                                color='inherit'
+                                onClick={handleDepositCouncilMax}
+                                sx={{
+                                    borderRadius:'17px',
+                                    borderRadius:'17px',
+                                    borderColor:'rgba(255,255,255,0.05)',
+                                    fontSize:'10px'}}
+                            >
+                                <DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit  {walletCouncilMintAmount} Council
+                            </Button>
                         }
 
                         {/*
