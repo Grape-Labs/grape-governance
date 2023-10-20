@@ -68,6 +68,7 @@ import DiscordIcon from '../components/static/DiscordIcon';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import { GovernanceGistDialog } from './GovernanceGistDialog';
+import GrantDAOView from './plugins/instructions/GrantDAOView';
 import JoinDAOView from './plugins/instructions/JoinDAOView';
 import InterDAOView from './plugins/instructions/InterDAOView';
 import LookupTableView from './plugins/instructions/LookupTableView';
@@ -469,15 +470,18 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={1}>None</MenuItem>
               {/*<MenuItem value={2} disabled>Custom</MenuItem>*/}
               <MenuItem value={3} disabled>Import from base58</MenuItem>
+              <MenuItem value={20} 
+              //  disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
+              >Speed Dial</MenuItem>
               <MenuItem value={30}
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Join a DAO</MenuItem>
               <MenuItem value={31}
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Vote on a DAO Proposal</MenuItem>
-              <MenuItem value={20} 
-              //  disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
-              >Speed Dial</MenuItem>
+              <MenuItem value={32}
+                disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
+              >Grant DAO Voting Power</MenuItem>
               {/*MenuItem value={30} 
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Create Token *Token 2022</MenuItem>*/}
@@ -1349,6 +1353,11 @@ export default function GovernanceCreateProposalView(props: any){
                             {proposalType === 31 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <InterDAOView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
+                              </FormControl>
+                            }
+                            {proposalType === 32 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <GrantDAOView governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
                               </FormControl>
                             }
 

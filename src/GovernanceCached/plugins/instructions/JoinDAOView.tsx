@@ -150,6 +150,7 @@ export default function JoinDAOView(props: any) {
         const decimals = tokenInfo.decimals;
 
         //console.log("mintAuthority: "+mintAuthority.toBase58());
+        console.log("tokenAmount: "+tokenAmount);
         console.log("decimals: "+decimals);
         
         const atomicAmount = parseMintNaturalAmountFromDecimalAsBN(
@@ -639,7 +640,7 @@ export default function JoinDAOView(props: any) {
                 <Box
                     sx={{textAlign:'center'}}
                 >
-                    <Typography variant="caption">ToDo: Use verified DAO Dropdown, ADD Eligibility Check & Custom amount up to Max avail to Join</Typography>
+                    <Typography variant="caption">ToDo: Use verified DAO Dropdown</Typography>
                 </Box>
                 
             </FormControl>

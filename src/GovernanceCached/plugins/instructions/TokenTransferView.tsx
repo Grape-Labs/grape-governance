@@ -117,7 +117,7 @@ export default function TokenTransferView(props: any) {
     const [payerInstructions, setPayerInstructions] = React.useState(null);
     const [tokenMaxAmount, setTokenMaxAmount] = React.useState(null);
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
-    let maxDestinationWalletLen = 40;
+    let maxDestinationWalletLen = 50;
     const [verifiedDestinationWalletArray, setVerifiedDestinationWalletArray] = React.useState(null);
     const [verifiedDAODestinationWalletArray, setVerifiedDAODestinationWalletArray] = React.useState(null);
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
@@ -817,6 +817,7 @@ export default function TokenTransferView(props: any) {
             const walletObjects = [gwToAdd, rwToAdd];
 
             setConsolidatedGovernanceWallet(walletObjects);
+            
             setLoadingWallet(false);
         } catch(e){
             console.log("ERR: "+e);

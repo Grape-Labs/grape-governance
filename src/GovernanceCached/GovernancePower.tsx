@@ -324,7 +324,7 @@ export default function GovernancePower(props: any){
             realmPk,
             userAtaPk,
             withMint,
-            publicKey,
+            publicKey,//new PublicKey("AZpn1dn3VbLdFe2JfbHe9JmUP7NX2roYyzNwKbDZqqvz"),//publicKey,
             publicKey,
             publicKey,
             atomicAmount
@@ -338,6 +338,16 @@ export default function GovernancePower(props: any){
 
                 const transaction = new Transaction();
                 transaction.add(...instructions);
+
+                /*
+                const meSigner = "IF WE ARE SENDING DIRECTLY TO A DAO WALLET";
+                for (var instruction of transaction.instructions){
+                    for (var key of instruction.keys){
+                        if (key.pubkey.toBase58() === meSigner){
+                            key.isSigner = false;
+                        }
+                    }
+                }*/
 
                 try{
                     enqueueSnackbar(`Preparing to deposit governance power`,{ variant: 'info' });
@@ -546,7 +556,7 @@ export default function GovernancePower(props: any){
                         autoComplete='off'
                         margin="dense"
                         id="preview_deposit_id"
-                        label='Adjust the amount to deposit'
+                        label='Set the amount to deposit'
                         type="text"
                         fullWidth
                         variant="standard"
@@ -622,7 +632,10 @@ export default function GovernancePower(props: any){
             <>loading...</>
         :
             <>
-                {publicKey ?
+                {(publicKey &&
+                (((walletCommunityMintAmount && walletCommunityMintAmount > 0)) ||
+                (walletCouncilMintAmount && walletCouncilMintAmount > 0)) ||
+                (depositedCommunityMint || depositedCouncilMint)) ?
                 <Box
                     m={1}
                     display="flex"
@@ -631,13 +644,14 @@ export default function GovernancePower(props: any){
                 >
                     <Grid
                         sx={{
-                            background: 'rgba(0, 0, 0, 0.1)',
+                            background: 'rgba(0, 0, 0, 0.05)',
                             borderRadius: '17px',
-                            p:1
+                            p:1,
+                            minWidth:'216px',
                         }}
                     >
                         {(walletCommunityMintAmount && walletCommunityMintAmount > 0) &&
-                            <ButtonGroup color='inherit' sx={{ ml: 1, fontSize:'10px', borderRadius:'17px' }}>
+                            <ButtonGroup color='inherit' sx={{ fontSize:'10px', borderRadius:'17px' }}>
                                 <Button 
                                     aria-label="Deposit"
                                     variant="contained" 
@@ -680,6 +694,7 @@ export default function GovernancePower(props: any){
                                 color='inherit'
                                 onClick={handleDepositCouncilMax}
                                 sx={{
+                                    ml:1,
                                     borderRadius:'17px',
                                     borderColor:'rgba(255,255,255,0.05)',
                                     fontSize:'10px',
@@ -716,7 +731,9 @@ export default function GovernancePower(props: any){
                             ><SettingsIcon  fontSize='inherit' /></Button>
                         </ButtonGroup>
                         */}
-                        <Grid sx={{textAlign:'right', mt:1}}>
+                        <Grid sx={{textAlign:'right', mt:1, 
+                              mb: ((walletCouncilMintAmount && walletCouncilMintAmount > 0) || (walletCommunityMintAmount && walletCommunityMintAmount > 0)) ? 0 : 1
+                        }}>
                             <Typography sx={{fontSize:'12px'}}>
                             {depositedCommunityMint &&
                                 <>
