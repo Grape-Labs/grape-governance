@@ -383,7 +383,7 @@ export default function GovernancePower(props: any){
                             borderBottomRightRadius:'17px',
                             borderColor:'rgba(255,255,255,0.05)',
                             fontSize:'10px'}}
-                    ><SettingsIcon  fontSize='inherit' /></Button>
+                    ><SettingsIcon  sx={{fontSize:'14px'}} /></Button>
                 </Tooltip>
 
                 <Dialog open={open} onClose={handleClose}>
@@ -510,10 +510,12 @@ export default function GovernancePower(props: any){
                                         borderTopLeftRadius:'17px',
                                         borderBottomLeftRadius:'17px',
                                         borderColor:'rgba(255,255,255,0.05)',
-                                        fontSize:'10px'}}
+                                        fontSize:'10px',
+                                        textTransform:'none',
+                                    }}
                                 >
-                                    <DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit&nbsp;
-                                    
+                                    <DownloadIcon sx={{fontSize:'14px',mr:1}}/> Deposit&nbsp;
+                                    <strong>
                                     {(mintDecimals) ? 
                                     <>
                                         {(+(walletCommunityMintAmount/10**mintDecimals)).toLocaleString()}
@@ -523,6 +525,7 @@ export default function GovernancePower(props: any){
                                         {walletCommunityMintAmount}
                                     </>
                                     }
+                                    </strong>
                                     {mintName ?
                                         <>&nbsp;{mintName}</>
                                         :<>&nbsp;Community</>
@@ -543,9 +546,11 @@ export default function GovernancePower(props: any){
                                     borderRadius:'17px',
                                     borderRadius:'17px',
                                     borderColor:'rgba(255,255,255,0.05)',
-                                    fontSize:'10px'}}
+                                    fontSize:'10px',
+                                    textTransform:'none',
+                                }}
                             >
-                                <DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit  {walletCouncilMintAmount} Council
+                                <DownloadIcon sx={{fontSize:'14px',mr:1}}/> Deposit  {walletCouncilMintAmount} Council
                             </Button>
                         }
 
