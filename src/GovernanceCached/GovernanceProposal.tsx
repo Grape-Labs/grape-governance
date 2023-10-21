@@ -594,14 +594,17 @@ export function GovernanceProposalView(props: any){
                 for (let glitem of governanceLookup){
                     if (glitem.governanceAddress === governanceAddress){
                         cachedFetch = Number(glitem.lastTimestamp);
+                        
                     }
                 }
                 
+                //console.log("Voting Prop: "+JSON.stringify(vresults))
                 //console.log("FRESH CHECK: "+(moment.unix(signOff).toLocaleString()) + " vs " + (moment.unix(Number(cachedFetch)).toLocaleString()))
-                if (signOff > cachedFetch){
+                if (signOff > cachedFetch || vresults.account.state === 2){
                     console.log("RESULTS NOT CACHED YET");
                     isFresh = false;
                 } else{
+                    console.log("FRESH RESULTS")
                     isFresh = true;
                 }
 
@@ -889,29 +892,33 @@ export function GovernanceProposalView(props: any){
                     if (item.account?.vote){
                         if (item.account?.vote?.voteType === 0){
                             uYes++;
-                            voterVotes = +(Number(item.account?.voterWeight) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
-                            castedYes += +(Number(item.account?.voterWeight) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                            //console.log(item.account.governingTokenOwner.toBase58()+": "+item.account?.voterWeight)
+                            voterVotes = (Number(item.account?.voterWeight));
+                            castedYes += (Number(item.account?.voterWeight));
+                        
+                            //voterVotes = +(Number(item.account?.voterWeight) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                            //castedYes += +(Number(item.account?.voterWeight) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                         }else{
                             uNo++;
-                            voterVotes = -1 * +(Number(item.account?.voterWeight) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
-                            castedNo += +(Number(item.account?.voterWeight) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                            voterVotes = -1 * (Number(item.account?.voterWeight));
+                            castedNo += (Number(item.account?.voterWeight));
                         }
                     } else{
                         if (item.account.voteWeight.yes && item.account.voteWeight.yes > 0){
                             uYes++;
-                            voterVotes = +(Number(item.account?.voteWeight?.yes) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
-                            castedYes += +(Number(item.account?.voteWeight?.yes) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                            voterVotes = (Number(item.account?.voteWeight?.yes));
+                            castedYes += (Number(item.account?.voteWeight?.yes));
                         } else{
                             uNo++;
-                            voterVotes = -1 * +(Number(item.account?.voteWeight?.no) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
-                            castedNo += +(Number(item.account?.voteWeight?.no) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                            voterVotes = -1 * (Number(item.account?.voteWeight?.no));
+                            castedNo += (Number(item.account?.voteWeight?.no));
                         }
                     }
 
                     if (publicKey){
-
                         if (publicKey.toBase58() === item.account.governingTokenOwner.toBase58()){
                             setHasVoted(true);
+                            voterVotes = +(voterVotes / 10 ** ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td)).toFixed(0);
                             setHasVotedVotes(voterVotes);
                         }
                     }
@@ -1077,6 +1084,11 @@ export function GovernanceProposalView(props: any){
         }
 
         //console.log("votingResults: "+JSON.stringify(votingResults));
+                
+        castedYes = +(castedYes / 10 ** ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td)).toFixed(0);
+        
+
+        console.log("castedYes: "+castedYes);
 
         setForVotes(castedYes);
         setAgainstVotes(castedNo);

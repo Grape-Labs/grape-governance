@@ -61,7 +61,8 @@ import {
     getAllTokenOwnerRecords, 
     SYSTEM_PROGRAM_ID,
     withDepositGoverningTokens,
-    getGovernanceProgramVersion
+    
+    getGovernanceProgramVersion,
 } from '@solana/spl-governance';
 
 import { parseMintNaturalAmountFromDecimalAsBN } from '../utils/grapeTools/helpers';
@@ -324,10 +325,11 @@ export default function GovernancePower(props: any){
             realmPk,
             userAtaPk,
             withMint,
-            publicKey,//new PublicKey("AZpn1dn3VbLdFe2JfbHe9JmUP7NX2roYyzNwKbDZqqvz"),//publicKey,
+            publicKey,//new PublicKey("6R78nYux2yVDtNBd8CBXojRtgkSmRvECvQsAtZMkcDWM"),//publicKey,
             publicKey,
             publicKey,
-            atomicAmount
+            atomicAmount,
+            false
         )
         
         if (instructions.length != 1) {

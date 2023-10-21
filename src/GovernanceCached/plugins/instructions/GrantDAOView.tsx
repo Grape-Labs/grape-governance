@@ -1102,6 +1102,7 @@ export default function GrantDAOView(props: any) {
                                         />
                                 </Grid>
                                 <Grid sx={{textAlign:'right',}}>
+                                    <LookupTableIntegratedDialogView address={fromAddress} integrationType={1} buttonSize={12} setDestinationString={setDestinationString} destinationString={destinationString} />
                                     <Tooltip title='Add my Wallet'>
                                         <IconButton 
                                                 size="small"
