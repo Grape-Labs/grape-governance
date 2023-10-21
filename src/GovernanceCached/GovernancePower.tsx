@@ -213,11 +213,13 @@ export default function GovernancePower(props: any){
             // find all instances of this governanceAddress:
             let depCommunityMint = null;
             let depCouncilMint = null;
+            let fetchedTMI = false;
             for (let record of tokenOwnerRecord){
                 if (record.account.realm.toBase58() === governanceAddress){
                     
                     if (record.account.governingTokenMint.toBase58() === communityMint){
                         const tki = await getTokenMintInfo(communityMint);
+                        fetchedTMI = true;
                         //console.log("tokenMintInfo: "+JSON.stringify(tki));
                         depCommunityMint = Number(record.account.governingTokenDepositAmount);
                     }
@@ -247,6 +249,8 @@ export default function GovernancePower(props: any){
                 for (let titem of tokenBalance?.value){
                     if (titem.account.data.parsed.info.mint === communityMint){
                         setWalletCommunityMintAmount(titem.account.data.parsed.info.tokenAmount.amount);
+                        if (!fetchedTMI)
+                            await getTokenMintInfo(communityMint);
                     } else if (titem.account.data.parsed.info.mint === councilMint){
                         setWalletCouncilMintAmount(titem.account.data.parsed.info.tokenAmount.amount);
                     }

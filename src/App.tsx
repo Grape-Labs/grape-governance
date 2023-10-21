@@ -4,6 +4,8 @@ import React, { useMemo, Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AdminView } from "./Admin/Admin";
 //import GovernanceAppPageView from "./GovernanceCached/v2/page";
+
+import GovernanceV2 from "./GovernanceCached/GovernanceV2";
 import { GovernanceRPCView } from "./GovernanceRPC/Governance";
 import { MyGovernanceView } from "./GovernanceCached/MyGovernance";
 import { GovernanceCachedView } from "./GovernanceCached/Governance";
@@ -221,6 +223,10 @@ function DashboardContent() {
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                               </Route>
                                               
+                                              <Route path="v2/*" element={<GovernanceV2 />} >
+                                                  <Route path=":handlekey" element={<GovernanceV2 />} />
+                                              </Route>
+
                                               <Route path="dao/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                               </Route>
