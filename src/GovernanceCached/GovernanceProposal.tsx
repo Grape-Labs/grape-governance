@@ -1084,11 +1084,11 @@ export function GovernanceProposalView(props: any){
         }
 
         //console.log("votingResults: "+JSON.stringify(votingResults));
-                
+
         castedYes = +(castedYes / 10 ** ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td)).toFixed(0);
         
 
-        console.log("castedYes: "+castedYes);
+        //console.log("castedYes: "+castedYes);
 
         setForVotes(castedYes);
         setAgainstVotes(castedNo);
@@ -1200,10 +1200,21 @@ export function GovernanceProposalView(props: any){
             
             //console.log("thisitem.account.governingTokenMint: "+JSON.stringify(thisitem.account.governingTokenMint));
 
+            console.log("realm: "+JSON.stringify(realm))
+
+            const programId = new PublicKey(thisitem.owner);
+            const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
+        
+            
+            const memberItem = rawTokenOwnerRecords.find(item => 
+                (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
+                item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
+
+            /*
             const memberItem = memberMap.find(item => 
                 (item.account.governingTokenOwner === publicKey.toBase58() && 
                 item.account.governingTokenMint === thisitem.account.governingTokenMint.toBase58()));
-
+            */
             const memberItemSimple = memberMap.find(item => 
                     item.account.governingTokenOwner === publicKey.toBase58());
             

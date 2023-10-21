@@ -329,7 +329,7 @@ export default function GovernancePower(props: any){
             realmPk,
             userAtaPk,
             withMint,
-            publicKey,//new PublicKey("6R78nYux2yVDtNBd8CBXojRtgkSmRvECvQsAtZMkcDWM"),//publicKey,
+            publicKey,//new PublicKey("33JTjvdTrmmtQuvTzr9rdCkYU1eAGkErQLdoPkcRvyaC"),//publicKey,
             publicKey,
             publicKey,
             atomicAmount,
@@ -344,7 +344,9 @@ export default function GovernancePower(props: any){
 
                 const transaction = new Transaction();
                 transaction.add(...instructions);
-
+                
+                console.log("TX: "+JSON.stringify(transaction))
+                
                 /*
                 const meSigner = "IF WE ARE SENDING DIRECTLY TO A DAO WALLET";
                 for (var instruction of transaction.instructions){
