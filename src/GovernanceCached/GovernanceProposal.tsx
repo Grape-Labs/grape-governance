@@ -700,13 +700,19 @@ export function GovernanceProposalView(props: any){
                                             //setInstructionRecord(gai.value);
                                             
                                             try{
+                                                const amountBN = new BN(instructionItem.account.instructions[0]?.data?.slice(1), 'le');
+                                                const decimals = gai.value?.data.parsed.info.tokenAmount?.decimals || 0;
+                                                const divisor = new BN(10).pow(new BN(decimals));
+
+                                                const amount = amountBN.div(divisor).toString(); 
+
                                                 const newObject = {
-                                                    type:"TokeTransfer",
+                                                    type:"TokenTransfer",
                                                     pubkey: instructionItem.account.instructions[0].accounts[0].pubkey,
                                                     mint: gai.value?.data.parsed.info.mint,
                                                     name: tokenMap.get(gai.value?.data.parsed.info.mint)?.symbol,
                                                     logoURI: tokenMap.get(gai.value?.data.parsed.info.mint)?.logoURI,
-                                                    amount: new BN(instructionItem.account.instructions[0]?.data?.slice(1), 'le').toNumber()/Math.pow(10, (gai.value?.data.parsed.info.tokenAmount?.decimals || 0)),
+                                                    amount: amount,
                                                     data: instructionItem.account.instructions[0].data
                                                 };
 

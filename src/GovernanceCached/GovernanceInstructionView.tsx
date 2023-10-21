@@ -346,12 +346,18 @@ export function InstructionView(props: any) {
                     }
                 }
 
+                const amountBN = new BN(instructionDetails?.data?.slice(1), 'le');
+                const decimals = instruction.account.instructions[0]?.gai.value?.data.parsed.info.tokenAmount?.decimals || 0;
+                const divisor = new BN(10).pow(new BN(decimals));
+
+                const amount = amountBN.div(divisor).toString(); 
+                
                 const newObject = {
                     pubkey: instruction.account.instructions[0].accounts[0].pubkey,
                     mint: instruction.account.instructions[0]?.gai.value.data.parsed.info.mint,
                     name: name,
                     logoURI: logo,
-                    amount: new BN(instructionDetails?.data?.slice(1), 'le').toNumber()/Math.pow(10, (instruction.account.instructions[0]?.gai.value.data.parsed.info.tokenAmount?.decimals || 0)),
+                    amount: amount,
                     destinationAta: destinationAta
                 };
 
@@ -394,13 +400,21 @@ export function InstructionView(props: any) {
                 <>
                 {instructionRecord && 
                     <ExplorerView 
-                        showSolanaProfile={false}  
-                        address={instructionRecord.data.parsed.info.mint} type='address' useLogo={getObjectByMint(instruction.account.instructions[0]?.gai.value.data.parsed.info.mint)?.logo || tokenMap.get(instructionRecord.data.parsed.info.mint)?.logoURI} 
-                        title={
-                            `${(new BN(instructionDetails?.data?.slice(1), 'le').toNumber()/Math.pow(10, (instructionRecord.data.parsed.info.tokenAmount?.decimals || 0))).toLocaleString()} 
+                        showSolanaProfile={false}
+                        address={instructionRecord.data.parsed.info.mint}
+                        type='address'
+                        useLogo={getObjectByMint(instruction.account.instructions[0]?.gai.value.data.parsed.info.mint)?.logo || tokenMap.get(instructionRecord.data.parsed.info.mint)?.logoURI}
+                        title={`${new BN(instructionDetails?.data?.slice(1), 'le')
+                            .div(new BN(10).pow(new BN(instructionRecord.data.parsed.info.tokenAmount?.decimals || 0)))
+                            .toString()
+                            .toLocaleString()} 
                             ${getObjectByMint(instruction.account.instructions[0]?.gai.value.data.parsed.info.mint)?.name || tokenMap.get(instructionRecord.data.parsed.info.mint)?.symbol || (instructionRecord.data.parsed.info.mint && trimAddress(instructionRecord.data.parsed.info.mint)) || 'Explore'}
-                        `} 
-                        hideTitle={false} style='text' color='white' fontSize='12px'/>
+                        `}
+                        hideTitle={false}
+                        style='text'
+                        color='white'
+                        fontSize='12px'
+                    />
                 }
                 </>
             );
