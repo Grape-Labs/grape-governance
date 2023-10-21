@@ -605,6 +605,17 @@ export function GovernanceProposalView(props: any){
                     isFresh = true;
                 }
 
+                if (!voteRecord &&
+                    (Number("0x"+vresults?.account?.options[0]?.voteWeight) > 0 ||
+                        Number("0x"+vresults?.account?.denyVoteWeight) > 0
+                    )){
+                        isFresh = false;
+                    }
+
+
+                // check if there are voters but no voter record!
+                console.log("vresults: "+JSON.stringify(vresults));
+
                 if (!isFresh){ // voting state we can fetch via rpc
                     console.log("Fetching voting proposal current results via RPC")
                     from_cache = false;
@@ -620,13 +631,6 @@ export function GovernanceProposalView(props: any){
                     console.log("Fetching proposal results via Cached Storage")
                     // check if our storage is fresh vs the ending time of the proposal
                     console.log("vresults "+JSON.stringify(vresults.account.signingOffAt))
-                    const signOff = Number(vresults.account.signingOffAt);
-                    let cachedFetch = null;
-                    for (let glitem of governanceLookup){
-                        if (glitem.governanceAddress === governanceAddress){
-                            cachedFetch = Number(glitem.lastTimestamp);
-                        }
-                    }
                     
                     from_cache = true;
                     
