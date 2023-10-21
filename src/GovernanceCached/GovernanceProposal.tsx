@@ -614,7 +614,7 @@ export function GovernanceProposalView(props: any){
 
 
                 // check if there are voters but no voter record!
-                console.log("vresults: "+JSON.stringify(vresults));
+                //console.log("vresults: "+JSON.stringify(vresults));
 
                 if (!isFresh){ // voting state we can fetch via rpc
                     console.log("Fetching voting proposal current results via RPC")
@@ -699,18 +699,22 @@ export function GovernanceProposalView(props: any){
                                         if (gai){
                                             //setInstructionRecord(gai.value);
                                             
-                                            const newObject = {
-                                                type:"TokeTransfer",
-                                                pubkey: instructionItem.account.instructions[0].accounts[0].pubkey,
-                                                mint: gai.value?.data.parsed.info.mint,
-                                                name: tokenMap.get(gai.value?.data.parsed.info.mint)?.symbol,
-                                                logoURI: tokenMap.get(gai.value?.data.parsed.info.mint)?.logoURI,
-                                                amount: new BN(instructionItem.account.instructions[0]?.data?.slice(1), 'le').toNumber()/Math.pow(10, (gai.value?.data.parsed.info.tokenAmount?.decimals || 0)),
-                                                data: instructionItem.account.instructions[0].data
-                                            };
+                                            try{
+                                                const newObject = {
+                                                    type:"TokeTransfer",
+                                                    pubkey: instructionItem.account.instructions[0].accounts[0].pubkey,
+                                                    mint: gai.value?.data.parsed.info.mint,
+                                                    name: tokenMap.get(gai.value?.data.parsed.info.mint)?.symbol,
+                                                    logoURI: tokenMap.get(gai.value?.data.parsed.info.mint)?.logoURI,
+                                                    amount: new BN(instructionItem.account.instructions[0]?.data?.slice(1), 'le').toNumber()/Math.pow(10, (gai.value?.data.parsed.info.tokenAmount?.decimals || 0)),
+                                                    data: instructionItem.account.instructions[0].data
+                                                };
 
-                                            //console.log("newObject "+JSON.stringify(newObject))
-                                            instructionItem.account.instructions[0].info = newObject;
+                                                //console.log("newObject "+JSON.stringify(newObject))
+                                                instructionItem.account.instructions[0].info = newObject;
+                                            } catch(e){
+                                                console.log("ERR: "+e);
+                                            }
                                             instructionItem.account.instructions[0].gai = gai;
                                             
                                             /*
@@ -879,22 +883,22 @@ export function GovernanceProposalView(props: any){
                     if (item.account?.vote){
                         if (item.account?.vote?.voteType === 0){
                             uYes++;
-                            voterVotes = +(item.account?.voterWeight.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
-                            castedYes += +(item.account?.voterWeight.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                            voterVotes = +(Number(item.account?.voterWeight) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                            castedYes += +(Number(item.account?.voterWeight) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                         }else{
                             uNo++;
-                            voterVotes = -1 * +(item.account?.voterWeight.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
-                            castedNo += +(item.account?.voterWeight.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                            voterVotes = -1 * +(Number(item.account?.voterWeight) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                            castedNo += +(Number(item.account?.voterWeight) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                         }
                     } else{
                         if (item.account.voteWeight.yes && item.account.voteWeight.yes > 0){
                             uYes++;
-                            voterVotes = +(item.account?.voteWeight?.yes.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
-                            castedYes += +(item.account?.voteWeight?.yes.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                            voterVotes = +(Number(item.account?.voteWeight?.yes) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                            castedYes += +(Number(item.account?.voteWeight?.yes) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                         } else{
                             uNo++;
-                            voterVotes = -1 * +(item.account?.voteWeight?.no.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
-                            castedNo += +(item.account?.voteWeight?.no.toNumber() / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                            voterVotes = -1 * +(Number(item.account?.voteWeight?.no) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
+                            castedNo += +(Number(item.account?.voteWeight?.no) / Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0);
                         }
                     }
 
@@ -933,18 +937,18 @@ export function GovernanceProposalView(props: any){
                         voteAddress:item.pubkey.toBase58(),
                         quorumWeight:{
                             vote:item.account.vote,
-                            voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
-                            legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
-                            legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
+                            voterWeight:(item.account?.voterWeight ?  Number(item.account?.voterWeight) : null),
+                            legacyYes:(item.account?.voteWeight?.yes ?  Number(item.account?.voteWeight?.yes) : null),
+                            legacyNo:(item.account?.voteWeight?.no ?  Number(item.account?.voteWeight?.no) : null),
                             decimals:td,
                             councilMint: realm.account?.config?.councilMint ? new PublicKey(realm.account?.config?.councilMint).toBase58() : null,
                             governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
                         },
                         vote:{
                             vote:item.account.vote,
-                            voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
-                            legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
-                            legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
+                            voterWeight:(item.account?.voterWeight ?  Number(item.account?.voterWeight) : null),
+                            legacyYes:(item.account?.voteWeight?.yes ?  Number(item.account?.voteWeight?.yes) : null),
+                            legacyNo:(item.account?.voteWeight?.no ?  Number(item.account?.voteWeight?.no) : null),
                             decimals:td,
                             councilMint: realm.account?.config?.councilMint ? new PublicKey(realm.account?.config?.councilMint).toBase58() : null,
                             governingTokenMint:thisitem.account.governingTokenMint?.toBase58(),
