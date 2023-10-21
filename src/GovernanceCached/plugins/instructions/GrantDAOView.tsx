@@ -262,13 +262,23 @@ export default function GrantDAOView(props: any) {
                     destPublicKey, //fromWallet,
                     fromWallet, //destPublicKey,
                     fromWallet,
-                    atomicAmount
+                    atomicAmount,
+                    false
                 );
-                
+
                 if (instructions.length != 1) {
                     console.log("ERROR: Something went wrong");
                 } else{
                     if (instructions){
+                        /*
+                        for (var instruction of instructions){
+                            for (var key of instruction.keys){
+                                if (key.pubkey.toBase58() === destPublicKey.toBase58()){
+                                    key.isSigner = false;
+                                }
+                            }
+                        }*/
+
                         console.log("Adding IX: "+JSON.stringify(instructions));
                         transaction.add(...instructions);
                     }
