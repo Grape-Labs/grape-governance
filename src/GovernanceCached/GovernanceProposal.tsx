@@ -1048,7 +1048,8 @@ export function GovernanceProposalView(props: any){
                 // if this is voting we should fetch via RPC
                 
                 let instructions = null;
-                if (thisitem.account.state === 2 && !thisitem?.instructions){
+                //if ((thisitem.account.state === 0 || thisitem.account.state === 2) && !thisitem?.instructions){
+                if (!thisitem?.instructions){
                     console.log("Instructons will be loaded via RPC")
                     if (thisitem.pubkey){
                         instructions = await getGovernanceAccounts(
@@ -1593,7 +1594,7 @@ export function GovernanceProposalView(props: any){
                     item.account.governingTokenOwner === publicKey.toBase58());
             
             //console.log("memberItemSimple: "+JSON.stringify(memberItemSimple));
-            //console.log("memberItem: "+JSON.stringify(memberItem));
+            console.log("memberItem: "+JSON.stringify(memberItem));
 
             //console.log("tokenOwnerRecord: "+JSON.stringify(thisitem.account.tokenOwnerRecord));
             
