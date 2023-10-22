@@ -1645,7 +1645,7 @@ export function GovernanceProposalView(props: any){
                                                                 if (!result[mint]) {
                                                                 result[mint] = { mint, totalAmount: 0, name, logoURI, uniqueDestinationAta: new Set() };
                                                                 }
-                                                                result[mint].totalAmount += amount;
+                                                                result[mint].totalAmount += +amount;
                                                                 if (destinationAta)
                                                                     result[mint].uniqueDestinationAta.add(destinationAta);
                                                                 return result;

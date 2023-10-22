@@ -68,7 +68,13 @@ import {
   ListItemText,
   Avatar,
   TextField,
-  TextareaAutosize
+  TextareaAutosize,
+  Popper,
+  Grow,
+  Paper,
+  ClickAwayListener,
+  MenuList,
+  MenuItem,
 } from '@mui/material/';
 
 import {
@@ -89,6 +95,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import BallotIcon from '@mui/icons-material/Ballot';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -113,8 +120,6 @@ import {
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
-import { withTheme } from '@emotion/react';
-import fs from 'fs/promises';
 
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
@@ -128,7 +133,14 @@ export function VoteForProposal(props:any){
     const realm = props.realm;
     const type = props.type || 0;
     const multiChoice = props.multiChoice || null;
+    const anchorRef = React.useRef<HTMLDivElement>(null);
+    const [memberMap, setMemberMap] = React.useState(null);
+    const [voterRecord, setVoterRecord] = React.useState(null);
+    const [delegatedVoterRecord, setDelegatedVoterRecord] = React.useState(null);
+    const [openDelegateYes, setOpenDelegateYes] = React.useState(null);
+    const [selectedIndex, setSelectedIndex] = React.useState(1);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+    const id = open ? 'simple-popper' : undefined;
 
     /*
     console.log("memberMap: "+JSON.stringify(memberMap));
@@ -157,7 +169,7 @@ export function VoteForProposal(props:any){
         await handleVote(1)
     }
 
-    const handleVote = async (type: Number) => {
+    const handleVote = async (type: Number, delegate?: string) => {
         
         //console.log("thisitem.account.governingTokenMint: "+JSON.stringify(thisitem.account.governingTokenMint));
 
@@ -174,17 +186,23 @@ export function VoteForProposal(props:any){
             item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
         */
         
-        const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
+        let rawTokenOwnerRecords = null;
+        if (memberMap){
+            rawTokenOwnerRecords = memberMap;
+        } else{
+            rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
+        }
+
         //console.log("rawTokenOwnerRecords: "+JSON.stringify(rawTokenOwnerRecords))
         // 6R78nYux2yVDtNBd8CBXojRtgkSmRvECvQsAtZMkcDWM
         
-        let memberItem = rawTokenOwnerRecords.find(item => 
+        let memberItem = voterRecord || rawTokenOwnerRecords.find(item => 
             (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
             item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
 
         console.log("memberItem: "+JSON.stringify(memberItem));
         
-        let delegatedItems = rawTokenOwnerRecords.filter(item => 
+        let delegatedItems = delegatedVoterRecord || rawTokenOwnerRecords.filter(item => 
             (item.account?.governanceDelegate?.toBase58() === publicKey.toBase58() && 
             item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
         
@@ -221,16 +239,20 @@ export function VoteForProposal(props:any){
 
         if (publicKey && memberItem) {
             
-            const voteTx = await createCastVoteTransaction(
-                realm,
-                publicKey,
-                transactionData,
-                memberItem,
-                null,
-                isCommunityVote,
-                multiChoice,
-                type
-            );
+            const voteTx = new Transaction();
+            
+            if (!delegate || delegate !== "1"){ // vote for your own if delegate is not set and value of delegate is not = 1
+                await createCastVoteTransaction(
+                    realm,
+                    publicKey,
+                    transactionData,
+                    memberItem,
+                    null,
+                    isCommunityVote,
+                    multiChoice,
+                    type
+                );
+            }
             
             if (voteTx){
                 console.log("Casting vote as: "+publicKey.toBase58());
@@ -238,26 +260,43 @@ export function VoteForProposal(props:any){
 
             if (delegatedItems){ // if we wanta to add all to vote
                 let cnt = 0;
-                for (var delegateItem of delegatedItems){
+                for (var delegateItem of delegatedItems){ // if vote for all delegates + your own
                     // check with delegate
-                    /*
-                    console.log("Casting vote as a delegator for "+delegateItem.account.governingTokenOwner.toBase58())
-                    // check if delegate has voted
-
-                    const delegateVoteTx = await createCastVoteTransaction(
-                        realm,
-                        publicKey,
-                        transactionData,
-                        delegateItem,
-                        delegateItem.account.governingTokenOwner.toBase58(),//null,
-                        isCommunityVote,
-                        multiChoice,
-                        type
-                    );
                     
-                    if (delegateVoteTx)
-                        voteTx.add(delegateVoteTx);
-                    */
+                    if (delegate && delegate !== "1"){
+                        console.log("Casting vote as a delegator for "+delegateItem.account.governingTokenOwner.toBase58())
+                        // check if delegate has voted
+
+                        const delegateVoteTx = await createCastVoteTransaction(
+                            realm,
+                            publicKey,
+                            transactionData,
+                            delegateItem,
+                            delegateItem.account.governingTokenOwner.toBase58(),//null,
+                            isCommunityVote,
+                            multiChoice,
+                            type
+                        );
+                        
+                        if (delegateVoteTx)
+                            voteTx.add(delegateVoteTx);
+                    } else if (delegate){ // if sinlge delegate
+                        if (delegate === delegateItem.account.governingTokenOwner.toBase58()){
+                            const delegateVoteTx = await createCastVoteTransaction(
+                                realm,
+                                publicKey,
+                                transactionData,
+                                delegateItem,
+                                delegateItem.account.governingTokenOwner.toBase58(),
+                                isCommunityVote,
+                                multiChoice,
+                                type
+                            );
+                            
+                            if (delegateVoteTx)
+                                voteTx.add(delegateVoteTx);
+                        }
+                    }
                     cnt++;
 
                 }
@@ -308,25 +347,133 @@ export function VoteForProposal(props:any){
         }
     }
 
+    const loadMemberMap = async() => {
+        const programId = new PublicKey(thisitem.owner);
+        const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
+        setMemberMap(rawTokenOwnerRecords);
+
+        let memberItem = rawTokenOwnerRecords.find(item => 
+            (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
+            item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
+
+        setVoterRecord(memberItem);
+        console.log("memberItem: "+JSON.stringify(memberItem));
+        
+        let delegatedItems = rawTokenOwnerRecords.filter(item => 
+            (item.account?.governanceDelegate?.toBase58() === publicKey.toBase58() && 
+            item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
+        setDelegatedVoterRecord(delegatedItems);
+
+        console.log("delegatedItems: "+JSON.stringify(delegatedItems))
+    }
+
+    const handleDelegateOpenYesToggle = (event) => {
+        //setAnchorEl(event.currentTarget);
+        setOpenDelegateYes(true);
+      };
+
+    const handleDelegateCloseYesToggle = () => {
+        if (
+            anchorRef.current &&
+            anchorRef.current.contains(event.target as HTMLElement)
+          ) {
+            return;
+        }
+        setOpenDelegateYes(false);
+    };
+
+    React.useEffect(() => { 
+        if (!memberMap){
+            console.log("Step 1.")
+            loadMemberMap();
+        }
+    }, []);
+
     return (
     <>
         {thisitem.account?.state === 2 && !hasVoted && publicKey &&
             <>
                 
                 {type === 0 ?
+                    <>
                     <Button
                         variant="outlined"
                         color='success'
                         onClick={handleVoteYes}
                         sx={{borderRadius:'17px',textTransform:'none'}}
                     >Vote{!multiChoice && ` YES`}</Button>
+                    {(delegatedVoterRecord && delegatedVoterRecord.length > 0) &&
+                        <>
+                            {/*
+                            <Button
+                                size="small"
+                                color='success'
+                                aria-describedby={openDelegateYes ? 'split-button-menu' : undefined}
+                                aria-controls={openDelegateYes ? 'split-button-menu' : undefined}
+                                aria-expanded={openDelegateYes ? 'true' : undefined}
+                                aria-haspopup="menu"
+                                onClick={handleDelegateOpenYesToggle}
+                                sx={{borderRadius:'17px',textTransform:'none'}}
+                            >
+                                <ArrowDropDownIcon />
+                            </Button>
+                            
+                            <Popper
+                                sx={{
+                                zIndex: 1,
+                                }}
+                                open={openDelegateYes}
+                                anchorEl={anchorRef.current}
+                                role={undefined}
+                                transition
+                                disablePortal
+                            >
+                                {({ TransitionProps, placement }) => (
+                                <Grow
+                                    {...TransitionProps}
+                                    style={{
+                                    transformOrigin:
+                                        placement === 'bottom' ? 'center top' : 'center bottom',
+                                    }}
+                                >
+                                    <Paper>
+                                        <ClickAwayListener 
+                                            onClickAway={handleDelegateCloseYesToggle}>
+                                            <MenuList id="split-button-menu" autoFocusItem>
+                                                
+                                                {delegatedVoterRecord.map((option, index) => (
+                                                    <MenuItem
+                                                        key={option}
+                                                        disabled={index === 2}
+                                                        //selected={index === selectedIndex}
+                                                        //onClick={(event) => handleMenuItemClick(event, index)}
+                                                        onClick={(event) => handleVote(1,option.account.governingTokenOwner.toBase58())}
+                                                    >
+                                                        <Typography variant="caption">{option.account.governingTokenOwner.toBase58()} delegated</Typography>
+                                                    </MenuItem>
+                                                ))}
+                                                <MenuItem onClick={(event) => handleVote(1,"1")}>Vote with all delegated Voting Power</MenuItem>
+                                                <MenuItem onClick={(event) => handleVote(1)}>Vote with my Voting Power</MenuItem>
+                                            </MenuList>
+                                        </ClickAwayListener>
+                                    </Paper>
+                                </Grow>
+                                )}
+                            </Popper>
+                            */}
+                        </>
+                    }
+                    </>
                 :
+                    <>
                     <Button
                         variant="outlined"
                         color='error'
                         onClick={handleVoteNo}
                         sx={{borderRadius:'17px',textTransform:'none'}}
                     >Vote NO</Button>
+
+                    </>
                 }
             </>
         }
