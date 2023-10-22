@@ -350,8 +350,9 @@ export function VoteForProposal(props:any){
                         blockhash: latestBlockHash.blockhash,
                         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
                         signature: signature}, 
-                        'finalized'
+                        'confirmed'
                     );
+
                     closeSnackbar(cnfrmkey);
                     const action = (key:any) => (
                             <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
@@ -362,7 +363,10 @@ export function VoteForProposal(props:any){
                     enqueueSnackbar(`Congratulations, you have participated in voting for this Proposal`,{ variant: 'success', action });
 
                     // trigger a refresh here...
-                    getVotingParticipants();
+                    const redirectTimer = setTimeout(() => {
+                        getVotingParticipants();
+                    }, 3000); // 3 seconds
+                    
                 }catch(e:any){
                     enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
                 } 
