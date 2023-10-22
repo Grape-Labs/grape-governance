@@ -258,7 +258,7 @@ export default function InterDAOView(props: any) {
         description = `Voting ${daoToParticipateAddress} on proposal ${votingFor ? 'For':'Against'} ${daoToParticipatePropAddress} with existing Governance Power`;
         
         setInstructionsObject({
-            "type":`Inter DAO Participation`,
+            "type":`Intra DAO Participation`,
             "description":description,
             "governanceInstructions":transactionInstructions,
             "authorInstructions":payerInstructions,
