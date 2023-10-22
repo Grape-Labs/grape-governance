@@ -362,7 +362,10 @@ export default function JupiterSwapView(props: any) {
                         PROGRAM_ID.toBuffer(),
                         new PublicKey(mint_address).toBuffer(),
                     ], PROGRAM_ID)
-                    const tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
+                    let tokenMetadata = null;
+                    try{
+                        tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
+                    }catch(e){console.log("ERR: "+e)}
                     
                     if (tokenMetadata?.data?.name)
                         setMintName(tokenMetadata.data.name);

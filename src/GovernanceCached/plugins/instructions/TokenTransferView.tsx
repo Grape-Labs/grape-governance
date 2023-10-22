@@ -354,7 +354,10 @@ export default function TokenTransferView(props: any) {
                         PROGRAM_ID.toBuffer(),
                         new PublicKey(mint_address).toBuffer(),
                     ], PROGRAM_ID)
-                    const tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
+                    let tokenMetadata = null;
+                    try{
+                        tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
+                    }catch(e){console.log("ERR: "+e)}
                     
                     //console.log("tokenMetadata: "+JSON.stringify(tokenMetadata));
 
@@ -817,7 +820,7 @@ export default function TokenTransferView(props: any) {
             const walletObjects = [gwToAdd, rwToAdd];
 
             setConsolidatedGovernanceWallet(walletObjects);
-            
+
             setLoadingWallet(false);
         } catch(e){
             console.log("ERR: "+e);

@@ -198,7 +198,6 @@ export default function TokenTransferView(props: any) {
 
             if (collectionMetadata.data?.creators && collectionMetadata?.collection && collectionMetadata?.collection?.verified)
                 collectionMetadataPk = await getMetadata(collectionMetadata.collection.key);
-
             const accounts = {
                 metadata: pda,
                 owner: fromWallet,
@@ -248,18 +247,20 @@ export default function TokenTransferView(props: any) {
 
         const handleAtaSelected = (event: SelectChangeEvent) => {
             const selectedAta = event.target.value as string;
+            //alert("selectedAta: "+selectedAta);
             setTokenAta(selectedAta);
             //const selectedTokenMint = event.target.value as string;
             
             // with token mint traverse to get the mint info if > 0 amount
             let decimals = 0;
             let meta = null;
-            {governanceWallet && governanceWallet.tokens.value
+            {//governanceWallet && governanceWallet.tokens.value
+            consolidatedGovernanceWallet && consolidatedGovernanceWallet.tokens.value
                 //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
                 .map((item: any, key: number) => {
                     if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
                         item.account.data.parsed.info.tokenAmount.amount > 0) {
-                            if (item.pubkey === selectedAta){
+                            if (item.pubkey.toBase58() === selectedAta){
                                 setTokenMaxAmount(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals);
                                 setTokenMaxAmountRaw(item.account.data.parsed.info.tokenAmount.amount);
                                 //setTokenAta(item.pubkey);
@@ -267,7 +268,7 @@ export default function TokenTransferView(props: any) {
                                 setTokenDecimals(item.account.data.parsed.info.tokenAmount.decimals);
                             }
                     } else {
-                        if (item.pubkey === selectedAta){
+                        if (item.pubkey.toBase58() === selectedAta){
                             setTokenMaxAmount(0);
                             setTokenMaxAmountRaw(0);
                             setTokenMint(item.account.data.parsed.info.mint);
@@ -285,14 +286,17 @@ export default function TokenTransferView(props: any) {
             const [mintLogo, setMintLogo] = React.useState(null);
 
             const getTokenMintInfo = async() => {
-                
+                    
                     const mint_address = new PublicKey(mintAddress)
                     const [pda, bump] = await PublicKey.findProgramAddress([
                         Buffer.from("metadata"),
                         PROGRAM_ID.toBuffer(),
                         new PublicKey(mint_address).toBuffer(),
                     ], PROGRAM_ID)
-                    const tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
+                    let tokenMetadata = null;
+                    try{
+                        tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
+                    }catch(e){console.log("ERR: "+e)}
                     
                     if (tokenMetadata?.data?.name)
                         setMintName(tokenMetadata.data.name);
@@ -311,10 +315,12 @@ export default function TokenTransferView(props: any) {
                                 if (metadata.image)
                                     setMintLogo(metadata.image);
                             }
+                            
                         }catch(err){
                             console.log("ERR: ",err);
                         }
                     }
+                    
             }
 
             React.useEffect(() => { 
@@ -369,7 +375,7 @@ export default function TokenTransferView(props: any) {
                     },
                   }}
                 >
-                    {governanceWallet && governanceWallet.tokens.value
+                    {consolidatedGovernanceWallet && consolidatedGovernanceWallet.tokens.value
                             .filter((item: any) => 
                                 item.account.data?.parsed?.info?.tokenAmount?.amount >= 0
                             )
@@ -384,7 +390,7 @@ export default function TokenTransferView(props: any) {
                                     //console.log("mint: "+item.account.data.parsed.info.mint)
 
                                     return (
-                                        <MenuItem key={key} value={item.pubkey}>
+                                        <MenuItem key={key} value={item.pubkey?.toBase58() || new PublicKey(item.pubkey)}>
                                             {/*console.log("wallet: "+JSON.stringify(item))*/}
                                             
                                             <Grid container
@@ -495,6 +501,7 @@ export default function TokenTransferView(props: any) {
                                 foundCached = true;
                                 gitem.account.data.parsed.info.tokenAmount.amount = titem.account.data.parsed.info.tokenAmount.amount;
                                 gitem.account.data.parsed.info.tokenAmount.uiAmount = titem.account.data.parsed.info.tokenAmount.uiAmount;
+                                gitem.pubkey = titem.pubkey;
                                 itemsToAdd.push(gitem);
                             }
                         }
@@ -515,7 +522,7 @@ export default function TokenTransferView(props: any) {
 
     }
     
-    React.useState(() => {
+    React.useEffect(() => {
         if (governanceWallet && !consolidatedGovernanceWallet && !loadingWallet) {
             getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
             //setConsolidatedGovernanceWallet(gWallet);
@@ -545,7 +552,7 @@ export default function TokenTransferView(props: any) {
                             <WhatshotIcon sx={{ fontSize: 40, display: 'flex', alignItems: 'center', color:'yellow'}} />
                         </Grid>
                         <Grid item xs sx={{ml:1, display: 'flex', alignItems: 'center'}}>
-                            <strong>Close Token</strong> Plugin
+                            <strong>Close Token</strong>&nbsp;Plugin
                         </Grid>
                     </Grid>
                 </Typography>
@@ -601,8 +608,7 @@ export default function TokenTransferView(props: any) {
                 <Grid sx={{textAlign:'right', mb:2}}>
                     <Button 
                         disabled={!(
-                            (tokenMint) &&
-                            (tokenMaxAmount)
+                            (tokenMint)
                         )
                         }
                         onClick={closeTokens}
