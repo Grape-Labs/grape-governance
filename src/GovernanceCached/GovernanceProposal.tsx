@@ -1701,7 +1701,7 @@ export function GovernanceProposalView(props: any){
                                                         
                                                         <ListItem
                                                             secondaryAction={
-                                                                <VoteForProposal getVotingParticipants={getVotingParticipants} hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} propVoteType={propVoteType} realm={realm} thisitem={thisitem} type={0} multiChoice={{index:mindex,proposal:thisitem}} />
+                                                                <VoteForProposal votingResultRows={solanaVotingResultRows} getVotingParticipants={getVotingParticipants} hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} propVoteType={propVoteType} realm={realm} thisitem={thisitem} type={0} multiChoice={{index:mindex,proposal:thisitem}} />
                                                             }
                                                             >
                                                             <ListItemAvatar>
@@ -1802,7 +1802,7 @@ export function GovernanceProposalView(props: any){
                                                         </>
                                                     }
 
-                                                    <VoteForProposal getVotingParticipants={getVotingParticipants} hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} realm={realm} thisitem={thisitem} type={0} />
+                                                    <VoteForProposal votingResultRows={solanaVotingResultRows}  getVotingParticipants={getVotingParticipants} hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} realm={realm} thisitem={thisitem} type={0} />
                                                 </ButtonGroup>
                                             </Box>
                                         </Grid>
@@ -1871,7 +1871,7 @@ export function GovernanceProposalView(props: any){
                                                             }
                                                         </>
                                                     }
-                                                    <VoteForProposal getVotingParticipants={getVotingParticipants} hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} realm={realm} thisitem={thisitem} type={1} />
+                                                    <VoteForProposal votingResultRows={solanaVotingResultRows} getVotingParticipants={getVotingParticipants} hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} realm={realm} thisitem={thisitem} type={1} />
                                                 </ButtonGroup>
                                             </Box>
                                         </Grid>

@@ -404,7 +404,7 @@ export default function GovernanceCreateProposalView(props: any){
             //navigate(`/proposal/${cachedRealm.pubkey}/${propAddress.toBase58()}`, { replace: true });
             closeSnackbar(cnfrmkey);
             navigate(`/dao/${cachedRealm.pubkey}`, {replace: true});
-          }, 7000); // 7000 milliseconds = 7 seconds
+          }, 10000); // 10000 milliseconds = 10 seconds
           
           return () => clearTimeout(redirectTimer);
         } else if (propResponse && propResponse.address){
