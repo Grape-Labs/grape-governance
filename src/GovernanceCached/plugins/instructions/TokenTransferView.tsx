@@ -124,6 +124,7 @@ export default function TokenTransferView(props: any) {
     const [destinationString, setDestinationString] = React.useState(null);
     const [distributionType, setDistributionType] = React.useState(false);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
+    const [tokenAmountStr, setTokenAmountStr] = React.useState(null);
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     
@@ -593,25 +594,23 @@ export default function TokenTransferView(props: any) {
     }
 
     function handleTokenAmountChange(text:string){
-        // Use a regular expression to allow numeric input with optional decimals
-        const numericInput = text.replace(/[^0-9.]/g, '');
-
-        // Ensure there's only one decimal point
-        const parts = numericInput.split('.');
-        if (parts.length > 2) return; // More than one decimal point
-
-        if (parts[1] && parts[1].length > 9) return; // More than 9 decimal places
-
-        // Add a fractional part (even if zero) to ensure it's treated as a float
-        const withFractionalPart = numericInput.includes('.') ? numericInput : numericInput + '.0';
-
-        // Update the input field value
-        // event.target.value = withFractionalPart;
-
-        // Set tokenAmount as a float
-        setTokenAmount(parseFloat(withFractionalPart));
+        const cleanedText = text.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, '$1');
+        setTokenAmountStr(cleanedText);
+        setTokenAmount(parseFloat(cleanedText))
+        
+        //setTokenAmountStr(text);
     }
 
+    /*
+    React.useEffect(() => {
+        if (tokenAmountStr){
+            const cleanedText = tokenAmountStr.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, '$1');
+            setTokenAmountStr(cleanedText);
+            setTokenAmount(parseFloat(cleanedText))
+            
+        }
+    },[tokenAmountStr]);
+    */
     
     function calculateDestinationsEvenly(destinations:string, destinationAmount: number){
         const destinationsStr = destinations.replace(/['"]/g, '');;
@@ -958,7 +957,8 @@ export default function TokenTransferView(props: any) {
                         />
                         */}
                         <RegexTextField
-                            regex={/[^0-9]+\.?[^0-9]/gi}
+                            //regex={/[^0-9]+\.?[^0-9]/gi}
+                            regex={/[^0-9.]+/gi}
                             autoFocus
                             autoComplete='off'
                             margin="dense"
@@ -967,7 +967,7 @@ export default function TokenTransferView(props: any) {
                             type="text"
                             fullWidth
                             variant="outlined"
-                            value={tokenAmount}
+                            value={tokenAmountStr}
                             onChange={(e:any) => {
                                 handleTokenAmountChange(e.target.value);
                             }}

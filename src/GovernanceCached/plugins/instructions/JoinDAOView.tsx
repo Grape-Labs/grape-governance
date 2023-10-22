@@ -103,6 +103,7 @@ export default function JoinDAOView(props: any) {
     const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
+    const [tokenAmountStr, setTokenAmountStr] = React.useState(0.0);
     const [transactionInstructions, setTransactionInstructions] = React.useState(null);
     const [payerInstructions, setPayerInstructions] = React.useState(null);
     const [tokenMaxAmount, setTokenMaxAmount] = React.useState(null);
@@ -499,12 +500,13 @@ export default function JoinDAOView(props: any) {
         );
       }
     
-    const handleTokenAmountChange = (e) => {
-        // Remove leading zeros using a regular expression
-        const cleanedValue = e.target.value.replace(/^0+/, '');
-    
-        setTokenAmount(cleanedValue);
-    };
+    function handleTokenAmountChange(text:string){
+        const cleanedText = text.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, '$1');
+        setTokenAmountStr(cleanedText);
+        setTokenAmount(parseFloat(cleanedText))
+        
+        //setTokenAmountStr(text);
+    }
     
 
     React.useEffect(() => {
