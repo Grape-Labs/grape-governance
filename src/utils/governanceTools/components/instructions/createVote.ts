@@ -66,6 +66,7 @@ export const createCastVoteTransaction = async (
       console.log("isCommunityVote "+isCommunityVote)
       //console.log("tokenOwnerRecord?.communityPublicKey "+tokenOwnerRecord?.communityPublicKey)
       //console.log("tokenOwnerRecord?.councilPublicKey "+tokenOwnerRecord?.councilPublicKey)
+      console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecord))
 
       const tokenRecordPublicKey = tokenOwnerRecord?.pubkey;//.account?.governingTokenMint;
       
@@ -129,7 +130,6 @@ export const createCastVoteTransaction = async (
         //rank = multiChoice;
         //weightPercentage = 0;
       }
-
 
       const voteDirection = (type === 0 && multiChoice) ?
             new Vote({
@@ -224,7 +224,7 @@ export const createCastVoteTransaction = async (
         //plugin?.maxVoterWeightRecord
       );
 
-      console.log("HERE after withCastVote")
+      //console.log("HERE after withCastVote")
 
       const recentBlock = await connection.getLatestBlockhash();
     

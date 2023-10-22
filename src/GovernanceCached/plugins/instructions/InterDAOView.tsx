@@ -126,6 +126,7 @@ export default function InterDAOView(props: any) {
     const [walletSelectedTokenType, setWalletSelectedTokenType] = React.useState(true);// community
     const [walletGoverningSelectedMint, setWalletGoverningSelectedMint] = React.useState(true);
     const [selectedCouncilMint, setSelectedCouncilMint] = React.useState(null);
+    const [selectedCommunityDecimals, setSelectedCommunityDecimals] = React.useState(0);
     const [selectedCommunityMint, setSelectedCommunityMint] = React.useState(null);
     const [proposalLoading, setProposalLoading] = React.useState(null);
     const [daoLoading, setDaoLoading] = React.useState(null);
@@ -191,7 +192,6 @@ export default function InterDAOView(props: any) {
 
         const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, realmPk)
         
-        
         const memberItem = rawTokenOwnerRecords.find(item => 
             (item.account.governingTokenOwner.toBase58() === fromAddress && 
             item.account.governingTokenMint.toBase58() === governingTokenMint.toBase58()));
@@ -254,7 +254,7 @@ export default function InterDAOView(props: any) {
 
         let description = "";
 
-        description = `Voting ${daoToParticipateAddress} on proposal ${votingFor ? 'For':'Against'} ${daoToParticipatePropAddress} with ${token} Governance Power`;
+        description = `Voting ${daoToParticipateAddress} on proposal ${votingFor ? 'For':'Against'} ${daoToParticipatePropAddress} with existing Governance Power`;
         
         setInstructionsObject({
             "type":`Inter DAO Participation`,
@@ -453,204 +453,6 @@ export default function InterDAOView(props: any) {
         )
 
     }
-
-    function TokenSelect(props:any) {
-        const filter = props.filter;
-
-        const handleMintSelected = (event: SelectChangeEvent) => {
-            const selectedTokenMint = event.target.value as string;
-            setTokenMint(selectedTokenMint);
-
-            
-            // with token mint traverse to get the mint info if > 0 amount
-            {governanceWallet && governanceWallet.tokens.value
-                //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
-                .map((item: any, key: number) => {
-                    if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
-                        item.account.data.parsed.info.tokenAmount.amount > 0) {
-                            if (item.account.data.parsed.info.mint === selectedTokenMint){
-                                setTokenMaxAmount(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals);
-                                setTokenAmount(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals);
-                            }
-                    }
-            })}
-            
-        };
-
-        function ShowTokenMintInfo(props: any){
-            const mintAddress = props.mintAddress;
-            const [mintName, setMintName] = React.useState(null);
-            const [mintLogo, setMintLogo] = React.useState(null);
-
-            const getTokenMintInfo = async() => {
-                
-                    const mint_address = new PublicKey(mintAddress)
-                    const [pda, bump] = await PublicKey.findProgramAddress([
-                        Buffer.from("metadata"),
-                        PROGRAM_ID.toBuffer(),
-                        new PublicKey(mint_address).toBuffer(),
-                    ], PROGRAM_ID)
-                    const tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
-                    
-                    if (tokenMetadata?.data?.name)
-                        setMintName(tokenMetadata.data.name);
-                    
-                    if (tokenMetadata?.data?.uri){
-                        try{
-                            const metadata = await window.fetch(tokenMetadata.data.uri)
-                            .then(
-                                (res: any) => res.json())
-                            .catch((error) => {
-                                // Handle any errors that occur during the fetch or parsing JSON
-                                console.error("Error fetching data:", error);
-                            });
-                            
-                            if (metadata && metadata?.image){
-                                if (metadata.image)
-                                    setMintLogo(metadata.image);
-                            }
-                        }catch(err){
-                            console.log("ERR: ",err);
-                        }
-                    }
-            }
-
-            React.useEffect(() => { 
-                if (mintAddress && !mintName){
-                    getTokenMintInfo();
-                }
-            }, [mintAddress]);
-
-            return ( 
-                <>
-
-                    {mintName ?
-                        <Grid 
-                            container
-                            direction="row"
-                            alignItems="center"
-                        >
-                            <Grid item>
-                                <Avatar alt={mintName} src={mintLogo} />
-                            </Grid>
-                            <Grid item sx={{ml:1}}>
-                                <Typography variant="h6">
-                                {mintName}
-                                </Typography>
-                            </Grid>
-                        </Grid>       
-                    :
-                        <>{mintAddress}</>
-                    }
-                </>
-            )
-
-        }
-      
-        return (
-          <>
-            <Box sx={{ minWidth: 120, ml:1 }}>
-              <FormControl fullWidth sx={{mb:2}}>
-                <InputLabel id="governance-token-select-label">Select Token</InputLabel>
-                <Select
-                  labelId="governance-token-select-label"
-                  id="governance-token-select"
-                  value={tokenMint}
-                  label="Select Token"
-                  onChange={handleMintSelected}
-                  MenuProps={{
-                    PaperProps: {
-                      style: {
-                        maxHeight: 200, // Adjust this value as needed
-                        overflowY: 'auto', // Add vertical scrollbar if content overflows maxHeight
-                      },
-                    },
-                  }}
-                >
-                    {governanceWallet && governanceWallet.tokens.value
-                    // ? item.account.data.parsed.info.mint === filter
-                            .filter((item: any) => 
-                                item.account.data?.parsed?.info?.tokenAmount?.amount > 0
-                            )
-                            .sort((a: any, b: any) => 
-                                b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount
-                            )
-                            .map((item: any, key: number) => {
-                                
-                                if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
-                                    item.account.data.parsed.info.tokenAmount.amount > 0 &&
-                                    (item.account.data.parsed.info.mint === filter[0] || item.account.data.parsed.info.mint === filter[1])) {
-                                
-                                    //console.log("mint: "+item.account.data.parsed.info.mint)
-
-                                    return (
-                                        <MenuItem key={key} value={item.account.data.parsed.info.mint}>
-                                            {/*console.log("wallet: "+JSON.stringify(item))*/}
-                                            
-                                            <Grid container
-                                                alignItems="center"
-                                            >
-                                                <Grid item xs={12}>
-                                                <Grid container>
-                                                    <Grid item sm={8}>
-                                                    <Grid
-                                                        container
-                                                        direction="row"
-                                                        justifyContent="left"
-                                                        alignItems="left"
-                                                    >
-
-                                                        {item.account?.tokenMap?.tokenName ?
-                                                            <Grid 
-                                                                container
-                                                                direction="row"
-                                                                alignItems="center"
-                                                            >
-                                                                <Grid item>
-                                                                    <Avatar alt={item.account.tokenMap.tokenName} src={item.account.tokenMap.tokenLogo} />
-                                                                </Grid>
-                                                                <Grid item sx={{ml:1}}>
-                                                                    <Typography variant="h6">
-                                                                    {item.account.tokenMap.tokenName}
-                                                                    </Typography>
-                                                                </Grid>
-                                                            </Grid>
-                                                        :
-                                                            <>
-                                                                <ShowTokenMintInfo mintAddress={item.account.data.parsed.info.mint} />
-                                                            </>
-                                                        }
-                                                    </Grid>
-                                                    </Grid>
-                                                    <Grid item xs sx={{textAlign:'right'}}>
-                                                    <Typography variant="h6">
-                                                        {/*item.vault?.nativeTreasury?.solBalance/(10 ** 9)*/}
-
-                                                        {(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals).toLocaleString()}
-                                                    </Typography>
-                                                    </Grid>
-                                                </Grid>  
-
-                                                <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
-                                                    <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
-                                                        {item.account.data.parsed.info.mint}
-                                                    </Typography>
-                                                </Grid>
-                                                </Grid>
-                                            </Grid>
-                                        </MenuItem>
-                                    );
-                                } else {
-                                    return null; // Don't render anything for items without nativeTreasuryAddress
-                                }
-                            })}
-                    
-                </Select>
-              </FormControl>
-            </Box>
-          </>
-        );
-      }
     
     const handleTokenAmountChange = (e) => {
         // Remove leading zeros using a regular expression
@@ -752,10 +554,20 @@ export default function InterDAOView(props: any) {
                     setSelectedCouncilMint(item.account.governingTokenMint.toBase58())
                 }else{
                     
-                    votes = Number(item.account.governingTokenDepositAmount) + ' Community';
+                    const accountInfo = await connection.getParsedAccountInfo( new PublicKey(item.account.governingTokenMint));
+                    //const accountParsed = JSON.parse(JSON.stringify(accountInfo.value.data));
+                    const decimals = accountInfo.value.data.parsed.info.decimals;
+
+                    votes = Number(item.account.governingTokenDepositAmount)/10**decimals + ' Community';
+
+                    // fetch token decimals!
+                    //console.log("mint: "+ tokenMint);
+                    setSelectedCommunityDecimals(decimals);
+                    
                     setWalletSelectedTokenType(true)
-                    setDaoPropMaxVotes(votes)
-                    setSelectedCommunityMint(item.account.governingTokenMint.toBase58())
+                    setDaoPropMaxVotes(votes);
+                    setSelectedCommunityMint(item.account.governingTokenMint.toBase58());
+                    
                     /*
                     const thisToken = tokenMap.get(item.account.governingTokenMint.toBase58());
                     if (thisToken){
@@ -1069,6 +881,17 @@ export default function InterDAOView(props: any) {
                                             }))}
                                     
                                         </Select>
+
+                                        <FormControl fullWidth  sx={{mb:2}}>
+                                            <Grid sx={{textAlign:'right',}}>
+                                                <FormControlLabel
+                                                    control={
+                                                        <Switch checked={votingFor} onChange={handleVoteDirectionChange} name="otingFor" />
+                                                    }
+                                                    label={votingFor ? "Voting For" : "Voting Against"}
+                                                    />
+                                            </Grid>
+                                        </FormControl>
                                     
                                     </>
 
@@ -1076,16 +899,6 @@ export default function InterDAOView(props: any) {
                                 }
                             </FormControl>
                             
-                            <FormControl fullWidth  sx={{mb:2}}>
-                                <Grid sx={{textAlign:'right',}}>
-                                    <FormControlLabel
-                                        control={
-                                            <Switch checked={votingFor} onChange={handleVoteDirectionChange} name="otingFor" />
-                                        }
-                                        label={votingFor ? "Voting For" : "Voting Against"}
-                                        />
-                                </Grid>
-                            </FormControl>
                             </>
                         :
                             <></>
@@ -1094,7 +907,7 @@ export default function InterDAOView(props: any) {
                 }
             </>
 
-            {(daoToParticipateAddress && daoToParticipatePropAddress) ?
+            {(daoToParticipateAddress && daoToParticipatePropAddress && daoPropMaxVotes) ?
                 <>  
                     <Box
                         sx={{ m:2,
@@ -1115,7 +928,7 @@ export default function InterDAOView(props: any) {
                                 href={`https://governance.so/proposal/${daoToParticipateAddress}/${daoToParticipatePropAddress}`}
                                 target="_blank"
                             >
-                                View Proposal <OpenInNewIcon fontSize="small" sx={{ml:1}}/>
+                                View Proposal <OpenInNewIcon sx={{fontSize:'12px',ml:1}}/>
                             </Button>
                         </Typography>
                     </Box>

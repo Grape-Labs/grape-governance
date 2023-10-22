@@ -7,7 +7,8 @@ import {
     getGovernanceChatMessages, 
     getTokenOwnerRecord, 
     getTokenOwnerRecordsByOwner, 
-    getAllTokenOwnerRecords, 
+    getAllTokenOwnerRecords,
+    getMaxVoterWeightRecord,
     getRealmConfigAddress, 
     getGovernanceAccount, 
     getAccountTypes, 
@@ -83,6 +84,7 @@ import {
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
  
+import { VoteForProposal } from './GovernanceVote';
 import { InstructionView } from './GovernanceInstructionView';
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
 import ExplorerView from '../utils/grapeTools/Explorer';
@@ -112,8 +114,6 @@ import {
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
-import { withTheme } from '@emotion/react';
-import fs from 'fs/promises';
 
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
@@ -1165,197 +1165,6 @@ export function GovernanceProposalView(props: any){
         setLoadingParticipants(false);
     }
 
-    function VoteForProposal(props:any){
-        const type = props.type || 0;
-        const multiChoice = props.multiChoice || null;
-
-        /*
-        console.log("memberMap: "+JSON.stringify(memberMap));
-        const memberMapReduced = memberMap.reduce((map: any, item: any) => {
-            //console.log("item: "+JSON.stringify(item.account.governingTokenOwner))
-            //map.set(item.account.governingTokenOwner, item);
-            map.set(item.pubkey, item);
-            //console.log("map: "+JSON.stringify(map))
-            return map;
-        },new Map());
-
-        const item = memberMap.find(item => 
-            item.account.governingTokenOwner === "KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT"
-            && item.account.governingTokenMint === thisitem.account.governingTokenMint);
-        
-        console.log("memberMap Item: "+JSON.stringify(item));
-        */
-        const isCommunityVote = propVoteType !== 'Council'; //realm.account.config?.councilMint?.toBase58() !== thisitem?.account.governingTokenMint;// realm?.communityMint === thisitem?.account.governingTokenMint;
-        //console.log("isCommunityVote: "+JSON.stringify(isCommunityVote));
-        
-        const handleVoteYes = async () => {
-            await handleVote(0)
-        }
-
-        const handleVoteNo = async () => {
-            await handleVote(1)
-        }
-
-        const handleVote = async (type: Number) => {
-            
-            //console.log("thisitem.account.governingTokenMint: "+JSON.stringify(thisitem.account.governingTokenMint));
-
-            console.log("realm: "+JSON.stringify(realm))
-
-            const programId = new PublicKey(thisitem.owner);
-            const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
-        
-            
-            const memberItem = rawTokenOwnerRecords.find(item => 
-                (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
-                item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
-
-            /*
-            const memberItem = memberMap.find(item => 
-                (item.account.governingTokenOwner === publicKey.toBase58() && 
-                item.account.governingTokenMint === thisitem.account.governingTokenMint.toBase58()));
-            */
-            const memberItemSimple = memberMap.find(item => 
-                    item.account.governingTokenOwner === publicKey.toBase58());
-            
-            //console.log("memberItemSimple: "+JSON.stringify(memberItemSimple));
-            console.log("memberItem: "+JSON.stringify(memberItem));
-
-            //console.log("tokenOwnerRecord: "+JSON.stringify(thisitem.account.tokenOwnerRecord));
-            
-            const proposal = {
-                governanceId: thisitem.account.governance,
-                proposalId: thisitem.pubkey,
-                tokenOwnerRecord: thisitem.account.tokenOwnerRecord,
-                governingTokenMint: thisitem.account.governingTokenMint
-            }
-            const transactionData = {proposal:proposal,action:0} // 0 = yes
-            //console.log("realm: "+JSON.stringify(realm));
-            //console.log("thisitem/proposal: "+JSON.stringify(thisitem));
-            //console.log("thisGovernance: "+JSON.stringify(thisGovernance));
-            
-            /*
-            const realmData = {
-                pubKey:thisGovernance.pubkey,
-                realmId:thisitem.pubkey,
-                governanceId:thisitem.account.governance,
-                communityMint: thisitem.account.governingTokenMint
-            }*/
-
-            //console.log("Proposal: "+JSON.stringify(proposal));
-            //console.log("realmData: "+JSON.stringify(realmData));
-            //console.log("memberItem: "+JSON.stringify(memberItem));
-
-            //console.log("memberMapReduced: "+JSON.stringify(memberMapReduced));
-
-            // check if voter can participate
-
-            if (publicKey && memberItem) {
-                
-                const vvvt = await createCastVoteTransaction(
-                    realm,
-                    publicKey,
-                    transactionData,
-                    memberItem,
-                    null,
-                    isCommunityVote,
-                    multiChoice,
-                    type
-                );
-
-                //console.log("vvvt: "+JSON.stringify(vvvt));
-                
-                if (vvvt){
-                    try{
-                        enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
-                        const signature = await sendTransaction(vvvt, connection, {
-                            skipPreflight: true,
-                            preflightCommitment: "confirmed",
-                        });
-                        const snackprogress = (key:any) => (
-                            <CircularProgress sx={{padding:'10px'}} />
-                        );
-                        const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
-                        //await connection.confirmTransaction(signature, 'processed');
-                        const latestBlockHash = await connection.getLatestBlockhash();
-                        await connection.confirmTransaction({
-                            blockhash: latestBlockHash.blockhash,
-                            lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-                            signature: signature}, 
-                            'finalized'
-                        );
-                        closeSnackbar(cnfrmkey);
-                        const action = (key:any) => (
-                                <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                                    Signature: {signature}
-                                </Button>
-                        );
-                        
-                        enqueueSnackbar(`Congratulations, you have participated in voting for this Proposal`,{ variant: 'success', action });
-
-                        // trigger a refresh here...
-                        getVotingParticipants();
-                    }catch(e:any){
-                        enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
-                    } 
-                } else{
-                    alert("No voter record!")
-                }
-                
-            }
-        }
-
-        return (
-        <>
-            {thisitem.account?.state === 2 && !hasVoted && publicKey &&
-                <>
-                    
-                    {type === 0 ?
-                        <Button
-                            variant="outlined"
-                            color='success'
-                            onClick={handleVoteYes}
-                            sx={{borderRadius:'17px',textTransform:'none'}}
-                        >Vote{!multiChoice && ` YES`}</Button>
-                    :
-                        <Button
-                            variant="outlined"
-                            color='error'
-                            onClick={handleVoteNo}
-                            sx={{borderRadius:'17px',textTransform:'none'}}
-                        >Vote NO</Button>
-                    }
-                </>
-            }
-
-            {hasVoted && publicKey &&
-                <>
-                    {(hasVotedVotes > 0 && type === 0) ?
-                        <Tooltip title={`You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes for this proposal`}>
-                            <Button
-                                variant="outlined"
-                                color='success'
-                                sx={{borderRadius:'17px',textTransform:'none'}}
-                            ><CheckCircleIcon /></Button>
-                        </Tooltip>
-                    :
-                        <>
-                            {hasVotedVotes < 0 &&
-                                <Tooltip title={`You casted ${getFormattedNumberToLocale(hasVotedVotes*-1)} votes against this proposal`}>
-                                    <Button
-                                        variant="outlined"
-                                        color='error'
-                                        sx={{borderRadius:'17px',textTransform:'none'}}
-                                    ><CheckCircleIcon /></Button>
-                                </Tooltip>
-                            }
-                        </>
-                    }
-                </>
-            }
-        </>);
-    }
-
     // Custom render function to handle image previews
     const components = {
         image: ({ src, alt, title }) => (
@@ -1892,7 +1701,7 @@ export function GovernanceProposalView(props: any){
                                                         
                                                         <ListItem
                                                             secondaryAction={
-                                                                <VoteForProposal type={0} multiChoice={{index:mindex,proposal:thisitem}} />
+                                                                <VoteForProposal getVotingParticipants={getVotingParticipants} hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} propVoteType={propVoteType} realm={realm} thisitem={thisitem} type={0} multiChoice={{index:mindex,proposal:thisitem}} />
                                                             }
                                                             >
                                                             <ListItemAvatar>
@@ -1993,7 +1802,7 @@ export function GovernanceProposalView(props: any){
                                                         </>
                                                     }
 
-                                                    <VoteForProposal type={0} />
+                                                    <VoteForProposal getVotingParticipants={getVotingParticipants} hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} realm={realm} thisitem={thisitem} type={0} />
                                                 </ButtonGroup>
                                             </Box>
                                         </Grid>
@@ -2062,7 +1871,7 @@ export function GovernanceProposalView(props: any){
                                                             }
                                                         </>
                                                     }
-                                                    <VoteForProposal type={1} />
+                                                    <VoteForProposal getVotingParticipants={getVotingParticipants} hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} realm={realm} thisitem={thisitem} type={1} />
                                                 </ButtonGroup>
                                             </Box>
                                         </Grid>
