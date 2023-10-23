@@ -569,7 +569,7 @@ export function GovernanceProposalV2View(props: any){
             //thisitem.account.tokenOwnerRecord;
             console.log("has memberMap: "+`${memberMap ? `true`:`false`}`)
             for (const item of memberMap){
-                if (item.pubkey?.toBase58()){
+                if (item && item.pubkey && item.pubkey.toBase58){
                     if (item.pubkey.toBase58() === new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()){
                         setProposalAuthor(item.account.governingTokenOwner.toBase58())
                         console.log("member:" + JSON.stringify(item));
