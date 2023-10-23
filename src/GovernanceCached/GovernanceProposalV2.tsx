@@ -1614,7 +1614,7 @@ export function GovernanceProposalV2View(props: any){
                                             </Grid>
                                             
                                         </Grid>
-                                        <Typography variant='subtitle1'>To: {voteType} {/*propVoteType === 0 ? `Council`:`Community`*/}</Typography>
+                                        <Typography variant='subtitle1'>To: {voteType === 'Council' ? `Council`:`Community`} {/*propVoteType === 0 ? `Council`:`Community`*/}</Typography>
                                     </Grid>
                                     <Grid sx={{ alignItems: 'right', textAlign: 'right'}}>
                                         {thisitem?.account?.voteType?.type === 1 ?

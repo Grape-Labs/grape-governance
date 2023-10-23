@@ -180,7 +180,12 @@ export async function createProposalInstructions(
     //loop InsertTransactions based on number of intrsuctions in transactionInstr
     let instructionData: InstructionData[]=[];
     for (var instruction of transactionInstr.instructions){
-      instructionData.push(createInstructionData(instruction));
+      const cid = createInstructionData(instruction);
+      //console.log("Pushing: "+JSON.stringify(instruction).length);
+      //const tx = new Transaction();
+      //tx.add(instruction);
+      //console.log("Tx Size: "+tx.serialize().length);
+      instructionData.push(cid);
     }
     
     for(let j= 0; j < transactionInstr.instructions.length; j++) {

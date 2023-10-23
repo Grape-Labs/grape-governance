@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import axios from 'axios';
-import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
+import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, VersionedMessage, TransactionInstruction, TransactionMessage } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, createTransferInstruction } from "@solana/spl-token-v2";
 import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -110,6 +110,41 @@ export default function BuyOnMEView(props: any) {
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     
+    async function createV0Tx(txInstructions: TransactionInstruction[]) {
+        // Step 1 - Fetch Latest Blockhash
+        let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+        console.log("   ✅ - Fetched latest blockhash. Last Valid Height:", latestBlockhash.lastValidBlockHeight);
+    
+        // Step 2 - Generate Transaction Message
+        const messageV0 = new TransactionMessage({
+            payerKey: new PublicKey(fromAddress),
+            recentBlockhash: latestBlockhash.blockhash,
+            instructions: txInstructions
+        }).compileToV0Message();
+        console.log("   ✅ - Compiled Transaction Message");
+        const transaction = new VersionedTransaction(messageV0);
+        return transaction;
+        // Step 3 - Sign your transaction with the required `Signers`
+        /*
+        transaction.sign([new PublicKey(fromAddress)]);
+        console.log("   ✅ - Transaction Signed");
+    
+        // Step 4 - Send our v0 transaction to the cluster
+        const txid = await RPC_CONNECTION.sendTransaction(transaction, { maxRetries: 5 });
+        console.log("   ✅ - Transaction sent to network");
+    
+        // Step 5 - Confirm Transaction 
+        const confirmation = await RPC_CONNECTION.confirmTransaction({
+            signature: txid,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+        });
+        if (confirmation.value.err) { throw new Error("   ❌ - Transaction not confirmed.") }
+        console.log('🎉 Transaction Successfully Confirmed!', '\n', `https://explorer.solana.com/tx/${txid}?cluster=devnet`);
+        */
+    }
+    
+
     async function generateMEBuyInstructions(mintAddress:string, tokenAddress:string, price:number, seller:string, auctionHouse:string) {
         //const payerWallet = new PublicKey(payerAddress);
         const fromWallet = new PublicKey(fromAddress);
@@ -141,7 +176,6 @@ export default function BuyOnMEView(props: any) {
             //console.log("tokenPDA: "+meListing[0].pdaAddress);
             console.log("price: "+price);
             
-            
             const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/buy_now";
             //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/buy_now";
             
@@ -168,8 +202,9 @@ export default function BuyOnMEView(props: any) {
             );
             //console.log("TX: "+JSON.stringify(res));
             
-            const txSigned = res.data.txSigned;
             // convert tx
+            
+            const txSigned = res.data.txSigned;
             const txSignedBuf = Buffer.from(txSigned, 'base64');
             const tx = Transaction.from(txSignedBuf);
             
@@ -188,11 +223,20 @@ export default function BuyOnMEView(props: any) {
                     }
                 }
             }
-            
             console.log("*** SERIALIZED ***");
             console.log(tx.serializeMessage().toString("base64"));
             setTransactionInstructions(tx);
             return transaction;
+            
+            /*
+            const txV0Signed = res.data.v0.txSigned;
+            const v0Tx = await createV0Tx(txV0Signed);
+            
+            console.log("   ✅ - DONE Transaction Message");
+            
+            setTransactionInstructions(v0Tx);
+            return transaction;
+            */
         }catch(e){
             console.log("FEE ERR: ",e);
             return null;
