@@ -106,7 +106,7 @@ export async function createProposalInstructions(
     const governance = await getGovernance(connection, governancePk);
     
     console.log("governance: "+JSON.stringify(governance));
-
+      
     const proposalIndex = governance?.account?.proposalCount;
 
     //will run only if plugin is connected with realm

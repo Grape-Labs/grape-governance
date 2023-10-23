@@ -367,7 +367,7 @@ export function VoteForProposal(props:any){
                     const redirectTimer = setTimeout(() => {
                         getVotingParticipants();
                     }, 3000); // 3 seconds*/
-                    
+                    getVotingParticipants();
                 }catch(e:any){
                     enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
                 } 
