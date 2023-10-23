@@ -52,10 +52,10 @@ import {
   Grid,
   Box,
   Table,
-  Tooltip,
   LinearProgress,
   Chip,
   IconButton,
+  Tooltip,
   ButtonGroup,
   CircularProgress,
   Accordion,
@@ -1609,7 +1609,7 @@ export function GovernanceProposalV2View(props: any){
                                             </Grid>
                                             <Grid item>
                                                 <Typography variant="caption" sx={{color:'#ccc'}}>
-                                                    &nbsp;{moment.unix(Number(thisitem.account?.draftAt)).format("MMMM D, YYYY, h:mm a")}
+                                                    &nbsp;<Tooltip title="Drafted at"><Button color='inherit' sx={{textTransform:'none',fontSize:'12px',borderRadius:'17px',ml:1}}>{moment.unix(Number(thisitem.account?.draftAt)).format("MMMM D, YYYY, h:mm a")}</Button></Tooltip>
                                                 </Typography>
                                             </Grid>
                                             
@@ -1628,8 +1628,8 @@ export function GovernanceProposalV2View(props: any){
                                                 <Box
                                                     display='flex' 
                                                     sx={{
-                                                        background: 'rgba(0, 0, 0, 0.25)',
-                                                        borderRadius: '17px',
+                                                        //background: 'rgba(0, 0, 0, 0.25)',
+                                                        //borderRadius: '17px',
                                                         p:0.25,
                                                         width:'260px',
                                                         //alignItems:'right',
@@ -1704,8 +1704,8 @@ export function GovernanceProposalV2View(props: any){
                                                 <Box
                                                     display='flex' 
                                                     sx={{
-                                                        background: 'rgba(0, 0, 0, 0.25)',
-                                                        borderRadius: '17px',
+                                                        //background: 'rgba(0, 0, 0, 0.25)',
+                                                        //borderRadius: '17px',
                                                         p:0.25,
                                                         width:'260px',
                                                         justifyContent: 'center', // Center the content horizontally
@@ -1787,60 +1787,67 @@ export function GovernanceProposalV2View(props: any){
 
                         <Divider sx={{mt:1,mb:1}} />
 
-                        <Box sx={{ alignItems: 'left', textAlign: 'left',m:1}}>
-                            <Typography variant='h5'>{thisitem.account?.name}</Typography>
-                        </Box>
-                        
-                        <Box sx={{ alignItems: 'left', textAlign: 'left',m:1}}>
-                            {gist ?
-                                <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
-                                    <div
-                                        style={{
-                                            border: 'solid',
-                                            borderRadius: 15,
-                                            borderColor:'rgba(255,255,255,0.05)',
-                                            padding:4,
-                                        }} 
-                                    >
-                                        <Typography variant='body2'>
-                                            <ReactMarkdown 
-                                                remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
-                                                transformImageUri={transformImageUri}
-                                                children={proposalDescription}
-                                                components={{
-                                                    // Custom component for overriding the image rendering
-                                                    img: ({ node, ...props }) => (
-                                                    <img
-                                                        {...props}
-                                                        style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
-                                                    />
-                                                    ),
-                                                }}
-                                            />
-                                        </Typography>
-                                    </div>
-                                    <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
-                                        <Button
-                                            color='inherit'
-                                            target='_blank'
-                                            href={thisitem.account?.descriptionLink}
-                                            sx={{borderRadius:'17px'}}
+                        <Box
+                            sx={{
+                                background: 'rgba(0, 0, 0, 0.25)',
+                                borderRadius: '17px',
+                                p:1
+                            }}
+                        >
+                            <Box sx={{ alignItems: 'left', textAlign: 'left',m:1}}>
+                                <Typography variant='h5'>{thisitem.account?.name}</Typography>
+                            </Box>
+                            
+                            <Box sx={{ alignItems: 'left', textAlign: 'left',m:1}}>
+                                {gist ?
+                                    <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
+                                        <div
+                                            style={{
+                                                border: 'solid',
+                                                borderRadius: 15,
+                                                borderColor:'rgba(255,255,255,0.05)',
+                                                padding:4,
+                                            }} 
                                         >
-                                            <GitHubIcon sx={{mr:1}} /> GIST
-                                        </Button>
+                                            <Typography variant='body2'>
+                                                <ReactMarkdown 
+                                                    remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
+                                                    transformImageUri={transformImageUri}
+                                                    children={proposalDescription}
+                                                    components={{
+                                                        // Custom component for overriding the image rendering
+                                                        img: ({ node, ...props }) => (
+                                                        <img
+                                                            {...props}
+                                                            style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
+                                                        />
+                                                        ),
+                                                    }}
+                                                />
+                                            </Typography>
+                                        </div>
+                                        <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
+                                            <Button
+                                                color='inherit'
+                                                target='_blank'
+                                                href={thisitem.account?.descriptionLink}
+                                                sx={{borderRadius:'17px'}}
+                                            >
+                                                <GitHubIcon sx={{mr:1}} /> GIST
+                                            </Button>
+                                        </Box>
                                     </Box>
-                                </Box>
-                                :
-                                <>
-                                    {thisitem.account?.descriptionLink &&
-                                        <>
-                                            <Typography variant='body1'>{thisitem.account?.descriptionLink}</Typography>
-                                        </>
-                                    }
-                                </>
-                            }
+                                    :
+                                    <>
+                                        {thisitem.account?.descriptionLink &&
+                                            <>
+                                                <Typography variant='body1'>{thisitem.account?.descriptionLink}</Typography>
+                                            </>
+                                        }
+                                    </>
+                                }
+                            </Box>
                         </Box>
-                        
                         {(proposalInstructions && proposalInstructions.length > 0) &&
                             <Box 
                                 sx={{ mt:2,mb:2 }}>
