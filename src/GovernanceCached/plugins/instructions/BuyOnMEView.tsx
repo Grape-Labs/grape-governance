@@ -288,7 +288,6 @@ export default function BuyOnMEView(props: any) {
                 .join(', ');
         }
         */
-        
         setInstructionsObject({
             "type":`Magic Eden Buy Mint Plugin`,
             "description":description,

@@ -453,7 +453,9 @@ export default function GovernanceCreateProposalView(props: any){
     function ProposalSelect() {
       
       const handleProposalTypeChange = (event: SelectChangeEvent) => {
-        setProposalType(event.target.value as string);
+        const seltype = event.target.value as string;
+        if (seltype)
+          setProposalType(seltype);
       };
     
       return (
@@ -463,7 +465,7 @@ export default function GovernanceCreateProposalView(props: any){
             <Select
               labelId="proposal-select-label"
               id="proposal-select"
-              value={proposalType}
+              value={proposalType ? proposalType : 1}
               label="Proposal Instructions"
               onChange={handleProposalTypeChange}
             >
@@ -986,9 +988,11 @@ export default function GovernanceCreateProposalView(props: any){
     }
 
     React.useEffect(() => {
+      
       if (instructionsObject){
         // check if this instruction exists in the object
         let found = false;
+        
         if (instructionsArray && instructionsArray.length > 0){
           for (let instructionItem of instructionsArray){
             if (instructionsObject === instructionItem)
@@ -998,6 +1002,7 @@ export default function GovernanceCreateProposalView(props: any){
             instructionsArray.push(instructionsObject);
         } else{
           instructionsArray.push(instructionsObject);
+          //setInstructionsArray([instructionsObject]);
         }
 
         setProposalType(null);
@@ -1005,7 +1010,9 @@ export default function GovernanceCreateProposalView(props: any){
         setInstructionsObject(null);
 
         //calculateProposalFee();
+        
       }
+      
     }, [instructionsObject]);
 
     React.useEffect(() => {
@@ -1391,6 +1398,7 @@ export default function GovernanceCreateProposalView(props: any){
                                     <List dense={true}>
                                         {instructionsArray.map((txinstr:any, index:number) => (
                                             <ListItem
+                                              key={index}
                                               secondaryAction={
                                                 <IconButton 
                                                   onClick={e => removeTxItem(index)}
