@@ -64,6 +64,7 @@ import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
  
 import { GovernanceProposalView } from './GovernanceProposal';
+import { GovernanceProposalV2View } from './GovernanceProposalV2';
 
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
 import ExplorerView from '../utils/grapeTools/Explorer';
@@ -271,7 +272,7 @@ export function GovernanceProposalDialog(props: any){
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
-                    <GovernanceProposalView governanceLookup={governanceLookup} isCancelled={isCancelled} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
+                    <GovernanceProposalV2View governanceLookup={governanceLookup} isCancelled={isCancelled} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                             
                 </DialogContent> 
             </BootstrapDialog>
