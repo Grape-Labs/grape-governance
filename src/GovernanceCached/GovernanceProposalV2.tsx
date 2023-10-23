@@ -1605,7 +1605,7 @@ export function GovernanceProposalV2View(props: any){
                                     <Grid item xs>
                                         <Grid container direction='row' alignItems='center'>
                                             <Grid item>
-                                                <Typography variant='body1'>Author: <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={proposalAuthor} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/></Typography>
+                                                <Typography variant='subtitle1'>Author: <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={proposalAuthor} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/></Typography>
                                             </Grid>
                                             <Grid item>
                                                 <Typography variant="caption" sx={{color:'#ccc'}}>
@@ -1614,7 +1614,7 @@ export function GovernanceProposalV2View(props: any){
                                             </Grid>
                                             
                                         </Grid>
-                                        <Typography variant='body2'>To: {voteType} {/*propVoteType === 0 ? `Council`:`Community`*/}</Typography>
+                                        <Typography variant='subtitle1'>To: {voteType} {/*propVoteType === 0 ? `Council`:`Community`*/}</Typography>
                                     </Grid>
                                     <Grid sx={{ alignItems: 'right', textAlign: 'right'}}>
                                         {thisitem?.account?.voteType?.type === 1 ?
@@ -1841,7 +1841,7 @@ export function GovernanceProposalV2View(props: any){
                             }
                         </Box>
                         
-                        {proposalInstructions &&
+                        {(proposalInstructions && proposalInstructions.length > 0) &&
                             <Box 
                                 sx={{ mt:2,mb:2 }}>
                                 <Accordion 
