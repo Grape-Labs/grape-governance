@@ -261,8 +261,8 @@ export function VoteForProposal(props:any){
             
             if (wOwner){ // vote for your own if delegate is not set and value of delegate is not = 1
                 
-                const hasVoted = votingParticipants.some(item => item.governingTokenOwner === publicKey.toBase58());
-                if (!hasVoted){
+                const hasVotedItem = votingParticipants.some(item => item.governingTokenOwner === publicKey.toBase58());
+                if (!hasVotedItem){
                     const tmpVote = await createCastVoteTransaction(
                         realm,
                         publicKey,
@@ -288,8 +288,8 @@ export function VoteForProposal(props:any){
                     console.log("delegate setting: "+delegate);    
                     if (withAllDelegates){
                         // check if delegate has voted
-                        const hasVoted = votingParticipants.some(item => item.governingTokenOwner === delegateItem.account.governingTokenOwner.toBase58());
-                        if (!hasVoted){
+                        const hasVotedItem = votingParticipants.some(item => item.governingTokenOwner === delegateItem.account.governingTokenOwner.toBase58());
+                        if (!hasVotedItem){
                             
                             const delegateVoteTx = await createCastVoteTransaction(
                                 realm,
@@ -420,17 +420,19 @@ export function VoteForProposal(props:any){
 
     return (
     <>
-        {thisitem.account?.state === 2 && !hasVoted && publicKey &&
+        {thisitem.account?.state === 2 && publicKey &&
             <>
                 
                 {type === 0 ?
                     <>
-                    <Button
-                        variant="outlined"
-                        color='success'
-                        onClick={handleVoteYes}
-                        sx={{borderRadius:'17px',textTransform:'none'}}
-                    >Vote{!multiChoice && ` YES`}</Button>
+                    {!hasVoted &&
+                        <Button
+                            variant="outlined"
+                            color='success'
+                            onClick={handleVoteYes}
+                            sx={{borderRadius:'17px',textTransform:'none'}}
+                        >Vote{!multiChoice && ` YES`}</Button>
+                    }
                     {(delegatedVoterRecord && delegatedVoterRecord.length > 0) &&
                         <>
                             <Button
@@ -459,7 +461,9 @@ export function VoteForProposal(props:any){
                                     <ClickAwayListener 
                                         onClickAway={handleDelegateCloseYesToggle}>
                                         <MenuList id="split-yes-menu" autoFocusItem>
-                                            <MenuItem onClick={(event) => handleVote(0, null, true)}>Vote only with my Voting Power</MenuItem>
+                                            <MenuItem 
+                                                disabled={hasVoted}
+                                                onClick={(event) => handleVote(0, null, true)}>Vote only with my Voting Power</MenuItem>
                                             <Divider />
                                             {delegatedVoterRecord.map((option, index) => (
                                                 <MenuItem
@@ -490,12 +494,14 @@ export function VoteForProposal(props:any){
                     </>
                 :
                     <>
-                    <Button
-                        variant="outlined"
-                        color='error'
-                        onClick={handleVoteNo}
-                        sx={{borderRadius:'17px',textTransform:'none'}}
-                    >Vote NO</Button>
+                    {!hasVoted &&
+                        <Button
+                            variant="outlined"
+                            color='error'
+                            onClick={handleVoteNo}
+                            sx={{borderRadius:'17px',textTransform:'none'}}
+                        >Vote NO</Button>
+                    }
                     {(delegatedVoterRecord && delegatedVoterRecord.length > 0) &&
                         <>
                             <Button
@@ -524,7 +530,9 @@ export function VoteForProposal(props:any){
                                     <ClickAwayListener 
                                         onClickAway={handleDelegateCloseNoToggle}>
                                         <MenuList id="split-no-menu" autoFocusItem>
-                                            <MenuItem onClick={(event) => handleVote(1, null, true)}>Vote only with my Voting Power</MenuItem>
+                                            <MenuItem 
+                                                disabled={hasVoted}
+                                                onClick={(event) => handleVote(1, null, true)}>Vote only with my Voting Power</MenuItem>
                                             <Divider />
                                             {delegatedVoterRecord.map((option, index) => (
                                                 <MenuItem

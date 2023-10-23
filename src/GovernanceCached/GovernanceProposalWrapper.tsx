@@ -42,6 +42,7 @@ import {
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
  
+import { GovernanceProposalV2View } from "./GovernanceProposalV2";
 import { GovernanceProposalView } from './GovernanceProposal';
 
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
@@ -144,6 +145,7 @@ const GOVERNANCE_STATE = {
 const renderLoader = () => <p>Loading</p>;
 
 export function GovernanceProposalWrapper(props: any){
+    const beta = props?.beta ? props.beta : false;
     const cachedGovernance = props.cachedGovernance;
     const governanceLookup = props.governanceLookup;
     const tokenMap = props.tokenMap;
@@ -165,8 +167,13 @@ export function GovernanceProposalWrapper(props: any){
                     p:4
                 }} 
             >       
-            
+              {/*beta ?
+                <GovernanceProposalV2View showGovernanceTitle={true} governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
+              :
                 <GovernanceProposalView showGovernanceTitle={true} governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
+              */}
+                <GovernanceProposalV2View showGovernanceTitle={true} governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
+              
             
             </Box>                         
             

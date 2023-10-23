@@ -5,7 +5,6 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AdminView } from "./Admin/Admin";
 //import GovernanceAppPageView from "./GovernanceCached/v2/page";
 
-import GovernanceV2 from "./GovernanceCached/GovernanceV2";
 import { GovernanceRPCView } from "./GovernanceRPC/Governance";
 import { MyGovernanceView } from "./GovernanceCached/MyGovernance";
 import { GovernanceCachedView } from "./GovernanceCached/Governance";
@@ -16,6 +15,7 @@ import { GovernanceTreasuryView } from "./GovernanceCached/GovernanceTreasury";
 import { GovernanceDirectoryView } from "./GovernanceCached/GovernanceDirectory";
 import { GovernanceReputationView } from "./GovernanceCached/GovernanceReputation";
 import { GovernanceProposalView } from "./GovernanceCached/GovernanceProposal";
+import { GovernanceProposalV2View } from "./GovernanceCached/GovernanceProposalV2";
 import { GovernanceProposalWrapper } from "./GovernanceCached/GovernanceProposalWrapper";
 import GovernanceCreateProposalView from "./GovernanceCached/GovernanceCreateProposal";
 
@@ -167,8 +167,8 @@ function DashboardContent() {
                 <Route path=":handlekey/:querytype/:queryvar1/:queryvar2/:queryvar3" element={<ApiView />} />
               </Route>
 
-              <Route path="embedproposal/*" element={<GovernanceProposalView showGovernanceTitle={true} background={'rgba(0,0,0)'} textColor={'rgba(255, 255, 255)'} />} >
-                <Route path=":governance/:proposal" element={<GovernanceProposalView showGovernanceTitle={true} background={'rgba(0,0,0)'} textColor={'rgba(255, 255, 255)'}  />} />
+              <Route path="embedproposal/*" element={<GovernanceProposalV2View showGovernanceTitle={true} background={'rgba(0,0,0)'} textColor={'rgba(255, 255, 255)'} />} >
+                <Route path=":governance/:proposal" element={<GovernanceProposalV2View showGovernanceTitle={true} background={'rgba(0,0,0)'} textColor={'rgba(255, 255, 255)'}  />} />
               </Route>
 
               <Route path="embedgovernance/*" element={<GovernanceCachedView showGovernanceTitle={true} showGovernanceNavigation={false} background={'rgba(0,0,0)'} textColor={'rgba(255, 255, 255)'} />} >
@@ -223,10 +223,6 @@ function DashboardContent() {
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                               </Route>
                                               
-                                              <Route path="v2/*" element={<GovernanceV2 />} >
-                                                  <Route path=":handlekey" element={<GovernanceV2 />} />
-                                              </Route>
-
                                               <Route path="dao/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                               </Route>
@@ -239,8 +235,12 @@ function DashboardContent() {
                                                   <Route path=":handlekey" element={<GovernanceCreateProposalView />} />
                                               </Route>
 
-                                              <Route path="proposal/*" element={<GovernanceProposalWrapper />} >
+                                              <Route path="proposal/*" element={<GovernanceProposalWrapper/>} >
                                                   <Route path=":governance/:proposal" element={<GovernanceProposalWrapper />} />
+                                              </Route>
+
+                                              <Route path="v2/*" element={<GovernanceProposalWrapper beta={true}/>} >
+                                                  <Route path=":governance/:proposal" element={<GovernanceProposalWrapper beta={true} />} />
                                               </Route>
 
                                               <Route path="metrics/*" element={<PremiumView />} >
