@@ -197,6 +197,8 @@ export function GovernanceProposalV2View(props: any){
     const [proposalAuthor, setProposalAuthor] = React.useState(null);
     const [governingMintInfo, setGoverningMintInfo] = React.useState(null);
     const [totalQuorum, setTotalQuorum] = React.useState(null);
+    const [totalVoteThresholdPercentage, setTotalVoteThresholdPercentage] = React.useState(null);
+    const [totalSupplyFractionPercentage, setTotalSupplyFractionPercentage] = React.useState(null);
     const [quorumTargetPercentage, setQuorumTargetPercentage] = React.useState(null);
     const [quorumTarget, setQuorumTarget] = React.useState(null);
     const [totalSupply, setTotalSupply] = React.useState(null);
@@ -440,6 +442,9 @@ export function GovernanceProposalV2View(props: any){
                     tSupply  *
                     (voteThresholdPercentage / 100) *
                     (Number(supplyFractionPercentage) / 100);
+                
+                setTotalVoteThresholdPercentage(voteThresholdPercentage);
+                setTotalSupplyFractionPercentage(Number(supplyFractionPercentage));
                 //console.log("tSupply "+tSupply+"*"+voteThresholdPercentage+"*0.01*"+ (Number(supplyFractionPercentage) / 100))
 
                 //console.log("totalQuorum: "+totalVotes)
@@ -1953,12 +1958,50 @@ export function GovernanceProposalV2View(props: any){
                                                     </Typography>
                                                 </Box>
                                                 }
-                                                {totalSupply &&
+                                                {totalVoteThresholdPercentage &&
                                                 <Box sx={{ my: 3, mx: 2 }}>
                                                     <Grid container alignItems="center">
                                                     <Grid item xs>
                                                         <Typography gutterBottom variant="subtitle1" component="div">
-                                                            Voting Token Supply
+                                                            Max Vote Weight Source
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item>
+                                                        <Typography gutterBottom variant="body1" component="div">
+                                                            {(totalVoteThresholdPercentage)}%
+                                                        </Typography>
+                                                    </Grid>
+                                                    </Grid>
+                                                    <Typography color="text.secondary" variant="caption">
+                                                        {(+(totalVoteThresholdPercentage/100*totalQuorum).toFixed(0)).toLocaleString()} calculated from {(totalSupply.toLocaleString())} supply
+                                                    </Typography>
+                                                </Box>
+                                                }
+                                                {totalSupplyFractionPercentage &&
+                                                <Box sx={{ my: 3, mx: 2 }}>
+                                                    <Grid container alignItems="center">
+                                                    <Grid item xs>
+                                                        <Typography gutterBottom variant="subtitle1" component="div">
+                                                            Supply Faction Percentage
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item>
+                                                        <Typography gutterBottom variant="body1" component="div">
+                                                            {(totalSupplyFractionPercentage)}%
+                                                        </Typography>
+                                                    </Grid>
+                                                    </Grid>
+                                                    <Typography color="text.secondary" variant="caption">
+                                                        {(+(totalSupplyFractionPercentage/100*totalQuorum).toFixed(0)).toLocaleString()} calculated from {(totalSupply.toLocaleString())} supply
+                                                    </Typography>
+                                                </Box>
+                                                }
+                                                {/*totalSupply &&
+                                                <Box sx={{ my: 3, mx: 2 }}>
+                                                    <Grid container alignItems="center">
+                                                    <Grid item xs>
+                                                        <Typography gutterBottom variant="subtitle1" component="div">
+                                                            Token Supply
                                                         </Typography>
                                                     </Grid>
                                                     <Grid item>
@@ -1971,7 +2014,7 @@ export function GovernanceProposalV2View(props: any){
                                                         Number of tokens in circulation
                                                     </Typography>
                                                 </Box>
-                                                }
+                                                */}
                                             </>
                                             }
                                             
@@ -2137,6 +2180,8 @@ export function GovernanceProposalV2View(props: any){
                                     expanded={expanded === 'panel'+1} 
                                     onChange={handleChange('panel'+1)}
                                     className="panelibh-accordion"
+                                    TransitionProps={{ unmountOnExit: true }}
+                                    sx={{background: 'rgba(0, 0, 0, 0.25)', borderRadius:'17px'}}
                                 >
                                     <AccordionSummary
                                         expandIcon={<ExpandMoreIcon />}
@@ -2144,6 +2189,7 @@ export function GovernanceProposalV2View(props: any){
                                         className="panelibh-header"
                                         sx={{
                                             border:'none',
+                                            borderRadius:'17px',
                                         }}
                                     >
                                         <Typography sx={{ flexShrink: 0 }}>
