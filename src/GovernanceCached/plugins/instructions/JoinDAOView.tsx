@@ -103,7 +103,7 @@ export default function JoinDAOView(props: any) {
     const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
-    const [tokenAmountStr, setTokenAmountStr] = React.useState(0.0);
+    const [tokenAmountStr, setTokenAmountStr] = React.useState("");
     const [transactionInstructions, setTransactionInstructions] = React.useState(null);
     const [payerInstructions, setPayerInstructions] = React.useState(null);
     const [tokenMaxAmount, setTokenMaxAmount] = React.useState(null);
@@ -502,6 +502,7 @@ export default function JoinDAOView(props: any) {
     
     function handleTokenAmountChange(text:string){
         const cleanedText = text.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, '$1');
+        //console.log("HERE: "+text)
         setTokenAmountStr(cleanedText);
         setTokenAmount(parseFloat(cleanedText))
         
@@ -671,9 +672,11 @@ export default function JoinDAOView(props: any) {
                                 type="text"
                                 fullWidth
                                 variant="standard"
-                                value={tokenAmount > 0 ? tokenAmount : ''}
+                                //value={(tokenAmountStr.length > 0 && tokenAmount > 0) ? tokenAmount : tokenAmountStr.length > 0 ? tokenAmountStr : ''}
                                 default={tokenMaxAmount}
-                                onChange={handleTokenAmountChange}
+                                onChange={(e:any) => {
+                                    handleTokenAmountChange(e.target.value);
+                                }}
                                 inputProps={{
                                     style: { 
                                         textAlign:'center', 
