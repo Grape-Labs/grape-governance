@@ -1111,7 +1111,7 @@ export function GovernanceProposalV2View(props: any){
 
         //console.log("votingResults: "+JSON.stringify(votingResults));
 
-        castedYes = +(castedYes / 10 ** ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td)).toFixed(0);
+        //castedYes = +castedYes;//+(castedYes / 10 ** ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td)).toFixed(0);
         
 
         //console.log("castedYes: "+castedYes);
@@ -1595,9 +1595,6 @@ export function GovernanceProposalV2View(props: any){
                             </Grid>                       
                         }
 
-
-                        
-
                         {proposalAuthor &&
                             <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
                                 <Divider sx={{mt:1,mb:1}}/>
@@ -1637,13 +1634,13 @@ export function GovernanceProposalV2View(props: any){
                                                         mr:1
                                                         }}
                                                     >
-                                                    <ButtonGroup variant="outlined" aria-label="outlined primary button group" sx={{textAlign:'center'}}>
+                                                    <ButtonGroup variant="outlined" aria-label="outlined primary button group" sx={{textAlign:'center',height:'70px'}}>
                                                         {thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
                                                             <Button
                                                                 color="success"
                                                                 sx={{borderRadius:'17px'}}
                                                             >
-                                                                <Typography variant="caption" sx={{color:'#2ecc71'}}>
+                                                                <Typography variant="caption">
                                                                     <>
                                                                     
                                                                     For<br/><Typography variant="caption">{forVotes ? 
@@ -1668,7 +1665,7 @@ export function GovernanceProposalV2View(props: any){
                                                                     </>   
                                                                     }</Typography></>
                                                                 </Typography>
-                                                                <ThumbUpIcon color='success' fontSize='small' sx={{mr:1,ml:1}} />
+                                                                <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
                                                                 {forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
                                                             </Button>
                                                             /*
@@ -1712,13 +1709,13 @@ export function GovernanceProposalV2View(props: any){
                                                         //ml:1
                                                         }}
                                                     >
-                                                    <ButtonGroup variant="outlined" aria-label="outlined primary button group">
+                                                    <ButtonGroup variant="outlined" aria-label="outlined primary button group" sx={{height:'70px'}}>
                                                         {thisitem.account?.denyVoteWeight ?
                                                             <Button
                                                                     color="error"
                                                                     sx={{borderRadius:'17px'}}
                                                                 >
-                                                                    <Typography variant="caption" sx={{color:'#2ecc71'}}>
+                                                                    <Typography variant="caption">
                                                                         <>Against<br/><Typography variant="caption">
                                                                         {againstVotes ? 
                                                                             <>
@@ -1745,7 +1742,7 @@ export function GovernanceProposalV2View(props: any){
                                                                         </>
                                                                     </Typography>
 
-                                                                    <ThumbDownIcon color='error' fontSize='small' sx={{mr:1,ml:1}} />
+                                                                    <ThumbDownIcon fontSize='small' sx={{mr:1,ml:1}} />
                                                                     {againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
                                                                 </Button>
                                                             /*
@@ -1787,67 +1784,318 @@ export function GovernanceProposalV2View(props: any){
 
                         <Divider sx={{mt:1,mb:1}} />
 
-                        <Box
-                            sx={{
-                                background: 'rgba(0, 0, 0, 0.25)',
-                                borderRadius: '17px',
-                                p:1
-                            }}
-                        >
-                            <Box sx={{ alignItems: 'left', textAlign: 'left',m:1}}>
-                                <Typography variant='h5'>{thisitem.account?.name}</Typography>
-                            </Box>
-                            
-                            <Box sx={{ alignItems: 'left', textAlign: 'left',m:1}}>
-                                {gist ?
-                                    <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
-                                        <div
-                                            style={{
-                                                border: 'solid',
-                                                borderRadius: 15,
-                                                borderColor:'rgba(255,255,255,0.05)',
-                                                padding:4,
-                                            }} 
-                                        >
-                                            <Typography variant='body2'>
-                                                <ReactMarkdown 
-                                                    remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
-                                                    transformImageUri={transformImageUri}
-                                                    children={proposalDescription}
-                                                    components={{
-                                                        // Custom component for overriding the image rendering
-                                                        img: ({ node, ...props }) => (
-                                                        <img
-                                                            {...props}
-                                                            style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
-                                                        />
-                                                        ),
-                                                    }}
-                                                />
-                                            </Typography>
-                                        </div>
-                                        <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
-                                            <Button
-                                                color='inherit'
-                                                target='_blank'
-                                                href={thisitem.account?.descriptionLink}
-                                                sx={{borderRadius:'17px'}}
-                                            >
-                                                <GitHubIcon sx={{mr:1}} /> GIST
-                                            </Button>
-                                        </Box>
+                        <Grid container>
+                            <Grid item md={8} sm={12} xs={12}>
+                                <Box
+                                    sx={{
+                                        background: 'rgba(0, 0, 0, 0.25)',
+                                        borderRadius: '17px',
+                                        p:1
+                                    }}
+                                >
+                                    <Box sx={{ alignItems: 'left', textAlign: 'left',m:1}}>
+                                        <Typography variant='h5'>{thisitem.account?.name}</Typography>
                                     </Box>
-                                    :
-                                    <>
-                                        {thisitem.account?.descriptionLink &&
+                                    
+                                    <Box sx={{ alignItems: 'left', textAlign: 'left',m:1}}>
+                                        {gist ?
+                                            <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
+                                                <div
+                                                    style={{
+                                                        border: 'solid',
+                                                        borderRadius: 15,
+                                                        borderColor:'rgba(255,255,255,0.05)',
+                                                        padding:4,
+                                                    }} 
+                                                >
+                                                    <Typography variant='body2'>
+                                                        <ReactMarkdown 
+                                                            remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
+                                                            transformImageUri={transformImageUri}
+                                                            children={proposalDescription}
+                                                            components={{
+                                                                // Custom component for overriding the image rendering
+                                                                img: ({ node, ...props }) => (
+                                                                <img
+                                                                    {...props}
+                                                                    style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
+                                                                />
+                                                                ),
+                                                            }}
+                                                        />
+                                                    </Typography>
+                                                </div>
+                                                <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
+                                                    <Button
+                                                        color='inherit'
+                                                        target='_blank'
+                                                        href={thisitem.account?.descriptionLink}
+                                                        sx={{borderRadius:'17px'}}
+                                                    >
+                                                        <GitHubIcon sx={{mr:1}} /> GIST
+                                                    </Button>
+                                                </Box>
+                                            </Box>
+                                            :
                                             <>
-                                                <Typography variant='body1'>{thisitem.account?.descriptionLink}</Typography>
+                                                {thisitem.account?.descriptionLink &&
+                                                    <>
+                                                        <Typography variant='body1'>{thisitem.account?.descriptionLink}</Typography>
+                                                    </>
+                                                }
                                             </>
                                         }
-                                    </>
-                                }
-                            </Box>
-                        </Box>
+                                    </Box>
+                                </Box>
+                            </Grid>
+                            <Grid item md={4} sm={12} xs={12}>
+                                <Box
+                                    sx={{
+                                        background: 'rgba(0, 0, 0, 0.25)',
+                                        borderRadius: '17px',
+                                        p:1,
+                                        ml:1
+                                    }}
+                                >
+                                    <Grid container>
+                                        <Grid item xs={12} key={1}>
+                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                <Grid container alignItems="center">
+                                                <Grid item xs>
+                                                    <Typography gutterBottom variant="subtitle1" component="div">
+                                                        Type
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item>
+                                                    <Typography gutterBottom variant="body1" component="div">
+                                                        {propVoteType}
+                                                    </Typography>
+                                                </Grid>
+                                                </Grid>
+                                                <Typography color="text.secondary" variant="caption">
+                                                    Voting type
+                                                </Typography>
+                                            </Box>
+                                            
+                                            {governingMintInfo &&
+                                            <>
+                                                {thisitem.account.governingTokenMint &&
+                                                <Box sx={{ my: 3, mx: 2 }}>
+                                                    <Grid container alignItems="center">
+                                                    <Grid item xs>
+                                                        <Typography gutterBottom variant="subtitle1" component="div">
+                                                            Mint
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item>
+                                                        <Typography gutterBottom variant="body1" component="div">
+                                                                <ExplorerView
+                                                                    address={thisitem.account.governingTokenMint?.toBase58()} type='address'
+                                                                    hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                                        </Typography>
+                                                    </Grid>
+                                                    </Grid>
+                                                    <Typography color="text.secondary" variant="caption">
+                                                        Mint used to vote for this proposal
+                                                    </Typography>
+                                                </Box>
+                                                }
+                                                {totalQuorum &&
+                                                <Box sx={{ my: 3, mx: 2 }}>
+                                                    <Grid container alignItems="center">
+                                                    <Grid item xs>
+                                                        <Typography gutterBottom variant="subtitle1" component="div">
+                                                            Quorum
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item>
+                                                        <Typography gutterBottom variant="body1" component="div">
+                                                            {((+(totalQuorum).toFixed(1)).toLocaleString())}
+                                                        </Typography>
+                                                    </Grid>
+                                                    </Grid>
+                                                    <Typography color="text.secondary" variant="caption">
+                                                        Number of tokens needed for the proposal to pass
+                                                    </Typography>
+                                                </Box>
+                                                }
+                                                {totalSupply &&
+                                                <Box sx={{ my: 3, mx: 2 }}>
+                                                    <Grid container alignItems="center">
+                                                    <Grid item xs>
+                                                        <Typography gutterBottom variant="subtitle1" component="div">
+                                                            Voting Token Supply
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item>
+                                                        <Typography gutterBottom variant="body1" component="div">
+                                                            {(totalSupply.toLocaleString())}
+                                                        </Typography>
+                                                    </Grid>
+                                                    </Grid>
+                                                    <Typography color="text.secondary" variant="caption">
+                                                        Number of tokens in circulation
+                                                    </Typography>
+                                                </Box>
+                                                }
+                                            </>
+                                            }
+                                            
+                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                <Grid container alignItems="center">
+                                                <Grid item xs>
+                                                    <Typography gutterBottom variant="subtitle1" component="div">
+                                                        General Sentiment
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item>
+                                                    <Typography gutterBottom variant="body1" component="div">
+                                                        {uniqueYes} / {uniqueNo}
+                                                    </Typography>
+                                                </Grid>
+                                                </Grid>
+                                                <Typography color="text.secondary" variant="caption">
+                                                    Total unique voters voting for/against this proposal
+                                                </Typography>
+                                            </Box>
+
+                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                <Grid container alignItems="center">
+                                                <Grid item xs>
+                                                    <Typography gutterBottom variant="subtitle1" component="div">
+                                                        Signed Off At
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item>
+                                                    <Typography gutterBottom variant="body1" component="div">
+                                                        {moment.unix(Number(thisitem.account?.signingOffAt)).format("MMMM D, YYYY, h:mm a")}
+                                                    </Typography>
+                                                </Grid>
+                                                </Grid>
+                                                <Typography color="text.secondary" variant="caption">
+                                                    Timestamp that this proposal was signed off (voting started)
+                                                </Typography>
+                                            </Box>
+
+                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                <Grid container alignItems="center">
+                                                <Grid item xs>
+                                                    <Typography gutterBottom variant="subtitle1" component="div">
+                                                        {(thisitem.account?.votingCompletedAt && thisitem.account?.votingCompletedAt > 0) ?
+                                                            <>Ended At</>
+                                                        :
+                                                            <>Ends At</>
+                                                        }
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item>
+                                                    <Typography gutterBottom variant="body1" component="div">
+                                                        {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
+                                                            <>
+                                                                {thisitem.account?.draftAt &&
+                                                                    `${moment.unix(Number(thisitem.account.signingOffAt)+(Number(thisGovernance.account.config.baseVotingTime))).format("MMMM D, YYYY, h:mm a")}`
+                                                                }
+                                                            </>
+                                                        :
+                                                            <>
+                                                            {thisitem.account?.votingCompletedAt ?
+                                                                `${moment.unix(thisitem.account.votingCompletedAt).format("MMMM D, YYYY, h:mm a")}`
+                                                            :
+                                                                `Ended`
+                                                            }
+                                                            </>
+                                                        }
+                                                    </Typography>
+                                                </Grid>
+                                                </Grid>
+                                                <Typography color="text.secondary" variant="caption">
+                                                    Calculated ending timestamp
+                                                </Typography>
+                                            </Box>
+
+                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                <Grid container alignItems="center">
+                                                <Grid item xs>
+                                                    <Typography gutterBottom variant="subtitle1" component="div">
+                                                        Time Left
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item>
+                                                    <Typography gutterBottom variant="body1" component="div">
+                                                        {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
+                                                            <>
+                                                                {thisitem.account?.draftAt &&
+                                                                    <>
+                                                                        {thisitem.account?.votingCompletedAt ?
+                                                                            `${moment.unix(Number(thisitem.account.draftAt)+Number(thisGovernance.account?.config.baseVotingTime)).fromNow()}`
+                                                                        :
+                                                                            `Ending ${moment.unix(Number(thisitem.account.draftAt)+Number(thisGovernance.account.config.baseVotingTime)).fromNow()}`
+                                                                        }
+                                                                    </>
+                                                                }
+                                                            </>
+                                                        :
+                                                            `Ended`
+                                                        }
+                                                    </Typography>
+                                                </Grid>
+                                                </Grid>
+                                                <Typography color="text.secondary" variant="caption">
+                                                    From now how much time left until this proposal ends
+                                                </Typography>
+                                            </Box>
+
+                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                <Grid container alignItems="center">
+                                                <Grid item xs>
+                                                    <Typography gutterBottom variant="subtitle1" component="div">
+                                                        Status
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item>
+                                                    <Typography gutterBottom variant="body1" component="div">
+                                                        {GOVERNANCE_STATE[thisitem.account?.state]}
+                                                    </Typography>
+                                                </Grid>
+                                                </Grid>
+                                                <Typography color="text.secondary" variant="caption">
+                                                    Voting Status
+                                                </Typography>
+                                            </Box>
+                                            
+                                            {csvGenerated &&
+                                                <Box sx={{ my: 3, mx: 2 }}>
+                                                    <Grid container alignItems="center">
+                                                        <Grid item xs>
+                                                            
+                                                        </Grid>
+                                                        <Grid item>
+                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                <Tooltip title="Download Voter Participation CSV file">
+                                                                    <Button
+                                                                        size="small"
+                                                                        color='inherit'
+                                                                        variant="outlined"
+                                                                        sx={{borderRadius:'17px'}}
+                                                                        download={`${thisitem.pubkey.toBase58()}.csv`}
+                                                                        href={csvGenerated}
+                                                                    >
+                                                                        <DownloadIcon /> CSV
+                                                                    </Button>
+                                                                </Tooltip>
+                                                            </Typography>
+                                                        </Grid>
+                                                    </Grid>
+                                                </Box>
+                                            }
+
+                                        </Grid>
+                                        
+                                    </Grid>  
+                                </Box>
+                            </Grid>
+                        </Grid>
+
                         {(proposalInstructions && proposalInstructions.length > 0) &&
                             <Box 
                                 sx={{ mt:2,mb:2 }}>
@@ -2016,256 +2264,6 @@ export function GovernanceProposalV2View(props: any){
                                             }
                                         </Grid>
                                     
-                                    }
-                                    
-                                    <Grid item xs={12} sm={6} md={3} key={1}>
-                                        <Box
-                                            className='grape-store-stat-item'
-                                            sx={{borderRadius:'24px',m:2,p:1}}
-                                        >
-                                            <Typography variant="body2">
-                                                <>Type</>
-                                            </Typography>
-                                            <Typography variant="subtitle2">
-                                                <Tooltip title={
-                                                    <>{governingMintInfo &&
-                                                        <>
-                                                        {`Mint: ${thisitem.account.governingTokenMint}`}
-                                                        {totalSupply &&
-                                                            <>
-                                                            <br />
-                                                            {`Supply: 
-                                                                ${getFormattedNumberToLocale(totalSupply)}`
-                                                            }
-                                                            </>
-                                                        }
-                                                        {totalQuorum &&
-                                                            <>
-                                                                <br />
-                                                                {`Quorum: ${getFormattedNumberToLocale(+(totalQuorum).toFixed(0))}`}
-                                                            </>
-                                                        }
-                                                        </>
-                                                        }
-                                                    </>
-                                                    }>
-                                                    <Button
-                                                        size="small"
-                                                        variant="outlined"
-                                                        color="inherit"
-                                                        sx={{borderRadius:'17px'}}
-                                                    >{propVoteType}</Button>
-                                                </Tooltip>
-                                            </Typography>
-                                        </Box>
-                                    </Grid>
-                                    <Grid item xs={12} sm={6} md={3} key={1}>
-                                        <Box
-                                            className='grape-store-stat-item'
-                                            sx={{borderRadius:'24px',m:2,p:1}}
-                                        >
-                                            <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                <>Participation</>
-                                            </Typography>
-                                            <Typography variant="subtitle2">
-                                                <Tooltip title='Unique Votes / Total Votes casted from Participants'>
-                                                    <Button
-                                                        sx={{borderRadius:'17px'}}
-                                                        variant="text"
-                                                        color="inherit"
-                                                    >
-                                                    <>
-                                                    {solanaVotingResultRows && solanaVotingResultRows.length}
-                                                    </>&nbsp;/&nbsp;
-                                                    <>
-                                                            <>
-                                                            {getFormattedNumberToLocale(formatAmount(+forVotes + +againstVotes))}
-                                                            </>
-                                                        {/*
-
-                                                            <>
-                                                            {thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
-                                                                <Typography variant="caption">
-                                                                    {getFormattedNumberToLocale(formatAmount(+((Number(thisitem.account.options[0].voteWeight) + Number(thisitem.account.denyVoteWeight))/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                </Typography>
-                                                            :
-                                                                <>
-                                                                    {thisitem.account?.yesVotesCount && 
-                                                                        <Typography variant="caption">
-                                                                            {getFormattedNumberToLocale(formatAmount(+((Number(thisitem.account.yesVotesCount) + Number(thisitem.account.noVotesCount)) /Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                        </Typography>
-                                                                    }
-                                                                </>
-                                                            }
-                                                            </>
-                                                        */}
-                                                    
-                                                    </>
-                                                    </Button>
-                                                </Tooltip>
-                                            </Typography>
-                                        </Box>
-                                    </Grid>
-                                    <Grid item xs={12} sm={6} md={3} key={1}>
-                                        <Box
-                                            className='grape-store-stat-item'
-                                            sx={{borderRadius:'24px',m:2,p:1}}
-                                        >
-                                            <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                <>General Sentiment</>
-                                            </Typography>
-                                            <Typography variant="subtitle2">
-                                                <Tooltip title='Unique For Voters / Unique Against Voters'>
-                                                    <Button
-                                                        sx={{borderRadius:'17px'}}
-                                                        variant="text"
-                                                        color="inherit"
-                                                    >
-                                                        {uniqueYes} / {uniqueNo}
-                                                        {/*
-                                                        <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{uniqueYes}</Badge>/
-                                                        <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{uniqueNo}</Badge>
-                                                        */}
-                                                    </Button>
-                                                </Tooltip>
-                                            </Typography>
-                                        </Box>
-                                    </Grid>
-                                    <Grid item xs={12} sm={6} md={3} key={1}>
-                                        <Box
-                                            className='grape-store-stat-item'
-                                            sx={{borderRadius:'24px',m:2,p:1}}
-                                        >
-                                            <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                Export
-                                            </Typography>
-                                            <Typography variant="subtitle2">
-                                            {/*ButtonGroup size="small" color='inherit'>
-                                                {/*jsonGenerated &&
-                                                    <Tooltip title="Download Voter Participation JSON file">
-                                                        <Button
-                                                            sx={{borderBottomLeftRadius:'17px',borderTopLeftRadius:'17px'}}
-                                                            download={`${thisitem.pubkey.toBase58()}.csv`}
-                                                            href={jsonGenerated}
-                                                        >
-                                                            <DownloadIcon /> JSON
-                                                        </Button>
-                                                    </Tooltip>
-                                                */}
-
-                                                {csvGenerated &&
-                                                    <Tooltip title="Download Voter Participation CSV file">
-                                                        <Button
-                                                            size="small"
-                                                            color='inherit'
-                                                            variant="outlined"
-                                                            sx={{borderRadius:'17px'}}
-                                                            download={`${thisitem.pubkey.toBase58()}.csv`}
-                                                            href={csvGenerated}
-                                                        >
-                                                            <DownloadIcon /> CSV
-                                                        </Button>
-                                                    </Tooltip>
-                                                }
-                                            {/*</ButtonGroup>*/}
-                                            
-                                            </Typography>
-                                        </Box>
-                                    </Grid>
-
-                                    {thisitem.account?.draftAt &&
-                                        <Grid item xs={12} sm={6} md={3} key={1}>
-                                            <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
-                                            >
-                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Started At</>
-                                                </Typography>
-                                                <Typography variant="subtitle2">
-                                                    {moment.unix(Number(thisitem.account?.signingOffAt)).format("MMMM D, YYYY, h:mm a")}
-                                                </Typography>
-                                            </Box>
-                                        </Grid>
-                                    }
-                                    
-                                    <Grid item xs={12} sm={6} md={3} key={1}>
-                                        <Box
-                                            className='grape-store-stat-item'
-                                            sx={{borderRadius:'24px',m:2,p:1}}
-                                        >
-                                            <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                {(thisitem.account?.votingCompletedAt && thisitem.account?.votingCompletedAt > 0) ?
-                                                    <>Ended At</>
-                                                :
-                                                    <>Ends At</>
-                                                }
-                                            </Typography>
-                                            <Typography variant="subtitle2">
-                                                    {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
-                                                        <>
-                                                            {thisitem.account?.draftAt &&
-                                                                `${moment.unix(Number(thisitem.account.signingOffAt)+(Number(thisGovernance.account.config.baseVotingTime))).format("MMMM D, YYYY, h:mm a")}`
-                                                            }
-                                                        </>
-                                                    :
-                                                        <>
-                                                        {thisitem.account?.votingCompletedAt ?
-                                                            `${moment.unix(thisitem.account.votingCompletedAt).format("MMMM D, YYYY, h:mm a")}`
-                                                        :
-                                                            `Ended`
-                                                        }
-                                                        </>
-                                                    }
-                                            </Typography>
-                                        </Box>
-                                    </Grid>
-
-                                    {thisitem?.account?.options &&
-                                        <Grid item xs={12} sm={6} md={3} key={1}>
-                                            <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
-                                            >
-                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Time Left</>
-                                                </Typography>
-                                                <Typography variant="subtitle2">
-                                                    {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
-                                                        <>
-                                                            {thisitem.account?.draftAt &&
-                                                                <>
-                                                                    {thisitem.account?.votingCompletedAt ?
-                                                                        `${moment.unix(Number(thisitem.account.draftAt)+Number(thisGovernance.account?.config.baseVotingTime)).fromNow()}`
-                                                                    :
-                                                                        `Ending ${moment.unix(Number(thisitem.account.draftAt)+Number(thisGovernance.account.config.baseVotingTime)).fromNow()}`
-                                                                    }
-                                                                </>
-                                                            }
-                                                        </>
-                                                    :
-                                                        `Ended`
-                                                    }
-                            
-                                                </Typography>
-                                            </Box>
-                                        </Grid>
-                                    }
-
-                                    {thisitem.account?.state &&
-                                        <Grid item xs={12} sm={6} md={3} key={1}>
-                                            <Box
-                                                className='grape-store-stat-item'
-                                                sx={{borderRadius:'24px',m:2,p:1}}
-                                            >
-                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Status</>
-                                                </Typography>
-                                                <Typography variant="subtitle2">
-                                                        {GOVERNANCE_STATE[thisitem.account?.state]}
-                                                </Typography>
-                                            </Box>
-                                        </Grid> 
                                     }
                                     
                                 </Grid>

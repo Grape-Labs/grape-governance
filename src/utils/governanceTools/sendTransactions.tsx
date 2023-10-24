@@ -6,9 +6,12 @@ import {
   SignatureStatus,
   SimulatedTransactionResponse,
   Transaction,
+  TransactionMessage,
   TransactionInstruction,
   TransactionSignature,
   Keypair,
+  VersionedMessage,
+  VersionedTransaction,
 } from '@solana/web3.js';
 //import  SignerWalletAdapter  from "@project-serum/sol-wallet-adapter";
 import { AnchorWallet } from "@solana/wallet-adapter-react";
@@ -181,15 +184,32 @@ export async function sendSignedTransaction({
   const rawTransaction = signedTransaction.serialize()
   const startTime = getUnixTs()
   let slot = 0
+
+  /*
+  const serializedTx = rawTransaction;
+  const versionedMessage = VersionedMessage.deserialize(serializedTx);
+  const versionedTransaction = new VersionedTransaction(versionedMessage);
+  const txid = await connection.sendTransaction(versionedTransaction, { maxRetries: 5 });
+  console.log("   ✅ - Transaction sent to network");
+  console.log('Started awaiting confirmation for', txid)
+  */
+ // Create the transaction message
+  /*
+  const message = new TransactionMessage({
+    payerKey: payer.publicKey, // Public key of the account that will pay for the transaction
+    recentBlockhash: blockhash, // Latest blockhash
+    instructions: transferInstruction, // Instructions included in transaction
+  }).compileToV0Message();
+  */
+ 
   const txid: TransactionSignature = await connection.sendRawTransaction(
     rawTransaction,
     {
       skipPreflight: true,
     }
   )
-
-  console.log('Started awaiting confirmation for', txid)
-
+  
+  
   let done = false
   ;(async () => {
     while (!done && getUnixTs() - startTime < timeout) {
@@ -284,7 +304,8 @@ export const sendTransactions = async (
       continue
     }
 
-    const transaction = new Transaction()
+    const transaction = new Transaction();
+
     instructions.forEach((instruction) => transaction.add(instruction))
 
     //if (authTransaction && authTransaction.instructions.length > 0){
@@ -301,10 +322,11 @@ export const sendTransactions = async (
       ...signers.map((s) => s.publicKey)
     )*/
 
+    
     if (signers.length > 0) {
       transaction.partialSign(...signers)
     }
-
+    
     unsignedTxns.push(transaction)
   }
   const signedTxns = await wallet.signAllTransactions(unsignedTxns)
