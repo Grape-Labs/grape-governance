@@ -1973,7 +1973,7 @@ export function GovernanceProposalV2View(props: any){
                                                     </Grid>
                                                     </Grid>
                                                     <Typography color="text.secondary" variant="caption">
-                                                        {(+(totalVoteThresholdPercentage/100*totalQuorum).toFixed(0)).toLocaleString()} calculated from {(totalSupply.toLocaleString())} supply
+                                                        {(+((totalVoteThresholdPercentage/100)*totalSupply).toFixed(0)).toLocaleString()} calculated from {(totalSupply.toLocaleString())} supply
                                                     </Typography>
                                                 </Box>
                                                 }
@@ -1992,7 +1992,7 @@ export function GovernanceProposalV2View(props: any){
                                                     </Grid>
                                                     </Grid>
                                                     <Typography color="text.secondary" variant="caption">
-                                                        {(+(totalSupplyFractionPercentage/100*totalQuorum).toFixed(0)).toLocaleString()} calculated from {(totalSupply.toLocaleString())} supply
+                                                        {(+((totalSupplyFractionPercentage/100)*totalSupply).toFixed(0)).toLocaleString()} calculated from {(totalSupply.toLocaleString())} supply
                                                     </Typography>
                                                 </Box>
                                                 }
