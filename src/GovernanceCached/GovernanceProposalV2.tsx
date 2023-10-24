@@ -1824,7 +1824,7 @@ export function GovernanceProposalV2View(props: any){
                         <Divider sx={{mt:1,mb:1}} />
 
                         <Grid container>
-                            <Grid item md={8} sm={12} xs={12}>
+                            <Grid item md={8} sm={12} xs={12} sx={{mt:2}}>
                                 <Box
                                     sx={{
                                         background: 'rgba(0, 0, 0, 0.25)',
@@ -1887,7 +1887,7 @@ export function GovernanceProposalV2View(props: any){
                                     </Box>
                                 </Box>
                             </Grid>
-                            <Grid item md={4} sm={12} xs={12}>
+                            <Grid item md={4} sm={12} xs={12} sx={{mt:2}}>
                                 <Box
                                     sx={{
                                         background: 'rgba(0, 0, 0, 0.25)',

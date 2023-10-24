@@ -1552,7 +1552,7 @@ export function GovernanceProposalView(props: any){
                             </Box>
                         }
                         
-                        <Box sx={{ alignItems: 'center', textAlign: 'center'}}>
+                        <Box sx={{ alignItems: 'center', textAlign: 'center',mt:1}}>
                             {gist ?
                                 <Box sx={{ alignItems: 'center', textAlign: 'left', p:1}}>
                                     <div
