@@ -1618,11 +1618,20 @@ export function GovernanceProposalV2View(props: any){
                                         </Grid>
                                         <Typography variant='subtitle1'>To: {voteType === 'Council' ? `Council`:`Community`} {/*propVoteType === 0 ? `Council`:`Community`*/}</Typography>
                                     </Grid>
-                                    <Grid sx={{ alignItems: 'right', textAlign: 'right'}}>
+                                    
+                                    <Grid sx={{ alignItems: 'center', textAlign: 'right',
+                                
+
+                                            '@media (max-width: 900px)': {
+                                                // Center the ButtonGroup on md and smaller screens
+                                                width: '100%',
+                                                justifyContent: 'center',
+                                            },
+                                        }}>
                                         {thisitem?.account?.voteType?.type === 1 ?
                                             <></>
                                         :
-                                        <Grid container spacing={0} direction='row' alignItems='right'>
+                                        <Grid container spacing={0} direction='row' alignItems='right' justifyContent='center'>
 
                                             <Grid item xs={6} sm={6} md={6} key={1}
                                                 alignItems="right"
@@ -1633,11 +1642,10 @@ export function GovernanceProposalV2View(props: any){
                                                         //background: 'rgba(0, 0, 0, 0.25)',
                                                         //borderRadius: '17px',
                                                         p:0.25,
-                                                        width:'260px',
-                                                        //alignItems:'right',
+                                                        //width:'260px',
                                                         justifyContent: 'center', // Center the content horizontally
-                                                        mr:1
-                                                        }}
+                                                        mr:1,
+                                                    }}
                                                     >
                                                     <ButtonGroup variant="outlined" aria-label="outlined primary button group" sx={{textAlign:'center',height:'70px'}}>
                                                         {thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
@@ -1726,9 +1734,9 @@ export function GovernanceProposalV2View(props: any){
                                                         //background: 'rgba(0, 0, 0, 0.25)',
                                                         //borderRadius: '17px',
                                                         p:0.25,
-                                                        width:'260px',
+                                                        //width:'260px',
                                                         justifyContent: 'center', // Center the content horizontally
-                                                        //ml:1
+                                                        //ml:1,
                                                         }}
                                                     >
                                                     <ButtonGroup variant="outlined" aria-label="outlined primary button group" sx={{height:'70px'}}>
