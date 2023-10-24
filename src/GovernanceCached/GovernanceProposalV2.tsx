@@ -1954,26 +1954,7 @@ export function GovernanceProposalV2View(props: any){
                                                     </Grid>
                                                     </Grid>
                                                     <Typography color="text.secondary" variant="caption">
-                                                        Number of tokens needed for the proposal to pass
-                                                    </Typography>
-                                                </Box>
-                                                }
-                                                {totalVoteThresholdPercentage &&
-                                                <Box sx={{ my: 3, mx: 2 }}>
-                                                    <Grid container alignItems="center">
-                                                    <Grid item xs>
-                                                        <Typography gutterBottom variant="subtitle1" component="div">
-                                                            Max Vote Weight Source
-                                                        </Typography>
-                                                    </Grid>
-                                                    <Grid item>
-                                                        <Typography gutterBottom variant="body1" component="div">
-                                                            {(totalVoteThresholdPercentage)}%
-                                                        </Typography>
-                                                    </Grid>
-                                                    </Grid>
-                                                    <Typography color="text.secondary" variant="caption">
-                                                        {(+((totalVoteThresholdPercentage/100)*totalSupply).toFixed(0)).toLocaleString()} calculated from {(totalSupply.toLocaleString())} supply
+                                                        Tokens needed for the proposal to pass *{(totalVoteThresholdPercentage)}% max vote threshhold
                                                     </Typography>
                                                 </Box>
                                                 }
