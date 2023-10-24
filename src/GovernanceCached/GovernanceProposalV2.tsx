@@ -1619,7 +1619,7 @@ export function GovernanceProposalV2View(props: any){
                                         :
                                         <Grid container spacing={0} direction='row' alignItems='right'>
 
-                                            <Grid item xs={12} sm={6} md={6} key={1}
+                                            <Grid item xs={6} sm={6} md={6} key={1}
                                                 alignItems="right"
                                             >
                                                 <Box
@@ -1638,35 +1638,52 @@ export function GovernanceProposalV2View(props: any){
                                                         {thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
                                                             <Button
                                                                 color="success"
-                                                                sx={{borderRadius:'17px'}}
+                                                                sx={{borderRadius:'17px',textTransform:'none'}}
                                                             >
-                                                                <Typography variant="caption">
-                                                                    <>
+                                                                
+                                                                <Grid container direction="column" alignItems="center">
+                                                                    <Grid item>
+                                                                        <Grid container direction='row' alignItems='center'>
+                                                                            <Grid item>
+                                                                                <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                                            </Grid>
+                                                                            <Grid item>
+                                                                                {forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                                            </Grid>
+                                                                        </Grid>
+                                                                    </Grid>
                                                                     
-                                                                    For<br/><Typography variant="caption">{forVotes ? 
-                                                                    <>
-                                                                        {(forVotes/(forVotes+againstVotes)*100).toFixed(2)}%
-                                                                    </>
-                                                                    :
-                                                                    <>
-                                                                        {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
-                                                                            <>
-                                                                            {`${(((Number(thisitem.account?.options[0].voteWeight))/((Number(thisitem.account?.denyVoteWeight))+(Number(thisitem.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
-                                                                            </>
-                                                                        :
-                                                                            <>
-                                                                                {thisitem.account.yesVotesCount ?
-                                                                                    <>{(Number(thisitem.account.yesVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
+                                                                    <Grid item sx={{minWidth:'100px'}}>
+                                                                        <Divider />
+                                                                        <Grid>
+                                                                            <Typography sx={{fontSize:'10px'}}>
+                                                                                <>
+                                                                                
+                                                                                For <>{forVotes ? 
+                                                                                <>
+                                                                                    {(forVotes/(forVotes+againstVotes)*100).toFixed(2)}%
+                                                                                </>
                                                                                 :
-                                                                                    <>0%</>
-                                                                                }
-                                                                            </>
-                                                                        } 
-                                                                    </>   
-                                                                    }</Typography></>
-                                                                </Typography>
-                                                                <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
-                                                                {forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                                                <>
+                                                                                    {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
+                                                                                        <>
+                                                                                        {`${(((Number(thisitem.account?.options[0].voteWeight))/((Number(thisitem.account?.denyVoteWeight))+(Number(thisitem.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
+                                                                                        </>
+                                                                                    :
+                                                                                        <>
+                                                                                            {thisitem.account.yesVotesCount ?
+                                                                                                <>{(Number(thisitem.account.yesVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
+                                                                                            :
+                                                                                                <>0%</>
+                                                                                            }
+                                                                                        </>
+                                                                                    } 
+                                                                                </>   
+                                                                                }</></>
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                    </Grid>
+                                                                </Grid>
                                                             </Button>
                                                             /*
                                                             <Chip variant='outlined' color='success'
@@ -1697,7 +1714,7 @@ export function GovernanceProposalV2View(props: any){
                                                     </ButtonGroup>
                                                 </Box>
                                             </Grid>
-                                            <Grid item xs={12} sm={6} md={6} key={1}>
+                                            <Grid item xs={6} sm={6} md={6} key={1}>
                                                 <Box
                                                     display='flex' 
                                                     sx={{
@@ -1713,38 +1730,55 @@ export function GovernanceProposalV2View(props: any){
                                                         {thisitem.account?.denyVoteWeight ?
                                                             <Button
                                                                     color="error"
-                                                                    sx={{borderRadius:'17px'}}
+                                                                    sx={{borderRadius:'17px',textTransform:'none'}}
                                                                 >
-                                                                    <Typography variant="caption">
-                                                                        <>Against<br/><Typography variant="caption">
-                                                                        {againstVotes ? 
-                                                                            <>
-                                                                                {(againstVotes/(forVotes+againstVotes)*100).toFixed(2)}%
-                                                                            </>
-                                                                            :       
-                                                                            <>
-                                                                                {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
+                                                                    <Grid container direction="column" alignItems="center">
+                                                                        <Grid item>
+                                                                            <Grid container direction='row' alignItems='center'>
+                                                                                <Grid item>
+                                                                                    <ThumbDownIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                                                </Grid>
+                                                                                <Grid item>
+                                                                                    {againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
+                                                                                </Grid>
+                                                                            </Grid>
+                                                                        </Grid>
+                                                                        
+                                                                        <Grid item sx={{minWidth:'100px'}}>
+                                                                            <Divider />
+                                                                            <Grid>
+                                                                                <Typography sx={{fontSize:'10px'}}>
                                                                                     <>
-                                                                                    {`${(((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))/((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))+(Number(thisitem.account?.options[0].voteWeight)/Math.pow(10, tokenDecimals))))*100).toFixed(2)}%`}
-                                                                                    </>
-                                                                                :
-                                                                                    <>
-                                                                                        {thisitem.account.noVotesCount ?
-                                                                                            <>{(Number(thisitem.account.noVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
-                                                                                        :
-                                                                                            <>0%</>
-                                                                                        }
-                                                                                    </>
-                                                                                }
-                                                                            </>
-                                                                        }
-                                                                        </Typography>
-                                                                        </>
-                                                                    </Typography>
-
-                                                                    <ThumbDownIcon fontSize='small' sx={{mr:1,ml:1}} />
-                                                                    {againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                </Button>
+                                                                                    
+                                                                                    Against <>{againstVotes ? 
+                                                                                        <>
+                                                                                            {(againstVotes/(forVotes+againstVotes)*100).toFixed(2)}%
+                                                                                        </>
+                                                                                        :       
+                                                                                        <>
+                                                                                            {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
+                                                                                                <>
+                                                                                                {`${(((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))/((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))+(Number(thisitem.account?.options[0].voteWeight)/Math.pow(10, tokenDecimals))))*100).toFixed(2)}%`}
+                                                                                                </>
+                                                                                            :
+                                                                                                <>
+                                                                                                    {thisitem.account.noVotesCount ?
+                                                                                                        <>{(Number(thisitem.account.noVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
+                                                                                                    :
+                                                                                                        <>0%</>
+                                                                                                    }
+                                                                                                </>
+                                                                                            }
+                                                                                        </>
+                                                                                    }</></>
+                                                                                </Typography>
+                                                                            </Grid>
+                                                                        </Grid>
+                                                                    </Grid>
+                                                                    
+                                                                    
+                                                                    
+                                                            </Button>
                                                             /*
                                                             <Chip variant='outlined' color='error'
                                                                     icon={<ThumbDownIcon color='error' fontSize='small' sx={{ml:1}} />}
