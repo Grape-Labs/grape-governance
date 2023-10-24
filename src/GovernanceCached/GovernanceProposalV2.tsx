@@ -1893,7 +1893,7 @@ export function GovernanceProposalV2View(props: any){
                                         background: 'rgba(0, 0, 0, 0.25)',
                                         borderRadius: '17px',
                                         p:1,
-                                        ml:1
+                                        ml: window.matchMedia('(min-width: 900px)').matches ? 1 : 0,
                                     }}
                                 >
                                     <Grid container>
