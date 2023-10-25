@@ -126,7 +126,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 export default function GovernancePower(props: any){
     const governanceAddress = props.governanceAddress;
     const [realm, setRealm] = React.useState(props?.realm || null);
-    const [cachedMemberMap, setCachedMemberMap] = React.useState(props?.cachedMemberMap || false);
+    //const [cachedMemberMap, setCachedMemberMap] = React.useState(props?.cachedMemberMap || false);
     const [rpcMemberMap, setRpcMemberMap] = React.useState(null);
     const [isParticipatingInDao, setIsParticipatingInDao] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
@@ -199,27 +199,24 @@ export default function GovernancePower(props: any){
         //console.log("rawTokenOwnerRecords: "+rawTokenOwnerRecords);
         //setRpcMemberMap(rawTokenOwnerRecords);
         
-        console.log("realm: "+JSON.stringify(realm));
+        //console.log("realm: "+JSON.stringify(realm));
 
         if (realm){
-
-            const communityMint = realm.account.communityMint;
-            const councilMint = realm.account.config?.councilMint;
-
+            const communityMint = realm.account.communityMint?.toBase58() ? realm.account.communityMint.toBase58() : realm.account.communityMint;
+            const councilMint = realm.account.config?.councilMint?.toBase58() ? realm.account.config?.councilMint.toBase58() : realm.account.config?.councilMint;
             setWalletCommunityMintAddress(communityMint);
             setWalletCouncilMintAddress(councilMint);
 
-            const tokenOwnerRecord = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realm?.owner || SYSTEM_PROGRAM_ID), publicKey));
+            const tokenOwnerRecord = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realm?.owner || SYSTEM_PROGRAM_ID), publicKey);
 
             //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecord));
-
             // find all instances of this governanceAddress:
             let depCommunityMint = null;
             let depCouncilMint = null;
             let fetchedTMI = false;
             for (let record of tokenOwnerRecord){
                 if (record.account.realm.toBase58() === governanceAddress){
-                    
+                
                     if (record.account.governingTokenMint.toBase58() === communityMint){
                         const tki = await getTokenMintInfo(communityMint);
                         fetchedTMI = true;
@@ -231,7 +228,7 @@ export default function GovernancePower(props: any){
                     
                 }
             }
-
+            
             if (depCommunityMint && Number(depCommunityMint) > 0)
                 setDepositedCommunityMint(depCommunityMint);
             if (depCouncilMint && Number(depCouncilMint) > 0)
@@ -259,7 +256,6 @@ export default function GovernancePower(props: any){
                     }
                 }
             }
-
         }
     }
 

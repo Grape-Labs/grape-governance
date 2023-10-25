@@ -1604,9 +1604,9 @@ export function GovernanceProposalV2View(props: any){
                                     </Grid>                       
                                 }
                                 </Grid>
-                                {(governanceAddress && realm) &&
+                                {realm &&
                                 <Grid item xs={12} sm={6} container justifyContent="flex-end">
-                                    <GovernancePower governanceAddress={governanceAddress} realm={realm} />
+                                    <GovernancePower governanceAddress={realm.pubkey.toBase58()} realm={realm} />
                                 </Grid>
                                 }
                             </Grid>
