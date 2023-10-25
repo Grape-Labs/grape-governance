@@ -1461,32 +1461,148 @@ export function GovernanceProposalV2View(props: any){
 
                 {!loadingParticipants && thisitem ?
                     <>
+                        <Grid container>
+                            <Grid item xs={12} sm={6}>
+                                {showGovernanceTitle && realmName && 
+                                    <>
+                                        <Grid item xs={12} container justifyContent="flex-start">
+                                            <Grid container>
+                                                <Grid item xs={12}>
+                                                    <Typography variant="h4">
+                                                        {realmName && realmName}
+                                                    </Typography>
+                                                </Grid>
+                                                
+                                                {/*
+                                                <Grid item xs={12}>
+                                                    <Button
+                                                        size='small'
+                                                        sx={{color:'white', borderRadius:'17px'}}
+                                                        href={`https://realms.today/dao/${governanceAddress}/proposal/${proposalPk}`}
+                                                        target='blank'
+                                                    >
+                                                        <Typography variant="caption">
+                                                        View on Realms <OpenInNewIcon fontSize='inherit'/>
+                                                        </Typography>
+                                                    </Button>
+                                                </Grid>
+                                                */}
+                                            </Grid>
+                                        </Grid>
+                                    </>
+                                }
 
-                        {showGovernanceTitle && realmName && 
-                            <Grid container>
-                                <Grid item xs={12} sm={6} container justifyContent="flex-start">
+                                {(showGovernanceTitle && proposalPk && realmName) ? 
+                                    <Grid container direction='row'>
+                                        <Grid item xs={12} container justifyContent="flex-start">
+                                            
+                                            <ButtonGroup
+                                                variant="outlined" 
+                                                color='inherit'
+                                            >
+                                                <Tooltip title={`Back to  ${realmName} Governance`}>
+                                                    <Button 
+                                                        aria-label="back"
+                                                        variant="outlined" 
+                                                        color='inherit'
+                                                        href={`https://governance.so/governance/${governanceAddress}`}
+                                                        sx={{
+                                                            borderTopLeftRadius:'17px',
+                                                            borderBottomLeftRadius:'17px',
+                                                            borderColor:'rgba(255,255,255,0.05)',
+                                                            fontSize:'10px'}}
+                                                    >
+                                                        <ArrowBackIcon fontSize='inherit' sx={{mr:1}} /> Back
+                                                    </Button>
+                                                </Tooltip>
+                                        
+                                            <CopyToClipboard 
+                                                    text={`https://governance.so/proposal/${governanceAddress}/${proposalPk}`} 
+                                                    onCopy={handleCopyClick}
+                                                >
+                                                    <Tooltip title={`Copy ${realmName} Governance Propoosal Link`}>
+                                                        <Button
+                                                            aria-label="copy"
+                                                            variant="outlined" 
+                                                            color='inherit'
+                                                            sx={{
+                                                                borderTopRightRadius:'17px',
+                                                                borderBottomRightRadius:'17px',
+                                                                borderColor:'rgba(255,255,255,0.05)',
+                                                                fontSize:'10px'}}
+                                                        >
+                                                            <ContentCopyIcon fontSize='inherit' sx={{mr:1}} /> Copy
+                                                        </Button>
+                                                    </Tooltip>
+                                            </CopyToClipboard>
+                                            
+                                            </ButtonGroup>
+                                            <Tooltip title={`Visit  ${realmName} on Realms`}>
+                                                <Button 
+                                                    aria-label="back"
+                                                    variant="outlined" 
+                                                    color='inherit'
+                                                    href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`}
+                                                    target='blank'
+                                                    sx={{
+                                                        borderRadius:'17px',
+                                                        borderColor:'rgba(255,255,255,0.05)',
+                                                        fontSize:'10px'}}
+                                                >
+                                                    <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
+                                                </Button>
+                                            </Tooltip>
+                                            
+                                        </Grid>
+                                    </Grid>
+                                :
                                     <Grid container>
-                                        <Grid item xs={12}>
-                                            <Typography variant="h4">
-                                                {realmName && realmName}
-                                            </Typography>
+                                        <Grid item xs={12} container justifyContent="flex-start">
+                                            
+                                            <ButtonGroup
+                                                variant="outlined" 
+                                                color='inherit'
+                                            >
+                                                <CopyToClipboard 
+                                                        text={`https://governance.so/proposal/${governanceAddress}/${proposalPk}`} 
+                                                        onCopy={handleCopyClick}
+                                                    >
+                                                        <Tooltip title={`Copy ${realmName} Governance Propoosal Link`}>
+                                                            <Button
+                                                                variant="outlined" 
+                                                                color='inherit'
+                                                                aria-label="copy"
+                                                                sx={{   
+                                                                    borderTopLeftRadius:'17px',
+                                                                    borderBottomLeftRadius:'17px',
+                                                                    borderColor:'rgba(255,255,255,0.05)',
+                                                                    fontSize:'10px'}}
+                                                            >
+                                                                <ContentCopyIcon fontSize='inherit' sx={{mr:1}} /> Copy
+                                                            </Button>
+                                                        </Tooltip>
+                                                </CopyToClipboard>
+
+                                                <Tooltip title={`Visit  ${realmName} on Realms`}>
+                                                    <Button 
+                                                        aria-label="back"
+                                                        href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`}
+                                                        target='blank'
+                                                        sx={{
+                                                            borderTopRightRadius:'17px',
+                                                            borderBottomRightRadius:'17px',
+                                                            borderColor:'rgba(255,255,255,0.05)',
+                                                            fontSize:'10px',
+                                                            ml:1}}
+                                                    >
+                                                        <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
+                                                    </Button>
+                                                </Tooltip>
+                                            </ButtonGroup>
                                         </Grid>
                                         
-                                        {/*
-                                        <Grid item xs={12}>
-                                            <Button
-                                                size='small'
-                                                sx={{color:'white', borderRadius:'17px'}}
-                                                href={`https://realms.today/dao/${governanceAddress}/proposal/${proposalPk}`}
-                                                target='blank'
-                                            >
-                                                <Typography variant="caption">
-                                                View on Realms <OpenInNewIcon fontSize='inherit'/>
-                                                </Typography>
-                                            </Button>
-                                        </Grid>
-                                        */}
-                                    </Grid>
+                                    </Grid>                       
+                                }
                                 </Grid>
                                 {(governanceAddress && realm) &&
                                 <Grid item xs={12} sm={6} container justifyContent="flex-end">
@@ -1494,119 +1610,7 @@ export function GovernanceProposalV2View(props: any){
                                 </Grid>
                                 }
                             </Grid>
-                        }
-
-                        {(showGovernanceTitle && proposalPk && realmName) ? 
-                            <Grid container direction='row'>
-                                <Grid item xs={12} container justifyContent="flex-start">
-                                    
-                                    <ButtonGroup
-                                        variant="outlined" 
-                                        color='inherit'
-                                    >
-                                        <Tooltip title={`Back to  ${realmName} Governance`}>
-                                            <Button 
-                                                aria-label="back"
-                                                variant="outlined" 
-                                                color='inherit'
-                                                href={`https://governance.so/governance/${governanceAddress}`}
-                                                sx={{
-                                                    borderTopLeftRadius:'17px',
-                                                    borderBottomLeftRadius:'17px',
-                                                    borderColor:'rgba(255,255,255,0.05)',
-                                                    fontSize:'10px'}}
-                                            >
-                                                <ArrowBackIcon fontSize='inherit' sx={{mr:1}} /> Back
-                                            </Button>
-                                        </Tooltip>
-                                
-                                    <CopyToClipboard 
-                                            text={`https://governance.so/proposal/${governanceAddress}/${proposalPk}`} 
-                                            onCopy={handleCopyClick}
-                                        >
-                                            <Tooltip title={`Copy ${realmName} Governance Propoosal Link`}>
-                                                <Button
-                                                    aria-label="copy"
-                                                    variant="outlined" 
-                                                    color='inherit'
-                                                    sx={{
-                                                        borderTopRightRadius:'17px',
-                                                        borderBottomRightRadius:'17px',
-                                                        borderColor:'rgba(255,255,255,0.05)',
-                                                        fontSize:'10px'}}
-                                                >
-                                                    <ContentCopyIcon fontSize='inherit' sx={{mr:1}} /> Copy
-                                                </Button>
-                                            </Tooltip>
-                                    </CopyToClipboard>
-                                    
-                                    </ButtonGroup>
-                                    <Tooltip title={`Visit  ${realmName} on Realms`}>
-                                        <Button 
-                                            aria-label="back"
-                                            variant="outlined" 
-                                            color='inherit'
-                                            href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`}
-                                            target='blank'
-                                            sx={{
-                                                borderRadius:'17px',
-                                                borderColor:'rgba(255,255,255,0.05)',
-                                                fontSize:'10px'}}
-                                        >
-                                            <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
-                                        </Button>
-                                    </Tooltip>
-                                    
-                                </Grid>
-                            </Grid>
-                        :
-                            <Grid container>
-                                <Grid item xs={12} sm={6} container justifyContent="flex-start">
-                                    
-                                    <ButtonGroup
-                                        variant="outlined" 
-                                        color='inherit'
-                                    >
-                                        <CopyToClipboard 
-                                                text={`https://governance.so/proposal/${governanceAddress}/${proposalPk}`} 
-                                                onCopy={handleCopyClick}
-                                            >
-                                                <Tooltip title={`Copy ${realmName} Governance Propoosal Link`}>
-                                                    <Button
-                                                        variant="outlined" 
-                                                        color='inherit'
-                                                        aria-label="copy"
-                                                        sx={{   
-                                                            borderTopLeftRadius:'17px',
-                                                            borderBottomLeftRadius:'17px',
-                                                            borderColor:'rgba(255,255,255,0.05)',
-                                                            fontSize:'10px'}}
-                                                    >
-                                                        <ContentCopyIcon fontSize='inherit' sx={{mr:1}} /> Copy
-                                                    </Button>
-                                                </Tooltip>
-                                        </CopyToClipboard>
-
-                                        <Tooltip title={`Visit  ${realmName} on Realms`}>
-                                            <Button 
-                                                aria-label="back"
-                                                href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`}
-                                                target='blank'
-                                                sx={{
-                                                    borderTopRightRadius:'17px',
-                                                    borderBottomRightRadius:'17px',
-                                                    borderColor:'rgba(255,255,255,0.05)',
-                                                    fontSize:'10px',
-                                                    ml:1}}
-                                            >
-                                                <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
-                                            </Button>
-                                        </Tooltip>
-                                    </ButtonGroup>
-                                </Grid>
-                                
-                            </Grid>                       
-                        }
+                        
 
                         {proposalAuthor &&
                             <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
