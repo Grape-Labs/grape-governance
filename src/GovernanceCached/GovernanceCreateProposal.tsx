@@ -1481,7 +1481,7 @@ export default function GovernanceCreateProposalView(props: any){
                               <FormControlLabel 
                                 control={
                                   <Switch 
-                                    defaultChecked
+                                    defaultChecked={communitySupport}
                                     onChange={
                                       (e) => {
                                         setIsCouncilVote(e.target.checked)
