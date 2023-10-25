@@ -202,8 +202,20 @@ export default function GovernancePower(props: any){
         //console.log("realm: "+JSON.stringify(realm));
 
         if (realm){
-            const communityMint = realm.account.communityMint?.toBase58() ? realm.account.communityMint.toBase58() : realm.account.communityMint;
-            const councilMint = realm.account.config?.councilMint?.toBase58() ? realm.account.config?.councilMint.toBase58() : realm.account.config?.councilMint;
+            let communityMint = null;
+            if (typeof realm.account.communityMint.toBase58 === 'function') {
+                communityMint = realm.account.communityMint.toBase58();
+            } else {
+                communityMint = realm.account.communityMint;
+            }
+
+            let councilMint = null;
+            if (typeof realm.account.config.councilMint.toBase58 === 'function') {
+                councilMint = realm.account.config.councilMint.toBase58();
+            } else {
+                councilMint = realm.account.config.councilMint;
+            }
+            
             setWalletCommunityMintAddress(communityMint);
             setWalletCouncilMintAddress(councilMint);
 

@@ -1606,7 +1606,7 @@ export function GovernanceProposalV2View(props: any){
                                 </Grid>
                                 {realm &&
                                 <Grid item xs={12} sm={6} container justifyContent="flex-end">
-                                    <GovernancePower governanceAddress={realm.pubkey.toBase58()} realm={realm} />
+                                    <GovernancePower governanceAddress={typeof realm.pubkey.toBase58 === 'function' ? realm.pubkey.toBase58() : realm.pubkey} realm={realm} />
                                 </Grid>
                                 }
                             </Grid>
