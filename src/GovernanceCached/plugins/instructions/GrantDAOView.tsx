@@ -61,6 +61,8 @@ import { GrapeVerificationSpeedDial } from './GrapeVerificationSpeedDial';
 import { GrapeVerificationDAO } from './GrapeVerificationDAO';
 import { LookupTableIntegratedDialogView } from './LookupTableIntegratedDialogView';
 
+import ExplorerView from '../../../utils/grapeTools/Explorer';
+
 import PersonIcon from '@mui/icons-material/Person';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -939,12 +941,19 @@ export default function GrantDAOView(props: any) {
                                         <Typography variant="h6">{governance.account.name}<br/></Typography>
                                         <Typography variant="caption" color="success">
                                             
-                                            Community Mint: {governance.account.communityMint.toBase58()}
-                                            {governance.account.config.councilMint &&
-                                                <>
-                                                <br/>Council Mint: {governance.account.config.councilMint.toBase58()}
-                                                </>
-                                            }
+                                                Community Mint: <ExplorerView
+                                                                address={governance.account.communityMint.toBase58()} type='address'
+                                                                shorten={8}
+                                                                hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                            
+                                                {governance.account.config.councilMint &&
+                                                    <>
+                                                    <br/>Council Mint: <ExplorerView
+                                                                    address={governance.account.config.councilMint.toBase58()} type='address'
+                                                                    shorten={8}
+                                                                    hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                                    </>
+                                                }
                                         </Typography>
                                     </Grid>
                                 </Box>

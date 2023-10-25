@@ -56,6 +56,8 @@ import {
 
 import { parseMintNaturalAmountFromDecimalAsBN } from '../../../utils/grapeTools/helpers';
 
+import ExplorerView from '../../../utils/grapeTools/Explorer';
+
 import JoinLeftIcon from '@mui/icons-material/JoinLeft';
 import WarningIcon from '@mui/icons-material/Warning';
 import SendIcon from '@mui/icons-material/Send';
@@ -604,10 +606,17 @@ export default function JoinDAOView(props: any) {
                                         <Typography variant="h6">{governance.account.name}<br/></Typography>
                                         <Typography variant="caption" color="success">
                                             
-                                            Community Mint: {governance.account.communityMint.toBase58()}
+                                            Community Mint: <ExplorerView
+                                                                address={governance.account.communityMint.toBase58()} type='address'
+                                                                shorten={8}
+                                                                hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                            
                                             {governance.account.config.councilMint &&
                                                 <>
-                                                <br/>Council Mint: {governance.account.config.councilMint.toBase58()}
+                                                <br/>Council Mint: <ExplorerView
+                                                                address={governance.account.config.councilMint.toBase58()} type='address'
+                                                                shorten={8}
+                                                                hideTitle={false} style='text' color='white' fontSize='12px'/>
                                                 </>
                                             }
                                         </Typography>

@@ -191,13 +191,13 @@ export default function LookupTableView(props: any) {
             AddressLookupTableProgram.createLookupTable({
                 authority: fromWallet,
                 payer: publicKey || fromWallet,
-                recentSlot: await RPC_CONNECTION.getSlot(),
+                recentSlot: await RPC_CONNECTION.getSlot()//await RPC_CONNECTION.getSlot(),
             });
         
         //transaction.add(lookupTableInst);
         
         console.log("Pre lookupTableInst: "+JSON.stringify(lookupTableInst))
-
+        
         // remove authority as a signer:
         for (var key of lookupTableInst.keys){
             if (key.pubkey.toBase58() === fromAddress){

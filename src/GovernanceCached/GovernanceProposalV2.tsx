@@ -1938,6 +1938,7 @@ export function GovernanceProposalV2View(props: any){
                                                         <Typography gutterBottom variant="body1" component="div">
                                                                 <ExplorerView
                                                                     address={thisitem.account.governingTokenMint?.toBase58()} type='address'
+                                                                    shorten={8}
                                                                     hideTitle={false} style='text' color='white' fontSize='12px'/>
                                                         </Typography>
                                                     </Grid>
