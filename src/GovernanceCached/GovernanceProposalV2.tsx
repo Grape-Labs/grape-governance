@@ -1972,7 +1972,7 @@ export function GovernanceProposalV2View(props: any){
                                                     <Grid container alignItems="center">
                                                     <Grid item xs>
                                                         <Typography gutterBottom variant="subtitle1" component="div">
-                                                            Supply Faction Percentage
+                                                            Supply Fraction Percentage
                                                         </Typography>
                                                     </Grid>
                                                     <Grid item>
