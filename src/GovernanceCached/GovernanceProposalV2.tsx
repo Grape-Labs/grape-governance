@@ -40,6 +40,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
 
+import GovernancePower from './GovernancePower';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
@@ -1487,11 +1488,16 @@ export function GovernanceProposalV2View(props: any){
                                         */}
                                     </Grid>
                                 </Grid>
+                                {(governanceAddress && realm) &&
+                                <Grid item xs={12} sm={6} container justifyContent="flex-end">
+                                    <GovernancePower governanceAddress={governanceAddress} realm={realm} />
+                                </Grid>
+                                }
                             </Grid>
                         }
 
                         {(showGovernanceTitle && proposalPk && realmName) ? 
-                            <Grid container>
+                            <Grid container direction='row'>
                                 <Grid item xs={12} container justifyContent="flex-start">
                                     
                                     <ButtonGroup
@@ -1555,7 +1561,7 @@ export function GovernanceProposalV2View(props: any){
                             </Grid>
                         :
                             <Grid container>
-                                <Grid item xs={12} container justifyContent="flex-start">
+                                <Grid item xs={12} sm={6} container justifyContent="flex-start">
                                     
                                     <ButtonGroup
                                         variant="outlined" 
@@ -1590,13 +1596,15 @@ export function GovernanceProposalV2View(props: any){
                                                     borderTopRightRadius:'17px',
                                                     borderBottomRightRadius:'17px',
                                                     borderColor:'rgba(255,255,255,0.05)',
-                                                    fontSize:'10px'}}
+                                                    fontSize:'10px',
+                                                    ml:1}}
                                             >
                                                 <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
                                             </Button>
                                         </Tooltip>
                                     </ButtonGroup>
                                 </Grid>
+                                
                             </Grid>                       
                         }
 
