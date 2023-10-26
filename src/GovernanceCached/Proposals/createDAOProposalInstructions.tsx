@@ -25,6 +25,7 @@ import {
   withAddSignatory,
   getSignatoryRecordAddress,
   getAllProposals,
+  MultiChoiceType,
 } from '@solana/spl-governance';
 
 import { chunks } from '../../utils/governanceTools/helpers';
@@ -82,9 +83,19 @@ export async function createProposalInstructions(
     // the version for RealmInfo
     
     // V2 Approve/Deny configuration
-    const voteType = VoteType.SINGLE_CHOICE;
     const options = ['Approve'];
-    const useDenyOption = true;
+    const isMulti = options.length > 1
+    const useDenyOption = !isMulti
+    
+    const voteType = isMulti
+    ? VoteType.MULTI_CHOICE(
+        MultiChoiceType.FullWeight,
+        1,
+        options.length,
+        options.length
+      )
+    : VoteType.SINGLE_CHOICE
+
     console.log("2");
     
     const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
@@ -94,19 +105,22 @@ export async function createProposalInstructions(
       walletPk,
     );
 
+    const governanceAuthority = walletPk
     console.log("programId: "+programId.toBase58());
     console.log("realmPk: "+realmPk.toBase58());
     console.log("governingTokenMint: "+governingTokenMint.toBase58());
     console.log("governancePk: "+governancePk.toBase58());
     console.log("walletPk: "+walletPk.toBase58());
     console.log("tokenOwnerRecordPk: "+tokenOwnerRecordPk.toBase58())
+    console.log("programVersion: "+programVersion)
+    console.log("governanceAuthority: "+governanceAuthority.toBase58())
     
     // we have the following already cached so this should be passed:
     console.log("3");
     const governance = await getGovernance(connection, governancePk);
     
     console.log("governance: "+JSON.stringify(governance));
-      
+    
     const proposalIndex = governance?.account?.proposalCount;
 
     //will run only if plugin is connected with realm
@@ -119,10 +133,19 @@ export async function createProposalInstructions(
 
     console.log("4");
     
-    const governanceAuthority = walletPk
+    
     //const signatory = walletPk
     const payer = walletPk
     
+    //will run only if plugin is connected with realm
+    /*
+    const plugin = await client?.withUpdateVoterWeightRecord(
+      instructions,
+      tokenOwnerRecordPk,
+      'createProposal',
+      createNftTicketsIxs
+    )*/
+
     const proposalAddress = await withCreateProposal(
       instructions,
       programId,
@@ -138,7 +161,8 @@ export async function createProposalInstructions(
       voteType,
       options,
       useDenyOption,
-      payer
+      payer,
+      //plugin?.voterWeightPk
     );
 
     await withAddSignatory(

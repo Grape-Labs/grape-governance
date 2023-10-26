@@ -170,7 +170,7 @@ export default function GovernanceCreateProposalView(props: any){
     const maxTitleLen = 130;
     const maxDescriptionLen = 350;//512;
     const [proposalType, setProposalType] = React.useState(null);
-    const [isCouncilVote, setIsCouncilVote] = React.useState(true);
+    const [isCouncilVote, setIsCouncilVote] = React.useState(false);
     const [governanceWallet, setGovernanceWallet] = React.useState(null);
     const [governanceRulesWallet, setGovernanceRulesWallet] = React.useState(null);
     const [isGistDescription, setIsGistDescription] = React.useState(false);
@@ -577,6 +577,7 @@ export default function GovernanceCreateProposalView(props: any){
         
         setGovernanceWallet(nativeWallet);
         setCommunitySupport(false);
+        //setIsCouncilVote(false);
         // get rules wallet:
         let rulesWallet = null;
         {cachedTreasury && cachedTreasury

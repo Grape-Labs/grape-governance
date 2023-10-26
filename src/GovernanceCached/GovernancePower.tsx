@@ -61,7 +61,6 @@ import {
     getAllTokenOwnerRecords, 
     SYSTEM_PROGRAM_ID,
     withDepositGoverningTokens,
-    
     getGovernanceProgramVersion,
 } from '@solana/spl-governance';
 
@@ -215,7 +214,7 @@ export default function GovernancePower(props: any){
             } else {
                 councilMint = realm.account.config.councilMint;
             }
-            
+
             setWalletCommunityMintAddress(communityMint);
             setWalletCouncilMintAddress(councilMint);
 
