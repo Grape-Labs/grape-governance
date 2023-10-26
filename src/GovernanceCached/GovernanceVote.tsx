@@ -136,6 +136,9 @@ const StyledMenu = styled(Menu)(({ theme }) => ({
 }));
 
 export function VoteForProposal(props:any){
+    const title = props?.title;
+    const subtitle = props?.subtitle;
+    const showIcon = props?.showIcon;
     const { publicKey, wallet, sendTransaction } = useWallet();
     const votingParticipants = props.votingResultRows;
     const getVotingParticipants = props.getVotingParticipants;
@@ -431,7 +434,42 @@ export function VoteForProposal(props:any){
                             color='success'
                             onClick={handleVoteYes}
                             sx={{borderRadius:'17px',textTransform:'none'}}
-                        >Vote{!multiChoice && ` YES`}</Button>
+                        >
+                            {(title && subtitle && showIcon) ?
+                                <>
+                                
+                                    <Grid container direction="column" alignItems="center">
+                                        <Grid item>
+                                            <Grid container direction='row' alignItems='center'>
+                                                <Grid item>
+                                                    <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                </Grid>
+                                                <Grid item>
+                                                    {title}
+                                                </Grid>
+                                            </Grid>
+                                        </Grid>
+                                        
+                                        <Grid item sx={{minWidth:'100px'}}>
+                                            <Divider />
+                                            <Grid sx={{mt:0.5}}>
+                                                <Typography sx={{fontSize:'10px'}}>
+                                                    <>
+                                                        {subtitle}
+                                                    </>
+                                                </Typography>
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+                                
+                                </>
+                            :
+                                <>
+                                    Vote{!multiChoice && ` YES`}
+                                </>
+                            }
+                        
+                        </Button>
                     }
                     {(delegatedVoterRecord && delegatedVoterRecord.length > 0) &&
                         <>
@@ -500,7 +538,40 @@ export function VoteForProposal(props:any){
                             color='error'
                             onClick={handleVoteNo}
                             sx={{borderRadius:'17px',textTransform:'none'}}
-                        >Vote NO</Button>
+                        >{(title && subtitle && showIcon) ?
+                            <>
+                            
+                                <Grid container direction="column" alignItems="center">
+                                    <Grid item>
+                                        <Grid container direction='row' alignItems='center'>
+                                            <Grid item>
+                                                <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                            </Grid>
+                                            <Grid item>
+                                                {title}
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+                                    
+                                    <Grid item sx={{minWidth:'100px'}}>
+                                        <Divider />
+                                        <Grid sx={{mt:0.5}}>
+                                            <Typography sx={{fontSize:'10px'}}>
+                                                <>
+                                                    {subtitle}
+                                                </>
+                                            </Typography>
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+                            
+                            </>
+                        :
+                            <>
+                            Vote NO
+                            </>
+                        }
+                        </Button>
                     }
                     {(delegatedVoterRecord && delegatedVoterRecord.length > 0) &&
                         <>
@@ -567,24 +638,66 @@ export function VoteForProposal(props:any){
 
         {hasVoted && publicKey &&
             <>
-                {(hasVotedVotes > 0 && type === 0) ?
-                    <Tooltip title={`You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes for this proposal`}>
-                        <Button
-                            variant="outlined"
-                            color='success'
-                            sx={{borderRadius:'17px',textTransform:'none'}}
-                        ><CheckCircleIcon /></Button>
-                    </Tooltip>
+                {(title && subtitle && showIcon) ?
+                    <>
+                        <Tooltip title={`You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes on this proposal`}>
+                            <Button
+                                variant="outlined"
+                                color={type === 0 ? 'success' : 'error'}
+                                sx={{borderRadius:'17px',textTransform:'none'}}
+                            >
+                                <Grid container direction="column" alignItems="center">
+                                    <Grid item>
+                                        <Grid container direction='row' alignItems='center'>
+                                            <Grid item>
+                                                {type === 0 ?
+                                                    <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                :
+                                                    <ThumbDownIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                }
+                                            </Grid>
+                                            <Grid item>
+                                                {title}
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+                                    
+                                    <Grid item sx={{minWidth:'100px'}}>
+                                        <Divider />
+                                        <Grid sx={{mt:0.5}}>
+                                            <Typography sx={{fontSize:'10px'}}>
+                                                <> 
+                                                    {subtitle}  {((hasVotedVotes > 0 && type === 0) || (hasVotedVotes < 0 && type === 1)) ? <CheckCircleIcon fontSize="inherit" /> : <></>}
+                                                </>
+                                            </Typography>
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+                            </Button>
+                        </Tooltip>
+                    </>
                 :
                     <>
-                        {hasVotedVotes < 0 &&
-                            <Tooltip title={`You casted ${getFormattedNumberToLocale(hasVotedVotes*-1)} votes against this proposal`}>
+                        {(hasVotedVotes > 0 && type === 0) ?
+                            <Tooltip title={`You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes for this proposal`}>
                                 <Button
                                     variant="outlined"
-                                    color='error'
+                                    color='success'
                                     sx={{borderRadius:'17px',textTransform:'none'}}
                                 ><CheckCircleIcon /></Button>
                             </Tooltip>
+                        :
+                            <>
+                                {hasVotedVotes < 0 &&
+                                    <Tooltip title={`You casted ${getFormattedNumberToLocale(hasVotedVotes*-1)} votes against this proposal`}>
+                                        <Button
+                                            variant="outlined"
+                                            color='error'
+                                            sx={{borderRadius:'17px',textTransform:'none'}}
+                                        ><CheckCircleIcon /></Button>
+                                    </Tooltip>
+                                }
+                            </>
                         }
                     </>
                 }

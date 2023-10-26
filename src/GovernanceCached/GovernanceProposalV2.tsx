@@ -26,7 +26,7 @@ import BN from 'bn.js'
 import { BorshCoder } from "@coral-xyz/anchor";
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
-import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token-v2";
+import { getMint, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token-v2";
 import { PublicKey, TokenAmount, Connection, TransactionInstruction, Transaction } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
@@ -531,6 +531,13 @@ export function GovernanceProposalV2View(props: any){
 
         let td = 0; // this is the default for NFT mints
         let vType = null;
+
+        // this method is not correct, migrate to set decimals by an RPC:
+        const tokenInfo = await getMint(RPC_CONNECTION, new PublicKey(thisitem.account.governingTokenMint));
+        const decimals = tokenInfo?.decimals;
+        td = decimals;
+        vType = 'Token';
+        if (!td){
             try{
                 //console.log("checking token: "+new PublicKey(thisitem.account.governingTokenMint).toBase58());
                 td = tokenMap.get(new PublicKey(thisitem.account.governingTokenMint).toBase58()).decimals;
@@ -566,6 +573,7 @@ export function GovernanceProposalV2View(props: any){
                     td = 6;
                 }
             }
+        }
         setTokenDecimals(td);
         setVoteType(vType)
         
@@ -1121,7 +1129,7 @@ export function GovernanceProposalV2View(props: any){
         
 
         //console.log("castedYes: "+castedYes);
-
+        
         setForVotes(castedYes);
         setAgainstVotes(castedNo);
 
@@ -1660,7 +1668,7 @@ export function GovernanceProposalV2View(props: any){
                                                     }}
                                                     >
                                                     <ButtonGroup variant="outlined" aria-label="outlined primary button group" sx={{textAlign:'center',height:'70px'}}>
-                                                        {thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
+                                                        {/*thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
                                                             <Button
                                                                 color="success"
                                                                 sx={{borderRadius:'17px',textTransform:'none'}}
@@ -1710,12 +1718,6 @@ export function GovernanceProposalV2View(props: any){
                                                                     </Grid>
                                                                 </Grid>
                                                             </Button>
-                                                            /*
-                                                            <Chip variant='outlined' color='success'
-                                                                icon={<ThumbUpIcon color='success' fontSize='small' sx={{ml:1}} />}
-                                                                label={forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                            />
-                                                            */
                                                         :
                                                             <>
                                                                 {thisitem.account?.yesVotesCount && 
@@ -1726,16 +1728,39 @@ export function GovernanceProposalV2View(props: any){
                                                                             <ThumbUpIcon color='success' fontSize='small' sx={{mr:1,ml:1}} />
                                                                             {forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
                                                                         </Button>
-                                                                        /*
-                                                                        <Chip variant='outlined' color='success'
-                                                                            icon={<ThumbUpIcon color='success' fontSize='small' sx={{ml:1}} />}
-                                                                            label={forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                        />*/
                                                                 }
                                                             </>
-                                                        }
+                                                        */}
 
-                                                        <VoteForProposal votingResultRows={solanaVotingResultRows}  getVotingParticipants={getVotingParticipants} hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} realm={realm} thisitem={thisitem} type={0} />
+                                                        <VoteForProposal 
+                                                            title={`${
+                                                                thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
+                                                                forVotes ? getFormattedNumberToLocale(formatAmount((forVotes / 10 ** tokenDecimals))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))
+                                                                :
+                                                                forVotes ? getFormattedNumberToLocale(formatAmount((forVotes / 10 ** tokenDecimals))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))
+                                                            }`}
+                                                            subtitle={`For 
+                                                                    ${forVotes ?
+                                                                      (forVotes / (forVotes + againstVotes) * 100).toFixed(2) + '%'
+                                                                      : (thisitem.account?.options &&
+                                                                      thisitem.account?.options[0]?.voteWeight &&
+                                                                      thisitem?.account?.denyVoteWeight &&
+                                                                      Number(thisitem.account?.options[0].voteWeight) > 0) ?
+                                                                      (((Number(thisitem.account?.options[0].voteWeight)) / ((Number(thisitem.account?.denyVoteWeight)) + (Number(thisitem.account?.options[0].voteWeight)))) * 100).toFixed(2) + '%'
+                                                                      : thisitem.account.yesVotesCount ?
+                                                                      (Number(thisitem.account.yesVotesCount) / (Number(thisitem.account.noVotesCount) + Number(thisitem.account.yesVotesCount)) * 100).toFixed(2) + '%'
+                                                                      : '0%'
+                                                                    }
+                                                                `}
+                                                            hovertext=""
+                                                            showIcon={true} 
+                                                            votingResultRows={solanaVotingResultRows}  
+                                                            getVotingParticipants={getVotingParticipants} 
+                                                            hasVotedVotes={hasVotedVotes} 
+                                                            hasVoted={hasVoted} 
+                                                            realm={realm} 
+                                                            thisitem={thisitem} 
+                                                            type={0} />
                                                     </ButtonGroup>
                                                 </Box>
                                             </Grid>
@@ -1752,7 +1777,7 @@ export function GovernanceProposalV2View(props: any){
                                                         }}
                                                     >
                                                     <ButtonGroup variant="outlined" aria-label="outlined primary button group" sx={{height:'70px'}}>
-                                                        {thisitem.account?.denyVoteWeight ?
+                                                        {/*thisitem.account?.denyVoteWeight ?
                                                             <Button
                                                                     color="error"
                                                                     sx={{borderRadius:'17px',textTransform:'none'}}
@@ -1804,12 +1829,6 @@ export function GovernanceProposalV2View(props: any){
                                                                     
                                                                     
                                                             </Button>
-                                                            /*
-                                                            <Chip variant='outlined' color='error'
-                                                                    icon={<ThumbDownIcon color='error' fontSize='small' sx={{ml:1}} />}
-                                                                    label={againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                />
-                                                                */
                                                         :
                                                             <>
                                                                 {thisitem.account?.noVotesCount && 
@@ -1820,16 +1839,39 @@ export function GovernanceProposalV2View(props: any){
                                                                         <ThumbDownIcon color='error' fontSize='small' sx={{mr:1}} />
                                                                         {againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
                                                                     </Button>
-                                                                    /*
-                                                                        <Chip variant='outlined' color='error'
-                                                                            icon={<ThumbDownIcon color='error' fontSize='small' sx={{ml:1}} />}
-                                                                            label={againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                        />
-                                                                    */
                                                                 }
                                                             </>
-                                                        }
-                                                        <VoteForProposal votingResultRows={solanaVotingResultRows} getVotingParticipants={getVotingParticipants} hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} realm={realm} thisitem={thisitem} type={1} />
+                                                        */}
+                                                        
+                                                        <VoteForProposal 
+                                                            title={`${
+                                                                thisitem.account?.denyVoteWeight ?
+                                                                againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes / 10 ** tokenDecimals))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))
+                                                                :
+                                                                againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes / 10 ** tokenDecimals))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))
+                                                            }`}
+                                                            subtitle={`Against 
+                                                                    ${againstVotes ?
+                                                                        (againstVotes/(forVotes+againstVotes)*100).toFixed(2) + '%'
+                                                                      : (thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && 
+                                                                        thisitem?.account?.denyVoteWeight && 
+                                                                        Number(thisitem.account?.options[0].voteWeight) > 0) ?
+                                                                        (((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))/((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))+(Number(thisitem.account?.options[0].voteWeight)/Math.pow(10, tokenDecimals))))*100).toFixed(2) + '%'
+                                                                      : thisitem.account.noVotesCount ?
+                                                                      (Number(thisitem.account.noVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2) + '%'
+                                                                      : '0%'
+                                                                    }
+                                                                `}
+                                                            hovertext=""
+                                                            showIcon={true} 
+                                                            votingResultRows={solanaVotingResultRows}  
+                                                            getVotingParticipants={getVotingParticipants} 
+                                                            hasVotedVotes={hasVotedVotes} 
+                                                            hasVoted={hasVoted} 
+                                                            realm={realm} 
+                                                            thisitem={thisitem} 
+                                                            type={1} />
+
                                                     </ButtonGroup>
                                                 </Box>
                                             </Grid>

@@ -666,6 +666,7 @@ export default function GovernancePower(props: any){
                             borderRadius: '17px',
                             p:1,
                             minWidth:'216px',
+                            textAlign:'right'
                         }}
                     >
                         {(walletCommunityMintAmount && walletCommunityMintAmount > 0) &&
