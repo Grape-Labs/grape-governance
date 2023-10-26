@@ -640,7 +640,11 @@ export function VoteForProposal(props:any){
             <>
                 {(title && subtitle && showIcon) ?
                     <>
-                        <Tooltip title={`You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes on this proposal`}>
+                        <Tooltip title={
+                            hasVotedVotes > 0 ? `You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes for this proposal`
+                            :
+                            hasVotedVotes < 0 ? `You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes against this proposal` : ``
+                            }>
                             <Button
                                 variant="outlined"
                                 color={type === 0 ? 'success' : 'error'}
@@ -679,7 +683,7 @@ export function VoteForProposal(props:any){
                 :
                     <>
                         {(hasVotedVotes > 0 && type === 0) ?
-                            <Tooltip title={`You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes for this proposal`}>
+                            <Tooltip title={hasVotedVotes > 0 && `You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes for this proposal`}>
                                 <Button
                                     variant="outlined"
                                     color='success'
@@ -689,7 +693,7 @@ export function VoteForProposal(props:any){
                         :
                             <>
                                 {hasVotedVotes < 0 &&
-                                    <Tooltip title={`You casted ${getFormattedNumberToLocale(hasVotedVotes*-1)} votes against this proposal`}>
+                                    <Tooltip title={hasVotedVotes < 0 && `You casted ${getFormattedNumberToLocale(hasVotedVotes*-1)} votes against this proposal`}>
                                         <Button
                                             variant="outlined"
                                             color='error'
