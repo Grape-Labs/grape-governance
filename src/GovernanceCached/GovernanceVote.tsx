@@ -194,7 +194,8 @@ export function VoteForProposal(props:any){
     const hasVoted = props.hasVoted;
     const propVoteType = props?.propVoteType;
     const thisitem = props.thisitem;
-    const realm = props.realm;
+    const realm = props?.realm;
+    const governanceAddress = props.governanceAddress;
     const type = props.type || 0;
     const multiChoice = props.multiChoice || null;
     const [memberMap, setMemberMap] = React.useState(null);
@@ -321,23 +322,23 @@ export function VoteForProposal(props:any){
                 
                 const hasVotedRecord = votingParticipants.some(item => item.governingTokenOwner === publicKey.toBase58());
                 const hasVotedItem = votingParticipants.find(item => item.governingTokenOwner === publicKey.toBase58());
-                
+                /*
                 console.log("programId: "+programId.toBase58())
                 console.log("programVersion: "+programVersion)
-                console.log("realm: "+realm.pubkey.toBase58())
+                console.log("realm: "+JSON.stringify(realm))
                 console.log("governance: "+new PublicKey(proposal.governanceId).toBase58())
                 console.log("proposal: "+new PublicKey(proposal.proposalId).toBase58())
                 console.log("governingTokenMint: "+new PublicKey(proposal.governingTokenMint).toBase58())
                 console.log("voteRecord: "+new PublicKey(hasVotedItem.voteAddress).toBase58())
                 console.log("governanceAuthority: "+governanceAuthority.toBase58())
                 console.log("beneficiary: "+beneficiary.toBase58())
-            
+                */
                 if (hasVotedRecord){
                     await withRelinquishVote(
                         instructions,
                         programId,
                         programVersion,
-                        realm.pubkey,
+                        realm?.pubkey ? new PublicKey(realm.pubkey) : new PublicKey(governanceAddress),
                         new PublicKey(proposal.governanceId),
                         new PublicKey(proposal.proposalId),
                         new PublicKey(tokenOwnerRecord),//new PublicKey(proposal.tokenOwnerRecord),

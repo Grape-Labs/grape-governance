@@ -1757,6 +1757,7 @@ export function GovernanceProposalV2View(props: any){
                                                             hasVotedVotes={hasVotedVotes} 
                                                             hasVoted={hasVoted} 
                                                             realm={realm} 
+                                                            governanceAddress={governanceAddress}
                                                             thisitem={thisitem} 
                                                             type={0}
                                                             state={thisitem.account.state}
@@ -1869,6 +1870,7 @@ export function GovernanceProposalV2View(props: any){
                                                             hasVotedVotes={hasVotedVotes} 
                                                             hasVoted={hasVoted} 
                                                             realm={realm} 
+                                                            governanceAddress={governanceAddress}
                                                             thisitem={thisitem} 
                                                             type={1}
                                                             state={thisitem.account.state} />
@@ -2327,6 +2329,7 @@ export function GovernanceProposalV2View(props: any){
                                                                     hasVoted={hasVoted} 
                                                                     propVoteType={propVoteType} 
                                                                     realm={realm} 
+                                                                    governanceAddress={governanceAddress}
                                                                     thisitem={thisitem} 
                                                                     type={0} 
                                                                     multiChoice={{index:mindex,proposal:thisitem}}
