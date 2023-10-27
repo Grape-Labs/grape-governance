@@ -577,6 +577,7 @@ export default function GovernanceCreateProposalView(props: any){
         
         setGovernanceWallet(nativeWallet);
         setCommunitySupport(false);
+        setIsCouncilVote(false);
         //setIsCouncilVote(false);
         // get rules wallet:
         console.log("HERE!")
@@ -590,6 +591,7 @@ export default function GovernanceCreateProposalView(props: any){
 
               if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff')
                 setCommunitySupport(true);
+                setIsCouncilVote(true);
             }
           }
         )}

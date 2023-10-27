@@ -9,7 +9,7 @@ export const HELIUS_RPC_ENDPOINT = 'https://rpc.helius.xyz/?api-key='+process.en
 export const ALCHEMY_RPC_ENDPOINT = process.env.REACT_APP_API_ALCHEMY_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
 export const HELLO_MOON_BEARER = process.env.REACT_APP_API_HELLOMOON_API_KEY;
 export const HELLO_MOON_ENDPOINT = HELLO_MOON_BEARER ? `https://rpc.hellomoon.io/${HELLO_MOON_BEARER}` : `https://api.mainnet-beta.solana.com`;
-export const RPC_ENDPOINT = QUICKNODE_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
+export const RPC_ENDPOINT = HELLO_MOON_ENDPOINT || 'https://api.mainnet-beta.solana.com';
 //export const RPC_LABEL = QUICKNODE_RPC_ENDPOINT ? 'QuickNode' : 'Solana Mainnet'; 
 export const WS_ENDPOINT = process.env?.REACT_APP_API_QUICKNODE_RPC_ENDPOINT ? process.env.REACT_APP_API_QUICKNODE_RPC_ENDPOINT.replace('https://', 'wss://') : 'wss://api.mainnet-beta.solana.com';
 
