@@ -579,6 +579,7 @@ export default function GovernanceCreateProposalView(props: any){
         setCommunitySupport(false);
         //setIsCouncilVote(false);
         // get rules wallet:
+        console.log("HERE!")
         let rulesWallet = null;
         {cachedTreasury && cachedTreasury
           .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
@@ -1482,7 +1483,7 @@ export default function GovernanceCreateProposalView(props: any){
                               <FormControlLabel 
                                 control={
                                   <Switch 
-                                    defaultChecked={communitySupport}
+                                    checked={communitySupport ? false : true}
                                     onChange={
                                       (e) => {
                                         setIsCouncilVote(e.target.checked)
