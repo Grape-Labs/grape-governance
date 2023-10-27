@@ -8,6 +8,8 @@ import {
     getTokenOwnerRecord, 
     getTokenOwnerRecordsByOwner, 
     getAllTokenOwnerRecords,
+    getGovernanceProgramVersion,
+    getVoteRecord,
     getMaxVoterWeightRecord,
     getRealmConfigAddress, 
     getGovernanceAccount, 
@@ -16,6 +18,7 @@ import {
     pubkeyFilter,
     GovernanceAccountType, 
     tryGetRealmConfig, 
+    withRelinquishVote,
     getRealmConfig,
     InstructionData  } from '@solana/spl-governance';
 import {
@@ -63,7 +66,12 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  Divider,
+  Divider,  
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
   List,
   ListItem,
   ListItemAvatar,
@@ -135,7 +143,47 @@ const StyledMenu = styled(Menu)(({ theme }) => ({
     },
 }));
 
+export interface DialogTitleProps {
+    id: string;
+    children?: React.ReactNode;
+    onClose: () => void;
+}
+
+const BootstrapDialogTitle = (props: DialogTitleProps) => {
+    const { children, onClose, ...other } = props;
+  
+    return (
+      <DialogTitle sx={{ m: 0, p: 2 }} {...other}>
+        {children}
+        {onClose ? (
+          <IconButton
+            aria-label="close"
+            onClick={onClose}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              color: (theme) => theme.palette.grey[500],
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        ) : null}
+      </DialogTitle>
+    );
+};
+
+const BootstrapDialog = styled(Dialog)(({ theme }) => ({
+    '& .MuDialogContent-root': {
+      padding: theme.spacing(2),
+    },
+    '& .MuDialogActions-root': {
+      padding: theme.spacing(1),
+    },
+}));
+
 export function VoteForProposal(props:any){
+    const state = props?.state;
     const title = props?.title;
     const subtitle = props?.subtitle;
     const showIcon = props?.showIcon;
@@ -158,7 +206,15 @@ export function VoteForProposal(props:any){
     const [anchorElNo, setAnchorElNo] = React.useState(null);
     const openDelegateYes = Boolean(anchorElYes);
     const openDelegateNo = Boolean(anchorElNo);
+    const [open, setOpen] = React.useState(false);
     
+    const handleClickOpen = () => {
+        setOpen(true);
+    };
+
+    const handleClose = () => {
+        setOpen(false);
+    };
     /*
     console.log("memberMap: "+JSON.stringify(memberMap));
     const memberMapReduced = memberMap.reduce((map: any, item: any) => {
@@ -186,6 +242,226 @@ export function VoteForProposal(props:any){
         await handleVote(1, null, true)
     }
 
+    const handleRelinquishVotes = async (delegate?: string, withOwnerRecord?:boolean, withAllDelegates?:boolean) => {
+        const wOwner = withOwnerRecord ? true : false;
+        const wAllDelegates = withAllDelegates ? true : false;
+        setAnchorElYes(false);
+        setAnchorElNo(false);
+        
+        //console.log("thisitem.account.governingTokenMint: "+JSON.stringify(thisitem.account.governingTokenMint));
+
+        //console.log("realm: "+JSON.stringify(realm))
+
+        const programId = new PublicKey(thisitem.owner);
+        
+        let rawTokenOwnerRecords = null;
+        if (memberMap){
+            rawTokenOwnerRecords = memberMap;
+        } else{
+            rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
+        }
+
+        //console.log("rawTokenOwnerRecords: "+JSON.stringify(rawTokenOwnerRecords))
+        // 6R78nYux2yVDtNBd8CBXojRtgkSmRvECvQsAtZMkcDWM
+        
+        let memberItem = voterRecord || rawTokenOwnerRecords.find(item => 
+            (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
+            item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
+
+        console.log("memberItem: "+JSON.stringify(memberItem));
+        
+        let delegatedItems = delegatedVoterRecord || rawTokenOwnerRecords.filter(item => 
+            (item.account?.governanceDelegate?.toBase58() === publicKey.toBase58() && 
+            item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
+        
+        console.log("delegatedItems: "+JSON.stringify(delegatedItems))
+        
+        //console.log("tokenOwnerRecord: "+JSON.stringify(thisitem.account.tokenOwnerRecord));
+        
+        const proposal = {
+            governanceId: thisitem.account.governance,
+            proposalId: thisitem.pubkey,
+            tokenOwnerRecord: thisitem.account.tokenOwnerRecord,
+            governingTokenMint: thisitem.account.governingTokenMint
+        }
+        const transactionData = {proposal:proposal,action:0} // 0 = yes
+        //console.log("realm: "+JSON.stringify(realm));
+        //console.log("thisitem/proposal: "+JSON.stringify(thisitem));
+        //console.log("thisGovernance: "+JSON.stringify(thisGovernance));
+        
+        /*
+        const realmData = {
+            pubKey:thisGovernance.pubkey,
+            realmId:thisitem.pubkey,
+            governanceId:thisitem.account.governance,
+            communityMint: thisitem.account.governingTokenMint
+        }*/
+
+        //console.log("Proposal: "+JSON.stringify(proposal));
+        //console.log("realmData: "+JSON.stringify(realmData));
+        //console.log("memberItem: "+JSON.stringify(memberItem));
+
+        //console.log("memberMapReduced: "+JSON.stringify(memberMapReduced));
+
+        // check if voter can participate
+        console.log("publicKey: "+publicKey.toBase58())
+        if (publicKey && memberItem) {
+            const voteTx = new Transaction();
+            const beneficiary = publicKey;
+            const governanceAuthority = publicKey;
+            const programVersion = await getGovernanceProgramVersion(
+                RPC_CONNECTION,
+                new PublicKey(realm.owner)
+            );
+            const tokenOwnerRecord = new PublicKey(memberItem.pubkey);
+            const instructions: TransactionInstruction[] = [];
+            //const prop = await getProposal(RPC_CONNECTION, transactionData.proposal);
+
+            if (wOwner){ // vote for your own if delegate is not set and value of delegate is not = 1
+                
+                const hasVotedRecord = votingParticipants.some(item => item.governingTokenOwner === publicKey.toBase58());
+                const hasVotedItem = votingParticipants.find(item => item.governingTokenOwner === publicKey.toBase58());
+                
+                console.log("programId: "+programId.toBase58())
+                console.log("programVersion: "+programVersion)
+                console.log("realm: "+realm.pubkey.toBase58())
+                console.log("governance: "+new PublicKey(proposal.governanceId).toBase58())
+                console.log("proposal: "+new PublicKey(proposal.proposalId).toBase58())
+                console.log("governingTokenMint: "+new PublicKey(proposal.governingTokenMint).toBase58())
+                console.log("voteRecord: "+new PublicKey(hasVotedItem.voteAddress).toBase58())
+                console.log("governanceAuthority: "+governanceAuthority.toBase58())
+                console.log("beneficiary: "+beneficiary.toBase58())
+            
+                if (hasVotedRecord){
+                    await withRelinquishVote(
+                        instructions,
+                        programId,
+                        programVersion,
+                        realm.pubkey,
+                        new PublicKey(proposal.governanceId),
+                        new PublicKey(proposal.proposalId),
+                        new PublicKey(tokenOwnerRecord),//new PublicKey(proposal.tokenOwnerRecord),
+                        new PublicKey(proposal.governingTokenMint),
+                        new PublicKey(hasVotedItem.voteAddress),//voteRecord,
+                        governanceAuthority,
+                        beneficiary
+                    )
+                    const recentBlock = await RPC_CONNECTION.getLatestBlockhash();
+                    //const transaction = new Transaction({ feePayer: walletPubkey });
+                    const transaction = new Transaction();
+                    transaction.feePayer = publicKey;
+                    transaction.recentBlockhash = recentBlock.blockhash;
+
+                    console.log("transaction: " + JSON.stringify(transaction));
+                    if (instructions && instructions.length > 0)
+                        voteTx.add(...instructions);
+                }
+            }
+            
+            if (voteTx){
+                console.log("Removing vote as: "+publicKey.toBase58());
+            }
+
+            /*
+            if (delegatedItems){ // if we wanta to add all to vote
+                let cnt = 0;
+                for (var delegateItem of delegatedItems){ // if vote for all delegates + your own
+                    // check with delegate
+                    console.log("delegate setting: "+delegate);    
+                    if (withAllDelegates){
+                        // check if delegate has voted
+                        const hasVotedItem = votingParticipants.some(item => item.governingTokenOwner === delegateItem.account.governingTokenOwner.toBase58());
+                        if (!hasVotedItem){
+                            
+                            const delegateVoteTx = await createCastVoteTransaction(
+                                realm,
+                                publicKey,
+                                transactionData,
+                                delegateItem,
+                                delegateItem.account.governingTokenOwner.toBase58(),//null,
+                                isCommunityVote,
+                                multiChoice,
+                                type
+                            );
+                            
+                            if (delegateVoteTx){
+                                voteTx.add(delegateVoteTx);
+                                console.log("Casting vote as a delegator for "+delegateItem.account.governingTokenOwner.toBase58())
+                            }
+                        }
+                    } else if (delegate){ // if sinlge delegate
+                        if (delegate === delegateItem.account.governingTokenOwner.toBase58()){
+                            const delegateVoteTx = await createCastVoteTransaction(
+                                realm,
+                                publicKey,
+                                transactionData,
+                                delegateItem,
+                                delegateItem.account.governingTokenOwner.toBase58(),
+                                isCommunityVote,
+                                multiChoice,
+                                type
+                            );
+                            
+                            if (delegateVoteTx)
+                                voteTx.add(delegateVoteTx);
+                        }
+                    }
+                    cnt++;
+
+                }
+            }
+            */
+
+            //console.log("vvvt: "+JSON.stringify(vvvt));
+            
+            if (voteTx){
+
+                //console.log("voteTx: " + JSON.stringify(voteTx));
+                try{
+                    enqueueSnackbar(`Preparing to withdraw vote`,{ variant: 'info' });
+                    const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
+                        skipPreflight: true,
+                        preflightCommitment: "confirmed",
+                    });
+                    const snackprogress = (key:any) => (
+                        <CircularProgress sx={{padding:'10px'}} />
+                    );
+                    const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
+                    //await connection.confirmTransaction(signature, 'processed');
+                    const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
+                    await RPC_CONNECTION.confirmTransaction({
+                        blockhash: latestBlockHash.blockhash,
+                        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+                        signature: signature}, 
+                        'finalized'
+                    );
+
+                    closeSnackbar(cnfrmkey);
+                    const action = (key:any) => (
+                            <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
+                                Signature: {signature}
+                            </Button>
+                    );
+                    
+                    enqueueSnackbar(`You have removed your partipation from this proposal`,{ variant: 'success', action });
+
+                    // trigger a refresh here...
+                    /*
+                    const redirectTimer = setTimeout(() => {
+                        getVotingParticipants();
+                    }, 3000); // 3 seconds*/
+                    setOpen(false);
+                    getVotingParticipants();
+                }catch(e:any){
+                    enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
+                } 
+            } else{
+                alert("No voter record!")
+            }
+            
+        }
+    }
+    
     const handleVote = async (type: Number, delegate?: string, withOwnerRecord?:boolean, withAllDelegates?:boolean) => {
         const wOwner = withOwnerRecord ? true : false;
         const wAllDelegates = withAllDelegates ? true : false;
@@ -635,8 +911,8 @@ export function VoteForProposal(props:any){
                 }
             </>
         }
-
-        {hasVoted && publicKey &&
+        
+        {(hasVoted && publicKey) &&
             <>
                 {(title && subtitle && showIcon) ?
                     <>
@@ -645,8 +921,10 @@ export function VoteForProposal(props:any){
                             :
                             hasVotedVotes < 0 ? `You casted ${getFormattedNumberToLocale(hasVotedVotes)} votes against this proposal` : ``
                             }>
+                                
                             <Button
                                 variant="outlined"
+                                onClick={() => (state === 2  && (hasVotedVotes > 0 || hasVotedVotes < 0)) && handleClickOpen()}
                                 color={type === 0 ? 'success' : 'error'}
                                 sx={{borderRadius:'17px',textTransform:'none'}}
                             >
@@ -679,6 +957,64 @@ export function VoteForProposal(props:any){
                                 </Grid>
                             </Button>
                         </Tooltip>
+
+                        
+                        <Dialog open={open} onClose={handleClose}
+                            PaperProps={{
+                                style: {
+                                    background: '#13151C',
+                                    border: '1px solid rgba(255,255,255,0.05)',
+                                    borderTop: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '20px'
+                                }
+                            }}
+                        >
+                            <BootstrapDialogTitle id="create-storage-pool" onClose={handleClose}>
+                                Vote
+                            </BootstrapDialogTitle>
+                            
+                            <DialogContent>
+                            <DialogContentText>
+                                <Grid container>
+                                    <Box sx={{
+                                            m:2,
+                                            background: 'rgba(0, 0, 0, 0.1)',
+                                            borderRadius: '17px',
+                                            p:1,
+                                            width:"100%",
+                                            minWidth:'360px'
+                                        }}>
+                                        <Box sx={{ my: 3, mx: 2 }}>
+                                            <Grid container alignItems="center">
+                                            <Grid item xs>
+                                                <Typography gutterBottom variant="h5" component="div">
+                                                Voted
+                                                </Typography>
+                                            </Grid>
+                                            <Grid item>
+                                                {hasVotedVotes.toLocaleString()}
+                                            </Grid>
+                                            </Grid>
+                                            <Typography color="text.secondary" variant="body2">
+                                               Voting direction: {hasVotedVotes > 0 ? 'For' : hasVotedVotes <0 && 'Against'}
+                                            </Typography>
+                                        </Box>
+
+                                    </Box>
+                                </Grid>
+                            </DialogContentText>
+                            
+                            </DialogContent>
+                            <DialogActions>
+                                <Button 
+                                    color="success" 
+                                    onClick={(event) => handleRelinquishVotes(null,true)}
+                                    sx={{borderRadius:'17px'}}
+                                ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Withdraw Vote</Button>
+                            
+                            </DialogActions>
+                        </Dialog>
+                        
                     </>
                 :
                     <>

@@ -215,7 +215,7 @@ export function GovernanceProposalV2View(props: any){
     const [againstVotes, setAgainstVotes] = React.useState(0);
     const [multiVoteSentiment, setMultiVoteSentiment] = React.useState(null);
     const [hasVoted, setHasVoted] = React.useState(false);
-    const [hasVotedVotes, setHasVotedVotes] = React.useState(0);
+    const [hasVotedVotes, setHasVotedVotes] = React.useState(null);
     const [cachedTokenMeta, setCachedTokenMeta] = React.useState([{mint: "A6GComqUgUZ7mTqZcDrgnigPEdYDcw5yCumbHaaQxVKK", logo: "https://arweave.net/4-3-xg9otuhR3BZ72MVk6-QB0tqBZAniXfsvAawEdHI", name: "VINE"}]);
     //const cachedTokenMeta = new Array();
     const [castedYesVotes, setCastedYesVotes] = React.useState(null);
@@ -962,7 +962,7 @@ export function GovernanceProposalV2View(props: any){
                             setHasVotedVotes(voterVotes);
                         }
                     }
-
+                    
                     var multipleChoice = null;
                     if (item.account?.vote?.approveChoices && item.account?.vote?.approveChoices !== 'undefined' && item.account?.vote?.approveChoices.length > 1){
                         multipleChoice = item.account?.vote?.approveChoices;
@@ -1380,7 +1380,7 @@ export function GovernanceProposalV2View(props: any){
 
     React.useEffect(() => { 
         
-        if (!loadingValidation){
+        if (!loadingValidation || !governanceLookup){
             console.log("Step 2.")
             validateGovernanceSetup();
         }
@@ -1434,13 +1434,11 @@ export function GovernanceProposalV2View(props: any){
         // check again if this voter has voted:
         if (publicKey && solanaVotingResultRows){
             if (solanaVotingResultRows){
-                //console.log("OK HERE!!!")
                 for (let result of solanaVotingResultRows){
-                    //console.log("RESULTS!!!: : "+JSON.stringify(result))
                     if (result.governingTokenOwner === publicKey.toBase58()){
                         setHasVoted(true);
-                        //voterVotes = +(voterVotes / 10 ** ((realm.account.config?.councilMint) === result.governingTokenMint?.toBase58() ? 0 : td)).toFixed(0);
-                        //setHasVotedVotes(voterVotes);
+                        const voterVotes = +(result.quorumWeight.voterWeight / 10 ** ((realm.account.config?.councilMint) === result.governingTokenMint?.toBase58() ? 0 : result.quorumWeight.decimals)).toFixed(0);
+                        setHasVotedVotes(voterVotes);
                     }
                 }
             }
@@ -1760,7 +1758,9 @@ export function GovernanceProposalV2View(props: any){
                                                             hasVoted={hasVoted} 
                                                             realm={realm} 
                                                             thisitem={thisitem} 
-                                                            type={0} />
+                                                            type={0}
+                                                            state={thisitem.account.state}
+                                                            />
                                                     </ButtonGroup>
                                                 </Box>
                                             </Grid>
@@ -1870,7 +1870,8 @@ export function GovernanceProposalV2View(props: any){
                                                             hasVoted={hasVoted} 
                                                             realm={realm} 
                                                             thisitem={thisitem} 
-                                                            type={1} />
+                                                            type={1}
+                                                            state={thisitem.account.state} />
 
                                                     </ButtonGroup>
                                                 </Box>
@@ -2319,7 +2320,17 @@ export function GovernanceProposalV2View(props: any){
                                                         
                                                         <ListItem
                                                             secondaryAction={
-                                                                <VoteForProposal votingResultRows={solanaVotingResultRows} getVotingParticipants={getVotingParticipants} hasVotedVotes={hasVotedVotes} hasVoted={hasVoted} propVoteType={propVoteType} realm={realm} thisitem={thisitem} type={0} multiChoice={{index:mindex,proposal:thisitem}} />
+                                                                <VoteForProposal 
+                                                                    votingResultRows={solanaVotingResultRows} 
+                                                                    getVotingParticipants={getVotingParticipants} 
+                                                                    hasVotedVotes={hasVotedVotes} 
+                                                                    hasVoted={hasVoted} 
+                                                                    propVoteType={propVoteType} 
+                                                                    realm={realm} 
+                                                                    thisitem={thisitem} 
+                                                                    type={0} 
+                                                                    multiChoice={{index:mindex,proposal:thisitem}}
+                                                                    state={thisitem.account.state} />
                                                             }
                                                             >
                                                             <ListItemAvatar>

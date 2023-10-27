@@ -83,13 +83,13 @@ import {
     findObjectByGoverningTokenOwner
   } from '../utils/grapeTools/helpers';
 
-  export interface DialogTitleProps {
+export interface DialogTitleProps {
     id: string;
     children?: React.ReactNode;
     onClose: () => void;
 }
 
-  const BootstrapDialogTitle = (props: DialogTitleProps) => {
+const BootstrapDialogTitle = (props: DialogTitleProps) => {
     const { children, onClose, ...other } = props;
   
     return (
