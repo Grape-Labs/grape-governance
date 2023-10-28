@@ -802,7 +802,7 @@ export default function IntraDAOVoteView(props: any) {
                                             
                                             {governance.account.config.councilMint &&
                                                 <>
-                                                <br/>Council Mint: <ExplorerView
+                                                Council Mint: <ExplorerView
                                                                 address={governance.account.config.councilMint.toBase58()} type='address'
                                                                 shorten={8}
                                                                 hideTitle={false} style='text' color='white' fontSize='12px'/>

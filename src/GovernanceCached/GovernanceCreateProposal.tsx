@@ -1386,7 +1386,7 @@ export default function GovernanceCreateProposalView(props: any){
 
                             {proposalType === 31 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <IntraDAOView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
+                                <IntraDAOVoteView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
                               </FormControl>
                             }
                             {proposalType === 32 &&
