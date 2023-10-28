@@ -95,7 +95,7 @@ const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
     'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
 );
 
-export default function JoinDAOView(props: any) {
+export default function IntraDAOJoinView(props: any) {
     const payerWallet = props?.payerWallet || null;
     const setInstructionsObject = props?.setInstructionsObject;
     const governanceLookup = props?.governanceLookup;
@@ -113,6 +113,7 @@ export default function JoinDAOView(props: any) {
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
     const [selectedRecord, setSelectedRecord] = React.useState(null);
     const [daoToJoinAddress, setDaoToJoinAddress] = React.useState(null);
+    const [daoToJoinAddressStr, setDaoToJoinAddressStr] = React.useState(null);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
     
     const { publicKey } = useWallet();
@@ -239,6 +240,7 @@ export default function JoinDAOView(props: any) {
     function handleSetDaoToJoinAddressChange(text:string){
         // add validation here
         console.log("checking: "+text);
+        setDaoToJoinAddressStr(text);
         if (isValidSolanaPublicKey(text)){
             console.log("setDaoToJoinAddress complete!");
             setDaoToJoinAddress(text);
@@ -587,7 +589,7 @@ export default function JoinDAOView(props: any) {
                     }}
                     sx={{borderRadius:'17px'}} 
                 />
-                {(!daoToJoinAddress) ? 
+                {(!daoToJoinAddress && (daoToJoinAddressStr && daoToJoinAddressStr.length > 0)) ? 
                     <Grid sx={{textAlign:'right',}}>
                         <Typography variant="caption" color="error">WARNING: Invalid DAO address!</Typography>
                     </Grid>
@@ -613,7 +615,7 @@ export default function JoinDAOView(props: any) {
                                             
                                             {governance.account.config.councilMint &&
                                                 <>
-                                                <br/>Council Mint: <ExplorerView
+                                                Council Mint: <ExplorerView
                                                                 address={governance.account.config.councilMint.toBase58()} type='address'
                                                                 shorten={8}
                                                                 hideTitle={false} style='text' color='white' fontSize='12px'/>

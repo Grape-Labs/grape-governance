@@ -103,7 +103,7 @@ const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
     'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
 );
 
-export default function GrantDAOView(props: any) {
+export default function IntraDAOGrantView(props: any) {
     const governanceAddress = props?.governanceAddress;
     const [governanceRulesWallet, setGovernanceRulesWallet] = React.useState(props?.governanceRulesWallet);
     const payerWallet = props?.payerWallet || null;

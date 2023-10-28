@@ -68,9 +68,10 @@ import DiscordIcon from '../components/static/DiscordIcon';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import { GovernanceGistDialog } from './GovernanceGistDialog';
-import GrantDAOView from './plugins/instructions/GrantDAOView';
-import JoinDAOView from './plugins/instructions/JoinDAOView';
-import InterDAOView from './plugins/instructions/InterDAOView';
+//import GovernanceCreateProposalView from "../GovernanceCached/GovernanceCreateProposal";
+import IntraDAOGrantView from './plugins/instructions/IntraDAOGrantView';
+import IntraDAOJoinView from './plugins/instructions/IntraDAOJoinView';
+import IntraDAOVoteView from './plugins/instructions/IntraDAOVoteView';
 import LookupTableView from './plugins/instructions/LookupTableView';
 import SNSView from './plugins/instructions/SNSView';
 import CloseTokenView from './plugins/instructions/CloseTokenView';
@@ -163,7 +164,8 @@ export default function GovernanceCreateProposalView(props: any){
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
     
-    const governanceAddress = urlParams;
+    const governanceAddress = props?.governanceAddress || urlParams;
+    const rulesAddress = props?.rulesAddress || urlParams;
     const showGovernanceTitle = true;
     const [title, setTitle] = React.useState(null);
     const [description, setDescription] = React.useState(null);
@@ -299,7 +301,6 @@ export default function GovernanceCreateProposalView(props: any){
       calculateProposalFee();
     }
     
-
     const createProposal = async(isDraft: boolean) => {
       
       // get governance settings
@@ -487,19 +488,25 @@ export default function GovernanceCreateProposalView(props: any){
                   governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
                   governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
                 ) ? true : false}
-              >Join a DAO</MenuItem>
+              >Intra DAO: Join a DAO</MenuItem>
               <MenuItem value={31}
                 disabled={(
                   governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
                   governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
                 ) ? true : false}
-              >Vote on a DAO Proposal</MenuItem>
+              >Intra DAO: Vote on a DAO Proposal</MenuItem>
               <MenuItem value={32}
                 disabled={(
                   governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
                   governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
                 ) ? true : false}
-              >Grant DAO Voting Power</MenuItem>
+              >Intra DAO: Grant DAO Voting Power</MenuItem>
+              <MenuItem value={33}
+                disabled={(
+                  governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
+                  governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
+                ) ? true : true}
+              >Intra DAO: Make a DAO Proposal</MenuItem>
               <MenuItem value={9}
                 disabled
                 //disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
@@ -1373,18 +1380,24 @@ export default function GovernanceCreateProposalView(props: any){
 
                             {proposalType === 30 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <JoinDAOView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
+                                <IntraDAOJoinView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
                               </FormControl>
                             }
 
                             {proposalType === 31 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <InterDAOView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
+                                <IntraDAOView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
                               </FormControl>
                             }
                             {proposalType === 32 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <GrantDAOView governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
+                                <IntraDAOGrantView governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
+                              </FormControl>
+                            }
+
+                            {proposalType === 33 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <GovernanceCreateProposalView governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
 

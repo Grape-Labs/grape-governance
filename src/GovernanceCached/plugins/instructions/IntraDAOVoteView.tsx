@@ -103,7 +103,7 @@ const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
     'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
 );
 
-export default function InterDAOView(props: any) {
+export default function IntraDAOVoteView(props: any) {
     const payerWallet = props?.payerWallet || null;
     const setInstructionsObject = props?.setInstructionsObject;
     const governanceLookup = props?.governanceLookup;
@@ -564,7 +564,7 @@ export default function InterDAOView(props: any) {
                     const accountInfo = await connection.getParsedAccountInfo( new PublicKey(item.account.governingTokenMint));
                     //const accountParsed = JSON.parse(JSON.stringify(accountInfo.value.data));
                     const decimals = accountInfo.value.data.parsed.info.decimals;
-
+                    
                     votes = Number(item.account.governingTokenDepositAmount)/10**decimals + ' Community';
 
                     // fetch token decimals!
