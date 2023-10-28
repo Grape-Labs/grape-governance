@@ -700,6 +700,94 @@ export function VoteForProposal(props:any){
 
     return (
     <>
+        {!publicKey &&
+            <>
+            
+            {type === 0 ?
+                    <>
+                    
+                        <Button
+                            variant="outlined"
+                            color='success'
+                            sx={{borderRadius:'17px',textTransform:'none'}}
+                        >
+                            {(title && subtitle && showIcon) &&
+                                <>
+                                
+                                    <Grid container direction="column" alignItems="center">
+                                        <Grid item>
+                                            <Grid container direction='row' alignItems='center'>
+                                                <Grid item>
+                                                    <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                </Grid>
+                                                <Grid item>
+                                                    {title}
+                                                </Grid>
+                                            </Grid>
+                                        </Grid>
+                                        
+                                        <Grid item sx={{minWidth:'100px'}}>
+                                            <Divider />
+                                            <Grid sx={{mt:0.5}}>
+                                                <Typography sx={{fontSize:'10px'}}>
+                                                    <>
+                                                        {subtitle}
+                                                    </>
+                                                </Typography>
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+                                
+                                </>
+                            }
+                        
+                        </Button>
+                    
+                    
+                    </>
+                :
+                    <>
+                        <Button
+                            variant="outlined"
+                            color='error'
+                            //onClick={handleVoteNo}
+                            sx={{borderRadius:'17px',textTransform:'none'}}
+                        >{(title && subtitle && showIcon) &&
+                            <>
+                            
+                                <Grid container direction="column" alignItems="center">
+                                    <Grid item>
+                                        <Grid container direction='row' alignItems='center'>
+                                            <Grid item>
+                                                <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                            </Grid>
+                                            <Grid item>
+                                                {title}
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+                                    
+                                    <Grid item sx={{minWidth:'100px'}}>
+                                        <Divider />
+                                        <Grid sx={{mt:0.5}}>
+                                            <Typography sx={{fontSize:'10px'}}>
+                                                <>
+                                                    {subtitle}
+                                                </>
+                                            </Typography>
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+                            
+                            </>
+                        }
+                        </Button>
+                    </>
+                }
+            
+            </>
+        }
+
         {thisitem.account?.state === 2 && publicKey &&
             <>
                 
