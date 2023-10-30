@@ -555,7 +555,7 @@ export default function IntraDAOVoteView(props: any) {
                 let votes = item.account.governingTokenDepositAmount.toNumber().toString();
                 
                 if (realm.account.config?.councilMint?.toBase58() === item?.account?.governingTokenMint?.toBase58()){
-                    votes = item.account.governingTokenDepositAmount.toNumber() + ' Council';
+                    votes = item.account.governingTokenDepositAmount.toNumber().toLocaleString() + ' Council';
                     setWalletSelectedTokenType(false)
                     setDaoPropMaxVotes(votes);
                     setSelectedCouncilMint(item.account.governingTokenMint.toBase58())
@@ -565,7 +565,7 @@ export default function IntraDAOVoteView(props: any) {
                     //const accountParsed = JSON.parse(JSON.stringify(accountInfo.value.data));
                     const decimals = accountInfo.value.data.parsed.info.decimals;
                     
-                    votes = Number(item.account.governingTokenDepositAmount)/10**decimals + ' Community';
+                    votes = (Number(item.account.governingTokenDepositAmount)/10**decimals).toLocaleString()  + ' Community';
 
                     // fetch token decimals!
                     //console.log("mint: "+ tokenMint);
