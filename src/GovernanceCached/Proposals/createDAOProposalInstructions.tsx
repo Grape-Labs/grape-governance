@@ -46,7 +46,9 @@ export async function createProposalInstructions(
     authTransaction: Transaction,
     wallet: WalletSigner,
     sendTransaction: any,
-    isDraft?: boolean): Promise<any>{//Promise<Transaction> {
+    isDraft?: boolean,
+    returnTx?: boolean,
+    payer?: PublicKey): Promise<any>{//Promise<Transaction> {
     
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
     //let initialInstructions: TransactionInstruction[] = [];
@@ -111,6 +113,7 @@ export async function createProposalInstructions(
     console.log("governingTokenMint: "+governingTokenMint.toBase58());
     console.log("governancePk: "+governancePk.toBase58());
     console.log("walletPk: "+walletPk.toBase58());
+    console.log("payer: "+payer.toBase58());
     console.log("tokenOwnerRecordPk: "+tokenOwnerRecordPk.toBase58())
     console.log("programVersion: "+programVersion)
     console.log("governanceAuthority: "+governanceAuthority.toBase58())
@@ -135,7 +138,7 @@ export async function createProposalInstructions(
     
     
     //const signatory = walletPk
-    const payer = walletPk
+    //const payer = walletPk
     
     //will run only if plugin is connected with realm
     /*
@@ -165,6 +168,8 @@ export async function createProposalInstructions(
       //plugin?.voterWeightPk
     );
 
+    console.log("Proposal Address: "+JSON.stringify(proposalAddress))
+    
     await withAddSignatory(
       instructions,
       programId,
@@ -238,7 +243,7 @@ export async function createProposalInstructions(
     }
 
     console.log("6");
-
+    
     if (!isDraft){
       withSignOffProposal(
         insertInstructions, // Sign Off proposal needs to be executed after inserting instructions hence we add it to insertInstructions
@@ -264,7 +269,7 @@ export async function createProposalInstructions(
 
     //return null;
     
-    if (!sendTransaction){
+    if (!returnTx){
       
       console.log(`Sending Transactions...`);
       try{
@@ -301,6 +306,15 @@ export async function createProposalInstructions(
       }
     } else {
       // return transaction instructions here
+      const transaction = new Transaction();
+      if (instructions && instructions.length > 0){
+        transaction.add(...instructions);
+        transaction.add(...insertInstructions);
+      } else {
+        console.log("Intra DAO: No Ix set!")
+      }
+
+      return transaction;
     }
     //return proposalAddress;
     

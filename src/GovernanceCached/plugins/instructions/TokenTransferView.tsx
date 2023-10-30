@@ -597,20 +597,18 @@ export default function TokenTransferView(props: any) {
         const cleanedText = text.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, '$1');
         setTokenAmountStr(cleanedText);
         setTokenAmount(parseFloat(cleanedText))
-        
-        //setTokenAmountStr(text);
     }
 
-    /*
+    
     React.useEffect(() => {
-        if (tokenAmountStr){
-            const cleanedText = tokenAmountStr.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, '$1');
-            setTokenAmountStr(cleanedText);
-            setTokenAmount(parseFloat(cleanedText))
+        if (tokenAmount){
+            //const cleanedText = tokenAmountStr.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, '$1');
+            setTokenAmountStr(tokenAmount);
+            setTokenAmount(tokenAmount)
             
         }
-    },[tokenAmountStr]);
-    */
+    },[tokenAmount]);
+    
     
     function calculateDestinationsEvenly(destinations:string, destinationAmount: number){
         const destinationsStr = destinations.replace(/['"]/g, '');;

@@ -68,7 +68,8 @@ import DiscordIcon from '../components/static/DiscordIcon';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import { GovernanceGistDialog } from './GovernanceGistDialog';
-//import GovernanceCreateProposalView from "../GovernanceCached/GovernanceCreateProposal";
+
+import IntraDAOProposalView from './plugins/instructions/IntraDAOProposalView';
 import IntraDAOGrantView from './plugins/instructions/IntraDAOGrantView';
 import IntraDAOJoinView from './plugins/instructions/IntraDAOJoinView';
 import IntraDAOVoteView from './plugins/instructions/IntraDAOVoteView';
@@ -163,9 +164,12 @@ export default function GovernanceCreateProposalView(props: any){
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
-    
+    //const governanceAddress = urlParams;
     const governanceAddress = props?.governanceAddress || urlParams;
-    const rulesAddress = props?.rulesAddress || urlParams;
+    const sentRulesAddress = props?.governanceRulesWallet;
+    const sentGovernanceWallet = props?.governanceWallet;
+    const setSentInstructionsObject = props?.setInstructionsObject;
+    const intraDAO = props?.governanceAddress ? true : false;
     const showGovernanceTitle = true;
     const [title, setTitle] = React.useState(null);
     const [description, setDescription] = React.useState(null);
@@ -301,7 +305,7 @@ export default function GovernanceCreateProposalView(props: any){
       calculateProposalFee();
     }
     
-    const createProposal = async(isDraft: boolean) => {
+    const createProposal = async(isDraft: boolean, returnTx?: boolean) => {
       
       // get governance settings
       setCreateDisabled(true);
@@ -366,7 +370,7 @@ export default function GovernanceCreateProposalView(props: any){
           new PublicKey(cachedRealm.pubkey),
           new PublicKey(governanceRulesWallet),
           governingTokenMint,
-          publicKey,
+          intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
           title,
           description,
           connection,
@@ -374,51 +378,70 @@ export default function GovernanceCreateProposalView(props: any){
           authTransaction,
           anchorWallet,//anchorWallet,
           null,//sendTransaction,
-          isDraft
+          isDraft,
+          returnTx,
+          intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
         );
-
+        
         closeSnackbar(cnfrmkey);
         
-        //await createProposalInstructions()
-          
-        console.log("propAddress: "+JSON.stringify(propResponse));
-        
-        if (propResponse && propResponse?.address && propResponse?.response){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
-          
-          const snackaction = (key:any) => (
-            <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponse.address.toBase58()}`} target='_blank'  sx={{color:'white'}}>
-                {propResponse.proposalAddress.toBase58()}
-            </Button>
-          );
-          
-          //enqueueSnackbar('Governance Transaction completed - redirecting in 5 seconds to proposal',{ variant: 'success', action:snackaction });
-          
-          const snackprogress = (key:any) => (
-            <CircularProgress sx={{padding:'10px'}} />
-          );
-          const cnfrmkey = enqueueSnackbar('Redirecting in a few seconds to the proposal',{ variant: 'success', action:snackprogress, persist: true });
-
-          setProposalMade(true);
-          
-          // redirect to proposal
-          const redirectTimer = setTimeout(() => {
-            //navigate(`/proposal/${cachedRealm.pubkey}/${propAddress.toBase58()}`, { replace: true });
-            closeSnackbar(cnfrmkey);
-            navigate(`/dao/${cachedRealm.pubkey}`, {replace: true});
-          }, 10000); // 10000 milliseconds = 10 seconds
-          
-          return () => clearTimeout(redirectTimer);
-        } else if (propResponse && propResponse.address){
-          const snackaction = (key:any) => (
-            <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponse.address.toBase58()}`} target='_blank'  sx={{color:'white'}}>
-                {propResponse.proposalAddress.toBase58()}
-            </Button>
-          );
-          enqueueSnackbar('Redirecting in a few seconds to the proposal',{ variant: 'info', action:snackprogress });
-          setCreateDisabled(false);
+        if (returnTx){
+          console.log("returnTx: "+JSON.stringify(propResponse));
+          if (setSentInstructionsObject){
+            //setSentInstructionsObject(propResponse);
+            let tdescription = '';
+            tdescription = `Creating DAO Proposal at ${cachedRealm.pubKey} using ${governingTokenMint} Governing Token Mint`;
+            
+            setSentInstructionsObject({
+                "type":`Create DAO Proposal`,
+                "description":tdescription,
+                "governanceInstructions":propResponse,
+                "authorInstructions":null,
+                "transactionEstimatedFee":null,
+            });
+          }
         } else{
-          enqueueSnackbar(`An error occured...`,{ variant: 'error' });
-          setCreateDisabled(false);
+          //await createProposalInstructions()
+            
+          console.log("propAddress: "+JSON.stringify(propResponse));
+          
+          if (propResponse && propResponse?.address && propResponse?.response){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
+            
+            const snackaction = (key:any) => (
+              <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponse.address.toBase58()}`} target='_blank'  sx={{color:'white'}}>
+                  {propResponse.proposalAddress.toBase58()}
+              </Button>
+            );
+            
+            //enqueueSnackbar('Governance Transaction completed - redirecting in 5 seconds to proposal',{ variant: 'success', action:snackaction });
+            
+            const snackprogress = (key:any) => (
+              <CircularProgress sx={{padding:'10px'}} />
+            );
+            const cnfrmkey = enqueueSnackbar('Redirecting in a few seconds to the proposal',{ variant: 'success', action:snackprogress, persist: true });
+
+            setProposalMade(true);
+            
+            // redirect to proposal
+            const redirectTimer = setTimeout(() => {
+              //navigate(`/proposal/${cachedRealm.pubkey}/${propAddress.toBase58()}`, { replace: true });
+              closeSnackbar(cnfrmkey);
+              navigate(`/dao/${cachedRealm.pubkey}`, {replace: true});
+            }, 10000); // 10000 milliseconds = 10 seconds
+            
+            return () => clearTimeout(redirectTimer);
+          } else if (propResponse && propResponse.address){
+            const snackaction = (key:any) => (
+              <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponse.address.toBase58()}`} target='_blank'  sx={{color:'white'}}>
+                  {propResponse.proposalAddress.toBase58()}
+              </Button>
+            );
+            enqueueSnackbar('Redirecting in a few seconds to the proposal',{ variant: 'info', action:snackprogress });
+            setCreateDisabled(false);
+          } else{
+            enqueueSnackbar(`An error occured...`,{ variant: 'error' });
+            setCreateDisabled(false);
+          }
         }
       } else{
         enqueueSnackbar(`No Wallet Connected!`,{ variant: 'error' });
@@ -503,9 +526,10 @@ export default function GovernanceCreateProposalView(props: any){
               >Intra DAO: Grant DAO Voting Power</MenuItem>
               <MenuItem value={33}
                 disabled={(
-                  governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
-                  governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
-                ) ? true : true}
+                  governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' 
+                  //&& 
+                  //governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
+                ) ? true : false}
               >Intra DAO: Make a DAO Proposal</MenuItem>
               <MenuItem value={9}
                 disabled
@@ -518,14 +542,14 @@ export default function GovernanceCreateProposalView(props: any){
                 ) ? true : false}
               >DCA / Scheduled Swap</MenuItem>
               
-              {governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ||
-                governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
-              }&&
+              {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ||
+                governanceAddress === 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg')
+              &&
                 <MenuItem value={40}>List on Magic Eden</MenuItem>
               }
-              {governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' || 
-                governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
-              }&&
+              {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' || 
+                governanceAddress === 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg')
+              &&
                 <MenuItem value={41}>Buy from Magic Eden</MenuItem>
               }
 
@@ -1197,6 +1221,7 @@ export default function GovernanceCreateProposalView(props: any){
                                               variant="outlined" 
                                               color='inherit'
                                           >
+                                            {!intraDAO &&
                                             <Tooltip title={`Back to ${governanceAddress} Governance`}>
                                               <Button
                                                     sx={{
@@ -1209,6 +1234,7 @@ export default function GovernanceCreateProposalView(props: any){
                                                     <ArrowBackIcon fontSize='inherit' sx={{mr:1}} /> Back
                                                 </Button>
                                               </Tooltip>
+                                            }
                                               <Button
                                                   sx={{
                                                     borderRadius:'17px',
@@ -1389,6 +1415,7 @@ export default function GovernanceCreateProposalView(props: any){
                                 <IntraDAOVoteView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
                               </FormControl>
                             }
+
                             {proposalType === 32 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <IntraDAOGrantView governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
@@ -1397,7 +1424,7 @@ export default function GovernanceCreateProposalView(props: any){
 
                             {proposalType === 33 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <GovernanceCreateProposalView governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                                <IntraDAOProposalView governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
 
@@ -1498,7 +1525,7 @@ export default function GovernanceCreateProposalView(props: any){
                               <FormControlLabel 
                                 control={
                                   <Switch 
-                                    checked={communitySupport ? false : true}
+                                    checked={isCouncilVote} //communitySupport ? false : true}
                                     onChange={
                                       (e) => {
                                         setIsCouncilVote(e.target.checked)
@@ -1510,63 +1537,86 @@ export default function GovernanceCreateProposalView(props: any){
                                 label="Council Vote" />
                           </FormControl>
                           
-                          <Grid sx={{textAlign:'right'}}>
-                            <ButtonGroup variant="contained" aria-label="outlined button group"
-                              sx={{borderRadius:'17px'}}
-                            >
-                              {/*
-                              <Tooltip title="Simulate & Calculate Fees">
+                          {!intraDAO ?
+                            <Grid sx={{textAlign:'right'}}>
+                              <ButtonGroup variant="contained" aria-label="outlined button group"
+                                sx={{borderRadius:'17px'}}
+                              >
+                                {/*
+                                <Tooltip title="Simulate & Calculate Fees">
+                                <Button 
+                                  disabled={!(
+                                    (title && title.length > 0) &&
+                                    (description && description.length > 0) &&
+                                    (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
+                                    (!createDisabled)
+                                    )
+                                  }
+                                  onClick={simulateProposal}
+                                  variant="contained"
+                                  color="info"
+                                  sx={{borderTopLeftRadius:'17px', borderBottomLeftRadius:'17px'}}>
+                                    <FlakyIcon /></Button>
+                                </Tooltip>
+                                */}
+                                <Button 
+                                  disabled={!(
+                                    (title && title.length > 0) &&
+                                    (description && description.length > 0) &&
+                                    (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
+                                    (!createDisabled)
+                                    )
+                                  }
+                                  onClick={(e) => createProposal(true)}
+                                  variant="contained"
+                                  color="info"
+                                  sx={{borderTopLeftRadius:'17px', borderBottomLeftRadius:'17px'}}>
+                                    <Confetti
+                                        active={ proposalMade }
+                                        config={ confettiConfig }
+                                    />        
+                                    Save Draft</Button>
+                                <Button 
+                                  disabled={!(
+                                    (title && title.length > 0) &&
+                                    (description && description.length > 0) &&
+                                    (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
+                                    (!createDisabled)
+                                    )
+                                  }
+                                  onClick={(e) => createProposal(false)}
+                                  variant="contained"
+                                  color="success"
+                                  sx={{borderTopRightRadius:'17px', borderBottomRightRadius:'17px'}}>
+                                    <Confetti
+                                        active={ proposalMade }
+                                        config={ confettiConfig }
+                                    />     
+                                    Create Proposal</Button>
+                                </ButtonGroup>
+                            </Grid>
+                            :
+                            <>
                               <Button 
-                                disabled={!(
-                                  (title && title.length > 0) &&
-                                  (description && description.length > 0) &&
-                                  (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
-                                  (!createDisabled)
-                                  )
-                                }
-                                onClick={simulateProposal}
-                                variant="contained"
-                                color="info"
-                                sx={{borderTopLeftRadius:'17px', borderBottomLeftRadius:'17px'}}>
-                                  <FlakyIcon /></Button>
-                              </Tooltip>
-                              */}
-                              <Button 
-                                disabled={!(
-                                  (title && title.length > 0) &&
-                                  (description && description.length > 0) &&
-                                  (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
-                                  (!createDisabled)
-                                  )
-                                }
-                                onClick={(e) => createProposal(true)}
-                                variant="contained"
-                                color="info"
-                                sx={{borderTopLeftRadius:'17px', borderBottomLeftRadius:'17px'}}>
-                                  <Confetti
-                                      active={ proposalMade }
-                                      config={ confettiConfig }
-                                  />        
-                                  Save Draft</Button>
-                              <Button 
-                                disabled={!(
-                                  (title && title.length > 0) &&
-                                  (description && description.length > 0) &&
-                                  (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
-                                  (!createDisabled)
-                                  )
-                                }
-                                onClick={(e) => createProposal(false)}
-                                variant="contained"
-                                color="success"
-                                sx={{borderTopRightRadius:'17px', borderBottomRightRadius:'17px'}}>
-                                  <Confetti
-                                      active={ proposalMade }
-                                      config={ confettiConfig }
-                                  />     
-                                  Create Proposal</Button>
-                              </ButtonGroup>
-                          </Grid>
+                                  disabled={!(
+                                    (title && title.length > 0) &&
+                                    (description && description.length > 0) &&
+                                    (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
+                                    (!createDisabled)
+                                    )
+                                  }
+                                  fullWidth
+                                  onClick={(e) => createProposal(false, true)}
+                                  variant="contained"
+                                  color="success"
+                                  sx={{borderRadius:'17px'}}>
+                                    <Confetti
+                                        active={ proposalMade }
+                                        config={ confettiConfig }
+                                    />        
+                                    Add Proposal Creation To Parent Proposal</Button>
+                            </>
+                          }
                           
                       </Box>
 

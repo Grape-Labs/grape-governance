@@ -1733,9 +1733,9 @@ export function GovernanceProposalV2View(props: any){
                                                         <VoteForProposal 
                                                             title={`${
                                                                 thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
-                                                                forVotes ? getFormattedNumberToLocale(formatAmount((forVotes / 10 ** tokenDecimals))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))
+                                                                forVotes ? (+((forVotes / 10 ** tokenDecimals)).toFixed(0)).toLocaleString() : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))
                                                                 :
-                                                                forVotes ? getFormattedNumberToLocale(formatAmount((forVotes / 10 ** tokenDecimals))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))
+                                                                forVotes ? (+((forVotes / 10 ** tokenDecimals)).toFixed(0)).toLocaleString() : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))
                                                             }`}
                                                             subtitle={`For 
                                                                     ${forVotes ?

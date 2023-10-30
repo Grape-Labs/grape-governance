@@ -1298,6 +1298,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             var hasWalletCommunityBalance = false;
             var hasWalletCouncilBalance = false;
             var hasAwards = false;
+            const sizeLimit = 1000;
+            let cacheMemberSize = null;
             if (cached_members && cached_members.length > 0){
                 for (let cachedOwner of cached_members){ // smart fetching so we do not query this call again
                     if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord.toBase58()){
@@ -1344,6 +1346,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         
                     }
                 }
+                cacheMemberSize = cached_members.length;
             }
 
             if (!hasBeenFound){
@@ -1414,23 +1417,25 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             //}
             */
 
-            if (!hasWalletCommunityBalance || hoursDiff > (24*3)){ // refresh every 3 days
-                if (grealm.account?.communityMint){
-                    const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.communityMint});
-                    //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
-                    if (balance?.value[0]?.account?.data?.parsed?.info)    
-                        owner.walletBalance = balance.value[0].account.data.parsed.info;
+            //if (cacheMemberSize && cacheMemberSize <= sizeLimit){
+                if (!hasWalletCommunityBalance || hoursDiff > (24*3)){ // refresh every 3 days
+                    if (grealm.account?.communityMint){
+                        const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.communityMint});
+                        //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
+                        if (balance?.value[0]?.account?.data?.parsed?.info)    
+                            owner.walletBalance = balance.value[0].account.data.parsed.info;
+                    }
                 }
-            }
-            if (!hasWalletCouncilBalance || hoursDiff > (24*30)){ // refresh every 30 days
-                if (grealm.account?.councilMint){
-                    const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.councilMint});
-                    //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
-                    if (balance?.value[0]?.account?.data?.parsed?.info)    
-                        owner.walletCouncilBalance = balance.value[0].account.data.parsed.info;
+                if (!hasWalletCouncilBalance || hoursDiff > (24*30)){ // refresh every 30 days
+                    if (grealm.account?.councilMint){
+                        const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.councilMint});
+                        //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
+                        if (balance?.value[0]?.account?.data?.parsed?.info)    
+                            owner.walletCouncilBalance = balance.value[0].account.data.parsed.info;
+                    }
                 }
-            }
-            
+            //}
+
             if (!hasMltsg || hoursDiff > (24*15)){ // refresh every 15 days
                 try{
                     const squadsMultisigs = "https://rust-api-sd2oj.ondigitalocean.app/multisig?address="+tokenOwnerRecord.toBase58()+"&useProd=true"

@@ -105,7 +105,7 @@ export default function IntraDAOJoinView(props: any) {
     const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
-    const [tokenAmountStr, setTokenAmountStr] = React.useState("");
+    const [tokenAmountStr, setTokenAmountStr] = React.useState(null);
     const [transactionInstructions, setTransactionInstructions] = React.useState(null);
     const [payerInstructions, setPayerInstructions] = React.useState(null);
     const [tokenMaxAmount, setTokenMaxAmount] = React.useState(null);
@@ -161,6 +161,7 @@ export default function IntraDAOJoinView(props: any) {
             tokenAmount,
             decimals
         )
+        console.log("fromWallet: "+fromWallet.toBase58());
 
         const instructions: TransactionInstruction[] = []
         /*
@@ -512,6 +513,14 @@ export default function IntraDAOJoinView(props: any) {
         
         //setTokenAmountStr(text);
     }
+    React.useEffect(() => {
+        if (tokenAmount){
+            //const cleanedText = tokenAmountStr.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, '$1');
+            setTokenAmountStr(tokenAmount);
+            setTokenAmount(tokenAmount)
+            
+        }
+    },[tokenAmount]);
     
 
     React.useEffect(() => {
@@ -683,6 +692,7 @@ export default function IntraDAOJoinView(props: any) {
                                 type="text"
                                 fullWidth
                                 variant="standard"
+                                value={tokenAmountStr}
                                 //value={(tokenAmountStr.length > 0 && tokenAmount > 0) ? tokenAmount : tokenAmountStr.length > 0 ? tokenAmountStr : ''}
                                 default={tokenMaxAmount}
                                 onChange={(e:any) => {
