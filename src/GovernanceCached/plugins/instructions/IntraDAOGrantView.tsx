@@ -124,6 +124,7 @@ export default function IntraDAOGrantView(props: any) {
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
     const [selectedRecord, setSelectedRecord] = React.useState(null);
     const [daoToJoinAddress, setDaoToJoinAddress] = React.useState(null);
+    const [daoToJoinAddressStr, setDaoToJoinAddressStr] = React.useState(null);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
     const [verifiedDestinationWalletArray, setVerifiedDestinationWalletArray] = React.useState(null);
     const [verifiedDAODestinationWalletArray, setVerifiedDAODestinationWalletArray] = React.useState(null);
@@ -338,6 +339,7 @@ export default function IntraDAOGrantView(props: any) {
     function handleSetDaoToJoinAddressChange(text:string){
         // add validation here
         console.log("checking: "+text);
+        setDaoToJoinAddressStr(text);
         if (isValidSolanaPublicKey(text)){
             console.log("setDaoToJoinAddress complete!");
             setDaoToJoinAddress(text);
@@ -922,7 +924,7 @@ export default function IntraDAOGrantView(props: any) {
                     }}
                     sx={{borderRadius:'17px'}} 
                 />
-                {(!daoToJoinAddress) ? 
+                {(!daoToJoinAddress && (daoToJoinAddressStr && daoToJoinAddressStr.length > 0)) ? 
                     <Grid sx={{textAlign:'right',}}>
                         <Typography variant="caption" color="error">WARNING: Invalid DAO address!</Typography>
                     </Grid>

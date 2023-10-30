@@ -49,7 +49,8 @@ import {
   ListItemAvatar,
   ListItemText,
   Avatar,
-  LinearProgress
+  LinearProgress,
+  Divider,
 } from '@mui/material/';
 
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
@@ -496,6 +497,7 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={1}>None</MenuItem>
               {/*<MenuItem value={2} disabled>Custom</MenuItem>*/}
               <MenuItem value={3} disabled>Import from base58</MenuItem>
+              <Divider/>
               <MenuItem value={20} 
               //  disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Speed Dial</MenuItem>
@@ -506,6 +508,7 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={5}>SOL Transfer</MenuItem>
               <MenuItem value={10}>Close Token Account</MenuItem>
               <MenuItem value={11}>SNS Transfer</MenuItem>
+              <Divider/>
               <MenuItem value={30}
                 disabled={(
                   governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
@@ -531,6 +534,7 @@ export default function GovernanceCreateProposalView(props: any){
                   //governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
                 ) ? true : false}
               >Intra DAO: Make a DAO Proposal</MenuItem>
+              <Divider/>
               <MenuItem value={9}
                 disabled
                 //disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
