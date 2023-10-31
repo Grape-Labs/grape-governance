@@ -29,7 +29,7 @@ import {
 } from '@solana/spl-governance';
 
 import { chunks } from '../../utils/governanceTools/helpers';
-import { sendTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../../utils/governanceTools/sendTransactions';
+import { sendTransactions, prepareTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../../utils/governanceTools/sendTransactions';
 
 import { AnyMxRecord } from 'dns';
 
@@ -210,7 +210,7 @@ export async function createProposalInstructions(
     let instructionData: InstructionData[]=[];
     for (var instruction of transactionInstr.instructions){
       const cid = createInstructionData(instruction);
-      //console.log("Pushing: "+JSON.stringify(instruction).length);
+      console.log("Pushing: "+JSON.stringify(instruction).length);
       //const tx = new Transaction();
       //tx.add(instruction);
       //console.log("Tx Size: "+tx.serialize().length);
@@ -305,6 +305,17 @@ export async function createProposalInstructions(
         }
       }
     } else {
+
+      const transactionResponse = await prepareTransactions(
+        connection,
+        wallet,
+        [prerequisiteInstructions, instructions, ...insertChunks],
+        [[], [], ...signerChunks],
+        SequenceType.Sequential
+      );
+
+
+      /*
       // return transaction instructions here
       const transaction = new Transaction();
       if (instructions && instructions.length > 0){
@@ -313,8 +324,10 @@ export async function createProposalInstructions(
       } else {
         console.log("Intra DAO: No Ix set!")
       }
-
       return transaction;
+      */
+
+      return transactionResponse;
     }
     //return proposalAddress;
     

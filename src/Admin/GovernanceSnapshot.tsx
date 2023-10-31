@@ -2904,6 +2904,11 @@ const processGovernanceUploadSnapshotAll = async(
     setGovernanceLookup: any) => {
 
     if (setLoading) setLoading(true);
+    
+    const skipAddresses = [
+        '7oB84bSuxv9AH1iRdMp5nFLwpQApv8Yo9s1gGmDkHtSP',// synt
+        '6orGiJYGXYk9GT2NFoTv2ZMYpA6asMieAqdek4YRH2Dn',// imperium
+    ]
 
     if (setSecondaryStatus) setSecondaryStatus("Starting...")
 
@@ -2926,6 +2931,13 @@ const processGovernanceUploadSnapshotAll = async(
                 if (setBatchStatus) setBatchStatus("Fetching an existing Governance: "+address);
                 if (item.governanceAddress === address)
                     skip = false;
+            }
+
+            for (var skipItem of skipAddresses){
+                if (item.governanceAddress === skipItem){
+                    skip = true;
+                    console.log("Skipping: "+skipItem);
+                }
             }
 
             //if (count > 20){ // process 1 for now to verify it works

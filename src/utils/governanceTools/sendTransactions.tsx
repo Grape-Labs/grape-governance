@@ -377,3 +377,124 @@ export const sendTransactions = async (
 
   return response;//signedTxns.length
 }
+
+export const prepareTransactions = async (
+  connection: Connection,
+  wallet: WalletSigner,
+  //authTransaction: Transaction,
+  instructionSet: TransactionInstruction[][],
+  signersSet: Keypair[][],
+  sequenceType: SequenceType = SequenceType.Parallel,
+  commitment: Commitment = 'singleGossip',
+  successCallback: (txid: string, ind: number) => void = (_txid, _ind) => null,
+  failCallback: (reason: string, ind: number) => boolean = (_txid, _ind) =>
+    false,
+  block?: {
+    blockhash: string
+    feeCalculator: FeeCalculator
+  }
+): Promise<any> => {
+  if (!wallet.publicKey) throw new Error('Wallet not connected!')
+  const unsignedTxns: Transaction[] = []
+
+  if (!block) {
+    block = await connection.getRecentBlockhash(commitment)
+  }
+
+  const bigTx = new Transaction();
+  for (let i = 0; i < instructionSet.length; i++) {
+    const instructions = instructionSet[i]
+    const signers = signersSet[i]
+
+    if (instructions.length === 0) {
+      continue
+    }
+
+    const transaction = new Transaction();
+
+    instructions.forEach((instruction) => 
+      transaction.add(instruction)
+    )
+
+    instructions.forEach((instruction) => 
+      bigTx.add(instruction)
+    )
+
+    //if (authTransaction && authTransaction.instructions.length > 0){
+    //  console.log("Has auth instructions: "+JSON.stringify(authTransaction));
+      //transaction.add(authTransaction);
+    //}
+    
+    transaction.recentBlockhash = block.blockhash;
+    transaction.feePayer = wallet.publicKey;
+    bigTx.recentBlockhash = block.blockhash;
+    bigTx.feePayer = wallet.publicKey;
+    /*
+    transaction.setSigners(
+      // fee payed by the wallet owner
+      wallet.publicKey,
+      ...signers.map((s) => s.publicKey)
+    )*/
+
+    
+    if (signers.length > 0) {
+      transaction.partialSign(...signers);
+      bigTx.partialSign(...signers);
+    }
+    
+    unsignedTxns.push(transaction)
+  }
+  return bigTx;
+  /*
+  const signedTxns = await wallet.signAllTransactions(unsignedTxns)
+  const pendingTxns: Promise<{ txid: string; slot: number }>[] = []
+  const completedTxns: Promise<{ txid: string; slot: number }>[] = []
+  //const walletPkTest = getWalletPublicKey(wallet);
+  //console.log('Wallet Test:', walletPkTest.toBase58());
+  //console.log('signedTxns' +JSON.stringify(signedTxns));
+  const breakEarlyObject = { breakEarly: false }
+  
+  return signedTxns;
+  /*
+  for (let i = 0; i < signedTxns.length; i++) {
+    console.log('i:',i);
+    const signedTxnPromise = sendSignedTransaction({
+      connection,
+      signedTransaction: signedTxns[i],
+    })
+
+    signedTxnPromise
+      .then(({ txid }) => {
+        successCallback(txid, i)
+      })
+      .catch((_reason) => {
+        // @ts-ignore
+        failCallback(signedTxns[i], i)
+        if (sequenceType == SequenceType.StopOnFailure) {
+          breakEarlyObject.breakEarly = true
+        }
+      })
+
+    if (sequenceType != SequenceType.Parallel) {
+      await signedTxnPromise
+      if (breakEarlyObject.breakEarly) {
+        return i // Return the txn we failed on by index
+      }
+      completedTxns.push(signedTxnPromise);
+    } else {
+      pendingTxns.push(signedTxnPromise)
+    }
+  }
+
+  if (sequenceType != SequenceType.Parallel) {
+    await Promise.all(pendingTxns)
+  }
+
+  const response = {
+    signedTxns: signedTxns.length,
+    completedTxns
+  }
+
+  return response;//signedTxns.length
+  */
+}
