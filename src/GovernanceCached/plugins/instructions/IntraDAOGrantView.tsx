@@ -21,8 +21,10 @@ import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
 import { styled } from '@mui/material/styles';
 
 import { 
+    getAllTokenOwnerRecords,
     getGovernanceProgramVersion,
     withDepositGoverningTokens,
+    withCreateTokenOwnerRecord,
     getRealm,
     serializeInstructionToBase64,
   } from '@solana/spl-governance';
@@ -162,6 +164,9 @@ export default function IntraDAOGrantView(props: any) {
                         }
                     })
                 })}
+        
+
+        
 
         const mintPubkey = new PublicKey(tokenMint);
         const amountToSend = +tokenAmount;
@@ -210,7 +215,6 @@ export default function IntraDAOGrantView(props: any) {
 
             //console.log("mintAuthority: "+mintAuthority.toBase58());
             
-            
             const transaction = new Transaction();
             for (let index = 0; index < destinationWalletArray.length; index++) {
                 
@@ -237,7 +241,6 @@ export default function IntraDAOGrantView(props: any) {
                     destinationObject.amount,
                     decimals
                 )
-                
                 /*
                 console.log("**********");
                 console.log("**********");
@@ -250,10 +253,52 @@ export default function IntraDAOGrantView(props: any) {
                 console.log("governingTokenSourceAuthority: "+fromWallet.toBase58())
                 console.log("payer: "+fromWallet.toBase58())
                 console.log("amount: "+atomicAmount);
+                */
                 await new Promise(resolve => {
                     setTimeout(resolve, 500); // 1000 milliseconds = 1 second
                 });
-                */
+                
+                const ix: TransactionInstruction[] = []
+                
+                const rpc_members = await getAllTokenOwnerRecords(RPC_CONNECTION, programId,new PublicKey(realmPk.toBase58()));
+                const members = JSON.parse(JSON.stringify(rpc_members));
+
+                //if (cached_members){
+                const daoMembers = new Array();
+                if (members){
+                    //console.log("cached_members: "+JSON.stringify(cached_members))
+
+                    const simpleArray = members
+                        .map((item: any, key: number) => {
+                        return item.account.governingTokenOwner;
+                        });
+                    
+
+                    daoMembers.push({
+                        pubkey: governanceAddress, //item.account.governingTokenOwner,
+                        size: simpleArray.length,
+                        info: simpleArray
+                    });
+                
+                }
+
+
+                if (daoMembers){
+                    if (!findDAOPubkey(destPublicKey.toBase58(), daoMembers)){
+                        console.log("Could not find Voter Record")
+                        await withCreateTokenOwnerRecord(
+                            ix,
+                            programId,
+                            programVersion,
+                            realmPk,
+                            destPublicKey,
+                            mintPubkey,
+                            fromWallet,
+                        )
+                        transaction.add(...ix);
+                    }
+                }
+
                 const instructions: TransactionInstruction[] = []
                 await withDepositGoverningTokens(
                     instructions,
@@ -820,13 +865,18 @@ export default function IntraDAOGrantView(props: any) {
             return null; // Address not found
         }catch(e){console.log("ERR: "+e)}
     };
-    const findDAOPubkey = (address:string) => {
+    const findDAOPubkey = (address:string, daoMembers?:any) => {
         try{
-            //console.log("verifiedDAODestinationWalletArray: "+JSON.stringify(verifiedDAODestinationWalletArray))
-            const entry = verifiedDAODestinationWalletArray.find((item) => item.info.includes(address));
-            //console.log("checking: "+address+" entry "+JSON.stringify(entry))
-            if (entry) {
-                return entry.pubkey;
+            if (daoMembers){
+                const entry = daoMembers.find((item) => item.info.includes(address));
+                if (entry) {
+                    return entry.pubkey;
+                }
+            } else{
+                const entry = verifiedDAODestinationWalletArray.find((item) => item.info.includes(address));
+                if (entry) {
+                    return entry.pubkey;
+                }
             }
             return null; // Address not found
         }catch(e){console.log("ERR: "+e)}

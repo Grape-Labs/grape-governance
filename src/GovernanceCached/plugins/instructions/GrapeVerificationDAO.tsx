@@ -36,6 +36,10 @@ import {
   FormControl,
 } from '@mui/material/';
 
+import { 
+  getAllTokenOwnerRecords
+} from '@solana/spl-governance';
+
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
 
@@ -45,7 +49,7 @@ import {
 } from '../../CachedStorageHelpers';
 
 import {  
-  GGAPI_STORAGE_POOL } from '../../../utils/grapeTools/constants';
+  GGAPI_STORAGE_POOL, RPC_CONNECTION } from '../../../utils/grapeTools/constants';
 
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import VerifiedIcon from '@mui/icons-material/Verified';
@@ -136,19 +140,26 @@ export function GrapeVerificationDAO(props: any){
       let cached_members = new Array();
       
       let mfile = null;
+      let programId = null;
+      let realmPk = null;
       for (let glitem of governanceLookup){
-        if (glitem.governanceAddress === governanceAddress)
+        if (glitem.governanceAddress === governanceAddress){
           mfile = glitem.memberFilename;
+          programId = new PublicKey(glitem.realm.owner);
+          //console.log("glitem: "+JSON.stringify(glitem));
+        }
       }
       if (mfile){
+        //cached_members = await getFileFromLookup(mfile, GGAPI_STORAGE_POOL);
+        // const members = cached_members;
+        const rpc_members = await getAllTokenOwnerRecords(RPC_CONNECTION, programId,new PublicKey(governanceAddress));
+        const members = JSON.parse(JSON.stringify(rpc_members));
 
-        cached_members = await getFileFromLookup(mfile, GGAPI_STORAGE_POOL);
-
-        if (cached_members){
-          
+        //if (cached_members){
+        if (members){
           //console.log("cached_members: "+JSON.stringify(cached_members))
 
-          const simpleArray = cached_members
+          const simpleArray = members
             .filter((item: any) => 
                 Number("0x"+item.account.governingTokenDepositAmount) > 0)  
             .map((item: any, key: number) => {

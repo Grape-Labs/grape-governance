@@ -522,12 +522,6 @@ export default function GovernanceCreateProposalView(props: any){
                   governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
                 ) ? true : false}
               >Intra DAO: Vote on a DAO Proposal</MenuItem>
-              <MenuItem value={32}
-                disabled={(
-                  governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
-                  governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
-                ) ? true : false}
-              >Intra DAO: Grant DAO Voting Power</MenuItem>
               <MenuItem value={33}
                 disabled={(
                   governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' 
@@ -535,6 +529,12 @@ export default function GovernanceCreateProposalView(props: any){
                   //governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
                 ) ? true : false}
               >Intra DAO: Make a DAO Proposal</MenuItem>
+              <MenuItem value={32}
+                disabled={(
+                  governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
+                  governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
+                ) ? true : false}
+              >Intra DAO: Grant DAO Voting Power</MenuItem>
               <Divider/>
               <MenuItem value={9}
                 disabled
