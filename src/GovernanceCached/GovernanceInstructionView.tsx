@@ -21,14 +21,15 @@ import {
     fetchGovernanceLookupFile,
     getFileFromLookup
 } from './CachedStorageHelpers'; 
-import BN from 'bn.js'
+import BN from 'bn.js';
+import base58 from 'bs58';
 import { BorshCoder } from "@coral-xyz/anchor";
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token-v2";
-import { PublicKey, TokenAmount, Connection, TransactionInstruction, Transaction } from '@solana/web3.js';
+import { PublicKey, TokenAmount, Connection, TransactionInstruction, Transaction, TransactionVersion } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
+import { WalletError, WalletNotConnectedError, TransactionOrVersionedTransaction } from '@solana/wallet-adapter-base';
 import React, { useCallback } from 'react';
 import { styled, useTheme, ThemeProvider } from '@mui/material/styles';
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
@@ -87,6 +88,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import DeveloperModeIcon from '@mui/icons-material/DeveloperMode';
 import BallotIcon from '@mui/icons-material/Ballot';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -127,6 +129,63 @@ function trimAddress(addr: string) {
     return `${start}...${end}`;
 }
 
+function getExplorerUrl(
+    endpoint: string,
+    viewTypeOrItemAddress: 'inspector' | PublicKey | string,
+    itemType = 'address'
+  ) {
+    const getClusterUrlParam = () => {
+      let cluster = ''
+      if (endpoint === 'localnet') {
+        cluster = `custom&customUrl=${encodeURIComponent(
+          'http://127.0.0.1:8899'
+        )}`
+      } else if (endpoint === 'https://api.devnet.solana.com') {
+        // if the default free RPC for devnet is used
+        cluster = 'devnet'
+      } else if (endpoint === 'devnet') {
+        // connection.cluster is passed in
+        cluster = 'devnet'
+      }
+      
+      return cluster ? `?cluster=${cluster}` : ''
+    }
+  
+    return `https://explorer.solana.com/${itemType}/${viewTypeOrItemAddress}${getClusterUrlParam()}`
+}
+
+/// Returns explorer inspector URL for the given transaction
+async function getExplorerInspectorUrl(
+    connection: Connection,
+    transaction: TransactionOrVersionedTransaction<
+      ReadonlySet<TransactionVersion>
+    >
+  ) {
+    const SIGNATURE_LENGTH = 64
+    
+    const explorerUrl = new URL(
+      getExplorerUrl('https://api.mainnet.solana.com', 'inspector', 'tx')
+    )
+  
+    const signatures = transaction.signatures?.map((s) =>
+      base58.encode(s.signature ?? Buffer.alloc(SIGNATURE_LENGTH))
+    )
+    explorerUrl.searchParams.append('signatures', JSON.stringify(signatures))
+  
+    const message =
+      transaction instanceof Transaction
+        ? transaction.serializeMessage().toString('base64')
+        : Buffer.from(transaction.message.serialize()).toString('base64')
+    explorerUrl.searchParams.append('message', message)
+        
+    /*
+    if (connection.cluster === 'devnet') {
+      explorerUrl.searchParams.append('cluster', 'devnet')
+    }*/
+  
+    return explorerUrl.toString()
+}
+
 export function InstructionView(props: any) {
     const index = props.index;
     const instructionOwnerRecord = props.instructionOwnerRecord;
@@ -139,6 +198,7 @@ export function InstructionView(props: any) {
     const tokenMap = props.tokenMap;
     const cachedTokenMeta = props.cachedTokenMeta;
     const [iVLoading, setIVLoading] = React.useState(false);
+    const { publicKey } = useWallet();
     
     const METAPLEX_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
 
@@ -419,6 +479,11 @@ export function InstructionView(props: any) {
                 </>
             );
         }
+
+        const exploreTxItem = async(instructionTx:Transaction) => {
+            const inspectUrl = await getExplorerInspectorUrl(RPC_CONNECTION, instructionTx)
+            window.open(inspectUrl, '_blank')   
+        }
         
         React.useEffect(() => { 
             
@@ -474,7 +539,7 @@ export function InstructionView(props: any) {
                                     {item.isSigner ? 
                                         <Grid textAlign='right'>
                                             <Typography variant="caption">
-                                                Signer: 
+                                                Signer Account {iindex+1}: &nbsp; 
                                                 <ExplorerView showSolanaProfile={false} address={new PublicKey(item.pubkey).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
                                             </Typography>
                                         </Grid>
@@ -484,7 +549,7 @@ export function InstructionView(props: any) {
                                         
                                         <Typography variant="caption">
                                             
-                                            ATA Account {iindex+1}: &nbsp;
+                                            Account {iindex+1}: &nbsp;
                                             {item.isWritable && <>
                                                 <Tooltip title={item.isWritable ? `Writable` : `Writable: false`}>
                                                     <IconButton color='inherit' size='small'
@@ -564,6 +629,38 @@ export function InstructionView(props: any) {
                                 </Grid>
                             </Grid>
                         }
+
+                        {instructionDetails?.data && 
+                            <Grid container sx={{mt:1}}>
+                                <Grid item>
+                                    <Typography variant="h6" component="span" color="#999">
+                                        Data
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Grid container>
+                                        <Grid item xs>
+                                            <CustomTextarea
+                                                minRows={4}
+                                                value={JSON.stringify(instructionDetails.data)}
+                                                readOnly
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        }
+
+                        {/*
+                        <IconButton 
+                            onClick={e => exploreTxItem(instructionDetails)}
+                            edge="end" 
+                            aria-label="explore"
+                            disabled={!publicKey}
+                            >
+                            <DeveloperModeIcon color="primary" />
+                        </IconButton>
+                        */}
                         </TimelineContent>
                     </TimelineItem>
                 </>

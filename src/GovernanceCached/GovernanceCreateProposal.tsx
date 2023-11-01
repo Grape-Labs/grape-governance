@@ -2,7 +2,7 @@ import { PublicKey, TokenAmount, Connection, Transaction, TransactionInstruction
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletDialogProvider, WalletMultiButton } from "@solana/wallet-adapter-material-ui";
-import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
+import { WalletError, WalletNotConnectedError, TransactionOrVersionedTransaction } from '@solana/wallet-adapter-base';
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import React, { useCallback } from 'react';
 import { Link, useParams, useSearchParams, useNavigate } from "react-router-dom";
@@ -14,6 +14,7 @@ import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github'
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import base58 from 'bs58'
 import Confetti from 'react-dom-confetti';
 import { useSnackbar } from 'notistack';
 import { createProposalInstructions } from './Proposals/createDAOProposalInstructions';
@@ -549,7 +550,10 @@ export default function GovernanceCreateProposalView(props: any){
               {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ||
                 governanceAddress === 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg')
               &&
-                <MenuItem value={40}>List on Magic Eden</MenuItem>
+                <>
+                  <Divider/>
+                  <MenuItem value={40}>List on Magic Eden</MenuItem>
+                </>
               }
               {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' || 
                 governanceAddress === 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg')
@@ -1006,7 +1010,7 @@ export default function GovernanceCreateProposalView(props: any){
       const updatedArray = instructionsArray.filter((item, index) => index !== indexToRemove);
       setInstructionsArray(updatedArray);
     };
-
+    
     const getVerificationStatus = async() => {
       const verify = await isGated(governanceAddress, PROP_TOKEN);
       console.log("Governance Verified Status: "+JSON.stringify(verify));
@@ -1448,12 +1452,14 @@ export default function GovernanceCreateProposalView(props: any){
                                             <ListItem
                                               key={index}
                                               secondaryAction={
-                                                <IconButton 
-                                                  onClick={e => removeTxItem(index)}
-                                                  edge="end" 
-                                                  aria-label="delete">
-                                                  <DeleteIcon color="error" />
-                                                </IconButton>
+                                                <>
+                                                  <IconButton 
+                                                    onClick={e => removeTxItem(index)}
+                                                    edge="end" 
+                                                    aria-label="delete">
+                                                    <DeleteIcon color="error" />
+                                                  </IconButton>
+                                                </>
                                               }
                                             >
                                               <ListItemAvatar>
