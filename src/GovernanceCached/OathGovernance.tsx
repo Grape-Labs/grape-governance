@@ -5,6 +5,10 @@ import { Account, Connection, clusterApiUrl } from "@solana/web3.js";
 import { getED25519Key } from "@toruslabs/openlogin-ed25519";
 import * as bs58 from "bs58";
 
+import { 
+    PROXY, 
+    RPC_ENDPOINT } from '../utils/grapeTools/constants';
+
 import {
     Typography,
     Button,
@@ -15,7 +19,7 @@ import {
 //import "./style.scss";
 
 const networks = {
-  mainnet: { url: "https://solana-api.projectserum.com", displayName: "Mainnet Beta" },
+  mainnet: { url: RPC_ENDPOINT, displayName: "Mainnet Beta" },
   devnet: { url: clusterApiUrl("devnet"), displayName: "Devnet" },
   testnet: { url: clusterApiUrl("testnet"), displayName: "Testnet" },
 };
