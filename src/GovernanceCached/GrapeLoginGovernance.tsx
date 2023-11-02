@@ -72,6 +72,8 @@ function GrapeLogin() {
 
   const handleLogout = async () => {
     setLoading(true)
+    setPinCode(null);
+    setEmailAddress(null);
     setGeneratedPk(null);
     //await openlogin.logout();
     setLoading(false)
@@ -111,6 +113,13 @@ function GrapeLogin() {
                         onClick={handleLogout}>
                         Disconnect
                     </Button>
+
+                    <p>
+                      TODO: show active proposals for Frictionless<br/>
+                      Join (if not a member) & Vote automagically
+                    </p>
+
+
                 </Box>
             </>
              :
