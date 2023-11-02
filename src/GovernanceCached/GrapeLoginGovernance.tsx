@@ -148,7 +148,7 @@ function GrapeLogin() {
                           onClick={handleLogin}
                           disabled={!emailAddress || !pinCode}  
                         >
-                          Create Tip Link
+                          Generate PublicKey
                       </Button>
                     </FormControl>
                 </div>
