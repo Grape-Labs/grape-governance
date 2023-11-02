@@ -42,18 +42,24 @@ function OathTipLinkLogin() {
     //return accountInfo;
   }
 
-  async function handleLogin() {
+  async function handleLogin(pin:string) {
     setLoading(true)
     try {
       // handle login...
+      const tp = 'https://tiplink.io/i#'+pin;
+      TipLink.fromLink(tp).then(tiplink => {
+        console.log("converted publicKey: ", tiplink.keypair.publicKey.toBase58());
+        setGeneratedTipLink(tiplink);
+      });
 
+      /*
       TipLink.create().then(tiplink => {
         console.log("link: ", tiplink.url.toString());
         console.log("publicKey: ", tiplink.keypair.publicKey.toBase58());
         setGeneratedTipLink(tiplink);
         //return tiplink;
       });
-
+      */
       setLoading(false)
     } catch (error) {
       console.log("error", error);
@@ -128,7 +134,7 @@ function OathTipLinkLogin() {
                     <Typography variant="h3" sx={{ textAlign: "center" }}>Grape x Solana</Typography>
                     <Button 
                         variant="contained"
-                        onClick={handleLogin}>
+                        onClick={() => handleLogin('1234')}>
                         Create TP Link (using default pin 1234)
                     </Button>
                 </div>
