@@ -6,7 +6,8 @@ import { AdminView } from "./Admin/Admin";
 //import GovernanceAppPageView from "./GovernanceCached/v2/page";
 import { GovernanceRPCView } from "./GovernanceRPC/Governance";
 import OathLogin from "./GovernanceCached/OathGovernance";
-import OathTipLinkLogin from "./GovernanceCached/OathTipLinkGovernance";
+import OathTipLinkLogin from "./GovernanceCached/TipLinkGovernance";
+import GrapeLogin from "./GovernanceCached/GrapeLoginGovernance";
 import { MyGovernanceView } from "./GovernanceCached/MyGovernance";
 import { GovernanceCachedView } from "./GovernanceCached/Governance";
 import { PremiumView } from "./GovernanceCached/Premium";
@@ -275,6 +276,9 @@ function DashboardContent() {
                                                   <Route path=":handlekey" element={<OathTipLinkLogin />} />
                                               </Route>
                                               
+                                              <Route path="goath/*" element={<GrapeLogin />} >
+                                                  <Route path=":handlekey" element={<GrapeLogin />} />
+                                              </Route>
                                               
                                               <Route path="*" element={<NotFound />} />
                                             </Routes>

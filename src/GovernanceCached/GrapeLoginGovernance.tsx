@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
-import { TipLink } from '@tiplink/api';
+import { PublicKey } from '@solana/web3.js';
 
 import {
   Typography,
   Button,
   Grid,
   Box,
+  TextField,
+  FormControl,
+  InputLabel,
 } from '@mui/material/';
 
-function OathTipLinkLogin() {
+function GrapeLogin() {
   const [loading, setLoading] = useState(false);
   const [openlogin, setSdk] = useState(undefined);
   const [account, setUserAccount] = useState(null);
   const [walletInfo, setUserAccountInfo] = useState(null);
-  const [solanaPrivateKey, setPrivateKey] = useState(null)
-  const [generatedTipLink, setGeneratedTipLink] = useState(null)
+  const [solanaPrivateKey, setPrivateKey] = useState(null);
+  const [emailAddress, setEmailAddress] = useState(null);
+  const [pinCode, setPinCode] = useState(null);
+  const [generatedPk, setGeneratedPk] = useState(null)
 
   React.useEffect(() => {
     setLoading(true);
@@ -28,29 +33,20 @@ function OathTipLinkLogin() {
   }, []);
 
 
-  const getSolanaPrivateKey = (openloginKey)=>{
-    //const  { sk } = getED25519Key(openloginKey);
-    //return sk;
-  }
+  const generatePublicKeyFromString = async (seedStr:string) => {
+    const seed = Buffer.from(seedStr, 'utf8');
+    //const programId = PublicKey.programId;
+    const keypair = await PublicKey.createWithSeed(new PublicKey('KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT'), seedStr, new PublicKey('KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT'));
+    setGeneratedPk(keypair);
+    //return keypair.publicKey.toString();
+  };
 
-  const getAccountInfo = async(secretKey) => {
-    //const account = new Account(secretKey);
-    //const accountInfo = await connection.getAccountInfo(account.publicKey);
-    //setPrivateKey(bs58.encode(account.secretKey));
-    //setUserAccount(account);
-    //setUserAccountInfo(accountInfo);
-    //return accountInfo;
-  }
-
-  async function handleLogin(pin:string) {
+  async function handleLogin() {
     setLoading(true)
     try {
       // handle login...
-      const tp = 'https://tiplink.io/i#'+pin;
-      TipLink.fromLink(tp).then(tiplink => {
-        console.log("converted publicKey: ", tiplink.keypair.publicKey.toBase58());
-        setGeneratedTipLink(tiplink);
-      });
+      
+      generatePublicKeyFromString(emailAddress+pinCode);
 
       /*
       TipLink.create().then(tiplink => {
@@ -67,9 +63,16 @@ function OathTipLinkLogin() {
     }
   }
 
+  const handleEmailChange = (text:string) => {
+    
+    const regex = /[^\w]+/g;
+    const filteredInput = text.replace(regex, '');
+    setEmailAddress(filteredInput)
+  };
+
   const handleLogout = async () => {
     setLoading(true)
-    setGeneratedTipLink(null);
+    setGeneratedPk(null);
     //await openlogin.logout();
     setLoading(false)
   };
@@ -84,7 +87,7 @@ function OathTipLinkLogin() {
       </div> :
       <div>
         {
-          (generatedTipLink) ?
+          (generatedPk) ?
             <>
                 <Box
                     sx={{
@@ -96,20 +99,11 @@ function OathTipLinkLogin() {
                         alignItems: 'center', textAlign: 'center'
                     }} 
                 > 
-                {/*
-                <AccountInfo
-                handleLogout={handleLogout}
-                loading={loading}
-                privKey={solanaPrivateKey}
-                walletInfo={walletInfo}
-                account={account}
-                />*/}
                     
                     <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
                     <Typography variant="h3" sx={{ textAlign: "center" }}>Grape x Solana</Typography>
                     <p>
-                        <Typography variant="body2" sx={{ textAlign: "left" }}>Link: {generatedTipLink.url.toString()}</Typography>
-                        <Typography variant="body2" sx={{ textAlign: "left" }}>Account Details: {generatedTipLink.keypair.publicKey.toBase58()}</Typography>
+                        <Typography variant="body2" sx={{ textAlign: "left" }}>PublicKey: {generatedPk.toBase58()}</Typography>
                     </p>
 
                     <Button 
@@ -133,11 +127,30 @@ function OathTipLinkLogin() {
                 <div className="loginContainer">
                     <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
                     <Typography variant="h3" sx={{ textAlign: "center" }}>Grape x Solana</Typography>
-                    <Button 
-                        variant="contained"
-                        onClick={() => handleLogin('1234')}>
-                        Create TP Link (using default pin 1234)
-                    </Button>
+                    
+                    <FormControl fullWidth  sx={{mt:1,mb:2}}>
+                      <TextField
+                        label="Email"
+                        onChange={(e) => handleEmailChange(e.target.value)}
+                        type="email"
+                      />
+                    </FormControl>
+                    <FormControl fullWidth  sx={{mb:2}}>
+                      <TextField
+                        label="Pin"
+                        onChange={(e) => setPinCode(e.target.value)}
+                        type="number"
+                      />
+                    </FormControl>
+                    <FormControl fullWidth>
+                      <Button 
+                          variant="contained"
+                          onClick={handleLogin}
+                          disabled={!emailAddress || !pinCode}  
+                        >
+                          Create Tip Link
+                      </Button>
+                    </FormControl>
                 </div>
                 </Box>
         }
@@ -148,4 +161,4 @@ function OathTipLinkLogin() {
   );
 }
 
-export default OathTipLinkLogin;
+export default GrapeLogin;
