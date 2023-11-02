@@ -36,7 +36,7 @@ function GrapeLogin() {
   const generatePublicKeyFromString = async (seedStr:string) => {
     const seed = Buffer.from(seedStr, 'utf8');
     //const programId = PublicKey.programId;
-    const keypair = await PublicKey.createWithSeed(new PublicKey('KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT'), seedStr, new PublicKey('KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT'));
+    const keypair = await PublicKey.createWithSeed(new PublicKey('G1k3mtwhHC6553zzEM8qgU8qzy6mvRxkoRTrwdcsYkxL'), seedStr, new PublicKey('G1k3mtwhHC6553zzEM8qgU8qzy6mvRxkoRTrwdcsYkxL'));
     setGeneratedPk(keypair);
     //return keypair.publicKey.toString();
   };
