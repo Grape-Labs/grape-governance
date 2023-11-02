@@ -34,7 +34,7 @@ function OathLogin() {
     setLoading(true);
     async function initializeOpenlogin() {
       const sdkInstance = new OpenLogin({
-        clientId: "BMi9zEgR3Oh9zafxGJquzrEQgStql0XbfMsrNVA7NwXHL26f_Y9bg52JF85Ln5yHwyfjRxGtwZASogfmyfucDHw", // your project id
+        clientId: "BH6rsnhb8TsZZ99iZVYiyOXYiHlCUWGYhLfzIRQ_wq3Nziv_3U-TiofvaFoC1ERRedHa5sWddtPN0YQ7UrQbdnc", // your project id
         network: "mainnet",
       });
       await sdkInstance.init();
@@ -120,8 +120,9 @@ function OathLogin() {
                     <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
                     <Typography variant="h3" sx={{ textAlign: "center" }}>Grape x Solana</Typography>
                     <p>
-                    <Typography variant="body2" sx={{ textAlign: "left" }}>PublicKey: {solanaPrivateKey}</Typography>
-                    <Typography variant="body2" sx={{ textAlign: "left" }}>Account Details: {JSON.stringify(account)}</Typography>
+                        <Typography variant="body2" sx={{ textAlign: "left" }}>PublicKey: {solanaPrivateKey}</Typography>
+                        <Typography variant="body2" sx={{ textAlign: "left" }}>Account Details: {JSON.stringify(account)}</Typography>
+                        <Typography variant="body2" sx={{ textAlign: "left" }}>Account Info: {JSON.stringify(walletInfo)}</Typography>
                     </p>
 
                     <Button 
