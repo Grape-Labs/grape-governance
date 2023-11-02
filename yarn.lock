@@ -4027,6 +4027,14 @@
     read-package-json-fast "^3.0.0"
     which "^3.0.0"
 
+"@onsol/tldparser@^0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@onsol/tldparser/-/tldparser-0.6.1.tgz#5fc3d4657ba8acbd675a2b75aea065284ff59601"
+  integrity sha512-px/T6umjmnCaLRySeUVyAaf7G5vY1GcbIkNFOw9fc3On5KHvZ7mpzQystYxdBIk1EN09neW0mHjV4XDXjb4CeQ==
+  dependencies:
+    "@ethersproject/sha2" "^5.7.0"
+    "@metaplex-foundation/beet-solana" "^0.4.0"
+
 "@panva/asn1.js@^1.0.0":
   version "1.0.0"
   resolved "https://registry.npmjs.org/@panva/asn1.js/-/asn1.js-1.0.0.tgz"
@@ -6517,6 +6525,13 @@
     lodash "^4.17.21"
     loglevel "^1.8.1"
 
+"@toruslabs/base-session-manager@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@toruslabs/base-session-manager/-/base-session-manager-3.0.0.tgz#4302d0747ef71a8278af79e577cf53253c907cd5"
+  integrity sha512-+EqwizmSFkVEczUtaw+swbAxRIIxC/EaFE040rwfgC5fixaQMNLw2cVYXWN67Ra47wC9A7Om6xwQTuGFR+dy4w==
+  dependencies:
+    "@toruslabs/http-helpers" "^5.0.0"
+
 "@toruslabs/broadcast-channel@^6.2.0":
   version "6.3.1"
   resolved "https://registry.yarnpkg.com/@toruslabs/broadcast-channel/-/broadcast-channel-6.3.1.tgz#d4b0a08c3a0fa88d42d7f33387ce9be928c2d4b2"
@@ -6531,10 +6546,22 @@
     socket.io-client "^4.6.1"
     unload "^2.4.1"
 
+"@toruslabs/constants@^13.0.3":
+  version "13.0.3"
+  resolved "https://registry.yarnpkg.com/@toruslabs/constants/-/constants-13.0.3.tgz#260a3e5c430d201bd3d92e13ef2044bd89a4432e"
+  integrity sha512-DiksceNFwzV4XBwcPdKpV6tfrvWIxhmwseTJbNnlzdy6uXgzvtagfapu+98pjrkNrjoRLiM17QBgBi8sNw7oGQ==
+
 "@toruslabs/eccrypto@^2.1.1":
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/@toruslabs/eccrypto/-/eccrypto-2.2.1.tgz#19012cc4e774e8c3df7ceebb2c1a07ecfd784917"
   integrity sha512-7sviL0wLYsfA5ogEAOIdb0tu/QAOFXfHc9B8ONYtF04x4Mg3Nr89LL35FhjaEm055q8Ru7cUQhEFSiqJqm9GCw==
+  dependencies:
+    elliptic "^6.5.4"
+
+"@toruslabs/eccrypto@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@toruslabs/eccrypto/-/eccrypto-4.0.0.tgz#0b27ed2d1e9483e77f42a7619a2c3c19cb802f44"
+  integrity sha512-Z3EINkbsgJx1t6jCDVIJjLSUEGUtNIeDjhMWmeDGOWcP/+v/yQ1hEvd1wfxEz4q5WqIHhevacmPiVxiJ4DljGQ==
   dependencies:
     elliptic "^6.5.4"
 
@@ -6546,6 +6573,25 @@
     lodash.merge "^4.6.2"
     loglevel "^1.8.1"
 
+"@toruslabs/http-helpers@^5.0.0":
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/@toruslabs/http-helpers/-/http-helpers-5.0.0.tgz#2a309d2a2c5c00d50a725d83ccec8a7475771d62"
+  integrity sha512-GmezWz9JeF6YyhjLSm+9XDF4YaeICEckY0Jbo43i86SjhfJYgRWqEi63VSiNsaqc/z810Q0FQvEk1TnBRX2tgA==
+  dependencies:
+    lodash.merge "^4.6.2"
+    loglevel "^1.8.1"
+
+"@toruslabs/metadata-helpers@5.0.0", "@toruslabs/metadata-helpers@^5.0.0":
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/@toruslabs/metadata-helpers/-/metadata-helpers-5.0.0.tgz#12be5de4e8a5d1af2dd080bdf05f5ad8953aaae7"
+  integrity sha512-ZUFfOHJVJC53c8wJYHjdF3bIgN2ZvfqehbTZ/zJ7oVFfrrd6O66V3gQ1i1zxBjH3yhOvZKQwc0DaMmh3G0NUXQ==
+  dependencies:
+    "@toruslabs/eccrypto" "^4.0.0"
+    "@toruslabs/http-helpers" "^5.0.0"
+    elliptic "^6.5.4"
+    ethereum-cryptography "^2.1.2"
+    json-stable-stringify "^1.0.2"
+
 "@toruslabs/metadata-helpers@^3.2.0":
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/@toruslabs/metadata-helpers/-/metadata-helpers-3.2.0.tgz#b297933ac37481a9c86a125ac6a4e5c2f109fb78"
@@ -6556,6 +6602,13 @@
     elliptic "^6.5.4"
     ethereum-cryptography "^2.0.0"
     json-stable-stringify "^1.0.2"
+
+"@toruslabs/openlogin-ed25519@^6.0.0":
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/@toruslabs/openlogin-ed25519/-/openlogin-ed25519-6.0.0.tgz#21bd0999db789023be024f890d8802b7f013c7ae"
+  integrity sha512-wdz8W0TeaKvENuPTeiHsn97N1GVvp880gXwj3ECtfPNWdz9S8zYtvv1R3M1DD+HJVlCoLzGGKe2dc9Ko+K5wGQ==
+  dependencies:
+    "@toruslabs/tweetnacl-js" "^1.0.4"
 
 "@toruslabs/openlogin-jrpc@^3.2.0":
   version "3.2.0"
@@ -6585,6 +6638,15 @@
     pump "^3.0.0"
     readable-stream "^4.4.2"
 
+"@toruslabs/openlogin-session-manager@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@toruslabs/openlogin-session-manager/-/openlogin-session-manager-3.0.0.tgz#2f13af3ef96ddda48803a0265a798cffc3c9f78c"
+  integrity sha512-S+nnZQ+Y+XCHvTYaov3ltiV2hAAPpKpwxvB4TmbMvi7KWOZ8BcUJQykSITlIXV4aE5y5BD96rsmjQ3C3MyVtUQ==
+  dependencies:
+    "@toruslabs/base-session-manager" "^3.0.0"
+    "@toruslabs/eccrypto" "^4.0.0"
+    "@toruslabs/metadata-helpers" "5.0.0"
+
 "@toruslabs/openlogin-utils@^3.0.0":
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/@toruslabs/openlogin-utils/-/openlogin-utils-3.0.0.tgz#2c264fa9a2787a1d2b8c703a38740c7c27967fa7"
@@ -6601,6 +6663,40 @@
   dependencies:
     base64url "^3.0.1"
 
+"@toruslabs/openlogin-utils@^6.0.0":
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/@toruslabs/openlogin-utils/-/openlogin-utils-6.0.0.tgz#99b03c9d8aef9df02cef98fdf7c067c71157b94a"
+  integrity sha512-BbKgkUCNpGTJxuPSDYBoKEDSJ+q3bC0Po4VOUjszBNtHMlAcubIkuTLPt7qBQkLAtbiW4cfkojTRRjIGEcUaQQ==
+  dependencies:
+    "@toruslabs/constants" "^13.0.3"
+    base64url "^3.0.1"
+
+"@toruslabs/openlogin@^6.0.0":
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/@toruslabs/openlogin/-/openlogin-6.0.0.tgz#b3e035772d7237bde370e42e646e3a83feda7f61"
+  integrity sha512-gfdjsOOwMbtjotmxzLO/+V7Kc6n0iMAkpSI/Wf3GfOTRcV5kHoLDOTOOwrTDvY0fAWS5uv6fFlARadm0i9E2xg==
+  dependencies:
+    "@toruslabs/eccrypto" "^4.0.0"
+    "@toruslabs/metadata-helpers" "^5.0.0"
+    "@toruslabs/openlogin-session-manager" "^3.0.0"
+    "@toruslabs/openlogin-utils" "^6.0.0"
+    "@toruslabs/secure-pub-sub" "^0.0.1"
+    bowser "^2.11.0"
+    events "^3.3.0"
+    loglevel "^1.8.1"
+    ts-custom-error "^3.3.1"
+
+"@toruslabs/secure-pub-sub@^0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@toruslabs/secure-pub-sub/-/secure-pub-sub-0.0.1.tgz#dda9d3c97755abaa40a7904de92ba59349f8e045"
+  integrity sha512-fuvjilsNhJ9zdeFcYBwFq6BxhFJU6vkCU3Xm4BcnXLtGxm79N9rj1C8rwFQY2TSgpAcD8NZsuuJqneRG7M9kpg==
+  dependencies:
+    "@toruslabs/eccrypto" "^4.0.0"
+    "@toruslabs/http-helpers" "^5.0.0"
+    "@toruslabs/metadata-helpers" "^5.0.0"
+    loglevel "^1.8.1"
+    socket.io-client "^4.7.2"
+
 "@toruslabs/solana-embed@^0.3.4":
   version "0.3.4"
   resolved "https://registry.yarnpkg.com/@toruslabs/solana-embed/-/solana-embed-0.3.4.tgz#547727e6d202f734d1e97a6658bdb3cf54599938"
@@ -6616,6 +6712,11 @@
     lodash-es "^4.17.21"
     loglevel "^1.8.1"
     pump "^3.0.0"
+
+"@toruslabs/tweetnacl-js@^1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@toruslabs/tweetnacl-js/-/tweetnacl-js-1.0.4.tgz#0f1965d1b93d4061472b07ed21d71c33ac533cce"
+  integrity sha512-h8fVemW5pstsKbm/fTx+y61dZkh5Pepy/92lsyKp83KErf96jT+w4LGx4nEgeAVrdYQDTLg2tO7vu/boEb23Iw==
 
 "@trysound/sax@0.2.0":
   version "0.2.0"
@@ -20795,7 +20896,7 @@ snake-case@^3.0.4:
     dot-case "^3.0.4"
     tslib "^2.0.3"
 
-socket.io-client@^4.6.1:
+socket.io-client@^4.6.1, socket.io-client@^4.7.2:
   version "4.7.2"
   resolved "https://registry.yarnpkg.com/socket.io-client/-/socket.io-client-4.7.2.tgz#f2f13f68058bd4e40f94f2a1541f275157ff2c08"
   integrity sha512-vtA0uD4ibrYD793SOIAwlo8cj6haOeMHrGvwPxJsxH7CeIksqJ+3Zc06RvWTIFgiSqx4A3sOnTXpfAEE2Zyz6w==
@@ -21886,6 +21987,11 @@ tryer@^1.0.1:
   version "1.0.1"
   resolved "https://registry.npmjs.org/tryer/-/tryer-1.0.1.tgz"
   integrity sha512-c3zayb8/kWWpycWYg87P71E1S1ZL6b6IJxfb5fvsUgsf0S2MVGaDhDXXjDMpdCpfWXqptc+4mXwmiy1ypXqRAA==
+
+ts-custom-error@^3.3.1:
+  version "3.3.1"
+  resolved "https://registry.yarnpkg.com/ts-custom-error/-/ts-custom-error-3.3.1.tgz#8bd3c8fc6b8dc8e1cb329267c45200f1e17a65d1"
+  integrity sha512-5OX1tzOjxWEgsr/YEUWSuPrQ00deKLh6D7OTWcvNHm12/7QPyRh8SYpyWvA4IZv8H/+GQWQEh/kwo95Q9OVW1A==
 
 ts-invariant@^0.10.3:
   version "0.10.3"

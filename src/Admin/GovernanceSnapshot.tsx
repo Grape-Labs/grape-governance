@@ -46,6 +46,8 @@ import {
     tryGetName,
 } from '@cardinal/namespaces';
 
+import { TldParser, NameRecordHeader } from "@onsol/tldparser";
+
 import { getProfilePicture } from '@solflare-wallet/pfp';
 import { findDisplayName } from '../utils/name-service';
 
@@ -335,6 +337,11 @@ const getSocialConnections = async(address: string) => {
             },
             bonfida: {
                 handle: null,
+                handles: null,
+            },
+            allDomains: {
+                handle: null,
+                handles: null,
             }
         }
 
@@ -350,7 +357,7 @@ const getSocialConnections = async(address: string) => {
                 connection, 
                 new PublicKey(address)
             );
-
+            
             if (cardinal_registration){
                 found_cardinal = true;
                 //console.log("cardinal_registration: "+JSON.stringify(cardinal_registration));
@@ -377,6 +384,16 @@ const getSocialConnections = async(address: string) => {
                     //setHasSolanaDomain(true);
                     //setSolanaDomain(domain[0]);
                     registrationInfo.bonfida.handle = domain[0];
+                    registrationInfo.bonfida.handles = domain;
+                }
+            }
+
+            if (!domain){
+                const parser = new TldParser(connection); 
+                let allUserDomains = await parser.getParsedAllUserDomains(address);
+                if (allUserDomains){
+                    registrationInfo.allDomains.handles = allUserDomains;
+                    console.log("All Domains: "+address+" : "+JSON.stringify(allUserDomains));
                 }
             }
         }
@@ -1308,7 +1325,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         // get any handles / domains linked
                         //if (cachedOwner?.socialConnections && cachedOwner.account.governingTokenOwner !== '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8'){
                         if (cachedOwner?.socialConnections){
-                                owner.socialConnections = cachedOwner?.socialConnections;
+                            owner.socialConnections = cachedOwner?.socialConnections;
                         } else{
                             const socialConnections = await getSocialConnections(tokenOwnerRecord.toBase58());
                             if (socialConnections){
@@ -2904,7 +2921,7 @@ const processGovernanceUploadSnapshotAll = async(
     setGovernanceLookup: any) => {
 
     if (setLoading) setLoading(true);
-    
+
     const skipAddresses = [
         '7oB84bSuxv9AH1iRdMp5nFLwpQApv8Yo9s1gGmDkHtSP',// synt
         '6orGiJYGXYk9GT2NFoTv2ZMYpA6asMieAqdek4YRH2Dn',// imperium

@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { AdminView } from "./Admin/Admin";
 //import GovernanceAppPageView from "./GovernanceCached/v2/page";
 import { GovernanceRPCView } from "./GovernanceRPC/Governance";
+import OathLogin from "./GovernanceCached/OathGovernance";
 import { MyGovernanceView } from "./GovernanceCached/MyGovernance";
 import { GovernanceCachedView } from "./GovernanceCached/Governance";
 import { PremiumView } from "./GovernanceCached/Premium";
@@ -264,6 +265,11 @@ function DashboardContent() {
                                               <Route path="admin/*" element={<AdminView />} >
                                                   <Route path=":handlekey" element={<AdminView />} />
                                               </Route>
+
+                                              <Route path="oath/*" element={<OathLogin />} >
+                                                  <Route path=":handlekey" element={<OathLogin />} />
+                                              </Route>
+                                              
                                               
                                               
                                               <Route path="*" element={<NotFound />} />

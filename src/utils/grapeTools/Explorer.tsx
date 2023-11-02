@@ -320,6 +320,11 @@ export default function ExplorerView(props:any){
                                 setProfilePictureUrl(member.socialConnections.cardinal.pfp)
                                 setHasProfilePicture(true);
                             }
+                            if (member.socialConnections?.allDomains?.handles){
+                                //console.log("All Domains ("+address+"): "+JSON.stringify(member.socialConnections.allDomains))
+                                //setSolanaDomain(member.socialConnections.allDomains.handle)
+                            }
+                            
 
                         }
                     }
