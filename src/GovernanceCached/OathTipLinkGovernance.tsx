@@ -69,6 +69,7 @@ function OathTipLinkLogin() {
 
   const handleLogout = async () => {
     setLoading(true)
+    setGeneratedTipLink(null);
     //await openlogin.logout();
     setLoading(false)
   };
@@ -114,7 +115,7 @@ function OathTipLinkLogin() {
                     <Button 
                         variant="contained"
                         onClick={handleLogout}>
-                        Logout ?
+                        Disconnect
                     </Button>
                 </Box>
             </>
