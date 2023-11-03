@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import OpenLogin from "@toruslabs/openlogin";
 //import AccountInfo  from "../../components/AccountInfo";
-import { Account, Connection, clusterApiUrl } from "@solana/web3.js";
+import { Account, Connection, clusterApiUrl, PublicKey } from "@solana/web3.js";
 import { getED25519Key } from "@toruslabs/openlogin-ed25519";
 import * as bs58 from "bs58";
 
@@ -28,11 +28,12 @@ const solanaNetwork = networks.devnet;
 const connection = new Connection(solanaNetwork.url);
 
 function OathLogin() {
-  const [loading, setLoading] = useState(false);
-  const [openlogin, setSdk] = useState(undefined);
-  const [account, setUserAccount] = useState(null);
-  const [walletInfo, setUserAccountInfo] = useState(null);
-  const [solanaPrivateKey, setPrivateKey] = useState(null)
+    const [loading, setLoading] = useState(false);
+    const [openlogin, setSdk] = useState(undefined);
+    const [account, setUserAccount] = useState(null);
+    const [walletInfo, setUserAccountInfo] = useState(null);
+    const [solanaPrivateKey, setPrivateKey] = useState(null)
+    const [derivedPublicKey, setDerivedPublicKey] = React.useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -65,6 +66,12 @@ function OathLogin() {
     setPrivateKey(bs58.encode(account.secretKey));
     setUserAccount(account);
     setUserAccountInfo(accountInfo);
+
+    //const publicKeyBuffer = Buffer.from(account.publicKey);
+    //const thisPublicKey = new PublicKey(publicKeyBuffer);
+
+    setDerivedPublicKey(account.publicKey.toBase58());
+
     return accountInfo;
   }
 
@@ -124,9 +131,12 @@ function OathLogin() {
                     <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
                     <Typography variant="h3" sx={{ textAlign: "center" }}>Grape x Solana</Typography>
                     <p>
-                        <Typography variant="body2" sx={{ textAlign: "left" }}>PublicKey: {solanaPrivateKey}</Typography>
+                        <Typography variant="body2" sx={{ textAlign: "left" }}>PublicKey: {derivedPublicKey}</Typography>
+                        {/*
+                        <Typography variant="body2" sx={{ textAlign: "left" }}>PrivateKey: {solanaPrivateKey}</Typography>
                         <Typography variant="body2" sx={{ textAlign: "left" }}>Account Details: {JSON.stringify(account)}</Typography>
                         <Typography variant="body2" sx={{ textAlign: "left" }}>Account Info: {JSON.stringify(walletInfo)}</Typography>
+            */}
                     </p>
 
                     <Button 
