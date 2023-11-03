@@ -6,7 +6,9 @@ import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddres
 import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 import { useWallet } from '@solana/wallet-adapter-react';
 
-import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
+import { 
+    RPC_CONNECTION,
+    FRICTIONLESS_WALLET } from '../../../utils/grapeTools/constants';
 import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
 
 import {
@@ -166,20 +168,24 @@ export default function TokenTransferView(props: any) {
         
         const transaction = new Transaction();
         const pTransaction = new Transaction();
-
+        
         if (tokenMint === "So11111111111111111111111111111111111111112"){ // Check if SOL
+            fromWallet = new PublicKey(fromAddress);
             const decimals = 9;
             for (let index = 0; index < destinationWalletArray.length; index++) {
                 const destinationObject = destinationWalletArray[index];
+                const amount = Math.floor((destinationObject.amount * Math.pow(10, decimals)));
                 transaction.add(
                     SystemProgram.transfer({
                         fromPubkey: fromWallet,
                         toPubkey: new PublicKey(destinationObject.address),
-                        lamports: +(destinationObject.amount * Math.pow(10, decimals)).toFixed(0),
+                        lamports: amount,
                     })
                 );
             }
+
             setTransactionInstructions(transaction);
+            
             // Estimate the transaction fee
             try{
                 /*
@@ -195,7 +201,6 @@ export default function TokenTransferView(props: any) {
             }catch(e){
                 console.log("FEE ERR: ",e);
             }
-            return transaction;
         } else{  
             //console.log("mint: "+ tokenMint);
             const accountInfo = await connection.getParsedAccountInfo(tokenAccount);
@@ -760,6 +765,9 @@ export default function TokenTransferView(props: any) {
         solBalance = await connection.getBalance(new PublicKey(wallet));
         if (wallet === governanceWallet.vault.pubkey){
             governanceWallet.solBalance = solBalance;
+            if (pluginType === 5)
+                setTokenMint("So11111111111111111111111111111111111111112");
+                setTokenMaxAmount(governanceWallet.solBalance/10 ** 9)
         }
 
         const tokenBalance = await connection.getParsedTokenAccountsByOwner(

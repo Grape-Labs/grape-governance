@@ -108,6 +108,7 @@
         "color": "^4.2.3",
         "commander": "^8.3.0",
         "dayjs": "^1.11.7",
+        "discord.js": "^14.13.0",
         "dotenv": "^16.3.1",
         "ethers": "^5.5.4",
         "file_size_url": "^1.0.4",
