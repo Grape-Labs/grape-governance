@@ -39,7 +39,7 @@ function OathLogin() {
     async function initializeOpenlogin() {
       const sdkInstance = new OpenLogin({
         clientId: "BH6rsnhb8TsZZ99iZVYiyOXYiHlCUWGYhLfzIRQ_wq3Nziv_3U-TiofvaFoC1ERRedHa5sWddtPN0YQ7UrQbdnc", // your project id
-        network: "mainnet",
+        network: "sapphire_mainnet",
       });
       await sdkInstance.init();
       if (sdkInstance.privKey) {
