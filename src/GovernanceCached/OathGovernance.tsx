@@ -14,6 +14,7 @@ import {
     Button,
     Grid,
     Box,
+    CircularProgress,
   } from '@mui/material/';
 
 //import "./style.scss";
@@ -98,79 +99,54 @@ function OathLogin() {
   };
   return (
     <>
-    {
-    loading ?
-      <div>
-          <div style={{ display: "flex", flexDirection: "column", width: "100%", justifyContent: "center", alignItems: "center", margin: 20 }}>
-              <h1>....loading</h1>
-          </div>
-      </div> :
-      <div>
-        {
-          (openlogin && openlogin.privKey) ?
-            <>
-                <Box
-                    sx={{
-                        width:'100%',
-                        mt: 6,
-                        background: 'rgba(0, 0, 0, 0.6)',
-                        borderRadius: '17px',
-                        p: 4,
-                        alignItems: 'center', textAlign: 'center'
-                    }} 
-                > 
-                {/*
-                <AccountInfo
-                handleLogout={handleLogout}
-                loading={loading}
-                privKey={solanaPrivateKey}
-                walletInfo={walletInfo}
-                account={account}
-                />*/}
-                    
-                    <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
-                    <Typography variant="h3" sx={{ textAlign: "center" }}>Grape x Solana</Typography>
-                    <p>
-                        <Typography variant="body2" sx={{ textAlign: "left" }}>PublicKey: {derivedPublicKey}</Typography>
-                        {/*
-                        <Typography variant="body2" sx={{ textAlign: "left" }}>PrivateKey: {solanaPrivateKey}</Typography>
-                        <Typography variant="body2" sx={{ textAlign: "left" }}>Account Details: {JSON.stringify(account)}</Typography>
-                        <Typography variant="body2" sx={{ textAlign: "left" }}>Account Info: {JSON.stringify(walletInfo)}</Typography>
-            */}
-                    </p>
+    <Box
+            sx={{
+                width:'100%',
+                mt: 6,
+                background: 'rgba(0, 0, 0, 0.6)',
+                borderRadius: '17px',
+                p: 4,
+                alignItems: 'center', textAlign: 'center'
+            }} 
+        > 
+        <div className="loginContainer">
+            <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
+            <Typography variant="h3" sx={{ textAlign: "center" }}>Grape x Solana</Typography>
+            {
+            loading ?
+                    <div>
+                        <div style={{ display: "flex", flexDirection: "column", width: "100%", justifyContent: "center", alignItems: "center", margin: 20 }}>
+                            <h1><CircularProgress /></h1>
+                        </div>
+                    </div> :
+                    <div>
+                        {
+                        (openlogin && openlogin.privKey) ?
+                            <>
+                                <p>
+                                    <Typography variant="body2" sx={{ textAlign: "left" }}>PublicKey: {derivedPublicKey}</Typography>
+                                    <Typography variant="body2" sx={{ textAlign: "left" }}>PrivateKey: {solanaPrivateKey}</Typography>
+                                </p>
+                                <Button 
+                                    variant="contained"
+                                    onClick={handleLogout}>
+                                    Logout
+                                </Button>
+                            </>
+                            :
+                                <>
+                                    <Button 
+                                        variant="contained"
+                                        onClick={handleLogin}>
+                                        Login
+                                    </Button>
+                                </>
+                        }
 
-                    <Button 
-                        variant="contained"
-                        onClick={handleLogout}>
-                        Logout
-                    </Button>
-                </Box>
-            </>
-             :
-                <Box
-                    sx={{
-                        width:'100%',
-                        mt: 6,
-                        background: 'rgba(0, 0, 0, 0.6)',
-                        borderRadius: '17px',
-                        p: 4,
-                        alignItems: 'center', textAlign: 'center'
-                    }} 
-                > 
-                <div className="loginContainer">
-                    <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
-                    <Typography variant="h3" sx={{ textAlign: "center" }}>Grape x Solana</Typography>
-                    <Button 
-                        variant="contained"
-                        onClick={handleLogin}>
-                        Login
-                    </Button>
-                </div>
-                </Box>
-        }
-
-      </div>
-    }
+                    </div>
+                }
+            </div>
+        </Box>
     </>
   );
 }
