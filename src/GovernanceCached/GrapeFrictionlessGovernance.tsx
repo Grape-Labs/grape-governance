@@ -65,6 +65,9 @@ import {
 
 import ExplorerView from '../utils/grapeTools/Explorer';
 
+const sleep = (ttl: number) =>
+  new Promise((resolve) => setTimeout(() => resolve(true), ttl))
+
 function GrapeFrictionless() {
   const [loading, setLoading] = useState(false);
   const [openlogin, setSdk] = useState(undefined);
@@ -334,6 +337,9 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
         if (!findGoverningTokenOwner(tokenOwnerRecords, realmPk, generatedWallet.publicKey)){
           console.log("Creating Governance Token Owner Record "+generatedWallet.publicKey.toBase58());
           txid = await createAndSendV0Tx([...ixCreateTokenOwnerRecord, ...ixDepositGoverningTokens], fromKeypair, null);
+
+          await sleep(2000);
+
           tokenOwnerRecords = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, generatedWallet.publicKey);
         } else{
           console.log("Governance Token Owner Record Exists");
@@ -341,8 +347,9 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
         
         //const rawTokenOwnerRecord = await getTokenOwnerRecord(RPC_CONNECTION, fromKeypair.publicKey);
         //console.log("rawTokenOwnerRecord: "+JSON.stringify(tokenOwnerRecordsByOwner));
+        
         const foundRecord = findGoverningTokenOwner(tokenOwnerRecords, realmPk, generatedWallet.publicKey);
-        if (txid || foundRecord){
+        if (txid && foundRecord){
           
           //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, gRealm.owner, realmPk);
           
