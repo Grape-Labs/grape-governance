@@ -57,8 +57,11 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 
 import { parseMintNaturalAmountFromDecimalAsBN } from '../utils/grapeTools/helpers';
 
-import { RPC_CONNECTION,
-  FRICTIONLESS_WALLET } from '../utils/grapeTools/constants';
+import { 
+  RPC_CONNECTION,
+  FRICTIONLESS_WALLET,
+  FRICTIONLESS_BG,
+} from '../utils/grapeTools/constants';
 
 import ExplorerView from '../utils/grapeTools/Explorer';
 
@@ -676,18 +679,26 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
             background: 'rgba(0, 0, 0, 0.6)',
             borderRadius: '17px',
             p: 4,
-            alignItems: 'center', textAlign: 'center'
+            alignItems: 'center', textAlign: 'center',
+            backgroundImage: `url(${FRICTIONLESS_BG})`,
+            backgroundRepeat: "repeat",
+            backgroundSize: "cover",
         }} 
     > 
-       <Box
-        sx={{m:2}}
-       > 
+      
+      <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
+      <Divider>
+        <Chip label="Grape x Solana" />
+      </Divider>
 
-          <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
-          <Divider>
-            <Chip label="Grape x Solana" />
-          </Divider>
-        </Box>
+      <Box
+      sx={{
+        background: `rgba(0, 0, 0, 0.8)`,
+        borderRadius: '17px',
+        m:2,
+        p: 4}}
+    > 
+
 
     {
     loading ?
@@ -760,6 +771,8 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
 
       </div>
     }
+
+      </Box>
     </Box>
     </>
   );

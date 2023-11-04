@@ -1,6 +1,8 @@
 import { Connection } from '@solana/web3.js';
 import STATIC_LOGO from '../../public/grape_logo.svg';
 import STATIC_CREATOR_LOGO from '../../public/Element_46x.png';
+import FRICTIONLESS_ASSET_1 from '../../public/isolated_graphic_frictionless.jpeg';
+export const FRICTIONLESS_BG = FRICTIONLESS_ASSET_1;
 export const APP_LOGO = STATIC_LOGO;
 export const CREATOR_LOGO = STATIC_CREATOR_LOGO;
 export const TX_RPC_ENDPOINT = process.env.REACT_APP_API_TX_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
