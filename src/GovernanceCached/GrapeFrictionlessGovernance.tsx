@@ -14,10 +14,13 @@ import {
 
 import {
   Typography,
+  Tooltip,
   ButtonGroup,
   Button,
+  IconButton,
   Grid,
   Box,
+  Divider,
   TextField,
   FormControl,
   InputLabel,
@@ -34,7 +37,9 @@ import {
   getRealms,
   withCastVote,
   getAllProposals,
+  getProposal,
   getTokenOwnerRecordsByOwner,
+  getVoteRecordsByVoter,
   withSetGovernanceDelegate,
   getAllTokenOwnerRecords,
   getTokenOwnerRecord,
@@ -42,6 +47,9 @@ import {
   withCreateTokenOwnerRecord,
   
 } from '@solana/spl-governance';
+
+import LinkIcon from '@mui/icons-material/Link';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
 
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
 
@@ -66,6 +74,7 @@ function GrapeFrictionless() {
   const frictionlessDao = 'Hr6PtVoKHTZETmJtjiYu9YeAFCMNUkDTv4qQV2kdDF2C';
   const frictionlessNativeTreasury = 'G1k3mtwhHC6553zzEM8qgU8qzy6mvRxkoRTrwdcsYkxL';
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+  const [refreshProposals, setRefreshProposals] = React.useState(false);
 
   React.useEffect(() => {
     setLoading(true);
@@ -204,7 +213,7 @@ async function createAndSendV0Tx(txInstructions: TransactionInstruction[], payer
     const snackprogress = (key:any) => (
         <CircularProgress sx={{padding:'10px'}} />
     );
-    const cnfrmkey = enqueueSnackbar(`Sending Transaction`,{ variant: 'info', action:snackprogress, persist: true });
+    const cnfrmkey = enqueueSnackbar(`Sending Transaction to Blockchain`,{ variant: 'info', action:snackprogress, persist: true });
     const confirmation = await RPC_CONNECTION.confirmTransaction({
         signature: txid,
         blockhash: latestBlockhash.blockhash,
@@ -214,7 +223,7 @@ async function createAndSendV0Tx(txInstructions: TransactionInstruction[], payer
     if (confirmation.value.err) { 
         enqueueSnackbar(`Vote Error`,{ variant: 'error' });
         throw new Error("   ❌ - Transaction not confirmed.") }
-
+    
     console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
     return txid;
   }
@@ -404,7 +413,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
             fromKeypair.publicKey
           )*/
           
-
+          /*
           console.log("Realm: "+gRealm.owner.toBase58());
           console.log("realmPk: "+realmPk.toBase58());
           console.log("proposalGovernance: "+proposalGovernance.toBase58());
@@ -414,7 +423,8 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
           console.log("generatedWallet.publicKey: "+generatedWallet.publicKey.toBase58());
           console.log("communityMint: "+communityMint.toBase58());
           console.log("fromKeypair.publicKey: "+fromKeypair.publicKey.toBase58());
-          
+          */
+
           await withCastVote(
             ixVote,
             gRealm.owner, //  realm/governance PublicKey
@@ -436,7 +446,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
           );
 
           if (ixVote){
-            
+
             /*
             const meSigner = generatedWallet.publicKey;
             for (var instruction of ixVote){
@@ -450,7 +460,9 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
             
             console.log("sending Tx "+JSON.stringify(ixVote));
             // 2. If member cast vote
-            createAndSendV0Tx([...ixVote], fromKeypair, generatedWallet);//new PublicKey(generatedPk));
+            await createAndSendV0Tx([...ixVote], fromKeypair, generatedWallet);//new PublicKey(generatedPk));
+
+            setRefreshProposals(!refreshProposals);
 
           }
       }
@@ -485,8 +497,9 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
     const realmPk = props.address;
     const [proposalLoading, setProposalLoading] = React.useState(false);
     const [participatingGovernanceProposalsRecordRows, setParticipatingGovernanceProposalsRecordRows] = React.useState(null);
+    const [generatedParticipation, setGeneratedParticipation] = React.useState(null);
     const [thisRealm, setThisRealm] = React.useState(null);
-
+    
     const fetchGovernanceProposals = async () => {
       setProposalLoading(true);
 
@@ -515,16 +528,22 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
       const sortedRPCResults = rpcprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
       
       setParticipatingGovernanceProposalsRecordRows(sortedRPCResults);
+      
+      const voteRecords = await getVoteRecordsByVoter(RPC_CONNECTION, rlm.owner, generatedWallet.publicKey);
+      console.log("voteRecords "+JSON.stringify(voteRecords));
+      setGeneratedParticipation(voteRecords);
+      
       //console.log("sortedRPCResults: "+JSON.stringify(sortedRPCResults));
       setProposalLoading(false);
   } 
 
   React.useEffect(() => {
     if (realmPk && !proposalLoading){
-        //console.log("here we go!");
         fetchGovernanceProposals();
     }
-}, [realmPk]);
+    //if (realmPk && !proposalLoading && refreshProposals)
+    //  fetchGovernanceProposals();
+}, [realmPk, refreshProposals]);
 
 
     return (
@@ -588,17 +607,33 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                     {voteCastLoading ?
                                       <CircularProgress />
                                     :
-                                    <ButtonGroup>
-                                      <Button
-                                        onClick={(e) => handleYesVote(item.pubkey, item.account.governance, item.account.tokenOwnerRecord)}
-                                        color="success"
-                                      >VOTE YES</Button>
-                                      <Button
-                                        onClick={(e) => handleNoVote(item.pubkey, item.account.governance, item.account.tokenOwnerRecord)}
-                                        color="error"
-                                      >VOTE NO</Button>
+                                    <>
+                                      {(generatedParticipation && generatedParticipation.length > 0 && generatedParticipation.map((gitem) => {
+                                          return (gitem.account.proposal.toBase58() === item.pubkey.toBase58() &&
+                                                  gitem.account.governingTokenOwner.toBase58() === generatedWallet.publicKey.toBase58()
+                                                  );
+                                      })) ?
+                                        <>
+                                          <Button
+                                            variant="outlined"
+                                            color="success"
+                                            disabled
+                                          >You have participated in this proposal</Button>
+                                        </>
+                                      :
+                                        <ButtonGroup>
+                                          <Button
+                                            onClick={(e) => handleYesVote(item.pubkey, item.account.governance, item.account.tokenOwnerRecord)}
+                                            color="success"
+                                          >VOTE YES</Button>
+                                          <Button
+                                            onClick={(e) => handleNoVote(item.pubkey, item.account.governance, item.account.tokenOwnerRecord)}
+                                            color="error"
+                                          >VOTE NO</Button>
 
-                                    </ButtonGroup>
+                                        </ButtonGroup>
+                                      }
+                                    </>
                                     }
                                 </Grid>
                             </Grid>  
@@ -649,14 +684,29 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
           (generatedWallet) ?
             <>
                     <p>
-                        <Typography variant="body2" sx={{ textAlign: "left" }}>PublicKey: {generatedWallet.publicKey.toBase58()}</Typography>
+                      <Box
+                        sx={{
+                            width:'100%',
+                            mt: 6,
+                            background: 'rgba(0, 0, 0, 0.6)',
+                            borderRadius: '17px',
+                            p: 4,
+                            alignItems: 'center', textAlign: 'center'
+                        }} 
+                      > 
+                        <Typography variant="h6">Generated Blockchain Wallet</Typography>
+                        <Typography variant="caption">{generatedWallet.publicKey.toBase58()}
+                          <Tooltip title="Disconnect">
+                              <IconButton aria-label="disconnect" size="small" onClick={handleLogout} sx={{ml:1}}>
+                                <LinkOffIcon fontSize="inherit" />
+                              </IconButton>
+                            </Tooltip>
+                        </Typography>
+                        <Divider />
+                        <Typography variant="caption">Blockchain Governance participation has never been easier, cast your vote for any eligible & active proposal bellow</Typography>
+                        
+                      </Box>
                     </p>
-
-                    <Button 
-                        variant="contained"
-                        onClick={handleLogout}>
-                        Disconnect
-                    </Button>
 
                     <p>
                       <ViewActiveProposalsForDAO address={frictionlessDao} />
@@ -685,7 +735,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                           onClick={handleLogin}
                           disabled={!emailAddress || !pinCode}  
                         >
-                          Generate PublicKey
+                          <LinkIcon sx={{mr:1}}/> Connect &amp; Participate
                       </Button>
                     </FormControl>
                 </div>
