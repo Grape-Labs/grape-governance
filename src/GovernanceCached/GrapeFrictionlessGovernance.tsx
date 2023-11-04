@@ -463,7 +463,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                 }
             }*/
             
-            console.log("sending Tx "+JSON.stringify(ixVote));
+            //console.log("sending Tx "+JSON.stringify(ixVote));
             // 2. If member cast vote
             await createAndSendV0Tx([...ixVote], fromKeypair, generatedWallet);//new PublicKey(generatedPk));
 
@@ -535,7 +535,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
       setParticipatingGovernanceProposalsRecordRows(sortedRPCResults);
       
       const voteRecords = await getVoteRecordsByVoter(RPC_CONNECTION, rlm.owner, generatedWallet.publicKey);
-      console.log("voteRecords "+JSON.stringify(voteRecords));
+      //console.log("voteRecords "+JSON.stringify(voteRecords));
       setGeneratedParticipation(voteRecords);
       
       //console.log("sortedRPCResults: "+JSON.stringify(sortedRPCResults));
@@ -723,12 +723,19 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                         }} 
                       > 
                         <Typography variant="h6">Blockchain Frictionless Address</Typography>
-                        <Typography variant="caption">{generatedWallet.publicKey.toBase58()}
-                          <Tooltip title="Disconnect">
-                              <IconButton aria-label="disconnect" size="small" onClick={handleLogout} sx={{ml:1}}>
-                                <LinkOffIcon fontSize="inherit" />
-                              </IconButton>
-                            </Tooltip>
+                        <Typography variant="caption">
+                            <ButtonGroup>
+                              <ExplorerView
+                                address={generatedWallet.publicKey.toBase58()} type='address'
+                                shorten={8}
+                                hideTitle={false} style='text' color='white' fontSize='12px'/>
+                            
+                              <Tooltip title="Disconnect">
+                                <Button aria-label="disconnect" color="inherit" variant="text" onClick={handleLogout} sx={{ml:1}}>
+                                  <LinkOffIcon fontSize="inherit" />
+                                </Button>
+                              </Tooltip>
+                            </ButtonGroup>
                         </Typography>
                         <Divider />
                         <Typography variant="caption">Solana Governance participation has never been easier, cast your vote for any eligible & active proposal bellow</Typography>
