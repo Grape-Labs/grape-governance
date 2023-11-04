@@ -599,9 +599,9 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                 >
                                   <Typography variant="h5">
                                     {item.account.name}
-                                    <Tooltip title="View Proposal Details">
+                                    <Tooltip title="Explore Proposal Details">
                                       <IconButton aria-label="disconnect" size="small" 
-                                        href={`https://realms.today/dao/${item.account.governance.toBase58()}/proposal/${item.pubkey.toBase58()}`}
+                                        href={`https://governance.so/proposal/${frictionlessDao}/${item.pubkey.toBase58()}`}
                                         target='blank'
                                         sx={{ml:1}}>
                                         <OpenInNewIcon fontSize="inherit" />
