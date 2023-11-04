@@ -49,6 +49,7 @@ import {
   
 } from '@solana/spl-governance';
 
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import LinkIcon from '@mui/icons-material/Link';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
 
@@ -598,6 +599,14 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                 >
                                   <Typography variant="h5">
                                     {item.account.name}
+                                    <Tooltip title="View Proposal Details">
+                                      <IconButton aria-label="disconnect" size="small" 
+                                        href={`https://realms.today/dao/${item.account.governance.toBase58()}/proposal/${item.pubkey.toBase58()}`}
+                                        target='blank'
+                                        sx={{ml:1}}>
+                                        <OpenInNewIcon fontSize="inherit" />
+                                      </IconButton>
+                                    </Tooltip>
                                   </Typography>
                                   <Typography variant="caption" sx={{textAlign:'left'}}>
                                     {item.account.descriptionLink}
