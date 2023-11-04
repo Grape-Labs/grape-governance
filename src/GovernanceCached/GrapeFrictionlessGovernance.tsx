@@ -19,6 +19,7 @@ import {
   Button,
   IconButton,
   Grid,
+  Chip,
   Box,
   Divider,
   TextField,
@@ -598,7 +599,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                   <Typography variant="h5">
                                     {item.account.name}
                                   </Typography>
-                                  <Typography variant="caption">
+                                  <Typography variant="caption" sx={{textAlign:'left'}}>
                                     {item.account.descriptionLink}
                                   </Typography>
                                 </Grid>
@@ -669,9 +670,16 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
             alignItems: 'center', textAlign: 'center'
         }} 
     > 
-        
-        <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
-        <Typography variant="h3" sx={{ textAlign: "center" }}>Grape x Solana</Typography>
+       <Box
+        sx={{m:2}}
+       > 
+
+          <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
+          <Divider>
+            <Chip label="Grape x Solana" />
+          </Divider>
+        </Box>
+
     {
     loading ?
       <div>
@@ -694,7 +702,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                             alignItems: 'center', textAlign: 'center'
                         }} 
                       > 
-                        <Typography variant="h6">Generated Blockchain Wallet</Typography>
+                        <Typography variant="h6">Blockchain Frictionless Address</Typography>
                         <Typography variant="caption">{generatedWallet.publicKey.toBase58()}
                           <Tooltip title="Disconnect">
                               <IconButton aria-label="disconnect" size="small" onClick={handleLogout} sx={{ml:1}}>
@@ -703,7 +711,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                             </Tooltip>
                         </Typography>
                         <Divider />
-                        <Typography variant="caption">Blockchain Governance participation has never been easier, cast your vote for any eligible & active proposal bellow</Typography>
+                        <Typography variant="caption">Solana Governance participation has never been easier, cast your vote for any eligible & active proposal bellow</Typography>
                         
                       </Box>
                     </p>
