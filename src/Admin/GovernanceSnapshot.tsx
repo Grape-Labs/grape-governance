@@ -2257,7 +2257,7 @@ const initStorage  = async (setThisDrive: any, setCurrentWallet: any, wallet: an
     }catch (ferr){
         console.log("ERR: "+ferr);
     }
-
+    
     const isBrowser = process.env.BROWSER || (typeof window !== "undefined" && !window.process?.hasOwnProperty("type"));
 
     if (secretKey){

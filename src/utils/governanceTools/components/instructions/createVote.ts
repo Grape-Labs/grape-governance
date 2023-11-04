@@ -267,7 +267,7 @@ export const createCastVoteTransaction = async (
       walletPubkey,
       clientProgramId
     );
-  
+    
     const updateVoterWeightRecordIx = await client!.program.methods
       .updateVoterWeightRecord()
       .accounts({
