@@ -738,7 +738,8 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                             </ButtonGroup>
                         </Typography>
                         <Divider />
-                        <Typography variant="caption">Solana Governance participation has never been easier, cast your vote for any eligible & active proposal bellow</Typography>
+                        <Typography variant="h6">Smooth. Friendly. Basic.</Typography>
+                        <Typography variant="caption">Solana Governance participation has never been easier for anyone to participate, cast your vote for any eligible & active proposals</Typography>
                         
                       </Box>
                     </p>
@@ -750,6 +751,10 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
              :
                 
                 <div className="loginContainer">
+                    <Typography variant="h6">Plain. Clear. Natural.</Typography>
+                    <Typography variant="caption">This is how Governance on any Blockchain should be. Designed for anyone to participate!
+                    <br/>To get started enter your email & a pin code</Typography>
+                        
                     <FormControl fullWidth  sx={{mt:1,mb:2}}>
                       <TextField
                         label="Email"
