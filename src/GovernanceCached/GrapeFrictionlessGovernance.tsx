@@ -678,7 +678,9 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
             mt: 6,
             background: 'rgba(0, 0, 0, 0.6)',
             borderRadius: '17px',
-            p: 4,
+            p: 2,
+            pt: 4,
+            pb: 4,
             alignItems: 'center', textAlign: 'center',
             backgroundImage: `url(${FRICTIONLESS_BG})`,
             backgroundRepeat: "repeat",
@@ -715,10 +717,8 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                       <Box
                         sx={{
                             width:'100%',
-                            mt: 6,
                             background: 'rgba(0, 0, 0, 0.6)',
                             borderRadius: '17px',
-                            p: 4,
                             alignItems: 'center', textAlign: 'center'
                         }} 
                       > 
@@ -738,8 +738,16 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                             </ButtonGroup>
                         </Typography>
                         <Divider />
-                        <Typography variant="h6">Smooth. Friendly. Basic.</Typography>
-                        <Typography variant="caption">Solana Governance participation has never been easier for anyone to participate, cast your vote for any eligible & active proposals</Typography>
+                        <Typography variant="h6"
+                          sx={{
+                            background: '-webkit-linear-gradient(90deg,#cf8d7c,#a77cb4)',
+                            backgroundClip: 'text',
+                            color: 'transparent',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                          }}
+                        >Smooth. Friendly. Intuitive.</Typography>
+                        <Typography variant="caption">Solana Governance participation has never been more intuitive and easy for anyone to use, cast your vote for any eligible & active proposals now and be part of Blockchain history</Typography>
                         
                       </Box>
                     </p>
@@ -751,7 +759,15 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
              :
                 
                 <div className="loginContainer">
-                    <Typography variant="h6">Plain. Clear. Natural.</Typography>
+                    <Typography variant="h6"
+                          sx={{
+                            background: '-webkit-linear-gradient(90deg,#cf8d7c,#a77cb4)',
+                            backgroundClip: 'text',
+                            color: 'transparent',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                          }}
+                        >Natural. Easy. Accessible.</Typography>
                     <Typography variant="caption">This is how Governance on any Blockchain should be. Designed for anyone to participate!
                     <br/>To get started enter your email & a pin code</Typography>
                         
