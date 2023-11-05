@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { PublicKey, Signer, TransactionInstruction, Transaction, Keypair, TransactionMessage, VersionedTransaction, SystemProgram } from '@solana/web3.js';
 //import { Client } from "discord.js";
 import { useSnackbar } from 'notistack';
-import useWindowSize from 'react-use/lib/useWindowSize'
-import Confetti from 'react-confetti'
+//import useWindowSize from 'react-use/lib/useWindowSize'
+//import Confetti from 'react-confetti'
+import Confetti from 'react-dom-confetti';
 
 import { 
   TOKEN_PROGRAM_ID, 
@@ -71,6 +72,20 @@ import { ParamType } from 'ethers/lib/utils';
 const sleep = (ttl: number) =>
   new Promise((resolve) => setTimeout(() => resolve(true), ttl))
 
+const confettiConfig = {
+    angle: 90,
+    spread: 360,
+    startVelocity: 40,
+    elementCount: 200,
+    dragFriction: 0.12,
+    duration: 4000,
+    stagger: 3,
+    width: "10px",
+    height: "10px",
+    perspective: "500px",
+    colors: ["#a864fd", "#29cdff", "#78ff44", "#ff718d", "#fdff6a"]
+};
+
 function FrictionlessView() {
   const [loading, setLoading] = useState(false);
   const [openlogin, setSdk] = useState(undefined);
@@ -89,7 +104,7 @@ function FrictionlessView() {
   const [refreshProposals, setRefreshProposals] = React.useState(false);
   const [validEmail, setValidEmail] = React.useState(null);
   const [party, setParty] = useState(false)
-  const { width, height } = useWindowSize()
+  //const { usewidth, useheight } = useWindowSize()
 
   function generateVerificationCode() {
     // Generate a random 6-digit code
@@ -504,6 +519,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
             await createAndSendV0Tx([...ixVote], fromKeypair, generatedWallet, "Casting Vote");//new PublicKey(generatedPk));
             
             setRefreshProposals(!refreshProposals);
+            setParty(false);
             setParty(true);
           }
       }
@@ -707,7 +723,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
       </Box>
     );
   }
-
+  /*
   React.useEffect(() => {
     if (party){
       const timeoutId = setTimeout(() => {
@@ -716,6 +732,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
       return () => clearTimeout(timeoutId);
     }
   }, [party])
+  */
 
   const handleLogout = async () => {
     setLoading(true)
@@ -747,13 +764,16 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                 backgroundSize: "cover",
             }} 
         > 
-          {party &&
-            <Confetti
-                  width={width}
-                  height={height}
-                  tweenDuration={5000}
-              />
-          }
+          
+            <>
+              <div style={{ display: "flex", flexDirection: "column", width: "100%", justifyContent: "center", alignItems: "center", margin: 20 }}>
+                <Confetti
+                    active={ party }
+                    config={ confettiConfig }
+                /> 
+              </div>
+            </>
+          
           
           <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
           <Divider>
