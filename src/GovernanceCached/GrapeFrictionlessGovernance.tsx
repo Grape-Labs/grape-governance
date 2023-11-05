@@ -794,7 +794,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                           <TextField
                             label="Pin"
                             onChange={(e) => setPinCode(e.target.value)}
-                            type="number"
+                            type="password"
                           />
                         </FormControl>
                         <FormControl fullWidth>
