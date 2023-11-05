@@ -559,6 +559,17 @@ export default function ExplorerView(props:any){
                     <MenuItem 
                         color='inherit'
                         component='a'
+                        href={`https://translator.shyft.to/${type === 'address' ? 'address' : 'tx'}/${address}`}
+                        target='_blank'
+                        onClick={handleClose}>
+                            <ListItemIcon>
+                                <ExploreOutlinedIcon fontSize="small" />
+                            </ListItemIcon>
+                            Shyft
+                    </MenuItem>
+                    <MenuItem 
+                        color='inherit'
+                        component='a'
                         href={`https://solscan.io/${type === 'address' ? 'account' : type}/${address}`}
                         target='_blank'
                         onClick={handleClose}>
@@ -588,17 +599,6 @@ export default function ExplorerView(props:any){
                                 <ExploreOutlinedIcon fontSize="small" />
                             </ListItemIcon>
                             Solana Beach
-                    </MenuItem>
-                    <MenuItem 
-                        color='inherit'
-                        component='a'
-                        href={`https://translator.shyft.to/${type === 'address' ? 'address' : 'tx'}/${address}`}
-                        target='_blank'
-                        onClick={handleClose}>
-                            <ListItemIcon>
-                                <ExploreOutlinedIcon fontSize="small" />
-                            </ListItemIcon>
-                            Shyft
                     </MenuItem>
                     <MenuItem 
                         color='inherit'
