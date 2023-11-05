@@ -30,6 +30,8 @@ export const RPC_CONNECTION = new Connection(
     RPC_ENDPOINT
 );
 
+export const MAILGUN_KEY = process.env.REACT_APP_API_MAILGUN_KEY || null;
+export const MAILGUN_DOMAIN = process.env.REACT_APP_API_MAILGUN_DOMAIN || null;
 export const ME_API = process.env.REACT_APP_API_ME || null;
 export const ME_KEYBASE = process.env.REACT_APP_API_ME_KEYBASE || null;
 export const SOFLARE_NOTIFICATIONS_API_KEY = process.env.REACT_APP_API_KEY_SOLFLARE_NOTIFICATIONS || '';

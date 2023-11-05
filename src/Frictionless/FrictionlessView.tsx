@@ -68,7 +68,7 @@ import ExplorerView from '../utils/grapeTools/Explorer';
 const sleep = (ttl: number) =>
   new Promise((resolve) => setTimeout(() => resolve(true), ttl))
 
-function GrapeFrictionless() {
+function FrictionlessView() {
   const [loading, setLoading] = useState(false);
   const [openlogin, setSdk] = useState(undefined);
   const [account, setUserAccount] = useState(null);
@@ -77,12 +77,21 @@ function GrapeFrictionless() {
   const [emailAddress, setEmailAddress] = useState(null);
   const [pinCode, setPinCode] = useState(null);
   const [generatedWallet, setGeneratedWallet] = useState(null)
+  const [generatedPin, setGeneratedPin] = React.useState(null);
   const [voteCastLoading, setVoteCastLoading] = React.useState(false);
   const [realm, setRealm] = React.useState(null);
   const frictionlessDao = 'Hr6PtVoKHTZETmJtjiYu9YeAFCMNUkDTv4qQV2kdDF2C';
   const frictionlessNativeTreasury = 'G1k3mtwhHC6553zzEM8qgU8qzy6mvRxkoRTrwdcsYkxL';
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
   const [refreshProposals, setRefreshProposals] = React.useState(false);
+  const [validEmail, setValidEmail] = React.useState(null);
+
+  function generateVerificationCode() {
+    // Generate a random 6-digit code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000);
+    setGeneratedPin(verificationCode);
+    return verificationCode.toString();
+  }
 
   React.useEffect(() => {
     setLoading(true);
@@ -114,15 +123,17 @@ function GrapeFrictionless() {
       //const keypair = await PublicKey.createWithSeed(new PublicKey(frictionlessNativeTreasury), seedStr, fromKeypair.publicKey);
 
       //setGeneratedWallet({publicKey:keypair});
-
+      
       // Derive the PDA address
       const programId = fromKeypair.publicKey;
-      const seed = seedStr;
+      const seed = seedStr+frictionlessDao;
       let seedBytes = Buffer.from(seed, 'utf8');
 
       if (seedBytes.length < 32) {
         // Add more characters to the seed to make it at least 32 bytes long.
         seedBytes = Buffer.concat([seedBytes, Buffer.alloc(32 - seedBytes.length)]);
+      } else if (seedBytes.length > 32) {
+        seedBytes = seedBytes.slice(0, 32);
       }
       //const [pda, bump] = PublicKey.findProgramAddressSync([Buffer.from(seed)], programId);
       const pda = Keypair.fromSeed(seedBytes);//PublicKey.findProgramAddressSync([Buffer.from(seed)], programId);
@@ -140,7 +151,7 @@ function GrapeFrictionless() {
     setLoading(true)
     try {
       // handle login...
-      generatePublicKeyFromString(emailAddress+pinCode);
+      generatePublicKeyFromString(emailAddress);
       setLoading(false)
     } catch (error) {
       console.log("error", error);
@@ -503,6 +514,14 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
     
     const regex = /[^\w]+/g;
     const filteredInput = text.replace(regex, '');
+
+    // check if valid email
+    const emailRegex = /^[A-Z0-9. _%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+    if (emailRegex.test(text)){
+      setValidEmail(text);
+      generateVerificationCode();
+    }
+
     setEmailAddress(filteredInput)
   };
 
@@ -607,21 +626,26 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                     direction="row"
                                     justifyContent="left"
                                     alignItems="left"
+                                  
                                 >
-                                  <Typography variant="h5">
-                                    {item.account.name}
-                                    <Tooltip title="Explore Proposal Details">
-                                      <IconButton aria-label="disconnect" size="small" 
-                                        href={`https://governance.so/proposal/${frictionlessDao}/${item.pubkey.toBase58()}`}
-                                        target='blank'
-                                        sx={{ml:1}}>
-                                        <OpenInNewIcon fontSize="inherit" />
-                                      </IconButton>
-                                    </Tooltip>
-                                  </Typography>
-                                  <Typography variant="caption" sx={{textAlign:'left'}}>
-                                    {item.account.descriptionLink}
-                                  </Typography>
+                                  <Grid item xs={12} sx={{textAlign:"left"}}>
+                                    <Typography variant="h5">
+                                      {item.account.name}
+                                      <Tooltip title="Explore Proposal Details">
+                                        <IconButton aria-label="disconnect" size="small" 
+                                          href={`https://governance.so/proposal/${frictionlessDao}/${item.pubkey.toBase58()}`}
+                                          target='blank'
+                                          sx={{ml:1}}>
+                                          <OpenInNewIcon fontSize="inherit" />
+                                        </IconButton>
+                                      </Tooltip>
+                                    </Typography>
+                                  </Grid>
+                                  <Grid item xs={12} sx={{textAlign:"left"}}>
+                                    <Typography variant="caption" sx={{textAlign:'left'}}>
+                                      {item.account.descriptionLink}
+                                    </Typography>
+                                  </Grid>
                                 </Grid>
                                 </Grid>
                                 <Grid item xs sx={{textAlign:'center'}}>
@@ -675,6 +699,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
     setPinCode(null);
     setEmailAddress(null);
     setGeneratedWallet(null);
+    setGeneratedPin(null);
     //await openlogin.logout();
     setLoading(false)
   };
@@ -795,13 +820,17 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                             label="Pin"
                             onChange={(e) => setPinCode(e.target.value)}
                             type="password"
+                            disabled={!validEmail}
+                            helperText={(validEmail && generatedPin) && `Enter ${generatedPin}`}
                           />
+
+
                         </FormControl>
                         <FormControl fullWidth>
                           <Button 
                               variant="contained"
                               onClick={handleLogin}
-                              disabled={!emailAddress || !pinCode}  
+                              disabled={(!emailAddress || !pinCode) || (+pinCode !== +generatedPin)}  
                             >
                               <LinkIcon sx={{mr:1}}/> Connect &amp; Participate
                           </Button>
@@ -819,4 +848,4 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
   );
 }
 
-export default GrapeFrictionless;
+export default FrictionlessView;
