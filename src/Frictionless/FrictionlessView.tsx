@@ -68,6 +68,7 @@ import {
 
 import ExplorerView from '../utils/grapeTools/Explorer';
 import { ParamType } from 'ethers/lib/utils';
+import EmailOathView from './Connect/Email';
 
 const sleep = (ttl: number) =>
   new Promise((resolve) => setTimeout(() => resolve(true), ttl))
@@ -102,17 +103,10 @@ function FrictionlessView() {
   const frictionlessNativeTreasury = 'G1k3mtwhHC6553zzEM8qgU8qzy6mvRxkoRTrwdcsYkxL';
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
   const [refreshProposals, setRefreshProposals] = React.useState(false);
-  const [validEmail, setValidEmail] = React.useState(null);
   const [party, setParty] = useState(false)
   //const { usewidth, useheight } = useWindowSize()
 
-  function generateVerificationCode() {
-    // Generate a random 6-digit code
-    const verificationCode = Math.floor(100000 + Math.random() * 900000);
-    setGeneratedPin(verificationCode);
-    return verificationCode.toString();
-  }
-
+  
   React.useEffect(() => {
     setLoading(true);
     async function initializeOpenlogin() {
@@ -167,18 +161,7 @@ function FrictionlessView() {
     //return keypair.publicKey.toString();
   };
 
-  async function handleLogin() {
-    setLoading(true)
-    try {
-      // handle login...
-      generatePublicKeyFromString(emailAddress);
-      setLoading(false)
-    } catch (error) {
-      console.log("error", error);
-      setLoading(false)
-    }
-  }
-
+  
 const findGoverningTokenOwner = (data: any, realm: PublicKey, governingTokenOwner:PublicKey) => {
   for (const account of data) {
     if (account.account.realm.toBase58() === realm.toBase58() && account.account.governingTokenOwner.toBase58() === governingTokenOwner.toBase58()) {
@@ -537,23 +520,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
     handleVote(false, proposal, governance, tokenOwnerRecord);
   }
 
-  const handleEmailChange = (text:string) => {
-    
-    const regex = /[^\w]+/g;
-    const filteredInput = text.replace(regex, '');
-
-    // check if valid email
-    const emailRegex = /^[A-Z0-9. _%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-    if (emailRegex.test(text)){
-      setValidEmail(text);
-      generateVerificationCode();
-    } else{
-      setValidEmail(null);
-      setGeneratedPin(null);
-    }
-
-    setEmailAddress(filteredInput)
-  };
+  
 
   function ViewActiveProposalsForDAO(props:any) {
     const realmPk = props.address;
@@ -847,44 +814,17 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                     
                     <div className="loginContainer">
                         <Typography variant="h6"
-                              sx={{
+                                sx={{
                                 background: '-webkit-linear-gradient(90deg,#cf8d7c,#a77cb4)',
                                 backgroundClip: 'text',
                                 color: 'transparent',
                                 WebkitBackgroundClip: 'text',
                                 WebkitTextFillColor: 'transparent',
-                              }}
+                                }}
                             >Natural. Easy. Accessible.</Typography>
-                        <Typography variant="caption">This is how Governance on any Blockchain should be. Designed for anyone to participate!
-                        <br/>To get started enter your email & a pin code</Typography>
-                            
-                        <FormControl fullWidth  sx={{mt:1,mb:2}}>
-                          <TextField
-                            label="Email"
-                            onChange={(e) => handleEmailChange(e.target.value)}
-                            type="email"
-                          />
-                        </FormControl>
-                        <FormControl fullWidth  sx={{mb:2}}>
-                          <TextField
-                            label="Pin"
-                            onChange={(e) => setPinCode(e.target.value)}
-                            type="password"
-                            disabled={!validEmail}
-                            helperText={(validEmail && generatedPin) && `Enter ${generatedPin}`}
-                          />
+                        <Typography variant="caption">This is how Governance on any Blockchain should be. Designed for anyone to participate!</Typography>
 
-
-                        </FormControl>
-                        <FormControl fullWidth>
-                          <Button 
-                              variant="contained"
-                              onClick={handleLogin}
-                              disabled={(!emailAddress || !pinCode) || (+pinCode !== +generatedPin)}  
-                            >
-                              <LinkIcon sx={{mr:1}}/> Connect &amp; Participate
-                          </Button>
-                        </FormControl>
+                        <EmailOathView generatePublicKeyFromString={generatePublicKeyFromString} setLoading={setLoading} />
                     </div>
             }
 
