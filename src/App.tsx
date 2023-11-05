@@ -182,7 +182,8 @@ function DashboardContent() {
 
               <Route path="/frictionless/*" element={
                 <Suspense fallback={renderLoader()}>
-                  
+                  <ThemeProvider theme={grapeTheme}>
+                  <div className="frictionless-body">
                         <ConnectionProvider endpoint={endpoint}>
                             <WalletProvider wallets={wallets} autoConnect>
                             
@@ -199,7 +200,9 @@ function DashboardContent() {
                           </WalletProvider>
                           </ConnectionProvider>
                         
-                    </Suspense>
+                    </div>
+                    </ThemeProvider>
+                  </Suspense>
               }></Route>
 
               <Route path="/*" element={

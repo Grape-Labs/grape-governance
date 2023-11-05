@@ -349,7 +349,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
         //console.log("rawTokenOwnerRecord: "+JSON.stringify(tokenOwnerRecordsByOwner));
         
         const foundRecord = findGoverningTokenOwner(tokenOwnerRecords, realmPk, generatedWallet.publicKey);
-        
+
         if (foundRecord){
           
           //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, gRealm.owner, realmPk);
@@ -681,13 +681,15 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
   return (
     <>
       <Grid
+        sx={{
+          p: 1}}
       >
         <Box
             sx={{
                 width:'100%',
-                mt: 6,
                 background: 'rgba(0, 0, 0, 0.6)',
                 borderRadius: '17px',
+                mt:2,
                 p: 2,
                 pt: 4,
                 pb: 4,
