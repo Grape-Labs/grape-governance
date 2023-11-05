@@ -520,6 +520,9 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
     if (emailRegex.test(text)){
       setValidEmail(text);
       generateVerificationCode();
+    } else{
+      setValidEmail(null);
+      setGeneratedPin(null);
     }
 
     setEmailAddress(filteredInput)
