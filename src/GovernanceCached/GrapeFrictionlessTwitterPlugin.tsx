@@ -349,8 +349,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
         //console.log("rawTokenOwnerRecord: "+JSON.stringify(tokenOwnerRecordsByOwner));
         
         const foundRecord = findGoverningTokenOwner(tokenOwnerRecords, realmPk, generatedWallet.publicKey);
-        
-        if (foundRecord){
+        if (txid && foundRecord){
           
           //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, gRealm.owner, realmPk);
           
@@ -680,139 +679,136 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
   };
   return (
     <>
-      <Grid
-      >
-        <Box
-            sx={{
-                width:'100%',
-                mt: 6,
-                background: 'rgba(0, 0, 0, 0.6)',
-                borderRadius: '17px',
-                p: 2,
-                pt: 4,
-                pb: 4,
-                alignItems: 'center', textAlign: 'center',
-                backgroundImage: `url(${FRICTIONLESS_BG})`,
-                backgroundRepeat: "repeat",
-                backgroundSize: "cover",
-            }} 
-        > 
-          
-          <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
-          <Divider>
-            <Chip label="Grape x Solana" />
-          </Divider>
-
-          <Box
-          sx={{
-            background: `rgba(0, 0, 0, 0.8)`,
+    <Box
+        sx={{
+            width:'100%',
+            mt: 6,
+            background: 'rgba(0, 0, 0, 0.6)',
             borderRadius: '17px',
-            m:2,
-            p: 4}}
-        > 
+            p: 2,
+            pt: 4,
+            pb: 4,
+            alignItems: 'center', textAlign: 'center',
+            backgroundImage: `url(${FRICTIONLESS_BG})`,
+            backgroundRepeat: "repeat",
+            backgroundSize: "cover",
+        }} 
+    > 
+      
+      <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
+      <Divider>
+        <Chip label="Grape x Solana" />
+      </Divider>
+
+      <Box
+      sx={{
+        background: `rgba(0, 0, 0, 0.8)`,
+        borderRadius: '17px',
+        m:2,
+        p: 4}}
+    > 
 
 
-        {
-        loading ?
-          <div>
-              <div style={{ display: "flex", flexDirection: "column", width: "100%", justifyContent: "center", alignItems: "center", margin: 20 }}>
-                  <CircularProgress />
-              </div>
-          </div> :
-          <div>
-            {
-              (generatedWallet) ?
-                <>
-                        <p>
-                          <Box
-                            sx={{
-                                width:'100%',
-                                background: 'rgba(0, 0, 0, 0.6)',
-                                borderRadius: '17px',
-                                alignItems: 'center', textAlign: 'center'
-                            }} 
-                          > 
-                            <Typography variant="h6">Blockchain Frictionless Address</Typography>
-                            <Typography variant="caption">
-                                <ButtonGroup>
-                                  <ExplorerView
-                                    address={generatedWallet.publicKey.toBase58()} type='address'
-                                    shorten={8}
-                                    hideTitle={false} style='text' color='white' fontSize='12px'/>
-                                
-                                  <Tooltip title="Disconnect">
-                                    <Button aria-label="disconnect" color="inherit" variant="text" onClick={handleLogout} sx={{ml:1}}>
-                                      <LinkOffIcon fontSize="inherit" />
-                                    </Button>
-                                  </Tooltip>
-                                </ButtonGroup>
-                            </Typography>
-                            <Divider />
-                            <Typography variant="h6"
-                              sx={{
-                                background: '-webkit-linear-gradient(90deg,#cf8d7c,#a77cb4)',
-                                backgroundClip: 'text',
-                                color: 'transparent',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                              }}
-                            >Smooth. Friendly. Intuitive.</Typography>
-                            <Typography variant="caption">Solana Governance participation has never been more intuitive and easy for anyone to use, cast your vote for any eligible & active proposals now and be part of Blockchain history</Typography>
-                            
-                          </Box>
-                        </p>
-
-                        <p>
-                          <ViewActiveProposalsForDAO address={frictionlessDao} />
-                        </p>
-                </>
-                :
-                    
-                    <div className="loginContainer">
-                        <Typography variant="h6"
-                              sx={{
-                                background: '-webkit-linear-gradient(90deg,#cf8d7c,#a77cb4)',
-                                backgroundClip: 'text',
-                                color: 'transparent',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                              }}
-                            >Natural. Easy. Accessible.</Typography>
-                        <Typography variant="caption">This is how Governance on any Blockchain should be. Designed for anyone to participate!
-                        <br/>To get started enter your email & a pin code</Typography>
-                            
-                        <FormControl fullWidth  sx={{mt:1,mb:2}}>
-                          <TextField
-                            label="Email"
-                            onChange={(e) => handleEmailChange(e.target.value)}
-                            type="email"
-                          />
-                        </FormControl>
-                        <FormControl fullWidth  sx={{mb:2}}>
-                          <TextField
-                            label="Pin"
-                            onChange={(e) => setPinCode(e.target.value)}
-                            type="number"
-                          />
-                        </FormControl>
-                        <FormControl fullWidth>
-                          <Button 
-                              variant="contained"
-                              onClick={handleLogin}
-                              disabled={!emailAddress || !pinCode}  
-                            >
-                              <LinkIcon sx={{mr:1}}/> Connect &amp; Participate
-                          </Button>
-                        </FormControl>
-                    </div>
-            }
-
+    {
+    loading ?
+      <div>
+          <div style={{ display: "flex", flexDirection: "column", width: "100%", justifyContent: "center", alignItems: "center", margin: 20 }}>
+              <CircularProgress />
           </div>
+      </div> :
+      <div>
+        {
+          (generatedWallet) ?
+            <>
+                    <p>
+                      <Box
+                        sx={{
+                            width:'100%',
+                            background: 'rgba(0, 0, 0, 0.6)',
+                            borderRadius: '17px',
+                            alignItems: 'center', textAlign: 'center'
+                        }} 
+                      > 
+                        <Typography variant="h6">Blockchain Frictionless Address</Typography>
+                        <Typography variant="caption">
+                            <ButtonGroup>
+                              <ExplorerView
+                                address={generatedWallet.publicKey.toBase58()} type='address'
+                                shorten={8}
+                                hideTitle={false} style='text' color='white' fontSize='12px'/>
+                            
+                              <Tooltip title="Disconnect">
+                                <Button aria-label="disconnect" color="inherit" variant="text" onClick={handleLogout} sx={{ml:1}}>
+                                  <LinkOffIcon fontSize="inherit" />
+                                </Button>
+                              </Tooltip>
+                            </ButtonGroup>
+                        </Typography>
+                        <Divider />
+                        <Typography variant="h6"
+                          sx={{
+                            background: '-webkit-linear-gradient(90deg,#cf8d7c,#a77cb4)',
+                            backgroundClip: 'text',
+                            color: 'transparent',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                          }}
+                        >Smooth. Friendly. Intuitive.</Typography>
+                        <Typography variant="caption">Solana Governance participation has never been more intuitive and easy for anyone to use, cast your vote for any eligible & active proposals now and be part of Blockchain history</Typography>
+                        
+                      </Box>
+                    </p>
+
+                    <p>
+                      <ViewActiveProposalsForDAO address={frictionlessDao} />
+                    </p>
+            </>
+             :
+                
+                <div className="loginContainer">
+                    <Typography variant="h6"
+                          sx={{
+                            background: '-webkit-linear-gradient(90deg,#cf8d7c,#a77cb4)',
+                            backgroundClip: 'text',
+                            color: 'transparent',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                          }}
+                        >Natural. Easy. Accessible.</Typography>
+                    <Typography variant="caption">This is how Governance on any Blockchain should be. Designed for anyone to participate!
+                    <br/>To get started enter your email & a pin code</Typography>
+                        
+                    <FormControl fullWidth  sx={{mt:1,mb:2}}>
+                      <TextField
+                        label="Email"
+                        onChange={(e) => handleEmailChange(e.target.value)}
+                        type="email"
+                      />
+                    </FormControl>
+                    <FormControl fullWidth  sx={{mb:2}}>
+                      <TextField
+                        label="Pin"
+                        onChange={(e) => setPinCode(e.target.value)}
+                        type="number"
+                      />
+                    </FormControl>
+                    <FormControl fullWidth>
+                      <Button 
+                          variant="contained"
+                          onClick={handleLogin}
+                          disabled={!emailAddress || !pinCode}  
+                        >
+                          <LinkIcon sx={{mr:1}}/> Connect &amp; Participate
+                      </Button>
+                    </FormControl>
+                </div>
         }
 
-          </Box>
-        </Box>
-      </Grid>
+      </div>
+    }
+
+      </Box>
+    </Box>
     </>
   );
 }

@@ -179,11 +179,34 @@ function DashboardContent() {
 
               <Route path="testembed" element={<TestEmbed />} />
 
+
+              <Route path="/frictionless/*" element={
+                <Suspense fallback={renderLoader()}>
+                  
+                        <ConnectionProvider endpoint={endpoint}>
+                            <WalletProvider wallets={wallets} autoConnect>
+                            
+                            
+                              <CssBaseline />
+                              
+                              <Routes>
+
+                                <Route path="oath/*" element={<GrapeFrictionless />} >
+                                    <Route path=":handlekey" element={<GrapeFrictionless />} />
+                                </Route>
+                              </Routes>
+                            
+                          </WalletProvider>
+                          </ConnectionProvider>
+                        
+                    </Suspense>
+              }></Route>
+
               <Route path="/*" element={
                 <Suspense fallback={renderLoader()}>
                   <ThemeProvider theme={grapeTheme}>
                       <div className="app-body">
-                          
+                        
                           <ConnectionProvider endpoint={endpoint}>
                               <WalletProvider wallets={wallets} autoConnect>
                               
@@ -275,7 +298,7 @@ function DashboardContent() {
                                               <Route path="tloath/*" element={<OathTipLinkLogin />} >
                                                   <Route path=":handlekey" element={<OathTipLinkLogin />} />
                                               </Route>
-                                              
+
                                               <Route path="goath/*" element={<GrapeFrictionless />} >
                                                   <Route path=":handlekey" element={<GrapeFrictionless />} />
                                               </Route>
