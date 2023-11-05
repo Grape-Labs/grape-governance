@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { PublicKey, Signer, TransactionInstruction, Transaction, Keypair, TransactionMessage, VersionedTransaction, SystemProgram } from '@solana/web3.js';
 //import { Client } from "discord.js";
 import { useSnackbar } from 'notistack';
+import useWindowSize from 'react-use/lib/useWindowSize'
+import Confetti from 'react-confetti'
 
 import { 
   TOKEN_PROGRAM_ID, 
@@ -64,6 +66,7 @@ import {
 } from '../utils/grapeTools/constants';
 
 import ExplorerView from '../utils/grapeTools/Explorer';
+import { ParamType } from 'ethers/lib/utils';
 
 const sleep = (ttl: number) =>
   new Promise((resolve) => setTimeout(() => resolve(true), ttl))
@@ -85,6 +88,8 @@ function FrictionlessView() {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
   const [refreshProposals, setRefreshProposals] = React.useState(false);
   const [validEmail, setValidEmail] = React.useState(null);
+  const [party, setParty] = useState(false)
+  const { width, height } = useWindowSize()
 
   function generateVerificationCode() {
     // Generate a random 6-digit code
@@ -168,7 +173,7 @@ const findGoverningTokenOwner = (data: any, realm: PublicKey, governingTokenOwne
   return null;
 };
 
-async function createAndSendV0Tx(txInstructions: TransactionInstruction[], payer: Keypair, pda: Keypair) {
+async function createAndSendV0Tx(txInstructions: TransactionInstruction[], payer: Keypair, pda: Keypair, TxString?: string) {
   // Step 1 - Fetch Latest Blockhash
   let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
   console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
@@ -213,38 +218,50 @@ async function createAndSendV0Tx(txInstructions: TransactionInstruction[], payer
 
   const sim = await RPC_CONNECTION.simulateTransaction(transaction);
   console.log("Sim: "+JSON.stringify(sim));
-  const fee = await RPC_CONNECTION.getFeeForMessage(messageV0);
-  if (fee)
-    console.log("Fee: "+(fee.value / 10 ** 9)+"SOL");
-  
-  if (sim){
-    const txid = await RPC_CONNECTION.sendTransaction(transaction, { maxRetries: 5 });
-
-    /*
-    const txid = await sendTransaction(transaction, RPC_CONNECTION, {
-        skipPreflight: true,
-        preflightCommitment: "confirmed"
-    });
-    */
-    console.log("   ✅ - Transaction sent to network with txid: "+txid);
-
-    // Step 5 - Confirm Transaction 
-    const snackprogress = (key:any) => (
-        <CircularProgress sx={{padding:'10px'}} />
-    );
-    const cnfrmkey = enqueueSnackbar(`Sending Transaction to Blockchain`,{ variant: 'info', action:snackprogress, persist: true });
-    const confirmation = await RPC_CONNECTION.confirmTransaction({
-        signature: txid,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-    });
-    closeSnackbar(cnfrmkey);
-    if (confirmation.value.err) { 
-        enqueueSnackbar(`Vote Error`,{ variant: 'error' });
-        throw new Error("   ❌ - Transaction not confirmed.") }
+  if (!sim.value.err || sim.value.err === null){  
+    const fee = await RPC_CONNECTION.getFeeForMessage(messageV0);
+    if (fee)
+      console.log("Fee: "+(fee.value / 10 ** 9)+"SOL");
     
-    console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
-    return txid;
+    if (sim){
+      const txid = await RPC_CONNECTION.sendTransaction(transaction, { maxRetries: 5 });
+
+      /*
+      const txid = await sendTransaction(transaction, RPC_CONNECTION, {
+          skipPreflight: true,
+          preflightCommitment: "confirmed"
+      });
+      */
+      console.log("   ✅ - Transaction sent to network with txid: "+txid);
+
+      // Step 5 - Confirm Transaction 
+      const snackprogress = (key:any) => (
+          <CircularProgress sx={{padding:'10px'}} />
+      );
+
+      const message = TxString || 'Sending Transaction to Blockchain';
+      console.log("message: "+message);
+      const cnfrmkey = enqueueSnackbar(message,{ variant: 'info', action:snackprogress, persist: true });
+      
+      const confirmation = await RPC_CONNECTION.confirmTransaction({
+          signature: txid,
+          blockhash: latestBlockhash.blockhash,
+          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+      });
+      closeSnackbar(cnfrmkey);
+      if (confirmation.value.err) { 
+          enqueueSnackbar(`Vote Error`,{ variant: 'error' });
+          //throw new Error("   ❌ - Transaction not confirmed.") }
+          console.log(`   ❌ - Transaction simulation error! ${confirmation.value.err}`);
+          return null;
+      }
+      
+      console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
+      return txid;
+    }
+  } else{
+    enqueueSnackbar(`Could not simulate Tx, Please try again later`,{ variant: 'error' });
+    console.log(`   ❌ - Transaction simulation error! ${sim.value.err}`);
   }
   return null;
 }
@@ -347,7 +364,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
         
         if (!findGoverningTokenOwner(tokenOwnerRecords, realmPk, generatedWallet.publicKey)){
           console.log("Creating Governance Token Owner Record "+generatedWallet.publicKey.toBase58());
-          txid = await createAndSendV0Tx([...ixCreateTokenOwnerRecord, ...ixDepositGoverningTokens], fromKeypair, null);
+          txid = await createAndSendV0Tx([...ixCreateTokenOwnerRecord, ...ixDepositGoverningTokens], fromKeypair, null, "Creating Blockchain Record");
 
           await sleep(2000);
 
@@ -484,23 +501,17 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
             
             //console.log("sending Tx "+JSON.stringify(ixVote));
             // 2. If member cast vote
-            await createAndSendV0Tx([...ixVote], fromKeypair, generatedWallet);//new PublicKey(generatedPk));
-
+            await createAndSendV0Tx([...ixVote], fromKeypair, generatedWallet, "Casting Vote");//new PublicKey(generatedPk));
+            
             setRefreshProposals(!refreshProposals);
-
+            setParty(true);
           }
       }
 
     }
-
-    
-
-      
   }
-    
-
-
     setVoteCastLoading(false);
+    
   }
 
   const handleYesVote = (proposal:PublicKey, governance: PublicKey, tokenOwnerRecord: PublicKey) => {
@@ -580,7 +591,6 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
     //  fetchGovernanceProposals();
 }, [realmPk, refreshProposals]);
 
-
     return (
       <Box
           sx={{
@@ -620,6 +630,8 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                             key={key}
                             alignItems="center"
                         >
+                          
+                          
                           {console.log("participatingGovernanceProposalsRecordRows: "+JSON.stringify(participatingGovernanceProposalsRecordRows))}
                             <Grid item xs={12}>
                             <Grid container>
@@ -692,10 +704,18 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
         </>
         }
 
-
       </Box>
     );
   }
+
+  React.useEffect(() => {
+    if (party){
+      const timeoutId = setTimeout(() => {
+        setParty(false);
+      }, 10000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [party])
 
   const handleLogout = async () => {
     setLoading(true)
@@ -727,6 +747,13 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                 backgroundSize: "cover",
             }} 
         > 
+          {party &&
+            <Confetti
+                  width={width}
+                  height={height}
+                  tweenDuration={5000}
+              />
+          }
           
           <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
           <Divider>
