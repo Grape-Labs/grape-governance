@@ -69,6 +69,7 @@ import {
 import ExplorerView from '../utils/grapeTools/Explorer';
 import { ParamType } from 'ethers/lib/utils';
 import EmailOathView from './Connect/Email';
+import EthOathView from './Connect/Ethereum';
 
 const sleep = (ttl: number) =>
   new Promise((resolve) => setTimeout(() => resolve(true), ttl))
@@ -825,6 +826,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                         <Typography variant="caption">This is how Governance on any Blockchain should be. Designed for anyone to participate!</Typography>
 
                         <EmailOathView generatePublicKeyFromString={generatePublicKeyFromString} setLoading={setLoading} />
+                        <EthOathView generatePublicKeyFromString={generatePublicKeyFromString} setLoading={setLoading} />
                     </div>
             }
 
