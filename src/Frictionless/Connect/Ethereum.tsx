@@ -6,6 +6,15 @@ import { useSnackbar } from 'notistack';
 //import useWindowSize from 'react-use/lib/useWindowSize'
 //import Confetti from 'react-confetti'
 import Confetti from 'react-dom-confetti';
+import { WagmiConfig, createConfig, configureChains, mainnet, useSignMessage, useAccount, useConnect, useDisconnect } from 'wagmi';
+
+import { alchemyProvider } from 'wagmi/providers/alchemy'
+import { publicProvider } from 'wagmi/providers/public'
+ 
+import { CoinbaseWalletConnector } from 'wagmi/connectors/coinbaseWallet'
+import { InjectedConnector } from 'wagmi/connectors/injected'
+import { MetaMaskConnector } from 'wagmi/connectors/metaMask'
+import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
 
 import { 
   TOKEN_PROGRAM_ID, 
@@ -59,6 +68,44 @@ import {
   withCreateTokenOwnerRecord,
   
 } from '@solana/spl-governance';
+
+import { 
+  ALCHEMY_ETH_KEY,
+} from '../../utils/grapeTools/constants';
+
+const { chains, publicClient, webSocketPublicClient } = configureChains(
+  [mainnet],
+  [alchemyProvider({ apiKey: ALCHEMY_ETH_KEY }), publicProvider()],
+)
+ 
+// Set up wagmi config
+const config = createConfig({
+  autoConnect: true,
+  connectors: [
+    new MetaMaskConnector({ chains }),
+    new CoinbaseWalletConnector({
+      chains,
+      options: {
+        appName: 'wagmi',
+      },
+    }),
+    new WalletConnectConnector({
+      chains,
+      options: {
+        projectId: '...',
+      },
+    }),
+    new InjectedConnector({
+      chains,
+      options: {
+        name: 'Injected',
+        shimDisconnect: true,
+      },
+    }),
+  ],
+  publicClient,
+  webSocketPublicClient,
+})
 
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
@@ -142,9 +189,11 @@ function EthOathView(props:any) {
 
     const [generatedPin, setGeneratedPin] = React.useState(null);
     const [pinCode, setPinCode] = React.useState(null);
-    const [emailAddress, setEmailAddress] = React.useState(null);
+    const [ethWalletAddress, setEthWalletAddress] = React.useState(null);
     const [validEmail, setValidEmail] = React.useState(null);
     const [open, setOpen] = React.useState(false);
+
+    //const { signMessage, isLoading } = useSignMessage();
 
     function generateVerificationCode() {
         // Generate a random 6-digit code
@@ -153,11 +202,22 @@ function EthOathView(props:any) {
         return verificationCode.toString();
     }
 
+    const handleSignMessage = async () => {
+      try {
+        const message = 'This is the message to be signed.';
+        //const signature = await signMessage(message);
+        //console.log('Signature:', signature);
+      } catch (error) {
+        console.error('Error signing message:', error);
+      }
+    };
+  
+
     async function handleLogin() {
         setLoading(true)
         try {
           // handle login...
-          generatePublicKeyFromString(emailAddress);
+          generatePublicKeyFromString(ethWalletAddress);
           setLoading(false)
           setOpen(false);
         } catch (error) {
@@ -165,24 +225,6 @@ function EthOathView(props:any) {
           setLoading(false)
         }
     }
-
-    const handleEmailChange = (text:string) => {
-    
-        const regex = /[^\w]+/g;
-        const filteredInput = text.replace(regex, '');
-        
-        // check if valid email
-        const emailRegex = /^[A-Z0-9. _%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-        if (emailRegex.test(text)){
-          setValidEmail(text);
-          generateVerificationCode();
-        } else{
-          setValidEmail(null);
-          setGeneratedPin(null);
-        }
-    
-        setEmailAddress(filteredInput)
-      };
 
     const handleCloseDialog = () => {
         setOpen(false);
@@ -197,17 +239,52 @@ function EthOathView(props:any) {
         setOpen(false);
     };
 
+    function Profile() {
+      const { address } = useAccount()
+      const { connect } = useConnect({
+        connector: new InjectedConnector(),
+      })
+      const { disconnect } = useDisconnect()
+    
+      React.useEffect(() =>{
+        if (address){
+          handleLogin();
+        }
+      }, [address])
+
+      if (address)
+        return (
+          <div>
+            <Box sx={{textAlign:'center'}}>
+            Connected to {address}
+            </Box>
+
+            <Box sx={{textAlign:'center'}}>
+              <Button 
+                variant='outlined'
+                onClick={() => disconnect()}
+                //disabled
+                sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>Disconnect</Button>
+            </Box>
+          </div>
+        )
+      return <Button 
+              variant='outlined'
+              sx={{color:'white',textTransform:'none',borderRadius:'17px'}}
+              onClick={() => connect()}>Connect Wallet</Button>
+    }
+
     return (
 
         <>
             <Box
                 sx={{mt:2}}
             >
-                <Tooltip title='Connect via Ethereum Wallet'>
+                <Tooltip title='Connect Ethereum Wallet'>
                     <Button 
                         variant='outlined'
                         onClick={handleClickOpen}
-                        disabled
+                        //disabled
                         sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
                         <AccountBalanceWalletIcon sx={{mr:1}}/>
                         Ethereum
@@ -234,35 +311,25 @@ function EthOathView(props:any) {
                 <DialogContent>
 
                     <Box sx={{textAlign:'center'}}>
-                        <Typography variant="caption">To get started enter your email</Typography>
+                        <Typography variant="caption">To get started you will need to sign a message with your Ethereum wallet</Typography>
                     </Box>
 
-                    <FormControl fullWidth  sx={{mt:1,mb:2}}>
-                        <TextField
-                        label="Email"
-                        onChange={(e) => handleEmailChange(e.target.value)}
-                        type="email"
-                        />
-                    </FormControl>
-                    <FormControl fullWidth  sx={{mb:2}}>
-                        <TextField
-                        label="Pin"
-                        onChange={(e) => setPinCode(e.target.value)}
-                        type="password"
-                        disabled={!validEmail}
-                        helperText={(validEmail && generatedPin) && `Enter ${generatedPin}`}
-                        />
-
-
-                    </FormControl>
+                    
                     <FormControl fullWidth sx={{mb:2}}>
+                    {/*isLoading && <p>Signing message...</p>}
+                    {!isLoading && (
+                     
                         <Button 
                             variant="contained"
-                            onClick={handleLogin}
-                            disabled={(!emailAddress || !pinCode) || (+pinCode !== +generatedPin)}  
+                            onClick={handleSignMessage}
+                            //disabled={(!emailAddress || !pinCode) || (+pinCode !== +generatedPin)}  
                         >
-                            <LinkIcon sx={{mr:1}}/> Connect &amp; Participate
+                            <LinkIcon sx={{mr:1}}/> Sign, Connect &amp; Participate
                         </Button>
+                    )*/}
+                    <WagmiConfig config={config}>
+                      <Profile />
+                    </WagmiConfig>
                     </FormControl>
                 </DialogContent>
             </BootstrapDialog>
