@@ -268,10 +268,16 @@ function EthOathView(props:any) {
             </Box>
           </div>
         )
-      return <Button 
-              variant='outlined'
-              sx={{color:'white',textTransform:'none',borderRadius:'17px'}}
-              onClick={() => connect()}>Connect Wallet</Button>
+      return (
+          <div>
+            <Box sx={{textAlign:'center'}}>
+              <Button 
+                variant='outlined'
+                sx={{color:'white',textTransform:'none',borderRadius:'17px'}}
+                onClick={() => connect()}>Connect Wallet</Button>
+              </Box>
+          </div>
+      );
     }
 
     return (
@@ -311,11 +317,11 @@ function EthOathView(props:any) {
                 <DialogContent>
 
                     <Box sx={{textAlign:'center'}}>
-                        <Typography variant="caption">To get started you will need to sign a message with your Ethereum wallet</Typography>
+                        <Typography variant="caption">To get started you will need to connect with your Ethereum wallet</Typography>
                     </Box>
 
                     
-                    <FormControl fullWidth sx={{mb:2}}>
+                    <FormControl fullWidth sx={{mt:1, mb:2}}>
                     {/*isLoading && <p>Signing message...</p>}
                     {!isLoading && (
                      
