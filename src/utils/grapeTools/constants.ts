@@ -16,9 +16,9 @@ export const RPC_ENDPOINT = QUICKNODE_RPC_ENDPOINT || 'https://api.mainnet-beta.
 //export const RPC_LABEL = QUICKNODE_RPC_ENDPOINT ? 'QuickNode' : 'Solana Mainnet'; 
 export const WS_ENDPOINT = process.env?.REACT_APP_API_QUICKNODE_RPC_ENDPOINT ? process.env.REACT_APP_API_QUICKNODE_RPC_ENDPOINT.replace('https://', 'wss://') : 'wss://api.mainnet-beta.solana.com';
 
-export const ALCHEMY_ETH_KEY = process.env.REACT_APP_API_ALCHEMY_ETH || 'https://api.mainnet-beta.solana.com';
-
-
+export const ALCHEMY_ETH_KEY = process.env.REACT_APP_API_ALCHEMY_ETH || null;
+export const WALLET_CONNECT_PROJECT_ID = process.env.REACT_APP_API_WALLET_CONNECT_PROJECT_ID || null;
+export const DYNAMICXYZ_KEY = process.env.REACT_APP_API_DYNAMICXYZ_KEY || null;
 /*
 export const RPC_CONNECTION = new Connection(
     "https://rest-api.hellomoon.io/v0/rpc",

@@ -6,24 +6,12 @@ import { useSnackbar } from 'notistack';
 //import useWindowSize from 'react-use/lib/useWindowSize'
 //import Confetti from 'react-confetti'
 import Confetti from 'react-dom-confetti';
-import { WagmiConfig, createConfig, configureChains, mainnet, useSignMessage, useAccount, useConnect, useDisconnect } from 'wagmi';
+import { QueryClientProvider } from 'react-query';
 
-import { alchemyProvider } from 'wagmi/providers/alchemy'
-import { publicProvider } from 'wagmi/providers/public'
- 
-import { CoinbaseWalletConnector } from 'wagmi/connectors/coinbaseWallet'
-import { InjectedConnector } from 'wagmi/connectors/injected'
-import { MetaMaskConnector } from 'wagmi/connectors/metaMask'
-import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
-
-import { 
-  TOKEN_PROGRAM_ID, 
-  ASSOCIATED_TOKEN_PROGRAM_ID, 
-  getAssociatedTokenAddress, 
-  createCloseAccountInstruction,
-  createBurnInstruction,
-  getMint,
-} from "@solana/spl-token-v2";
+import { DynamicContextProvider, DynamicWidget, useDynamicContext } from '@dynamic-labs/sdk-react-core';
+import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
+import { SolanaWalletConnectors } from "@dynamic-labs/solana";
+import { useEmailVerificationRequest } from '@dynamic-labs/sdk-react';
 
 import {
   Typography,
@@ -49,63 +37,10 @@ import {
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 
 import { 
-  Vote,
-  VoteChoice,
-  VoteKind,
-  getGovernanceProgramVersion,
-  withDepositGoverningTokens,
-  getRealm,
-  getRealms,
-  withCastVote,
-  getAllProposals,
-  getProposal,
-  getTokenOwnerRecordsByOwner,
-  getVoteRecordsByVoter,
-  withSetGovernanceDelegate,
-  getAllTokenOwnerRecords,
-  getTokenOwnerRecord,
-  serializeInstructionToBase64,
-  withCreateTokenOwnerRecord,
-  
-} from '@solana/spl-governance';
-
-import { 
-  ALCHEMY_ETH_KEY,
+  ALCHEMY_ETH_KEY, 
+  WALLET_CONNECT_PROJECT_ID,
+  DYNAMICXYZ_KEY,
 } from '../../utils/grapeTools/constants';
-
-const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [mainnet],
-  [alchemyProvider({ apiKey: ALCHEMY_ETH_KEY }), publicProvider()],
-)
- 
-// Set up wagmi config
-const config = createConfig({
-  autoConnect: true,
-  connectors: [
-    new MetaMaskConnector({ chains }),
-    new CoinbaseWalletConnector({
-      chains,
-      options: {
-        appName: 'wagmi',
-      },
-    }),
-    new WalletConnectConnector({
-      chains,
-      options: {
-        projectId: '...',
-      },
-    }),
-    new InjectedConnector({
-      chains,
-      options: {
-        name: 'Injected',
-        shimDisconnect: true,
-      },
-    }),
-  ],
-  publicClient,
-  webSocketPublicClient,
-})
 
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
@@ -183,7 +118,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     },
 }));
 
-function EthOathView(props:any) {
+function MultiChainOathView(props:any) {
     const generatePublicKeyFromString = props.generatePublicKeyFromString;
     const setLoading = props.setLoading;
 
@@ -192,9 +127,9 @@ function EthOathView(props:any) {
     const [ethWalletAddress, setEthWalletAddress] = React.useState(null);
     const [validEmail, setValidEmail] = React.useState(null);
     const [open, setOpen] = React.useState(false);
-
-    //const { signMessage, isLoading } = useSignMessage();
-
+    
+    const recoveredAddress = React.useRef<string>()
+    
     function generateVerificationCode() {
         // Generate a random 6-digit code
         const verificationCode = Math.floor(100000 + Math.random() * 900000);
@@ -202,16 +137,35 @@ function EthOathView(props:any) {
         return verificationCode.toString();
     }
 
+
+
+
     const handleSignMessage = async () => {
       try {
-        const message = 'This is the message to be signed.';
-        //const signature = await signMessage(message);
+        const pin = generateVerificationCode();
+        const message = pin;
+        //useSignMessage({message});
+        
         //console.log('Signature:', signature);
       } catch (error) {
         console.error('Error signing message:', error);
       }
     };
-    
+    /*
+    React.useEffect(() => {
+      ;(async () => {
+        if (generatedPin && signMessageData) {
+          const recoveredAddress = await recoverMessageAddress({
+            message: generatedPin,
+            signature: signMessageData,
+          })
+          //setRecoveredAddress(recoveredAddress)
+          if (recoveredAddress)
+            handleLogin();
+        }
+      })()
+    }, [signMessageData])
+    */
     async function handleLogin() {
         setLoading(true)
         try {
@@ -239,6 +193,14 @@ function EthOathView(props:any) {
     };
 
     function Profile() {
+      const { primaryWallet, user } = useDynamicContext();
+      const primaryWalletAddress = primaryWallet?.address;
+      if (primaryWalletAddress){
+        return <>{primaryWalletAddress}</>
+      } else  
+        return <></>
+
+      /*
       const { address } = useAccount()
       const { connect } = useConnect({
         connector: new InjectedConnector(),
@@ -247,7 +209,8 @@ function EthOathView(props:any) {
     
       React.useEffect(() =>{
         if (address){
-          handleLogin();
+          handleSignMessage();
+          //handleLogin();
         }
       }, [address])
 
@@ -277,6 +240,8 @@ function EthOathView(props:any) {
               </Box>
           </div>
       );
+      */
+     return <></>
     }
 
     return (
@@ -292,7 +257,7 @@ function EthOathView(props:any) {
                         //disabled
                         sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
                         <AccountBalanceWalletIcon sx={{mr:1}}/>
-                        Ethereum
+                        MultiChain
                     </Button>
                 </Tooltip>
             </Box>
@@ -332,9 +297,15 @@ function EthOathView(props:any) {
                             <LinkIcon sx={{mr:1}}/> Sign, Connect &amp; Participate
                         </Button>
                     )*/}
-                    <WagmiConfig config={config}>
-                      <Profile />
-                    </WagmiConfig>
+                    
+                      <DynamicContextProvider 
+                        settings={{ 
+                          environmentId: DYNAMICXYZ_KEY,
+                          walletConnectors: [ EthereumWalletConnectors, SolanaWalletConnectors ],
+                        }}> 
+                        <DynamicWidget /> 
+                        <Profile />
+                      </DynamicContextProvider> 
                     </FormControl>
                 </DialogContent>
             </BootstrapDialog>
@@ -342,4 +313,4 @@ function EthOathView(props:any) {
     );
 }
 
-export default EthOathView;
+export default MultiChainOathView;

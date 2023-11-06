@@ -39,45 +39,11 @@ import {
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 
-import { 
-  Vote,
-  VoteChoice,
-  VoteKind,
-  getGovernanceProgramVersion,
-  withDepositGoverningTokens,
-  getRealm,
-  getRealms,
-  withCastVote,
-  getAllProposals,
-  getProposal,
-  getTokenOwnerRecordsByOwner,
-  getVoteRecordsByVoter,
-  withSetGovernanceDelegate,
-  getAllTokenOwnerRecords,
-  getTokenOwnerRecord,
-  serializeInstructionToBase64,
-  withCreateTokenOwnerRecord,
-  
-} from '@solana/spl-governance';
-
 import EmailIcon from '@mui/icons-material/Email';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CloseIcon from '@mui/icons-material/Close';
 import LinkIcon from '@mui/icons-material/Link';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
-
-import { createCastVoteTransaction } from '../../utils/governanceTools/components/instructions/createVote';
-
-import { parseMintNaturalAmountFromDecimalAsBN } from '../../utils/grapeTools/helpers';
-
-import { 
-  RPC_CONNECTION,
-  FRICTIONLESS_WALLET,
-  FRICTIONLESS_BG,
-} from '../../utils/grapeTools/constants';
-
-import ExplorerView from '../../utils/grapeTools/Explorer';
-import { ParamType } from 'ethers/lib/utils';
 
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
     height: 15,

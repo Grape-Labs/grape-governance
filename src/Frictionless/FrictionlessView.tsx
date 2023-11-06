@@ -70,6 +70,7 @@ import ExplorerView from '../utils/grapeTools/Explorer';
 import { ParamType } from 'ethers/lib/utils';
 import EmailOathView from './Connect/Email';
 import EthOathView from './Connect/Ethereum';
+import MultiChainOathView from './Connect/MultiChain';
 
 const sleep = (ttl: number) =>
   new Promise((resolve) => setTimeout(() => resolve(true), ttl))
@@ -827,6 +828,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
 
                         <EmailOathView generatePublicKeyFromString={generatePublicKeyFromString} setLoading={setLoading} />
                         <EthOathView generatePublicKeyFromString={generatePublicKeyFromString} setLoading={setLoading} />
+                        <MultiChainOathView generatePublicKeyFromString={generatePublicKeyFromString} setLoading={setLoading} />
                     </div>
             }
 
