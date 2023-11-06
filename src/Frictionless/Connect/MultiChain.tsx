@@ -11,7 +11,6 @@ import { QueryClientProvider } from 'react-query';
 import { DynamicContextProvider, DynamicWidget, useDynamicContext } from '@dynamic-labs/sdk-react-core';
 import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
 import { SolanaWalletConnectors } from "@dynamic-labs/solana";
-import { useEmailVerificationRequest } from '@dynamic-labs/sdk-react';
 
 import {
   Typography,
@@ -40,8 +39,10 @@ import {
   ALCHEMY_ETH_KEY, 
   WALLET_CONNECT_PROJECT_ID,
   DYNAMICXYZ_KEY,
+  APP_LOGO,
 } from '../../utils/grapeTools/constants';
 
+import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CloseIcon from '@mui/icons-material/Close';
@@ -51,12 +52,6 @@ import LinkOffIcon from '@mui/icons-material/LinkOff';
 import { createCastVoteTransaction } from '../../utils/governanceTools/components/instructions/createVote';
 
 import { parseMintNaturalAmountFromDecimalAsBN } from '../../utils/grapeTools/helpers';
-
-import { 
-  RPC_CONNECTION,
-  FRICTIONLESS_WALLET,
-  FRICTIONLESS_BG,
-} from '../../utils/grapeTools/constants';
 
 import ExplorerView from '../../utils/grapeTools/Explorer';
 import { ParamType } from 'ethers/lib/utils';
@@ -124,7 +119,11 @@ function MultiChainOathView(props:any) {
 
     const [generatedPin, setGeneratedPin] = React.useState(null);
     const [pinCode, setPinCode] = React.useState(null);
-    const [ethWalletAddress, setEthWalletAddress] = React.useState(null);
+    const [connectedWallet, setConnectedWallet] = React.useState(null);
+    const [connectedAddress, setConnectedAddress] = React.useState(null);
+    const [connectedUser, setConnectedUser] = React.useState(null);
+    const [disconnectWallet, setDisconnectWallet] = React.useState(null);
+    const [authMode, setAuthMode] = React.useState(null);
     const [validEmail, setValidEmail] = React.useState(null);
     const [open, setOpen] = React.useState(false);
     
@@ -137,40 +136,11 @@ function MultiChainOathView(props:any) {
         return verificationCode.toString();
     }
 
-
-
-
-    const handleSignMessage = async () => {
-      try {
-        const pin = generateVerificationCode();
-        const message = pin;
-        //useSignMessage({message});
-        
-        //console.log('Signature:', signature);
-      } catch (error) {
-        console.error('Error signing message:', error);
-      }
-    };
-    /*
-    React.useEffect(() => {
-      ;(async () => {
-        if (generatedPin && signMessageData) {
-          const recoveredAddress = await recoverMessageAddress({
-            message: generatedPin,
-            signature: signMessageData,
-          })
-          //setRecoveredAddress(recoveredAddress)
-          if (recoveredAddress)
-            handleLogin();
-        }
-      })()
-    }, [signMessageData])
-    */
     async function handleLogin() {
         setLoading(true)
         try {
           // handle login...
-          generatePublicKeyFromString(ethWalletAddress);
+          generatePublicKeyFromString(connectedAddress);
           setLoading(false)
           setOpen(false);
         } catch (error) {
@@ -184,65 +154,87 @@ function MultiChainOathView(props:any) {
     }
 
     const handleClickOpen = () => {
-        setOpen(true);
-        //getVotingParticipants();
+      //if (primaryWallet)
+      setOpen(true);
+      setDisconnectWallet(true);
+      //getVotingParticipants();
     };
 
     const handleClose = () => {
         setOpen(false);
     };
 
-    function Profile() {
-      const { primaryWallet, user } = useDynamicContext();
-      const primaryWalletAddress = primaryWallet?.address;
-      if (primaryWalletAddress){
-        return <>{primaryWalletAddress}</>
-      } else  
-        return <></>
-
-      /*
-      const { address } = useAccount()
-      const { connect } = useConnect({
-        connector: new InjectedConnector(),
-      })
-      const { disconnect } = useDisconnect()
     
-      React.useEffect(() =>{
-        if (address){
-          handleSignMessage();
-          //handleLogin();
-        }
-      }, [address])
+    React.useEffect(() => {
+      if (connectedAddress)
+        console.log("connectedAddress "+JSON.stringify(connectedAddress));
+    }, [connectedAddress])
+    
+    React.useEffect(() => {
+      if (connectedUser){
+        //handleLogin();
+        console.log("connectedUser "+JSON.stringify(connectedUser?.verifiedCredentials));
+        
+        console.log("connectedUser email "+JSON.stringify(connectedUser?.email));
+      }
+    }, [connectedUser])
 
-      if (address)
-        return (
-          <div>
-            <Box sx={{textAlign:'center'}}>
-            Connected to {address}
-            </Box>
-
-            <Box sx={{textAlign:'center'}}>
-              <Button 
-                variant='outlined'
-                onClick={() => disconnect()}
-                //disabled
-                sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>Disconnect</Button>
-            </Box>
-          </div>
-        )
+    React.useEffect(() => {
+      if (authMode)
+        console.log("authMode: "+JSON.stringify(authMode));
+    }, [authMode])
+    
+    function DisconnectComponent() {
+      const { handleLogOut } = useDynamicContext();
+    
+      const handleUserLogOut = () => {
+        handleLogOut();
+      };
+      
       return (
-          <div>
-            <Box sx={{textAlign:'center'}}>
-              <Button 
-                variant='outlined'
-                sx={{color:'white',textTransform:'none',borderRadius:'17px'}}
-                onClick={() => connect()}>Connect Wallet</Button>
-              </Box>
-          </div>
+        <>
+          <ButtonGroup>
+            <Tooltip title="Disconnect">
+              <Button aria-label="disconnect" color="inherit" variant="outlined" onClick={handleUserLogOut} sx={{ml:1}}>
+                <LinkOffIcon fontSize="inherit" sx={{mr:1}} /> Disconnect
+              </Button>
+            </Tooltip>
+            <Tooltip title="Connect">
+              <Button aria-label="connect" color="success" variant="outlined" onClick={handleLogin}>
+                <LinkIcon fontSize="inherit" sx={{mr:1}} /> Connect w/Frictionless
+              </Button>
+            </Tooltip>
+          </ButtonGroup>
+        </>
       );
-      */
-     return <></>
     }
+
+
+    function Profile() {
+      const { authMode, primaryWallet, user, handleLogOut } = useDynamicContext();
+      
+      const primaryWalletAddress = primaryWallet?.address;
+      
+      const getConnectedAccounts = async () => {
+        const connectedAccounts = await primaryWallet?.connector.getConnectedAccounts();
+        return connectedAccounts;
+      };
+
+      if (primaryWalletAddress){
+        
+        setConnectedUser(user);
+        setConnectedAddress(primaryWalletAddress);
+        setAuthMode(authMode);
+        
+        return <><DisconnectComponent /></>
+      } else  {
+        return <></>
+      }
+    }
+
+    React.useEffect(() => {
+      generateVerificationCode();
+    }, [])
 
     return (
 
@@ -250,14 +242,14 @@ function MultiChainOathView(props:any) {
             <Box
                 sx={{mt:2}}
             >
-                <Tooltip title='Connect Ethereum Wallet'>
+                <Tooltip title='Connect with your Blockchain or Web2 identity'>
                     <Button 
                         variant='outlined'
                         onClick={handleClickOpen}
                         //disabled
                         sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
-                        <AccountBalanceWalletIcon sx={{mr:1}}/>
-                        MultiChain
+                        <FingerprintIcon sx={{mr:1}}/>
+                        Connect to get started!
                     </Button>
                 </Tooltip>
             </Box>
@@ -281,10 +273,9 @@ function MultiChainOathView(props:any) {
                 <DialogContent>
 
                     <Box sx={{textAlign:'center'}}>
-                        <Typography variant="caption">To get started you will need to connect with your Ethereum wallet</Typography>
+                        <Typography variant="caption">To get started you will need to connect & verify your account</Typography>
                     </Box>
 
-                    
                     <FormControl fullWidth sx={{mt:1, mb:2}}>
                     {/*isLoading && <p>Signing message...</p>}
                     {!isLoading && (
@@ -297,17 +288,41 @@ function MultiChainOathView(props:any) {
                             <LinkIcon sx={{mr:1}}/> Sign, Connect &amp; Participate
                         </Button>
                     )*/}
-                    
-                      <DynamicContextProvider 
-                        settings={{ 
-                          environmentId: DYNAMICXYZ_KEY,
-                          walletConnectors: [ EthereumWalletConnectors, SolanaWalletConnectors ],
-                        }}> 
-                        <DynamicWidget /> 
-                        <Profile />
-                      </DynamicContextProvider> 
+                      <Grid container alignContent={"center"} justifyContent={"center"} sx={{textAlign:'center'}}>
+                        {generatedPin &&
+                          <DynamicContextProvider 
+
+                            settings={{ 
+                              initialAuthenticationMode: 'connect-and-sign',
+                              environmentId: DYNAMICXYZ_KEY,
+                              walletConnectors: [ EthereumWalletConnectors, SolanaWalletConnectors ],
+                              appName: "Governance by Grape",
+                              appLogoUrl: "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/logo_grape.png",
+                              siweStatement: "You will need to sign this message to continue. *** Frictionless Pin: "+generatedPin+" ***",
+                              eventsCallbacks: {
+                                onSignedMessage: ({ messageToSign, signedMessage }) => {
+                                  // here we can login no need to use the Profile
+                                  
+                                  /*
+                                  console.log(
+                                    `onSignedMessage was called: ${messageToSign}, ${signedMessage}`
+                                  );*/
+                                },
+                                onEmailVerificationSuccess: () => {
+                                  console.log(
+                                    `Email Verification Success!`
+                                  );
+                                },
+                              },
+                            }}> 
+                            <DynamicWidget /> 
+                            <Profile />
+                          </DynamicContextProvider> 
+                        }
+                      </Grid>
                     </FormControl>
                 </DialogContent>
+
             </BootstrapDialog>
         </>
     );

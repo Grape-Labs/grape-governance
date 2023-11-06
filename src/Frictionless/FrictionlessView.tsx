@@ -632,7 +632,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                     <Typography variant="h5">
                                       {item.account.name}
                                       <Tooltip title="Explore Proposal Details">
-                                        <IconButton aria-label="disconnect" size="small" 
+                                        <IconButton aria-label="proposal" size="small" 
                                           href={`https://governance.so/proposal/${frictionlessDao}/${item.pubkey.toBase58()}`}
                                           target='blank'
                                           sx={{ml:1}}>
@@ -791,6 +791,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                       <LinkOffIcon fontSize="inherit" />
                                     </Button>
                                   </Tooltip>
+                                  
                                 </ButtonGroup>
                             </Typography>
                             <Divider />
@@ -825,9 +826,10 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                 }}
                             >Natural. Easy. Accessible.</Typography>
                         <Typography variant="caption">This is how Governance on any Blockchain should be. Designed for anyone to participate!</Typography>
-
+                        {/*
                         <EmailOathView generatePublicKeyFromString={generatePublicKeyFromString} setLoading={setLoading} />
                         <EthOathView generatePublicKeyFromString={generatePublicKeyFromString} setLoading={setLoading} />
+                        */}
                         <MultiChainOathView generatePublicKeyFromString={generatePublicKeyFromString} setLoading={setLoading} />
                     </div>
             }
