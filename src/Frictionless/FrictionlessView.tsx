@@ -618,16 +618,20 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
             .map((item: any, key: number) => {
               
               const timeEnding = Number(item.account?.signingOffAt) + (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.baseVotingTime));
+              const timeEndingDate = new Date(timeEnding);
+              const timeEndingTime = timeEndingDate.getTime() * 1000;
               const currentDate = new Date();
               const currentTime = currentDate.getTime();
+              console.log(timeEndingTime + " vs " + currentTime);
               const timeAgo = moment.unix(timeEnding).fromNow();
-              const endingStr = currentTime <= timeEnding ? `Ending ${timeAgo}` : ``;
+              const endingStr = currentTime <= timeEndingTime ? `Ending ${timeAgo}` : ``;
 
                 //if (item.account.state === 2){
                   return (
                           <Grid container
                               key={key}
                               alignItems="center"
+                              sx={{mt:4}}
                           >
                             {/*console.log("participatingGovernanceProposalsRecordRows item: "+JSON.stringify(item))*/}
                               <Grid item xs={12}>
@@ -666,7 +670,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                   </Grid>
                                   </Grid>
                                   <Grid item xs sx={{textAlign:'center'}}>
-                                  {currentTime <= timeEnding ?
+                                  {currentTime <= timeEndingTime ?
                                   <>
                                       {voteCastLoading ?
                                         <CircularProgress />
