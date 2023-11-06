@@ -67,6 +67,7 @@ import {
   FRICTIONLESS_BG,
 } from '../utils/grapeTools/constants';
 
+import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import { ParamType } from 'ethers/lib/utils';
 import EmailOathView from './Connect/Email';
@@ -663,9 +664,11 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                       </Typography>
                                     </Grid>
                                     
-                                    <Typography variant="caption"> 
-                                      {endingStr}
-                                    </Typography>
+                                    {(endingStr && endingStr.length > 0) &&
+                                      <Typography variant="caption" sx={{fontSize:'8px'}}> 
+                                        <HourglassBottomIcon fontSize='inherit' sx={{mr:0.5}}/> {endingStr}
+                                      </Typography>
+                                    }
                                     
                                   </Grid>
                                   </Grid>
