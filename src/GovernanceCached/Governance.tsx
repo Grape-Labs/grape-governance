@@ -297,13 +297,13 @@ function RenderGovernanceTable(props:any) {
                             <>
                                 <>
                                 {thisGovernance?.governance?.account?.config?.baseVotingTime ?
-                                    `Ending ${moment.unix(Number(thisitem.account?.draftAt)+(Number(thisGovernance?.governance?.account?.config?.baseVotingTime))).fromNow()}`
+                                    `Ending ${moment.unix(Number(thisitem.account?.signingOffAt)+(Number(thisGovernance?.governance?.account?.config?.baseVotingTime))).fromNow()}`
                                 :
                                     <>
                                     {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
-                                        <>{`Started: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))}`}<br/>{`Ended: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.votingCompletedAt))).format("MMMM D, YYYY, h:mm a"))}`}</>
+                                        <>{`Started: ${thisitem.account?.signingOffAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))}`}<br/>{`Ended: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.votingCompletedAt))).format("MMMM D, YYYY, h:mm a"))}`}</>
                                     :
-                                        `Created: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))}`
+                                        `Created: ${thisitem.account?.signingOffAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))}`
                                     }
                                     </>
                                 } 

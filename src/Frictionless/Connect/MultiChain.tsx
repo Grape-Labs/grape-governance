@@ -119,12 +119,10 @@ function MultiChainOathView(props:any) {
 
     const [generatedPin, setGeneratedPin] = React.useState(null);
     const [pinCode, setPinCode] = React.useState(null);
-    const [connectedWallet, setConnectedWallet] = React.useState(null);
     const [connectedAddress, setConnectedAddress] = React.useState(null);
     const [connectedUser, setConnectedUser] = React.useState(null);
     const [disconnectWallet, setDisconnectWallet] = React.useState(null);
     const [authMode, setAuthMode] = React.useState(null);
-    const [validEmail, setValidEmail] = React.useState(null);
     const [open, setOpen] = React.useState(false);
     
     const recoveredAddress = React.useRef<string>()
@@ -211,24 +209,35 @@ function MultiChainOathView(props:any) {
 
 
     function Profile() {
-      const { authMode, primaryWallet, user, handleLogOut } = useDynamicContext();
+      const { authMode, primaryWallet, user } = useDynamicContext();
       
       const primaryWalletAddress = primaryWallet?.address;
-      
+      const userEmail = user?.email;
+      //const twitterHandle = user?.identities.find(identity => identity.provider === 'twitter')?.username;
+      //const discordHandle = user?.identities.find(identity => identity.provider === 'discord')?.username;
+      const userHandle = user?.username
+
       const getConnectedAccounts = async () => {
         const connectedAccounts = await primaryWallet?.connector.getConnectedAccounts();
         return connectedAccounts;
       };
-
-      if (primaryWalletAddress){
-        
+      
+      if (userHandle){
+        setConnectedUser(userHandle);
+        setConnectedAddress(userEmail);
+        setAuthMode(authMode);
+        return <><DisconnectComponent /></>
+      }else if (userEmail){
+        setConnectedUser(user);
+        setConnectedAddress(userEmail);
+        setAuthMode(authMode);
+        return <><DisconnectComponent /></>
+      } else if (primaryWalletAddress){
         setConnectedUser(user);
         setConnectedAddress(primaryWalletAddress);
         setAuthMode(authMode);
         
         return <><DisconnectComponent /></>
-      } else  {
-        return <></>
       }
     }
 

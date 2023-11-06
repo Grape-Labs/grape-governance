@@ -5,6 +5,7 @@ import { useSnackbar } from 'notistack';
 //import useWindowSize from 'react-use/lib/useWindowSize'
 //import Confetti from 'react-confetti'
 import Confetti from 'react-dom-confetti';
+import moment from 'moment';
 
 import { 
   TOKEN_PROGRAM_ID, 
@@ -49,7 +50,7 @@ import {
   getTokenOwnerRecord,
   serializeInstructionToBase64,
   withCreateTokenOwnerRecord,
-  
+  getAllGovernances,
 } from '@solana/spl-governance';
 
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
@@ -530,13 +531,16 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
     const [participatingGovernanceProposalsRecordRows, setParticipatingGovernanceProposalsRecordRows] = React.useState(null);
     const [generatedParticipation, setGeneratedParticipation] = React.useState(null);
     const [thisRealm, setThisRealm] = React.useState(null);
-    
+    const [allGovernances, setAllGovernances] = React.useState(null);
+
     const fetchGovernanceProposals = async () => {
       setProposalLoading(true);
 
       const rlm = await getRealm(RPC_CONNECTION, new PublicKey(realmPk));
-
       setThisRealm(rlm);
+      
+      const ag = await getAllGovernances(RPC_CONNECTION, rlm.owner, new PublicKey(realmPk));
+      setAllGovernances(ag);
       const gprops = await getAllProposals(RPC_CONNECTION, rlm.owner, new PublicKey(realmPk))
 
       const rpcprops = new Array();
@@ -602,89 +606,110 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
           }
 
           {participatingGovernanceProposalsRecordRows && (participatingGovernanceProposalsRecordRows
-            //.filter((item: any) => 
-            //    item.account.data?.parsed?.info?.tokenAmount?.amount > 0
-            //)
+            .filter((item: any) => 
+                item.account.state === 2
+            )
+
+            // `Ending ${moment.unix(Number(item.account?.signingOffAt)+(Number(thisRealm?.governance?.account?.config?.baseVotingTime))).fromNow()}`
+
             //.sort((a: any, b: any) => 
             //    b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount
             //)
             .map((item: any, key: number) => {
-                
-                return (
-                        <Grid container
-                            key={key}
-                            alignItems="center"
-                        >
-                          
-                          
-                          {console.log("participatingGovernanceProposalsRecordRows: "+JSON.stringify(participatingGovernanceProposalsRecordRows))}
-                            <Grid item xs={12}>
-                            <Grid container>
-                                <Grid item sm={8}>
-                                <Grid
-                                    container
-                                    direction="row"
-                                    justifyContent="left"
-                                    alignItems="left"
-                                  
-                                >
-                                  <Grid item xs={12} sx={{textAlign:"left"}}>
-                                    <Typography variant="h5">
-                                      {item.account.name}
-                                      <Tooltip title="Explore Proposal Details">
-                                        <IconButton aria-label="proposal" size="small" 
-                                          href={`https://governance.so/proposal/${frictionlessDao}/${item.pubkey.toBase58()}`}
-                                          target='blank'
-                                          sx={{ml:1}}>
-                                          <OpenInNewIcon fontSize="inherit" />
-                                        </IconButton>
-                                      </Tooltip>
-                                    </Typography>
-                                  </Grid>
-                                  <Grid item xs={12} sx={{textAlign:"left"}}>
-                                    <Typography variant="caption" sx={{textAlign:'left'}}>
-                                      {item.account.descriptionLink}
-                                    </Typography>
-                                  </Grid>
-                                </Grid>
-                                </Grid>
-                                <Grid item xs sx={{textAlign:'center'}}>
-                                    {voteCastLoading ?
-                                      <CircularProgress />
-                                    :
-                                    <>
-                                      {(generatedParticipation && generatedParticipation.length > 0 && generatedParticipation.map((gitem) => {
-                                          return (gitem.account.proposal.toBase58() === item.pubkey.toBase58() &&
-                                                  gitem.account.governingTokenOwner.toBase58() === generatedWallet.publicKey.toBase58()
-                                                  );
-                                      })) ?
-                                        <>
-                                          <Button
-                                            variant="outlined"
-                                            color="success"
-                                            disabled
-                                          >You have participated in this proposal</Button>
-                                        </>
-                                      :
-                                        <ButtonGroup>
-                                          <Button
-                                            onClick={(e) => handleYesVote(item.pubkey, item.account.governance, item.account.tokenOwnerRecord)}
-                                            color="success"
-                                          >VOTE YES</Button>
-                                          <Button
-                                            onClick={(e) => handleNoVote(item.pubkey, item.account.governance, item.account.tokenOwnerRecord)}
-                                            color="error"
-                                          >VOTE NO</Button>
+              
+              const timeEnding = Number(item.account?.signingOffAt) + (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.baseVotingTime));
+              const currentDate = new Date();
+              const currentTime = currentDate.getTime();
+              const timeAgo = moment.unix(timeEnding).fromNow();
+              const endingStr = currentTime <= timeEnding ? `Ending ${timeAgo}` : ``;
 
-                                        </ButtonGroup>
+                //if (item.account.state === 2){
+                  return (
+                          <Grid container
+                              key={key}
+                              alignItems="center"
+                          >
+                            {/*console.log("participatingGovernanceProposalsRecordRows item: "+JSON.stringify(item))*/}
+                              <Grid item xs={12}>
+                              <Grid container>
+                                  <Grid item sm={8}>
+                                  <Grid
+                                      container
+                                      direction="row"
+                                      justifyContent="left"
+                                      alignItems="left"
+                                    
+                                  >
+                                    <Grid item xs={12} sx={{textAlign:"left"}}>
+                                      <Typography variant="h5">
+                                        {item.account.name}
+                                        <Tooltip title="Explore Proposal Details">
+                                          <IconButton aria-label="proposal" size="small" 
+                                            href={`https://governance.so/proposal/${frictionlessDao}/${item.pubkey.toBase58()}`}
+                                            target='blank'
+                                            sx={{ml:1}}>
+                                            <OpenInNewIcon fontSize="inherit" />
+                                          </IconButton>
+                                        </Tooltip>
+                                      </Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sx={{textAlign:"left"}}>
+                                      <Typography variant="caption" sx={{textAlign:'left'}}>
+                                        {item.account.descriptionLink}
+                                      </Typography>
+                                    </Grid>
+                                    
+                                    <Typography variant="caption"> 
+                                      {endingStr}
+                                    </Typography>
+                                    
+                                  </Grid>
+                                  </Grid>
+                                  <Grid item xs sx={{textAlign:'center'}}>
+                                  {currentTime <= timeEnding ?
+                                  <>
+                                      {voteCastLoading ?
+                                        <CircularProgress />
+                                      :
+                                      <>
+                                        {(generatedParticipation && generatedParticipation.length > 0 && generatedParticipation.map((gitem) => {
+                                            return (gitem.account.proposal.toBase58() === item.pubkey.toBase58() &&
+                                                    gitem.account.governingTokenOwner.toBase58() === generatedWallet.publicKey.toBase58()
+                                                    );
+                                        })) ?
+                                          <>
+                                            <Button
+                                              variant="outlined"
+                                              color="success"
+                                              disabled
+                                            >You have participated in this proposal</Button>
+                                          </>
+                                        :
+                                          <ButtonGroup>
+                                            <Button
+                                              onClick={(e) => handleYesVote(item.pubkey, item.account.governance, item.account.tokenOwnerRecord)}
+                                              color="success"
+                                            >VOTE YES</Button>
+                                            <Button
+                                              onClick={(e) => handleNoVote(item.pubkey, item.account.governance, item.account.tokenOwnerRecord)}
+                                              color="error"
+                                            >VOTE NO</Button>
+
+                                          </ButtonGroup>
+                                        }
+                                      </>
                                       }
-                                    </>
-                                    }
-                                </Grid>
-                            </Grid>  
-                            </Grid>
-                        </Grid>
-                );
+                                  </>
+                                  :
+                                  <>{`Ended ${timeAgo}`}</>
+                                  }
+                                  </Grid>
+                              </Grid>  
+                              </Grid>
+                          </Grid>
+                  );
+
+                //}
             }))}
         </>
         }
