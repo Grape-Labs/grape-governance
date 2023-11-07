@@ -67,6 +67,7 @@ import {
   FRICTIONLESS_BG,
 } from '../utils/grapeTools/constants';
 
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import { ParamType } from 'ethers/lib/utils';
@@ -664,10 +665,15 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                       </Typography>
                                     </Grid>
                                     
-                                    {(endingStr && endingStr.length > 0) &&
+                                    {(endingStr && endingStr.length > 0) ?
                                       <Typography variant="caption" sx={{fontSize:'8px'}}> 
-                                        <HourglassBottomIcon fontSize='inherit' sx={{mr:0.5}}/> {endingStr}
+                                        <HourglassBottomIcon fontSize='inherit' sx={{mr:0.5}}/> {`Ending ${timeAgo}`}
                                       </Typography>
+                                      :
+                                      <Typography variant="caption" sx={{fontSize:'8px'}}> 
+                                        <CheckCircleOutlineIcon fontSize='inherit' sx={{mr:0.5}}/> {`Ended ${timeAgo}`}
+                                      </Typography>
+                                      
                                     }
                                     
                                   </Grid>
@@ -708,7 +714,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                       }
                                   </>
                                   :
-                                  <>{`Ended ${timeAgo}`}</>
+                                  <><Typography variant="caption"><CheckCircleOutlineIcon /></Typography></>
                                   }
                                   </Grid>
                               </Grid>  
