@@ -632,6 +632,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
               console.log(timeEndingTime + " vs " + currentTime);
               const timeAgo = moment.unix(timeEnding).fromNow();
               const endingStr = currentTime <= timeEndingTime ? `Ending ${timeAgo}` : ``;
+              const coolOffStr = moment.unix(coolOffTime).hours();
 
                 //if (item.account.state === 2){
                   return (
@@ -672,9 +673,22 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                     
                                     {(endingStr && endingStr.length > 0) ?
                                       <>
-                                        <Typography variant="caption" sx={{fontSize:'8px'}}> 
-                                          <HourglassBottomIcon fontSize='inherit' sx={{mr:0.5}}/> {`Ending ${timeAgo}`}
-                                        </Typography>
+                                        <Tooltip
+                                          title={
+                                            <>Total Voting Time {(coolOffStr && +coolOffStr > 0) && (
+                                            <>
+                                              <br/>
+                                              Ending {timeAgo}
+                                              <br />
+                                              Cool-Off {coolOffStr}hrs
+                                            </>
+                                          )}</>}>
+                                          <Button>
+                                            <Typography variant="caption" sx={{fontSize:'8px'}}> 
+                                              <HourglassBottomIcon fontSize='inherit' sx={{mr:0.5}}/> {`Ending ${timeAgo}`}
+                                            </Typography>
+                                          </Button>
+                                        </Tooltip>
                                       </>
                                       :
                                       <Typography variant="caption" sx={{fontSize:'8px'}}> 
