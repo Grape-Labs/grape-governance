@@ -6,6 +6,7 @@ import { useSnackbar } from 'notistack';
 //import Confetti from 'react-confetti'
 import Confetti from 'react-dom-confetti';
 import moment from 'moment';
+import { CountdownCircleTimer } from 'react-countdown-circle-timer'
 
 import { 
   TOKEN_PROGRAM_ID, 
@@ -542,6 +543,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
       setThisRealm(rlm);
       
       const ag = await getAllGovernances(RPC_CONNECTION, rlm.owner, new PublicKey(realmPk));
+      console.log("ag: "+JSON.stringify(ag))
       setAllGovernances(ag);
       const gprops = await getAllProposals(RPC_CONNECTION, rlm.owner, new PublicKey(realmPk))
 
@@ -619,7 +621,10 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
             //)
             .map((item: any, key: number) => {
               
-              const timeEnding = Number(item.account?.signingOffAt) + (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.baseVotingTime));
+              const baseVotingTime = (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.baseVotingTime));
+              const coolOffTime = (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.votingCoolOffTime));
+              
+              const timeEnding = Number(item.account?.signingOffAt) + baseVotingTime + coolOffTime;
               const timeEndingDate = new Date(timeEnding);
               const timeEndingTime = timeEndingDate.getTime() * 1000;
               const currentDate = new Date();
@@ -666,9 +671,11 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                     </Grid>
                                     
                                     {(endingStr && endingStr.length > 0) ?
-                                      <Typography variant="caption" sx={{fontSize:'8px'}}> 
-                                        <HourglassBottomIcon fontSize='inherit' sx={{mr:0.5}}/> {`Ending ${timeAgo}`}
-                                      </Typography>
+                                      <>
+                                        <Typography variant="caption" sx={{fontSize:'8px'}}> 
+                                          <HourglassBottomIcon fontSize='inherit' sx={{mr:0.5}}/> {`Ending ${timeAgo}`}
+                                        </Typography>
+                                      </>
                                       :
                                       <Typography variant="caption" sx={{fontSize:'8px'}}> 
                                         <CheckCircleOutlineIcon fontSize='inherit' sx={{mr:0.5}}/> {`Ended ${timeAgo}`}
@@ -698,15 +705,17 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                             >You have participated in this proposal</Button>
                                           </>
                                         :
-                                          <ButtonGroup>
+                                          <ButtonGroup sx={{borderRadius:'17px'}}>
                                             <Button
                                               onClick={(e) => handleYesVote(item.pubkey, item.account.governance, item.account.tokenOwnerRecord)}
                                               color="success"
-                                            >VOTE YES</Button>
+                                              sx={{borderRadius:'17px'}}
+                                            >Vote YES</Button>
                                             <Button
                                               onClick={(e) => handleNoVote(item.pubkey, item.account.governance, item.account.tokenOwnerRecord)}
                                               color="error"
-                                            >VOTE NO</Button>
+                                              sx={{borderRadius:'17px'}}
+                                            >Vote NO</Button>
 
                                           </ButtonGroup>
                                         }

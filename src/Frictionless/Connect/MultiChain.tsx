@@ -191,18 +191,20 @@ function MultiChainOathView(props:any) {
       
       return (
         <>
-          <ButtonGroup>
-            <Tooltip title="Disconnect">
-              <Button aria-label="disconnect" color="inherit" variant="outlined" onClick={handleUserLogOut} sx={{ml:1}}>
-                <LinkOffIcon fontSize="inherit" sx={{mr:1}} /> Disconnect
-              </Button>
-            </Tooltip>
-            <Tooltip title="Connect">
-              <Button aria-label="connect" color="success" variant="outlined" onClick={handleLogin}>
-                <LinkIcon fontSize="inherit" sx={{mr:1}} /> Connect w/Frictionless
-              </Button>
-            </Tooltip>
-          </ButtonGroup>
+          <Grid container xs={12} alignContent={"center"} justifyContent={"center"} sx={{mt:2}}>
+            <ButtonGroup sx={{borderRadius:'17px'}}>
+              <Tooltip title="Disconnect">
+                <Button color="inherit" variant="outlined" onClick={handleUserLogOut} sx={{borderRadius:'17px'}}>
+                  <LinkOffIcon fontSize="inherit" sx={{mr:1}}/> Disconnect
+                </Button>
+              </Tooltip>
+              <Tooltip title="Connect with Frictionless">
+                <Button aria-label="connect" color="primary" variant="outlined" onClick={handleLogin} sx={{borderRadius:'17px'}}>
+                  <LinkIcon fontSize="inherit" sx={{mr:1}} /> Connect
+                </Button>
+              </Tooltip>
+            </ButtonGroup>
+          </Grid>
         </>
       );
     }
@@ -282,7 +284,7 @@ function MultiChainOathView(props:any) {
                 <DialogContent>
 
                     <Box sx={{textAlign:'center'}}>
-                        <Typography variant="caption">To get started you will need to connect & verify your account</Typography>
+                        <Typography variant="caption">Verify & connect with Frictionless</Typography>
                     </Box>
 
                     <FormControl fullWidth sx={{mt:1, mb:2}}>
