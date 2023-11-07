@@ -776,7 +776,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
             </>
           
           
-          <Typography variant="h1" sx={{ textAlign: "center" }}>Frictionless Governance</Typography>
+          <Typography variant="h1" sx={{ textAlign: "center",mb:2 }}>Frictionless</Typography>
           <Divider>
             <Chip label="Grape x Solana" />
           </Divider>
