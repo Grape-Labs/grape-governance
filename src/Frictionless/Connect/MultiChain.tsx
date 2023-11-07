@@ -258,7 +258,7 @@ function MultiChainOathView(props:any) {
                         //disabled
                         sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
                         <FingerprintIcon sx={{mr:1}}/>
-                        Connect to get started!
+                        Get started!
                     </Button>
                 </Tooltip>
             </Box>
@@ -324,7 +324,9 @@ function MultiChainOathView(props:any) {
                                 },
                               },
                             }}> 
-                            <DynamicWidget /> 
+                            <DynamicWidget 
+                              innerButtonComponent={<button>Connect &amp; Get Started</button>}
+                            /> 
                             <Profile />
                           </DynamicContextProvider> 
                         }
