@@ -221,7 +221,7 @@ function MultiChainOathView(props:any) {
         const connectedAccounts = await primaryWallet?.connector.getConnectedAccounts();
         return connectedAccounts;
       };
-      
+
       if (userHandle){
         setConnectedUser(userHandle);
         setConnectedAddress(userEmail);
@@ -251,7 +251,7 @@ function MultiChainOathView(props:any) {
             <Box
                 sx={{mt:2}}
             >
-                <Tooltip title='Connect with your Blockchain or Web2 identity'>
+                <Tooltip title='Connect with Blockchain Wallet or Web2 Identity'>
                     <Button 
                         variant='outlined'
                         onClick={handleClickOpen}
