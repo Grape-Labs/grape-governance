@@ -874,23 +874,30 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
       </Grid>
 
       <Grid container alignContent="center" justifyContent="center">
-        <Button variant="text"
-          href="https://twitter.com/intent/tweet?text=Frictionless Governance by Grape!&hashtags=OPOS"
-          target="_blank"
-        >
-          <Typography variant="caption"
-            sx={{
-              background: '-webkit-linear-gradient(90deg,#FDC830,#F37335)',
-              backgroundClip: 'text',
-              color: 'transparent',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              textShadow:'1px 1px 2px black'
-            }}
-          >
-            #OPOS
+        <Tooltip title={<>
+          <Typography sx={{textAlign:'center', fontSize:"10px"}}>
+            Frictionless Governance by Grape<br/>
+            Only Possible On Solana!
           </Typography>
-        </Button>
+        </>}>
+          <Button variant="text"
+            href="https://twitter.com/intent/tweet?text=Frictionless Governance by Grape!&hashtags=OPOS"
+            target="_blank"
+          >
+            <Typography variant="caption"
+              sx={{
+                background: '-webkit-linear-gradient(90deg,#FDC830,#F37335)',
+                backgroundClip: 'text',
+                color: 'transparent',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                textShadow:'1px 1px 2px black'
+              }}
+            >
+              #OPOS
+            </Typography>
+          </Button>
+        </Tooltip>
       </Grid>
 
     </>
