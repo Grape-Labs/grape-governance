@@ -629,13 +629,14 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
               const timeEndingTime = timeEndingDate.getTime() * 1000;
               const currentDate = new Date();
               const currentTime = currentDate.getTime();
-              console.log(timeEndingTime + " vs " + currentTime);
               const timeAgo = moment.unix(timeEnding).fromNow();
               const endingStr = currentTime <= timeEndingTime ? `Ending ${timeAgo}` : ``;
               const coolOffStr = moment.unix(coolOffTime).hours();
 
                 //if (item.account.state === 2){
                   return (
+                    <>
+                      {key > 0 && <Divider />}
                           <Grid container
                               key={key}
                               alignItems="center"
@@ -743,6 +744,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                               </Grid>  
                               </Grid>
                           </Grid>
+                    </>
                   );
 
                 //}

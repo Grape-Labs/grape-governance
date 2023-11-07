@@ -2136,6 +2136,20 @@ export function GovernanceProposalV2View(props: any){
                                                     Calculated ending timestamp
                                                 </Typography>
                                             </Box>
+                                            
+                                            {/*
+                                            const baseVotingTime = (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.baseVotingTime));
+                                            const coolOffTime = (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.votingCoolOffTime));
+                                            
+                                            const timeEnding = Number(item.account?.signingOffAt) + baseVotingTime + coolOffTime;
+                                            const timeEndingDate = new Date(timeEnding);
+                                            const timeEndingTime = timeEndingDate.getTime() * 1000;
+                                            const currentDate = new Date();
+                                            const currentTime = currentDate.getTime();
+                                            const timeAgo = moment.unix(timeEnding).fromNow();
+                                            const endingStr = currentTime <= timeEndingTime ? `Ending ${timeAgo}` : ``;
+                                            const coolOffStr = moment.unix(coolOffTime).hours();
+                                            */}
 
                                             <Box sx={{ my: 3, mx: 2 }}>
                                                 <Grid container alignItems="center">
@@ -2151,9 +2165,9 @@ export function GovernanceProposalV2View(props: any){
                                                                 {thisitem.account?.draftAt &&
                                                                     <>
                                                                         {thisitem.account?.votingCompletedAt ?
-                                                                            `${moment.unix(Number(thisitem.account.draftAt)+Number(thisGovernance.account?.config.baseVotingTime)).fromNow()}`
+                                                                            `${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account?.config.baseVotingTime)+(Number(thisGovernance?.account?.config?.votingCoolOffTime))).fromNow()}`
                                                                         :
-                                                                            `Ending ${moment.unix(Number(thisitem.account.draftAt)+Number(thisGovernance.account.config.baseVotingTime)).fromNow()}`
+                                                                            `Ending ${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account.config.baseVotingTime)+(Number(thisGovernance?.account?.config?.votingCoolOffTime))).fromNow()}`
                                                                         }
                                                                     </>
                                                                 }
@@ -2165,7 +2179,7 @@ export function GovernanceProposalV2View(props: any){
                                                 </Grid>
                                                 </Grid>
                                                 <Typography color="text.secondary" variant="caption">
-                                                    From now how much time left until this proposal ends
+                                                    From now how much time left until this proposal ends (Cool Off: {moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours() > 0 && `${moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours()}hrs`})
                                                 </Typography>
                                             </Box>
 

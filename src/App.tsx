@@ -192,7 +192,7 @@ function DashboardContent() {
                               
                               <Routes>
 
-                                <Route path="oath/*" element={<FrictionlessView />} >
+                                <Route path="beta/*" element={<FrictionlessView />} >
                                     <Route path=":handlekey" element={<FrictionlessView />} />
                                 </Route>
                               </Routes>
