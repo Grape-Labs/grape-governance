@@ -789,6 +789,7 @@ export function GovernanceCachedView(props: any) {
                     rawTokenOwnerRecords = cachedMemberMap;
                 } else{
                     rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+                    console.log("HERE!")
                 }
                 
                 setMemberMap(rawTokenOwnerRecords);
@@ -853,10 +854,10 @@ export function GovernanceCachedView(props: any) {
 
                     if (hybridCache){
 
-                        const gprops = await getAllProposalsIndexed(governanceRulesStrArr);
+                        //const gprops = await getAllProposalsIndexed(governanceRulesStrArr);
                         //console.log("Indexed Proposals: "+JSON.stringify(gprops));
                         
-                        //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
+                        const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
                         // with the results compare with cached_governance
                         //console.log("All Proposals: "+JSON.stringify(gpropsRpc))
                         const rpcprops = new Array();
@@ -899,43 +900,44 @@ export function GovernanceCachedView(props: any) {
 
                     const allprops: any[] = [];
                     for (var prop of cached_governance){
+                        if (prop){
+                            console.log("ITEM: "+JSON.stringify(prop))
+                            if (prop.account?.state === 3 || prop.account?.state === 5)
+                                passed++;
+                            else if (prop.account?.state === 7)
+                                defeated++;
                         
-                        //console.log("ITEM: "+JSON.stringify(prop))
-                        if (prop.account.state === 3 || prop.account.state === 5)
-                            passed++;
-                        else if (prop.account.state === 7)
-                            defeated++;
-                    
-                        let amountAsNum = 0;
-                        let amountAsCouncilNum = 0;
-                        if (prop.account?.yesVotesCount && prop.account?.noVotesCount){
-                            //console.log("tmap: "+JSON.stringify(tokenMap));
-                            //console.log("item a: "+JSON.stringify(prop))
-                            //if (tokenMap){
-                            if (grealm.account.config?.councilMint && new PublicKey(grealm.account.config?.councilMint).toBase58() === new PublicKey(prop.account?.governingTokenMint).toBase58()){
-                                amountAsCouncilNum = +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))).toFixed(0))
-                            } else{
-                                amountAsNum = +(((Number(""+prop.account?.yesVotesCount) + Number(""+prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                            let amountAsNum = 0;
+                            let amountAsCouncilNum = 0;
+                            if (prop.account?.yesVotesCount && prop.account?.noVotesCount){
+                                //console.log("tmap: "+JSON.stringify(tokenMap));
+                                //console.log("item a: "+JSON.stringify(prop))
+                                //if (tokenMap){
+                                if (grealm.account.config?.councilMint && new PublicKey(grealm.account.config?.councilMint).toBase58() === new PublicKey(prop.account?.governingTokenMint).toBase58()){
+                                    amountAsCouncilNum = +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))).toFixed(0))
+                                } else{
+                                    amountAsNum = +(((Number(""+prop.account?.yesVotesCount) + Number(""+prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                                }
+                                
+                                console.log("a ttvc: "+ttvc)
+                                console.log("a - "+prop.account?.yesVotesCount)
+                                
+                            } else if (prop.account?.options) {
+                                //console.log("item b: "+JSON.stringify(prop))
+                                //if (tokenMap){
+                                if (grealm.account.config?.councilMint && new PublicKey(grealm.account.config?.councilMint).toBase58() === new PublicKey(prop.account?.governingTokenMint).toBase58()){
+                                    amountAsCouncilNum = +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))).toFixed(0))
+                                } else{
+                                    amountAsNum = +(((Number(""+prop.account?.options[0].voteWeight) + Number(""+prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                                }
                             }
-                             
-                            console.log("a ttvc: "+ttvc)
-                            console.log("a - "+prop.account?.yesVotesCount)
-                            
-                        } else if (prop.account?.options) {
-                            //console.log("item b: "+JSON.stringify(prop))
-                            //if (tokenMap){
-                            if (grealm.account.config?.councilMint && new PublicKey(grealm.account.config?.councilMint).toBase58() === new PublicKey(prop.account?.governingTokenMint).toBase58()){
-                                amountAsCouncilNum = +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))).toFixed(0))
-                            } else{
-                                amountAsNum = +(((Number(""+prop.account?.options[0].voteWeight) + Number(""+prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
-                            }
-                        }
 
-                        if (amountAsNum && amountAsNum > 0)
-                            ttvc += amountAsNum;
-                        if (amountAsCouncilNum && amountAsCouncilNum > 0)
-                            tcvc += amountAsCouncilNum;
-                        allprops.push(prop);
+                            if (amountAsNum && amountAsNum > 0)
+                                ttvc += amountAsNum;
+                            if (amountAsCouncilNum && amountAsCouncilNum > 0)
+                                tcvc += amountAsCouncilNum;
+                            allprops.push(prop);
+                        }
                         
                     }
 
@@ -969,12 +971,12 @@ export function GovernanceCachedView(props: any) {
                                 realmConfigPk
                             )
                             //console.log("realmConfig: "+JSON.stringify(realmConfig));
-                            
+                            /*
                             const tryRealmConfig = await tryGetRealmConfig(
                                 connection,
                                 programId,
                                 realmPk
-                            )
+                            )*/
                             
                             //console.log("tryRealmConfig: "+JSON.stringify(tryRealmConfig));
                             //setRealmConfig(realmConfigPK)
@@ -989,37 +991,51 @@ export function GovernanceCachedView(props: any) {
                         }
                     }
                     
-                    const gprops = await getAllProposals(RPC_CONNECTION, grealm.owner, realmPk);
+                    //const gprops = await getAllProposals(RPC_CONNECTION, grealm.owner, realmPk);
+                    const gprops = await getAllProposalsIndexed(governanceRulesStrArr);
                     const allprops: any[] = [];
                     let passed = 0;
                     let defeated = 0;
                     let ttvc = 0;
                     
+                    const rpcprops = new Array();
                     for (const props of gprops){
-                        for (const prop of props){
-                            if (prop){
-                                allprops.push(prop);
-                                if (prop.account.state === 3 || prop.account.state === 5)
-                                    passed++;
-                                else if (prop.account.state === 7)
-                                    defeated++;
-                            
-                                if (prop.account?.yesVotesCount && prop.account?.noVotesCount){
-                                    //console.log("tmap: "+JSON.stringify(tokenMap));
-                                    //console.log("item a: "+JSON.stringify(prop))
-                                    if (tokenMap){
-                                        ttvc += +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
-                                    }
-                                    
-                                } else if (prop.account?.options) {
-                                    //console.log("item b: "+JSON.stringify(prop))
-                                    if (tokenMap){
-                                        ttvc += +(((Number("0x"+prop.account?.options[0].voteWeight) + Number("0x"+prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
-                                    }
+                        if (props && props.length > 0){
+                            for (const prop of props){
+                                if (prop){
+                                    rpcprops.push(prop);
                                 }
                             }
+                        } else{
+                            rpcprops.push(props);
                         }
                     }
+                        
+                    for (const prop of rpcprops){
+                        
+                            allprops.push(prop);
+                            
+                            if (prop.account?.state === 3 || prop.account?.state === 5)
+                                passed++;
+                            else if (prop.account?.state === 7)
+                                defeated++;
+                        
+                            if (prop.account?.yesVotesCount && prop.account?.noVotesCount){
+                                //console.log("tmap: "+JSON.stringify(tokenMap));
+                                //console.log("item a: "+JSON.stringify(prop))
+                                if (tokenMap){
+                                    ttvc += +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                                }
+                                
+                            } else if (prop.account?.options) {
+                                //console.log("item b: "+JSON.stringify(prop))
+                                if (tokenMap){
+                                    ttvc += +(((Number("0x"+prop.account?.options[0].voteWeight) + Number("0x"+prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                                }
+                            }
+                        
+                    }
+                    
 
                     const sortedResults = allprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
                     

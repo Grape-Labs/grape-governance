@@ -233,7 +233,7 @@ export async function findObjectByGoverningTokenOwner(memberMap: any, tokenOwner
     //const tokenOwnerRecord = await getTokenOwnerRecord(RPC_CONNECTION, )
     if (rawTokenOwnerRecords){
       //memberMap = JSON.parse(JSON.stringify(rawTokenOwnerRecords));
-      const foundRawObject = await rawTokenOwnerRecords.find(item => (Number(item.account.governingTokenDepositAmount) > (minDepositedAmount || 0)) && item.account.governingTokenOwner?.toBase58() === tokenOwner);
+      const foundRawObject = await rawTokenOwnerRecords.find(item => (Number(item.account.governingTokenDepositAmount) > (minDepositedAmount || 0)) && new PublicKey(item.account.governingTokenOwner).toBase58() === tokenOwner);
       //console.log("foundRawObject: "+JSON.stringify(foundRawObject));
       if (foundRawObject)
         return foundRawObject || false; // Return null if not found
@@ -246,7 +246,7 @@ export async function findObjectByGoverningTokenOwner(memberMap: any, tokenOwner
   } else {
     
     try{
-        const foundObject = await memberMap.find(item => Number(item.account.governingTokenDepositAmount > (minDepositedAmount || 0)) && item.account.governingTokenOwner?.toBase58() === tokenOwner);
+        const foundObject = await memberMap.find(item => Number(item.account.governingTokenDepositAmount > (minDepositedAmount || 0)) && new PublicKey(item.account.governingTokenOwner).toBase58() === tokenOwner);
         if (foundObject)
           return foundObject || false; // Return null if not found
         else
