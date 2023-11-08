@@ -776,8 +776,8 @@ export function GovernanceCachedView(props: any) {
                 //console.log("all rules: "+JSON.stringify(governanceRules))
                 // setAllGovernances(governanceRules);
                 const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58());
-                const governanceRulesStrArr = governanceRulesIndexed.map(item => `"${item.pubkey}"`);
-                console.log("all rules indexed: "+JSON.stringify(governanceRulesIndexed))
+                const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey);
+                //console.log("all rules indexed: "+JSON.stringify(governanceRulesIndexed))
                 setAllGovernances(governanceRulesIndexed);
                 
                 //console.log("realmPk: "+realmPk)
@@ -853,10 +853,10 @@ export function GovernanceCachedView(props: any) {
 
                     if (hybridCache){
 
-                        //const gprops = await getAllProposalsIndexed(governanceRulesStrArr);
+                        const gprops = await getAllProposalsIndexed(governanceRulesStrArr);
                         //console.log("Indexed Proposals: "+JSON.stringify(gprops));
                         
-                        const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
+                        //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
                         // with the results compare with cached_governance
                         //console.log("All Proposals: "+JSON.stringify(gpropsRpc))
                         const rpcprops = new Array();
