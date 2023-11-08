@@ -1,11 +1,3 @@
-import { 
-    getGovernance,
-    getRealm, 
-    getAllProposals, 
-    getAllTokenOwnerRecords, 
-    getRealmConfigAddress, 
-    tryGetRealmConfig, 
-    getRealmConfig  } from '@solana/spl-governance';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -78,6 +70,22 @@ import {
     TX_RPC_ENDPOINT, 
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
+
+import { 
+    getGovernance,
+    getRealm, 
+    getAllGovernances,
+    getAllProposals, 
+    getAllTokenOwnerRecords, 
+    getRealmConfigAddress, 
+    tryGetRealmConfig, 
+    getRealmConfig  } from '@solana/spl-governance';
+
+import { 
+    getAllProposalsIndexed,
+    getAllGovernancesIndexed
+} from './api/queries';
+
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
@@ -684,7 +692,7 @@ export function GovernanceCachedView(props: any) {
     const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
     const [isParticipatingInDao, setParticipatingInDao] = React.useState(false);
     const [filterState, setFilterState] = React.useState(true);
-
+    const [allGovernances, setAllGovernances] = React.useState(null);
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
 
@@ -764,6 +772,14 @@ export function GovernanceCachedView(props: any) {
                 //let ggov = await getGovernance(RPC_CONNECTION, new PublicKey(grealm.owner))
 
                 const realmPk = new PublicKey(grealm?.pubkey);
+                //const governanceRules = await getAllGovernances(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
+                //console.log("all rules: "+JSON.stringify(governanceRules))
+                // setAllGovernances(governanceRules);
+                const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58());
+                const governanceRulesStrArr = governanceRulesIndexed.map(item => `"${item.pubkey}"`);
+                console.log("all rules indexed: "+JSON.stringify(governanceRulesIndexed))
+                setAllGovernances(governanceRulesIndexed);
+                
                 //console.log("realmPk: "+realmPk)
                 // Check if we have this cached
                 //console.log("cachedMemberMap "+JSON.stringify(cachedMemberMap));
@@ -773,7 +789,6 @@ export function GovernanceCachedView(props: any) {
                     rawTokenOwnerRecords = cachedMemberMap;
                 } else{
                     rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
-                    
                 }
                 
                 setMemberMap(rawTokenOwnerRecords);
@@ -838,24 +853,27 @@ export function GovernanceCachedView(props: any) {
 
                     if (hybridCache){
 
-
-
-                        const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
+                        const gprops = await getAllProposalsIndexed(governanceRulesStrArr);
+                        console.log("Indexed Proposals: "+JSON.stringify(gprops));
+                        
+                        //const gpropsRpc = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
                         // with the results compare with cached_governance
-                        console.log("gprops: "+JSON.stringify(gprops))
+                        //console.log("All Proposals: "+JSON.stringify(gpropsRpc))
                         const rpcprops = new Array();
                         for (const props of gprops){
-                            for (const prop of props){
-                                if (prop){
-                                    rpcprops.push(prop);
+                            if (props && props.length > 0){
+                                for (const prop of props){
+                                    if (prop){
+                                        rpcprops.push(prop);
+                                    }
                                 }
+                            } else{
+                                rpcprops.push(props);
                             }
                         }
                         const sortedRPCResults = rpcprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
         
                         console.log(sortedRPCResults.length +" vs "+ cached_governance.length)
-                        
-                        
                         
                         if (rpcprops.length > cached_governance.length){
                             

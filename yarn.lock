@@ -39,19 +39,20 @@
   resolved "https://registry.npmjs.org/@apocentre/alias-sampling/-/alias-sampling-0.5.3.tgz"
   integrity sha512-7UDWIIF9hIeJqfKXkNIzkVandlwLf1FWTSdrb9iXvOP8oF544JRXQjCbiTmCv2c9n44n/FIWtehhBfNuAx2CZA==
 
-"@apollo/client@3.6.9":
-  version "3.6.9"
-  resolved "https://registry.npmjs.org/@apollo/client/-/client-3.6.9.tgz"
-  integrity sha512-Y1yu8qa2YeaCUBVuw08x8NHenFi0sw2I3KCu7Kw9mDSu86HmmtHJkCAifKVrN2iPgDTW/BbP3EpSV8/EQCcxZA==
+"@apollo/client@3.8.7":
+  version "3.8.7"
+  resolved "https://registry.yarnpkg.com/@apollo/client/-/client-3.8.7.tgz#090b1518f513503b9a6a690ee3eaec49529822e1"
+  integrity sha512-DnQtFkQrCyxHTSa9gR84YRLmU/al6HeXcLZazVe+VxKBmx/Hj4rV8xWtzfWYX5ijartsqDR7SJgV037MATEecA==
   dependencies:
     "@graphql-typed-document-node/core" "^3.1.1"
-    "@wry/context" "^0.6.0"
-    "@wry/equality" "^0.5.0"
-    "@wry/trie" "^0.3.0"
+    "@wry/context" "^0.7.3"
+    "@wry/equality" "^0.5.6"
+    "@wry/trie" "^0.4.3"
     graphql-tag "^2.12.6"
     hoist-non-react-statics "^3.3.2"
-    optimism "^0.16.1"
+    optimism "^0.17.5"
     prop-types "^15.7.2"
+    response-iterator "^0.2.6"
     symbol-observable "^4.0.0"
     ts-invariant "^0.10.3"
     tslib "^2.3.0"
@@ -10147,17 +10148,17 @@
     "@webassemblyjs/ast" "1.11.1"
     "@xtuc/long" "4.2.2"
 
-"@wry/context@^0.6.0":
-  version "0.6.1"
-  resolved "https://registry.npmjs.org/@wry/context/-/context-0.6.1.tgz"
-  integrity sha512-LOmVnY1iTU2D8tv4Xf6MVMZZ+juIJ87Kt/plMijjN20NMAXGmH4u8bS1t0uT74cZ5gwpocYueV58YwyI8y+GKw==
-  dependencies:
-    tslib "^2.3.0"
-
 "@wry/context@^0.7.0":
   version "0.7.0"
   resolved "https://registry.npmjs.org/@wry/context/-/context-0.7.0.tgz"
   integrity sha512-LcDAiYWRtwAoSOArfk7cuYvFXytxfVrdX7yxoUmK7pPITLk5jYh2F8knCwS7LjgYL8u1eidPlKKV6Ikqq0ODqQ==
+  dependencies:
+    tslib "^2.3.0"
+
+"@wry/context@^0.7.3":
+  version "0.7.4"
+  resolved "https://registry.yarnpkg.com/@wry/context/-/context-0.7.4.tgz#e32d750fa075955c4ab2cfb8c48095e1d42d5990"
+  integrity sha512-jmT7Sb4ZQWI5iyu3lobQxICu2nC/vbUhP0vIdd6tHC9PTfenmRmuIFqktc6GH9cgi+ZHnsLWPvfSvc4DrYmKiQ==
   dependencies:
     tslib "^2.3.0"
 
@@ -10168,10 +10169,24 @@
   dependencies:
     tslib "^2.3.0"
 
+"@wry/equality@^0.5.6":
+  version "0.5.7"
+  resolved "https://registry.yarnpkg.com/@wry/equality/-/equality-0.5.7.tgz#72ec1a73760943d439d56b7b1e9985aec5d497bb"
+  integrity sha512-BRFORjsTuQv5gxcXsuDXx6oGRhuVsEGwZy6LOzRRfgu+eSfxbhUQ9L9YtSEIuIjY/o7g3iWFjrc5eSY1GXP2Dw==
+  dependencies:
+    tslib "^2.3.0"
+
 "@wry/trie@^0.3.0":
   version "0.3.2"
   resolved "https://registry.npmjs.org/@wry/trie/-/trie-0.3.2.tgz"
   integrity sha512-yRTyhWSls2OY/pYLfwff867r8ekooZ4UI+/gxot5Wj8EFwSf2rG+n+Mo/6LoLQm1TKA4GRj2+LCpbfS937dClQ==
+  dependencies:
+    tslib "^2.3.0"
+
+"@wry/trie@^0.4.3":
+  version "0.4.3"
+  resolved "https://registry.yarnpkg.com/@wry/trie/-/trie-0.4.3.tgz#077d52c22365871bf3ffcbab8e95cb8bc5689af4"
+  integrity sha512-I6bHwH0fSf6RqQcnnXLJKhkSXG45MFral3GxPaY4uAl0LYDZM+YDVDAiU9bYwjTuysy1S0IeecWtmq1SZA3M1w==
   dependencies:
     tslib "^2.3.0"
 
@@ -16246,10 +16261,15 @@ graphql-tag@^2.12.6:
   dependencies:
     tslib "^2.1.0"
 
-graphql@^16.5.0, graphql@^16.6.0:
+graphql@^16.5.0:
   version "16.6.0"
   resolved "https://registry.npmjs.org/graphql/-/graphql-16.6.0.tgz"
   integrity sha512-KPIBPDlW7NxrbT/eh4qPXz5FiFdL5UbaA0XUNz2Rp3Z3hqBSkbj0GVjwFDztsWVauZUWsbKHgMg++sk8UX0bkw==
+
+graphql@^16.8.1:
+  version "16.8.1"
+  resolved "https://registry.yarnpkg.com/graphql/-/graphql-16.8.1.tgz#1930a965bef1170603702acdb68aedd3f3cf6f07"
+  integrity sha512-59LZHPdGZVh695Ud9lRzPBVTtlX9ZCV150Er2W43ro37wVof0ctenSaskPPjN7lVTIN8mSZt8PHUNKZuNQUuxw==
 
 growl@1.10.5:
   version "1.10.5"
@@ -21020,6 +21040,15 @@ optimism@^0.16.1:
   dependencies:
     "@wry/context" "^0.7.0"
     "@wry/trie" "^0.3.0"
+
+optimism@^0.17.5:
+  version "0.17.5"
+  resolved "https://registry.yarnpkg.com/optimism/-/optimism-0.17.5.tgz#a4c78b3ad12c58623abedbebb4f2f2c19b8e8816"
+  integrity sha512-TEcp8ZwK1RczmvMnvktxHSF2tKgMWjJ71xEFGX5ApLh67VsMSTy1ZUlipJw8W+KaqgOmQ+4pqwkeivY89j+4Vw==
+  dependencies:
+    "@wry/context" "^0.7.0"
+    "@wry/trie" "^0.4.3"
+    tslib "^2.3.0"
 
 optionator@^0.8.1:
   version "0.8.3"

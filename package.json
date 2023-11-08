@@ -37,7 +37,7 @@
         "react": "^17.0.0 || ^18.0.0"
     },
     "dependencies": {
-        "@apollo/client": "3.6.9",
+        "@apollo/client": "3.8.7",
         "@blockworks-foundation/voter-stake-registry-client": "^0.2.3",
         "@bonfida/spl-name-service": "0.1.55",
         "@cardinal/namespaces": "^4.1.56",
@@ -119,7 +119,7 @@
         "file_size_url": "^1.0.4",
         "formidable": "v3",
         "fp-ts": "^2.12.3",
-        "graphql": "^16.6.0",
+        "graphql": "^16.8.1",
         "graphql-request": "^4.3.0",
         "i18next": "^21.8.2",
         "i18next-browser-languagedetector": "^6.1.4",
