@@ -166,7 +166,7 @@ export const getAllGovernancesIndexed = async (filterRealm?:any) => {
 
         data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_GovernanceV2"].map((item) => {
             allRules.push({
-                pubkey: item.pubkey,
+                pubkey: new PublicKey(item.pubkey),
                 account: {
                     realm: new PublicKey(item.realm),
                     governedAccount: new PublicKey(item.governedAccount),
@@ -178,7 +178,7 @@ export const getAllGovernancesIndexed = async (filterRealm?:any) => {
 
         data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_GovernanceV1"].map((item) => {
             allRules.push({
-                pubkey: item.pubkey,
+                pubkey: new PublicKey(item.pubkey),
                 account: {
                     realm: new PublicKey(item.realm),
                     governedAccount: new PublicKey(item.governedAccount),
@@ -194,6 +194,7 @@ export const getAllGovernancesIndexed = async (filterRealm?:any) => {
 
 export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any) => {
     if (filterRealm){
+        /*
         const { data } = await client.query({ query: GET_QUERY_RULES(filterRealm) });
         // normalize data
         const allRules = new Array();
@@ -223,6 +224,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any) => {
         });
 
         return allRules;
+        */
     }
 };
 

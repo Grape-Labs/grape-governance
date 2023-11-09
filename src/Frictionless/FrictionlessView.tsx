@@ -54,6 +54,11 @@ import {
   getAllGovernances,
 } from '@solana/spl-governance';
 
+import { 
+  getAllProposalsIndexed,
+  getAllGovernancesIndexed
+} from '../GovernanceCached/api/queries';
+
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import LinkIcon from '@mui/icons-material/Link';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
@@ -542,26 +547,35 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
       const rlm = await getRealm(RPC_CONNECTION, new PublicKey(realmPk));
       setThisRealm(rlm);
       
-      const ag = await getAllGovernances(RPC_CONNECTION, rlm.owner, new PublicKey(realmPk));
+
+      const ag = await getAllGovernancesIndexed(realmPk);
+      const governanceRulesStrArr = ag.map(item => item.pubkey);
+      //const ag = await getAllGovernances(RPC_CONNECTION, rlm.owner, new PublicKey(realmPk));
       console.log("ag: "+JSON.stringify(ag))
       setAllGovernances(ag);
-      const gprops = await getAllProposals(RPC_CONNECTION, rlm.owner, new PublicKey(realmPk))
 
+      const gprops = await getAllProposalsIndexed(governanceRulesStrArr, realmPk);
+
+      //const gprops = await getAllProposals(RPC_CONNECTION, rlm.owner, new PublicKey(realmPk))
       const rpcprops = new Array();
       for (const props of gprops){
-          for (const prop of props){
-              if (prop){
-                  if (prop.account.state === 2){
-                      rpcprops.push(prop);
-                      //console.log("prop: "+JSON.stringify(prop))
-                      /*
-                      if (prop.account.governingTokenMint.toBase58() === selectedCommunityMint){
-                          rpcprops.push(prop);
-                      } else if (prop.account.governingTokenMint.toBase58() === selectedCouncilMint){
-                          rpcprops.push(prop);
-                      }*/
-                  }
-              }
+          if (props && props.length > 0){
+            for (const prop of props){
+                if (prop){
+                    if (prop.account.state === 2){
+                        rpcprops.push(prop);
+                        //console.log("prop: "+JSON.stringify(prop))
+                        /*
+                        if (prop.account.governingTokenMint.toBase58() === selectedCommunityMint){
+                            rpcprops.push(prop);
+                        } else if (prop.account.governingTokenMint.toBase58() === selectedCouncilMint){
+                            rpcprops.push(prop);
+                        }*/
+                    }
+                }
+            }
+          } else{
+            rpcprops.push(props);
           }
       }
       const sortedRPCResults = rpcprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
