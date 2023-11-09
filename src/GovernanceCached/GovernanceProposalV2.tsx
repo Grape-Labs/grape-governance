@@ -663,7 +663,7 @@ export function GovernanceProposalV2View(props: any){
                     from_cache = false;
                     const voteRecords = await getVoteRecords({
                         connection: connection,
-                        programId: new PublicKey(thisitem.owner),
+                        programId: new PublicKey(thisitem.owner || realm.owner),
                         proposalPk: new PublicKey(thisitem.pubkey),
                     });
                     if (voteRecords?.value){
@@ -689,7 +689,7 @@ export function GovernanceProposalV2View(props: any){
                     if (thisitem.pubkey){
                         instructions = await getGovernanceAccounts(
                             connection,
-                            new PublicKey(thisitem.owner),
+                            new PublicKey(thisitem.owner || realm.owner),
                             ProposalTransaction,
                             [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
                         );

@@ -209,7 +209,7 @@ export default function GovernancePower(props: any){
             }
 
             let councilMint = null;
-            if (typeof realm.account.config.councilMint.toBase58 === 'function') {
+            if (realm.account.config?.councilMint?.toBase58) {
                 councilMint = realm.account.config.councilMint.toBase58();
             } else {
                 councilMint = realm.account.config.councilMint;
