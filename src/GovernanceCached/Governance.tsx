@@ -770,13 +770,13 @@ export function GovernanceCachedView(props: any) {
                 setRealmName(grealm.account.name);
                 
                 //let ggov = await getGovernance(RPC_CONNECTION, new PublicKey(grealm.owner))
-
+                
                 const realmPk = new PublicKey(grealm?.pubkey);
                 //const governanceRules = await getAllGovernances(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
                 //console.log("all rules: "+JSON.stringify(governanceRules))
                 // setAllGovernances(governanceRules);
                 const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58());
-                const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey);
+                const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
                 //console.log("all rules indexed: "+JSON.stringify(governanceRulesIndexed))
                 setAllGovernances(governanceRulesIndexed);
                 
@@ -843,7 +843,7 @@ export function GovernanceCachedView(props: any) {
 
                 if (cached_governance){
                     
-                    console.log("Fetching via cache...")
+                    console.log("Fetching via hybrid cache...")
                     
                     let passed = 0;
                     let defeated = 0;
@@ -858,7 +858,6 @@ export function GovernanceCachedView(props: any) {
 
                         const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm.owner);
                         //console.log("Indexed Proposals: "+JSON.stringify(gprops));
-                        
                         //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
                         // with the results compare with cached_governance
                         //console.log("All Proposals: "+JSON.stringify(gpropsRpc))
@@ -899,7 +898,7 @@ export function GovernanceCachedView(props: any) {
                             console.log("Hybrid Cache: all proposals fetched")
                         }
                     }
-
+                    
                     const allprops: any[] = [];
                     for (var prop of cached_governance){
                         if (prop?.account){

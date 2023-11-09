@@ -148,6 +148,7 @@ function GET_QUERY_RULES(realm:string){
             activeProposalCount
             }
             GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_GovernanceV1(limit:100, where: {realm: {_eq: "${realm}"}}) {
+            pubkey
             config
             governedAccount
             lamports
@@ -163,7 +164,6 @@ export const getAllGovernancesIndexed = async (filterRealm?:any) => {
         const { data } = await client.query({ query: GET_QUERY_RULES(filterRealm) });
         // normalize data
         const allRules = new Array();
-
         data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_GovernanceV2"].map((item) => {
             allRules.push({
                 pubkey: new PublicKey(item.pubkey),
@@ -178,12 +178,12 @@ export const getAllGovernancesIndexed = async (filterRealm?:any) => {
 
         data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_GovernanceV1"].map((item) => {
             allRules.push({
-                pubkey: new PublicKey(item.pubkey),
+                pubkey: new PublicKey(item?.pubkey),
                 account: {
                     realm: new PublicKey(item.realm),
                     governedAccount: new PublicKey(item.governedAccount),
                     config: item.config,
-                    activeProposalCount: item.activeProposalCount
+                    proposalsCount: item.proposalsCount
                 }
             })
         });
