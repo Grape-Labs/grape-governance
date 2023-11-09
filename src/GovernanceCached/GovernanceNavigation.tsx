@@ -123,7 +123,7 @@ export default function GovernanceNavigation(props: any){
                         sx={{borderRadius:'17px'}}
                     >
                         <Tooltip title={
-                                <><strong>Proposals</strong><br/>* Via Cached Storage
+                                <><strong>Proposals</strong><br/>* Realtime Hybrid Caching
                                 </>
                             }>
                             <Button

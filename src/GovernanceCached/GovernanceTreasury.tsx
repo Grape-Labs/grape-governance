@@ -45,6 +45,14 @@ import {
     getFileFromLookup
 } from './CachedStorageHelpers'; 
 
+import { 
+    getAllProposalsIndexed,
+    getAllGovernancesIndexed
+} from './api/queries';
+import {
+    getAllGovernances
+} from '@solana/spl-governance';
+
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import ExplorerView from '../utils/grapeTools/Explorer';
@@ -468,6 +476,18 @@ export function GovernanceTreasuryView(props: any) {
                         setCachedTreasury(cached_treasury);
                     }
 
+                    /*
+                    const rawGovernances = await getAllGovernances(
+                        connection,
+                        new PublicKey(glitem.realm.owner),
+                        new PublicKey(governanceAddress)
+                    );
+                    console.log("rawGovernances: "+JSON.stringify(rawGovernances));
+
+                    const governanceRulesIndexed = await getAllGovernancesIndexed(new PublicKey(governanceAddress).toBase58());
+                    console.log("governanceRulesIndexed: "+JSON.stringify(governanceRulesIndexed));
+                    */
+                   
                     setRealmName(glitem.governanceName);
 
                     setTotalGovernanceValue(glitem?.totalVaultValue);
