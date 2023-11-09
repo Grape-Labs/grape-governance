@@ -668,7 +668,7 @@ export function GovernanceDirectoryView(props: Props) {
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="caption">
-                                        {governanceLookup && governanceLookup.length} Active Solana DAOs Cached <Typography color='#555' variant="caption">from 2,200 total realms</Typography>
+                                        {governanceLookup && governanceLookup.length} Active Solana DAOs <Typography color='#555' variant="caption">from 2,200 total realms</Typography>
                                     </Typography>
                                 </Grid>
                             </Grid>

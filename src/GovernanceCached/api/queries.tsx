@@ -234,7 +234,7 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
     data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_ProposalV2"].map((account) => {
         console.log("account: "+JSON.stringify(account))
         
-        const options = account.options.map((option) => {
+        const options = account?.options?.map && account.options.map((option) => {
             return {
                 label: option.label,
                 voteWeight: parseInt(option.voteWeight, 16),
