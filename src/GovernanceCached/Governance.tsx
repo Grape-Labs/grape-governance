@@ -902,7 +902,7 @@ export function GovernanceCachedView(props: any) {
                     const allprops: any[] = [];
                     for (var prop of cached_governance){
                         if (prop?.account){
-                            console.log("ITEM: "+JSON.stringify(prop.account))
+                            //console.log("ITEM: "+JSON.stringify(prop.account))
                             if (prop.account.state === 3 || prop.account.state === 5)
                                 passed++;
                             else if (prop.account.state === 7)
@@ -920,8 +920,8 @@ export function GovernanceCachedView(props: any) {
                                     amountAsNum = +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
                                 }
                                 
-                                console.log("a ttvc: "+ttvc)
-                                console.log("a - "+prop.account?.yesVotesCount)
+                                //console.log("a ttvc: "+ttvc)
+                                //console.log("a - "+prop.account?.yesVotesCount)
                                 
                             } else if (prop.account?.options) {
                                 //console.log("item b: "+JSON.stringify(prop))
@@ -930,7 +930,7 @@ export function GovernanceCachedView(props: any) {
                                     amountAsCouncilNum = +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))).toFixed(0))
                                 } else{
                                     amountAsNum = +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
-                                    console.log('amountAsNum '+amountAsNum)
+                                    //console.log('amountAsNum '+amountAsNum)
                                 }
                             }
 
