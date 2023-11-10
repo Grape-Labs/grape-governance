@@ -91,8 +91,8 @@ import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/he
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
 const BlinkingDotContainer = styled("div")({
-    width: 10,
-    height: 10,
+    width: 12.5,
+    height: 12.5,
     borderRadius: "50%",
     backgroundColor: "red",
     animation: `blinking-dot 1s ease-in-out infinite`,
