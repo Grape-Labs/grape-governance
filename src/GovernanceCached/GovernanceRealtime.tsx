@@ -407,6 +407,10 @@ function TablePaginationActions(props) {
                                                                     <Grid item xs={12}>
                                                                         {item.account?.descriptionLink}
                                                                     </Grid>
+
+                                                                    <Grid item xs={12}>
+                                                                    {/*item.account?.tokeType ? `Community` : `Council`*/} Mint {item.account?.governingTokenMint.toBase58()}
+                                                                    </Grid>
                                                                 </Grid>
                                                             </Typography>
                                                         </TableCell>

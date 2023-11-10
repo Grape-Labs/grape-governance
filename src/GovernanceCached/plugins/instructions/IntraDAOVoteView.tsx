@@ -479,7 +479,7 @@ export default function IntraDAOVoteView(props: any) {
 
     const fetchGovernanceProposals = async () => {
         setProposalLoading(true);
-
+        
         let selectedMint = null;
         for (let item of participatingGovernanceRecordRows){
             if (item.realm.toBase58() === daoToParticipateAddress){
