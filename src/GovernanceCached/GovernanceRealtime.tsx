@@ -415,7 +415,7 @@ function TablePaginationActions(props) {
                                                                         Governing Mint <ExplorerView
                                                                             address={item.account.governingTokenMint?.toBase58()} type='address'
                                                                             shorten={8}
-                                                                            hideTitle={false} style='text' color='white' fontSize='9px'/>
+                                                                            hideTitle={false} style='text' color='inherit' fontSize='9px'/>
                                                                             {/*item.account?.tokeType ? `Community` : `Council`*/}
                                                                         </Typography>
                                                                     </Grid>
@@ -424,7 +424,16 @@ function TablePaginationActions(props) {
                                                                         Rules <ExplorerView
                                                                             address={item.account.governance?.toBase58()} type='address'
                                                                             shorten={8}
-                                                                            hideTitle={false} style='text' color='white' fontSize='9px'/>
+                                                                            hideTitle={false} style='text' color='inherit' fontSize='9px'/>
+                                                                            {/*item.account?.tokeType ? `Community` : `Council`*/}
+                                                                        </Typography>
+                                                                    </Grid>
+                                                                    <Grid item xs={12}>
+                                                                        <Typography sx={{fontSize:'9px'}}>
+                                                                        Proposal <ExplorerView
+                                                                            address={item.pubkey.toBase58()} type='address'
+                                                                            shorten={8}
+                                                                            hideTitle={false} style='text' color='inherit' fontSize='9px'/>
                                                                             {/*item.account?.tokeType ? `Community` : `Council`*/}
                                                                         </Typography>
                                                                     </Grid>
@@ -582,7 +591,7 @@ export function GovernanceRealtimeView(props: any) {
                             }
                         }
                         const sortedRPCResults = rpcprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
-                    
+                    //console.log("prop: "+JSON.stringify(sortedRPCResults[0]))
                     setAllProposals(sortedRPCResults);
                     setProposals(sortedRPCResults);
 
