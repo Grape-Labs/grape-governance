@@ -10,6 +10,7 @@ import OathTipLinkLogin from "./GovernanceCached/TipLinkGovernance";
 import FrictionlessView from "./Frictionless/FrictionlessView";
 import { MyGovernanceView } from "./GovernanceCached/MyGovernance";
 import { GovernanceCachedView } from "./GovernanceCached/Governance";
+import { GovernanceRealtimeView } from "./GovernanceCached/GovernanceRealtime";
 import { PremiumView } from "./GovernanceCached/Premium";
 import { GovernanceMetricsView } from "./GovernanceCached/GovernanceMetrics";
 import { GovernanceMembersView } from "./GovernanceCached/GovernanceMembers";
@@ -258,6 +259,11 @@ function DashboardContent() {
                                               <Route path="cachedgovernance/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                               </Route>
+
+                                              <Route path="proposals/*" element={<GovernanceRealtimeView />} >
+                                                <Route path=":handlekey" element={<GovernanceRealtimeView />} />
+                                              </Route>
+                                              
 
                                               <Route path="newproposal/*" element={<GovernanceCreateProposalView />} >
                                                   <Route path=":handlekey" element={<GovernanceCreateProposalView />} />

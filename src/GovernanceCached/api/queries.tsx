@@ -76,59 +76,61 @@ function GET_QUERY_PROPOSALS(governanceArray?:string[]){
         return gql`
             query MyQuery {
                 GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_ProposalV2(offset: 0) {
-                abstainVoteWeight
-                closedAt
-                denyVoteWeight
-                descriptionLink
-                draftAt
-                executingAt
-                executionFlags
-                governance
-                governingTokenMint
-                lamports
-                maxVoteWeight
-                maxVotingTime
-                name
-                options
-                reserved1
-                signatoriesCount
-                signatoriesSignedOffCount
-                signingOffAt
-                startVotingAt
-                state
-                tokenOwnerRecord
-                vetoVoteWeight
-                voteThreshold
-                voteType
-                votingAt
-                votingAtSlot
-                votingCompletedAt
+                    pubkey
+                    abstainVoteWeight
+                    closedAt
+                    denyVoteWeight
+                    descriptionLink
+                    draftAt
+                    executingAt
+                    executionFlags
+                    governance
+                    governingTokenMint
+                    lamports
+                    maxVoteWeight
+                    maxVotingTime
+                    name
+                    options
+                    reserved1
+                    signatoriesCount
+                    signatoriesSignedOffCount
+                    signingOffAt
+                    startVotingAt
+                    state
+                    tokenOwnerRecord
+                    vetoVoteWeight
+                    voteThreshold
+                    voteType
+                    votingAt
+                    votingAtSlot
+                    votingCompletedAt
                 }
                 GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_ProposalV1(offset: 0) {
-                closedAt
-                descriptionLink
-                draftAt
-                executingAt
-                executionFlags
-                governance
-                governingTokenMint
-                instructionsCount
-                instructionsExecutedCount
-                instructionsNextIndex
-                lamports
-                maxVoteWeight
-                name
-                noVotesCount
-                signatoriesCount
-                signatoriesSignedOffCount
-                signingOffAt
-                state
-                tokenOwnerRecord
-                voteThreshold
-                votingAt
-                votingAtSlot
-                votingCompletedAt
-                yesVotesCount
+                    pubkey
+                    closedAt
+                    descriptionLink
+                    draftAt
+                    executingAt
+                    executionFlags
+                    governance
+                    governingTokenMint
+                    instructionsCount
+                    instructionsExecutedCount
+                    instructionsNextIndex
+                    lamports
+                    maxVoteWeight
+                    name
+                    noVotesCount
+                    signatoriesCount
+                    signatoriesSignedOffCount
+                    signingOffAt
+                    state
+                    tokenOwnerRecord
+                    voteThreshold
+                    votingAt
+                    votingAtSlot
+                    votingCompletedAt
+                    yesVotesCount
                 }
         }
         `;
@@ -248,8 +250,8 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
         });
         
         allProposals.push({
-            owner: new PublicKey(realmOwner),
-            pubkey: new PublicKey(account.pubkey),
+            owner: realmOwner ? new PublicKey(realmOwner) : null,
+            pubkey: new PublicKey(account?.pubkey),
             account:{
                 accountType: account.accountType,
                 governance: new PublicKey(account.governance),
@@ -284,8 +286,8 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
 
     data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_ProposalV1"].map((account) => {
         allProposals.push({
-            owner: new PublicKey(realmOwner),
-            pubkey: new PublicKey(account.pubkey),
+            owner: realmOwner ? new PublicKey(realmOwner) : null,
+            pubkey: new PublicKey(account?.pubkey),
             account:{
                 accountType: account.accountType,
                 governance: new PublicKey(account.governance),
