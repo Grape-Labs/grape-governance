@@ -1506,12 +1506,11 @@ export function GovernanceCachedView(props: any) {
                                             textAlign:'center'
                                         }}
                                     >
-                                        Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Hybrid Caching<br/>
+                                        Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime Hybrid Caching<br/>
                                         {cachedTimestamp &&
                                             <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
                                         }
                                         Cache Node: {storagePool}<br/>
-                                        <br/>* This is the time taken to capture all proposals & proposal details - proposals currently voting are captured via RPC for realtime results
                                     </Typography>
 
                                     {showGovernanceNavigation ? 
