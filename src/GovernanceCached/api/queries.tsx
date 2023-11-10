@@ -233,8 +233,9 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any) => {
         const { data } = await client.query({ query: GET_QUERY_MEMBERS(filterRealm) });
         // normalize data
         const allRules = new Array();
-
+        
         data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_TokenOwnerRecordV2"].map((item) => {
+            console.log("item: "+JSON.stringify(item));
             allRules.push({
                 //owner: new PublicKey(item.owner),
                 pubkey: new PublicKey(item.pubkey),
@@ -243,8 +244,8 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any) => {
                     accountType: item.accountType,
                     governingTokenMint: new PublicKey(item.governingTokenMint),
                     governingTokenOwner: new PublicKey(item.governingTokenOwner),
-                    unrelinquishedVotesCount: parseInt(item.unrelinquishedVotesCount),
-                    governingTokenDepositAmount: item.governingTokenDepositAmount,
+                    governingTokenDepositAmount: item.governingTokenDepositAmount.toString(16),
+                    unrelinquishedVotesCount: item.unrelinquishedVotesCount,
                     totalVotesCount: item.totalVotesCount,
                     outstandingProposalCount: item.outstandingProposalCount,
                     reserved: item.reserved,
@@ -262,7 +263,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any) => {
                     accountType: item.accountType,
                     governingTokenMint: new PublicKey(item.governingTokenMint),
                     governingTokenOwner: new PublicKey(item.governingTokenOwner),
-                    governingTokenDepositAmount: parseInt(item.governingTokenDepositAmount),
+                    governingTokenDepositAmount: item.governingTokenDepositAmount.toString(16),
                     unrelinquishedVotesCount: item.unrelinquishedVotesCount,
                     totalVotesCount: item.totalVotesCount,
                     outstandingProposalCount: item.outstandingProposalCount,
