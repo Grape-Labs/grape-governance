@@ -300,6 +300,14 @@ function TablePaginationActions(props) {
             </>
         )
     }
+    
+    const conditionalTextDecoration = (item) => {
+        if (item.account?.state === 6) {
+          return "line-through";
+        } else {
+          return "";
+        }
+      };
 
     React.useEffect(() => { 
         if (proposals)
@@ -314,6 +322,7 @@ function TablePaginationActions(props) {
             
         )
     }
+
 
     
         return (
@@ -372,82 +381,78 @@ function TablePaginationActions(props) {
                                         ? proposals.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                                         : proposals*/
                                     ).map((item:any, index:number) => (
-                                    <>
-                                        {/*console.log("item ("+index+"): "+JSON.stringify(item))*/}
-                                        {item?.pubkey && item?.account && item.account?.options && item.account?.options.length > 0 &&
-                                            <>
-                                                {/*(item.account?.options[0].voteWeight && item.account?.state === 2) ?
-                                                    <TableRow sx={{border:'none'}}>
-                                                        <TableCell colSpan={7} sx={{borderBottom:'none!important'}}>
-                                                            <Box sx={{ width: '100%' }}>
-                                                                <VotesLinearProgress variant="determinate" value={(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100)} />
-                                                            </Box>
+                                        <>
+                                            {/*console.log("item ("+index+"): "+JSON.stringify(item))*/}
+                                            {item?.pubkey && item?.account && item.account?.options && item.account?.options.length > 0 &&
+                                                <>
+                                                    {/*(item.account?.options[0].voteWeight && item.account?.state === 2) ?
+                                                        <TableRow sx={{border:'none'}}>
+                                                            <TableCell colSpan={7} sx={{borderBottom:'none!important'}}>
+                                                                <Box sx={{ width: '100%' }}>
+                                                                    <VotesLinearProgress variant="determinate" value={(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100)} />
+                                                                </Box>
+                                                            </TableCell>
+                                                        </TableRow>
+                                            :<></>*/}
+
+                                                    <TableRow key={index} sx={{borderBottom:"none"}}>
+                                                        <TableCell>
+                                                            <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`} >
+                                                                <Grid container>
+                                                                    <Grid item xs={12}>
+                                                                        <Typography variant="body1">
+                                                                            {item.account?.name}
+                                                                        </Typography>
+                                                                    </Grid>
+                                                                    <Grid item xs={12}>
+                                                                        {item.account?.descriptionLink}
+                                                                    </Grid>
+                                                                </Grid>
+                                                            </Typography>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
+                                                                {`${item.account?.draftAt ? (moment.unix(Number((item.account.draftAt))).format("MMM D, YYYY, h:mm a")) : `-`}`}
+                                                            </Typography>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
+                                                                {`${item.account?.signingOffAt ? (moment.unix(Number((item.account?.signingOffAt))).format("MMM D, YYYY, h:mm a")) : `N/A`}`}
+                                                            </Typography>
+                                                        </TableCell>
+                                                        
+                                                        {item?.account?.voteType?.type === 1 ?
+                                                            <>
+                                                                <TableCell 
+                                                                    colSpan={2}
+                                                                    sx={{textAlign:'center'}}>Multiple Choice Poll
+                                                                </TableCell>
+                                                            </>
+                                                        :
+                                                            <>
+                                                        
+                                                            <TableCell>
+                                                                ...
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                ...
+                                                            </TableCell>
+                                                            </>
+                                                        }
+                                                        <TableCell  align="center">
+                                                            <GetProposalStatus item={item} />
+                                                        </TableCell>
+                                                        <TableCell align="center">
+                                                            ...
                                                         </TableCell>
                                                     </TableRow>
-                                        :<></>*/}
+                                                        
+                                                </>
+                                            }
+                                        </>
 
-                                                <TableRow key={index} sx={{borderBottom:"none"}}>
-                                                    <TableCell>
-                                                        <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
-                                                            <Grid container>
-                                                                <Grid item xs={12}>
-                                                                    <Typography variant="body1">
-                                                                        {item.account?.name}
-                                                                    </Typography>
-                                                                </Grid>
-                                                                <Grid item xs={12}>
-                                                                    {item.account?.descriptionLink}
-                                                                </Grid>
-                                                            </Grid>
-                                                        </Typography>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
-                                                            {`${item.account?.draftAt ? (moment.unix(Number((item.account.draftAt))).format("MMM D, YYYY, h:mm a")) : `-`}`}
-                                                        </Typography>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
-                                                            {`${item.account?.signingOffAt ? (moment.unix(Number((item.account?.signingOffAt))).format("MMM D, YYYY, h:mm a")) : `N/A`}`}
-                                                        </Typography>
-                                                    </TableCell>
-                                                    
-                                                    {item?.account?.voteType?.type === 1 ?
-                                                        <>
-                                                            <TableCell 
-                                                                colSpan={2}
-                                                                sx={{textAlign:'center'}}>Multiple Choice Poll
-                                                            </TableCell>
-                                                        </>
-                                                    :
-                                                        <>
-                                                    
-                                                        <TableCell>
-                                                            ...
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            ...
-                                                        </TableCell>
-                                                        </>
-                                                    }
-                                                    <TableCell  align="center">
-                                                        <GetProposalStatus item={item} />
-                                                    </TableCell>
-                                                    <TableCell align="center">
-                                                        ...
-                                                    </TableCell>
-                                                </TableRow>
-                                                    
-                                            </>
-                                        }
-                                    </>
-
-                                ))}
-                                {/*emptyRows > 0 && (
-                                    <TableRow style={{ height: 53 * emptyRows }}>
-                                        <TableCell colSpan={5} />
-                                    </TableRow>
-                                )*/}
+                                    )
+                                )}
                                 </>
                                 }
                             </TableBody>

@@ -480,6 +480,19 @@ export default function IntraDAOVoteView(props: any) {
     const fetchGovernanceProposals = async () => {
         setProposalLoading(true);
 
+        let selectedMint = null;
+        for (let item of participatingGovernanceRecordRows){
+            if (item.realm.toBase58() === daoToParticipateAddress){
+                console.log("item: "+JSON.stringify(item));
+                setSelectedCommunityDecimals(item.decimals);
+                setWalletSelectedTokenType(item.tokenType)
+                setDaoPropMaxVotes(item.votes);
+                setSelectedCommunityMint(item.governingTokenMint);
+                selectedMint = item.governingTokenMint;
+            }
+        }
+
+
         const gprops = await getAllProposals(RPC_CONNECTION, governance.owner, new PublicKey(daoToParticipateAddress))
 
         const rpcprops = new Array();
@@ -487,10 +500,9 @@ export default function IntraDAOVoteView(props: any) {
             for (const prop of props){
                 if (prop){
                     if (prop.account.state === 2){
-                        //console.log("prop: "+JSON.stringify(prop))
-                        if (prop.account.governingTokenMint.toBase58() === selectedCommunityMint){
-                            rpcprops.push(prop);
-                        } else if (prop.account.governingTokenMint.toBase58() === selectedCouncilMint){
+                        //console.log("prop com: "+JSON.stringify(prop))
+                        //console.log(prop.account.governingTokenMint.toBase58() + " vs " + selectedMint)
+                        if (prop.account.governingTokenMint.toBase58() === selectedMint){
                             rpcprops.push(prop);
                         }
                     }
@@ -540,39 +552,44 @@ export default function IntraDAOVoteView(props: any) {
             const uTable = rlms.reduce((acc, it) => (acc[it.pubkey.toBase58()] = it, acc), {})
             //setRealms(uTable);
             
-            const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, new PublicKey(fromAddress));
+            const thisOwnerRecordsbyOwner = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, new PublicKey(fromAddress));
         
             //console.log("ownerRecordsbyOwner "+JSON.stringify(ownerRecordsbyOwner))
             const selectedDao: any[] = [];
             
             let cnt = 0;
             //console.log("all uTable "+JSON.stringify(uTable))
-        
-            for (const item of ownerRecordsbyOwner){
+            let decimals = 0;
+            for (const item of thisOwnerRecordsbyOwner){
                 const realm = uTable[item.account.realm.toBase58()];
                 //console.log("realm: "+JSON.stringify(realm))
                 const name = realm.account.name;
+                let voteCount = 0;
+                let tokenType = false;
                 let votes = item.account.governingTokenDepositAmount.toNumber().toString();
                 
                 if (realm.account.config?.councilMint?.toBase58() === item?.account?.governingTokenMint?.toBase58()){
+                    voteCount =  item.account.governingTokenDepositAmount.toNumber();
                     votes = item.account.governingTokenDepositAmount.toNumber().toLocaleString() + ' Council';
-                    setWalletSelectedTokenType(false)
+                    setWalletSelectedTokenType(tokenType)
                     setDaoPropMaxVotes(votes);
                     setSelectedCouncilMint(item.account.governingTokenMint.toBase58())
                 }else{
                     
                     const accountInfo = await connection.getParsedAccountInfo( new PublicKey(item.account.governingTokenMint));
                     //const accountParsed = JSON.parse(JSON.stringify(accountInfo.value.data));
-                    const decimals = accountInfo.value.data.parsed.info.decimals;
+                    decimals = accountInfo.value.data.parsed.info.decimals;
                     
-                    votes = (Number(item.account.governingTokenDepositAmount)/10**decimals).toLocaleString()  + ' Community';
+                    voteCount = Number(item.account.governingTokenDepositAmount)/10**decimals;
+                    votes = (voteCount).toLocaleString()  + ' Community';
 
                     // fetch token decimals!
-                    //console.log("mint: "+ tokenMint);
+                    console.log("mint: "+ tokenMint);
                     setSelectedCommunityDecimals(decimals);
-                    
-                    setWalletSelectedTokenType(true)
+                    tokenType = true;
+                    setWalletSelectedTokenType(tokenType)
                     setDaoPropMaxVotes(votes);
+
                     setSelectedCommunityMint(item.account.governingTokenMint.toBase58());
                     
                     /*
@@ -609,10 +626,13 @@ export default function IntraDAOVoteView(props: any) {
                     owner:item.owner,
                     governingTokenMint:item.account.governingTokenMint.toBase58(),
                     governingTokenDepositAmount:votes,
+                    governingTokenDepositAmountNum:voteCount,
                     unrelinquishedVotesCount:item.account.unrelinquishedVotesCount,
                     totalVotesCount:item.account.totalVotesCount,
                     details:item.account.realm.toBase58(),
-                    link:item.account.realm
+                    link:item.account.realm,
+                    type:tokenType,
+                    decimals:decimals,
                 });
                 cnt++;
             }
