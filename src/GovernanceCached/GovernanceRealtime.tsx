@@ -34,6 +34,8 @@ import {
   Fade,
 } from '@mui/material/';
 
+import ExplorerView from '../utils/grapeTools/Explorer';
+
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
 
@@ -409,7 +411,13 @@ function TablePaginationActions(props) {
                                                                     </Grid>
 
                                                                     <Grid item xs={12}>
-                                                                    {/*item.account?.tokeType ? `Community` : `Council`*/} Mint {item.account?.governingTokenMint.toBase58()}
+                                                                        <Typography sx={{fontSize:'9px'}}>
+                                                                        Governing Mint <ExplorerView
+                                                                            address={item.account.governingTokenMint?.toBase58()} type='address'
+                                                                            shorten={8}
+                                                                            hideTitle={false} style='text' color='white' fontSize='9px'/>
+                                                                            {/*item.account?.tokeType ? `Community` : `Council`*/}
+                                                                        </Typography>
                                                                     </Grid>
                                                                 </Grid>
                                                             </Typography>
