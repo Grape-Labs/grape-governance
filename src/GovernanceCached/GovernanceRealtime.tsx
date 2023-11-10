@@ -31,6 +31,7 @@ import {
   FormGroup,
   FormControlLabel,
   Switch,
+  Fade,
 } from '@mui/material/';
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
@@ -88,6 +89,24 @@ import {
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
+
+const BlinkingDotContainer = styled("div")({
+    width: 10,
+    height: 10,
+    borderRadius: "50%",
+    backgroundColor: "red",
+    animation: `blinking-dot 1s ease-in-out infinite`,
+    display: 'inline-block',
+});
+const BlinkingDot = () => {
+    return (
+      <BlinkingDotContainer>
+        <Fade in={true}>
+          <div style={{ width: 5, height: 5, borderRadius: "50%" }} />
+        </Fade>
+      </BlinkingDotContainer>
+    );
+  };
 
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
     height: 15,
@@ -633,7 +652,7 @@ export function GovernanceRealtimeView(props: any) {
                                     <Grid container>
                                         <Grid item xs={12}>
                                             <Typography variant="h4">
-                                                Realtime Governance Proposals
+                                                Realtime Governance Proposals <BlinkingDot />
                                             </Typography>
                                         </Grid>
                                     </Grid>

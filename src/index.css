@@ -28,6 +28,23 @@ body .frictionless-body{
   background-attachment: fixed;
 }
 
+.BlinkingDot {
+  display: inline-block;
+  margin-left: 10px;
+}
+
+@keyframes blinking-dot {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 .frictionless-body {
   margin: 0;
   font-size-adjust: none;
