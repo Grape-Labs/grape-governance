@@ -194,6 +194,89 @@ function GET_QUERY_MEMBERS(realm:string){
         `
 }
 
+function GET_QUERY_REALM(realm:string){
+    console.log("REALM: "+realm)
+    return gql `
+        query MyQuery {
+            GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_RealmV1(where: {pubkey: {_eq: "${realm}"}}) {
+                authority
+                communityMint
+                config
+                name
+                reserved
+                
+            }
+            GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_RealmV2(where: {pubkey: {_eq: "${realm}"}}) {
+                authority
+                communityMint
+                config
+                name
+                reserved
+                
+            }
+        }
+        `
+}
+
+export const getRealmIndexed = async (filterRealm?:any) => {
+    if (filterRealm){
+        const { data } = await client.query({ query: GET_QUERY_REALM(filterRealm) });
+        // normalize data
+        const allRules = new Array();
+        console.log("data: "+JSON.stringify(data));
+        
+        data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_RealmV2"].map((item) => {
+            allRules.push({
+                pubkey: new PublicKey(filterRealm),
+                //owner: new PublicKey(item.owner),
+                account: {
+                    authority: new PublicKey(item.authority),
+                    communityMint: new PublicKey(item.communityMint),
+                    config: {
+                        councilMint: new PublicKey(item.config.councilMint),
+                        communityMintMaxVoteWeightSource: {
+                            type:item.config.communityMintMaxVoteWeightSource.type,
+                            value:item.config.communityMintMaxVoteWeightSource.value.toString(16)
+                        },
+                        minCommunityTokensToCreateGovernance: item.config.minCommunityTokensToCreateGovernance.toString(16),
+                        useCommunityVoterWeightAddin: item.config.useCommunityVoterWeightAddin,
+                        useMaxCommunityVoterWeightAddin: item.config.useMaxCommunityVoterWeightAddin,
+                        reserved: item.config.reserved,
+                    },
+                    name: item.name,
+                    //votingProposalCount: item.votingProposalCount,
+                    //activeProposalCount: item.activeProposalCount
+                }
+            })
+        });
+
+        data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_RealmV1"].map((item) => {
+            allRules.push({
+                pubkey: new PublicKey(filterRealm),
+                account: {
+                    authority: new PublicKey(item.authority),
+                    communityMint: new PublicKey(item.communityMint),
+                    config: {
+                        councilMint: new PublicKey(item.config.councilMint),
+                        communityMintMaxVoteWeightSource: {
+                            type:item.config.communityMintMaxVoteWeightSource.type,
+                            value:item.config.communityMintMaxVoteWeightSource.value.toString(16)
+                        },
+                        minCommunityTokensToCreateGovernance: item.config.minCommunityTokensToCreateGovernance.toString(16),
+                        useCommunityVoterWeightAddin: item.config.useCommunityVoterWeightAddin,
+                        useMaxCommunityVoterWeightAddin: item.config.useMaxCommunityVoterWeightAddin,
+                        reserved: item.config.reserved,
+                    },
+                    name: item.name,
+                    //votingProposalCount: item.votingProposalCount
+                }
+            })
+        });
+
+        return allRules && allRules[0];
+    }
+};
+
 export const getAllGovernancesIndexed = async (filterRealm?:any) => {
     if (filterRealm){
         const { data } = await client.query({ query: GET_QUERY_RULES(filterRealm) });
@@ -235,7 +318,6 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any) => {
         const allRules = new Array();
         
         data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_TokenOwnerRecordV2"].map((item) => {
-            console.log("item: "+JSON.stringify(item));
             allRules.push({
                 //owner: new PublicKey(item.owner),
                 pubkey: new PublicKey(item.pubkey),
@@ -284,8 +366,6 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
     const allProposals = new Array();
 
     data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_ProposalV2"].map((account) => {
-        console.log("account: "+JSON.stringify(account))
-        
         const options = account?.options?.map && account.options.map((option) => {
             return {
                 label: option.label,

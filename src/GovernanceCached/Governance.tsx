@@ -82,6 +82,7 @@ import {
     getRealmConfig  } from '@solana/spl-governance';
 
 import { 
+    getRealmIndexed,
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
@@ -760,13 +761,18 @@ export function GovernanceCachedView(props: any) {
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
                 let grealm = null;
 
+                
+
                 if (cachedRealm){
                     console.log("Realm from cache");
                     //console.log("cacheRealm: "+JSON.stringify(cachedRealm))
                     grealm = cachedRealm;    
                 } else{
-                    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
+                    grealm = await getRealmIndexed(governanceAddress);
+                    if (!grealm)
+                        grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
                 }
+                //console.log("grealm: "+JSON.stringify(grealm));
                 setRealm(grealm);
                 setRealmName(grealm.account.name);
                 
@@ -802,7 +808,7 @@ export function GovernanceCachedView(props: any) {
                 } else if (!indexedTokenOwnerRecords){
                     rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
                 }
-                
+
                 setMemberMap(rawTokenOwnerRecords);
                 
 
@@ -1070,7 +1076,7 @@ export function GovernanceCachedView(props: any) {
     React.useEffect(() => {
         if (allProposals){
             if (filterState){
-                console.log("allProposals: "+JSON.stringify(allProposals))
+                //console.log("allProposals: "+JSON.stringify(allProposals))
                 const tmpProps = allProposals
                     .filter((item) => item.account?.state !== 6)
                     .sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))

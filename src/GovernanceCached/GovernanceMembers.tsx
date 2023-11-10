@@ -63,6 +63,7 @@ import {
     getAllTokenOwnerRecords, 
     getTokenOwnerRecordsByOwner } from '@solana/spl-governance';
 import { 
+    getRealmIndexed,
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
@@ -417,7 +418,9 @@ export function GovernanceMembersView(props: any) {
                     console.log("Realm from cache")
                     grealm = cachedRealm;
                 } else{
-                    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
+                    grealm = await getRealmIndexed(governanceAddress);
+                    if (!grealm)
+                        grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
                 }
                 const realmPk = new PublicKey(grealm.pubkey);
                 setRealm(grealm);

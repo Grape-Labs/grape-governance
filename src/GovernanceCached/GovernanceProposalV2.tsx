@@ -18,6 +18,12 @@ import {
     tryGetRealmConfig, 
     getRealmConfig,
     InstructionData  } from '@solana/spl-governance';
+import { 
+        getRealmIndexed,
+        getAllProposalsIndexed,
+        getAllGovernancesIndexed,
+        getAllTokenOwnerRecordsIndexed,
+} from './api/queries';
 import {
     fetchGovernanceLookupFile,
     getFileFromLookup
@@ -1354,15 +1360,23 @@ export function GovernanceProposalV2View(props: any){
         }
 
         if (!realm){
-            grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress));
-            realmPk = new PublicKey(grealm?.pubkey);
+
+            //grealm = await getRealmIndexed(governanceAddress);
+            //if (!grealm)
+                grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
+
+            //grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress));
+            realmPk = new PublicKey(grealm.pubkey);
+            
             setRealm(grealm);
             setRealmName(grealm?.account?.name);
         } else{
             setRealmName(realm.account?.name);
         }
         if (!memberMap){
-            const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+            let rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58());
+            if (!rawTokenOwnerRecords)
+                rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
             setMemberMap(rawTokenOwnerRecords);
         }
 
