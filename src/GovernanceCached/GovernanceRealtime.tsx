@@ -675,7 +675,7 @@ export function GovernanceRealtimeView(props: any) {
                                             textAlign:'center'
                                         }}
                                     >
-                                        Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Hybrid Caching<br/>
+                                        Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime<br/>
                                     </Typography>
 
                                 </Grid>
