@@ -393,7 +393,7 @@ function TablePaginationActions(props) {
                                             <>
                                                 {(item.account?.options[0].voteWeight && item.account?.state === 2) ?
                                                     <TableRow sx={{border:'none'}}>
-                                                        <TableCell colSpan={6} sx={{borderBottom:'none!important'}}>
+                                                        <TableCell colSpan={7} sx={{borderBottom:'none!important'}}>
                                                             <Box sx={{ width: '100%' }}>
                                                                 <VotesLinearProgress variant="determinate" value={(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100)} />
                                                             </Box>
