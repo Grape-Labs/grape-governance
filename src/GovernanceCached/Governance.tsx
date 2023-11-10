@@ -505,7 +505,7 @@ function RenderGovernanceTable(props:any) {
                                                                             </>
                                                                             :
                                                                             <>0%</>
-                                                                    }
+                                                                            }
                                                                         </Button>
                                                                     </Tooltip>
                                                                 </Typography>
@@ -530,7 +530,7 @@ function RenderGovernanceTable(props:any) {
                                                                             </>
                                                                             :
                                                                             <>0%</>
-                                                                    }
+                                                                            }
                                                                         </Button>
                                                                     </Tooltip>
                                                                 </Typography>

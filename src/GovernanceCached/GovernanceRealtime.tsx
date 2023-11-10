@@ -453,10 +453,21 @@ function TablePaginationActions(props) {
                                                             <>
                                                         
                                                             <TableCell>
-                                                                ...
+                                                                {Number(item.account?.options[0].voteWeight) > 0 ?
+                                                                <>
+                                                                {`${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
+                                                                </>
+                                                                :
+                                                                <>0%</>
+                                                                }
                                                             </TableCell>
                                                             <TableCell>
-                                                                ...
+                                                                {Number(item.account?.denyVoteWeight) > 0 ?
+                                                                <>
+                                                                {`${(((Number(item.account?.denyVoteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
+                                                                </>:
+                                                                <>0%</>
+                                                                }
                                                             </TableCell>
                                                             </>
                                                         }
@@ -584,7 +595,6 @@ export function GovernanceRealtimeView(props: any) {
     React.useEffect(() => {
         if (allProposals){
             if (filterState){
-                console.log("allProposals: "+JSON.stringify(allProposals))
                 const tmpProps = allProposals
                     .filter((item) => item.account?.state !== 6)
                     .sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
