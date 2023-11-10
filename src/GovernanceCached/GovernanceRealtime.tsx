@@ -652,7 +652,10 @@ export function GovernanceRealtimeView(props: any) {
                                     <Grid container>
                                         <Grid item xs={12}>
                                             <Typography variant="h4">
-                                                Realtime Governance Proposals <BlinkingDot />
+                                                Realtime Proposals <BlinkingDot />
+                                            </Typography>
+                                            <Typography variant="caption">
+                                                All SPL Governance
                                             </Typography>
                                         </Grid>
                                     </Grid>
