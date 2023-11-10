@@ -250,68 +250,53 @@ function TablePaginationActions(props) {
     
     function GetProposalStatus(props: any){
         const thisitem = props.item;
-        const [thisGovernance, setThisGovernance] = React.useState(props.cachedGovernnace);
-
+        
         React.useEffect(() => { 
             if (thisitem.account?.state === 2){ // if voting state
-                if (!thisGovernance){
+                //if (!thisGovernance){
                     //console.log("get gov props")
                     //getGovernanceProps()
-                }
+                //}
             }
-        }, [thisitem, !thisGovernance]);
+        }, [thisitem]);
 
         // calculate time left
         // /60/60/24 to get days
         
         return (
             <>
-                <TableCell  align="center">
-                    <Typography variant="h6">
-                        <Tooltip title={
-                            <>
+                <Typography variant="h6">
+                    <Tooltip title={
+                        <>
+                            Current status of this proposal
+                        </>
+                        }>
+                        
+                        <Button sx={{borderRadius:'17px',color:'inherit',textTransform:'none'}}>
+                            {GOVERNANCE_STATE[thisitem.account?.state]}
                                 <>
-                                {thisGovernance?.governance?.account?.config?.baseVotingTime ?
-                                    `Ending ${moment.unix(Number(thisitem.account?.signingOffAt)+(Number(thisGovernance?.governance?.account?.config?.baseVotingTime))).fromNow()}`
-                                :
+                                {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
                                     <>
-                                    {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
-                                        <>{`Started: ${thisitem.account?.signingOffAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))}`}<br/>{`Ended: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.votingCompletedAt))).format("MMMM D, YYYY, h:mm a"))}`}</>
-                                    :
-                                        `Created: ${thisitem.account?.signingOffAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))}`
-                                    }
-                                    </>
-                                } 
-                                </>
-                            </>
-                            }>
-                            
-                            <Button sx={{borderRadius:'17px',color:'inherit',textTransform:'none'}}>
-                                {GOVERNANCE_STATE[thisitem.account?.state]}
-                                    <>
-                                    {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
-                                        <>
-                                            { (thisitem.account?.state === 3 || thisitem.account?.state === 5) ?
-                                                <CheckCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
-                                            :
-                                                <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
-                                            }
-                                        </>
-                                    :
-                                        <>
-                                        { thisitem.account?.state === 2 ?
-                                            <TimerIcon sx={{ fontSize:"small",ml:1}} />
-                                        
-                                        : 
+                                        { (thisitem.account?.state === 3 || thisitem.account?.state === 5) ?
+                                            <CheckCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
+                                        :
                                             <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
                                         }
-                                        </>
+                                    </>
+                                :
+                                    <>
+                                    { thisitem.account?.state === 2 ?
+                                        <TimerIcon sx={{ fontSize:"small",ml:1}} />
+                                    
+                                    : 
+                                        <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
                                     }
                                     </>
-                            </Button>
-                        </Tooltip>
-                    </Typography>
-                </TableCell>
+                                }
+                                </>
+                        </Button>
+                    </Tooltip>
+                </Typography>
             </>
         )
     }
@@ -391,7 +376,7 @@ function TablePaginationActions(props) {
                                         {/*console.log("item ("+index+"): "+JSON.stringify(item))*/}
                                         {item?.pubkey && item?.account && item.account?.options && item.account?.options.length > 0 &&
                                             <>
-                                                {(item.account?.options[0].voteWeight && item.account?.state === 2) ?
+                                                {/*(item.account?.options[0].voteWeight && item.account?.state === 2) ?
                                                     <TableRow sx={{border:'none'}}>
                                                         <TableCell colSpan={7} sx={{borderBottom:'none!important'}}>
                                                             <Box sx={{ width: '100%' }}>
@@ -399,7 +384,7 @@ function TablePaginationActions(props) {
                                                             </Box>
                                                         </TableCell>
                                                     </TableRow>
-                                                :<></>}
+                                        :<></>*/}
 
                                                 <TableRow key={index} sx={{borderBottom:"none"}}>
                                                     <TableCell>
@@ -445,7 +430,9 @@ function TablePaginationActions(props) {
                                                         </TableCell>
                                                         </>
                                                     }
-                                                    <TableCell>...</TableCell>
+                                                    <TableCell  align="center">
+                                                        <GetProposalStatus item={item} />
+                                                    </TableCell>
                                                     <TableCell align="center">
                                                         ...
                                                     </TableCell>
