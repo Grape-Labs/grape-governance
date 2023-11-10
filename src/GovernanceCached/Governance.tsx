@@ -83,7 +83,8 @@ import {
 
 import { 
     getAllProposalsIndexed,
-    getAllGovernancesIndexed
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
 } from './api/queries';
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
@@ -781,16 +782,25 @@ export function GovernanceCachedView(props: any) {
                 setAllGovernances(governanceRulesIndexed);
                 
                 //console.log("realmPk: "+realmPk)
-                // Check if we have this cached
-                //console.log("cachedMemberMap "+JSON.stringify(cachedMemberMap));
+                const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58())
+                //console.log("indexTokenOwnerRecords "+JSON.stringify(indexedTokenOwnerRecords));
                 let rawTokenOwnerRecords = null;
                 //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
                 if (cachedMemberMap){
                     console.log("Members from cache");
-                    rawTokenOwnerRecords = cachedMemberMap;
-                } else{
+                    // merge with cachedMemberMap?
+                    for (var rRecord of indexedTokenOwnerRecords){
+                        for (var cRecord of cachedMemberMap){
+                            if (rRecord.pubkey.toBase58() === cRecord.pubkey){
+                                rRecord.socialConnections = cRecord.socialConnections;
+                                rRecord.firstTransactionDate = cRecord.firstTransactionDate;
+                                rRecord.multisigs = cRecord.multisigs;
+                            }
+                        }
+                    }
+                    rawTokenOwnerRecords = indexedTokenOwnerRecords;//cachedMemberMap;
+                } else if (!indexedTokenOwnerRecords){
                     rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
-                    //console.log("HERE!")
                 }
                 
                 setMemberMap(rawTokenOwnerRecords);

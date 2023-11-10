@@ -1,4 +1,3 @@
-import { getRealm, getAllTokenOwnerRecords, getTokenOwnerRecordsByOwner } from '@solana/spl-governance';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
@@ -58,6 +57,16 @@ import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
 import LastPageIcon from '@mui/icons-material/LastPage';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import IconButton from '@mui/material/IconButton';
+
+import { 
+    getRealm, 
+    getAllTokenOwnerRecords, 
+    getTokenOwnerRecordsByOwner } from '@solana/spl-governance';
+import { 
+    getAllProposalsIndexed,
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
+} from './api/queries';
 
 import PropTypes from 'prop-types';
 import { 
@@ -453,12 +462,24 @@ export function GovernanceMembersView(props: any) {
                     setCirculatingSupply(tknSupply);
                 
                 let trecords = null;
-                if (cachedMemberMap){
-                    console.log('from cache members...')
-                    
-                    trecords = cachedMemberMap;
-                } else{
 
+                const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58())
+                //console.log("indexTokenOwnerRecords "+JSON.stringify(indexedTokenOwnerRecords));
+                //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+                if (cachedMemberMap){
+                    console.log("Members from cache");
+                    // merge with cachedMemberMap?
+                    for (var rRecord of indexedTokenOwnerRecords){
+                        for (var cRecord of cachedMemberMap){
+                            if (rRecord.pubkey.toBase58() === cRecord.pubkey){
+                                rRecord.socialConnections = cRecord.socialConnections;
+                                rRecord.firstTransactionDate = cRecord.firstTransactionDate;
+                                rRecord.multisigs = cRecord.multisigs;
+                            }
+                        }
+                    }
+                    trecords = indexedTokenOwnerRecords;//cachedMemberMap;
+                } else if (!indexedTokenOwnerRecords){
                     trecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
                 }
 
@@ -1038,7 +1059,7 @@ export function GovernanceMembersView(props: any) {
                                 variant="caption"
                                 sx={{textAlign:'center'}}
                             >
-                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Cached<br/>
+                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime Hybrid Caching<br/>
                                 {cachedTimestamp &&
                                     <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
                                 }

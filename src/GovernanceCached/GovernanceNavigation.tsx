@@ -34,12 +34,6 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import AddCircle from '@mui/icons-material/AddCircle';
 
 import { 
-    getRealm, 
-    getAllTokenOwnerRecords, 
-    SYSTEM_PROGRAM_ID
-} from '@solana/spl-governance';
-
-import { 
     RPC_CONNECTION,
     PROXY,
     HELIUS_API,
@@ -141,7 +135,7 @@ export default function GovernanceNavigation(props: any){
                             ><BarChartIcon /></Button>
                         </Tooltip>
                         <Tooltip title={
-                            <><strong>Members</strong><br/>* Via Cached Storage
+                            <><strong>Members</strong><br/>* Realtime Hybrid Caching
                             </>}>
                             <Button
                                 component={Link}

@@ -161,6 +161,39 @@ function GET_QUERY_RULES(realm:string){
         `
 }
 
+function GET_QUERY_MEMBERS(realm:string){
+    return gql `
+        query MyQuery {
+            GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_TokenOwnerRecordV2(limit: 5000, where: {realm: {_eq: "${realm}"}}) {
+                governanceDelegate
+                governingTokenDepositAmount
+                governingTokenMint
+                governingTokenOwner
+                lamports
+                outstandingProposalCount
+                realm
+                reserved
+                unrelinquishedVotesCount
+                version
+                pubkey      
+            }
+            GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_TokenOwnerRecordV1(limit:5000, where: {realm: {_eq: "${realm}"}}) {
+                governanceDelegate
+                governingTokenDepositAmount
+                governingTokenMint
+                governingTokenOwner
+                lamports
+                outstandingProposalCount
+                realm
+                reserved
+                unrelinquishedVotesCount
+                version
+                pubkey            
+            }
+        }
+        `
+}
+
 export const getAllGovernancesIndexed = async (filterRealm?:any) => {
     if (filterRealm){
         const { data } = await client.query({ query: GET_QUERY_RULES(filterRealm) });
@@ -196,37 +229,51 @@ export const getAllGovernancesIndexed = async (filterRealm?:any) => {
 
 export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any) => {
     if (filterRealm){
-        /*
-        const { data } = await client.query({ query: GET_QUERY_RULES(filterRealm) });
+        
+        const { data } = await client.query({ query: GET_QUERY_MEMBERS(filterRealm) });
         // normalize data
         const allRules = new Array();
 
-        data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_GovernanceV2"].map((item) => {
+        data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_TokenOwnerRecordV2"].map((item) => {
             allRules.push({
-                pubkey: item.pubkey,
+                //owner: new PublicKey(item.owner),
+                pubkey: new PublicKey(item.pubkey),
                 account: {
                     realm: new PublicKey(item.realm),
-                    governedAccount: new PublicKey(item.governedAccount),
-                    config: item.config,
-                    activeProposalCount: item.activeProposalCount
+                    accountType: item.accountType,
+                    governingTokenMint: new PublicKey(item.governingTokenMint),
+                    governingTokenOwner: new PublicKey(item.governingTokenOwner),
+                    unrelinquishedVotesCount: parseInt(item.unrelinquishedVotesCount),
+                    governingTokenDepositAmount: item.governingTokenDepositAmount,
+                    totalVotesCount: item.totalVotesCount,
+                    outstandingProposalCount: item.outstandingProposalCount,
+                    reserved: item.reserved,
+                    version: item.version
                 }
             })
         });
 
-        data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_GovernanceV1"].map((item) => {
+        data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_TokenOwnerRecordV1"].map((item) => {
             allRules.push({
-                pubkey: item.pubkey,
+                //owner: new PublicKey(item.owner),
+                pubkey: new PublicKey(item.pubkey),
                 account: {
                     realm: new PublicKey(item.realm),
-                    governedAccount: new PublicKey(item.governedAccount),
-                    config: item.config,
-                    activeProposalCount: item.activeProposalCount
+                    accountType: item.accountType,
+                    governingTokenMint: new PublicKey(item.governingTokenMint),
+                    governingTokenOwner: new PublicKey(item.governingTokenOwner),
+                    governingTokenDepositAmount: parseInt(item.governingTokenDepositAmount),
+                    unrelinquishedVotesCount: item.unrelinquishedVotesCount,
+                    totalVotesCount: item.totalVotesCount,
+                    outstandingProposalCount: item.outstandingProposalCount,
+                    reserved: item.reserved,
+                    version: item.version
                 }
             })
         });
 
         return allRules;
-        */
+        
     }
 };
 

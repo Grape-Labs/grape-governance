@@ -419,6 +419,15 @@ function TablePaginationActions(props) {
                                                                             {/*item.account?.tokeType ? `Community` : `Council`*/}
                                                                         </Typography>
                                                                     </Grid>
+                                                                    <Grid item xs={12}>
+                                                                        <Typography sx={{fontSize:'9px'}}>
+                                                                        Rules <ExplorerView
+                                                                            address={item.account.governance?.toBase58()} type='address'
+                                                                            shorten={8}
+                                                                            hideTitle={false} style='text' color='white' fontSize='9px'/>
+                                                                            {/*item.account?.tokeType ? `Community` : `Council`*/}
+                                                                        </Typography>
+                                                                    </Grid>
                                                                 </Grid>
                                                             </Typography>
                                                         </TableCell>

@@ -21,6 +21,11 @@ import {
     withRelinquishVote,
     getRealmConfig,
     InstructionData  } from '@solana/spl-governance';
+import { 
+    getAllProposalsIndexed,
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
+} from './api/queries';
 import {
     fetchGovernanceLookupFile,
     getFileFromLookup
@@ -259,7 +264,9 @@ export function VoteForProposal(props:any){
         if (memberMap){
             rawTokenOwnerRecords = memberMap;
         } else{
-            rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
+            rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58())
+            if (!rawTokenOwnerRecords)
+                rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
         }
 
         //console.log("rawTokenOwnerRecords: "+JSON.stringify(rawTokenOwnerRecords))
