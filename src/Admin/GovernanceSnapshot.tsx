@@ -1298,8 +1298,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
         // get unique members
-        const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58());
-        //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+        // rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58());
+        const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
         //setMemberMap(rawTokenOwnerRecords);
         // fetch current records if available
         let cached_members = new Array();
@@ -1492,8 +1492,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
         const grules = await getAllGovernancesIndexed(realmPk.toBase58());
         const governanceRulesStrArr = grules.map(item => item.pubkey.toBase58());
-        const gprops = await getAllProposalsIndexed(governanceRulesStrArr, new PublicKey(grealm.owner).toBase58());
-        //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
+        //const gprops = await getAllProposalsIndexed(governanceRulesStrArr, new PublicKey(grealm.owner).toBase58());
+        const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
         
         const allprops: any[] = [];
         let passed = 0;

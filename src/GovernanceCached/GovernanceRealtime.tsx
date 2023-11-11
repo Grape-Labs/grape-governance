@@ -357,9 +357,13 @@ function TablePaginationActions(props) {
                                 color='inherit'
                                 sx={{
                                     borderRadius:'17px',
-                                    textTransform:'none'}}
+                                    textTransform:'none',
+                                    ml:1
+                                }}
                             >
-                            {governanceInfo.governanceName} <OpenInNewIcon fontSize='inherit' sx={{ml:1,color:'gray'}} />
+                            <Typography variant="body2">
+                                {governanceInfo.governanceName} <OpenInNewIcon fontSize='inherit' sx={{ml:1,color:'gray'}} />
+                            </Typography>
                             </Button>
                         </Tooltip>
                     </>
@@ -403,7 +407,7 @@ function TablePaginationActions(props) {
                         <StyledTable sx={{ minWidth: 500 }} size="small" aria-label="Portfolio Table">
                             <TableHead>
                                 <TableRow sx={{mb:2}}>
-                                    <TableCell sx={{borderBottom: '1px solid rgba(255,255,255,0.05)'}}><Typography variant="caption">DAO</Typography></TableCell>
+                                    {/*<TableCell sx={{borderBottom: '1px solid rgba(255,255,255,0.05)'}}><Typography variant="caption">DAO</Typography></TableCell>*/}
                                     <TableCell sx={{borderBottom: '1px solid rgba(255,255,255,0.05)'}}><Typography variant="caption">Proposal</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"12.5%",borderBottom: '1px solid rgba(255,255,255,0.05)'}}><Typography variant="caption">Drafted</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"12.5%",borderBottom: '1px solid rgba(255,255,255,0.05)'}}><Typography variant="caption">Signed Off</Typography></TableCell>
@@ -454,6 +458,7 @@ function TablePaginationActions(props) {
                                             :<></>*/}
 
                                                     <TableRow key={index} sx={{ borderBottom: 'unset!important',mt:2 }}>
+                                                        {/*
                                                         <TableCell align="left"
                                                             sx={{borderBottom:'none'}}
                                                         >
@@ -465,6 +470,7 @@ function TablePaginationActions(props) {
                                                                 />
                                                             </Typography>
                                                         </TableCell>
+                                                        */}
                                                         <TableCell sx={{borderBottom:'none',mt:0,pt:0}}>
                                                             <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`} >
                                                                 <Grid container>
@@ -476,7 +482,13 @@ function TablePaginationActions(props) {
                                                                     <Grid item xs={12}>
                                                                         <Typography variant="body1">
                                                                         {item.account?.descriptionLink}
+                                                                        <GetGovernanceFromRulesView
+                                                                            governanceLookup={governanceLookup}
+                                                                            rulesWallet={item.account.governance?.toBase58()}
+                                                                            proposal={item.pubkey.toBase58()}
+                                                                        />
                                                                         </Typography>
+                                                                        
                                                                     </Grid>
                                                                 </Grid>
                                                             </Typography>
@@ -535,7 +547,7 @@ function TablePaginationActions(props) {
 
                                                     </TableRow>
                                                     <TableRow sx={{pb:2}}>
-                                                        <TableCell  align="center" colSpan={7} sx={{borderBottom: '1px solid rgba(255,255,255,0.05)',mt:0,mb:0,pt:0,pb:0}}>
+                                                        <TableCell  align="center" colSpan={6} sx={{borderBottom: '1px solid rgba(255,255,255,0.05)',mt:0,mb:0,pt:0,pb:0}}>
                                                         <Grid container xs={12}
                                                             sx={{
                                                                 width:'100%',
