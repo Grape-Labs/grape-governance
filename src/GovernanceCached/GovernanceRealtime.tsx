@@ -457,7 +457,7 @@ function TablePaginationActions(props) {
                                                         </TableRow>
                                             :<></>*/}
 
-                                                    <TableRow key={index} sx={{ borderBottom: 'unset!important',mt:2 }}>
+                                                    <TableRow key={index} sx={{ borderBottom: 'unset!important' }}>
                                                         {/*
                                                         <TableCell align="left"
                                                             sx={{borderBottom:'none'}}
@@ -475,7 +475,7 @@ function TablePaginationActions(props) {
                                                             <Typography variant="caption" 
                                                                 color={(item.account?.state === 2) ? `white` : `gray`} 
                                                                 sx={{ textDecoration: (item.account?.state === 6) ? 'line-through' : 'none' }}>
-                                                                <Grid container>
+                                                                <Grid container sx={{mt:1}}>
                                                                     <Grid item xs={12}>
                                                                         <Typography variant="h6">
                                                                             {item.account?.name} 
@@ -797,6 +797,7 @@ export function GovernanceRealtimeView(props: any) {
                             <Grid container
                                 sx={{
                                     m: 0,
+                                    mb: 2,
                                 }}
                             >
                                 <Grid item xs={12} sm={6} container justifyContent="flex-start">
