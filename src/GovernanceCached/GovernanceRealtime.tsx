@@ -393,15 +393,14 @@ function TablePaginationActions(props) {
                     <Table sx={{ minWidth: 650 }}>
                         <StyledTable sx={{ minWidth: 500 }} size="small" aria-label="Portfolio Table">
                             <TableHead>
-                                <TableRow sx={{borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
-                                    <TableCell><Typography variant="caption">DAO</Typography></TableCell>
-                                    <TableCell><Typography variant="caption">Proposal</Typography></TableCell>
-                                    <TableCell align="center" sx={{width:"12.5%"}}><Typography variant="caption">Drafted</Typography></TableCell>
-                                    <TableCell align="center" sx={{width:"12.5%"}}><Typography variant="caption">Signed Off</Typography></TableCell>
-                                    <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Yes</Typography></TableCell>
-                                    <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">No</Typography></TableCell>
-                                    <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Status</Typography></TableCell>
-                                    
+                                <TableRow sx={{mb:2}}>
+                                    <TableCell sx={{borderBottom: '1px solid rgba(255,255,255,0.05)'}}><Typography variant="caption">DAO</Typography></TableCell>
+                                    <TableCell sx={{borderBottom: '1px solid rgba(255,255,255,0.05)'}}><Typography variant="caption">Proposal</Typography></TableCell>
+                                    <TableCell align="center" sx={{width:"12.5%",borderBottom: '1px solid rgba(255,255,255,0.05)'}}><Typography variant="caption">Drafted</Typography></TableCell>
+                                    <TableCell align="center" sx={{width:"12.5%",borderBottom: '1px solid rgba(255,255,255,0.05)'}}><Typography variant="caption">Signed Off</Typography></TableCell>
+                                    <TableCell align="center" sx={{width:"1%",borderBottom: '1px solid rgba(255,255,255,0.05)'}}><Typography variant="caption">Yes</Typography></TableCell>
+                                    <TableCell align="center" sx={{width:"1%",borderBottom: '1px solid rgba(255,255,255,0.05)'}}><Typography variant="caption">No</Typography></TableCell>
+                                    <TableCell align="center" sx={{width:"1%",borderBottom: '1px solid rgba(255,255,255,0.05)'}}><Typography variant="caption">Status</Typography></TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
