@@ -472,7 +472,9 @@ function TablePaginationActions(props) {
                                                         </TableCell>
                                                         */}
                                                         <TableCell sx={{borderBottom:'none',mt:0,pt:0}}>
-                                                            <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`} >
+                                                            <Typography variant="caption" 
+                                                                color={(item.account?.state === 2) ? `white` : `gray`} 
+                                                                sx={{ textDecoration: (item.account?.state === 6) ? 'line-through' : 'none' }}>
                                                                 <Grid container>
                                                                     <Grid item xs={12}>
                                                                         <Typography variant="h6">
