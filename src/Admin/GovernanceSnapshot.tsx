@@ -662,7 +662,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     let gTD = null;
     let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account?.communityMint))
     //console.log("tokenDetails: "+JSON.stringify(tokenDetails))
-    gTD = tokenDetails.value.data.parsed.info.decimals;
+    gTD = tokenDetails.value.data?.parsed?.info?.decimals;
     if (!gTD){
         if (tokenMap.get(grealm.account?.communityMint.toBase58())){
             //setGovernanceType(0);
