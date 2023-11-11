@@ -327,8 +327,8 @@ function TablePaginationActions(props) {
                         for (let ggitem of glitem.governances){
                             if (ggitem.pubkey === rulesWallet){
                                 setGovernanceInfo(glitem);
-                                console.log("found: "+glitem.governanceName);
-                                console.log("found governanceAddress: "+glitem.governanceAddress);
+                                //console.log("found: "+glitem.governanceName);
+                                //console.log("found governanceAddress: "+glitem.governanceAddress);
                             }
                         }
                     }
@@ -340,7 +340,16 @@ function TablePaginationActions(props) {
             <>
                 {governanceInfo &&
                     <>
+                        <Button 
+                            href={`https://governance.so/proposal/${governanceInfo.governancAddress}"/${proposal}`}
+                            target='_blank'
+                            color='inherit'
+                            sx={{
+                                borderRadius:'17px',
+                                textTransform:'none'}}
+                        >
                         {governanceInfo.governanceName}
+                        </Button>
                     </>
                 }
             </>
