@@ -1545,13 +1545,9 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 }
             } else{
                 /*
-                if (count < 1){
-                    const prop_details = await getProposal(RPC_CONNECTION, prop.pubkey);
-                    console.log("prop_details: "+JSON.stringify(prop_details))
-                }*/
-
+                
                 // check if community or council
-                if (grealm.account.config?.councilMint && (new PublicKey(grealm.account.config?.councilMint).toBase58() === props.account.governingTokenMint.toBase58()))
+                if (grealm.account.config?.councilMint && (new PublicKey(grealm.account.config?.councilMint).toBase58() === props.account?.governingTokenMint.toBase58()))
                     council++;
                 
                 if (props){
@@ -1578,6 +1574,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     }
                 }
                 count++;
+                */
             }
         }
         

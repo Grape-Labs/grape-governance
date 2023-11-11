@@ -350,7 +350,7 @@ function TablePaginationActions(props) {
             <>
                 {governanceInfo &&
                     <>
-                        <Tooltip title="View Proposal">
+                        <Tooltip title="Verified DAO: View Proposal">
                             <Button 
                                 href={`https://governance.so/proposal/${governanceInfo.governanceAddress}/${proposal}`}
                                 target='_blank'
