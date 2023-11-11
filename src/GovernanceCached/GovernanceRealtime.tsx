@@ -51,6 +51,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import { GovernanceProposalDialog } from './GovernanceProposalDialog';
 import moment from 'moment';
 
+import EditNoteIcon from '@mui/icons-material/EditNote';
 import SearchIcon from '@mui/icons-material/Search';
 import InfoIcon from '@mui/icons-material/Info';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -296,7 +297,13 @@ function TablePaginationActions(props) {
                                         <TimerIcon sx={{ fontSize:"small",ml:1}} />
                                     
                                     : 
-                                        <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
+                                        <>
+                                            { (thisitem.account?.state === 0) ?
+                                                <EditNoteIcon sx={{ fontSize:"small", color:"red",ml:1}} />
+                                            :
+                                                <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
+                                            }
+                                        </>
                                     }
                                     </>
                                 }
@@ -343,16 +350,18 @@ function TablePaginationActions(props) {
             <>
                 {governanceInfo &&
                     <>
-                        <Button 
-                            href={`https://governance.so/proposal/${governanceInfo.governanceAddress}/${proposal}`}
-                            target='_blank'
-                            color='inherit'
-                            sx={{
-                                borderRadius:'17px',
-                                textTransform:'none'}}
-                        >
-                        {governanceInfo.governanceName}
-                        </Button>
+                        <Tooltip title="View Proposal">
+                            <Button 
+                                href={`https://governance.so/proposal/${governanceInfo.governanceAddress}/${proposal}`}
+                                target='_blank'
+                                color='inherit'
+                                sx={{
+                                    borderRadius:'17px',
+                                    textTransform:'none'}}
+                            >
+                            {governanceInfo.governanceName} <OpenInNewIcon fontSize='inherit' sx={{ml:1,color:'gray'}} />
+                            </Button>
+                        </Tooltip>
                     </>
                 }
             </>
@@ -448,11 +457,13 @@ function TablePaginationActions(props) {
                                                         <TableCell align="left"
                                                             sx={{borderBottom:'none'}}
                                                         >
-                                                            <GetGovernanceFromRulesView
-                                                                governanceLookup={governanceLookup}
-                                                                rulesWallet={item.account.governance?.toBase58()}
-                                                                proposal={item.pubkey.toBase58()}
-                                                            />
+                                                            <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`} >
+                                                                <GetGovernanceFromRulesView
+                                                                    governanceLookup={governanceLookup}
+                                                                    rulesWallet={item.account.governance?.toBase58()}
+                                                                    proposal={item.pubkey.toBase58()}
+                                                                />
+                                                            </Typography>
                                                         </TableCell>
                                                         <TableCell sx={{borderBottom:'none',mt:0,pt:0}}>
                                                             <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`} >
