@@ -358,7 +358,7 @@ export default function ExplorerView(props:any){
                 onClick={handleClick}
                 variant={buttonStyle}
                 color='inherit'
-                sx={{m:0,borderRadius:'17px',color:`${buttonColor}`, textTransform:'none' }}
+                sx={{m:0,borderRadius:'17px',color:`${buttonColor}`, textTransform:'none'}}
                 startIcon={
                     <>
                         {profilePictureUrl ?
@@ -372,7 +372,7 @@ export default function ExplorerView(props:any){
                                     {address.substr(0,2)}
                                 </Avatar>
                             :
-                                <ExploreIcon sx={{color:`${buttonColor}`,fontSize:`${fontSize}`}} />
+                                <ExploreIcon sx={{color:`${buttonColor}`, fontSize:`${fontSize}`}} />
                             }
                             </>
                         }

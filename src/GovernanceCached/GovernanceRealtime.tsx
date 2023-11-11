@@ -25,6 +25,8 @@ import {
   TextField,
   Tooltip,
   LinearProgress,
+  Divider,
+  Chip,
   DialogTitle,
   Dialog,
   Badge,
@@ -123,9 +125,10 @@ const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
   }));
 
 const StyledTable = styled(Table)(({ theme }) => ({
+    /*
     '& .MuiTableCell-root': {
         borderBottom: '1px solid rgba(255,255,255,0.05)'
-    },
+    },*/
 }));
 
 const VotesLinearProgress = styled(LinearProgress)(({ theme }) => ({
@@ -390,9 +393,9 @@ function TablePaginationActions(props) {
                     <Table sx={{ minWidth: 650 }}>
                         <StyledTable sx={{ minWidth: 500 }} size="small" aria-label="Portfolio Table">
                             <TableHead>
-                                <TableRow>
-                                    <TableCell><Typography variant="caption">Name</Typography></TableCell>
-                                    <TableCell align="center"><Typography variant="caption">DAO</Typography></TableCell>
+                                <TableRow sx={{borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
+                                    <TableCell><Typography variant="caption">DAO</Typography></TableCell>
+                                    <TableCell><Typography variant="caption">Proposal</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"12.5%"}}><Typography variant="caption">Drafted</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"12.5%"}}><Typography variant="caption">Signed Off</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Yes</Typography></TableCell>
@@ -442,62 +445,42 @@ function TablePaginationActions(props) {
                                                         </TableRow>
                                             :<></>*/}
 
-                                                    <TableRow key={index} sx={{borderBottom:"none"}}>
-                                                        <TableCell>
-                                                            <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`} >
-                                                                <Grid container>
-                                                                    <Grid item xs={12}>
-                                                                        <Typography variant="body1">
-                                                                            {item.account?.name}
-                                                                        </Typography>
-                                                                    </Grid>
-                                                                    <Grid item xs={12}>
-                                                                        {item.account?.descriptionLink}
-                                                                    </Grid>
-
-                                                                    <Grid item xs={12}>
-                                                                        <Typography sx={{fontSize:'9px'}}>
-                                                                        Governing Mint <ExplorerView
-                                                                            address={item.account.governingTokenMint?.toBase58()} type='address'
-                                                                            shorten={8}
-                                                                            hideTitle={false} style='text' color='inherit' fontSize='9px'/>
-                                                                            {/*item.account?.tokeType ? `Community` : `Council`*/}
-                                                                        </Typography>
-                                                                    </Grid>
-                                                                    <Grid item xs={12}>
-                                                                        <Typography sx={{fontSize:'9px'}}>
-                                                                        Rules <ExplorerView
-                                                                            address={item.account.governance?.toBase58()} type='address'
-                                                                            shorten={8}
-                                                                            hideTitle={false} style='text' color='inherit' fontSize='9px'/>
-                                                                            {/*item.account?.tokeType ? `Community` : `Council`*/}
-                                                                        </Typography>
-                                                                    </Grid>
-                                                                    <Grid item xs={12}>
-                                                                        <Typography sx={{fontSize:'9px'}}>
-                                                                        Proposal <ExplorerView
-                                                                            address={item.pubkey.toBase58()} type='address'
-                                                                            shorten={8}
-                                                                            hideTitle={false} style='text' color='inherit' fontSize='9px'/>
-                                                                            {/*item.account?.tokeType ? `Community` : `Council`*/}
-                                                                        </Typography>
-                                                                    </Grid>
-                                                                </Grid>
-                                                            </Typography>
-                                                        </TableCell>
-                                                        <TableCell align="center">
+                                                    <TableRow key={index} sx={{ borderBottom: 'unset!important',mt:2 }}>
+                                                        <TableCell align="left"
+                                                            sx={{borderBottom:'none'}}
+                                                        >
                                                             <GetGovernanceFromRulesView
                                                                 governanceLookup={governanceLookup}
                                                                 rulesWallet={item.account.governance?.toBase58()}
                                                                 proposal={item.pubkey.toBase58()}
                                                             />
                                                         </TableCell>
-                                                        <TableCell>
+                                                        <TableCell sx={{borderBottom:'none',mt:0,pt:0}}>
+                                                            <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`} >
+                                                                <Grid container>
+                                                                    <Grid item xs={12}>
+                                                                        <Typography variant="h6">
+                                                                            {item.account?.name} 
+                                                                        </Typography>
+                                                                    </Grid>
+                                                                    <Grid item xs={12}>
+                                                                        <Typography variant="body1">
+                                                                        {item.account?.descriptionLink}
+                                                                        </Typography>
+                                                                    </Grid>
+                                                                </Grid>
+                                                            </Typography>
+                                                        </TableCell>
+                                                        <TableCell
+                                                            sx={{borderBottom:'none'}}
+                                                        >
                                                             <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
                                                                 {`${item.account?.draftAt ? (moment.unix(Number((item.account.draftAt))).format("MMM D, YYYY, h:mm a")) : `-`}`}
                                                             </Typography>
                                                         </TableCell>
-                                                        <TableCell>
+                                                        <TableCell
+                                                            sx={{borderBottom:'none'}}
+                                                        >
                                                             <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
                                                                 {`${item.account?.signingOffAt ? (moment.unix(Number((item.account?.signingOffAt))).format("MMM D, YYYY, h:mm a")) : `N/A`}`}
                                                             </Typography>
@@ -507,13 +490,13 @@ function TablePaginationActions(props) {
                                                             <>
                                                                 <TableCell 
                                                                     colSpan={2}
-                                                                    sx={{textAlign:'center'}}>Multiple Choice Poll
+                                                                    sx={{textAlign:'center',borderBottom:'none'}}>Multiple Choice Poll
                                                                 </TableCell>
                                                             </>
                                                         :
                                                             <>
                                                         
-                                                            <TableCell>
+                                                            <TableCell sx={{borderBottom:'none'}}>
                                                                 {Number(item.account?.options[0].voteWeight) > 0 ?
                                                                 <>
                                                                 {`${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
@@ -522,7 +505,7 @@ function TablePaginationActions(props) {
                                                                 <>0%</>
                                                                 }
                                                             </TableCell>
-                                                            <TableCell>
+                                                            <TableCell sx={{borderBottom:'none'}}>
                                                                 {Number(item.account?.denyVoteWeight) > 0 ?
                                                                 <>
                                                                 {`${(((Number(item.account?.denyVoteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
@@ -532,8 +515,67 @@ function TablePaginationActions(props) {
                                                             </TableCell>
                                                             </>
                                                         }
-                                                        <TableCell  align="center">
+                                                        <TableCell  align="center"
+                                                            sx={{borderBottom:'none'}}
+                                                        >
                                                             <GetProposalStatus item={item} />
+                                                        </TableCell>
+
+                                                        
+
+                                                    </TableRow>
+                                                    <TableRow sx={{pb:2}}>
+                                                        <TableCell  align="center" colSpan={7} sx={{borderBottom: '1px solid rgba(255,255,255,0.05)',mt:0,mb:0,pt:0,pb:0}}>
+                                                        <Grid container xs={12}
+                                                            sx={{
+                                                                width:'100%',
+                                                                mt: 1,
+                                                                mb: 1,
+                                                                background: 'rgba(0, 0, 0, 0.2)',
+                                                                borderTop: '1px solid rgba(0,0,0,0.3)',
+                                                                borderRadius: '17px',
+                                                                overflow: 'hidden',
+                                                                p: 1,
+                                                                color: 'gray',
+                                                            }} 
+                                                        >
+                                                            <Grid item xs={12} sm={6} md={3} >
+                                                                <Typography sx={{fontSize:'9px'}}>
+                                                                Governing Mint <ExplorerView
+                                                                    address={item.account.governingTokenMint?.toBase58()} type='address'
+                                                                    shorten={8}
+                                                                    hideTitle={false} style='text' color='inherit' fontSize='9px'/>
+                                                                    {/*item.account?.tokeType ? `Community` : `Council`*/}
+                                                                </Typography>
+                                                            </Grid>
+                                                            <Grid item xs={12} sm={6} md={3} >
+                                                                <Typography sx={{fontSize:'9px'}}>
+                                                                Rules <ExplorerView
+                                                                    address={item.account.governance?.toBase58()} type='address'
+                                                                    shorten={8}
+                                                                    hideTitle={false} style='text' color='inherit' fontSize='9px'/>
+                                                                    {/*item.account?.tokeType ? `Community` : `Council`*/}
+                                                                </Typography>
+                                                            </Grid>
+                                                            <Grid item xs={12} sm={6} md={3} >
+                                                                <Typography sx={{fontSize:'9px'}}>
+                                                                Proposal <ExplorerView
+                                                                    address={item.pubkey.toBase58()} type='address'
+                                                                    shorten={8}
+                                                                    hideTitle={false} style='text' color='inherit' fontSize='9px'/>
+                                                                    {/*item.account?.tokeType ? `Community` : `Council`*/}
+                                                                </Typography>
+                                                            </Grid>
+                                                            <Grid item xs={12} sm={6} md={3} >
+                                                                <Typography sx={{fontSize:'9px'}}>
+                                                                    Author Record <ExplorerView
+                                                                        address={item.account?.tokenOwnerRecord?.toBase58()} 
+                                                                        type='address'
+                                                                        shorten={8}
+                                                                        hideTitle={false} style='text' color='inherit' fontSize='9px'/>
+                                                                </Typography>
+                                                            </Grid>
+                                                        </Grid>
                                                         </TableCell>
                                                     </TableRow>
                                                         
