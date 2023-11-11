@@ -27,6 +27,13 @@ import {
     pubkeyFilter,
     SYSTEM_PROGRAM_ID
 } from '@solana/spl-governance';
+import { 
+    getRealmIndexed,
+    getAllProposalsIndexed,
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
+} from '../GovernanceCached/api/queries';
+
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import {
     getRegistrarPDA,
@@ -1291,7 +1298,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
         // get unique members
-        const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+        const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58());
+        //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
         //setMemberMap(rawTokenOwnerRecords);
         // fetch current records if available
         let cached_members = new Array();
@@ -1481,8 +1489,12 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
         if (setPrimaryStatus) setPrimaryStatus("Fetching All Proposals");
 
-        const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
-                
+
+        const grules = await getAllGovernancesIndexed(realmPk.toBase58());
+        const governanceRulesStrArr = grules.map(item => item.pubkey.toBase58());
+        const gprops = await getAllProposalsIndexed(governanceRulesStrArr, new PublicKey(grealm.owner).toBase58());
+        //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
+        
         const allprops: any[] = [];
         let passed = 0;
         let defeated = 0;
@@ -1492,8 +1504,46 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         let count = 0;
 
         for (const props of gprops){
-            for (const prop of props){
-                
+            if (props && props.length > 0){
+                for (const prop of props){
+                    if (prop){
+                        /*
+                            if (count < 1){
+                                const prop_details = await getProposal(RPC_CONNECTION, prop.pubkey);
+                                console.log("prop_details: "+JSON.stringify(prop_details))
+                            }*/
+
+                            // check if community or council
+                        if (grealm.account.config?.councilMint && (new PublicKey(grealm.account.config?.councilMint).toBase58() === prop.account.governingTokenMint.toBase58()))
+                            council++;
+                        
+                        if (prop){
+                            allprops.push(prop);
+                            if (prop.account.state === 3 || prop.account.state === 5)
+                                passed++;
+                            else if (prop.account.state === 7)
+                                defeated++;
+                            else if (prop.account.state === 2)
+                                voting++;
+                            
+                            if (prop.account?.yesVotesCount && prop.account?.noVotesCount){
+                                //console.log("tmap: "+JSON.stringify(tokenMap));
+                                //console.log("item a: "+JSON.stringify(prop))
+                                if (tokenMap){
+                                    ttvc += +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                                }
+                                
+                            } else if (prop.account?.options) {
+                                //console.log("item b: "+JSON.stringify(prop))
+                                if (tokenMap){
+                                    ttvc += +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                                }
+                            }
+                        }
+                        count++;
+                    }
+                }
+            } else{
                 /*
                 if (count < 1){
                     const prop_details = await getProposal(RPC_CONNECTION, prop.pubkey);
@@ -1501,29 +1551,29 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 }*/
 
                 // check if community or council
-                if (grealm.account.config?.councilMint && (new PublicKey(grealm.account.config?.councilMint).toBase58() === prop.account.governingTokenMint.toBase58()))
+                if (grealm.account.config?.councilMint && (new PublicKey(grealm.account.config?.councilMint).toBase58() === props.account.governingTokenMint.toBase58()))
                     council++;
                 
-                if (prop){
-                    allprops.push(prop);
-                    if (prop.account.state === 3 || prop.account.state === 5)
+                if (props){
+                    allprops.push(props);
+                    if (props.account.state === 3 || props.account.state === 5)
                         passed++;
-                    else if (prop.account.state === 7)
+                    else if (props.account.state === 7)
                         defeated++;
-                    else if (prop.account.state === 2)
+                    else if (props.account.state === 2)
                         voting++;
                     
-                    if (prop.account?.yesVotesCount && prop.account?.noVotesCount){
+                    if (props.account?.yesVotesCount && props.account?.noVotesCount){
                         //console.log("tmap: "+JSON.stringify(tokenMap));
                         //console.log("item a: "+JSON.stringify(prop))
                         if (tokenMap){
-                            ttvc += +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                            ttvc += +(((Number(props.account?.yesVotesCount) + Number(props.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
                         }
                         
-                    } else if (prop.account?.options) {
+                    } else if (props.account?.options) {
                         //console.log("item b: "+JSON.stringify(prop))
                         if (tokenMap){
-                            ttvc += +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
+                            ttvc += +(((Number(props.account?.options[0].voteWeight) + Number(props.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
                         }
                     }
                 }
@@ -1577,6 +1627,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         governanceName: grealm.account.name,
         lastProposalDate: lastpropdate,
         transactions: govTx,
+        governanceRules: grules,
     }
     
     return governanceDetails;
@@ -2552,6 +2603,7 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                     item.totalVaultNftValue = governanceFetchedDetails?.totalVaultNftValue;
                     item.communityMint = communityMint;
                     item.councilMint = councilMint;
+                    item.governanceRules = governanceFetchedDetails?.governanceRules,
                     govFound = true;
                 }
 

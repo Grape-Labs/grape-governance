@@ -234,6 +234,8 @@ function TablePaginationActions(props) {
     const setFilterState = props.setFilterState;
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
+    const governanceLookup = props.governanceLookup;
+
     // Avoid a layout jump when reaching the last page with empty rows.
     const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - proposals.length) : 0;
     
@@ -310,6 +312,40 @@ function TablePaginationActions(props) {
           return "";
         }
       };
+    
+    function GetGovernanceFromRulesView(props:any){
+        const governanceLookup = props.governanceLookup;
+        const rulesWallet = props.rulesWallet;
+        const proposal = props.proposal;
+        const [governanceInfo, setGovernanceInfo] = React.useState(null);
+
+        React.useEffect(() => { 
+            if (governanceLookup){
+                for (let glitem of governanceLookup){
+                    //console.log("glitem: "+JSON.stringify(glitem));
+                    if (glitem?.governances){
+                        for (let ggitem of glitem.governances){
+                            if (ggitem.pubkey === rulesWallet){
+                                setGovernanceInfo(glitem);
+                                console.log("found: "+glitem.governanceName);
+                                console.log("found governanceAddress: "+glitem.governanceAddress);
+                            }
+                        }
+                    }
+                }
+            }
+        }, [governanceLookup]);
+
+        return (
+            <>
+                {governanceInfo &&
+                    <>
+                        {governanceInfo.governanceName}
+                    </>
+                }
+            </>
+        );
+    }
 
     React.useEffect(() => { 
         if (proposals)
@@ -347,12 +383,12 @@ function TablePaginationActions(props) {
                             <TableHead>
                                 <TableRow>
                                     <TableCell><Typography variant="caption">Name</Typography></TableCell>
+                                    <TableCell align="center"><Typography variant="caption">DAO</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"12.5%"}}><Typography variant="caption">Drafted</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"12.5%"}}><Typography variant="caption">Signed Off</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Yes</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">No</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Status</Typography></TableCell>
-                                    <TableCell align="center"><Typography variant="caption">Details</Typography></TableCell>
                                     
                                 </TableRow>
                             </TableHead>
@@ -440,6 +476,13 @@ function TablePaginationActions(props) {
                                                                 </Grid>
                                                             </Typography>
                                                         </TableCell>
+                                                        <TableCell align="center">
+                                                            <GetGovernanceFromRulesView
+                                                                governanceLookup={governanceLookup}
+                                                                rulesWallet={item.account.governance?.toBase58()}
+                                                                proposal={item.pubkey.toBase58()}
+                                                            />
+                                                        </TableCell>
                                                         <TableCell>
                                                             <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
                                                                 {`${item.account?.draftAt ? (moment.unix(Number((item.account.draftAt))).format("MMM D, YYYY, h:mm a")) : `-`}`}
@@ -482,9 +525,6 @@ function TablePaginationActions(props) {
                                                         }
                                                         <TableCell  align="center">
                                                             <GetProposalStatus item={item} />
-                                                        </TableCell>
-                                                        <TableCell align="center">
-                                                            ...
                                                         </TableCell>
                                                     </TableRow>
                                                         
@@ -543,7 +583,8 @@ export function GovernanceRealtimeView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
-   
+    const storagePool = GGAPI_STORAGE_POOL;
+    const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [startTime, setStartTime] = React.useState(null);
     const [endTime, setEndTime] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
@@ -558,10 +599,7 @@ export function GovernanceRealtimeView(props: any) {
             startTimer();
             setLoading(true);
             try{
-                    
                 
-                
-                    
                     console.log("Fetching via hybrid cache...")
                     
                     let passed = 0;
@@ -620,8 +658,14 @@ export function GovernanceRealtimeView(props: any) {
         }
     }, [allProposals, filterState]);
     
+    const callGovernanceLookup = async() => {
+        const fglf = await fetchGovernanceLookupFile(storagePool);
+        setGovernanceLookup(fglf);
+    }
+
     React.useEffect(() => { 
         if (!loading){
+            callGovernanceLookup();
             getGovernanceParameters();
         }
     }, []);
@@ -695,16 +739,13 @@ export function GovernanceRealtimeView(props: any) {
                                 
                             </Grid>
                         </>
-                            
-
-                            
-                                    
-                              
+                         
                         <RenderGovernanceTable 
                             endTimer={endTimer} 
                             proposals={proposals} 
                             filterState={filterState}
                             setFilterState={setFilterState}
+                            governanceLookup={governanceLookup}
                         />
                             
                             
