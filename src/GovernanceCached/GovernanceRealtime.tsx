@@ -51,6 +51,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import { GovernanceProposalDialog } from './GovernanceProposalDialog';
 import moment from 'moment';
 
+import VerifiedIcon from '@mui/icons-material/Verified';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import SearchIcon from '@mui/icons-material/Search';
 import InfoIcon from '@mui/icons-material/Info';
@@ -350,7 +351,14 @@ function TablePaginationActions(props) {
             <>
                 {governanceInfo &&
                     <>
-                        <Tooltip title="Verified DAO: View Proposal">
+                        <Tooltip title={
+                            <>
+                                <Typography variant='caption'>
+                                    <VerifiedIcon fontSize='inherit' sx={{mr:1}}/>
+                                    View Proposal
+                                </Typography>
+                            </>
+                        }>
                             <Button 
                                 href={`https://governance.so/proposal/${governanceInfo.governanceAddress}/${proposal}`}
                                 target='_blank'
