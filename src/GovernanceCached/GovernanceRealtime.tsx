@@ -330,6 +330,7 @@ function TablePaginationActions(props) {
         const proposal = props.proposal;
         const name = props?.name;
         const description = props?.description;
+        const state = props?.state;
         const [governanceInfo, setGovernanceInfo] = React.useState(null);
 
         React.useEffect(() => { 
@@ -369,28 +370,28 @@ function TablePaginationActions(props) {
                                     borderRadius:'17px',
                                     textTransform:'none',
                                     mt:1,
+                                    width:'100%',
+                                    textDecoration: (state === 6) ? 'line-through' : 'none'
                                 }}
                             >
                                 <Grid container>
                                     <Grid item xs={12}>
-                                        <Typography variant="h6">
-                                            {name} 
+                                        
+                                        <Typography variant="subtitle2">
+                                            {governanceInfo.governanceName && <>
+                                                {governanceInfo.governanceName}
+                                            </>}
+                                            
+                                            
                                         </Typography>
+                                        <Divider>
+                                            <Chip label={name} /> 
+                                        </Divider>
+                                        
                                     </Grid>
                                     <Grid item xs={12}>
                                         <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center' }}>
                                         {description}
-                                        
-                                        {governanceInfo.governanceName && <>
-                                            <Typography variant="caption">
-                                                <Grid item sx={{ display: 'flex', alignItems: 'center' }}>
-                                                &nbsp;-&nbsp;
-                                                {governanceInfo.governanceName}
-                                                <OpenInNewIcon fontSize='inherit' sx={{ml:1,color:'gray'}} />
-                                                </Grid>
-                                            </Typography>
-                                        </>}
-                                            
                                         </Typography>
                                         
                                     </Grid>
@@ -530,6 +531,7 @@ function TablePaginationActions(props) {
                                                                     proposal={item.pubkey.toBase58()}
                                                                     name={item.account?.name}
                                                                     description={item.account?.descriptionLink}
+                                                                    state={item.account?.state}
                                                                 />
 
                                                             </Typography>
