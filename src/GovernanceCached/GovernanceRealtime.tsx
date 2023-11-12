@@ -379,7 +379,7 @@ function TablePaginationActions(props) {
                                 <Grid container>
                                     <Grid item xs={12} sx={{mt:1,mb:1}}>
                                         
-                                        <Typography variant="subtitle2">
+                                        <Typography variant="h6">
                                             {governanceInfo.governanceName && <>
                                                 {governanceInfo.governanceName}
                                             </>}
@@ -857,7 +857,10 @@ export function GovernanceRealtimeView(props: any) {
                         
                             <Typography variant="h4" sx={{ textAlign: "center",mb:2 }}>Realtime Proposals <BlinkingDot /></Typography>
                             <Divider>
-                                <Chip label="Grape x SPL Governance" />
+                                <Chip label={
+                                    <>                                        
+                                        Grape x Solana
+                                    </>} />
                             </Divider>
 
                             <Box
