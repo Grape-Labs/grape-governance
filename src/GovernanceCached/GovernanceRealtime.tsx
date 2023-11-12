@@ -328,6 +328,8 @@ function TablePaginationActions(props) {
         const governanceLookup = props.governanceLookup;
         const rulesWallet = props.rulesWallet;
         const proposal = props.proposal;
+        const name = props?.name;
+        const description = props?.description;
         const [governanceInfo, setGovernanceInfo] = React.useState(null);
 
         React.useEffect(() => { 
@@ -349,7 +351,7 @@ function TablePaginationActions(props) {
 
         return (
             <>
-                {governanceInfo &&
+                {governanceInfo ?
                     <>
                         <Tooltip title={
                             <>
@@ -366,14 +368,52 @@ function TablePaginationActions(props) {
                                 sx={{
                                     borderRadius:'17px',
                                     textTransform:'none',
-                                    ml:1
+                                    mt:1,
                                 }}
                             >
-                            <Typography variant="body2">
-                                {governanceInfo.governanceName} <OpenInNewIcon fontSize='inherit' sx={{ml:1,color:'gray'}} />
-                            </Typography>
+                                <Grid container>
+                                    <Grid item xs={12}>
+                                        <Typography variant="h6">
+                                            {name} 
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center' }}>
+                                        {description}
+                                        
+                                        {governanceInfo.governanceName && <>
+                                            <Typography variant="caption">
+                                                <Grid item sx={{ display: 'flex', alignItems: 'center' }}>
+                                                &nbsp;-&nbsp;
+                                                {governanceInfo.governanceName}
+                                                <OpenInNewIcon fontSize='inherit' sx={{ml:1,color:'gray'}} />
+                                                </Grid>
+                                            </Typography>
+                                        </>}
+                                            
+                                        </Typography>
+                                        
+                                    </Grid>
+                                </Grid>
+                            
                             </Button>
                         </Tooltip>
+                    </>
+                    :
+                    <>
+                        
+                        <Grid container sx={{mt:1}}>
+                            <Grid item xs={12}>
+                                <Typography variant="h6">
+                                    {name} 
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={12}>
+                                <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center' }}>
+                                {description}
+                                </Typography>
+                            </Grid>
+                        </Grid>
                     </>
                 }
             </>
@@ -483,24 +523,15 @@ function TablePaginationActions(props) {
                                                             <Typography variant="caption" 
                                                                 color={(item.account?.state === 2) ? `white` : `gray`} 
                                                                 sx={{ textDecoration: (item.account?.state === 6) ? 'line-through' : 'none' }}>
-                                                                <Grid container sx={{mt:1}}>
-                                                                    <Grid item xs={12}>
-                                                                        <Typography variant="h6">
-                                                                            {item.account?.name} 
-                                                                        </Typography>
-                                                                    </Grid>
-                                                                    <Grid item xs={12}>
-                                                                        <Typography variant="body1">
-                                                                        {item.account?.descriptionLink}
-                                                                        <GetGovernanceFromRulesView
-                                                                            governanceLookup={governanceLookup}
-                                                                            rulesWallet={item.account.governance?.toBase58()}
-                                                                            proposal={item.pubkey.toBase58()}
-                                                                        />
-                                                                        </Typography>
-                                                                        
-                                                                    </Grid>
-                                                                </Grid>
+                                                                
+                                                                <GetGovernanceFromRulesView
+                                                                    governanceLookup={governanceLookup}
+                                                                    rulesWallet={item.account.governance?.toBase58()}
+                                                                    proposal={item.pubkey.toBase58()}
+                                                                    name={item.account?.name}
+                                                                    description={item.account?.descriptionLink}
+                                                                />
+
                                                             </Typography>
                                                         </TableCell>
                                                         <TableCell
