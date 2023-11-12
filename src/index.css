@@ -19,6 +19,15 @@ html {
   padding:0
 }
 
+body .realtime-body{
+  background: #111111;  /* fallback for old browsers */
+  background: linear-gradient(to right, #e6dada, #274046);
+  height:100%;
+  min-height: 100vh;
+  padding:0;
+  background-attachment: fixed;
+}
+
 body .frictionless-body{
   background: #111111;  /* fallback for old browsers */
   background: linear-gradient(to right, #1a2a6c, #b21f1f, #fdbb2d);

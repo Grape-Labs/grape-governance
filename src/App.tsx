@@ -209,7 +209,7 @@ function DashboardContent() {
               <Route path="/realtime/*" element={
                 <Suspense fallback={renderLoader()}>
                   <ThemeProvider theme={grapeTheme}>
-                  <div className="frictionless-body">
+                  <div className="realtime-body">
                         <ConnectionProvider endpoint={endpoint}>
                             <WalletProvider wallets={wallets} autoConnect>
                             
