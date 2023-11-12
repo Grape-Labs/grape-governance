@@ -880,23 +880,25 @@ export function GovernanceRealtimeView(props: any) {
                                 />
                                     
                                     
-                                    {endTime &&
-                                        <Grid
+                                {endTime &&
+                                    <Grid
+                                        sx={{
+                                            m: 0,
+                                            textAlign:'left'
+                                        }}
+                                    >
+                                        <Typography 
+                                            variant="caption"
                                             sx={{
-                                                m: 0,
+                                                textAlign:'left'
                                             }}
                                         >
-                                            <Typography 
-                                                variant="caption"
-                                                sx={{
-                                                    textAlign:'center'
-                                                }}
-                                            >
-                                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime *Beta<br/>
-                                            </Typography>
+                                            Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime *Beta<br/>
+                                            Powered by Grape
+                                        </Typography>
 
-                                        </Grid>
-                                    }
+                                    </Grid>
+                                }
                             </Box>  
                         </Box>
                     </Grid> 
