@@ -390,7 +390,7 @@ function TablePaginationActions(props) {
                                             
                                         </Typography>
                                         <Divider textAlign="left">
-                                            <Chip label={<>{name}
+                                            <Chip variant="outlined" label={<>{name}
                                                 {/*governanceInfo.governanceName && <>
                                                     - 
                                                     {governanceInfo.governanceName}
