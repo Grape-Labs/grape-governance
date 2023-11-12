@@ -389,13 +389,19 @@ function TablePaginationActions(props) {
                                             </span>
                                             
                                         </Typography>
-                                        <Divider textAlign="left">
-                                            <Chip variant="outlined" label={<>{name}
-                                                {/*governanceInfo.governanceName && <>
-                                                    - 
-                                                    {governanceInfo.governanceName}
-                                                    
-                                            </>*/}
+                                        <Divider textAlign="left" color='inherit'>
+                                            <Chip variant="outlined" label={<>
+                                                <Typography 
+                                                    color={(state === 2) ? `white` : `gray`} 
+                                                    sx={{ textDecoration: (state === 6) ? 'line-through' : 'none' }}
+                                                >
+                                                {name}
+                                                    {/*governanceInfo.governanceName && <>
+                                                        - 
+                                                        {governanceInfo.governanceName}
+                                                        
+                                                    </>*/}
+                                                </Typography>
                                             </>} /> 
                                         </Divider>
                                         
@@ -421,12 +427,18 @@ function TablePaginationActions(props) {
                                     {moment.unix(draftAt).fromNow()}
                                     </span>
                                     <Divider textAlign="left">
-                                        <Chip label={<>{name}
-                                            {/*governanceInfo.governanceName && <>
-                                                - 
-                                                {governanceInfo.governanceName}
-                                                
-                                        </>*/}
+                                        <Chip label={<>
+                                            <Typography 
+                                                color={(state === 2) ? `white` : `gray`} 
+                                                sx={{ textDecoration: (state === 6) ? 'line-through' : 'none' }}
+                                            >
+                                                {name}
+                                                {/*governanceInfo.governanceName && <>
+                                                    - 
+                                                    {governanceInfo.governanceName}
+                                                    
+                                            </>*/}
+                                            </Typography>
                                         </>} /> 
                                     </Divider>
                                 </Typography>

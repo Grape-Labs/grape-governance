@@ -217,7 +217,7 @@ function DashboardContent() {
                               
                               <Routes>
 
-                                <Route path="beta/*" element={<GovernanceRealtimeView />} >
+                                <Route path="daosundaynov12/*" element={<GovernanceRealtimeView />} >
                                     <Route path=":handlekey" element={<GovernanceRealtimeView />} />
                                 </Route>
                               </Routes>
