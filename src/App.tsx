@@ -206,6 +206,30 @@ function DashboardContent() {
                   </Suspense>
               }></Route>
 
+              <Route path="/realtime/*" element={
+                <Suspense fallback={renderLoader()}>
+                  <ThemeProvider theme={grapeTheme}>
+                  <div className="frictionless-body">
+                        <ConnectionProvider endpoint={endpoint}>
+                            <WalletProvider wallets={wallets} autoConnect>
+                            
+                              <CssBaseline />
+                              
+                              <Routes>
+
+                                <Route path="beta/*" element={<GovernanceRealtimeView />} >
+                                    <Route path=":handlekey" element={<GovernanceRealtimeView />} />
+                                </Route>
+                              </Routes>
+                            
+                          </WalletProvider>
+                          </ConnectionProvider>
+                        
+                    </div>
+                    </ThemeProvider>
+                  </Suspense>
+              }></Route>
+
               <Route path="/*" element={
                 <Suspense fallback={renderLoader()}>
                   <ThemeProvider theme={grapeTheme}>
@@ -260,11 +284,6 @@ function DashboardContent() {
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                               </Route>
 
-                                              <Route path="proposals/*" element={<GovernanceRealtimeView />} >
-                                                <Route path=":handlekey" element={<GovernanceRealtimeView />} />
-                                              </Route>
-                                              
-
                                               <Route path="newproposal/*" element={<GovernanceCreateProposalView />} >
                                                   <Route path=":handlekey" element={<GovernanceCreateProposalView />} />
                                               </Route>
@@ -277,6 +296,11 @@ function DashboardContent() {
                                                   <Route path=":governance/:proposal" element={<GovernanceProposalWrapper beta={true} />} />
                                               </Route>
 
+                                              
+                                              <Route path="proposals/*" element={<GovernanceRealtimeView />} >
+                                                  <Route path=":handlekey" element={<GovernanceRealtimeView />} />
+                                              </Route>
+                                              
                                               <Route path="metrics/*" element={<PremiumView />} >
                                                   <Route path=":handlekey" element={<PremiumView />} />
                                               </Route>

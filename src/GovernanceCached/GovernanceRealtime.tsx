@@ -76,7 +76,9 @@ import {
     RPC_CONNECTION,
     TX_RPC_ENDPOINT, 
     GGAPI_STORAGE_POOL, 
-    GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
+    GGAPI_STORAGE_URI,
+    FRICTIONLESS_BG,
+} from '../utils/grapeTools/constants';
 
 import { 
     getGovernance,
@@ -375,7 +377,7 @@ function TablePaginationActions(props) {
                                 }}
                             >
                                 <Grid container>
-                                    <Grid item xs={12}>
+                                    <Grid item xs={12} sx={{mt:1,mb:1}}>
                                         
                                         <Typography variant="subtitle2">
                                             {governanceInfo.governanceName && <>
@@ -384,8 +386,14 @@ function TablePaginationActions(props) {
                                             
                                             
                                         </Typography>
-                                        <Divider>
-                                            <Chip label={name} /> 
+                                        <Divider textAlign="left">
+                                            <Chip label={<>{name}
+                                                {/*governanceInfo.governanceName && <>
+                                                    - 
+                                                    {governanceInfo.governanceName}
+                                                    
+                                            </>*/}
+                                            </>} /> 
                                         </Divider>
                                         
                                     </Grid>
@@ -505,8 +513,8 @@ function TablePaginationActions(props) {
                                                             </TableCell>
                                                         </TableRow>
                                             :<></>*/}
-
-                                                    <TableRow key={index} sx={{ borderBottom: 'unset!important' }}>
+                                                
+                                                    <TableRow key={index} sx={{ borderBottom: 'unset!important', backgroundColor:'rgba(255,255,255,0.02)' }}>
                                                         {/*
                                                         <TableCell align="left"
                                                             sx={{borderBottom:'none'}}
@@ -589,8 +597,8 @@ function TablePaginationActions(props) {
                                                         
 
                                                     </TableRow>
-                                                    <TableRow sx={{pb:2}}>
-                                                        <TableCell  align="center" colSpan={6} sx={{borderBottom: '1px solid rgba(255,255,255,0.05)',mt:0,mb:0,pt:0,pb:0}}>
+                                                    <TableRow sx={{pb:2, backgroundColor:'rgba(255,255,255,0.025)'}}>
+                                                        <TableCell  align="center" colSpan={6} sx={{borderBottom: '1px solid rgba(255,255,255,0.3)',mt:0,mb:0,pt:0,pb:0}}>
                                                         <Grid container xs={12}
                                                             sx={{
                                                                 width:'100%',
@@ -798,93 +806,97 @@ export function GovernanceRealtimeView(props: any) {
     
         if(loading){
             return (
-                <ThemeProvider theme={grapeTheme}>
-                    <Box
+                <Grid
                         sx={{
-                            width:'100%',
-                            mt: 6,
-                            background: 'rgba(0, 0, 0, 0.6)',
-                            borderRadius: '17px',
-                            p: 4,
-                            pt:4,
-                            pb:4,
-                            alignItems: 'center', textAlign: 'center'
-                        }} 
-                    > 
+                        p: 1}}
+                    >
+                        <Box
+                            sx={{
+                                width:'100%',
+                                background: 'rgba(0, 0, 0, 0.6)',
+                                borderRadius: '17px',
+                                mt:2,
+                                p: 2,
+                                pt: 4,
+                                pb: 4,
+                                alignItems: 'center', textAlign: 'center',
+                                //backgroundImage: `url(${FRICTIONLESS_BG})`,
+                                backgroundRepeat: "repeat",
+                                backgroundSize: "cover",
+                            }} 
+                        > 
                         <Typography variant="caption" sx={{color:'white'}}>Loading Governance Proposals</Typography>
                         
                         <LinearProgress color="inherit" />
                         
                     </Box>
-                </ThemeProvider>
+                </Grid>
             )
         } else{
             if (proposals){
                 return (
-                    <ThemeProvider theme={grapeTheme}>
+                    <Grid
+                        sx={{
+                        p: 1}}
+                    >
                         <Box
                             sx={{
                                 width:'100%',
-                                mt: 6,
                                 background: 'rgba(0, 0, 0, 0.6)',
                                 borderRadius: '17px',
-                                overflow: 'hidden',
-                                p: 4,
-                                color: 'white',
+                                mt:2,
+                                p: 2,
+                                pt: 4,
+                                pb: 4,
+                                alignItems: 'center', textAlign: 'center',
+                                //backgroundImage: `url(${FRICTIONLESS_BG})`,
+                                backgroundRepeat: "repeat",
+                                backgroundSize: "cover",
                             }} 
                         > 
-                            
-                        <>
-                            <Grid container
-                                sx={{
-                                    m: 0,
-                                    mb: 2,
-                                }}
-                            >
-                                <Grid item xs={12} sm={6} container justifyContent="flex-start">
-                                    <Grid container>
-                                        <Grid item xs={12}>
-                                            <Typography variant="h4">
-                                                Realtime Proposals <BlinkingDot />
-                                            </Typography>
-                                            <Typography variant="caption">
-                                                All SPL Governance
-                                            </Typography>
-                                        </Grid>
-                                    </Grid>
-                                </Grid>
-                                
-                            </Grid>
-                        </>
-                         
-                        <RenderGovernanceTable 
-                            endTimer={endTimer} 
-                            proposals={proposals} 
-                            filterState={filterState}
-                            setFilterState={setFilterState}
-                            governanceLookup={governanceLookup}
-                        />
-                            
-                            
-                            {endTime &&
-                                <Grid
-                                    sx={{
-                                        m: 0,
-                                    }}
-                                >
-                                    <Typography 
-                                        variant="caption"
-                                        sx={{
-                                            textAlign:'center'
-                                        }}
-                                    >
-                                        Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime *Beta<br/>
-                                    </Typography>
+                        
+                            <Typography variant="h4" sx={{ textAlign: "center",mb:2 }}>Realtime Proposals <BlinkingDot /></Typography>
+                            <Divider>
+                                <Chip label="Grape x SPL Governance" />
+                            </Divider>
 
-                                </Grid>
-                            }
+                            <Box
+                                sx={{
+                                    background: `rgba(0, 0, 0, 0.8)`,
+                                    borderRadius: '17px',
+                                    m:2,
+                                    p: 4}}
+                                > 
+                                
+                                <RenderGovernanceTable 
+                                    endTimer={endTimer} 
+                                    proposals={proposals} 
+                                    filterState={filterState}
+                                    setFilterState={setFilterState}
+                                    governanceLookup={governanceLookup}
+                                />
+                                    
+                                    
+                                    {endTime &&
+                                        <Grid
+                                            sx={{
+                                                m: 0,
+                                            }}
+                                        >
+                                            <Typography 
+                                                variant="caption"
+                                                sx={{
+                                                    textAlign:'center'
+                                                }}
+                                            >
+                                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime *Beta<br/>
+                                            </Typography>
+
+                                        </Grid>
+                                    }
+                            </Box>  
                         </Box>
-                    </ThemeProvider>        
+                    </Grid> 
                 );
             }else{
                 return (
