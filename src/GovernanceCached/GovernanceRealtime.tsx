@@ -427,7 +427,7 @@ function TablePaginationActions(props) {
                                     {moment.unix(draftAt).fromNow()}
                                     </span>
                                     <Divider textAlign="left">
-                                        <Chip label={<>
+                                        <Chip variant="outlined" label={<>
                                             <Typography 
                                                 color={(state === 2) ? `white` : `gray`} 
                                                 sx={{ textDecoration: (state === 6) ? 'line-through' : 'none' }}
