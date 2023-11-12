@@ -333,6 +333,7 @@ function TablePaginationActions(props) {
         const name = props?.name;
         const description = props?.description;
         const state = props?.state;
+        const draftAt = props.draftAt;
         const [governanceInfo, setGovernanceInfo] = React.useState(null);
 
         React.useEffect(() => { 
@@ -383,7 +384,9 @@ function TablePaginationActions(props) {
                                             {governanceInfo.governanceName && <>
                                                 {governanceInfo.governanceName}
                                             </>}
-                                            
+                                            <span style={{color:'gray',fontSize:"10px"}}>&nbsp;
+                                            {moment.unix(draftAt).fromNow()}
+                                            </span>
                                             
                                         </Typography>
                                         <Divider textAlign="left">
@@ -414,7 +417,18 @@ function TablePaginationActions(props) {
                         <Grid container sx={{mt:1}}>
                             <Grid item xs={12}>
                                 <Typography variant="h6">
-                                    {name} 
+                                    <span style={{color:'gray',fontSize:"10px"}}>&nbsp;
+                                    {moment.unix(draftAt).fromNow()}
+                                    </span>
+                                    <Divider textAlign="left">
+                                        <Chip label={<>{name}
+                                            {/*governanceInfo.governanceName && <>
+                                                - 
+                                                {governanceInfo.governanceName}
+                                                
+                                        </>*/}
+                                        </>} /> 
+                                    </Divider>
                                 </Typography>
                             </Grid>
                             <Grid item xs={12}>
@@ -540,6 +554,7 @@ function TablePaginationActions(props) {
                                                                     name={item.account?.name}
                                                                     description={item.account?.descriptionLink}
                                                                     state={item.account?.state}
+                                                                    draftAt={item.account.draftAt}
                                                                 />
 
                                                             </Typography>
