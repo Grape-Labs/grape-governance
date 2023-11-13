@@ -301,9 +301,9 @@ export default function ExplorerView(props:any){
             setTwitterRegistration(null);
             if (memberMap){
                 for (var member of memberMap){
-                    if (member.account.governingTokenOwner === address){
-                        //console.log("found: "+address);
-                        //console.log("memberItem: "+JSON.stringify(member.socialConnections));
+                    if (new PublicKey(member.account.governingTokenOwner).toBase58() === address){
+                        console.log("found: "+address);
+                        console.log("memberItem: "+JSON.stringify(member.socialConnections));
                         if (member?.socialConnections){
                             if (member.socialConnections.solflare.pfp){
                                 setProfilePictureUrl(member.socialConnections.solflare.pfp)
