@@ -1374,9 +1374,25 @@ export function GovernanceProposalV2View(props: any){
             setRealmName(realm.account?.name);
         }
         if (!memberMap){
-            let rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58());
-            if (!rawTokenOwnerRecords)
+            let rawTokenOwnerRecords = null;
+            let indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58());
+            if (cachedMemberMap){
+                console.log("Members from cache");
+                // merge with cachedMemberMap?
+                for (var rRecord of indexedTokenOwnerRecords){
+                    for (var cRecord of cachedMemberMap){
+                        if (rRecord.pubkey.toBase58() === cRecord.pubkey){
+                            rRecord.socialConnections = cRecord.socialConnections;
+                            rRecord.firstTransactionDate = cRecord.firstTransactionDate;
+                            rRecord.multisigs = cRecord.multisigs;
+                        }
+                    }
+                }
+                rawTokenOwnerRecords = indexedTokenOwnerRecords;//cachedMemberMap;
+            } else if (!indexedTokenOwnerRecords){
                 rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+            }
+            
             setMemberMap(rawTokenOwnerRecords);
         }
 
