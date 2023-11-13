@@ -42,6 +42,7 @@ import { useSnackbar } from 'notistack';
 
 import CloseIcon from '@mui/icons-material/Close';
 import DownloadIcon from '@mui/icons-material/Download';
+import UploadIcon from '@mui/icons-material/Upload';
 import SettingsIcon from '@mui/icons-material/Settings';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
@@ -60,7 +61,9 @@ import {
     getTokenOwnerRecordAddress,
     getAllTokenOwnerRecords, 
     SYSTEM_PROGRAM_ID,
+    withRelinquishVote,
     withDepositGoverningTokens,
+    withWithdrawGoverningTokens,
     getGovernanceProgramVersion,
 } from '@solana/spl-governance';
 
@@ -288,6 +291,114 @@ export default function GovernancePower(props: any){
         }
     }, [publicKey, refresh]);
 
+    const withdrawVotesToGovernance = async(tokenAmount: number, tokenDecimals: number, mintAddress: string) => {
+        const withMint = new PublicKey(mintAddress);
+        const programId = new PublicKey(realm.owner);
+        console.log("programId: "+JSON.stringify(programId));
+        const programVersion = await getGovernanceProgramVersion(
+            RPC_CONNECTION,
+            programId,
+          )
+        
+        console.log("programVersion: "+JSON.stringify(programVersion));
+
+        const realmPk = new PublicKey(realm.pubkey);
+        
+        const tokenInfo = await getMint(RPC_CONNECTION, withMint);
+        
+        const userAtaPk = await getAssociatedTokenAddress(
+            withMint,
+            publicKey, // owner
+            true
+          )
+
+        console.log("userATA: "+JSON.stringify(userAtaPk))
+        // Extract the mint authority
+        const mintAuthority = tokenInfo.mintAuthority ? new PublicKey(tokenInfo.mintAuthority) : null;
+        const decimals = tokenInfo.decimals;
+
+        //const atomicAmount = tokenAmount;
+        
+        const atomicAmount = parseMintNaturalAmountFromDecimalAsBN(
+            tokenAmount,
+            tokenDecimals
+        )
+
+        const instructions: TransactionInstruction[] = []
+       
+
+        // also relinquish recursively if needed:
+        // withRelinquishVote
+        
+        await withWithdrawGoverningTokens(
+            instructions,
+            programId,
+            programVersion,
+            realmPk,
+            userAtaPk,
+            withMint,
+            publicKey,
+        )
+        
+        if (instructions.length != 1) {
+            console.log("ERROR: Something went wrong");
+            enqueueSnackbar(`Instructions Error`, { variant: 'error' });
+        } else{
+            if (instructions){
+
+                const transaction = new Transaction();
+                transaction.add(...instructions);
+                
+                console.log("TX: "+JSON.stringify(transaction))
+
+                /*
+                const meSigner = "IF WE ARE SENDING DIRECTLY TO A DAO WALLET";
+                for (var instruction of transaction.instructions){
+                    for (var key of instruction.keys){
+                        if (key.pubkey.toBase58() === meSigner){
+                            key.isSigner = false;
+                        }
+                    }
+                }*/
+
+                try{
+                    enqueueSnackbar(`Preparing to withdraw governance power`,{ variant: 'info' });
+                    const signature = await sendTransaction(transaction, RPC_CONNECTION, {
+                        skipPreflight: true,
+                        preflightCommitment: "confirmed",
+                    });
+                    const snackprogress = (key:any) => (
+                        <CircularProgress sx={{padding:'10px'}} />
+                    );
+                    const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
+                    //await connection.confirmTransaction(signature, 'processed');
+                    const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
+                    await RPC_CONNECTION.confirmTransaction({
+                        blockhash: latestBlockHash.blockhash,
+                        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+                        signature: signature}, 
+                        'finalized'
+                    );
+                    closeSnackbar(cnfrmkey);
+                    const action = (key:any) => (
+                            <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
+                                Signature: {signature}
+                            </Button>
+                    );
+                    
+                    enqueueSnackbar(`Congratulations, you now have withdrawn your governance power`,{ variant: 'success', action });
+
+                    // trigger a refresh here...
+                    setRefresh(true);
+                }catch(e:any){
+                    enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
+                } 
+            } else{
+                alert("No voter record!")
+            }
+        }
+    }
+
     const depositVotesToGovernance = async(tokenAmount: number, tokenDecimals: number, mintAddress: string) => {
         const withMint = new PublicKey(mintAddress);
         const programId = new PublicKey(realm.owner);
@@ -417,6 +528,13 @@ export default function GovernancePower(props: any){
         depositVotesToGovernance(walletCouncilMintAmount, 0, walletCouncilMintAddress);
     }
 
+    function handleWithdrawCommunityMax(){
+        withdrawVotesToGovernance(walletCommunityMintAmount, 0, walletCommunityMintAddress)
+    }
+    function handleWithdrawCouncilMax(){
+        withdrawVotesToGovernance(walletCouncilMintAmount, 0, walletCouncilMintAddress)
+    }
+
     function AdvancedCommunityVoteDepositPrompt(props: any){
         const selectedMintName = props?.mintName;
         const selectedMintAddress = props?.mintAddress;
@@ -531,7 +649,21 @@ export default function GovernancePower(props: any){
                                     </Grid>
                                     </Grid>
                                     <Typography color="text.secondary" variant="caption">
-                                        This is your current voting power
+                                        This is your current voting power 
+                                            <Tooltip title="Withdraw">
+                                                <IconButton 
+                                                        aria-label="Deposit"
+                                                        color='inherit'
+                                                        onClick={handleWithdrawCommunityMax}
+                                                        sx={{
+                                                            borderRadius:'17px',
+                                                            borderColor:'rgba(255,255,255,0.05)',
+                                                            ml:1,
+                                                        }}
+                                                    >
+                                                    <DownloadIcon sx={{fontSize:'12px'}} />
+                                                </IconButton>
+                                            </Tooltip>
                                     </Typography>
                                 </Box>
                                 <Box sx={{ my: 3, mx: 2 }}>
@@ -623,7 +755,7 @@ export default function GovernancePower(props: any){
                             disabled={
                                 (newDepositAmount <= (selectedMintAvailableAmount/10**decimals)) ? false : true
                             }
-                        ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
+                        ><UploadIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
                         {/*
                         <ButtonGroup>
                             <Button color="success" onClick={handleAdvancedDepositVotesToGovernance}
@@ -684,7 +816,7 @@ export default function GovernancePower(props: any){
                                         textTransform:'none',
                                     }}
                                 >
-                                    <DownloadIcon sx={{fontSize:'14px',mr:1}}/> Deposit&nbsp;
+                                    <UploadIcon sx={{fontSize:'14px',mr:1}}/> Deposit&nbsp;
                                     <strong>
                                     {(mintDecimals) ? 
                                     <>
@@ -720,7 +852,7 @@ export default function GovernancePower(props: any){
                                     textTransform:'none',
                                 }}
                             >
-                                <DownloadIcon sx={{fontSize:'14px',mr:1}}/> Deposit  {walletCouncilMintAmount} Council
+                                <UploadIcon sx={{fontSize:'14px',mr:1}}/> Deposit  {walletCouncilMintAmount} Council
                             </Button>
                         }
 
