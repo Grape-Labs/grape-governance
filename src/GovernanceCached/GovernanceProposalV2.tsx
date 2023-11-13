@@ -588,19 +588,21 @@ export function GovernanceProposalV2View(props: any){
 
             //thisitem.account.tokenOwnerRecord;
             console.log("has memberMap: "+`${memberMap ? `true`:`false`}`)
-            for (const item of memberMap){
-                if (item && item.pubkey && item.pubkey.toBase58){
-                    if (item.pubkey.toBase58() === new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()){
-                        setProposalAuthor(item.account.governingTokenOwner.toBase58())
-                        console.log("member:" + JSON.stringify(item));
+            if (memberMap){
+                for (const item of memberMap){
+                    if (item && item.pubkey && item.pubkey.toBase58){
+                        if (item.pubkey.toBase58() === new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()){
+                            setProposalAuthor(item.account.governingTokenOwner.toBase58())
+                            console.log("member:" + JSON.stringify(item));
+                        }
+                    } else{
+                        if (item.pubkey === new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()){
+                            setProposalAuthor(item.account.governingTokenOwner)
+                            console.log("member:" + JSON.stringify(item));
+                        }
                     }
-                } else{
-                    if (item.pubkey === new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()){
-                        setProposalAuthor(item.account.governingTokenOwner)
-                        console.log("member:" + JSON.stringify(item));
-                    }
+                    
                 }
-                
             }
         }
         
@@ -1372,10 +1374,11 @@ export function GovernanceProposalV2View(props: any){
             setRealmName(grealm?.account?.name);
         } else{
             setRealmName(realm.account?.name);
+            realmPk = new PublicKey(realm.pubkey);
         }
         if (!memberMap){
             let rawTokenOwnerRecords = null;
-            let indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58());
+            let indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realmPk).toBase58());
             if (cachedMemberMap){
                 console.log("Members from cache");
                 // merge with cachedMemberMap?
@@ -1648,14 +1651,19 @@ export function GovernanceProposalV2View(props: any){
                             </Grid>
                         
 
-                        {proposalAuthor &&
+                        
                             <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
                                 <Divider sx={{mt:1,mb:1}}/>
                                 <Grid container>
                                     <Grid item xs>
                                         <Grid container direction='row' alignItems='center'>
                                             <Grid item>
-                                                <Typography variant='subtitle1'>Author: <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={proposalAuthor} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/></Typography>
+                                                {proposalAuthor ?
+                                                    <Typography variant='subtitle1'>Author: <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={proposalAuthor} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/></Typography>
+                                                    :
+                                                    <Typography variant='subtitle1'>Author Record: <ExplorerView memberMap={memberMap} grapeArtProfile={true} address={new PublicKey(thisitem.account.governingTokenOwner).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/></Typography>
+                                                    
+                                                }
                                             </Grid>
                                             <Grid item>
                                                 <Typography variant="caption" sx={{color:'#ccc'}}>
@@ -1914,7 +1922,7 @@ export function GovernanceProposalV2View(props: any){
                                     </Grid>
                                 </Grid>
                             </Box>
-                        }
+                        
 
                         <Divider sx={{mt:1,mb:1}} />
 
