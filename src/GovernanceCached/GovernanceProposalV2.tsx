@@ -1248,12 +1248,16 @@ export function GovernanceProposalV2View(props: any){
         } catch(e){console.log("ERR: "+e)}
     }
 
-    const getCachedGovernanceFromLookup = async () => {
+    const getCachedGovernanceFromLookup = async (lookup?:any) => {
         let cached_governance = new Array();
         //setCachedRealm(null);
 
-        if (governanceLookup){
-            for (let glitem of governanceLookup){
+        let usingLookup = governanceLookup;
+        if (lookup)
+            usingLookup = lookup;
+
+        if (usingLookup){
+            for (let glitem of usingLookup){
                 if (glitem.governanceAddress === governanceAddress){
                     //if (glitem?.realm)
                     //    setCachedRealm(glitem.realm);
@@ -1334,21 +1338,25 @@ export function GovernanceProposalV2View(props: any){
         //getGovernanceParameters(cached_governance);
     }
 
-    const validateGovernanceSetup = async() => {
-        
-        setLoadingValidation(true);
-
+    const getCachedSetup = async() => {
         if (!governanceLookup){
             const fglf = await fetchGovernanceLookupFile(storagePool);
             //console.log("fglf: "+JSON.stringify(fglf))
             setGovernanceLookup(fglf);
+            
+            //console.log("cachedGovernance: "+JSON.stringify(fglf))
+            if (fglf){
+                await getCachedGovernanceFromLookup(fglf);
+            }
         }
         
-        console.log("cachedGovernance: "+JSON.stringify(cachedGovernance))
-        if (!cachedGovernance && governanceLookup){
-            await getCachedGovernanceFromLookup();
-        }
         
+    }
+
+    const validateGovernanceSetup = async() => {
+        
+        setLoadingValidation(true);
+
         if (!tokenMap){
             await getTokens();
         }
@@ -1379,8 +1387,10 @@ export function GovernanceProposalV2View(props: any){
         if (!memberMap){
             let rawTokenOwnerRecords = null;
             let indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realmPk).toBase58());
+            
+            console.log("cachedMemberMap: "+JSON.stringify(cachedMemberMap));
             if (cachedMemberMap){
-                console.log("Members from cache");
+                console.log("** Members from Cache");
                 // merge with cachedMemberMap?
                 for (var rRecord of indexedTokenOwnerRecords){
                     for (var cRecord of cachedMemberMap){
@@ -1393,9 +1403,13 @@ export function GovernanceProposalV2View(props: any){
                 }
                 rawTokenOwnerRecords = indexedTokenOwnerRecords;//cachedMemberMap;
             } else if (!indexedTokenOwnerRecords){
+                console.log("** Members from RPC")
                 rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+            } else{
+                console.log("** Members from Index")
+                rawTokenOwnerRecords = indexedTokenOwnerRecords;
             }
-            
+            console.log("Setting MemberMap")
             setMemberMap(rawTokenOwnerRecords);
         }
 
@@ -1407,15 +1421,16 @@ export function GovernanceProposalV2View(props: any){
     React.useEffect(() => { 
         if (!loadingValidation){
             console.log("Step 1.")
-            validateGovernanceSetup();
+            getCachedSetup();
         }
     }, []);
 
     React.useEffect(() => { 
-        
-        if (!loadingValidation || !governanceLookup){
-            console.log("Step 2.")
-            validateGovernanceSetup();
+        if (!loadingValidation){
+            if (cachedGovernance){
+                console.log("Step 2.")
+                validateGovernanceSetup();
+            }
         }
     }, [cachedGovernance, governanceLookup, loadingValidation]);
 
@@ -1486,8 +1501,8 @@ export function GovernanceProposalV2View(props: any){
             document.body.style.color = textColor;
         
         if (thisitem && !loadingParticipants){
-            console.log("Step 3.")
-            getVotingParticipants();
+            //console.log("Step 3.")
+            //getVotingParticipants();
         }
     }, [publicKey, loadingValidation, thisitem]);
 
@@ -1661,8 +1676,11 @@ export function GovernanceProposalV2View(props: any){
                                                 {proposalAuthor ?
                                                     <Typography variant='subtitle1'>Author: <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={proposalAuthor} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/></Typography>
                                                     :
-                                                    <Typography variant='subtitle1'>Author Record: <ExplorerView memberMap={memberMap} grapeArtProfile={true} address={new PublicKey(thisitem.account.governingTokenOwner).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/></Typography>
-                                                    
+                                                    <>
+                                                    {thisitem.account?.tokenOwnerRecord &&
+                                                        <Typography variant='subtitle1'>Author Record: <ExplorerView address={new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/></Typography>
+                                                    }
+                                                    </>
                                                 }
                                             </Grid>
                                             <Grid item>
