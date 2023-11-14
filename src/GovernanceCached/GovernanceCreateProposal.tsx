@@ -510,9 +510,7 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={5}>SOL Transfer</MenuItem>
               {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2')
                 &&
-                  <>
-                    <MenuItem value={6}>Token Transfer v0</MenuItem>
-                  </>
+                  <MenuItem value={6}>Token Transfer v0</MenuItem>
               }
               <MenuItem value={10}>Close Token Account</MenuItem>
               <MenuItem value={11}>SNS Transfer</MenuItem>
@@ -556,11 +554,15 @@ export default function GovernanceCreateProposalView(props: any){
               
               {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ||
                 governanceAddress === 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg')
+                &&
+                <Divider/>
+              }  
+
+              {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ||
+                governanceAddress === 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg')
               &&
-                <>
-                  <Divider/>
-                  <MenuItem value={40}>List on Magic Eden</MenuItem>
-                </>
+                <MenuItem value={40}>List on Magic Eden</MenuItem>
+                
               }
               {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' || 
                 governanceAddress === 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg')
@@ -1367,7 +1369,7 @@ export default function GovernanceCreateProposalView(props: any){
 
                             {proposalType === 6 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <TokenTransferV0View governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                                <TokenTransferV0View governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
                             

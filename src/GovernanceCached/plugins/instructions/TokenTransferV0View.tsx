@@ -129,7 +129,6 @@ export default function TokenTransferV0View(props: any) {
     const [tokenAmountStr, setTokenAmountStr] = React.useState(null);
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
-    
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
     async function transferTokens() {
