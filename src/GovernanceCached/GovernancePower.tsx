@@ -661,7 +661,7 @@ export default function GovernancePower(props: any){
                                                             ml:1,
                                                         }}
                                                     >
-                                                    <DownloadIcon sx={{fontSize:'12px'}} />
+                                                    <UploadIcon sx={{fontSize:'12px'}} />
                                                 </IconButton>
                                             </Tooltip>
                                     </Typography>
@@ -755,7 +755,7 @@ export default function GovernancePower(props: any){
                             disabled={
                                 (newDepositAmount <= (selectedMintAvailableAmount/10**decimals)) ? false : true
                             }
-                        ><UploadIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
+                        ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
                         {/*
                         <ButtonGroup>
                             <Button color="success" onClick={handleAdvancedDepositVotesToGovernance}
@@ -816,7 +816,7 @@ export default function GovernancePower(props: any){
                                         textTransform:'none',
                                     }}
                                 >
-                                    <UploadIcon sx={{fontSize:'14px',mr:1}}/> Deposit&nbsp;
+                                    <DownloadIcon sx={{fontSize:'14px',mr:1}}/> Deposit&nbsp;
                                     <strong>
                                     {(mintDecimals) ? 
                                     <>
@@ -852,7 +852,7 @@ export default function GovernancePower(props: any){
                                     textTransform:'none',
                                 }}
                             >
-                                <UploadIcon sx={{fontSize:'14px',mr:1}}/> Deposit  {walletCouncilMintAmount} Council
+                                <DownloadIcon sx={{fontSize:'14px',mr:1}}/> Deposit  {walletCouncilMintAmount} Council
                             </Button>
                         }
 
