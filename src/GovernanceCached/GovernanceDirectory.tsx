@@ -27,6 +27,8 @@ import {
     Paper,
 } from '@mui/material/';
 
+import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
+
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 
@@ -700,6 +702,10 @@ export function GovernanceDirectoryView(props: Props) {
                             </Grid>
                         </Grid>
                     </Grid>
+
+                    <Box sx={{mb:2}}>
+                        <GovernanceRealtimeInfo governanceAddress={"GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"} title={'Latest Activity'} />
+                    </Box>
 
                     <Box sx={{ 
                         p:1}}>

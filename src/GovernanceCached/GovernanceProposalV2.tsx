@@ -2481,7 +2481,7 @@ export function GovernanceProposalV2View(props: any){
                         }
 
                         <Box sx={{mb:2}}>
-                            <GovernanceRealtimeInfo governanceAddress={proposalPk} title={'Events'} />
+                            <GovernanceRealtimeInfo governanceAddress={proposalPk} title={'Latest Activity'} />
                         </Box>
 
                         {solanaVotingResultRows ?
