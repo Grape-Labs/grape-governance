@@ -46,6 +46,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
 
+import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import GovernancePower from './GovernancePower';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -2478,6 +2479,10 @@ export function GovernanceProposalV2View(props: any){
 
                             </Box>
                         }
+
+                        <Box sx={{mb:2}}>
+                            <GovernanceRealtimeInfo governanceAddress={proposalPk} title={'Events'} />
+                        </Box>
 
                         {solanaVotingResultRows ?
                             <div style={{ height: 600, width: '100%' }}>

@@ -53,7 +53,8 @@ const BlinkingDot = () => {
 };
 
 export default function GovernanceRealtimeInfo(props: any){
-    const governanceAddress = props.governanceAddress;
+    const address = props.governanceAddress;
+    const title = props.title;
     const [showLive, setShowLive] = React.useState(false);
     const [realtimeEventsLoaded, setRealtimeEventsLoaded] = React.useState(false);
     const [realtimeEvents, setRealtimeEvents] = React.useState(null);
@@ -64,7 +65,7 @@ export default function GovernanceRealtimeInfo(props: any){
     
     function fetchRealtimeEvents(){
 
-        const uri = `https://api.shyft.to/sol/v1/transaction/history?network=mainnet-beta&account=${governanceAddress}&enable_raw=true`;
+        const uri = `https://api.shyft.to/sol/v1/transaction/history?network=mainnet-beta&account=${address}&enable_raw=true`;
 
         axios.get(uri, {
         headers: {
@@ -255,7 +256,12 @@ export default function GovernanceRealtimeInfo(props: any){
             > 
                 
                 <Typography variant="caption">
-                    <span style={{marginRight:2}}><BlinkingDot /></span>&nbsp;Live
+                    <span style={{marginRight:2}}><BlinkingDot /></span>&nbsp;
+                        {title ?
+                            <>{title}</>
+                        :
+                            <>Live</>
+                        }
                     <IconButton
                         onClick={toggleLive}
                         sx={{ml:1}}
