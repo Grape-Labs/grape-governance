@@ -19,6 +19,7 @@ import {
   Box,
   ButtonGroup,
   Fade,
+  CircularProgress,
 } from '@mui/material/';
 
 import ExplorerView from '../utils/grapeTools/Explorer';
@@ -57,6 +58,7 @@ export default function GovernanceRealtimeInfo(props: any){
     const title = props.title;
     const [showLive, setShowLive] = React.useState(false);
     const [realtimeEventsLoaded, setRealtimeEventsLoaded] = React.useState(false);
+    const [loadingRealtimeEvents, setLoadingRealtimeEvents] = React.useState(false);
     const [realtimeEvents, setRealtimeEvents] = React.useState(null);
     const [currentIndex, setCurrentIndex] = React.useState(0);
     const [fadeIn, setFadeIn] = React.useState(true);
@@ -236,8 +238,11 @@ export default function GovernanceRealtimeInfo(props: any){
     }
 
     React.useEffect(() => {
-        if (!realtimeEventsLoaded)
+        if (!realtimeEventsLoaded){
+            setLoadingRealtimeEvents(true);
             fetchRealtimeEvents();
+            setLoadingRealtimeEvents(false);
+        }
     }, []);
 
     return(
@@ -274,11 +279,18 @@ export default function GovernanceRealtimeInfo(props: any){
 
                 {showLive &&
                     <>
-                        {(realtimeEvents && realtimeEvents.length > 0) &&
+                        {loadingRealtimeEvents ?
+                            <><CircularProgress color='inherit' /></>
+                        :
                             <>
-                                <EventItem event={realtimeEvents[currentIndex]} />
-                            </>
+                                {(realtimeEvents && realtimeEvents.length > 0) &&
+                                <>
+                                    <EventItem event={realtimeEvents[currentIndex]} />
+                                </>
+                                }
+                            </>   
                         }
+                        
                     </>
                 }
             </Box>
