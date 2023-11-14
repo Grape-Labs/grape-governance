@@ -250,8 +250,6 @@ export default function GovernanceRealtimeInfo(props: any){
                     pr:4,
                     pt:1,
                     pb:1,
-                    ml:3,
-                    mr:3,
                 }} 
             > 
                 

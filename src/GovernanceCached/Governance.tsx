@@ -1303,7 +1303,13 @@ export function GovernanceCachedView(props: any) {
                                         }
                                     </Grid>
 
+                                    <Box 
+                                        sx={{
+                                            ml:3,
+                                            mr:3,}}
+                                    >
                                     <GovernanceRealtimeInfo governanceAddress={governanceAddress} title={'Live'} />
+                                    </Box>
 
                                     {/*
                                     <Typography variant="caption">
