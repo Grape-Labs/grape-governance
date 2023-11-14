@@ -100,7 +100,7 @@ const CustomTextarea = styled(TextareaAutosize)(({ theme }) => ({
     padding: theme.spacing(1), // Add padding (optional)
 }));
 
-export default function TokenTransferView(props: any) {
+export default function TokenTransferV0View(props: any) {
     const governanceAddress = props?.governanceAddress;
     const governanceLookup = props?.governanceLookup;
     const payerWallet = props?.payerWallet || null;

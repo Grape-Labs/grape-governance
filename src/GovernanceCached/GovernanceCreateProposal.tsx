@@ -79,6 +79,7 @@ import LookupTableView from './plugins/instructions/LookupTableView';
 import SNSView from './plugins/instructions/SNSView';
 import CloseTokenView from './plugins/instructions/CloseTokenView';
 import TokenTransferView from './plugins/instructions/TokenTransferView';
+import TokenTransferV0View from './plugins/instructions/TokenTransferV0View';
 import JupiterDCAView from './plugins/instructions/JupiterDCAView';
 import JupiterSwapView from './plugins/instructions/JupiterSwapView';
 import PhoenixSwapView from './plugins/instructions/PhoenixSwapView';
@@ -507,6 +508,12 @@ export default function GovernanceCreateProposalView(props: any){
               >Create Token *Token 2022</MenuItem>*/}
               <MenuItem value={4}>Token Transfer</MenuItem>
               <MenuItem value={5}>SOL Transfer</MenuItem>
+              {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2')
+                &&
+                  <>
+                    <MenuItem value={6}>Token Transfer v0</MenuItem>
+                  </>
+              }
               <MenuItem value={10}>Close Token Account</MenuItem>
               <MenuItem value={11}>SNS Transfer</MenuItem>
               <Divider/>
@@ -1357,6 +1364,13 @@ export default function GovernanceCreateProposalView(props: any){
                                 <TokenTransferView governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
+
+                            {proposalType === 6 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <TokenTransferV0View governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                              </FormControl>
+                            }
+                            
                             {proposalType === 8 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <JupiterDCAView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
