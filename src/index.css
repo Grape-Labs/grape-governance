@@ -54,6 +54,10 @@ body .frictionless-body{
   }
 }
 
+.liveticker{background:#e58e8a;border-radius:5px;color:#402726;cursor:default;font-family:verdana;font-weight:bold;overflow:hidden;padding:7px 10px 0 10px;height:23px;}
+.liveticker:hover{background:#ff9e9a;}
+.liveticker ul li{width:730px;height:30px;overflow:hidden;white-space:nowrap;display:none;}
+
 .frictionless-body {
   margin: 0;
   font-size-adjust: none;

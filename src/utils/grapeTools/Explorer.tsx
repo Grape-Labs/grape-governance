@@ -95,6 +95,7 @@ export default function ExplorerView(props:any){
     const buttonStyle = props?.style || 'outlined';
     const buttonColor = props?.color || 'white';
     const hideTitle = props?.hideTitle || false;
+    const hideIcon = props?.hideIcon || false;
     const fontSize = props?.fontSize || '14px';
     const useLogo = props?.useLogo || null;
     const grapeArtProfile = props?.grapeArtProfile || false;
@@ -372,7 +373,13 @@ export default function ExplorerView(props:any){
                                     {address.substr(0,2)}
                                 </Avatar>
                             :
-                                <ExploreIcon sx={{color:`${buttonColor}`, fontSize:`${fontSize}`}} />
+                                <>
+                                {hideIcon ?
+                                    <></>
+                                :
+                                    <ExploreIcon sx={{color:`${buttonColor}`, fontSize:`${fontSize}`}} />
+                                }
+                                </>
                             }
                             </>
                         }

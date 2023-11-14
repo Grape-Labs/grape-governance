@@ -36,6 +36,7 @@ import {
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
 
+import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import GovernanceNavigation from './GovernanceNavigation'; 
 import GovernancePower from './GovernancePower';
 import {
@@ -1301,6 +1302,9 @@ export function GovernanceCachedView(props: any) {
                                             :<></>
                                         }
                                     </Grid>
+
+                                    <GovernanceRealtimeInfo governanceAddress={governanceAddress} />
+
                                     {/*
                                     <Typography variant="caption">
                                         <Tooltip title={
