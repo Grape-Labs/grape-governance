@@ -13,6 +13,7 @@ import moment from 'moment';
 import {
   Typography,
   Tooltip,
+  IconButton,
   Button,
   Grid,
   Box,
@@ -21,6 +22,9 @@ import {
 } from '@mui/material/';
 
 import ExplorerView from '../utils/grapeTools/Explorer';
+
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 
 import { 
     SHYFT_KEY
@@ -50,6 +54,7 @@ const BlinkingDot = () => {
 
 export default function GovernanceRealtimeInfo(props: any){
     const governanceAddress = props.governanceAddress;
+    const [showLive, setShowLive] = React.useState(false);
     const [realtimeEventsLoaded, setRealtimeEventsLoaded] = React.useState(false);
     const [realtimeEvents, setRealtimeEvents] = React.useState(null);
     const [currentIndex, setCurrentIndex] = React.useState(0);
@@ -193,33 +198,41 @@ export default function GovernanceRealtimeInfo(props: any){
     
     let animationIndex = 1;
     React.useEffect(() => {
-        if (realtimeEvents && realtimeEvents.length > 0) {
-            const animationInterval = setInterval(() => {
-              // Move this line inside the setTimeout callback
-              // setFadeIn(false);
-        
-            //  setTimeout(() => {
-                setRealtimeEventsLoaded(true);
-                setFadeIn(false); // Move this line here
-        
-                if (animationIndex < realtimeEvents.length) {
-                  setCurrentIndex(animationIndex);
-                  setFadeIn(true);
-        
-                  animationIndex++;
-                } else {
-                  animationIndex = 0;
+        if (showLive){
+            if (realtimeEvents && realtimeEvents.length > 0) {
+                const animationInterval = setInterval(() => {
+                // Move this line inside the setTimeout callback
+                // setFadeIn(false);
+            
+                //  setTimeout(() => {
+                    setRealtimeEventsLoaded(true);
+                    setFadeIn(false); // Move this line here
+            
+                    if (animationIndex < realtimeEvents.length) {
+                    setCurrentIndex(animationIndex);
+                    setFadeIn(true);
+            
+                    animationIndex++;
+                    } else {
+                    animationIndex = 0;
+                    }
+                //  }, 2000);
+                }, 4000);
+            
+                //return () => clearInterval(animationInterval);
+                if (animationIndex === realtimeEvents.length - 1) {
+                    clearInterval(animationInterval);
                 }
-            //  }, 2000);
-            }, 4000);
-        
-            //return () => clearInterval(animationInterval);
-            if (animationIndex === realtimeEvents.length - 1) {
-                clearInterval(animationInterval);
             }
         }
       }, [realtimeEvents]);
     
+
+    function toggleLive(){
+        setShowLive(!showLive);
+        if (showLive)
+            setCurrentIndex(0);
+    }
 
     React.useEffect(() => {
         if (!realtimeEventsLoaded)
@@ -243,13 +256,27 @@ export default function GovernanceRealtimeInfo(props: any){
                 
                 <Typography variant="caption">
                     <span style={{marginRight:2}}><BlinkingDot /></span>&nbsp;Live
+                    <IconButton
+                        onClick={toggleLive}
+                        sx={{ml:1}}
+                    >   
+                        {showLive ?
+                            <RemoveCircleOutlineIcon sx={{fontSize:'12px'}} />
+                        :
+                            <AddCircleOutlineIcon sx={{fontSize:'12px'}} />
+                        }
+                    </IconButton>
                 </Typography>
 
-                    {(realtimeEvents && realtimeEvents.length > 0) &&
-                        <>
-                            <EventItem event={realtimeEvents[currentIndex]} />
-                        </>
-                    }
+                {showLive &&
+                    <>
+                        {(realtimeEvents && realtimeEvents.length > 0) &&
+                            <>
+                                <EventItem event={realtimeEvents[currentIndex]} />
+                            </>
+                        }
+                    </>
+                }
             </Box>
         </Grid>
     );
