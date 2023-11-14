@@ -228,7 +228,7 @@ export default function GovernanceRealtimeInfo(props: any){
                 }
             }
         }
-      }, [realtimeEvents]);
+      }, [realtimeEvents, showLive]);
     
 
     function toggleLive(){
