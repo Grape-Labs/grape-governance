@@ -1305,6 +1305,7 @@ export function GovernanceCachedView(props: any) {
 
                                     <Box 
                                         sx={{
+                                            mt:1,
                                             ml:3,
                                             mr:3,}}
                                     >
