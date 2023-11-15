@@ -1545,7 +1545,7 @@ export function GovernanceProposalV2View(props: any){
                                                 variant="outlined" 
                                                 color='inherit'
                                             >
-                                                <Tooltip title={`Back to  ${realmName} Governance`}>
+                                                <Tooltip title={`Back to ${realmName ? realmName : ''} Governance`}>
                                                     <Button 
                                                         aria-label="back"
                                                         variant="outlined" 
@@ -1565,7 +1565,7 @@ export function GovernanceProposalV2View(props: any){
                                                     text={`https://governance.so/proposal/${governanceAddress}/${proposalPk}`} 
                                                     onCopy={handleCopyClick}
                                                 >
-                                                    <Tooltip title={`Copy ${realmName} Governance Propoosal Link`}>
+                                                    <Tooltip title={`Copy ${realmName ? realmName : ''} Governance Propoosal Link`}>
                                                         <Button
                                                             aria-label="copy"
                                                             variant="outlined" 
@@ -1582,7 +1582,7 @@ export function GovernanceProposalV2View(props: any){
                                             </CopyToClipboard>
                                             
                                             </ButtonGroup>
-                                            <Tooltip title={`Visit  ${realmName} on Realms`}>
+                                            <Tooltip title={`Visit ${realmName ? realmName : 'DAO'} on the Realms UI`}>
                                                 <Button 
                                                     aria-label="back"
                                                     variant="outlined" 
@@ -1612,7 +1612,7 @@ export function GovernanceProposalV2View(props: any){
                                                         text={`https://governance.so/proposal/${governanceAddress}/${proposalPk}`} 
                                                         onCopy={handleCopyClick}
                                                     >
-                                                        <Tooltip title={`Copy ${realmName} Governance Propoosal Link`}>
+                                                        <Tooltip title={`Copy ${realmName ? realmName : ''} Governance Propoosal Link`}>
                                                             <Button
                                                                 variant="outlined" 
                                                                 color='inherit'
@@ -1628,7 +1628,7 @@ export function GovernanceProposalV2View(props: any){
                                                         </Tooltip>
                                                 </CopyToClipboard>
 
-                                                <Tooltip title={`Visit  ${realmName} on Realms`}>
+                                                <Tooltip title={`Visit  ${realmName ? realmName : 'DAO'} on the Realms UI`}>
                                                     <Button 
                                                         aria-label="back"
                                                         href={`https://realms.today/dao/${governanceAddress}/proposal/${thisitem?.pubkey}`}
@@ -1638,7 +1638,7 @@ export function GovernanceProposalV2View(props: any){
                                                             borderBottomRightRadius:'17px',
                                                             borderColor:'rgba(255,255,255,0.05)',
                                                             fontSize:'10px',
-                                                            ml:1}}
+                                                        }}
                                                     >
                                                         <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
                                                     </Button>
