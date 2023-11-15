@@ -562,7 +562,7 @@ export function GovernanceProposalV2View(props: any){
                 //console.log("tokenMap: "+td);
             }catch(e){
                 const token = await connection.getParsedAccountInfo(new PublicKey(thisitem.account.governingTokenMint)) //await getMint(connection, new PublicKey(thisitem.account.governingTokenMint));
-                console.log("found: "+JSON.stringify(token.value.data.parsed.info.decimals))
+                //console.log("found: "+JSON.stringify(token.value.data.parsed.info.decimals))
 
                 td = await token.value.data.parsed.info.decimals;
                 vType = 'Token';
@@ -1438,34 +1438,14 @@ export function GovernanceProposalV2View(props: any){
 
     React.useEffect(() => { 
         if (!loadingValidation){
-            if (cachedGovernance){
+            if (cachedGovernance && !realm){
                 console.log("Step 2.")
                 validateGovernanceSetup();
             }
         }
     }, [cachedGovernance, governanceLookup, loadingValidation]);
 
-    /*
     React.useEffect(() => { 
-        
-        if (!loadingValidation){
-            console.log("Step 2.")
-            //validateGovernanceSetup();
-        }
-    }, [cachedGovernance, governanceLookup, loadingValidation]);
-    */
-
-    /*
-    React.useEffect(() => { 
-        console.log("ok here...")
-        if (!loadingValidation && cachedGovernance){
-            console.log("B")
-            validateGovernanceSetup();
-        }
-    }, [cachedGovernance]);
-    */
-    React.useEffect(() => { 
-        
         if (cachedGovernance &&
             governanceLookup &&
             tokenMap &&
@@ -1524,7 +1504,7 @@ export function GovernanceProposalV2View(props: any){
                     height='100%'
                 >
 
-                {!loadingParticipants && thisitem ?
+                {!loadingValidation && !loadingParticipants && thisitem ?
                     <>
                         <Grid container>
                             <Grid item xs={12} sm={6}>
