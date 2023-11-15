@@ -2308,7 +2308,7 @@ export function GovernanceProposalV2View(props: any){
                                 sx={{ 
                                     mb: 1, 
                                     width: '100%',
-                                    background: '#13151C',
+                                    background: 'rgba(0,0,0,0.2)',
                                     borderRadius: '17px'
                                 }}
                             > 
