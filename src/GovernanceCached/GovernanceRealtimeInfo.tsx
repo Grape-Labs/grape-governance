@@ -43,8 +43,8 @@ import {
   } from '../utils/grapeTools/helpers';
 
 const BlinkingDotContainer = styled("div")({
-    width: 7,
-    height: 7,
+    width: 10,
+    height: 10,
     borderRadius: "50%",
     backgroundColor: "red",
     animation: `blinking-dot 1s ease-in-out infinite`,
@@ -295,7 +295,7 @@ export default function GovernanceRealtimeInfo(props: any){
                     }}
                 >
                     <ListItemIcon>
-                        
+                        <BlinkingDot />
                     </ListItemIcon>
                     <ListItemText primary={<>
                         {title ?
@@ -303,7 +303,6 @@ export default function GovernanceRealtimeInfo(props: any){
                         :
                             <>Live</>
                         }
-                            &nbsp;<BlinkingDot />
                         </>
                     } />
                         {openInstructions ? <ExpandLess /> : <ExpandMoreIcon />}
