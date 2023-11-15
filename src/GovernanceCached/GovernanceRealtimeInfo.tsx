@@ -16,6 +16,10 @@ import {
   IconButton,
   Button,
   Grid,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Collapse,
   Box,
   ButtonGroup,
   Fade,
@@ -23,6 +27,9 @@ import {
 } from '@mui/material/';
 
 import ExplorerView from '../utils/grapeTools/Explorer';
+
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLess from '@mui/icons-material/ExpandLess';
 
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
@@ -66,6 +73,12 @@ export default function GovernanceRealtimeInfo(props: any){
     const [carouselData, setCarousel] = React.useState(null);
     const fadeTime = 1000;
     
+    const [openInstructions, setOpenInstructions] = React.useState(expanded);
+
+    const handleClickOpenInstructions = () => {
+        setOpenInstructions(!openInstructions);
+    }
+
     function fetchRealtimeEvents(){
 
         const uri = `https://api.shyft.to/sol/v1/transaction/history?network=mainnet-beta&account=${address}&enable_raw=true`;
@@ -262,53 +275,59 @@ export default function GovernanceRealtimeInfo(props: any){
 
     return(
         <Grid xs={12}>
+            
             <Box
-                sx={{
-                    background: 'rgba(0, 0, 0, 0.2)',
-                    borderRadius: '17px',
-                    pl:4,
-                    pr:4,
-                    pt:1,
-                    pb:1,
-                }} 
+                sx={{ 
+                    mb: 1, 
+                    width: '100%',
+                    background: 'rgba(0,0,0,0.2)',
+                    borderRadius: '17px'
+                }}
             > 
                 
-                <Typography variant="caption">
-                    <span style={{marginRight:2}}><BlinkingDot /></span>&nbsp;
+                <ListItemButton 
+                    onClick={handleClickOpenInstructions}
+                    sx={{
+                        backgroundColor:'rgba(0,0,0,0.2)',
+                        borderRadius:'17px',
+                        borderBottomLeftRadius: openInstructions ? '0' : '17px',
+                        borderBottomRightRadius: openInstructions ? '0' : '17px', 
+                    }}
+                >
+                    <ListItemIcon>
+                        
+                    </ListItemIcon>
+                    <ListItemText primary={<>
                         {title ?
                             <>{title}</>
                         :
                             <>Live</>
                         }
-                    <IconButton
-                        onClick={toggleLive}
-                        sx={{ml:1}}
-                    >   
-                        {showLive ?
-                            <RemoveCircleOutlineIcon sx={{fontSize:'12px'}} />
-                        :
-                            <AddCircleOutlineIcon sx={{fontSize:'12px'}} />
-                        }
-                    </IconButton>
-                </Typography>
-
-                {showLive &&
-                    <>
-                        {loadingRealtimeEvents ?
-                            <><CircularProgress color='inherit' /></>
-                        :
+                            &nbsp;<BlinkingDot />
+                        </>
+                    } />
+                        {openInstructions ? <ExpandLess /> : <ExpandMoreIcon />}
+                </ListItemButton>
+                <Collapse in={openInstructions} timeout="auto" unmountOnExit
+                    sx={{
+                        borderBottomLeftRadius: openInstructions ? '17px' : '0',
+                        borderBottomRightRadius: openInstructions ? '17px' : '0', 
+                        backgroundColor:'rgba(0,0,0,0.1)'}}
+                >
+                    {loadingRealtimeEvents ?
+                        <><CircularProgress color='inherit' /></>
+                    :
+                        <Box sx={{p:2}}>
+                            {(realtimeEvents && realtimeEvents.length > 0) &&
                             <>
-                                {(realtimeEvents && realtimeEvents.length > 0) &&
-                                <>
-                                    <EventItem event={realtimeEvents[currentIndex]} />
-                                </>
-                                }
-                            </>   
-                        }
-                        
-                    </>
-                }
+                                <EventItem event={realtimeEvents[currentIndex]} />
+                            </>
+                            }
+                        </Box>   
+                    }
+                    </Collapse>
             </Box>
+            
         </Grid>
     );
 }
