@@ -56,7 +56,8 @@ const BlinkingDot = () => {
 export default function GovernanceRealtimeInfo(props: any){
     const address = props.governanceAddress;
     const title = props.title;
-    const [showLive, setShowLive] = React.useState(false);
+    const expanded = props?.expanded || false;
+    const [showLive, setShowLive] = React.useState(expanded);
     const [realtimeEventsLoaded, setRealtimeEventsLoaded] = React.useState(false);
     const [loadingRealtimeEvents, setLoadingRealtimeEvents] = React.useState(false);
     const [realtimeEvents, setRealtimeEvents] = React.useState(null);
