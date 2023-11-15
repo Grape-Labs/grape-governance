@@ -70,8 +70,11 @@ import {
   AccordionDetails,
   AccordionSummary,
   Divider,
+  Collapse,
   List,
   ListItem,
+  ListItemButton,
+  ListItemIcon,
   ListItemAvatar,
   ListItemText,
   Avatar,
@@ -98,6 +101,9 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import SegmentIcon from '@mui/icons-material/Segment';
 import BallotIcon from '@mui/icons-material/Ballot';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -106,7 +112,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CodeIcon from '@mui/icons-material/Code';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CheckIcon from '@mui/icons-material/Check';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -227,7 +232,12 @@ export function GovernanceProposalV2View(props: any){
     //const cachedTokenMeta = new Array();
     const [castedYesVotes, setCastedYesVotes] = React.useState(null);
     const [excessVotes, setExcessVotes] = React.useState(null);
-    
+    const [openInstructions, setOpenInstructions] = React.useState(false);
+
+    const handleClickOpenInstructions = () => {
+        setOpenInstructions(!openInstructions);
+    }
+
     const handleCopyClick = () => {
         enqueueSnackbar(`Copied!`,{ variant: 'success' });
     };
@@ -1786,7 +1796,7 @@ export function GovernanceProposalV2View(props: any){
                                                                 }
                                                             </>
                                                         */}
-
+                                                    {realm &&
                                                         <VoteForProposal 
                                                             title={`${
                                                                 thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
@@ -1819,6 +1829,7 @@ export function GovernanceProposalV2View(props: any){
                                                             type={0}
                                                             state={thisitem.account.state}
                                                             />
+                                                        }
                                                     </ButtonGroup>
                                                 </Box>
                                             </Grid>
@@ -1945,7 +1956,7 @@ export function GovernanceProposalV2View(props: any){
 
                         <Divider sx={{mt:1,mb:1}} />
 
-                        <Grid container>
+                        <Grid container sx={{mb:1}}>
                             <Grid item md={8} sm={12} xs={12} sx={{mt:2}}>
                                 <Box
                                     sx={{
@@ -2292,39 +2303,50 @@ export function GovernanceProposalV2View(props: any){
                         </Grid>
 
                         {(proposalInstructions && proposalInstructions.length > 0) &&
-                            <Box 
-                                sx={{ mt:2,mb:2 }}>
-                                <Accordion 
-                                    expanded={expanded === 'panel'+1} 
-                                    onChange={handleChange('panel'+1)}
-                                    className="panelibh-accordion"
-                                    TransitionProps={{ unmountOnExit: true }}
-                                    sx={{background: 'rgba(0, 0, 0, 0.25)', borderRadius:'17px'}}
-                                >
-                                    <AccordionSummary
-                                        expandIcon={<ExpandMoreIcon />}
-                                        aria-controls="panelibh-content"
-                                        className="panelibh-header"
+                            <>
+                            <Box
+                                sx={{ 
+                                    mb: 1, 
+                                    width: '100%',
+                                    background: '#13151C',
+                                    borderRadius: '17px'
+                                }}
+                            > 
+                                
+                                    <ListItemButton 
+                                        onClick={handleClickOpenInstructions}
                                         sx={{
-                                            border:'none',
+                                            backgroundColor:'rgba(0,0,0,0.2)',
                                             borderRadius:'17px',
+                                            borderBottomLeftRadius: openInstructions ? '0' : '17px',
+                                            borderBottomRightRadius: openInstructions ? '0' : '17px', 
                                         }}
                                     >
-                                        <Typography sx={{ flexShrink: 0 }}>
-                                            Instructions 
-                                        </Typography>
+                                        <ListItemIcon>
+                                        <CodeIcon />
+                                        </ListItemIcon>
+                                        <ListItemText primary={<>
+                                            Instructions
+                                            &nbsp;{proposalInstructions.length}
+                                            </>
+                                        } />
+                                            {openInstructions ? <ExpandLess /> : <ExpandMoreIcon />}
+                                    </ListItemButton>
+                                    <Collapse in={openInstructions} timeout="auto" unmountOnExit
+                                        sx={{
+                                            borderBottomLeftRadius: openInstructions ? '17px' : '0',
+                                            borderBottomRightRadius: openInstructions ? '17px' : '0', 
+                                            backgroundColor:'rgba(0,0,0,0.2)'}}
+                                    >
                                         
-                                        <Typography sx={{ color: 'text.secondary' }}>&nbsp;{proposalInstructions.length}</Typography>
-                                        
-                                    </AccordionSummary>
-                                    <AccordionDetails>
                                         <Box>
                                             {(instructionTransferDetails && instructionTransferDetails.length > 0) &&
                                                 <Box
                                                     sx={{
                                                         p:1,
+                                                        m:1,
                                                         borderRadius:'17px',
-                                                        backgroundColor:'rgba(255,255,255,0.05)'}}
+                                                        backgroundColor:'rgba(0,0,0,0.2)'}}
                                                 >
                                                     <Typography variant="subtitle1">
                                                         Token Transfer Summary
@@ -2371,13 +2393,15 @@ export function GovernanceProposalV2View(props: any){
                                                 <InstructionView cachedTokenMeta={cachedTokenMeta} setInstructionTransferDetails={setInstructionTransferDetails} instructionTransferDetails={instructionTransferDetails} memberMap={memberMap} tokenMap={tokenMap} instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
                                             ))}
                                         </Timeline>
-                                    </AccordionDetails>
-                                </Accordion>
-                            </Box>
+                                    </Collapse>
+                                    
+                                </Box>
+                            
+                            </>
                         }
                             
                         {propVoteType &&
-                            <Box sx={{ alignItems: 'center', textAlign: 'center',p:1}}>
+                            <Box sx={{ alignItems: 'center', textAlign: 'center',p:1,mb:2}}>
                                 <Grid container spacing={0}>
                                     
                                     {thisitem?.account?.voteType?.type === 1 ?
