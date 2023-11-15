@@ -98,9 +98,23 @@ export default function GovernanceRealtimeInfo(props: any){
             >
                 <div>
                     <Grid sx={{color:'gray'}}>
-                        <Grid>
-                            <Typography variant="h6">{event.actions[0].type.replace(/_/g, ' ')}</Typography>  
-                        </Grid>
+                        {(event.actions[0].type && event.actions[0].type !== 'UNKNOWN') ?
+                            <Grid>
+                                <Typography variant="h6">{event.actions[0].type.replace(/_/g, ' ')}</Typography>  
+                            </Grid>
+                            :
+                            <> 
+                                {(event.actions[0]?.source_protocol?.address && 
+                                    (event.actions[0].source_protocol?.address === "VoteMBhDCqGLRgYpp9o7DGyq81KNmwjXQRAHStjtJsS")) &&
+                                    <>Marinade VSR Interaction</>
+                                } 
+                                {(event.actions[0]?.source_protocol?.address && 
+                                    (event.actions[0].source_protocol?.address === "GqTPL6qRf5aUuqscLh8Rg2HTxPUXfhhAXDptTLhp1t2J") ||
+                                    event.actions[0].source_protocol?.address === "4Q6WW2ouZ6V3iaNm56MTd5n2tnTm4C5fiH8miFHnAFHo") &&
+                                    <>Mango VSR Interaction</>
+                                } 
+                            </>
+                        }
                         {(event.actions[0].info?.proposal_name) &&
                             <Grid>
                                 <Typography variant="subtitle1">Name: {event.actions[0].info?.proposal_name}</Typography>  
