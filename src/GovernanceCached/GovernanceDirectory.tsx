@@ -703,267 +703,271 @@ export function GovernanceDirectoryView(props: Props) {
                         </Grid>
                     </Grid>
 
-                    <Box sx={{mb:2}}>
-                        <GovernanceRealtimeInfo governanceLookup={governanceLookup} governanceAddress={"GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"} title={'Latest Activity'} expanded={true} />
-                    </Box>
-
-                    <Box sx={{ 
-                        p:1}}>
-                        <Grid container spacing={0}>
-                            <Grid item xs={12} md={12} lg={6} key={1}>
-                                <Box
-                                    sx={{
-                                        borderRadius:'24px',
-                                        m:2,
-                                        ml:0,
-                                        p:1,
-                                        background: 'rgba(0, 0, 0, 0.2)',
-                                    }}
-                                >
-                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
-                                        <>Total Treasury Value</>
-                                    </Typography>
-                                    <Tooltip title={<>
-                                            The total deposited in all SPL Governance accounts<br/>Last Fetch: {governanceLastVaultValue ? `$${getFormattedNumberToLocale(Number(governanceLastVaultValue.toFixed(2)))}` : 0}
-                                            </>
-                                        }>
-                                        <Button
-                                            color='inherit'
-                                            sx={{
-                                                borderRadius:'17px',
-                                            }}
-                                        >   
-                                            <Grid container
-                                                sx={{
-                                                    verticalAlign: 'bottom'}}
-                                            >
-                                                <Typography variant="h4">
-                                                    {governanceTotalVaultValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultValue.toFixed(2)))}` : 0}
-                                                </Typography>
-                                            </Grid>
-                                        </Button>
-                                    </Tooltip>
-                                </Box>
-                            </Grid>
-
-                            <Grid item xs={12} md={6} lg={3} key={1}>
-                                <Box
-                                    sx={{
-                                        borderRadius:'24px',
-                                        m:2,
-                                        p:1,
-                                        background: 'rgba(0, 0, 0, 0.2)',
-                                    }}
-                                >
-                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
-                                        <>Total in Stable Coins</>
-                                    </Typography>
-                                    <Tooltip title={<>
-                                            The total value of stable coins deposited in SPL Governance (USDC, USDT, PAI)<br/>Last Fetch: {governanceLastVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceLastVaultStableCoinValue.toFixed(2)))}` : 0}
-                                            </>
-                                        }>
-                                        <Button
-                                            color='inherit'
-                                            sx={{
-                                                borderRadius:'17px',
-                                            }}
-                                        >   
-                                            <Grid container
-                                                sx={{
-                                                    verticalAlign: 'bottom'}}
-                                            >
-                                                <Typography variant="h4">
-                                                    {governanceTotalVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultStableCoinValue.toFixed(2)))}` : 0}
-                                                </Typography>
-                                            </Grid>
-                                        </Button>
-                                    </Tooltip>
-                                </Box>
-                            </Grid>
-
-                            <Grid item xs={12} md={6} lg={3} key={1}>
-                                <Box
-                                    sx={{
-                                        borderRadius:'24px',
-                                        m:2,
-                                        ml:0,
-                                        p:1,
-                                        background: 'rgba(0, 0, 0, 0.2)',
-                                    }}
-                                >
-                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
-                                        <>Total Treasury Sol Value</>
-                                    </Typography>
-                                    <Tooltip title={<>
-                                            The total value of deposited Solana in all SPL Governance accounts<br/>Last Fetch: {governanceLastVaultSolValue ? `$${getFormattedNumberToLocale(Number(governanceLastVaultSolValue.toFixed(2)))}` : 0}
-                                            </>
-                                        }>
-                                        <Button
-                                            color='inherit'
-                                            sx={{
-                                                borderRadius:'17px',
-                                            }}
-                                        >   
-                                            <Grid container
-                                                sx={{
-                                                    verticalAlign: 'bottom'}}
-                                            >
-                                                <Typography variant="h4">
-                                                    {governanceTotalVaultSolValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultSolValue.toFixed(2)))}` : 0}
-                                                </Typography>
-                                            </Grid>
-                                        </Button>
-                                    </Tooltip>
-                                </Box>
-                            </Grid>
-
-                            <Grid item xs={12} md={6} lg={3} key={1}>
-                                <Box
-                                    sx={{
-                                        borderRadius:'24px',
-                                        m:2,
-                                        ml:0,
-                                        p:1,
-                                        background: 'rgba(0, 0, 0, 0.2)',
-                                    }}
-                                >
-                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
-                                        <>Total Treasury Sol</>
-                                    </Typography>
-                                    <Tooltip title={<>
-                                            The total Solana deposited in all SPL Governance accounts<br/>Last Fetch: {governanceLastVaultSol ? `$${getFormattedNumberToLocale(Number(governanceLastVaultSol.toFixed(2)))}` : 0}
-                                            </>
-                                        }>
-                                        <Button
-                                            color='inherit'
-                                            sx={{
-                                                borderRadius:'17px',
-                                            }}
-                                        >   
-                                            <Grid container
-                                                sx={{
-                                                    verticalAlign: 'bottom'}}
-                                            >
-                                                <Typography variant="h4">
-                                                    {governanceTotalVaultSol ? <>{getFormattedNumberToLocale(Number(governanceTotalVaultSol.toFixed(2)))}<Typography variant="caption">Sol</Typography></> : 0}
-                                                </Typography>
-                                            </Grid>
-                                        </Button>
-                                    </Tooltip>
-                                </Box>
-                            </Grid>
-
-                            <Grid item xs={12} md={6} lg={3} key={1}>
-                                <Box
-                                    sx={{
-                                        borderRadius:'24px',
-                                        m:2,
-                                        p:1,
-                                        background: 'rgba(0, 0, 0, 0.2)',
-                                    }}
-                                >
-                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
-                                        <>Unique Voters</>
-                                    </Typography>
-                                    <Tooltip title={<>
-                                            All time members throughout all governances:
-                                            <br/>Current Voting Records: {governanceTotalVotingRecordMembers ? getFormattedNumberToLocale(governanceTotalVotingRecordMembers) : 0}
-                                            <br/>Last Fetch Voting Records: {governanceLastMembers ? getFormattedNumberToLocale(governanceLastMembers) : 0}
-                                            </>
-                                        }>
-                                        <Button
-                                            color='inherit'
-                                            sx={{
-                                                borderRadius:'17px',
-                                            }}
-                                        >   
-                                            <Grid container
-                                                sx={{
-                                                    verticalAlign: 'bottom'}}
-                                            >
-                                                <Typography variant="h4">
-                                                    {governanceTotalMembers ? getFormattedNumberToLocale(governanceTotalMembers) : 0}
-
-                                                </Typography>
-                                            </Grid>
-                                        </Button>
-                                    </Tooltip>
-                                </Box>
-                            </Grid>
-
-                            <Grid item xs={12} md={6} lg={3} key={1}>
-                                <Box
-                                    sx={{
-                                        borderRadius:'24px',
-                                        m:2,
-                                        mr:0,
-                                        p:1,
-                                        background: 'rgba(0, 0, 0, 0.2)',
-                                    }}
-                                >
-                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
-                                        <>Proposals</>
-                                    </Typography>
-                                    <Tooltip title={<>
-                                            All time proposals from all governances<br/>Last Fetch: {governanceLastProposals ? getFormattedNumberToLocale(governanceLastProposals) : 0}
-                                            </>
-                                        }>
-                                        <Button
-                                            color='inherit'
-                                            sx={{
-                                                borderRadius:'17px',
-                                            }}
-                                        >   
-                                            <Grid container
-                                                sx={{
-                                                    verticalAlign: 'bottom'}}
-                                            >
-                                                <Typography variant="h4">
-                                                    {governanceTotalProposals ? getFormattedNumberToLocale(governanceTotalProposals) : 0}
-                                                </Typography>
-                                            </Grid>
-                                        </Button>
-                                    </Tooltip>
-                                </Box>
-                            </Grid>
-
-                            <Grid item xs={12} md={6} lg={3} key={1}>
-                                <Box
-                                    sx={{
-                                        borderRadius:'24px',
-                                        m:2,
-                                        p:1,
-                                        background: 'rgba(0, 0, 0, 0.2)',
-                                    }}
-                                >
-                                    <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
-                                        <>Voters Participating in Multisigs</>
-                                    </Typography>
-                                    <Tooltip title={<>
-                                            Voters that are also participating in Squads Multisigs
-                                            </>
-                                        }>
-                                        <Button
-                                            color='inherit'
-                                            sx={{
-                                                borderRadius:'17px',
-                                            }}
-                                        >   
-                                            <Grid container
-                                                sx={{
-                                                    verticalAlign: 'bottom'}}
-                                            >
-                                                <Typography variant="h4">
-                                                    {governanceTotalParticipatingMultisigs && <>{governanceTotalParticipatingMultisigs > 0  ? getFormattedNumberToLocale(governanceTotalParticipatingMultisigs) : `-`}</>}
-                                                </Typography>
-                                            </Grid>
-                                        </Button>
-                                    </Tooltip>
-                                </Box>
-                            </Grid>
+                    {(!searchFilter || (searchFilter && searchFilter.length <= 0)) &&
+                    <>
+                        <Box sx={{mb:2}}>
+                            <GovernanceRealtimeInfo governanceLookup={governanceLookup} governanceAddress={"GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"} title={'Latest Activity'} expanded={true} />
+                        </Box>
                         
-                        </Grid>
-                    </Box>
+                        <Box sx={{ 
+                            p:1}}>
+                            <Grid container spacing={0}>
+                                <Grid item xs={12} md={12} lg={6} key={1}>
+                                    <Box
+                                        sx={{
+                                            borderRadius:'24px',
+                                            m:2,
+                                            ml:0,
+                                            p:1,
+                                            background: 'rgba(0, 0, 0, 0.2)',
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                            <>Total Treasury Value</>
+                                        </Typography>
+                                        <Tooltip title={<>
+                                                The total deposited in all SPL Governance accounts<br/>Last Fetch: {governanceLastVaultValue ? `$${getFormattedNumberToLocale(Number(governanceLastVaultValue.toFixed(2)))}` : 0}
+                                                </>
+                                            }>
+                                            <Button
+                                                color='inherit'
+                                                sx={{
+                                                    borderRadius:'17px',
+                                                }}
+                                            >   
+                                                <Grid container
+                                                    sx={{
+                                                        verticalAlign: 'bottom'}}
+                                                >
+                                                    <Typography variant="h4">
+                                                        {governanceTotalVaultValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultValue.toFixed(2)))}` : 0}
+                                                    </Typography>
+                                                </Grid>
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                </Grid>
+
+                                <Grid item xs={12} md={6} lg={3} key={1}>
+                                    <Box
+                                        sx={{
+                                            borderRadius:'24px',
+                                            m:2,
+                                            p:1,
+                                            background: 'rgba(0, 0, 0, 0.2)',
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                            <>Total in Stable Coins</>
+                                        </Typography>
+                                        <Tooltip title={<>
+                                                The total value of stable coins deposited in SPL Governance (USDC, USDT, PAI)<br/>Last Fetch: {governanceLastVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceLastVaultStableCoinValue.toFixed(2)))}` : 0}
+                                                </>
+                                            }>
+                                            <Button
+                                                color='inherit'
+                                                sx={{
+                                                    borderRadius:'17px',
+                                                }}
+                                            >   
+                                                <Grid container
+                                                    sx={{
+                                                        verticalAlign: 'bottom'}}
+                                                >
+                                                    <Typography variant="h4">
+                                                        {governanceTotalVaultStableCoinValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultStableCoinValue.toFixed(2)))}` : 0}
+                                                    </Typography>
+                                                </Grid>
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                </Grid>
+
+                                <Grid item xs={12} md={6} lg={3} key={1}>
+                                    <Box
+                                        sx={{
+                                            borderRadius:'24px',
+                                            m:2,
+                                            ml:0,
+                                            p:1,
+                                            background: 'rgba(0, 0, 0, 0.2)',
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                            <>Total Treasury Sol Value</>
+                                        </Typography>
+                                        <Tooltip title={<>
+                                                The total value of deposited Solana in all SPL Governance accounts<br/>Last Fetch: {governanceLastVaultSolValue ? `$${getFormattedNumberToLocale(Number(governanceLastVaultSolValue.toFixed(2)))}` : 0}
+                                                </>
+                                            }>
+                                            <Button
+                                                color='inherit'
+                                                sx={{
+                                                    borderRadius:'17px',
+                                                }}
+                                            >   
+                                                <Grid container
+                                                    sx={{
+                                                        verticalAlign: 'bottom'}}
+                                                >
+                                                    <Typography variant="h4">
+                                                        {governanceTotalVaultSolValue ? `$${getFormattedNumberToLocale(Number(governanceTotalVaultSolValue.toFixed(2)))}` : 0}
+                                                    </Typography>
+                                                </Grid>
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                </Grid>
+
+                                <Grid item xs={12} md={6} lg={3} key={1}>
+                                    <Box
+                                        sx={{
+                                            borderRadius:'24px',
+                                            m:2,
+                                            ml:0,
+                                            p:1,
+                                            background: 'rgba(0, 0, 0, 0.2)',
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                            <>Total Treasury Sol</>
+                                        </Typography>
+                                        <Tooltip title={<>
+                                                The total Solana deposited in all SPL Governance accounts<br/>Last Fetch: {governanceLastVaultSol ? `$${getFormattedNumberToLocale(Number(governanceLastVaultSol.toFixed(2)))}` : 0}
+                                                </>
+                                            }>
+                                            <Button
+                                                color='inherit'
+                                                sx={{
+                                                    borderRadius:'17px',
+                                                }}
+                                            >   
+                                                <Grid container
+                                                    sx={{
+                                                        verticalAlign: 'bottom'}}
+                                                >
+                                                    <Typography variant="h4">
+                                                        {governanceTotalVaultSol ? <>{getFormattedNumberToLocale(Number(governanceTotalVaultSol.toFixed(2)))}<Typography variant="caption">Sol</Typography></> : 0}
+                                                    </Typography>
+                                                </Grid>
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                </Grid>
+
+                                <Grid item xs={12} md={6} lg={3} key={1}>
+                                    <Box
+                                        sx={{
+                                            borderRadius:'24px',
+                                            m:2,
+                                            p:1,
+                                            background: 'rgba(0, 0, 0, 0.2)',
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                            <>Unique Voters</>
+                                        </Typography>
+                                        <Tooltip title={<>
+                                                All time members throughout all governances:
+                                                <br/>Current Voting Records: {governanceTotalVotingRecordMembers ? getFormattedNumberToLocale(governanceTotalVotingRecordMembers) : 0}
+                                                <br/>Last Fetch Voting Records: {governanceLastMembers ? getFormattedNumberToLocale(governanceLastMembers) : 0}
+                                                </>
+                                            }>
+                                            <Button
+                                                color='inherit'
+                                                sx={{
+                                                    borderRadius:'17px',
+                                                }}
+                                            >   
+                                                <Grid container
+                                                    sx={{
+                                                        verticalAlign: 'bottom'}}
+                                                >
+                                                    <Typography variant="h4">
+                                                        {governanceTotalMembers ? getFormattedNumberToLocale(governanceTotalMembers) : 0}
+
+                                                    </Typography>
+                                                </Grid>
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                </Grid>
+
+                                <Grid item xs={12} md={6} lg={3} key={1}>
+                                    <Box
+                                        sx={{
+                                            borderRadius:'24px',
+                                            m:2,
+                                            mr:0,
+                                            p:1,
+                                            background: 'rgba(0, 0, 0, 0.2)',
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                            <>Proposals</>
+                                        </Typography>
+                                        <Tooltip title={<>
+                                                All time proposals from all governances<br/>Last Fetch: {governanceLastProposals ? getFormattedNumberToLocale(governanceLastProposals) : 0}
+                                                </>
+                                            }>
+                                            <Button
+                                                color='inherit'
+                                                sx={{
+                                                    borderRadius:'17px',
+                                                }}
+                                            >   
+                                                <Grid container
+                                                    sx={{
+                                                        verticalAlign: 'bottom'}}
+                                                >
+                                                    <Typography variant="h4">
+                                                        {governanceTotalProposals ? getFormattedNumberToLocale(governanceTotalProposals) : 0}
+                                                    </Typography>
+                                                </Grid>
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                </Grid>
+
+                                <Grid item xs={12} md={6} lg={3} key={1}>
+                                    <Box
+                                        sx={{
+                                            borderRadius:'24px',
+                                            m:2,
+                                            p:1,
+                                            background: 'rgba(0, 0, 0, 0.2)',
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                            <>Voters Participating in Multisigs</>
+                                        </Typography>
+                                        <Tooltip title={<>
+                                                Voters that are also participating in Squads Multisigs
+                                                </>
+                                            }>
+                                            <Button
+                                                color='inherit'
+                                                sx={{
+                                                    borderRadius:'17px',
+                                                }}
+                                            >   
+                                                <Grid container
+                                                    sx={{
+                                                        verticalAlign: 'bottom'}}
+                                                >
+                                                    <Typography variant="h4">
+                                                        {governanceTotalParticipatingMultisigs && <>{governanceTotalParticipatingMultisigs > 0  ? getFormattedNumberToLocale(governanceTotalParticipatingMultisigs) : `-`}</>}
+                                                    </Typography>
+                                                </Grid>
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                </Grid>
+                            
+                            </Grid>
+                        </Box>
+                        </>
+                    }
                     
                     <GovernanceDirectorySorting />
                     
