@@ -65,6 +65,7 @@ export default function GovernanceRealtimeInfo(props: any){
     const address = props.governanceAddress;
     const title = props.title;
     const expanded = props?.expanded || false;
+    const tokenMap = props?.tokenMap;
     const [showLive, setShowLive] = React.useState(expanded);
     const [realtimeEventsLoaded, setRealtimeEventsLoaded] = React.useState(false);
     const [loadingRealtimeEvents, setLoadingRealtimeEvents] = React.useState(false);
@@ -91,9 +92,11 @@ export default function GovernanceRealtimeInfo(props: any){
         }
         })
         .then(response => {
-            if (response.data?.result)
+            if (response.data?.result){
+                
                 setRealtimeEvents(response.data.result); // Update the realtimeEvents state with the response data
-            //console.log(response.data); // Log the response data to the console
+                //console.log(response.data); // Log the response data to the console
+            }
         })
         .catch(error => console.error(error));
 
@@ -184,7 +187,9 @@ export default function GovernanceRealtimeInfo(props: any){
                                     <ExplorerView
                                         address={event.actions[0].info?.vote_governing_token} type='address'
                                         shorten={8}
-                                        hideTitle={false} hideIcon={true} style='text' color='inherit' fontSize='9px'/>
+                                        hideTitle={false} hideIcon={true} style='text' color='inherit' fontSize='12px'
+                                        tokenMap={tokenMap}
+                                        showTokenMetadata={true}/>
                                 </Typography>  
                             </Grid>
                         }
@@ -234,8 +239,15 @@ export default function GovernanceRealtimeInfo(props: any){
                                         <ExplorerView
                                             address={event.actions[1].info.token} type='address'
                                             shorten={8}
-                                            hideTitle={false} hideIcon={true} style='text' color='inherit' fontSize='9px'/>
+                                            hideTitle={false} hideIcon={true} style='text' color='inherit'  fontSize='12px'
+                                            tokenMap={tokenMap}
+                                            showTokenMetadata={true}/>
                                     </Typography>  
+                                </Grid>
+                            }
+                            {(event.actions[0].info?.vote_record_address) &&
+                                <Grid>
+                                    <Typography variant="caption">Voter Record: {event.actions[0].info.vote_record_address}</Typography>  
                                 </Grid>
                             }
                             {(event.fee_payer) &&

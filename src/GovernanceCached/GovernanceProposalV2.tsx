@@ -2044,7 +2044,9 @@ export function GovernanceProposalV2View(props: any){
                                                                 <ExplorerView
                                                                     address={thisitem.account.governingTokenMint?.toBase58()} type='address'
                                                                     shorten={8}
-                                                                    hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                                                    hideTitle={false} style='text' color='white' fontSize='12px'
+                                                                    showTokenMetadata={true}
+                                                                    tokenMap={tokenMap}/>
                                                         </Typography>
                                                     </Grid>
                                                     </Grid>
@@ -2485,7 +2487,7 @@ export function GovernanceProposalV2View(props: any){
                         }
 
                         <Box sx={{mb:2}}>
-                            <GovernanceRealtimeInfo governanceAddress={proposalPk} title={'Latest Activity'} />
+                            <GovernanceRealtimeInfo governanceAddress={proposalPk} title={'Latest Activity'} tokenMap={tokenMap} />
                         </Box>
 
                         {solanaVotingResultRows ?

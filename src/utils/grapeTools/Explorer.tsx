@@ -4,6 +4,7 @@ import { styled } from '@mui/material/styles';
 import { useSnackbar } from 'notistack';
 import { Link } from "react-router-dom";
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
+import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import axios from "axios";
 import QRCode from "react-qr-code";
 
@@ -17,7 +18,8 @@ import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
 
 import { 
     RPC_CONNECTION, 
-    TWITTER_PROXY } from './constants';
+    TWITTER_PROXY,
+    SHYFT_KEY } from './constants';
 
 import { 
     Avatar,
@@ -85,6 +87,27 @@ const StyledMenu = styled(Menu)(({ theme }) => ({
     },
 }));
 
+const getTokens = async () => {
+    const tarray:any[] = [];
+    try{
+        await new TokenListProvider().resolve().then(tokens => {
+            const tokenList = tokens.filterByChainId(ENV.MainnetBeta).getList();
+            console.log("tokenList: "+JSON.stringify(tokenList))
+            const tmap = tokenList.reduce((map, item) => {
+                tarray.push({address:item.address, decimals:item.decimals})
+                map.set(item.address, item);
+                return map;
+            },new Map())
+            console.log("gt: "+JSON.stringify(tmap));
+            return tmap;
+        });
+        return null;
+    } catch(e){
+        console.log("ERR: "+e);
+        return null;
+    }
+}
+
 export default function ExplorerView(props:any){
     const address = props.address;
     //const [address, setAddress] = React.useState(props.address);
@@ -113,6 +136,8 @@ export default function ExplorerView(props:any){
     const [hasProfilePicture, setHasProfilePicture] = React.useState(null);
     const [openDialog, setOpenDialog] = React.useState(false);
     const [solBalance, setSolBalance] = React.useState(null);
+    const showTokenMetadata = props?.showTokenMetadata;
+    const tokenMap = props?.tokenMap;
 
     const handleClickOpenDialog = (event:any) => {
         setOpenDialog(true);
@@ -137,6 +162,53 @@ export default function ExplorerView(props:any){
         handleClose();
     };
 
+    const fetchTokenMetada = async() => {
+        try{
+            
+            let titem = null;
+            if (tokenMap){
+                titem = tokenMap.get(address);
+                //console.log("item: "+JSON.stringify(titem))
+                if (titem?.name)
+                    setSolanaDomain(titem.name);
+
+                if (titem?.logoURI){
+                    setProfilePictureUrl(titem?.logoURI);
+                    setHasProfilePicture(true);
+                }
+            }
+            if (!titem && tokenMap) // remove tokenMap here to will make more rpc calls
+                fetchTokenData();
+            
+            /*
+            const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
+
+            axios.get(uri, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                data: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 'rpc-id',
+                    method: 'getAsset',
+                    params: {
+                        id: address,
+                    },
+                }),
+            })
+            .then(response => {
+                if (response.data?.result){
+                    //setTokenMeta(response.data.result); // Update the realtimeEvents state with the response data
+                    console.log(response.data); // Log the response data to the console
+                }
+            })
+            .catch(error => console.error(error));
+            */
+        }catch(e){
+            console.log("ERR: "+e);
+        }
+    }
+
     const fetchSolBalance = async() => {
         try{
             const balance = await connection.getBalance(new PublicKey(address));
@@ -160,21 +232,23 @@ export default function ExplorerView(props:any){
 
             if (tokendata){
                 //console.log("tokendata: "+JSON.stringify(tokendata));
-                const buf = Buffer.from(tokendata.value.data, 'base64');
-                const meta_final = decodeMetadata(buf);
-                
-                if (meta_final?.data?.name){
-                    setSolanaDomain(meta_final.data.name);
-                    if (meta_final.data?.uri){
-                        const urimeta = await window.fetch(meta_final.data.uri).then((res: any) => res.json());
-                        const image = urimeta?.image;
-                        if (image){
-                            setProfilePictureUrl(image);
-                            setHasProfilePicture(true);
+                if (tokendata.value?.data) {
+                    const buf = Buffer.from(tokendata.value.data, 'base64');
+                    const meta_final = decodeMetadata(buf);
+                    
+                    if (meta_final?.data?.name){
+                        setSolanaDomain(meta_final.data.name);
+                        if (meta_final.data?.uri){
+                            const urimeta = await window.fetch(meta_final.data.uri).then((res: any) => res.json());
+                            const image = urimeta?.image;
+                            if (image){
+                                setProfilePictureUrl(image);
+                                setHasProfilePicture(true);
+                            }
                         }
                     }
+                    //console.log("meta_final: "+JSON.stringify(meta_final));
                 }
-                //console.log("meta_final: "+JSON.stringify(meta_final));
             }
         }catch(e){
             console.log("ERR: "+e)
@@ -338,6 +412,12 @@ export default function ExplorerView(props:any){
         }
     }, [showSolanaProfile, address]);
     
+    React.useEffect(() => {   
+        if (showTokenMetadata){
+            fetchTokenMetada();
+        }
+    }, [showTokenMetadata, address]);
+
     React.useEffect(() => {   
         if (showNftData){
             fetchTokenData()

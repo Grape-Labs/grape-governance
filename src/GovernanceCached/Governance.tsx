@@ -1309,7 +1309,7 @@ export function GovernanceCachedView(props: any) {
                                             ml:3,
                                             mr:3,}}
                                     >
-                                    <GovernanceRealtimeInfo governanceAddress={governanceAddress} title={'Live'} />
+                                    <GovernanceRealtimeInfo governanceAddress={governanceAddress} title={'Live'} tokenMap={tokenMap} />
                                     </Box>
 
                                     {/*
