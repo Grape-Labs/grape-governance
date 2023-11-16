@@ -76,6 +76,7 @@ export default function GovernanceRealtimeInfo(props: any){
     const [openInstructions, setOpenInstructions] = React.useState(expanded);
 
     const handleClickOpenInstructions = () => {
+        setShowLive(true);
         setOpenInstructions(!openInstructions);
     }
 
@@ -128,6 +129,7 @@ export default function GovernanceRealtimeInfo(props: any){
                                 } 
                             </>
                         }
+
                         {(event.actions[0].info?.proposal_name) &&
                             <Grid>
                                 <Typography variant="subtitle1">Name: {event.actions[0].info?.proposal_name}</Typography>  
@@ -140,6 +142,17 @@ export default function GovernanceRealtimeInfo(props: any){
                                         address={event.actions[0].info.proposal} type='address'
                                         shorten={8}
                                         hideTitle={false} hideIcon={true} style='text' color='inherit' fontSize='10px'/>
+                                </Typography>  
+                            </Grid>
+                        }
+
+                        {(event.actions[0].info?.realm_address) &&
+                            <Grid>
+                                <Typography variant="body2">DAO:
+                                    <ExplorerView
+                                        address={event.actions[0].info?.realm_address} type='address'
+                                        shorten={8}
+                                        hideTitle={false} hideIcon={true} style='text' color='inherit' fontSize='9px'/>
                                 </Typography>  
                             </Grid>
                         }
@@ -159,11 +172,19 @@ export default function GovernanceRealtimeInfo(props: any){
                             </Grid>
                         }
 
-                        {(event.actions.length > 1 && event.actions[1].info?.amount) &&
-                            <Grid>
-                                <Typography variant="body2">Amount: {event.actions[1].info.amount.toLocaleString()}</Typography>  
-                            </Grid>
+                        {(event.actions.length > 0) &&
+                            <>
+                                {event.actions.reduce((foundAmount, item: any, index: number) => (
+                                    // Check if amount is found and it's the first one
+                                    (!foundAmount && item.info?.amount &&
+                                        <Grid key={index}>
+                                        <Typography variant="body2">Amount: {item.info.amount.toLocaleString()}</Typography>
+                                        </Grid>
+                                    ) || foundAmount
+                                ), false)}
+                            </>
                         }
+                        
                         <Grid>
                             {(event.actions.length > 1 && event.actions[1].info?.sender) &&
                                 <Grid item>
@@ -261,8 +282,9 @@ export default function GovernanceRealtimeInfo(props: any){
 
     function toggleLive(){
         setShowLive(!showLive);
-        if (showLive)
+        if (showLive){
             setCurrentIndex(0);
+        }
     }
 
     React.useEffect(() => {
