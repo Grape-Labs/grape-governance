@@ -61,6 +61,7 @@ const BlinkingDot = () => {
 };
 
 export default function GovernanceRealtimeInfo(props: any){
+    const governanceLookup = props?.governanceLookup;
     const address = props.governanceAddress;
     const title = props.title;
     const expanded = props?.expanded || false;
@@ -99,6 +100,15 @@ export default function GovernanceRealtimeInfo(props: any){
         setRealtimeEventsLoaded(false);
     }
 
+    function capitalizeFirstLetter(sentence:string) {
+        let newsSentence = sentence.toLowerCase();
+        //return newsSentence.charAt(0).toUpperCase() + newsSentence.slice(1);
+        return newsSentence
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
     const EventItem = ({ event }) => {
         
         return (
@@ -114,7 +124,7 @@ export default function GovernanceRealtimeInfo(props: any){
                     <Grid sx={{color:'gray'}}>
                         {(event.actions[0].type && event.actions[0].type !== 'UNKNOWN') ?
                             <Grid>
-                                <Typography variant="h6">{event.actions[0].type.replace(/_/g, ' ')}</Typography>  
+                                <Typography variant="h6">{capitalizeFirstLetter(event.actions[0].type.replace(/_/g, ' '))}</Typography>  
                             </Grid>
                             :
                             <> 
@@ -128,6 +138,28 @@ export default function GovernanceRealtimeInfo(props: any){
                                     <>Mango VSR Interaction</>
                                 } 
                             </>
+                        }
+                        
+                        {(governanceLookup && event.actions[0].info?.realm_address) &&
+                            <Grid>
+                                {governanceLookup
+                                    .filter(item => item.governanceAddress === event.actions[0].info.realm_address)
+                                    .map(filteredItem => (
+                                    <Typography variant="subtitle1" key={filteredItem.governanceAddress}>
+                                        {/* Render the properties of the filtered item */}
+                                        {filteredItem.governanceName}
+                                        {/* Add more properties as needed */}
+                                    </Typography>
+                                ))}
+                                {/*
+                                <Typography variant="body2">DAO:
+                                    <ExplorerView
+                                        address={event.actions[0].info?.realm_address} type='address'
+                                        shorten={8}
+                                        hideTitle={false} hideIcon={true} style='text' color='inherit' fontSize='9px'/>
+                                </Typography>  
+                                */}
+                            </Grid>
                         }
 
                         {(event.actions[0].info?.proposal_name) &&
@@ -146,16 +178,6 @@ export default function GovernanceRealtimeInfo(props: any){
                             </Grid>
                         }
 
-                        {(event.actions[0].info?.realm_address) &&
-                            <Grid>
-                                <Typography variant="body2">DAO:
-                                    <ExplorerView
-                                        address={event.actions[0].info?.realm_address} type='address'
-                                        shorten={8}
-                                        hideTitle={false} hideIcon={true} style='text' color='inherit' fontSize='9px'/>
-                                </Typography>  
-                            </Grid>
-                        }
                         {(event.actions[0].info?.vote_governing_token) &&
                             <Grid>
                                 <Typography variant="body2">Token:
@@ -184,7 +206,7 @@ export default function GovernanceRealtimeInfo(props: any){
                                 ), false)}
                             </>
                         }
-                        
+
                         <Grid>
                             {(event.actions.length > 1 && event.actions[1].info?.sender) &&
                                 <Grid item>

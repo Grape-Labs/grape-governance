@@ -704,7 +704,7 @@ export function GovernanceDirectoryView(props: Props) {
                     </Grid>
 
                     <Box sx={{mb:2}}>
-                        <GovernanceRealtimeInfo governanceAddress={"GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"} title={'Latest Activity'} expanded={true} />
+                        <GovernanceRealtimeInfo governanceLookup={governanceLookup} governanceAddress={"GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"} title={'Latest Activity'} expanded={true} />
                     </Box>
 
                     <Box sx={{ 
