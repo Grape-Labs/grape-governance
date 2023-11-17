@@ -818,7 +818,8 @@ export default function IntraDAOVoteView(props: any) {
                                             Community Mint: <ExplorerView
                                                                 address={governance.account.communityMint.toBase58()} type='address'
                                                                 shorten={8}
-                                                                hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                                                hideTitle={false} style='text' color='white' fontSize='12px'
+                                                                showTokenMetadata={true} />
                                             
                                             {governance.account.config.councilMint &&
                                                 <>
