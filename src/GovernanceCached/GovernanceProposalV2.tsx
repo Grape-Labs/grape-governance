@@ -2329,20 +2329,18 @@ export function GovernanceProposalV2View(props: any){
                                                         </Grid>
                                                         <Grid item>
                                                             <Typography gutterBottom variant="body1" component="div">
-                                                                <Tooltip title="Show Proposal Details">
-                                                                    <Button
-                                                                        size="small"
-                                                                        color='inherit'
-                                                                        variant="outlined"
-                                                                        onClick={toggleInfoExpand}
-                                                                        sx={{
-                                                                            borderRadius:'17px',
-                                                                            textTransform:'none',
-                                                                        }}
-                                                                    >
-                                                                        {expandInfo ? <><ExpandLess sx={{mr:1}}/> Less</> : <><ExpandMoreIcon sx={{mr:1}}/> More Info</>}
-                                                                    </Button>
-                                                                </Tooltip>
+                                                                <Button
+                                                                    size="small"
+                                                                    color='inherit'
+                                                                    variant="outlined"
+                                                                    onClick={toggleInfoExpand}
+                                                                    sx={{
+                                                                        borderRadius:'17px',
+                                                                        textTransform:'none',
+                                                                    }}
+                                                                >
+                                                                    {expandInfo ? <><ExpandLess sx={{mr:1}}/> Less</> : <><ExpandMoreIcon sx={{mr:1}}/> More Info</>}
+                                                                </Button>
                                                             </Typography>
                                                         </Grid>
                                                     </Grid>
