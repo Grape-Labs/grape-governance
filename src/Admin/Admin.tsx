@@ -33,7 +33,7 @@ const steps = [
 export function AdminView (this: any, props: any) {
   const [activeStep, setActiveStep] = React.useState(0);
   const [skipped, setSkipped] = React.useState(new Set<number>());
-  const { publicKey, connect } = useWallet();
+  const { publicKey, signMessage } = useWallet();
   const [loading, setLoading] = React.useState(false);
   const [verified, setVerified] = React.useState(false);
 
@@ -57,11 +57,28 @@ export function AdminView (this: any, props: any) {
   }
 
   const getVerificationStatus = async() => {
-    if (ADMIN_TOKEN){
-      const verify = await isGated(publicKey.toBase58(), ADMIN_TOKEN);
-      console.log("Governance Verified Status: "+JSON.stringify(verify));
-      setVerified(verify);
-      //if (!verify) // uncomment if we have more to load
+    const message = "Grape Governance: Verifying Wallet";
+    const messageBuffer = Buffer.from(message);
+    let signedMessage = null
+    try {
+      const message = new TextEncoder().encode(
+          `${
+              window.location.host
+          } wants you to sign in with your Solana account:\n${publicKey.toBase58()}\n\nPlease sign in.`
+      );
+      signedMessage = await signMessage(message);
+      //setSignedMessage(signedMessage.toBase58());
+    } catch (error) {
+      console.error('Signing failed:', error);
+    }
+    
+    if (signedMessage){
+      if (ADMIN_TOKEN){
+        const verify = await isGated(publicKey.toBase58(), ADMIN_TOKEN);
+        console.log("Governance Verified Status: "+JSON.stringify(verify));
+        setVerified(verify);
+        //if (!verify) // uncomment if we have more to load
+      }
     }
     setLoading(false);
   }
@@ -72,7 +89,7 @@ export function AdminView (this: any, props: any) {
       if (!verified)
         getVerificationStatus();
     }
-  }, [publicKey]);
+  }, [signMessage]);
   
   return (
     <Box sx={{ width: '100%', mt:6 }}>
@@ -95,7 +112,7 @@ export function AdminView (this: any, props: any) {
           </>
       :   
         <Box sx={{ width: '100%', mt:6 }}>
-          {verified ?
+          {(verified && publicKey) ?
             <GovernanceSnapshotView />
           :
             <>
