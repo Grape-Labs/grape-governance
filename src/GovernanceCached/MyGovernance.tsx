@@ -3,8 +3,10 @@ import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
 import { styled, useTheme } from '@mui/material/styles';
 // @ts-ignore
 import { PublicKey, Connection } from '@solana/web3.js';
+import { getMint } from "@solana/spl-token-v2";
 
 import { 
+    getRealm,
     getRealms, 
     getTokenOwnerRecordsByOwner,
     getTokenOwnerRecord
@@ -55,7 +57,7 @@ const governancecolumns: GridColDef[] = [
         }
     },
     { field: 'governingTokenDepositAmount', headerName: 'Votes (deposited)', width: 130, flex: 1, align: 'right'},
-    { field: 'unrelinquishedVotesCount', headerName: 'Unreliquinshed', width: 130, align: 'center', hide: true},
+    { field: 'unrelinquishedVotesCount', headerName: '(un)Relinquished', width: 130, align: 'center'},
     { field: 'totalVotesCount', headerName: 'Total Votes', width: 130, align: 'center', hide: true },
     { field: 'details', headerName: '', width: 150,  align: 'center',
         renderCell: (params) => {
@@ -142,11 +144,11 @@ export function MyGovernanceView(props: any){
 
         try{
             //console.log("fetching realms ");
-            const rlms = await getRealms(ticonnection, [programId]);
-            //console.log("rlms "+JSON.stringify(rlms));
+            //const rlms = await getRealms(ticonnection, [programId]);
+            //console.log("rlms ",rlms);
 
-            const uTable = rlms.reduce((acc, it) => (acc[it.pubkey.toBase58()] = it, acc), {})
-            setRealms(uTable);
+            //const uTable = rlms.reduce((acc, it) => (acc[it.pubkey.toBase58()] = it, acc), {})
+            //setRealms(uTable);
             
             const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwner(ggoconnection, programId, new PublicKey(pubkey));
         
@@ -156,39 +158,78 @@ export function MyGovernanceView(props: any){
             let cnt = 0;
             //console.log("all uTable "+JSON.stringify(uTable))
         
+            let vType = null;
+
+            // this method is not correct, migrate to set decimals by an RPC:
+            
+            
             for (const item of ownerRecordsbyOwner){
-                const realm = uTable[item.account.realm.toBase58()];
+                let isCouncil = false;
+                //const realm = uTable[item.account.realm.toBase58()];
+                const realm = await getRealm(RPC_CONNECTION, item.account.realm)
                 //console.log("realm: "+JSON.stringify(realm))
                 const name = realm.account.name;
                 let votes = item.account.governingTokenDepositAmount.toNumber().toString();
                 
-                if (realm.account.config?.councilMint?.toBase58() === item?.account?.governingTokenMint?.toBase58()){
-                    votes = item.account.governingTokenDepositAmount.toNumber() + ' Council';
-                }else{
-                    const thisToken = tokenMap.get(item.account.governingTokenMint.toBase58());
-                    if (thisToken){
-                        votes = (new TokenAmount(+item.account.governingTokenDepositAmount, thisToken.decimals).format())
+                const tokenInfo = await getMint(RPC_CONNECTION, new PublicKey(item.account.governingTokenMint));
+                const decimals = tokenInfo?.decimals;
+                vType = 'Token';
+                
+                console.log("item ",item)
+                console.log("decimals ",decimals)
+                if (decimals){
+                    votes = (item.account.governingTokenDepositAmount.toNumber() / 10 ** decimals).toLocaleString();
+                    // check if council or community
+                    
+                    if (realm.account.config?.councilMint && new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(item.account.governingTokenMint).toBase58()){
+                        votes += " Council";
+                        isCouncil = true;
                     } else{
-                        const btkn = await getBackedTokenMetadata(realm.account?.communityMint.toBase58(), wallet);
-                        if (btkn){
-                            const parentToken = tokenMap.get(btkn.parentToken).name;
-                            const vote_count =  (new TokenAmount(+item.account.governingTokenDepositAmount, btkn.decimals).format());
-                            if (+vote_count > 0)
-                                votes = (new TokenAmount(+item.account.governingTokenDepositAmount, btkn.decimals).format());
-                            else
-                                votes = parentToken + ' Backed Token';
-
-                        }else{
-                            votes = 'NFT';
-                        }
+                        votes += "";
                     }
-                } 
+                    console.log("realm: ",realm);
+
+                    /*
+                    if (decimals === 0 &&
+                        realm.account.config.councilMint !== item.account.governingTokenMint){
+                            votes = "NFT"
+                    }*/
+                } else{
+                    //console.log("???")
+                    //votes = "NFT";
+                    if (votes === "0")
+                        votes = "NFT"
+                    /*
+                    if (realm.account.config?.councilMint?.toBase58() === item?.account?.governingTokenMint?.toBase58()){
+                        votes = item.account.governingTokenDepositAmount.toNumber() + ' Council';
+                    }else{
+                        const thisToken = tokenMap.get(item.account.governingTokenMint.toBase58());
+                        if (thisToken){
+                            votes = (new TokenAmount(+item.account.governingTokenDepositAmount, thisToken.decimals).format())
+                        } else{
+                            const btkn = await getBackedTokenMetadata(realm.account?.communityMint.toBase58(), wallet);
+                            if (btkn){
+                                const parentToken = tokenMap.get(btkn.parentToken).name;
+                                const vote_count =  (new TokenAmount(+item.account.governingTokenDepositAmount, btkn.decimals).format());
+                                if (+vote_count > 0)
+                                    votes = (new TokenAmount(+item.account.governingTokenDepositAmount, btkn.decimals).format());
+                                else
+                                    votes = parentToken + ' Backed Token';
+
+                            }else{
+                                votes = 'NFT';
+                            }
+                        }
+                    } 
+                    */
+                }
                 
                 governance.push({
                     id:cnt,
                     pubkey:item.pubkey,
                     realm:name,
                     governingTokenMint:item.account.governingTokenMint.toBase58(),
+                    isCouncil:isCouncil,
                     governingTokenDepositAmount:votes,
                     unrelinquishedVotesCount:item.account.unrelinquishedVotesCount,
                     totalVotesCount:item.account.totalVotesCount,
