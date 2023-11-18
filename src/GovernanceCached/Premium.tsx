@@ -91,13 +91,13 @@ export function PremiumView (this: any, props: any) {
   }
 
   React.useEffect(() => { 
-    if (!loading && (publicKey && signMessage)){
+    if (!loading && (publicKey)){
       setLoading(true);
       if (!verified){
         getVerificationStatus();
       }
     }
-  }, [publicKey, signMessage]);
+  }, [signMessage]);
 
   return (
     <>
@@ -120,55 +120,57 @@ export function PremiumView (this: any, props: any) {
             </Box>
           </>
         :  
+        <>
         
-        <Box sx={{ width: '100%', mt:6 }}>
-          {verified ?
-            <>
-              <GovernanceMetricsView handlekey={urlParams} />
-            </>
-          :
-            <>
-              <Box 
-                  sx={{ 
-                    p:1,
-                    m:1,
-                    textAlign:'center',
-                    flexDirection: 'row', 
-                    maxWidth: '100%',
-                    background: 'rgba(0,0,0,0.5)',
-                    borderRadius: '24px'
-                  }}>
-                    <p>
-                    <Typography variant='h4'>Governance by Grape</Typography>
-                    </p>
-                    {!publicKey &&
-                      <WalletDialogProvider className="grape-wallet-provider">
-                        <WalletMultiButton className="grape-wallet-button">
-                          Connect your wallet
-                        </WalletMultiButton>
-                      </WalletDialogProvider>
-                    }
-                  <p>
-                  <Typography variant='h5'>You need to be holding the METRICS access token to access powerful governance participation metrics for this DAO</Typography>
-
-                  <Typography variant='body1'>Reach out to the Grape DAO on 
-                  <Button 
-                      target='_blank' href={`https://discord.gg/grapedao`}
-                      color='inherit'
-                      sx={{
-                      verticalAlign: 'middle',
-                      display: 'inline-flex',
-                      borderRadius:'17px',
-                      m:1,
-                      textTransform:'none'
-                  }}>
-                      <DiscordIcon sx={{mt:1,fontSize:27.5,color:'white'}} /> <strong>Discord</strong>
-                  </Button> to get started</Typography>
-                  </p>
-                </Box>
+          <Box sx={{ width: '100%', mt:6 }}>
+            {(verified && publicKey) ?
+              <>
+                <GovernanceMetricsView handlekey={urlParams} />
               </>
-          }
-      </Box>
+            :
+              
+                <Box 
+                    sx={{ 
+                      p:1,
+                      m:1,
+                      textAlign:'center',
+                      flexDirection: 'row', 
+                      maxWidth: '100%',
+                      background: 'rgba(0,0,0,0.5)',
+                      borderRadius: '24px'
+                    }}>
+                      <p>
+                      <Typography variant='h4'>Governance by Grape</Typography>
+                      </p>
+                      {!publicKey &&
+                        <WalletDialogProvider className="grape-wallet-provider">
+                          <WalletMultiButton className="grape-wallet-button">
+                            Connect your wallet
+                          </WalletMultiButton>
+                        </WalletDialogProvider>
+                      }
+                    <p>
+                    <Typography variant='h5'>You need to be holding the METRICS access token to access powerful governance participation metrics for this DAO</Typography>
+
+                    <Typography variant='body1'>Reach out to the Grape DAO on 
+                    <Button 
+                        target='_blank' href={`https://discord.gg/grapedao`}
+                        color='inherit'
+                        sx={{
+                        verticalAlign: 'middle',
+                        display: 'inline-flex',
+                        borderRadius:'17px',
+                        m:1,
+                        textTransform:'none'
+                    }}>
+                        <DiscordIcon sx={{mt:1,fontSize:27.5,color:'white'}} /> <strong>Discord</strong>
+                    </Button> to get started</Typography>
+                    </p>
+                  </Box>
+                
+            }
+        </Box>
+        </>
       }
     </>
   );
