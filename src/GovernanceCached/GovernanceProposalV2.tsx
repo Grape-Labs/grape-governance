@@ -101,6 +101,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import InfoIcon from '@mui/icons-material/Info';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import SegmentIcon from '@mui/icons-material/Segment';
@@ -210,6 +211,7 @@ export function GovernanceProposalV2View(props: any){
     const [proposalAuthor, setProposalAuthor] = React.useState(null);
     const [governingMintInfo, setGoverningMintInfo] = React.useState(null);
     const [totalQuorum, setTotalQuorum] = React.useState(null);
+    const [votingDecimals, setVotingDecimals] = React.useState(0);
     const [totalVoteThresholdPercentage, setTotalVoteThresholdPercentage] = React.useState(null);
     const [totalSupplyFractionPercentage, setTotalSupplyFractionPercentage] = React.useState(null);
     const [quorumTargetPercentage, setQuorumTargetPercentage] = React.useState(null);
@@ -233,6 +235,12 @@ export function GovernanceProposalV2View(props: any){
     const [castedYesVotes, setCastedYesVotes] = React.useState(null);
     const [excessVotes, setExcessVotes] = React.useState(null);
     const [openInstructions, setOpenInstructions] = React.useState(false);
+    const [expandInfo, setExpandInfo] = React.useState(false);
+
+    const toggleInfoExpand = () => {
+        setExpandInfo(!expandInfo)
+    };
+    
 
     const handleClickOpenInstructions = () => {
         setOpenInstructions(!openInstructions);
@@ -483,6 +491,8 @@ export function GovernanceProposalV2View(props: any){
                 
                 const qt = totalVotes-Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals);
                 
+                setVotingDecimals(governingMintDetails?.value?.data.parsed?.info?.decimals || 0);
+
                 // we may need to adjust this for realtime quorum calculating
                 const yesVotes = Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintDetails.value.data.parsed.info.decimals);
                 
@@ -2011,23 +2021,6 @@ export function GovernanceProposalV2View(props: any){
                                 >
                                     <Grid container>
                                         <Grid item xs={12} key={1}>
-                                            <Box sx={{ my: 3, mx: 2 }}>
-                                                <Grid container alignItems="center">
-                                                <Grid item xs>
-                                                    <Typography gutterBottom variant="subtitle1" component="div">
-                                                        Type
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item>
-                                                    <Typography gutterBottom variant="body1" component="div">
-                                                        {propVoteType}
-                                                    </Typography>
-                                                </Grid>
-                                                </Grid>
-                                                <Typography color="text.secondary" variant="caption">
-                                                    Voting type
-                                                </Typography>
-                                            </Box>
                                             
                                             {governingMintInfo &&
                                             <>
@@ -2051,211 +2044,258 @@ export function GovernanceProposalV2View(props: any){
                                                     </Grid>
                                                     </Grid>
                                                     <Typography color="text.secondary" variant="caption">
-                                                        Mint used to vote for this proposal
+                                                        {propVoteType} used to vote for this proposal
                                                     </Typography>
                                                 </Box>
                                                 }
-                                                {totalQuorum &&
-                                                <Box sx={{ my: 3, mx: 2 }}>
-                                                    <Grid container alignItems="center">
-                                                    <Grid item xs>
-                                                        <Typography gutterBottom variant="subtitle1" component="div">
-                                                            Quorum
-                                                        </Typography>
-                                                    </Grid>
-                                                    <Grid item>
-                                                        <Typography gutterBottom variant="body1" component="div">
-                                                            {((+(totalQuorum).toFixed(1)).toLocaleString())}
-                                                        </Typography>
-                                                    </Grid>
-                                                    </Grid>
-                                                    <Typography color="text.secondary" variant="caption">
-                                                        Tokens needed for the proposal to pass *{(totalVoteThresholdPercentage)}% max vote threshhold
-                                                    </Typography>
-                                                </Box>
-                                                }
-                                                {totalSupplyFractionPercentage &&
-                                                <Box sx={{ my: 3, mx: 2 }}>
-                                                    <Grid container alignItems="center">
-                                                    <Grid item xs>
-                                                        <Typography gutterBottom variant="subtitle1" component="div">
-                                                            Supply Fraction Percentage
-                                                        </Typography>
-                                                    </Grid>
-                                                    <Grid item>
-                                                        <Typography gutterBottom variant="body1" component="div">
-                                                            {(totalSupplyFractionPercentage)}%
-                                                        </Typography>
-                                                    </Grid>
-                                                    </Grid>
-                                                    <Typography color="text.secondary" variant="caption">
-                                                        {(+((totalSupplyFractionPercentage/100)*totalSupply).toFixed(0)).toLocaleString()} calculated from {(totalSupply.toLocaleString())} supply
-                                                    </Typography>
-                                                </Box>
-                                                }
-                                                {/*totalSupply &&
-                                                <Box sx={{ my: 3, mx: 2 }}>
-                                                    <Grid container alignItems="center">
-                                                    <Grid item xs>
-                                                        <Typography gutterBottom variant="subtitle1" component="div">
-                                                            Token Supply
-                                                        </Typography>
-                                                    </Grid>
-                                                    <Grid item>
-                                                        <Typography gutterBottom variant="body1" component="div">
-                                                            {(totalSupply.toLocaleString())}
-                                                        </Typography>
-                                                    </Grid>
-                                                    </Grid>
-                                                    <Typography color="text.secondary" variant="caption">
-                                                        Number of tokens in circulation
-                                                    </Typography>
-                                                </Box>
-                                                */}
-                                            </>
-                                            }
-                                            
-                                            <Box sx={{ my: 3, mx: 2 }}>
-                                                <Grid container alignItems="center">
-                                                <Grid item xs>
-                                                    <Typography gutterBottom variant="subtitle1" component="div">
-                                                        General Sentiment
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item>
-                                                    <Typography gutterBottom variant="body1" component="div">
-                                                        {uniqueYes} / {uniqueNo}
-                                                    </Typography>
-                                                </Grid>
-                                                </Grid>
-                                                <Typography color="text.secondary" variant="caption">
-                                                    Total unique voters voting for/against this proposal
-                                                </Typography>
-                                            </Box>
 
-                                            <Box sx={{ my: 3, mx: 2 }}>
-                                                <Grid container alignItems="center">
-                                                <Grid item xs>
-                                                    <Typography gutterBottom variant="subtitle1" component="div">
-                                                        Signed Off At
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item>
-                                                    <Typography gutterBottom variant="body1" component="div">
-                                                        {moment.unix(Number(thisitem.account?.signingOffAt)).format("MMMM D, YYYY, h:mm a")}
-                                                    </Typography>
-                                                </Grid>
-                                                </Grid>
-                                                <Typography color="text.secondary" variant="caption">
-                                                    Timestamp that this proposal was signed off (voting started)
-                                                </Typography>
-                                            </Box>
-
-                                            <Box sx={{ my: 3, mx: 2 }}>
-                                                <Grid container alignItems="center">
-                                                <Grid item xs>
-                                                    <Typography gutterBottom variant="subtitle1" component="div">
-                                                        {(thisitem.account?.votingCompletedAt && thisitem.account?.votingCompletedAt > 0) ?
-                                                            <>Ended At</>
-                                                        :
-                                                            <>Ends At</>
-                                                        }
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item>
-                                                    <Typography gutterBottom variant="body1" component="div">
-                                                        {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
-                                                            <>
-                                                                {thisitem.account?.draftAt &&
-                                                                    `${moment.unix(Number(thisitem.account.signingOffAt)+(Number(thisGovernance.account.config.baseVotingTime))).format("MMMM D, YYYY, h:mm a")}`
+                                                {(totalQuorum && thisitem.account?.state === 2 && thisitem.account?.options &&  thisitem.account?.options.length === 1 && forVotes) &&
+                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                        <Grid container alignItems="center">
+                                                        <Grid item xs>
+                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                Votes Required
+                                                            </Typography>
+                                                        </Grid>
+                                                        <Grid item>
+                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                {/* ((+(totalQuorum) - (Number(thisitem.account.options[0]?.voteWeight) / 10 ** votingDecimals)) */}
+                                                                {(totalQuorum - (forVotes/10**votingDecimals)) > 0 ?
+                                                                    <>
+                                                                        (+(totalQuorum - (forVotes/10**votingDecimals))
+                                                                        .toFixed(0)).toLocaleString()
+                                                                    </>
+                                                                    :<>Passing</>
                                                                 }
-                                                            </>
-                                                        :
+                                                            </Typography>
+                                                        </Grid>
+                                                        </Grid>
+                                                        <Typography color="text.secondary" variant="caption">
+                                                            {(totalQuorum - (forVotes/10**votingDecimals)) > 0 ?
                                                             <>
-                                                            {thisitem.account?.votingCompletedAt ?
-                                                                `${moment.unix(thisitem.account.votingCompletedAt).format("MMMM D, YYYY, h:mm a")}`
+                                                                Remaining votes required for proposal to pass
+                                                            </>
+                                                            :
+                                                            <>
+                                                                Passing {(+((totalQuorum - (forVotes/10**votingDecimals)) * -1)
+                                                                        .toFixed(0)).toLocaleString()} over quorum
+                                                            </>
+                                                            }
+                                                            
+                                                        </Typography>
+                                                    </Box>
+                                                }
+
+                                                <Box sx={{ my: 3, mx: 2 }}>
+                                                    <Grid container alignItems="center">
+                                                    <Grid item xs>
+                                                        <Typography gutterBottom variant="subtitle1" component="div">
+                                                            Time Left
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item>
+                                                        <Typography gutterBottom variant="body1" component="div">
+                                                            {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
+                                                                <>
+                                                                    {thisitem.account?.draftAt &&
+                                                                        <>
+                                                                            {thisitem.account?.votingCompletedAt ?
+                                                                                `${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account?.config.baseVotingTime)+(Number(thisGovernance?.account?.config?.votingCoolOffTime))).fromNow()}`
+                                                                            :
+                                                                                `Ending ${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account.config.baseVotingTime)+(Number(thisGovernance?.account?.config?.votingCoolOffTime))).fromNow()}`
+                                                                            }
+                                                                        </>
+                                                                    }
+                                                                </>
                                                             :
                                                                 `Ended`
                                                             }
-                                                            </>
-                                                        }
+                                                        </Typography>
+                                                    </Grid>
+                                                    </Grid>
+                                                    <Typography color="text.secondary" variant="caption">
+                                                        From now how much time left until this proposal ends (Cool Off: {moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours() > 0 && `${moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours()}hrs`})
                                                     </Typography>
-                                                </Grid>
-                                                </Grid>
-                                                <Typography color="text.secondary" variant="caption">
-                                                    Calculated ending timestamp
-                                                </Typography>
-                                            </Box>
-                                            
-                                            {/*
-                                            const baseVotingTime = (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.baseVotingTime));
-                                            const coolOffTime = (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.votingCoolOffTime));
-                                            
-                                            const timeEnding = Number(item.account?.signingOffAt) + baseVotingTime + coolOffTime;
-                                            const timeEndingDate = new Date(timeEnding);
-                                            const timeEndingTime = timeEndingDate.getTime() * 1000;
-                                            const currentDate = new Date();
-                                            const currentTime = currentDate.getTime();
-                                            const timeAgo = moment.unix(timeEnding).fromNow();
-                                            const endingStr = currentTime <= timeEndingTime ? `Ending ${timeAgo}` : ``;
-                                            const coolOffStr = moment.unix(coolOffTime).hours();
-                                            */}
+                                                </Box>
 
-                                            <Box sx={{ my: 3, mx: 2 }}>
-                                                <Grid container alignItems="center">
-                                                <Grid item xs>
-                                                    <Typography gutterBottom variant="subtitle1" component="div">
-                                                        Time Left
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item>
-                                                    <Typography gutterBottom variant="body1" component="div">
-                                                        {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
-                                                            <>
-                                                                {thisitem.account?.draftAt &&
+                                                </>
+                                            }
+
+                                            {expandInfo &&
+                                                <Box>
+
+                                                    
+                                                    {totalQuorum &&
+                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                        <Grid container alignItems="center">
+                                                        <Grid item xs>
+                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                Quorum
+                                                            </Typography>
+                                                        </Grid>
+                                                        <Grid item>
+                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                {((+(totalQuorum).toFixed(1)).toLocaleString())}
+                                                            </Typography>
+                                                        </Grid>
+                                                        </Grid>
+                                                        <Typography color="text.secondary" variant="caption">
+                                                            Tokens needed for the proposal to pass *{(totalVoteThresholdPercentage)}% max vote threshhold
+                                                        </Typography>
+                                                    </Box>
+                                                    }
+
+                                                    {totalSupplyFractionPercentage &&
+                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                        <Grid container alignItems="center">
+                                                        <Grid item xs>
+                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                Supply Fraction Percentage
+                                                            </Typography>
+                                                        </Grid>
+                                                        <Grid item>
+                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                {(totalSupplyFractionPercentage)}%
+                                                            </Typography>
+                                                        </Grid>
+                                                        </Grid>
+                                                        <Typography color="text.secondary" variant="caption">
+                                                            {(+((totalSupplyFractionPercentage/100)*totalSupply).toFixed(0)).toLocaleString()} calculated from {(totalSupply.toLocaleString())} supply
+                                                        </Typography>
+                                                    </Box>
+                                                    }
+                                                    {/*totalSupply &&
+                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                        <Grid container alignItems="center">
+                                                        <Grid item xs>
+                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                Token Supply
+                                                            </Typography>
+                                                        </Grid>
+                                                        <Grid item>
+                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                {(totalSupply.toLocaleString())}
+                                                            </Typography>
+                                                        </Grid>
+                                                        </Grid>
+                                                        <Typography color="text.secondary" variant="caption">
+                                                            Number of tokens in circulation
+                                                        </Typography>
+                                                    </Box>
+                                                    */}
+                                            
+                                                
+                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                        <Grid container alignItems="center">
+                                                        <Grid item xs>
+                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                General Sentiment
+                                                            </Typography>
+                                                        </Grid>
+                                                        <Grid item>
+                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                {uniqueYes} / {uniqueNo}
+                                                            </Typography>
+                                                        </Grid>
+                                                        </Grid>
+                                                        <Typography color="text.secondary" variant="caption">
+                                                            Total unique voters voting for/against this proposal
+                                                        </Typography>
+                                                    </Box>
+
+                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                        <Grid container alignItems="center">
+                                                        <Grid item xs>
+                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                Signed Off At
+                                                            </Typography>
+                                                        </Grid>
+                                                        <Grid item>
+                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                {moment.unix(Number(thisitem.account?.signingOffAt)).format("MMMM D, YYYY, h:mm a")}
+                                                            </Typography>
+                                                        </Grid>
+                                                        </Grid>
+                                                        <Typography color="text.secondary" variant="caption">
+                                                            Timestamp that this proposal was signed off (voting started)
+                                                        </Typography>
+                                                    </Box>
+
+                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                        <Grid container alignItems="center">
+                                                        <Grid item xs>
+                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                {(thisitem.account?.votingCompletedAt && thisitem.account?.votingCompletedAt > 0) ?
+                                                                    <>Ended At</>
+                                                                :
+                                                                    <>Ends At</>
+                                                                }
+                                                            </Typography>
+                                                        </Grid>
+                                                        <Grid item>
+                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
                                                                     <>
-                                                                        {thisitem.account?.votingCompletedAt ?
-                                                                            `${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account?.config.baseVotingTime)+(Number(thisGovernance?.account?.config?.votingCoolOffTime))).fromNow()}`
-                                                                        :
-                                                                            `Ending ${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account.config.baseVotingTime)+(Number(thisGovernance?.account?.config?.votingCoolOffTime))).fromNow()}`
+                                                                        {thisitem.account?.draftAt &&
+                                                                            `${moment.unix(Number(thisitem.account.signingOffAt)+(Number(thisGovernance.account.config.baseVotingTime))).format("MMMM D, YYYY, h:mm a")}`
                                                                         }
                                                                     </>
+                                                                :
+                                                                    <>
+                                                                    {thisitem.account?.votingCompletedAt ?
+                                                                        `${moment.unix(thisitem.account.votingCompletedAt).format("MMMM D, YYYY, h:mm a")}`
+                                                                    :
+                                                                        `Ended`
+                                                                    }
+                                                                    </>
                                                                 }
-                                                            </>
-                                                        :
-                                                            `Ended`
-                                                        }
-                                                    </Typography>
-                                                </Grid>
-                                                </Grid>
-                                                <Typography color="text.secondary" variant="caption">
-                                                    From now how much time left until this proposal ends (Cool Off: {moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours() > 0 && `${moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours()}hrs`})
-                                                </Typography>
-                                            </Box>
+                                                            </Typography>
+                                                        </Grid>
+                                                        </Grid>
+                                                        <Typography color="text.secondary" variant="caption">
+                                                            Calculated ending timestamp
+                                                        </Typography>
+                                                    </Box>
+                                                    
+                                                    {/*
+                                                    const baseVotingTime = (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.baseVotingTime));
+                                                    const coolOffTime = (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.votingCoolOffTime));
+                                                    
+                                                    const timeEnding = Number(item.account?.signingOffAt) + baseVotingTime + coolOffTime;
+                                                    const timeEndingDate = new Date(timeEnding);
+                                                    const timeEndingTime = timeEndingDate.getTime() * 1000;
+                                                    const currentDate = new Date();
+                                                    const currentTime = currentDate.getTime();
+                                                    const timeAgo = moment.unix(timeEnding).fromNow();
+                                                    const endingStr = currentTime <= timeEndingTime ? `Ending ${timeAgo}` : ``;
+                                                    const coolOffStr = moment.unix(coolOffTime).hours();
+                                                    */}
 
-                                            <Box sx={{ my: 3, mx: 2 }}>
-                                                <Grid container alignItems="center">
-                                                <Grid item xs>
-                                                    <Typography gutterBottom variant="subtitle1" component="div">
-                                                        Status
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item>
-                                                    <Typography gutterBottom variant="body1" component="div">
-                                                        {GOVERNANCE_STATE[thisitem.account?.state]}
-                                                    </Typography>
-                                                </Grid>
-                                                </Grid>
-                                                <Typography color="text.secondary" variant="caption">
-                                                    Voting Status
-                                                </Typography>
-                                            </Box>
-                                            
-                                            {csvGenerated &&
-                                                <Box sx={{ my: 3, mx: 2 }}>
-                                                    <Grid container alignItems="center">
+                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                        <Grid container alignItems="center">
                                                         <Grid item xs>
-                                                            
+                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                Status
+                                                            </Typography>
+                                                        </Grid>
+                                                        <Grid item>
+                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                {GOVERNANCE_STATE[thisitem.account?.state]}
+                                                            </Typography>
+                                                        </Grid>
+                                                        </Grid>
+                                                        <Typography color="text.secondary" variant="caption">
+                                                            Voting Status
+                                                        </Typography>
+                                                    </Box>
+                                                    
+                                                    {csvGenerated &&
+                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                        <Grid container alignItems="center">
+                                                        <Grid item xs>
+                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                Export
+                                                            </Typography>
                                                         </Grid>
                                                         <Grid item>
                                                             <Typography gutterBottom variant="body1" component="div">
@@ -2273,10 +2313,40 @@ export function GovernanceProposalV2View(props: any){
                                                                 </Tooltip>
                                                             </Typography>
                                                         </Grid>
-                                                    </Grid>
+                                                        </Grid>
+                                                        <Typography color="text.secondary" variant="caption">
+                                                            Export voter participation as a CSV file
+                                                        </Typography>
+                                                    </Box>
+                                                    }
                                                 </Box>
                                             }
 
+                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                    <Grid container alignItems="center">
+                                                        <Grid item xs>
+                                                            
+                                                        </Grid>
+                                                        <Grid item>
+                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                <Tooltip title="Show Proposal Details">
+                                                                    <Button
+                                                                        size="small"
+                                                                        color='inherit'
+                                                                        variant="outlined"
+                                                                        onClick={toggleInfoExpand}
+                                                                        sx={{
+                                                                            borderRadius:'17px',
+                                                                            textTransform:'none',
+                                                                        }}
+                                                                    >
+                                                                        {expandInfo ? <><ExpandLess sx={{mr:1}}/> Less</> : <><ExpandMoreIcon sx={{mr:1}}/> More Info</>}
+                                                                    </Button>
+                                                                </Tooltip>
+                                                            </Typography>
+                                                        </Grid>
+                                                    </Grid>
+                                                </Box>
                                         </Grid>
                                         
                                     </Grid>  
