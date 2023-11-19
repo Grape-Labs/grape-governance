@@ -2,16 +2,28 @@ import React from "react";
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
 import { styled, useTheme } from '@mui/material/styles';
 // @ts-ignore
-import { PublicKey, Connection } from '@solana/web3.js';
 import { getMint } from "@solana/spl-token-v2";
+import { Signer, Connection, TransactionMessage, PublicKey, AddressLookupTableAccount, AddressLookupTableInstruction, AddressLookupTableProgram, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
 
 import { 
+    booleanFilter,
+    pubkeyFilter,
+    getProposal,
     getRealm,
     getRealms, 
+    getVoteRecordAddress,
+    getGovernanceProgramVersion,
     getTokenOwnerRecordsByOwner,
-    getTokenOwnerRecord
+    getTokenOwnerRecord,
+    getTokenOwnerRecordForRealm,
+    getAllGovernances,
+    getGovernanceAccounts,
+    withRelinquishVote,
+    RelinquishVoteArgs,
+    VoteRecord,
 } from '@solana/spl-governance';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
+import { useSnackbar } from 'notistack';
 
 import ExplorerView from '../utils/grapeTools/Explorer';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
@@ -27,6 +39,7 @@ import {
     Box,
     LinearProgress,
     Link,
+    CircularProgress,
     linearProgressClasses,
   } from '@mui/material';
 
@@ -45,66 +58,19 @@ const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
     },
 }));
 
-const governancecolumns: GridColDef[] = [
-    { field: 'id', headerName: 'ID', width: 70, hide: true },
-    { field: 'pubkey', headerName: 'PublicKey', width: 70, hide: true },
-    { field: 'realm', headerName: 'Governance', minWidth: 130, flex: 1, align: 'left' },
-    { field: 'governingTokenMint', headerName: 'Governing Mint', width: 150, align: 'center',
-        renderCell: (params) => {
-            return (
-                <ExplorerView address={params.value} type='address' shorten={4} hideTitle={false} style='text' color='white' fontSize='14px' />
-            )
-        }
-    },
-    { field: 'governingTokenDepositAmount', headerName: 'Votes (deposited)', width: 130, flex: 1, align: 'right'},
-    { field: 'unrelinquishedVotesCount', headerName: '(un)Relinquished', width: 130, align: 'center'},
-    { field: 'totalVotesCount', headerName: 'Total Votes', width: 130, align: 'center', hide: true },
-    { field: 'details', headerName: '', width: 150,  align: 'center',
-        renderCell: (params) => {
-            return (
-                <>
-                    <Button 
-                        size='small'
-                        variant="contained"
-                        color="info"
-                        /*
-                        component={Link}
-                        to={`/dao/${params.value}`}
-                        */
-                        component='a'
-                        href={`/dao/${params.value}`}
-                        
-                        sx={{borderRadius:'17px'}}
-                        
-                    >
-                        View
-                    </Button>
-                </>
-            )
-        }
-    },
-    { field: 'link', headerName: '', width: 150,  align: 'center', hide: true,
-        renderCell: (params) => {
-            return (
-                <Button
-                    variant='outlined'
-                    size='small'
-                    component='a'
-                    href={`https://realms.today/dao/${params.value}`}
-                    target='_blank'
-                    sx={{borderRadius:'17px'}}
-                >Visit</Button>
-            )
-        }
-    },
-  ];
+export async function getUnrelinquishedVoteRecords(
+    connection: Connection,
+    programId: PublicKey,
+    tokenOwnerRecordPk: PublicKey
+  ) {
+    return getGovernanceAccounts(connection, programId, VoteRecord, [
+      pubkeyFilter(1 + 32, tokenOwnerRecordPk)!,
+      booleanFilter(1 + 32 + 32, false),
+    ])
+}
 
 export function MyGovernanceView(props: any){
-    const { publicKey, wallet } = useWallet();
     const [pubkey, setPubkey] = React.useState(props?.pubkey);;
-    const ggoconnection = RPC_CONNECTION;
-    const ticonnection = RPC_CONNECTION;
-    const txonnection = RPC_CONNECTION;
     const [realms, setRealms] = React.useState(null);
     const [governanceRecord, setGovernanceRecord] = React.useState(null);
     const [governanceRecordRows, setGovernanceRecordRows] = React.useState(null);
@@ -112,6 +78,230 @@ export function MyGovernanceView(props: any){
     const [selectionGovernanceModel, setSelectionGovernanceModel] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(props?.tokenMap);
     const [loading, setLoading] = React.useState(false);
+    const { publicKey, sendTransaction } = useWallet();
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+
+    const governancecolumns: GridColDef[] = [
+        { field: 'id', headerName: 'ID', width: 70, hide: true },
+        { field: 'pubkey', headerName: 'PublicKey', width: 70, hide: true },
+        { field: 'realm', headerName: 'Governance', minWidth: 130, flex: 1, align: 'left' },
+        { field: 'governingTokenMint', headerName: 'Governing Mint', width: 150, align: 'center',
+            renderCell: (params) => {
+                return (
+                    <ExplorerView address={params.value} type='address' shorten={4} hideTitle={false} style='text' color='white' fontSize='14px' />
+                )
+            }
+        },
+        { field: 'governingTokenDepositAmount', headerName: 'Votes (deposited)', width: 130, flex: 1, align: 'right'},
+        { field: 'unrelinquishedVotesCount', headerName: '(un)Relinquished', width: 130, align: 'center',
+            renderCell: (params) => {
+                return (
+                    <>
+                        {params.value.count > 0 ?
+                            <Button 
+                                size='small'
+                                variant="text"
+                                color="inherit"
+                                onClick={(e)=>relinquishVotes(params.value.owner, params.value.realmPk, params.value.pubkey)}
+                                sx={{borderRadius:'17px'}}
+                                
+                            >
+                                {params.value.count}
+                            </Button>
+                        :
+                        <>{params.value.count}</>}
+                    </>
+                )
+            }
+        },
+        { field: 'totalVotesCount', headerName: 'Total Votes', width: 130, align: 'center', hide: true },
+        { field: 'details', headerName: '', width: 150,  align: 'center',
+            renderCell: (params) => {
+                return (
+                    <>
+                        <Button 
+                            size='small'
+                            variant="contained"
+                            color="info"
+                            /*
+                            component={Link}
+                            to={`/dao/${params.value}`}
+                            */
+                            component='a'
+                            href={`/dao/${params.value}`}
+                            
+                            sx={{borderRadius:'17px'}}
+                            
+                        >
+                            View
+                        </Button>
+                    </>
+                )
+            }
+        },
+        { field: 'link', headerName: '', width: 150,  align: 'center', hide: true,
+            renderCell: (params) => {
+                return (
+                    <Button
+                        variant='outlined'
+                        size='small'
+                        component='a'
+                        href={`https://realms.today/dao/${params.value}`}
+                        target='_blank'
+                        sx={{borderRadius:'17px'}}
+                    >Visit</Button>
+                )
+            }
+        },
+      ];
+
+    async function createAndSendV0Tx(txInstructions: TransactionInstruction[]) {
+        // Step 1 - Fetch Latest Blockhash
+        let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+        console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
+    
+        // Step 2 - Generate Transaction Message
+        const messageV0 = new TransactionMessage({
+            payerKey: publicKey,
+            recentBlockhash: latestBlockhash.blockhash,
+            instructions: txInstructions
+        }).compileToV0Message();
+        console.log("   ✅ - Compiled transaction message");
+        const transaction = new VersionedTransaction(messageV0);
+    
+        // Step 3 - Sign your transaction with the required `Signers`
+        //transaction.addSignature(publicKey);
+        //transaction.sign(wallet);
+        //const signedTransaction = await signTransaction(transaction);
+        //const signedTx = await signTransaction(transaction);
+        console.log("   ✅ - Transaction Signed");
+        
+        // Step 4 - Send our v0 transaction to the cluster
+        //const txid = await RPC_CONNECTION.sendTransaction(signedTransaction, { maxRetries: 5 });
+        
+        //const tx = new Transaction();
+        //tx.add(txInstructions[0]);
+        
+        console.log("tx: "+JSON.stringify(transaction))
+
+        const txid = await sendTransaction(transaction, RPC_CONNECTION, {
+            skipPreflight: true,
+            preflightCommitment: "confirmed"
+        });
+        
+        console.log("   ✅ - Transaction sent to network with txid: "+txid);
+    
+        // Step 5 - Confirm Transaction 
+        const snackprogress = (key:any) => (
+            <CircularProgress sx={{padding:'10px'}} />
+        );
+        const cnfrmkey = enqueueSnackbar(`Confirming Transaction`,{ variant: 'info', action:snackprogress, persist: true });
+        const confirmation = await RPC_CONNECTION.confirmTransaction({
+            signature: txid,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+        });
+        closeSnackbar(cnfrmkey);
+        if (confirmation.value.err) { 
+            enqueueSnackbar(`Transaction Confirmation Error`,{ variant: 'error' });
+            throw new Error("   ❌ - Transaction not confirmed.") }
+    
+        console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
+        return txid;
+    }
+    
+    const relinquishVotes = async(programId:any, realmPk:any, publicKey: PublicKey) => {
+        
+        const gtor = await getUnrelinquishedVoteRecords(
+            RPC_CONNECTION,
+            programId,
+            publicKey 
+        )
+        
+        //const tor = await getTokenOwnerRecord(RPC_CONNECTION, publicKey);
+        //console.log("tor: "+JSON.stringify(tor))
+        
+        //console.log("gtor: ",gtor)
+        const txInstructions: TransactionInstruction[] = []
+        let props = new Array();
+        if (gtor && gtor.length > 0){
+            //console.log("gtor1: "+JSON.stringify(gtor[0]))
+            for (var item of gtor){
+                
+                const proposal = await getProposal(RPC_CONNECTION, item.account.proposal);
+                
+                const gaccounts = await getAllGovernances(RPC_CONNECTION, programId, realmPk);
+                //console.log("govs: "+JSON.stringify(govs))
+
+
+                //if (proposal.account.)
+                //if (item.account.proposal.toBase58() === proposal.pubkey.toBase58()){
+                
+                for (var gaccount of gaccounts){
+                    if (gaccount.pubkey.toBase58() === proposal.account.governance.toBase58()){
+                        console.log("gaccount = "+JSON.stringify(gaccount))
+                        
+                        props.push({
+                            unrelinquishedVoteRecord:item,
+                            proposal:proposal
+                        });
+                        //console.log("prop: "+JSON.stringify(proposal))
+                        
+                        console.log("****** "+proposal.account.name+" ******");
+                        console.log("proposal.owner "+proposal.owner.toBase58());
+                        console.log("programVersion "+publicKey.toBase58());
+                        console.log("realmPk "+realmPk.toBase58());
+                        console.log("governance "+proposal.account.governance.toBase58());
+                        console.log("proposal "+proposal.pubkey.toBase58());
+                        console.log("tokenOwnerRecord "+proposal.account.tokenOwnerRecord.toBase58());
+                        console.log("governingTokenMint "+proposal.account.governingTokenMint.toBase58());
+                        console.log("Vote Record "+item.pubkey.toBase58());
+                        console.log("governanceAuthority "+item.account.governingTokenOwner.toBase58());
+                        console.log("publicKey "+publicKey.toBase58());
+                        //const tor = await getTokenOwnerRecordForRealm(RPC_CONNECTION, proposal.owner, realmPk, proposal.account.governingTokenMint, publicKey);
+                        //console.log("tor: "+JSON.stringify(tor))
+                        
+                        //const programId = governance.owner;
+                        const programVersion = await getGovernanceProgramVersion(
+                            RPC_CONNECTION,
+                            proposal.owner,
+                        )
+                        
+                        const voteRecordPk = await getVoteRecordAddress(
+                            programId,
+                            proposal.pubkey,
+                            voterTokenRecord!.pubkey
+                          )
+                        
+                        const instructions: TransactionInstruction[] = []
+                        
+                        await withRelinquishVote(
+                            instructions,
+                            proposal.owner,//programId,
+                            programVersion!,
+                            realmPk,
+                            proposal.account.governance,
+                            proposal.pubkey,
+                            new PublicKey("FYsr8MBC4mgcttEuc8sdtsBgbnfMoBwedWXsjyss8tnb"),//proposal.account.tokenOwnerRecord,
+                            proposal.account.governingTokenMint,
+                            item.pubkey,
+                            item.account.governingTokenOwner,
+                            publicKey
+                        )
+                        
+                        if (instructions)
+                            txInstructions.push(...instructions);
+
+                    }
+                }
+                //}
+            }
+        }
+        if (txInstructions && txInstructions.length > 0){
+            createAndSendV0Tx(txInstructions);
+        }
+        
+    }
 
     const getTokens = async () => {
         const tarray:any[] = [];
@@ -135,14 +325,6 @@ export function MyGovernanceView(props: any){
         const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
         
         try{
-            //console.log("fetching tor ");
-            const tor = await getTokenOwnerRecord(txonnection, new PublicKey(pubkey));
-            //console.log("tor "+JSON.stringify(tor));
-        }catch(e){
-            console.log("ERR: "+e);
-        }
-
-        try{
             //console.log("fetching realms ");
             //const rlms = await getRealms(ticonnection, [programId]);
             //console.log("rlms ",rlms);
@@ -150,7 +332,7 @@ export function MyGovernanceView(props: any){
             //const uTable = rlms.reduce((acc, it) => (acc[it.pubkey.toBase58()] = it, acc), {})
             //setRealms(uTable);
             
-            const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwner(ggoconnection, programId, new PublicKey(pubkey));
+            const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, new PublicKey(pubkey));
         
             //console.log("ownerRecordsbyOwner "+JSON.stringify(ownerRecordsbyOwner))
             const governance: any[] = [];
@@ -162,11 +344,15 @@ export function MyGovernanceView(props: any){
 
             // this method is not correct, migrate to set decimals by an RPC:
             
-            
+            // add to an array of partipating realms
+            const realmArr = new Array();
             for (const item of ownerRecordsbyOwner){
                 let isCouncil = false;
                 //const realm = uTable[item.account.realm.toBase58()];
                 const realm = await getRealm(RPC_CONNECTION, item.account.realm)
+                realmArr.push(realmArr);
+
+
                 //console.log("realm: "+JSON.stringify(realm))
                 const name = realm.account.name;
                 let votes = item.account.governingTokenDepositAmount.toNumber().toString();
@@ -176,11 +362,12 @@ export function MyGovernanceView(props: any){
                 vType = 'Token';
                 
                 console.log("item ",item)
+                console.log("item "+JSON.stringify(item))
                 console.log("decimals ",decimals)
                 if (decimals){
                     votes = (item.account.governingTokenDepositAmount.toNumber() / 10 ** decimals).toLocaleString();
                     // check if council or community
-                    
+
                     if (realm.account.config?.councilMint && new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(item.account.governingTokenMint).toBase58()){
                         votes += " Council";
                         isCouncil = true;
@@ -231,7 +418,12 @@ export function MyGovernanceView(props: any){
                     governingTokenMint:item.account.governingTokenMint.toBase58(),
                     isCouncil:isCouncil,
                     governingTokenDepositAmount:votes,
-                    unrelinquishedVotesCount:item.account.unrelinquishedVotesCount,
+                    unrelinquishedVotesCount:{
+                        count:item.account.unrelinquishedVotesCount,
+                        realmPk:item.account.realm,
+                        owner:item.owner,
+                        pubkey:publicKey
+                    },
                     totalVotesCount:item.account.totalVotesCount,
                     details:item.account.realm.toBase58(),
                     link:item.account.realm

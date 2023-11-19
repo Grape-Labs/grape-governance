@@ -1146,7 +1146,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         let limit = 50;
         let resultcount = 0;
         const govTx = new Array();
-
+        let tmpOffset = 0;
         // before checking solscan, fetch what we already have:
         if (governanceLookupItem?.governanceTransactionsFilename){
             console.log("governanceLookupItem: "+JSON.stringify(governanceLookupItem));
@@ -1158,7 +1158,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     govTx.push(item);
                 }
 
-                let tmpOffset = Math.floor(cached_transaction_map.length / limit) * limit;
+                tmpOffset = Math.floor(cached_transaction_map.length / limit) * limit;
                 offset = tmpOffset;
                 console.log("Offset updated to calculated offset: "+tmpOffset)
                 // given that offset here will be smaller than what we have cached push those items out
@@ -1175,6 +1175,9 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
         // now with what is missing check solscan
 
+        let cntoff = 0;
+        offset = 0; // so offset is not serving its purpose because items are pushed to the front!
+        // we need to reverse the fetches!
         while (hasnext){
             if (setPrimaryStatus) setPrimaryStatus("Fetching Governance Transactions ("+(offset+1)+" - "+(offset+limit)+")");
             const apiUrl = "https://api.solscan.io/account/token/txs";
@@ -1190,38 +1193,51 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             }).then((res) => {
                 return res;
             }).catch((err) => {
-                return null;  
+                return null;
             })
             offset+=limit;
+            
             
             if (response){
                 //console.log("response: "+JSON.stringify(response.data.data.tx.transactions));
                 //console.log("total: "+JSON.stringify(response.data.data.tx.total));
-                //console.log("hasnext: "+JSON.stringify(response.data.data.tx.hasNext));
+                console.log("hasnext: "+JSON.stringify(response.data.data.tx.hasNext));
                 hasnext = response?.data?.data?.tx?.hasNext;
                 // total = response.data.data.total
                 // hasnext = response.data.data.hasnext
                 //setGovernanceTransactions(response.data.transactions);
                 if (response?.data?.data?.tx?.transactions){
+                    console.log("Tx Results: "+response.data.data.tx.transactions.length);
                     for (var tx of response.data.data.tx.transactions){
                         // check if there are no duplicates:
+                        //console.log("solscan tx: "+JSON.stringify(tx))
                         let foundGtx = false;
                         for (var gtx of govTx){
-                            if (JSON.stringify(gtx) === JSON.stringify(tx)){
+                            if (gtx.change._id === tx.change._id){
                                 foundGtx = true;
-                                console.log("Skipping tx: "+gtx);
+                                console.log(moment.unix(gtx.blockTime).format("YYYY-MM-DD") + ": " +gtx.change._id + " vs " + tx.change._id)
+                                console.log("Skipping tx: "+JSON.stringify(gtx));
+                                cntoff++;
+                                hasnext = false // offset will be 0
                             }
                         }
                         if (!foundGtx){
-                            govTx.push(tx);
-                            console.log("Adding tx: "+tx);
+                            // dont push but add to the front
+                            //govTx.push(tx);
+                            govTx.unshift(tx);
+                            console.log("Adding tx: "+JSON.stringify(tx));
+                        } else{
+                            //console.log("Skipped: "+cntoff);
                         }
                     }
+                    
                 }
             } else{
                 hasnext = false;
             }
+            console.log("ending loop")
         }
+        console.log("SOLSCAN Skipped Final: "+cntoff);
         //setGovernanceTransactions(govTx);
         
 

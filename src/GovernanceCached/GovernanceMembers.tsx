@@ -164,8 +164,6 @@ function RenderGovernanceMembersTable(props:any) {
     const members = props.members;
     const circulatingSupply = props.circulatingSupply;
     const totalDepositedVotes = props.totalDepositedVotes;
-    const connection = RPC_CONNECTION;
-    const { publicKey } = useWallet();
     const [memberVotingResults, setMemberVotingResults] = React.useState(null);
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
@@ -179,6 +177,7 @@ function RenderGovernanceMembersTable(props:any) {
     const memberresultscolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
         { field: 'address', headerName: 'Address', width: 70, hide: true},
+        { field: 'record', headerName: 'Record', width: 70, hide: true},
         { field: 'member', headerName: 'Member', width: 200, flex: 1,
             renderCell: (params) => {
                 return(
@@ -263,6 +262,7 @@ function RenderGovernanceMembersTable(props:any) {
             mmbr.push({
                 id:x+1,
                 address: member.governingTokenOwner.toBase58(),
+                record: member.pubkey.toBase58(),
                 member:{
                     address: member.governingTokenOwner.toBase58(),
                     governingCouncilDepositAmount:((Number(member.governingCouncilDepositAmount) > 0) ? Number(member.governingCouncilDepositAmount) : 0),
@@ -536,6 +536,7 @@ export function GovernanceMembersView(props: any) {
                             
                             if (grealm.account.config?.councilMint) {
                                 participantArray.push({
+                                    pubkey:new PublicKey(record.pubkey),
                                     governingTokenMint:(new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? new PublicKey(record.account.governingTokenMint) : null,
                                     governingTokenOwner:new PublicKey(record.account.governingTokenOwner),
                                     totalVotesCount:(new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number("0x"+record.account.totalVotesCount) : 0,
@@ -556,6 +557,7 @@ export function GovernanceMembersView(props: any) {
                             } else{
 
                                 participantArray.push({
+                                    pubkey:new PublicKey(record.pubkey),
                                     governingTokenMint:new PublicKey(record.account.governingTokenMint),
                                     governingTokenOwner:new PublicKey(record.account.governingTokenOwner),
                                     totalVotesCount:Number("0x"+record.account.totalVotesCount),
@@ -608,9 +610,6 @@ export function GovernanceMembersView(props: any) {
                 //console.log("participantArray: "+JSON.stringify(participantArray));
                 const presortedResults = participantArray.sort((a,b) => (a.totalVotesCount > b.totalVotesCount) ? 1 : -1);
                 const sortedResults = presortedResults.sort((a,b) => (Number(a.governingTokenDepositAmount) < Number(b.governingTokenDepositAmount)) ? 1 : -1);
-
-
-
 
                 let top10 = null;
                 let count = 0;
