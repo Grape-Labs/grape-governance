@@ -1174,10 +1174,10 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         }
 
         // now with what is missing check solscan
-
         let cntoff = 0;
         offset = 0; // so offset is not serving its purpose because items are pushed to the front!
-        // we need to reverse the fetches!
+        // we need to reverse the fetches! see bellow as we unshift
+        let govFreshTx = new Array();
         while (hasnext){
             if (setPrimaryStatus) setPrimaryStatus("Fetching Governance Transactions ("+(offset+1)+" - "+(offset+limit)+")");
             const apiUrl = "https://api.solscan.io/account/token/txs";
@@ -1215,16 +1215,14 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         for (var gtx of govTx){
                             if (gtx.change._id === tx.change._id){
                                 foundGtx = true;
-                                console.log(moment.unix(gtx.blockTime).format("YYYY-MM-DD") + ": " +gtx.change._id + " vs " + tx.change._id)
+                                //console.log(moment.unix(gtx.blockTime).format("YYYY-MM-DD") + ": " +gtx.change._id + " vs " + tx.change._id)
                                 console.log("Skipping tx: "+JSON.stringify(gtx));
                                 cntoff++;
                                 hasnext = false // offset will be 0
                             }
                         }
                         if (!foundGtx){
-                            // dont push but add to the front
-                            //govTx.push(tx);
-                            govTx.unshift(tx);
+                            govFreshTx.push(tx);
                             console.log("Adding tx: "+JSON.stringify(tx));
                         } else{
                             //console.log("Skipped: "+cntoff);
@@ -1237,6 +1235,10 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             }
             console.log("ending loop")
         }
+
+        if (govFreshTx && govFreshTx.length > 0)
+            govTx.unshift(govFreshTx);
+
         console.log("SOLSCAN Skipped Final: "+cntoff);
         //setGovernanceTransactions(govTx);
         
