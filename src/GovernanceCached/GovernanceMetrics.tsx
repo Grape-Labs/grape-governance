@@ -652,12 +652,12 @@ function RenderVoterRecordTable(props:any) {
 
                     if (!skip){
                         
-                        let address = transaction.change.address;
-                        let changeType = transaction.change.changeType;
-                        let changeAmount = transaction.change.changeAmount/Math.pow(10, (transaction.change?.decimals || 0));
-                        let tokenAddress = transaction.change.tokenAddress;
-                        let prebalance = transaction.change?.preBalance/Math.pow(10, (transaction.change?.decimals || 0));
-                        let postbalance = transaction.change?.postBalance/Math.pow(10, (transaction.change?.decimals || 0));
+                        let address = transaction.change?.address;
+                        let changeType = transaction.change?.changeType;
+                        let changeAmount = transaction.change?.changeAmount && transaction.change.changeAmount/Math.pow(10, (transaction.change?.decimals || 0));
+                        let tokenAddress = transaction.change?.tokenAddress && transaction.change.tokenAddress;
+                        let prebalance = transaction.change?.preBalance &&  transaction.change?.preBalance/Math.pow(10, (transaction.change?.decimals || 0));
+                        let postbalance = transaction.change?.postBalance &&  transaction.change?.postBalance/Math.pow(10, (transaction.change?.decimals || 0));
                         
                         tokenName = transaction.change?.tokenName;
                         tokenIcon = transaction.change?.tokenIcon;
