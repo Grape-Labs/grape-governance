@@ -127,7 +127,10 @@ import {
     TX_RPC_ENDPOINT, 
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
-import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
+import { 
+    formatAmount, 
+    getFormattedNumberToLocale,
+    VSR_PLUGIN_PKS } from '../utils/grapeTools/helpers'
 
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
@@ -2117,7 +2120,7 @@ export function GovernanceProposalV2View(props: any){
                                                         From now how much time left until this proposal ends (Cool Off: {moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours() > 0 && `${moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours()}hrs`})
                                                     </Typography>
                                                 </Box>
-
+                                                
                                                 </>
                                             }
 
@@ -2164,6 +2167,36 @@ export function GovernanceProposalV2View(props: any){
                                                         </Typography>
                                                     </Box>
                                                     }
+                                                    
+                                                    {(voteType !== 'Council' && realm && realm?.account?.config?.useCommunityVoterWeightAddin) &&
+                                                        <Box sx={{ my: 3, mx: 2 }}>
+                                                            <Grid container alignItems="center">
+                                                            <Grid item xs>
+                                                                <Typography gutterBottom variant="subtitle1" component="div">
+                                                                    VSR
+                                                                </Typography>
+                                                            </Grid>
+                                                            <Grid item>
+                                                                <Typography gutterBottom variant="body1" component="div">
+
+                                                                    {(realm && realm?.account?.config?.useCommunityVoterWeightAddin) ?
+                                                                        <>
+                                                                            Using Voter Weight Plugin
+                                                                        </>
+                                                                    :
+                                                                        ``
+                                                                        
+                                                                    }
+                                                                </Typography>
+                                                            </Grid>
+                                                            </Grid>
+                                                            <Typography color="text.secondary" variant="caption">
+                                                                VSR details coming soon
+                                                            </Typography>
+                                                        </Box>
+                                                    }
+
+                                                    
                                                     {/*totalSupply &&
                                                     <Box sx={{ my: 3, mx: 2 }}>
                                                         <Grid container alignItems="center">
