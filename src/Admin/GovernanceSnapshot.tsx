@@ -1213,7 +1213,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         //console.log("solscan tx: "+JSON.stringify(tx))
                         let foundGtx = false;
                         for (var gtx of govTx){
-                            if (gtx.change._id === tx.change._id){
+                            if (gtx.change?._id === tx.change?._id){
                                 foundGtx = true;
                                 //console.log(moment.unix(gtx.blockTime).format("YYYY-MM-DD") + ": " +gtx.change._id + " vs " + tx.change._id)
                                 console.log("Skipping tx: "+JSON.stringify(gtx));

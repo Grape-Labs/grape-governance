@@ -2062,8 +2062,8 @@ export function GovernanceProposalV2View(props: any){
                                                                 {/* ((+(totalQuorum) - (Number(thisitem.account.options[0]?.voteWeight) / 10 ** votingDecimals)) */}
                                                                 {(totalQuorum - (forVotes/10**votingDecimals)) > 0 ?
                                                                     <>
-                                                                        (+(totalQuorum - (forVotes/10**votingDecimals))
-                                                                        .toFixed(0)).toLocaleString()
+                                                                        {(+(totalQuorum - (forVotes/10**votingDecimals))
+                                                                        .toFixed(0)).toLocaleString()}
                                                                     </>
                                                                     :<>Passing</>
                                                                 }
