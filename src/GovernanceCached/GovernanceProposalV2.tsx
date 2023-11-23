@@ -2168,7 +2168,8 @@ export function GovernanceProposalV2View(props: any){
                                                     </Box>
                                                     }
                                                     
-                                                    {(voteType !== 'Council' && realm && realm?.account?.config?.useCommunityVoterWeightAddin) &&
+                                                    {(voteType !== 'Council' && realm && 
+                                                        (realm?.account?.config?.useCommunityVoterWeightAddin || realm?.account?.communityTokenConfig?.voterWeightAddin)) &&
                                                         <Box sx={{ my: 3, mx: 2 }}>
                                                             <Grid container alignItems="center">
                                                             <Grid item xs>
@@ -2179,7 +2180,9 @@ export function GovernanceProposalV2View(props: any){
                                                             <Grid item>
                                                                 <Typography gutterBottom variant="body1" component="div">
 
-                                                                    {(realm && realm?.account?.config?.useCommunityVoterWeightAddin) ?
+                                                                    {(realm && 
+                                                                        (realm?.account?.config?.useCommunityVoterWeightAddin || realm?.account?.communityTokenConfig?.voterWeightAddin)
+                                                                        ) ?
                                                                         <>
                                                                             Using Voter Weight Plugin
                                                                         </>
@@ -2191,7 +2194,12 @@ export function GovernanceProposalV2View(props: any){
                                                             </Grid>
                                                             </Grid>
                                                             <Typography color="text.secondary" variant="caption">
-                                                                VSR details coming soon
+                                                                {realm?.account?.communityTokenConfig?.voterWeightAddin &&
+                                                                <>
+                                                                    VSR: {realm.account.communityTokenConfig.voterWeightAddin.toBase58()}
+                                                                </>
+                                                                }
+                                                                {console.log("realm: "+JSON.stringify(realm))}
                                                             </Typography>
                                                         </Box>
                                                     }
@@ -2232,7 +2240,7 @@ export function GovernanceProposalV2View(props: any){
                                                         </Grid>
                                                         </Grid>
                                                         <Typography color="text.secondary" variant="caption">
-                                                            Total unique voters voting for/against this proposal
+                                                            Total unique voters voting for/against this proposal <sup>*</sup>{uniqueYes+uniqueNo} participants
                                                         </Typography>
                                                     </Box>
 

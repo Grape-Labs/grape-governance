@@ -20,6 +20,7 @@ import {
   VoteKind,
   getGovernanceProgramVersion,
   GOVERNANCE_CHAT_PROGRAM_ID,
+  
 } from "@solana/spl-governance";
 // plugin stuff
 import { Wallet } from "@project-serum/anchor";
