@@ -821,7 +821,19 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
             </>
           
           
-          <Typography variant="h1" sx={{ textAlign: "center",mb:2 }}>Frictionless</Typography>
+          <Typography variant="h1" sx={{ 
+            textAlign: "center",
+            mb:2,
+            background: '-webkit-linear-gradient(90deg,rgba(255,255,255,0.75),rgba(0,0,0,0.1))',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            TextFillColor: 'transparent',
+            /*
+            WebkitTextStroke: '1px var(--color-rep-outline)',
+            textStroke: '1px var(--color-rep-outline)',
+            color: 'rgba(0,0,0,0)'*/
+            }}>Frictionless</Typography>
           <Divider>
             <Chip label="Frictionless x Solana" />
           </Divider>
