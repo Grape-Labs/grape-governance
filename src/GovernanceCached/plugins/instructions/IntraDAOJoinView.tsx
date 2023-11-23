@@ -663,11 +663,6 @@ export default function IntraDAOJoinView(props: any) {
                     </Grid>
                 : <></>
                 }*/}
-                <Box
-                    sx={{textAlign:'center'}}
-                >
-                    <Typography variant="caption">ToDo: Use verified DAO Dropdown</Typography>
-                </Box>
                 
             </FormControl>
             
