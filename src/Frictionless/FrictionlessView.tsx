@@ -926,7 +926,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
           </Typography>
         </>}>
           <Button variant="text"
-            href="https://twitter.com/intent/tweet?text=Frictionless Governance by Grape!&hashtags=OPOS"
+            href="https://twitter.com/intent/tweet?text=Frictionless Governance!&hashtags=OPOS"
             target="_blank"
           >
             <Typography variant="caption"
