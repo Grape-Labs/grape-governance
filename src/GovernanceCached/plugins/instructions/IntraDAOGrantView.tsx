@@ -66,6 +66,7 @@ import { LookupTableIntegratedDialogView } from './LookupTableIntegratedDialogVi
 
 import ExplorerView from '../../../utils/grapeTools/Explorer';
 
+import CorporateFareIcon from '@mui/icons-material/CorporateFare';
 import PersonIcon from '@mui/icons-material/Person';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -380,6 +381,11 @@ export default function IntraDAOGrantView(props: any) {
         
           // Check if the publicKey matches the Solana public key pattern
           return solanaPublicKeyRegex.test(publicKeyString);
+    }
+
+    function handleSetThisDao(){
+        //alert(governanceAddress);
+        handleSetDaoToJoinAddressChange(governanceAddress);
     }
 
     function handleSetDaoToJoinAddressChange(text:string){
@@ -966,6 +972,7 @@ export default function IntraDAOGrantView(props: any) {
                     label="DAO Address" 
                     id="fullWidth"
                     type="text"
+                    value={daoToJoinAddress}
                     onChange={(e) => {
                         handleSetDaoToJoinAddressChange(e.target.value);
                         
@@ -975,6 +982,18 @@ export default function IntraDAOGrantView(props: any) {
                     }}
                     sx={{borderRadius:'17px'}} 
                 />
+                <Grid sx={{textAlign:'right',}}>
+                    <Tooltip title='Use this DAO'>
+                        <IconButton 
+                                size="small"
+                                onClick={handleSetThisDao}
+                                color='inherit'
+                                sx={{color:'white',textTransform:'none',ml:1}}>
+                            <CorporateFareIcon sx={{fontSize:'18px'}} />
+                        </IconButton>
+                    </Tooltip>
+                </Grid>
+
                 {(!daoToJoinAddress && (daoToJoinAddressStr && daoToJoinAddressStr.length > 0)) ? 
                     <Grid sx={{textAlign:'right',}}>
                         <Typography variant="caption" color="error">WARNING: Invalid DAO address!</Typography>
@@ -997,7 +1016,8 @@ export default function IntraDAOGrantView(props: any) {
                                                 Community Mint: <ExplorerView
                                                                 address={governance.account.communityMint.toBase58()} type='address'
                                                                 shorten={8}
-                                                                hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                                                hideTitle={false} style='text' color='white' fontSize='12px'
+                                                                showTokenMetadata={true}/>
                                             
                                                 {governance.account.config.councilMint &&
                                                     <>
@@ -1040,11 +1060,6 @@ export default function IntraDAOGrantView(props: any) {
                     </Grid>
                 : <></>
                 }*/}
-                <Box
-                    sx={{textAlign:'center'}}
-                >
-                    <Typography variant="caption">ToDo: Use verified DAO Dropdown</Typography>
-                </Box>
                 
             </FormControl>
             

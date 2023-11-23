@@ -205,7 +205,7 @@ export default function GovernanceRealtimeInfo(props: any){
                                     // Check if amount is found and it's the first one
                                     (!foundAmount && item.info?.amount &&
                                         <Grid key={index}>
-                                        <Typography variant="body2">Amount: {item.info.amount.toLocaleString()}</Typography>
+                                            <Typography variant="body2">Amount: {item.info.amount.toLocaleString()}</Typography>
                                         </Grid>
                                     ) || foundAmount
                                 ), false)}

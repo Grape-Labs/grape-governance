@@ -177,7 +177,7 @@ export default function ExplorerView(props:any){
                     setHasProfilePicture(true);
                 }
             }
-            if (!titem && tokenMap) // remove tokenMap here to will make more rpc calls
+            if (!titem) // && tokenMap) // remove tokenMap here to will make more rpc calls
                 fetchTokenData();
             
             /*
