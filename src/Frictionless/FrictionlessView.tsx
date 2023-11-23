@@ -921,7 +921,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
       <Grid container alignContent="center" justifyContent="center">
         <Tooltip title={<>
           <Typography sx={{textAlign:'center', fontSize:"10px"}}>
-            Frictionless Governance by Grape<br/>
+            Frictionless Governance<br/>
             Only Possible On Solana!
           </Typography>
         </>}>
