@@ -658,8 +658,8 @@ function TablePaginationActions(props) {
             <>
                 <Box 
                     sx={{ 
-                        ml:3,
-                        mr:3,
+                        ml:1,
+                        mr:1,
                         mb:2 
                     }}>
                     <Grid container direction="row">
@@ -715,6 +715,7 @@ function TablePaginationActions(props) {
                                     background:'none',
                                     p:0,
                                     m:0,
+                                    mb:2,
                                     width:'100%'
                                 }}
                             >
@@ -764,7 +765,6 @@ function TablePaginationActions(props) {
                                                             backgroundColor:'none',
                                                             m:0,
                                                             p:0,
-                                                            mb:2,
                                                             pb:2,
                                                             borderRadius: '17px',
                                                             }}>
@@ -782,8 +782,9 @@ function TablePaginationActions(props) {
                                                         </TableCell>
                                                         */}
                                                         <TableCell sx={{
+                                                            m:0,
                                                             mt:0,
-                                                            pt:0,
+                                                            p:0,
                                                             border:'none',
                                                             }}>
                                                             <Typography variant="caption" 
@@ -919,44 +920,48 @@ function TablePaginationActions(props) {
                                 }
                             </TableBody>
                             
-                            <TableFooter
-                                sx={{
-                                    ml:3,
-                                    mr:3,
-                                    backgroundColor:'#2E2934',
-                                    border:'none'
-                                }}
-                            >
-                                <TableRow
+                            <Grid 
+                                display="flex"
+                                justifyContent="flex-end"
+                                sx={{ 
+                                    m:1,
+                                    mt:2,
+                                    borderRadius:'17px',
+                                    background:'none',
+                                }}>
+                                <TableFooter
                                     sx={{
-                                        ml:3,
-                                        mr:3,
+                                        backgroundColor:'#2E2934',
+                                        borderRadius:'17px',
                                     }}
                                 >
-                                    <TablePagination
-                                        rowsPerPageOptions={[5, 10, 25, { label: 'All', value: -1 }]}
-                                        colSpan={1}
-                                        count={proposals && proposals.length}
-                                        rowsPerPage={rowsPerPage}
-                                        page={page}
-                                        SelectProps={{
-                                            inputProps: {
-                                            'aria-label': 'rows per page',
-                                            },
-                                            native: true,
-                                        }}
-                                        onPageChange={handleChangePage}
-                                        onRowsPerPageChange={handleChangeRowsPerPage}
-                                        ActionsComponent={TablePaginationActions}
+                                    <TableRow
                                         sx={{
-                                            borderRadius:'17px',
-                                            ml:3,
-                                            mr:3,
                                         }}
-                                    />
-                                </TableRow>
-                            </TableFooter>
-                            
+                                    >
+                                        <TablePagination
+                                            rowsPerPageOptions={[5, 10, 25, { label: 'All', value: -1 }]}
+                                            colSpan={1}
+                                            count={proposals && proposals.length}
+                                            rowsPerPage={rowsPerPage}
+                                            page={page}
+                                            SelectProps={{
+                                                inputProps: {
+                                                'aria-label': 'rows per page',
+                                                },
+                                                native: true,
+                                            }}
+                                            onPageChange={handleChangePage}
+                                            onRowsPerPageChange={handleChangeRowsPerPage}
+                                            ActionsComponent={TablePaginationActions}
+                                            sx={{
+                                                mt:2,
+                                                borderRadius:'17px',
+                                            }}
+                                        />
+                                    </TableRow>
+                                </TableFooter>
+                            </Grid>
                             
                         </StyledTable>
                     </Table>
