@@ -26,6 +26,7 @@ import {
   InputBase,
   Tooltip,
   LinearProgress,
+  LinearProgressProps,
   Divider,
   Chip,
   DialogTitle,
@@ -42,6 +43,8 @@ import {
   CardActions,
   CardContent,
 } from '@mui/material/';
+
+import { linearProgressClasses } from '@mui/material/LinearProgress';
 
 import { SwitchProps } from '@mui/material/Switch';
 
@@ -64,7 +67,6 @@ const CustomSearchIcon = createSvgIcon(
 
 import ExplorerView from '../utils/grapeTools/Explorer';
 
-import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
 
 import GovernanceNavigation from './GovernanceNavigation'; 
@@ -126,6 +128,7 @@ import {
 } from './api/queries';
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
+import ProgressBar from '../components/progress-bar/progress-bar';
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
 const IOSSwitch = styled((props: SwitchProps) => (
@@ -197,15 +200,23 @@ const BlinkingDot = () => {
     );
   };
 
-const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
+type BorderLinearProgressProps = LinearProgressProps & {
+    valueYes?: number;
+    valueNo?: number;
+};
+
+const BorderLinearProgress = styled(LinearProgress)<BorderLinearProgressProps>(({ theme, valueYes, valueNo }) => ({
+    marginTop: 6,
+    marginBottom: 8,
     height: 15,
     borderRadius: '17px',
     [`&.${linearProgressClasses.colorPrimary}`]: {
-      backgroundColor: theme.palette.grey[theme.palette.mode === 'light' ? 200 : 800],
+      backgroundColor: theme.palette.grey[theme.palette.mode === 'light' ? 0 : 900],
     },
     [`& .${linearProgressClasses.bar}`]: {
       borderRadius: '0px',
-      backgroundColor: theme.palette.mode === 'light' ? '#1a90ff' : '#ffffff',
+      backgroundColor: theme.palette.mode === 'light' ? '#AB4D47' : '#5C9F62',
+      width: valueYes ? `${valueYes}%` : '0%',
     },
   }));
 
@@ -547,46 +558,89 @@ function TablePaginationActions(props) {
                                                         <GetProposalStatus item={item} />
                                                     </Grid>
                                                     
-                                                    <Grid>
+                                                    {state === 2 ?
+                                                        <>
+                                                            <Grid container sx={{ml:1}}>
+                                                                <Grid item xs alignContent={'left'} justifyContent={'left'}>
+                                                                    <Typography variant="body2" sx={{color:'white',mr:1,textAlign:'left'}}>
+                                                                        YES:&nbsp;
+                                                                            {Number(item.account?.options[0].voteWeight) > 0 ?
+                                                                            <>
+                                                                            {`${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
+                                                                            </>
+                                                                            :
+                                                                            <>0%</>
+                                                                        }
+                                                                    
+                                                                    </Typography>
+                                                                </Grid>
+                                                                <Grid item xs alignContent={'right'} justifyContent={'right'}>
+                                                                    <Typography variant="body2" sx={{color:'white',mr:1}}>
+                                                                        NO:&nbsp;
+                                                                        {Number(item.account?.denyVoteWeight) > 0 ?
+                                                                        <>
+                                                                        {`${(((Number(item.account?.denyVoteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
+                                                                        </>:
+                                                                        <>0%</>
+                                                                        }
+                                                                    </Typography>
+                                                                </Grid>
+                                                                <Grid xs={12}>
+                                                                    
+                                                                    <BorderLinearProgress variant="determinate" 
+                                                                        value={100}
+                                                                        valueYes={
+                                                                            +(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)
+                                                                        }
+                                                                        valueNo={
+                                                                            +(((Number(item.account?.denyVoteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)
+                                                                        } 
+                                                                    />
+                                                                </Grid>
+                                                            </Grid>  
+                                                        </>
+                                                    :
+                                                        <Grid>
 
-                                                        <Grid container>
-                                                            <Grid item xs alignContent={'right'} justifyContent={'right'}>
-                                                                <Typography variant="body2" sx={{color:'white',mr:1}}>
-                                                                    YES:
-                                                                </Typography>
+                                                            <Grid container>
+                                                                <Grid item xs alignContent={'right'} justifyContent={'right'}>
+                                                                    <Typography variant="body2" sx={{color:'white',mr:1}}>
+                                                                        YES: 
+                                                                    </Typography>
+                                                                </Grid>
+                                                                <Grid item>
+                                                                    <Typography variant="body2" sx={{color:"green"}}>
+                                                                        {Number(item.account?.options[0].voteWeight) > 0 ?
+                                                                        <>
+                                                                        {`${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
+                                                                        </>
+                                                                        :
+                                                                        <>0%</>
+                                                                        }
+                                                                    </Typography>
+                                                                </Grid>
                                                             </Grid>
-                                                            <Grid item>
-                                                                <Typography variant="body2" sx={{color:"green"}}>
-                                                                    {Number(item.account?.options[0].voteWeight) > 0 ?
-                                                                    <>
-                                                                    {`${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
-                                                                    </>
-                                                                    :
-                                                                    <>0%</>
-                                                                    }
-                                                                </Typography>
+
+                                                            <Grid container sx={{mb:1}}>
+                                                                <Grid item xs alignContent={'right'} justifyContent={'right'}>
+                                                                    <Typography variant="body2" sx={{color:'white',mr:1}}>
+                                                                        No:
+                                                                    </Typography>
+                                                                </Grid>
+                                                                <Grid item>
+                                                                    <Typography variant="body2" sx={{color:"#AB4D47"}}>
+                                                                        {Number(item.account?.denyVoteWeight) > 0 ?
+                                                                        <>
+                                                                        {`${(((Number(item.account?.denyVoteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
+                                                                        </>:
+                                                                        <>0%</>
+                                                                        }
+                                                                    </Typography>
+                                                                </Grid>
                                                             </Grid>
+
                                                         </Grid>
-
-                                                        <Grid container sx={{mb:1}}>
-                                                            <Grid item xs alignContent={'right'} justifyContent={'right'}>
-                                                                <Typography variant="body2" sx={{color:'white',mr:1}}>
-                                                                    No:
-                                                                </Typography>
-                                                            </Grid>
-                                                            <Grid item>
-                                                                <Typography variant="body2" sx={{color:"#AB4D47"}}>
-                                                                    {Number(item.account?.denyVoteWeight) > 0 ?
-                                                                    <>
-                                                                    {`${(((Number(item.account?.denyVoteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
-                                                                    </>:
-                                                                    <>0%</>
-                                                                    }
-                                                                </Typography>
-                                                            </Grid>
-                                                        </Grid>
-
-                                                    </Grid>
+                                                    }
                                                     
                                                     <Grid sx={{mb:1}}>
                                                         <Chip
