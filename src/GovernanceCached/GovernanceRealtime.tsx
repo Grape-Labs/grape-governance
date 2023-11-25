@@ -479,7 +479,9 @@ function TablePaginationActions(props) {
                                 target='_blank'
                                 color='inherit'
                                 sx={{
-                                    borderRadius:'17px',
+                                    borderRadius:'25px',
+                                    p:1,
+                                    m:0,
                                     textTransform:'none',
                                     width:'100%',
                                     textDecoration: (state === 6) ? 'line-through' : 'none'
