@@ -20,8 +20,8 @@ html {
 }
 
 body .realtime-body{
-  background: #111111;  /* fallback for old browsers */
-  background: linear-gradient(to right, #e6dada, #274046);
+  background: #19141F;  /* fallback for old browsers */
+  background: linear-gradient(200deg, #bbd2c5, #536976, #292e49);
   height:100%;
   min-height: 100vh;
   padding:0;

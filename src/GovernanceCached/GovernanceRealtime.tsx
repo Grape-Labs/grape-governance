@@ -660,7 +660,13 @@ function TablePaginationActions(props) {
 
                                                     {governanceInfo &&
                                                         <Grid
-                                                            sx={{mt:2}}
+
+                                                            sx={{
+                                                                display: 'flex',
+                                                                justifyContent: 'flex-end',
+                                                                alignItems: 'flex-end',
+                                                                mt: 2
+                                                            }}
                                                         >
                                                             <Button 
                                                                 variant="text" 
@@ -668,9 +674,13 @@ function TablePaginationActions(props) {
                                                                 startIcon={<ZoomOutMapIcon 
                                                                     fontSize='small'
                                                                     sx={{
-                                                                        borderRadius:'17px',
                                                                         color:"#ddd"}}
-                                                                    />}>
+                                                                    />}
+                                                                sx={{
+                                                                    borderRadius:'17px',
+                                                                
+                                                                }}
+                                                                >
                                                                 <Typography
                                                                     variant="caption"
                                                                     sx={{color:'#ddd'}}
