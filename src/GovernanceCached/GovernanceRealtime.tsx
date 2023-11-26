@@ -541,7 +541,9 @@ function TablePaginationActions(props) {
                                                         {name}
                                                     </Typography>
 
-                                                    <Grid item xs={12}>
+                                                    <Grid item xs={12}
+                                                        sx={{mb:1}}
+                                                    >
                                                         <Typography variant="body1" 
                                                             color='gray' 
                                                             sx={{ display: 'flex', alignItems: 'center' }}>
@@ -730,7 +732,7 @@ function TablePaginationActions(props) {
                     }}>
                     <Grid container direction="row">
                         <Grid item sm={8} xs={12}
-                            
+                            sx={{mb:1}}
                         >
                             <TextField 
                                 id="input-with-sx" 
