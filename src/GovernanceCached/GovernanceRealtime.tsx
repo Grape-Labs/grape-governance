@@ -4,9 +4,6 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import React, { useCallback } from 'react';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { styled, useTheme } from '@mui/material/styles';
-import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
-import grapeTheme from  '../utils/config/theme';
-import { ThemeProvider } from '@mui/material/styles';
 
 import {
   Typography,
@@ -180,7 +177,7 @@ const IOSSwitch = styled((props: SwitchProps) => (
         duration: 500,
       }),
     },
-  }));
+}));
 
 const BlinkingDotContainer = styled("div")({
     width: 12.5,
@@ -211,11 +208,11 @@ const BorderLinearProgress = styled(LinearProgress)<BorderLinearProgressProps>((
     height: 15,
     borderRadius: '17px',
     [`&.${linearProgressClasses.colorPrimary}`]: {
-      backgroundColor: theme.palette.grey[theme.palette.mode === 'light' ? 0 : 900],
+      backgroundColor: valueNo ? '#AB4D47' : theme.palette.grey[900],
     },
     [`& .${linearProgressClasses.bar}`]: {
       borderRadius: '0px',
-      backgroundColor: theme.palette.mode === 'light' ? '#AB4D47' : '#5C9F62',
+      backgroundColor: valueYes ? '#5C9F62' : valueNo ? '#AB4D47' : theme.palette.grey[900],
       width: valueYes ? `${valueYes}%` : '0%',
     },
   }));
@@ -1247,22 +1244,20 @@ export function GovernanceRealtimeView(props: any) {
                 );
             }else{
                 return (
-                    <ThemeProvider theme={grapeTheme}>
-                        <Box
-                            sx={{
-                                width:'100%',
-                                mt: 6,
-                                background: 'rgba(0, 0, 0, 0.5)',
-                                borderRadius: '17px',
-                                p: 4,
-                                pt:4,
-                                pb:4,
-                                alignItems: 'center', textAlign: 'center'
-                            }} 
-                        > 
-                            <Typography variant="caption" sx={{color:'white'}}>Governance Proposals</Typography>
-                        </Box>
-                    </ThemeProvider>
+                    <Box
+                        sx={{
+                            width:'100%',
+                            mt: 6,
+                            background: 'rgba(0, 0, 0, 0.5)',
+                            borderRadius: '17px',
+                            p: 4,
+                            pt:4,
+                            pb:4,
+                            alignItems: 'center', textAlign: 'center'
+                        }} 
+                    > 
+                        <Typography variant="caption" sx={{color:'white'}}>Governance Proposals</Typography>
+                    </Box>
                 );
             }
             
