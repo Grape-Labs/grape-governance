@@ -162,7 +162,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     },
   }));
 
-const GOVERNANCE_STATE = {
+  const GOVERNANCE_STATE = {
     0:'Draft',
     1:'Signing Off',
     2:'Voting',
@@ -172,6 +172,7 @@ const GOVERNANCE_STATE = {
     6:'Cancelled',
     7:'Defeated',
     8:'Executing w/errors!',
+    9:'Vetoed',
 }
 
 TablePaginationActions.propTypes = {

@@ -80,6 +80,7 @@ import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VerifiedIcon from '@mui/icons-material/Verified';
+import ModeIcon from '@mui/icons-material/Mode';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import SearchIcon from '@mui/icons-material/Search';
 import InfoIcon from '@mui/icons-material/Info';
@@ -247,6 +248,7 @@ const GOVERNANCE_STATE = {
     6:'Cancelled',
     7:'Defeated',
     8:'Executing w/errors!',
+    9:'Vetoed',
 }
 
 TablePaginationActions.propTypes = {
@@ -378,7 +380,10 @@ function TablePaginationActions(props) {
                                 (thisitem.account?.state === 2) ?
                                     `#A688FA` // voting
                                     :
-                                    `#AB4D47`,
+                                    (thisitem.account?.state === 0) ?
+                                        `gray`
+                                        :
+                                        `#AB4D47`,
                         borderColor:
                             (thisitem.account?.state === 3 || thisitem.account?.state === 5) ?
                                 `green`
@@ -386,7 +391,10 @@ function TablePaginationActions(props) {
                                 (thisitem.account?.state === 2) ?
                                     `#A688FA` // voting
                                     :
-                                    `#AB4D47`, // red
+                                    (thisitem.account?.state === 0) ?
+                                        `gray`
+                                        :
+                                        `#AB4D47`,
                         
                     }}
                     avatar={
@@ -407,7 +415,7 @@ function TablePaginationActions(props) {
                             : 
                                 <>
                                     { (thisitem.account?.state === 0) ?
-                                        <EditNoteIcon />
+                                        <ModeIcon />
                                     :
                                         <CancelOutlinedIcon />
                                     }

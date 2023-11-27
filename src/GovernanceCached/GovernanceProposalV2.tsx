@@ -169,6 +169,7 @@ const GOVERNANCE_STATE = {
     6:'Cancelled',
     7:'Defeated',
     8:'Executing w/errors!',
+    9:'Vetoed',
 }
 
 export function GovernanceProposalV2View(props: any){
