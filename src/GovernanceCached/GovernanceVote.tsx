@@ -212,6 +212,7 @@ export function VoteForProposal(props:any){
     const [anchorElNo, setAnchorElNo] = React.useState(null);
     const openDelegateYes = Boolean(anchorElYes);
     const openDelegateNo = Boolean(anchorElNo);
+    const quorum = props?.quorum;
     const [open, setOpen] = React.useState(false);
     
     const handleClickOpen = () => {
@@ -568,6 +569,7 @@ export function VoteForProposal(props:any){
                 console.log("Casting vote as: "+publicKey.toBase58());
             }
 
+            let addCnt = voteTx ? 1 : 0;
             if (delegatedItems){ // if we wanta to add all to vote
                 let cnt = 0;
                 for (var delegateItem of delegatedItems){ // if vote for all delegates + your own
@@ -578,21 +580,37 @@ export function VoteForProposal(props:any){
                         const hasVotedItem = votingParticipants.some(item => item.governingTokenOwner === delegateItem.account.governingTokenOwner.toBase58());
                         if (!hasVotedItem){
                             
-                            const delegateVoteTx = await createCastVoteTransaction(
-                                realm,
-                                publicKey,
-                                transactionData,
-                                delegateItem,
-                                delegateItem.account.governingTokenOwner.toBase58(),//null,
-                                isCommunityVote,
-                                multiChoice,
-                                type
-                            );
-                            
-                            if (delegateVoteTx){
-                                voteTx.add(delegateVoteTx);
-                                console.log("Casting vote as a delegator for "+delegateItem.account.governingTokenOwner.toBase58())
+                            let voteWithDelegate = true;
+
+                            if (quorum && quorum > 0){
+                                if (addCnt < quorum)
+                                    voteWithDelegate = true;
+                                else 
+                                    voteWithDelegate = false;
+                            } else {
+
                             }
+
+                            if (voteWithDelegate){
+                                // voting with delegate?
+                                console.log(addCnt+" ("+quorum+"): Voting with delegate ");
+                                const delegateVoteTx = await createCastVoteTransaction(
+                                    realm,
+                                    publicKey,
+                                    transactionData,
+                                    delegateItem,
+                                    delegateItem.account.governingTokenOwner.toBase58(),//null,
+                                    isCommunityVote,
+                                    multiChoice,
+                                    type
+                                );
+                                
+                                if (delegateVoteTx){
+                                    voteTx.add(delegateVoteTx);
+                                    console.log("Casting vote as a delegator for "+delegateItem.account.governingTokenOwner.toBase58())
+                                }
+                            }
+                            addCnt++;
                         }
                     } else if (delegate){ // if sinlge delegate
                         if (delegate === delegateItem.account.governingTokenOwner.toBase58()){
