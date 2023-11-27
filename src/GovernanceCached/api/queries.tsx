@@ -1,12 +1,23 @@
 import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { 
-    SHYFT_KEY } from '../../utils/grapeTools/constants';
+    SHYFT_KEY,
+    RPC_CONNECTION } from '../../utils/grapeTools/constants';
+
+import { 
+    getGovernance,
+    getRealm, 
+    getAllGovernances,
+    getAllProposals, 
+    getAllTokenOwnerRecords, 
+    getRealmConfigAddress, 
+    tryGetRealmConfig, 
+    getRealmConfig  } from '@solana/spl-governance';
 
 const client = new ApolloClient({
     uri: 'https://programs.shyft.to/v0/graphql/?api_key='+SHYFT_KEY,
     cache: new InMemoryCache(),
-  });
+});
 
 function GET_QUERY_PROPOSALS(governanceArray?:string[]){
 
@@ -360,12 +371,13 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any) => {
     }
 };
 
-export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any) => {
+export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any) => {
     const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance) });
 
     const allProposals = new Array();
-
-    data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_ProposalV2"].map((account) => {
+    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    
+    data[programId+"_ProposalV2"] && data[programId+"_ProposalV2"].map((account) => {
         const options = account?.options?.map && account.options.map((option) => {
             return {
                 label: option.label,
@@ -412,7 +424,7 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
         })
     });
 
-    data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_ProposalV1"].map((account) => {
+    data[programId+"_ProposalV1"] && data[programId+"_ProposalV1"].map((account) => {
         allProposals.push({
             owner: realmOwner ? new PublicKey(realmOwner) : null,
             pubkey: new PublicKey(account?.pubkey),
@@ -448,5 +460,12 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
         })
     });
     
+    
+    if (!allProposals || allProposals.length <= 0){ // fallback to RPC call is governance not found in index
+        const allProps = await getAllProposals(RPC_CONNECTION, new PublicKey(realmOwner), new PublicKey(realmPk));
+        for (let item of allProps)
+            allProposals.push(item);
+    }
+
     return allProposals;
 };

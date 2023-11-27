@@ -874,9 +874,9 @@ export function GovernanceCachedView(props: any) {
 
                     if (hybridCache){
 
-                        //const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm.owner);
+                        const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm.owner, governanceAddress);
                         //console.log("Indexed Proposals: "+JSON.stringify(gprops));
-                        const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
+                        //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
                         // with the results compare with cached_governance
                         //console.log("All Proposals: "+JSON.stringify(gpropsRpc))
                         const rpcprops = new Array();
