@@ -592,8 +592,7 @@ export function VoteForProposal(props:any){
                             }
 
                             if (voteWithDelegate){
-                                // voting with delegate?
-                                console.log(addCnt+" ("+quorum+"): Voting with delegate ");
+                                //console.log(addCnt+" ("+quorum+"): Voting with delegate ");
                                 const delegateVoteTx = await createCastVoteTransaction(
                                     realm,
                                     publicKey,

@@ -76,6 +76,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import { GovernanceProposalDialog } from './GovernanceProposalDialog';
 import moment from 'moment';
 
+import HistoryIcon from '@mui/icons-material/History';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -655,7 +656,7 @@ function TablePaginationActions(props) {
                                                         <Chip
                                                             size="small"
                                                             icon={
-                                                                <HourglassTopIcon />
+                                                                <HistoryIcon />
                                                             }
                                                             label={moment.unix(draftAt).fromNow()}
                                                             sx={{
