@@ -2053,7 +2053,7 @@ export function GovernanceProposalV2View(props: any){
                                                 </Box>
                                                 }
 
-                                                {(totalQuorum && thisitem.account?.state === 2 && thisitem.account?.options &&  thisitem.account?.options.length === 1 && forVotes) &&
+                                                {(totalQuorum && thisitem.account?.state === 2 && thisitem.account?.options &&  thisitem.account?.options.length === 1 && forVotes) ?
                                                     <Box sx={{ my: 3, mx: 2 }}>
                                                         <Grid container alignItems="center">
                                                         <Grid item xs>
@@ -2088,40 +2088,42 @@ export function GovernanceProposalV2View(props: any){
                                                             
                                                         </Typography>
                                                     </Box>
+                                                :<></>}
+
+                                                {thisitem.account.signingOffAt &&
+                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                        <Grid container alignItems="center">
+                                                        <Grid item xs>
+                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                Time Left
+                                                            </Typography>
+                                                        </Grid>
+                                                        <Grid item>
+                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
+                                                                    <>
+                                                                        {thisitem.account?.draftAt &&
+                                                                            <>
+                                                                                {thisitem.account?.votingCompletedAt ?
+                                                                                    `${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account?.config.baseVotingTime)+(Number(thisGovernance?.account?.config?.votingCoolOffTime))).fromNow()}`
+                                                                                :
+                                                                                    `Ending ${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account.config.baseVotingTime)+(Number(thisGovernance?.account?.config?.votingCoolOffTime))).fromNow()}`
+                                                                                }
+                                                                            </>
+                                                                        }
+                                                                    </>
+                                                                :
+                                                                    `Ended`
+                                                                }
+                                                            </Typography>
+                                                        </Grid>
+                                                        </Grid>
+                                                        <Typography color="text.secondary" variant="caption">
+                                                            From now how much time left until this proposal ends (Cool Off: {moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours() > 0 && `${moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours()}hrs`})
+                                                        </Typography>
+                                                    </Box>
                                                 }
 
-                                                <Box sx={{ my: 3, mx: 2 }}>
-                                                    <Grid container alignItems="center">
-                                                    <Grid item xs>
-                                                        <Typography gutterBottom variant="subtitle1" component="div">
-                                                            Time Left
-                                                        </Typography>
-                                                    </Grid>
-                                                    <Grid item>
-                                                        <Typography gutterBottom variant="body1" component="div">
-                                                            {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
-                                                                <>
-                                                                    {thisitem.account?.draftAt &&
-                                                                        <>
-                                                                            {thisitem.account?.votingCompletedAt ?
-                                                                                `${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account?.config.baseVotingTime)+(Number(thisGovernance?.account?.config?.votingCoolOffTime))).fromNow()}`
-                                                                            :
-                                                                                `Ending ${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account.config.baseVotingTime)+(Number(thisGovernance?.account?.config?.votingCoolOffTime))).fromNow()}`
-                                                                            }
-                                                                        </>
-                                                                    }
-                                                                </>
-                                                            :
-                                                                `Ended`
-                                                            }
-                                                        </Typography>
-                                                    </Grid>
-                                                    </Grid>
-                                                    <Typography color="text.secondary" variant="caption">
-                                                        From now how much time left until this proposal ends (Cool Off: {moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours() > 0 && `${moment.unix((Number(thisGovernance?.account?.config?.votingCoolOffTime))).hours()}hrs`})
-                                                    </Typography>
-                                                </Box>
-                                                
                                                 </>
                                             }
 
@@ -2226,79 +2228,84 @@ export function GovernanceProposalV2View(props: any){
                                                     </Box>
                                                     */}
                                             
-                                                
-                                                    <Box sx={{ my: 3, mx: 2 }}>
-                                                        <Grid container alignItems="center">
-                                                        <Grid item xs>
-                                                            <Typography gutterBottom variant="subtitle1" component="div">
-                                                                General Sentiment
+                                                    {thisitem.account.signingOffAt &&
+                                                        <Box sx={{ my: 3, mx: 2 }}>
+                                                            <Grid container alignItems="center">
+                                                            <Grid item xs>
+                                                                <Typography gutterBottom variant="subtitle1" component="div">
+                                                                    General Sentiment
+                                                                </Typography>
+                                                            </Grid>
+                                                            <Grid item>
+                                                                <Typography gutterBottom variant="body1" component="div">
+                                                                    {uniqueYes} / {uniqueNo}
+                                                                </Typography>
+                                                            </Grid>
+                                                            </Grid>
+                                                            <Typography color="text.secondary" variant="caption">
+                                                                Total unique voters voting for/against this proposal <sup>*</sup>{uniqueYes+uniqueNo} participants
                                                             </Typography>
-                                                        </Grid>
-                                                        <Grid item>
-                                                            <Typography gutterBottom variant="body1" component="div">
-                                                                {uniqueYes} / {uniqueNo}
-                                                            </Typography>
-                                                        </Grid>
-                                                        </Grid>
-                                                        <Typography color="text.secondary" variant="caption">
-                                                            Total unique voters voting for/against this proposal <sup>*</sup>{uniqueYes+uniqueNo} participants
-                                                        </Typography>
-                                                    </Box>
+                                                        </Box>
+                                                    }
 
-                                                    <Box sx={{ my: 3, mx: 2 }}>
-                                                        <Grid container alignItems="center">
-                                                        <Grid item xs>
-                                                            <Typography gutterBottom variant="subtitle1" component="div">
-                                                                Signed Off At
+                                                    {thisitem.account.signingOffAt &&
+                                                        <Box sx={{ my: 3, mx: 2 }}>
+                                                            <Grid container alignItems="center">
+                                                            <Grid item xs>
+                                                                <Typography gutterBottom variant="subtitle1" component="div">
+                                                                    Signed Off At
+                                                                </Typography>
+                                                            </Grid>
+                                                            <Grid item>
+                                                                <Typography gutterBottom variant="body1" component="div">
+                                                                    {moment.unix(Number(thisitem.account?.signingOffAt)).format("MMMM D, YYYY, h:mm a")}
+                                                                </Typography>
+                                                            </Grid>
+                                                            </Grid>
+                                                            <Typography color="text.secondary" variant="caption">
+                                                                Timestamp that this proposal was signed off (voting started)
                                                             </Typography>
-                                                        </Grid>
-                                                        <Grid item>
-                                                            <Typography gutterBottom variant="body1" component="div">
-                                                                {moment.unix(Number(thisitem.account?.signingOffAt)).format("MMMM D, YYYY, h:mm a")}
-                                                            </Typography>
-                                                        </Grid>
-                                                        </Grid>
-                                                        <Typography color="text.secondary" variant="caption">
-                                                            Timestamp that this proposal was signed off (voting started)
-                                                        </Typography>
-                                                    </Box>
+                                                        </Box>
+                                                    }
 
-                                                    <Box sx={{ my: 3, mx: 2 }}>
-                                                        <Grid container alignItems="center">
-                                                        <Grid item xs>
-                                                            <Typography gutterBottom variant="subtitle1" component="div">
-                                                                {(thisitem.account?.votingCompletedAt && thisitem.account?.votingCompletedAt > 0) ?
-                                                                    <>Ended At</>
-                                                                :
-                                                                    <>Ends At</>
-                                                                }
-                                                            </Typography>
-                                                        </Grid>
-                                                        <Grid item>
-                                                            <Typography gutterBottom variant="body1" component="div">
-                                                                {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
-                                                                    <>
-                                                                        {thisitem.account?.draftAt &&
-                                                                            `${moment.unix(Number(thisitem.account.signingOffAt)+(Number(thisGovernance.account.config.baseVotingTime))).format("MMMM D, YYYY, h:mm a")}`
-                                                                        }
-                                                                    </>
-                                                                :
-                                                                    <>
-                                                                    {thisitem.account?.votingCompletedAt ?
-                                                                        `${moment.unix(thisitem.account.votingCompletedAt).format("MMMM D, YYYY, h:mm a")}`
+                                                    {thisitem.account.signingOffAt &&
+                                                        <Box sx={{ my: 3, mx: 2 }}>
+                                                            <Grid container alignItems="center">
+                                                            <Grid item xs>
+                                                                <Typography gutterBottom variant="subtitle1" component="div">
+                                                                    {(thisitem.account?.votingCompletedAt && thisitem.account?.votingCompletedAt > 0) ?
+                                                                        <>Ended At</>
                                                                     :
-                                                                        `Ended`
+                                                                        <>Ends At</>
                                                                     }
-                                                                    </>
-                                                                }
+                                                                </Typography>
+                                                            </Grid>
+                                                            <Grid item>
+                                                                <Typography gutterBottom variant="body1" component="div">
+                                                                    {thisGovernance && thisGovernance?.account?.config?.baseVotingTime ?
+                                                                        <>
+                                                                            {thisitem.account?.draftAt &&
+                                                                                `${moment.unix(Number(thisitem.account.signingOffAt)+(Number(thisGovernance.account.config.baseVotingTime))).format("MMMM D, YYYY, h:mm a")}`
+                                                                            }
+                                                                        </>
+                                                                    :
+                                                                        <>
+                                                                        {thisitem.account?.votingCompletedAt ?
+                                                                            `${moment.unix(thisitem.account.votingCompletedAt).format("MMMM D, YYYY, h:mm a")}`
+                                                                        :
+                                                                            `Ended`
+                                                                        }
+                                                                        </>
+                                                                    }
+                                                                </Typography>
+                                                            </Grid>
+                                                            </Grid>
+                                                            <Typography color="text.secondary" variant="caption">
+                                                                Calculated ending timestamp
                                                             </Typography>
-                                                        </Grid>
-                                                        </Grid>
-                                                        <Typography color="text.secondary" variant="caption">
-                                                            Calculated ending timestamp
-                                                        </Typography>
-                                                    </Box>
-                                                    
+                                                        </Box>
+                                                    }
+
                                                     {/*
                                                     const baseVotingTime = (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.baseVotingTime));
                                                     const coolOffTime = (Number(allGovernances.find(obj => obj.pubkey.toBase58() === item.account.governance.toBase58())?.account?.config?.votingCoolOffTime));
@@ -2331,35 +2338,35 @@ export function GovernanceProposalV2View(props: any){
                                                         </Typography>
                                                     </Box>
                                                     
-                                                    {csvGenerated &&
-                                                    <Box sx={{ my: 3, mx: 2 }}>
-                                                        <Grid container alignItems="center">
-                                                        <Grid item xs>
-                                                            <Typography gutterBottom variant="subtitle1" component="div">
-                                                                Export
+                                                    {(thisitem.account.signingOffAt && csvGenerated) &&
+                                                        <Box sx={{ my: 3, mx: 2 }}>
+                                                            <Grid container alignItems="center">
+                                                            <Grid item xs>
+                                                                <Typography gutterBottom variant="subtitle1" component="div">
+                                                                    Export
+                                                                </Typography>
+                                                            </Grid>
+                                                            <Grid item>
+                                                                <Typography gutterBottom variant="body1" component="div">
+                                                                    <Tooltip title="Download Voter Participation CSV file">
+                                                                        <Button
+                                                                            size="small"
+                                                                            color='inherit'
+                                                                            variant="outlined"
+                                                                            sx={{borderRadius:'17px'}}
+                                                                            download={`${thisitem.pubkey.toBase58()}.csv`}
+                                                                            href={csvGenerated}
+                                                                        >
+                                                                            <DownloadIcon /> CSV
+                                                                        </Button>
+                                                                    </Tooltip>
+                                                                </Typography>
+                                                            </Grid>
+                                                            </Grid>
+                                                            <Typography color="text.secondary" variant="caption">
+                                                                Export voter participation as a CSV file
                                                             </Typography>
-                                                        </Grid>
-                                                        <Grid item>
-                                                            <Typography gutterBottom variant="body1" component="div">
-                                                                <Tooltip title="Download Voter Participation CSV file">
-                                                                    <Button
-                                                                        size="small"
-                                                                        color='inherit'
-                                                                        variant="outlined"
-                                                                        sx={{borderRadius:'17px'}}
-                                                                        download={`${thisitem.pubkey.toBase58()}.csv`}
-                                                                        href={csvGenerated}
-                                                                    >
-                                                                        <DownloadIcon /> CSV
-                                                                    </Button>
-                                                                </Tooltip>
-                                                            </Typography>
-                                                        </Grid>
-                                                        </Grid>
-                                                        <Typography color="text.secondary" variant="caption">
-                                                            Export voter participation as a CSV file
-                                                        </Typography>
-                                                    </Box>
+                                                        </Box>
                                                     }
                                                 </Box>
                                             }
