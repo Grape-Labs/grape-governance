@@ -36,10 +36,14 @@ import {
   List, 
   ListItem, 
   ListItemText,
+  OutlinedInput,
+  InputAdornment,
 } from '@mui/material/';
 
 import { useSnackbar } from 'notistack';
 
+import CancelIcon from '@mui/icons-material/Cancel';
+import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
 import DownloadIcon from '@mui/icons-material/Download';
 import UploadIcon from '@mui/icons-material/Upload';
@@ -65,6 +69,7 @@ import {
     withDepositGoverningTokens,
     withWithdrawGoverningTokens,
     getGovernanceProgramVersion,
+    withSetGovernanceDelegate,
 } from '@solana/spl-governance';
 
 import { parseMintNaturalAmountFromDecimalAsBN } from '../utils/grapeTools/helpers';
@@ -143,6 +148,8 @@ export default function GovernancePower(props: any){
     const [mintDecimals, setMintDecimals] = React.useState(null);
     const [mintLogo, setMintLogo] = React.useState(null);
     const [refresh, setRefresh] = React.useState(false);
+    const [delegateStr, setDelegateStr] = React.useState(null);
+    const [currentDelegate, setCurrentDelegate] = React.useState(null);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
 
@@ -223,10 +230,12 @@ export default function GovernancePower(props: any){
 
             const tokenOwnerRecord = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realm?.owner || SYSTEM_PROGRAM_ID), publicKey);
 
-            //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecord));
+            console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecord));
             // find all instances of this governanceAddress:
             let depCommunityMint = null;
             let depCouncilMint = null;
+            let depCommunityDelegate = null;
+            let depCouncilDelegate = null;
             let fetchedTMI = false;
             for (let record of tokenOwnerRecord){
                 if (record.account.realm.toBase58() === governanceAddress){
@@ -236,17 +245,22 @@ export default function GovernancePower(props: any){
                         fetchedTMI = true;
                         //console.log("tokenMintInfo: "+JSON.stringify(tki));
                         depCommunityMint = Number(record.account.governingTokenDepositAmount);
+                        depCommunityDelegate = record.account?.governanceDelegate;
                     }
                     if (record.account.governingTokenMint.toBase58() === councilMint)
                         depCouncilMint = Number(record.account.governingTokenDepositAmount); 
+                        depCouncilDelegate = record.account?.governanceDelegate;
                     
                 }
             }
             
-            if (depCommunityMint && Number(depCommunityMint) > 0)
+            if (depCommunityMint && Number(depCommunityMint) > 0){
                 setDepositedCommunityMint(depCommunityMint);
-            if (depCouncilMint && Number(depCouncilMint) > 0)
+                setCurrentDelegate(depCommunityDelegate);
+            } else if (depCouncilMint && Number(depCouncilMint) > 0){
                 setDepositedCouncilMint(depCouncilMint);
+                setCurrentDelegate(depCouncilDelegate);
+            }
 
             //const govOwnerRecord = await getTokenOwnerRecord(RPC_CONNECTION, publicKey);
 
@@ -290,6 +304,100 @@ export default function GovernancePower(props: any){
             setRefresh(false);
         }
     }, [publicKey, refresh]);
+
+    const setGovernanceDelegate = async(mintAddress: string, delegateAddress: string) => {
+        const withMint = new PublicKey(mintAddress);
+        const delegate = delegateAddress ? new PublicKey(delegateAddress) : null;
+        const programId = new PublicKey(realm.owner);
+        console.log("programId: "+JSON.stringify(programId));
+        const programVersion = await getGovernanceProgramVersion(
+            RPC_CONNECTION,
+            programId,
+          )
+        
+        console.log("programVersion: "+JSON.stringify(programVersion));
+
+        const realmPk = new PublicKey(realm.pubkey);
+        
+        const tokenInfo = await getMint(RPC_CONNECTION, withMint);
+        
+        const userAtaPk = await getAssociatedTokenAddress(
+            withMint,
+            publicKey, // owner
+            true
+          )
+
+        console.log("userATA: "+JSON.stringify(userAtaPk))
+        // Extract the mint authority
+        const mintAuthority = tokenInfo.mintAuthority ? new PublicKey(tokenInfo.mintAuthority) : null;
+        const decimals = tokenInfo.decimals;
+
+
+        const instructions: TransactionInstruction[] = []
+       
+
+        // also relinquish recursively if needed:
+        // withRelinquishVote
+        
+        await withSetGovernanceDelegate(
+            instructions,
+            programId,
+            programVersion,
+            realmPk,
+            withMint,
+            publicKey,
+            publicKey,
+            delegate
+        );
+        
+        if (instructions.length != 1) {
+            console.log("ERROR: Something went wrong");
+            enqueueSnackbar(`Instructions Error`, { variant: 'error' });
+        } else{
+            if (instructions){
+
+                const transaction = new Transaction();
+                transaction.add(...instructions);
+                
+                console.log("TX: "+JSON.stringify(transaction))
+
+                try{
+                    enqueueSnackbar(`Preparing to set your delegated voting power `,{ variant: 'info' });
+                    const signature = await sendTransaction(transaction, RPC_CONNECTION, {
+                        skipPreflight: true,
+                        preflightCommitment: "confirmed",
+                    });
+                    const snackprogress = (key:any) => (
+                        <CircularProgress sx={{padding:'10px'}} />
+                    );
+                    const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
+                    //await connection.confirmTransaction(signature, 'processed');
+                    const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
+                    await RPC_CONNECTION.confirmTransaction({
+                        blockhash: latestBlockHash.blockhash,
+                        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+                        signature: signature}, 
+                        'finalized'
+                    );
+                    closeSnackbar(cnfrmkey);
+                    const action = (key:any) => (
+                            <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
+                                Signature: {signature}
+                            </Button>
+                    );
+                    
+                    enqueueSnackbar(`Congratulations, you now have adjusted your delegated governance power`,{ variant: 'success', action });
+
+                    // trigger a refresh here...
+                    setRefresh(true);
+                }catch(e:any){
+                    enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
+                } 
+            } else{
+                alert("No voter record!")
+            }
+        }
+    }
 
     const withdrawVotesToGovernance = async(tokenAmount: number, tokenDecimals: number, mintAddress: string) => {
         const withMint = new PublicKey(mintAddress);
@@ -350,16 +458,6 @@ export default function GovernancePower(props: any){
                 transaction.add(...instructions);
                 
                 console.log("TX: "+JSON.stringify(transaction))
-
-                /*
-                const meSigner = "IF WE ARE SENDING DIRECTLY TO A DAO WALLET";
-                for (var instruction of transaction.instructions){
-                    for (var key of instruction.keys){
-                        if (key.pubkey.toBase58() === meSigner){
-                            key.isSigner = false;
-                        }
-                    }
-                }*/
 
                 try{
                     enqueueSnackbar(`Preparing to withdraw governance power`,{ variant: 'info' });
@@ -554,6 +652,20 @@ export default function GovernancePower(props: any){
             setOpen(false);
         };
 
+        
+        function handleClickRemoveDelegate(){
+            setGovernanceDelegate(walletCommunityMintAddress, null);
+        }
+
+        function handleClickSetDelegate(){
+            if (delegateStr){
+                if (delegateStr !== currentDelegate){
+                    // also check if pubkey is valid...
+                    setGovernanceDelegate(walletCommunityMintAddress, delegateStr);
+                }
+            }
+        }
+
         function handleAdvancedDepositVotesToGovernance(){
             if (newDepositAmount && newDepositAmount > 0){
                 depositVotesToGovernance(newDepositAmount, decimals, walletCommunityMintAddress);
@@ -571,7 +683,7 @@ export default function GovernancePower(props: any){
         return (
             <>
             
-                <Tooltip title="Advanced Deposit">
+                <Tooltip title="Advanced">
                     <Button 
                         aria-label="Deposit"
                         variant="outlined" 
@@ -596,7 +708,7 @@ export default function GovernancePower(props: any){
                     }}
                 >
                     <BootstrapDialogTitle id="create-storage-pool" onClose={handleClose}>
-                        Advanced Deposit
+                        Advanced
                     </BootstrapDialogTitle>
                     
                     <DialogContent>
@@ -690,13 +802,79 @@ export default function GovernancePower(props: any){
                                     </Grid>
                                     <Grid item>
                                         <Typography gutterBottom variant="body1" component="div">
-                                            <ExplorerView address={selectedMintAddress} title={`Governing Mint ${mintName ? mintName : `${selectedMintAddress.slice(0, 3)}...${selectedMintAddress.slice(-3)}`}`} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' /> 
+                                            <ExplorerView 
+                                                address={selectedMintAddress} 
+                                                title={`Governing Mint ${mintName ? mintName : `${selectedMintAddress.slice(0, 3)}...${selectedMintAddress.slice(-3)}`}`} 
+                                                type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' 
+                                                showTokenMetadata={true} /> 
                                         </Typography>
                                     </Grid>
                                     </Grid>
                                 </Box>
 
                             </Box>
+
+                            <Box sx={{
+                                    m:2,
+                                    background: 'rgba(0, 0, 0, 0.1)',
+                                    borderRadius: '17px',
+                                    p:1,
+                                    width:"100%",
+                                    minWidth:'360px'
+                                }}>
+                                <Box sx={{ my: 3, mx: 2 }}>
+                                    <Grid container alignItems="center">
+                                        <Grid item xs>
+                                            <Typography gutterBottom variant="h5" component="div">
+                                            Delegation
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item
+                                            sx={{ alignItems: 'right' }}
+                                        >
+                                            <OutlinedInput
+                                                size={'small'}
+                                                sx={{borderRadius:'17px'}}
+                                                value={currentDelegate}
+                                                onChange={(e: any) => {
+                                                    setDelegateStr(e.target.value)}
+                                                }
+                                                endAdornment={
+                                                    <InputAdornment position="end">
+
+                                                        <IconButton
+                                                            aria-label="Save Delegate"
+                                                            onClick={handleClickSetDelegate}
+                                                            edge="end"
+                                                            color={'success'}
+                                                            disabled={
+                                                                (!delegateStr) ||
+                                                                (currentDelegate === delegateStr)
+                                                            }
+                                                        >
+                                                            <SaveIcon />
+                                                        </IconButton>
+                                                        {currentDelegate && 
+                                                            <IconButton
+                                                                aria-label="Remove Delegate"
+                                                                onClick={handleClickRemoveDelegate}
+                                                                edge="end"
+                                                                color={'error'}
+                                                            >
+                                                                <CancelIcon />
+                                                            </IconButton>
+                                                        }
+                                                    </InputAdornment>
+                                                }
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                    <Typography color="text.secondary" variant="body2">
+                                        Delegate your voting power to another wallet
+                                    </Typography>
+                                </Box>
+                            </Box>
+
                         </Grid>
                     </DialogContentText>
                     
