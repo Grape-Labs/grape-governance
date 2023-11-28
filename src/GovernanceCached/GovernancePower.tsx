@@ -852,6 +852,7 @@ export default function GovernancePower(props: any){
                                                             color={'success'}
                                                             disabled={
                                                                 (!delegatedStr) ||
+                                                                (delegatedStr === publicKey.toBase58()) ||
                                                                 (currentDelegate === delegatedStr)
                                                             }
                                                         >
