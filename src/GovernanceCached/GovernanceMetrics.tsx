@@ -226,6 +226,8 @@ const GOVERNANNCE_STATE = {
 function RenderVoterRecordTable(props:any) {
     //const [governanceStartDate, setGovernanceStartDate] = React.useState(props.governanceStartDate);
     //const [governanceEndDate, setGovernanceEndDate] = React.useState(props.governanceEndDate);
+    const setLoadingTable = props.setLoadingTable;
+    const loadingTable = props.loadingTable;
     const setLoading = props.setLoading;
     const setStatus = props.setStatus;
     const cachedTransactionMap = props.cachedTransactionMap;
@@ -233,7 +235,6 @@ function RenderVoterRecordTable(props:any) {
     const setRenderCount = props.setRenderCount;
     const governanceStartDate = props.governanceStartDate;
     const governanceEndDate = props.governanceEndDate;
-    const [loadingTable, setLoadingTable] = React.useState(false);
     const setMetricsObject = props.setMetricsObject;
     const setMetricsFlowsObject = props.setMetricsFlowsObject;
     
@@ -1580,6 +1581,7 @@ export function GovernanceMetricsView(props: any) {
     const [renderCount, setRenderCount] = React.useState(0);
     //const governanceAddress = props.governanceAddress;
     const [loading, setLoading] = React.useState(false);
+    const [loadingTable, setLoadingTable] = React.useState(false);
     const [memberMap, setMemberMap] = React.useState(null);
     const [cachedMemberMap, setCachedMemberMap] = React.useState(null);
     const [cachedTransactionMap, setCachedTransactionMap] = React.useState(null);
@@ -1905,7 +1907,7 @@ export function GovernanceMetricsView(props: any) {
             }catch(e){console.log("ERR: "+e)}
         }
 
-        setStatus("Calculated all Governance Proposal data! We are one step closer to show you some amazing metrics!");
+        setStatus("Calculated all Governance Proposal data! We are one step closer to show you some amazing metrics!  The wait will be worth it...");
         setLoading(false);
     }
 
@@ -3055,7 +3057,6 @@ export function GovernanceMetricsView(props: any) {
                                 </Box>
                             }
 
-
                             <RenderVoterRecordTable 
                                 memberMap={memberMap} 
                                 governanceMasterMembers={governanceMasterMembers}
@@ -3067,6 +3068,8 @@ export function GovernanceMetricsView(props: any) {
                                 tokenMap={tokenMap} 
                                 realm={realm} 
                                 setStatus={setStatus}
+                                setLoadingTable={setLoadingTable}
+                                loadingTable={loadingTable}
                                 setLoading={setLoading}
                                 thisToken={thisToken} 
                                 proposals={proposals} 
@@ -3110,7 +3113,7 @@ export function GovernanceMetricsView(props: any) {
                         {status &&
                         <><br/>{status}</>}
                         </Typography>
-                        {loading &&  
+                        {(loading || loadingTable ) &&  
                             <LinearProgress color="inherit" />
                         }
                     </Box>
