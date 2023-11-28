@@ -148,7 +148,6 @@ export default function GovernancePower(props: any){
     const [mintDecimals, setMintDecimals] = React.useState(null);
     const [mintLogo, setMintLogo] = React.useState(null);
     const [refresh, setRefresh] = React.useState(false);
-    const [delegateStr, setDelegateStr] = React.useState(null);
     const [currentDelegate, setCurrentDelegate] = React.useState(null);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
@@ -256,10 +255,12 @@ export default function GovernancePower(props: any){
             
             if (depCommunityMint && Number(depCommunityMint) > 0){
                 setDepositedCommunityMint(depCommunityMint);
-                setCurrentDelegate(depCommunityDelegate);
-            } else if (depCouncilMint && Number(depCouncilMint) > 0){
+                setCurrentDelegate(depCommunityDelegate.toBase58());
+            } 
+            // do not change this to an else (we show both council/community)
+            if (depCouncilMint && Number(depCouncilMint) > 0){
                 setDepositedCouncilMint(depCouncilMint);
-                setCurrentDelegate(depCouncilDelegate);
+                setCurrentDelegate(depCouncilDelegate.toBase58());
             }
 
             //const govOwnerRecord = await getTokenOwnerRecord(RPC_CONNECTION, publicKey);
@@ -640,6 +641,7 @@ export default function GovernancePower(props: any){
         const selectedMintDepositedAmount = props?.mintVotingPower;
         const decimals = mintDecimals;
         // generateMEEditListingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, price: number, newPrice: number)
+        const [delegatedStr, setDelegatedStr] = React.useState(null);
 
         const [open, setOpen] = React.useState(false);
         const [newDepositAmount, setNewDepositAmount] = React.useState(selectedMintAvailableAmount/10**decimals);
@@ -652,16 +654,20 @@ export default function GovernancePower(props: any){
             setOpen(false);
         };
 
+        const handleSetDelegateStr = (event) => {
+            setDelegatedStr(event.target.value); // Update delegateStr with the input value
+        };
+
         
         function handleClickRemoveDelegate(){
             setGovernanceDelegate(walletCommunityMintAddress, null);
         }
 
         function handleClickSetDelegate(){
-            if (delegateStr){
-                if (delegateStr !== currentDelegate){
+            if (delegatedStr){
+                if (delegatedStr !== currentDelegate){
                     // also check if pubkey is valid...
-                    setGovernanceDelegate(walletCommunityMintAddress, delegateStr);
+                    setGovernanceDelegate(walletCommunityMintAddress, delegatedStr);
                 }
             }
         }
@@ -835,42 +841,50 @@ export default function GovernancePower(props: any){
                                             <OutlinedInput
                                                 size={'small'}
                                                 sx={{borderRadius:'17px'}}
-                                                value={currentDelegate}
-                                                onChange={(e: any) => {
-                                                    setDelegateStr(e.target.value)}
-                                                }
+                                                //value={currentDelegate}
+                                                onChange={handleSetDelegateStr}
                                                 endAdornment={
                                                     <InputAdornment position="end">
-
                                                         <IconButton
                                                             aria-label="Save Delegate"
                                                             onClick={handleClickSetDelegate}
                                                             edge="end"
                                                             color={'success'}
                                                             disabled={
-                                                                (!delegateStr) ||
-                                                                (currentDelegate === delegateStr)
+                                                                (!delegatedStr) ||
+                                                                (currentDelegate === delegatedStr)
                                                             }
                                                         >
                                                             <SaveIcon />
                                                         </IconButton>
-                                                        {currentDelegate && 
-                                                            <IconButton
-                                                                aria-label="Remove Delegate"
-                                                                onClick={handleClickRemoveDelegate}
-                                                                edge="end"
-                                                                color={'error'}
-                                                            >
-                                                                <CancelIcon />
-                                                            </IconButton>
-                                                        }
                                                     </InputAdornment>
                                                 }
                                             />
                                         </Grid>
                                     </Grid>
-                                    <Typography color="text.secondary" variant="body2">
-                                        Delegate your voting power to another wallet
+                                    <Typography color="text.secondary" variant="caption">
+                                        
+                                        {currentDelegate ?
+                                            <>
+                                                <Grid container direction='row'>
+                                                    <ExplorerView 
+                                                        address={currentDelegate} 
+                                                        title={`Delegated to ${currentDelegate.slice(0, 4)}...${currentDelegate.slice(-4)}`} 
+                                                        type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='10px' /> 
+                                                    
+                                                    <IconButton
+                                                        aria-label="Remove Delegate"
+                                                        onClick={handleClickRemoveDelegate}
+                                                        edge="end"
+                                                        color={'error'}
+                                                        sx={{fontSize:'10px'}}
+                                                    >
+                                                        <CancelIcon />
+                                                    </IconButton>
+                                                </Grid>
+                                            </>
+                                            :<>Delegate your voting power to another wallet</>
+                                        }
                                     </Typography>
                                 </Box>
                             </Box>
@@ -912,6 +926,7 @@ export default function GovernancePower(props: any){
                                 textAlign:'center', 
                                 fontSize: '34px'
                             }
+                        
                         }}
                     />
                         
