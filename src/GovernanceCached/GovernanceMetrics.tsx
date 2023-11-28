@@ -1,7 +1,18 @@
 import { 
     getRealm, 
     getAllProposals, 
-    getGovernance, getGovernanceAccounts, getGovernanceChatMessages, getTokenOwnerRecord, getTokenOwnerRecordsByOwner, getAllTokenOwnerRecords, getRealmConfigAddress, getGovernanceAccount, getAccountTypes, GovernanceAccountType, tryGetRealmConfig, getRealmConfig
+    getGovernance, 
+    getGovernanceAccounts, 
+    getGovernanceChatMessages, 
+    getTokenOwnerRecord, 
+    getTokenOwnerRecordsByOwner, 
+    getAllTokenOwnerRecords, 
+    getRealmConfigAddress, 
+    getGovernanceAccount, 
+    getAccountTypes, 
+    GovernanceAccountType, 
+    tryGetRealmConfig, 
+    getRealmConfig
 } from '@solana/spl-governance';
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
@@ -215,6 +226,8 @@ const GOVERNANNCE_STATE = {
 function RenderVoterRecordTable(props:any) {
     //const [governanceStartDate, setGovernanceStartDate] = React.useState(props.governanceStartDate);
     //const [governanceEndDate, setGovernanceEndDate] = React.useState(props.governanceEndDate);
+    const setLoading = props.setLoading;
+    const setStatus = props.setStatus;
     const cachedTransactionMap = props.cachedTransactionMap;
     const renderCount = props.renderCount;
     const setRenderCount = props.setRenderCount;
@@ -625,7 +638,8 @@ function RenderVoterRecordTable(props:any) {
         
         let tokenName = null;
         let tokenIcon = null;
-
+        setLoading(true);
+        setStatus("Rendering Tx Records");
         const transactionsData = new Array();
         const balanceOverTimeData = new Array();
         const nowstamp = moment(new Date()).format("YYYY-MM");
@@ -740,6 +754,7 @@ function RenderVoterRecordTable(props:any) {
 
         }
         setMetricsFlowsObject(mfObj);
+        setLoading(false);
     }
 
     const renderVoterRecords = async () => {
@@ -775,7 +790,8 @@ function RenderVoterRecordTable(props:any) {
         var totalInstructions = 0;
         var totalProposalsWInstructions = 0;
         setLoadingTable(true);
-        
+        setLoading(true);
+        setStatus("Rendering Voter Records");
         var foundVoter = false;
         var voterCount = 0;
         var counter = 0;
@@ -1474,6 +1490,7 @@ function RenderVoterRecordTable(props:any) {
         
         endTimer();
         setLoadingTable(false);
+        setLoading(true);
     }
 
     React.useEffect(() => { 
@@ -1482,6 +1499,7 @@ function RenderVoterRecordTable(props:any) {
             setRenderCount(renderCount+1);
             renderVoterRecords();
             renderGovernanceTransactionRecords();
+
         }
     }, []);
 
@@ -1592,7 +1610,8 @@ export function GovernanceMetricsView(props: any) {
     const [metricsFlowsObject, setMetricsFlowsObject] = React.useState(null);
     const [governanceStartDate, setGovernanceStartDate] = React.useState(null);
     const [governanceEndDate, setGovernanceEndDate] = React.useState(null);
-    
+    const [status, setStatus] = React.useState(null);
+
     const handleStartDateChange = (newValue: Dayjs | null) => {
         setGovernanceStartDate(newValue.unix());
     }
@@ -1662,9 +1681,10 @@ export function GovernanceMetricsView(props: any) {
     }
 
     const getGovernance = async (cached_governance:any, cached_member_map: any) => {
-        if (!loading){
+        //if (!loading){
+        {
             startTimer();
-            setLoading(true);
+            
             try{
                     
                 console.log("SPL Governance: "+governanceAddress);
@@ -1738,6 +1758,8 @@ export function GovernanceMetricsView(props: any) {
                         }
                     }
                 }
+
+                setStatus("Gathering on-chain data... Please be patient while we process this valuable information. It may take a few moments, but the wait will be worth it!");
 
                 if (cached_governance){
                     
@@ -1879,8 +1901,11 @@ export function GovernanceMetricsView(props: any) {
                     setProposals(sortedResults);
 
                 }
+                
             }catch(e){console.log("ERR: "+e)}
         }
+
+        setStatus("Calculated all Governance Proposal data! We are one step closer to show you some amazing metrics!");
         setLoading(false);
     }
 
@@ -1903,12 +1928,13 @@ export function GovernanceMetricsView(props: any) {
 
     React.useEffect(() => {
         if (governanceLookup && !loading){
+            setLoading(true);
             getCachedGovernanceFromLookup();
         }
     }, [governanceLookup, governanceAddress]);
     
     React.useEffect(() => {
-        if (cachedGovernance && governanceAddress && !loading){
+        if (cachedGovernance && governanceAddress){
             getGovernance(cachedGovernance, cachedMemberMap);
         }
     }, [cachedGovernance]);
@@ -2025,7 +2051,11 @@ export function GovernanceMetricsView(props: any) {
                         alignItems: 'center', textAlign: 'center'
                     }} 
                 > 
-                    <Typography variant="caption">Crunching All Governance Metrics {governanceAddress}</Typography>
+                    <Typography variant="caption">Crunching All Governance Metrics {governanceAddress}
+                    {status &&
+                        <><br/>{status}</>
+                    }
+                    </Typography>
                     
                     <LinearProgress color="inherit" />
                     
@@ -3036,6 +3066,8 @@ export function GovernanceMetricsView(props: any) {
                                 governingTokenMint={governingTokenMint} 
                                 tokenMap={tokenMap} 
                                 realm={realm} 
+                                setStatus={setStatus}
+                                setLoading={setLoading}
                                 thisToken={thisToken} 
                                 proposals={proposals} 
                                 nftBasedGovernance={nftBasedGovernance} 
@@ -3074,8 +3106,13 @@ export function GovernanceMetricsView(props: any) {
                             alignItems: 'center', textAlign: 'center'
                         }} 
                     > 
-                        <Typography variant="caption">Governance Metrics {governanceAddress}</Typography>
-                        
+                        <Typography variant="caption">Governance Metrics {governanceAddress}
+                        {status &&
+                        <><br/>{status}</>}
+                        </Typography>
+                        {loading &&  
+                            <LinearProgress color="inherit" />
+                        }
                     </Box>
                 );
             }
