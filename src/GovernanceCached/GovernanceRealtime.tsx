@@ -47,6 +47,11 @@ import { SwitchProps } from '@mui/material/Switch';
 
 import { createSvgIcon } from '@mui/material/utils';
 
+import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkImages from 'remark-images';
+
 const CustomSearchIcon = createSvgIcon(
     <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 27 27" fill="none">
     <g clip-path="url(#clip0_39_77)">
@@ -76,6 +81,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import { GovernanceProposalDialog } from './GovernanceProposalDialog';
 import moment from 'moment';
 
+import GitHubIcon from '@mui/icons-material/GitHub';
 import HistoryIcon from '@mui/icons-material/History';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
@@ -129,6 +135,13 @@ import {
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 import ProgressBar from '../components/progress-bar/progress-bar';
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
+
+const transformImageUri = (uri) => {
+    // Add your image resizing logic here
+    // Example: Append the query parameter "w=500" to resize the image to a width of 500px
+    const resizedUri = `${uri}?w=500`;
+    return resizedUri;
+};
 
 const IOSSwitch = styled((props: SwitchProps) => (
     <Switch focusVisibleClassName=".Mui-focusVisible" disableRipple {...props} />
@@ -452,9 +465,11 @@ function TablePaginationActions(props) {
         const proposal = props.proposal;
         const name = props?.name;
         const description = props?.description;
+        const [descriptionMarkdown, setDescriptionMarkdown] = React.useState(null);
         const state = props?.state;
         const draftAt = props.draftAt;
         const item = props?.item;
+        const [gist, setGist] = React.useState(null);
 
         const [governanceInfo, setGovernanceInfo] = React.useState(null);
 
@@ -473,7 +488,42 @@ function TablePaginationActions(props) {
                     }
                 }
             }
+            
+
         }, [governanceLookup]);
+
+        const resolveDescription = async(descriptionStr: string) => {
+            try{
+                const url = new URL(description);
+                const pathname = url.pathname;
+                const parts = pathname.split('/');
+                //console.log("pathname: "+pathname)
+                let tGist = null;
+                if (parts.length > 1)
+                    tGist = parts[2];
+                
+                setGist(tGist);
+                
+                const rpd = await resolveProposalDescription(description);
+    
+                // Regular expression to match image URLs
+                const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
+                const stringWithPreviews = rpd.replace(imageUrlRegex, (match:any, imageUrl:any) => {
+                    return "![Image X]("+imageUrl+")";
+                });
+                
+    
+                setDescriptionMarkdown(rpd);
+            } catch(e){
+                console.log("ERR: "+e)
+            }
+        }
+
+        React.useEffect(() => {
+            if (description){
+                resolveDescription(description)
+            }
+        }, []);
 
         return (
             <>
@@ -553,7 +603,53 @@ function TablePaginationActions(props) {
                                                         <Typography variant="body1" 
                                                             color='gray' 
                                                             sx={{ display: 'flex', alignItems: 'center' }}>
-                                                            {description}
+                                                            
+                                                            {gist ?
+                                                                <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
+                                                                    <div
+                                                                        style={{
+                                                                            border: 'none',
+                                                                            padding:4,
+                                                                        }} 
+                                                                    >
+                                                                        <>
+                                                                            <ReactMarkdown 
+                                                                                remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
+                                                                                transformImageUri={transformImageUri}
+                                                                                children={descriptionMarkdown}
+                                                                                components={{
+                                                                                    // Custom component for overriding the image rendering
+                                                                                    img: ({ node, ...props }) => (
+                                                                                    <img
+                                                                                        {...props}
+                                                                                        style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
+                                                                                    />
+                                                                                    ),
+                                                                                }}
+                                                                            />
+                                                                        </>
+                                                                    </div>
+                                                                    <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
+                                                                        <Button
+                                                                            color='inherit'
+                                                                            target='_blank'
+                                                                            href={description}
+                                                                            sx={{borderRadius:'17px'}}
+                                                                        >
+                                                                            <GitHubIcon sx={{mr:1}} /> GIST
+                                                                        </Button>
+                                                                    </Box>
+                                                                </Box>
+                                                                :
+                                                                <>
+                                                                    {description &&
+                                                                        <>
+                                                                            {description}
+                                                                        </>
+                                                                    }
+                                                                </>
+                                                            }
+                                                        
                                                         </Typography>
                                                         
                                                     </Grid>
