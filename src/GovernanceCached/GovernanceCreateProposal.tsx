@@ -85,7 +85,7 @@ import LookupTableView from './plugins/instructions/LookupTableView';
 import SNSView from './plugins/instructions/SNSView';
 import CloseTokenView from './plugins/instructions/CloseTokenView';
 import TokenTransferView from './plugins/instructions/TokenTransferView';
-import TokenTransferV0View from './plugins/instructions/TokenTransferV0View';
+import TokenTransferV0View from './plugins/instructions/versioned/TokenTransferV0View';
 import JupiterDCAView from './plugins/instructions/JupiterDCAView';
 import JupiterSwapView from './plugins/instructions/JupiterSwapView';
 import PhoenixSwapView from './plugins/instructions/PhoenixSwapView';

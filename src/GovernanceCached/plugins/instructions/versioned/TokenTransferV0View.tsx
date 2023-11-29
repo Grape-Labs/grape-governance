@@ -8,8 +8,8 @@ import { useWallet } from '@solana/wallet-adapter-react';
 
 import { 
     RPC_CONNECTION,
-    FRICTIONLESS_WALLET } from '../../../utils/grapeTools/constants';
-import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
+    FRICTIONLESS_WALLET } from '../../../../utils/grapeTools/constants';
+import { RegexTextField } from '../../../../utils/grapeTools/RegexTextField';
 
 import {
     getHashedName,
@@ -51,15 +51,15 @@ import {
 } from '@mui/material';
 
 import Confetti from 'react-dom-confetti';
-import SolIcon from '../../../components/static/SolIcon';
-import SolCurrencyIcon from '../../../components/static/SolCurrencyIcon';
+import SolIcon from '../../../../components/static/SolIcon';
+import SolCurrencyIcon from '../../../../components/static/SolCurrencyIcon';
 
-import ExplorerView from '../../../utils/grapeTools/Explorer';
-import { GrapeVerificationSpeedDial } from './GrapeVerificationSpeedDial';
-import { GrapeVerificationDAO } from './GrapeVerificationDAO';
-import { LookupTableIntegratedDialogView } from './LookupTableIntegratedDialogView';
+import ExplorerView from '../../../../utils/grapeTools/Explorer';
+import { GrapeVerificationSpeedDial } from '../GrapeVerificationSpeedDial';
+import { GrapeVerificationDAO } from '../GrapeVerificationDAO';
+import { LookupTableIntegratedDialogView } from '../LookupTableIntegratedDialogView';
 import { SelectChangeEvent } from '@mui/material/Select';
-import { MakeLinkableAddress, ValidateAddress } from '../../../utils/grapeTools/WalletAddress'; // global key handling
+import { MakeLinkableAddress, ValidateAddress } from '../../../../utils/grapeTools/WalletAddress'; // global key handling
 import { useSnackbar } from 'notistack';
 
 //import { withSend } from "@cardinal/token-manager";
@@ -77,8 +77,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import ArrowCircleRightIcon from '@mui/icons-material/ArrowCircleRight';
 import ArrowCircleRightOutlinedIcon from '@mui/icons-material/ArrowCircleRightOutlined';
 import { number } from 'prop-types';
-import { createProposalInstructionsV0, InstructionDataWithHoldUpTime } from '../../Proposals/createProposalInstructionsV0';
-import { UiInstruction } from '../../../utils/governanceTools/proposalCreationTypes';
+import { createProposalInstructionsV0, InstructionDataWithHoldUpTime } from '../../../Proposals/createProposalInstructionsV0';
+import { UiInstruction } from '../../../../utils/governanceTools/proposalCreationTypes';
 import { serializeInstructionToBase64 } from '@solana/spl-governance';
 
 const confettiConfig = {
