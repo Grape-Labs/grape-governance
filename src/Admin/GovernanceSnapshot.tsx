@@ -1201,7 +1201,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             if (response){
                 //console.log("response: "+JSON.stringify(response.data.data.tx.transactions));
                 //console.log("total: "+JSON.stringify(response.data.data.tx.total));
-                console.log("hasnext: "+JSON.stringify(response.data.data.tx.hasNext));
+                //console.log("hasnext: "+JSON.stringify(response.data.data?.tx.hasNext));
                 hasnext = response?.data?.data?.tx?.hasNext;
                 // total = response.data.data.total
                 // hasnext = response.data.data.hasnext
