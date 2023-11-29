@@ -1,21 +1,19 @@
 import { SignerWalletAdapter } from '@solana/wallet-adapter-base'
 import { TransactionInstruction, Keypair } from '@solana/web3.js'
-/*
+
 import {
   closeTransactionProcessUi,
   incrementProcessedTransactions,
   showTransactionError,
   showTransactionsProcessUi,
-} from './transactionsLoader'
-*/
+} from './v0_tools/transactionsLoader'
 
-//import { invalidateInstructionAccounts } from '@hooks/queries/queryClient'
-/*
+import { invalidateInstructionAccounts } from './v0_tools/queryClient'
+
 import {
   sendSignAndConfirmTransactionsProps,
   sendSignAndConfirmTransactions,
 } from '@blockworks-foundation/mangolana/lib/transactions'
-*/
 
 export type WalletSigner = Pick<
   SignerWalletAdapter,
@@ -51,16 +49,16 @@ export const sendTransactionsV3 = ({
       if (callbacks?.afterBatchSign) {
         callbacks?.afterBatchSign(signedTxnsCount)
       }
-      //showTransactionsProcessUi(signedTxnsCount)
+      showTransactionsProcessUi(signedTxnsCount)
     },
     afterAllTxConfirmed: () => {
       if (callbacks?.afterAllTxConfirmed) {
         callbacks?.afterAllTxConfirmed()
       }
-      //closeTransactionProcessUi()
+      closeTransactionProcessUi()
       transactionInstructions.forEach((x) =>
         x.instructionsSet.forEach((x) =>
-          //invalidateInstructionAccounts(x.transactionInstruction)
+          invalidateInstructionAccounts(x.transactionInstruction)
         )
       )
     },
@@ -68,13 +66,13 @@ export const sendTransactionsV3 = ({
       if (callbacks?.afterEveryTxConfirmation) {
         callbacks?.afterEveryTxConfirmation()
       }
-      //incrementProcessedTransactions()
+      incrementProcessedTransactions()
     },
     onError: (e, notProcessedTransactions, originalProps) => {
       if (callbacks?.onError) {
         callbacks?.onError(e, notProcessedTransactions, originalProps)
       }
-      /*
+      
       showTransactionError(
         () =>
           sendTransactionsV3({
@@ -83,10 +81,10 @@ export const sendTransactionsV3 = ({
           }),
         getErrorMsg(e),
         e.txid
-      )*/
+      )
       transactionInstructions.forEach((x) =>
         x.instructionsSet.forEach((x) =>
-          //invalidateInstructionAccounts(x.transactionInstruction)
+          invalidateInstructionAccounts(x.transactionInstruction)
         )
       )
     },

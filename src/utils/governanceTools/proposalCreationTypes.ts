@@ -2,7 +2,7 @@ import { Governance, InstructionData } from '@solana/spl-governance'
 import { ProgramAccount } from '@solana/spl-governance'
 import { RpcContext } from '@solana/spl-governance'
 import { MintInfo } from '@solana/spl-token'
-import { PublicKey, TransactionInstruction } from '@solana/web3.js'
+import { PublicKey, Keypair, TransactionInstruction } from '@solana/web3.js'
 import { getNameOf } from './core/script';
 import {
   GovernedMintInfoAccount,
@@ -17,11 +17,15 @@ import {
 
 export interface UiInstruction {
   serializedInstruction: string
+  additionalSerializedInstructions?: string[]
   isValid: boolean
   governance: ProgramAccount<Governance> | undefined
   customHoldUpTime?: number
   prerequisiteInstructions?: TransactionInstruction[]
-  chunkSplitByDefault?: boolean
+  //chunkSplitByDefault?: boolean
+  prerequisiteInstructionsSigners?: (Keypair | null)[]
+  chunkBy?: number
+  signers?: Keypair[]
 }
 export interface SplTokenTransferForm {
   destinationAccount: string
