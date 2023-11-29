@@ -229,17 +229,18 @@ function GET_QUERY_REALM(realm:string){
         `
 }
 
-export const getRealmIndexed = async (filterRealm?:any) => {
+export const getRealmIndexed = async (filterRealm?:any, realmOwner?:any) => {
     if (filterRealm){
         const { data } = await client.query({ query: GET_QUERY_REALM(filterRealm) });
         // normalize data
-        const allRules = new Array();
+        const allRealms = new Array();
         console.log("data: "+JSON.stringify(data));
-        
-        data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_RealmV2"].map((item) => {
-            allRules.push({
+        const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+        data[programId+"_RealmV2"] && data[programId+"_RealmV2"].map((item) => {
+            allRealms.push({
                 pubkey: new PublicKey(filterRealm),
-                //owner: new PublicKey(item.owner),
+                owner: new PublicKey(programId),
                 account: {
                     authority: new PublicKey(item.authority),
                     communityMint: new PublicKey(item.communityMint),
@@ -261,9 +262,10 @@ export const getRealmIndexed = async (filterRealm?:any) => {
             })
         });
 
-        data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_RealmV1"].map((item) => {
-            allRules.push({
+        data[programId+"_RealmV1"] && data[programId+"_RealmV1"].map((item) => {
+            allRealms.push({
                 pubkey: new PublicKey(filterRealm),
+                owner: new PublicKey(programId),
                 account: {
                     authority: new PublicKey(item.authority),
                     communityMint: new PublicKey(item.communityMint),
@@ -284,16 +286,23 @@ export const getRealmIndexed = async (filterRealm?:any) => {
             })
         });
 
-        return allRules && allRules[0];
+        if (!allRealms || allRealms.length <= 0){ // fallback to RPC call is governance not found in index
+            const realm = await getRealm(RPC_CONNECTION, new PublicKey(realmOwner));
+            allRealms.push(realm);
+        }
+
+        return allRealms && allRealms[0];
     }
 };
 
-export const getAllGovernancesIndexed = async (filterRealm?:any) => {
+export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any) => {
+    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
     if (filterRealm){
         const { data } = await client.query({ query: GET_QUERY_RULES(filterRealm) });
         // normalize data
         const allRules = new Array();
-        data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_GovernanceV2"].map((item) => {
+        data[programId+"_GovernanceV2"] && data[programId+"_GovernanceV2"].map((item) => {
             allRules.push({
                 pubkey: new PublicKey(item.pubkey),
                 account: {
@@ -305,7 +314,7 @@ export const getAllGovernancesIndexed = async (filterRealm?:any) => {
             })
         });
 
-        data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_GovernanceV1"].map((item) => {
+        data[programId+"_GovernanceV1"] && data[programId+"_GovernanceV1"].map((item) => {
             allRules.push({
                 pubkey: new PublicKey(item?.pubkey),
                 account: {
@@ -317,19 +326,26 @@ export const getAllGovernancesIndexed = async (filterRealm?:any) => {
             })
         });
 
+        if (!allRules || allRules.length <= 0){ // fallback to RPC call is governance not found in index
+            const rules = await getAllGovernances(RPC_CONNECTION, new PublicKey(programId), new PublicKey(filterRealm));
+            for (let item of rules)
+                allRules.push(item);
+        }
+        
         return allRules;
     }
 };
 
-export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any) => {
+export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwner?:any) => {
+    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     if (filterRealm){
         
         const { data } = await client.query({ query: GET_QUERY_MEMBERS(filterRealm) });
         // normalize data
-        const allRules = new Array();
+        const allResults = new Array();
         
-        data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_TokenOwnerRecordV2"].map((item) => {
-            allRules.push({
+        data[programId+"_TokenOwnerRecordV2"] && data[programId+"_TokenOwnerRecordV2"].map((item) => {
+            allResults.push({
                 //owner: new PublicKey(item.owner),
                 pubkey: new PublicKey(item.pubkey),
                 account: {
@@ -347,8 +363,8 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any) => {
             })
         });
 
-        data["GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_TokenOwnerRecordV1"].map((item) => {
-            allRules.push({
+        data[programId+"_TokenOwnerRecordV1"] && data[programId+"_TokenOwnerRecordV1"].map((item) => {
+            allResults.push({
                 //owner: new PublicKey(item.owner),
                 pubkey: new PublicKey(item.pubkey),
                 account: {
@@ -366,7 +382,14 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any) => {
             })
         });
 
-        return allRules;
+        if (!allResults || allResults.length <= 0){ // fallback to RPC call is governance not found in index
+            const rpcResults = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(programId), new PublicKey(filterRealm));
+            return rpcResults;
+            //allResults.push(...results);
+        }
+
+        //console.log("allResults "+JSON.stringify(allResults))
+        return allResults;
         
     }
 };

@@ -763,13 +763,12 @@ export function GovernanceCachedView(props: any) {
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
                 let grealm = null;
 
-                
-
                 if (cachedRealm){
                     console.log("Realm from cache");
                     //console.log("cacheRealm: "+JSON.stringify(cachedRealm))
                     grealm = cachedRealm;    
                 } else{
+                    console.log("Realm from index");
                     grealm = await getRealmIndexed(governanceAddress);
                     if (!grealm)
                         grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
@@ -784,17 +783,17 @@ export function GovernanceCachedView(props: any) {
                 //const governanceRules = await getAllGovernances(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
                 //console.log("all rules: "+JSON.stringify(governanceRules))
                 // setAllGovernances(governanceRules);
-                const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58());
+                const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58(), grealm?.owner);
                 const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
-                //console.log("all rules indexed: "+JSON.stringify(governanceRulesIndexed))
+                console.log("all rules indexed: "+JSON.stringify(governanceRulesIndexed))
                 setAllGovernances(governanceRulesIndexed);
                 
                 //console.log("realmPk: "+realmPk)
-                const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58())
+                const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), grealm?.owner)
                 //console.log("indexTokenOwnerRecords "+JSON.stringify(indexedTokenOwnerRecords));
-                let rawTokenOwnerRecords = null;
+                let rawTokenOwnerRecords = indexedTokenOwnerRecords;
                 //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
-                if (cachedMemberMap){
+                if ((cachedMemberMap) && (!indexedTokenOwnerRecords)){
                     console.log("Members from cache");
                     // merge with cachedMemberMap?
                     for (var rRecord of indexedTokenOwnerRecords){
@@ -810,10 +809,9 @@ export function GovernanceCachedView(props: any) {
                 } else if (!indexedTokenOwnerRecords){
                     rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
                 }
-
+                
                 setMemberMap(rawTokenOwnerRecords);
                 
-
                 let gTD = 0;
                 
                 let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account?.communityMint))
@@ -971,7 +969,6 @@ export function GovernanceCachedView(props: any) {
                     setTotalVotesCasted(ttvc);
                     
                     const sortedResults = allprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
-
                     setAllProposals(allprops);
                     setProposals(sortedResults);
 
