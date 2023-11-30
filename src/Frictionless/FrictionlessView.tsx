@@ -73,7 +73,9 @@ import {
   FRICTIONLESS_BG,
 } from '../utils/grapeTools/constants';
 
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import { ParamType } from 'ethers/lib/utils';
@@ -547,14 +549,13 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
       const rlm = await getRealm(RPC_CONNECTION, new PublicKey(realmPk));
       setThisRealm(rlm);
       
-
       const ag = await getAllGovernancesIndexed(realmPk);
       const governanceRulesStrArr = ag.map(item => item.pubkey);
       //const ag = await getAllGovernances(RPC_CONNECTION, rlm.owner, new PublicKey(realmPk));
       console.log("ag: "+JSON.stringify(ag))
       setAllGovernances(ag);
 
-      const gprops = await getAllProposalsIndexed(governanceRulesStrArr, realmPk);
+      const gprops = await getAllProposalsIndexed(governanceRulesStrArr, rlm.owner.toBase58(), realmPk);
 
       //const gprops = await getAllProposals(RPC_CONNECTION, rlm.owner, new PublicKey(realmPk))
       const rpcprops = new Array();
@@ -650,114 +651,125 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                 //if (item.account.state === 2){
                   return (
                     <>
-                      {key > 0 && <Divider />}
-                          <Grid container
-                              key={key}
-                              alignItems="center"
-                              sx={{mt:4}}
-                          >
-                            {/*console.log("participatingGovernanceProposalsRecordRows item: "+JSON.stringify(item))*/}
-                              <Grid item xs={12}>
-                              <Grid container>
-                                  <Grid item sm={8}>
-                                  <Grid
-                                      container
-                                      direction="row"
-                                      justifyContent="left"
-                                      alignItems="left"
-                                    
-                                  >
-                                    <Grid item xs={12} sx={{textAlign:"left"}}>
-                                      <Typography variant="h5">
-                                        {item.account.name}
-                                        <Tooltip title="Explore Proposal Details">
-                                          <IconButton aria-label="proposal" size="small" 
-                                            href={`https://governance.so/proposal/${frictionlessDao}/${item.pubkey.toBase58()}`}
-                                            target='blank'
-                                            sx={{ml:1}}>
-                                            <OpenInNewIcon fontSize="inherit" />
-                                          </IconButton>
-                                        </Tooltip>
-                                      </Typography>
-                                    </Grid>
-                                    <Grid item xs={12} sx={{textAlign:"left"}}>
-                                      <Typography variant="caption" sx={{textAlign:'left'}}>
-                                        {item.account.descriptionLink}
-                                      </Typography>
-                                    </Grid>
-                                    
-                                    {(endingStr && endingStr.length > 0) ?
-                                      <>
-                                        <Tooltip
-                                          title={
-                                            <>Total Voting Time {(coolOffStr && +coolOffStr > 0) && (
-                                            <>
-                                              <br/>
-                                              Ending {timeAgo}
-                                              <br />
-                                              Cool-Off {coolOffStr}hrs
-                                            </>
-                                          )}</>}>
-                                          <Button>
-                                            <Typography variant="caption" sx={{fontSize:'8px'}}> 
-                                              <HourglassBottomIcon fontSize='inherit' sx={{mr:0.5}}/> {`Ending ${timeAgo}`}
-                                            </Typography>
-                                          </Button>
-                                        </Tooltip>
-                                      </>
-                                      :
-                                      <Typography variant="caption" sx={{fontSize:'8px'}}> 
-                                        <CheckCircleOutlineIcon fontSize='inherit' sx={{mr:0.5}}/> {`Ended ${timeAgo}`}
-                                      </Typography>
-                                      
-                                    }
-                                    
-                                  </Grid>
-                                  </Grid>
-                                  <Grid item xs sx={{textAlign:'center'}}>
-                                  {currentTime <= timeEndingTime ?
-                                  <>
-                                      {voteCastLoading ?
-                                        <CircularProgress />
-                                      :
-                                      <>
-                                        {(generatedParticipation && generatedParticipation.length > 0 && generatedParticipation.map((gitem) => {
-                                            return (gitem.account.proposal.toBase58() === item.pubkey.toBase58() &&
-                                                    gitem.account.governingTokenOwner.toBase58() === generatedWallet.publicKey.toBase58()
-                                                    );
-                                        })) ?
-                                          <>
-                                            <Button
-                                              variant="outlined"
-                                              color="success"
-                                              disabled
-                                            >You have participated in this proposal</Button>
-                                          </>
-                                        :
-                                          <ButtonGroup sx={{borderRadius:'17px'}}>
-                                            <Button
-                                              onClick={(e) => handleYesVote(item.pubkey, item.account.governance, item.account.tokenOwnerRecord)}
-                                              color="success"
-                                              sx={{borderRadius:'17px'}}
-                                            >Vote YES</Button>
-                                            <Button
-                                              onClick={(e) => handleNoVote(item.pubkey, item.account.governance, item.account.tokenOwnerRecord)}
-                                              color="error"
-                                              sx={{borderRadius:'17px'}}
-                                            >Vote NO</Button>
+                      {/*key > 0 && <Divider />*/}
+                        <Box
+                          key={key}
+                          sx={{
+                            mt:4, 
+                            p:2,
+                            background: 'rgba(255,255,255,0.05)',
+                            borderRadius: '17px',
 
-                                          </ButtonGroup>
-                                        }
-                                      </>
+                          }}
+                        >
+                            <Grid container
+                                alignItems="center"
+                            >
+                              {/*console.log("participatingGovernanceProposalsRecordRows item: "+JSON.stringify(item))*/}
+                                <Grid item xs={12}>
+                                <Grid container>
+                                    <Grid item sm={8}>
+                                    <Grid
+                                        container
+                                        direction="row"
+                                        justifyContent="left"
+                                        alignItems="left"
+                                      
+                                    >
+                                      <Grid item xs={12} sx={{textAlign:"left"}}>
+                                        <Typography variant="h5">
+                                          {item.account.name}
+                                          <Tooltip title="Expand Proposal Details">
+                                            <IconButton aria-label="proposal" size="small" 
+                                              href={`https://governance.so/proposal/${frictionlessDao}/${item.pubkey.toBase58()}`}
+                                              target='blank'
+                                              sx={{ml:1}}>
+                                              <FullscreenIcon fontSize="inherit" />
+                                            </IconButton>
+                                          </Tooltip>
+                                        </Typography>
+                                      </Grid>
+                                      <Grid item xs={12} sx={{textAlign:"left"}}>
+                                        <Typography variant="caption" sx={{textAlign:'left'}}>
+                                          {item.account.descriptionLink}
+                                        </Typography>
+                                      </Grid>
+                                      
+                                      {(endingStr && endingStr.length > 0) ?
+                                        <>
+                                          <Tooltip
+                                            title={
+                                              <>Total Voting Time {(coolOffStr && +coolOffStr > 0) && (
+                                              <>
+                                                <br/>
+                                                Ending {timeAgo}
+                                                <br />
+                                                Cool-Off {coolOffStr}hrs
+                                              </>
+                                            )}</>}>
+                                            <Button>
+                                              <Typography variant="caption" sx={{fontSize:'8px'}}> 
+                                                <HourglassTopIcon fontSize='inherit' sx={{mr:0.5}}/> {`Ending ${timeAgo}`}
+                                              </Typography>
+                                            </Button>
+                                          </Tooltip>
+                                        </>
+                                        :
+                                        <Typography variant="caption" sx={{fontSize:'8px'}}> 
+                                          <HourglassBottomIcon fontSize='inherit' sx={{mr:0.5}}/> {`Ended ${timeAgo}`}
+                                        </Typography>
+                                        
                                       }
-                                  </>
-                                  :
-                                  <><Typography variant="caption"><CheckCircleOutlineIcon /></Typography></>
-                                  }
-                                  </Grid>
-                              </Grid>  
-                              </Grid>
-                          </Grid>
+                                      
+                                    </Grid>
+                                    </Grid>
+                                    <Grid item xs sx={{textAlign:'center'}}>
+                                    {currentTime <= timeEndingTime ?
+                                    <>
+                                        {voteCastLoading ?
+                                          <CircularProgress />
+                                        :
+                                        <>
+                                          {(generatedParticipation && generatedParticipation.length > 0 && generatedParticipation.map((gitem) => {
+                                              return (gitem.account.proposal.toBase58() === item.pubkey.toBase58() &&
+                                                      gitem.account.governingTokenOwner.toBase58() === generatedWallet.publicKey.toBase58()
+                                                      );
+                                          })) ?
+                                            <>
+                                              <Button
+                                                variant="outlined"
+                                                color="success"
+                                                disabled
+                                              >You have participated in this proposal</Button>
+                                            </>
+                                          :
+                                            <ButtonGroup sx={{
+                                              borderRadius:'17px'
+                                            }}>
+                                              <Button
+                                                onClick={(e) => handleYesVote(item.pubkey, item.account.governance, item.account.tokenOwnerRecord)}
+                                                color="success"
+                                                sx={{borderRadius:'17px'}}
+                                              >Vote YES</Button>
+                                              <Button
+                                                onClick={(e) => handleNoVote(item.pubkey, item.account.governance, item.account.tokenOwnerRecord)}
+                                                color="error"
+                                                sx={{borderRadius:'17px'}}
+                                              >Vote NO</Button>
+
+                                            </ButtonGroup>
+                                          }
+                                        </>
+                                        }
+                                    </>
+                                    :
+                                    <><Typography variant="caption"><CheckCircleOutlineIcon /></Typography></>
+                                    }
+                                    </Grid>
+                                </Grid>  
+                                </Grid>
+                            </Grid>
+                        </Box>
                     </>
                   );
 

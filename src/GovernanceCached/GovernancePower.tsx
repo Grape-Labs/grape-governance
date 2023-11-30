@@ -255,12 +255,14 @@ export default function GovernancePower(props: any){
             
             if (depCommunityMint && Number(depCommunityMint) > 0){
                 setDepositedCommunityMint(depCommunityMint);
-                setCurrentDelegate(depCommunityDelegate.toBase58());
+                if (depCommunityDelegate)
+                    setCurrentDelegate(depCommunityDelegate.toBase58());
             } 
             // do not change this to an else (we show both council/community)
             if (depCouncilMint && Number(depCouncilMint) > 0){
                 setDepositedCouncilMint(depCouncilMint);
-                setCurrentDelegate(depCouncilDelegate.toBase58());
+                if (depCouncilDelegate)
+                    setCurrentDelegate(depCouncilDelegate.toBase58());
             }
 
             //const govOwnerRecord = await getTokenOwnerRecord(RPC_CONNECTION, publicKey);
