@@ -8,8 +8,8 @@ import { useWallet } from '@solana/wallet-adapter-react';
 
 import { 
     RPC_CONNECTION,
-    FRICTIONLESS_WALLET } from '../../../utils/grapeTools/constants';
-import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
+    FRICTIONLESS_WALLET } from '../../../../utils/grapeTools/constants';
+import { RegexTextField } from '../../../../utils/grapeTools/RegexTextField';
 
 import {
     getHashedName,
@@ -51,15 +51,15 @@ import {
 } from '@mui/material';
 
 import Confetti from 'react-dom-confetti';
-import SolIcon from '../../../components/static/SolIcon';
-import SolCurrencyIcon from '../../../components/static/SolCurrencyIcon';
+import SolIcon from '../../../../components/static/SolIcon';
+import SolCurrencyIcon from '../../../../components/static/SolCurrencyIcon';
 
-import ExplorerView from '../../../utils/grapeTools/Explorer';
-import { GrapeVerificationSpeedDial } from './GrapeVerificationSpeedDial';
-import { GrapeVerificationDAO } from './GrapeVerificationDAO';
-import { LookupTableIntegratedDialogView } from './LookupTableIntegratedDialogView';
+import ExplorerView from '../../../../utils/grapeTools/Explorer';
+import { GrapeVerificationSpeedDial } from '../GrapeVerificationSpeedDial';
+import { GrapeVerificationDAO } from '../GrapeVerificationDAO';
+import { LookupTableIntegratedDialogView } from '../LookupTableIntegratedDialogView';
 import { SelectChangeEvent } from '@mui/material/Select';
-import { MakeLinkableAddress, ValidateAddress } from '../../../utils/grapeTools/WalletAddress'; // global key handling
+import { MakeLinkableAddress, ValidateAddress } from '../../../../utils/grapeTools/WalletAddress'; // global key handling
 import { useSnackbar } from 'notistack';
 
 //import { withSend } from "@cardinal/token-manager";
@@ -77,6 +77,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import ArrowCircleRightIcon from '@mui/icons-material/ArrowCircleRight';
 import ArrowCircleRightOutlinedIcon from '@mui/icons-material/ArrowCircleRightOutlined';
 import { number } from 'prop-types';
+import { createProposalInstructionsV0, InstructionDataWithHoldUpTime } from '../../../Proposals/createProposalInstructionsV0';
+import { UiInstruction } from '../../../../utils/governanceTools/proposalCreationTypes';
+import { serializeInstructionToBase64 } from '@solana/spl-governance';
 
 const confettiConfig = {
     angle: 90,
@@ -106,8 +109,10 @@ export default function TokenTransferV0View(props: any) {
     const payerWallet = props?.payerWallet || null;
     const pluginType = props?.pluginType || 4; // 1 Token 2 SOL
     const setInstructionsObject = props?.setInstructionsObject;
+    const setInstructionsDataWithHoldUpTime = props?.setInstructionsDataWithHoldUpTime;
     const [governanceWallet, setGovernanceWallet] = React.useState(props?.governanceWallet);
     const [governanceRulesWallet, setGovernanceRulesWallet] = React.useState(props?.governanceRulesWallet);
+    const [governanceWalletMinInstructHoldUpTime, setGovernanceWalletMinInstructHoldUpTime] = React.useState(props?.governanceWalletMinInstructHoldUpTime);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
     const [hasBeenCalled, setHasBeenCalled] = React.useState(false);
     const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
@@ -116,6 +121,7 @@ export default function TokenTransferV0View(props: any) {
     const [tokenMap, setTokenMap] = React.useState(null);
     const [tokenAta, setTokenAta] = React.useState(null);
     const [transactionInstructions, setTransactionInstructions] = React.useState(null);
+    //const [instructionsDataWithHoldUpTime, setInstructionsDataWithHoldUpTime] = React.useState(null);
     const [payerInstructions, setPayerInstructions] = React.useState(null);
     const [tokenMaxAmount, setTokenMaxAmount] = React.useState(null);
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
@@ -129,11 +135,14 @@ export default function TokenTransferV0View(props: any) {
     const [tokenAmountStr, setTokenAmountStr] = React.useState(null);
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
-    //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
     async function transferTokens() {
         //const payerWallet = new PublicKey(payerAddress);
         //const fromWallet = new PublicKey(fromAddress);
+        const instructions: InstructionDataWithHoldUpTime[] = []
+        const prerequisiteInstructions: TransactionInstruction[] = []
+        const serializedTransferToReceiptIxs: string[] = []
+
 
         let fromWallet = null;
         {consolidatedGovernanceWallet && consolidatedGovernanceWallet
@@ -174,17 +183,23 @@ export default function TokenTransferV0View(props: any) {
             for (let index = 0; index < destinationWalletArray.length; index++) {
                 const destinationObject = destinationWalletArray[index];
                 const amount = Math.floor((destinationObject.amount * Math.pow(10, decimals)));
-                transaction.add(
+                /*transaction.add(
                     SystemProgram.transfer({
                         fromPubkey: fromWallet,
                         toPubkey: new PublicKey(destinationObject.address),
                         lamports: amount,
                     })
-                );
+                );*/
+                const wsolTransferIx = SystemProgram.transfer({
+                    fromPubkey: fromWallet,
+                    toPubkey: new PublicKey(destinationObject.address),
+                    lamports: amount,
+                })
+                transaction.add(wsolTransferIx);
+                serializedTransferToReceiptIxs.push(serializeInstructionToBase64(wsolTransferIx)
+    )
             }
-
             setTransactionInstructions(transaction);
-            
             // Estimate the transaction fee
             try{
                 /*
@@ -246,25 +261,37 @@ export default function TokenTransferV0View(props: any) {
                             TOKEN_PROGRAM_ID,
                             ASSOCIATED_TOKEN_PROGRAM_ID
                         );
+                        prerequisiteInstructions.push(transactionInstruction);
                         //transaction.add(transactionInstruction);
                         if (publicKey)
                             pTransaction.add(transactionInstruction);
+                            
                         else
                             transaction.add(transactionInstruction);
                     }
 
                     const amount = Math.floor((destinationObject.amount * Math.pow(10, decimals)));
 
-                    transaction.add(
+                    /*transaction.add(
                         createTransferInstruction(
                             new PublicKey(tokenAta || fromTokenAccount),
                             destTokenAccount,
                             fromPublicKey,
                             amount
                         )
+                    )*/
+                    const transferIx = createTransferInstruction(
+                        new PublicKey(tokenAta || fromTokenAccount),
+                        destTokenAccount,
+                        fromPublicKey,
+                        amount
                     )
+                    transaction.add(transferIx);
+                    serializedTransferToReceiptIxs.push(
+                        serializeInstructionToBase64(transferIx)
+                      )
                 }
-                
+
                 /*
                 if (memoText && memoText.length > 0){
                     transaction.add(
@@ -278,8 +305,9 @@ export default function TokenTransferV0View(props: any) {
                 */
                 setPayerInstructions(pTransaction);
                 setTransactionInstructions(transaction);
+                //setTransactionInstructions(serializedTransferToReceiptIxs);
                 // Estimate the transaction fee
-                
+
                 try{
                     /*
                     console.log("Getting estimated fees");
@@ -305,6 +333,27 @@ export default function TokenTransferV0View(props: any) {
                 }catch(e){
                     console.log("FEE ERR: ",e);
                 }
+                //console.log("minInstructionHoldUpTime: ", governanceWalletMinInstructHoldUpTime);
+                  // Create the InstructionDataWithHoldUpTime
+                const uiInstruction: UiInstruction = {
+                    governance: governanceRulesWallet,//treasuryAssetAccount.governance,
+                    serializedInstruction: serializedTransferToReceiptIxs[0],
+                    additionalSerializedInstructions:
+                        serializedTransferToReceiptIxs.slice(1) || [],
+                    prerequisiteInstructions,
+                    isValid: true,
+                    customHoldUpTime:
+                        governanceWalletMinInstructHoldUpTime,
+                }
+
+                const fullPropInstruction = new InstructionDataWithHoldUpTime({
+                    instruction: uiInstruction,
+                })
+
+                instructions.push(fullPropInstruction);
+                //console.log("instructions in transfertoken: "+JSON.stringify(instructions));
+                setInstructionsDataWithHoldUpTime(instructions);
+                setTransactionInstructions(transaction);
                 return transaction;
             } catch(err){
                 console.log("GEN ERR: "+JSON.stringify(err));
@@ -730,7 +779,7 @@ export default function TokenTransferV0View(props: any) {
                 .map((destination: any) => `${destination.address.trim()} - ${destination.amount.toLocaleString()} tokens`)
                 .join(', ');
         }
-        
+        //console.log("instructionsDataWithHoldUpTime at line 777: "+JSON.stringify(setInstructionsDataWithHoldUpTime));
         setInstructionsObject({
             "type":`${pluginType === 4 ? `Token` : 'SOL'} Transfer`,
             "description":description,
@@ -1270,7 +1319,7 @@ export default function TokenTransferV0View(props: any) {
             <Box
                 sx={{mt:4,textAlign:'center'}}
             >
-                <Typography variant="caption" sx={{color:'#ccc'}}>Governance {pluginType === 4 ? 'Token' : 'SOL'} Transfer Plugin developed by Grape Protocol</Typography>
+                <Typography variant="caption" sx={{color:'#ccc'}}>Governance {pluginType === 6 ? 'Token' : 'SOL'} Transfer Plugin developed by Grape Protocol</Typography>
             </Box>
 
             
