@@ -490,7 +490,7 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
             allProposals.push(item);
     }
 
-    console.log("allProposals: "+JSON.stringify(allProposals))
+    //console.log("allProposals: "+JSON.stringify(allProposals))
 
     return allProposals;
 };
