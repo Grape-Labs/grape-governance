@@ -793,7 +793,7 @@ export function GovernanceCachedView(props: any) {
                 //console.log("indexTokenOwnerRecords "+JSON.stringify(indexedTokenOwnerRecords));
                 let rawTokenOwnerRecords = indexedTokenOwnerRecords;
                 //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
-                if ((cachedMemberMap) && (!indexedTokenOwnerRecords)){
+                if ((cachedMemberMap)){ // we shoudl consider merging
                     console.log("Members from cache");
                     // merge with cachedMemberMap?
                     for (var rRecord of indexedTokenOwnerRecords){
