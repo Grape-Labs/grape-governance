@@ -18,6 +18,8 @@ import base58 from 'bs58'
 import Confetti from 'react-dom-confetti';
 import { useSnackbar } from 'notistack';
 import { createProposalInstructionsLegacy } from './Proposals/createProposalInstructionsLegacy';
+import { createProposalInstructionsV0, InstructionDataWithHoldUpTime } from './Proposals/createProposalInstructionsV0';
+
 import { 
   getRealm, 
   createInstructionData, 
@@ -181,6 +183,8 @@ export default function GovernanceCreateProposalView(props: any){
     const [proposalType, setProposalType] = React.useState(null);
     const [isCouncilVote, setIsCouncilVote] = React.useState(false);
     const [governanceWallet, setGovernanceWallet] = React.useState(null);
+    const [governanceWalletMinInstructHoldUpTime, setGovernanceRulesWalletMinInstructHoldUpTime] = React.useState(null);
+    const [instructionsDataWithHoldUpTime, setInstructionsDataWithHoldUpTime] = React.useState(null);
     const [governanceRulesWallet, setGovernanceRulesWallet] = React.useState(null);
     const [isGistDescription, setIsGistDescription] = React.useState(false);
     const { publicKey, sendTransaction } = useWallet();
@@ -222,6 +226,7 @@ export default function GovernanceCreateProposalView(props: any){
 
     const anchorWallet = useAnchorWallet();
 
+    /*
     function getTokenTypeString(tokenTypeValue: any) {
       const tokenTypeEnumKey = Object.keys(GoverningTokenType).find(
         (key) => GoverningTokenType[key] === tokenTypeValue
@@ -245,6 +250,13 @@ export default function GovernanceCreateProposalView(props: any){
         return "Unknown"; // Or handle the case where the value is not found in the enum
       }
     }
+    */
+
+    const SECONDS_PER_DAY = 86400
+    
+     function getTimestampFromDays(days: number) {
+       return days * SECONDS_PER_DAY
+     }
     
 
     const calculateProposalFee = async() => {
@@ -274,21 +286,44 @@ export default function GovernanceCreateProposalView(props: any){
       }
 
       if (publicKey){
-        const propSimulation = await createProposalInstructionsLegacy(
-          programId,
-          new PublicKey(cachedRealm.pubkey),
-          new PublicKey(governanceRulesWallet),
-          governingTokenMint,
-          publicKey,
-          title,
-          description,
-          connection,
-          transaction,
-          authTransaction,
-          anchorWallet,//anchorWallet,
-          null,
-          true,
-        );
+        let propSimulation = null;
+
+        if (instructionsDataWithHoldUpTime){
+          console.log("in v0")
+          propSimulation = await createProposalInstructionsV0(
+            programId,
+            new PublicKey(cachedRealm.pubkey),
+            new PublicKey(governanceRulesWallet),
+            governingTokenMint,
+            publicKey,
+            title,
+            description,
+            connection,
+            transaction,
+            authTransaction,
+            anchorWallet,//anchorWallet,
+            null,
+            instructionsDataWithHoldUpTime,
+            true,
+          );
+        } else{
+          console.log("in legacy")
+          propSimulation = await createProposalInstructionsLegacy(
+            programId,
+            new PublicKey(cachedRealm.pubkey),
+            new PublicKey(governanceRulesWallet),
+            governingTokenMint,
+            publicKey,
+            title,
+            description,
+            connection,
+            transaction,
+            authTransaction,
+            anchorWallet,//anchorWallet,
+            null,
+            true,
+          );
+        }
         //console.log("Simulation: ",propSimulation);
         //console.log("Simulation string: "+JSON.stringify(propSimulation));
         
@@ -369,23 +404,47 @@ export default function GovernanceCreateProposalView(props: any){
         );
         const cnfrmkey = enqueueSnackbar('Creating Governance Proposal',{ variant: 'info', action:snackprogress, persist: true });
         
-        const propResponse = await createProposalInstructionsLegacy(
-          programId,
-          new PublicKey(cachedRealm.pubkey),
-          new PublicKey(governanceRulesWallet),
-          governingTokenMint,
-          intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
-          title,
-          description,
-          connection,
-          transaction,
-          authTransaction,
-          anchorWallet,//anchorWallet,
-          null,//sendTransaction,
-          isDraft,
-          returnTx,
-          intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
-        );
+        let propResponse = null;
+        if (instructionsDataWithHoldUpTime){
+          console.log("in v0")
+          propResponse = await createProposalInstructionsV0(
+            programId,
+            new PublicKey(cachedRealm.pubkey),
+            new PublicKey(governanceRulesWallet),
+            governingTokenMint,
+            publicKey,
+            title,
+            description,
+            connection,
+            transaction,
+            authTransaction,
+            anchorWallet,
+            null,//sendTransaction,
+            instructionsDataWithHoldUpTime, //instructionsArray //nstructions,
+            isDraft,
+            returnTx,
+            intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
+          );
+        } else{
+          console.log("in legacy")
+          propResponse = await createProposalInstructionsLegacy(
+            programId,
+            new PublicKey(cachedRealm.pubkey),
+            new PublicKey(governanceRulesWallet),
+            governingTokenMint,
+            intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
+            title,
+            description,
+            connection,
+            transaction,
+            authTransaction,
+            anchorWallet,//anchorWallet,
+            null,//sendTransaction,
+            isDraft,
+            returnTx,
+            intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
+          );
+        }
         
         closeSnackbar(cnfrmkey);
         
@@ -635,11 +694,13 @@ export default function GovernanceCreateProposalView(props: any){
         // get rules wallet:
         console.log("HERE!")
         let rulesWallet = null;
+        let minInstructionHoldUpTime = null;
         {cachedTreasury && cachedTreasury
           .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
           .map((item: any, key: number) => {
             if (nativeWallet === item.vault?.nativeTreasury){
               rulesWallet = item.vault.pubkey;
+              minInstructionHoldUpTime = item.vault.governance.account.config.minInstructionHoldUpTime;
               //console.log("Selected Item: "+JSON.stringify(item));
 
               if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff')
@@ -652,7 +713,8 @@ export default function GovernanceCreateProposalView(props: any){
         // use RPC here to get teh rules wallet details
         
         setGovernanceRulesWallet(rulesWallet);
-        
+        setGovernanceRulesWalletMinInstructHoldUpTime(minInstructionHoldUpTime);
+
         getGovernanceRules(rulesWallet);
         setProposalType(1);
 
@@ -752,9 +814,24 @@ export default function GovernanceCreateProposalView(props: any){
 
                                         <Tooltip title={
                                           <>
-                                            {item?.vault?.governance?.account?.accountType && 
-                                              <>Governance Type: {GovernanceAccountType[item.vault.governance.account.accountType]}</>
-                                            }
+                                            
+                                            {item.vault.governance?.account?.accountType && (() => {
+                                              const accountType = item.vault.governance.account.accountType as string;
+                                              //console.log("accountType: "+accountType);
+                                              const governanceTypeLabel = GovernanceAccountType[accountType];
+
+                                              if (governanceTypeLabel) {
+                                                return (
+                                                  <>Governance Type: {governanceTypeLabel}</>
+                                                );
+                                              } else {
+                                                return (
+                                                  <></>
+                                                );
+                                              }
+                                            
+                                            })()}
+
                                             {(() => {
                                               //const stringValue = item?.vault?.governance?.account?.config?.minCommunityTokensToCreateProposal;
                                               
@@ -1374,7 +1451,7 @@ export default function GovernanceCreateProposalView(props: any){
 
                             {proposalType === 6 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <TokenTransferV0View governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} setInstructionsObject={setInstructionsObject} />
+                                <TokenTransferV0View governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} governanceWalletMinInstructHoldUpTime={governanceWalletMinInstructHoldUpTime} setInstructionsObject={setInstructionsObject} setInstructionsDataWithHoldUpTime={setInstructionsDataWithHoldUpTime}/>
                               </FormControl>
                             }
                             

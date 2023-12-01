@@ -84,6 +84,8 @@ export async function createProposalInstructionsV0(
     sendTransaction: any,
     instructionsData: InstructionDataWithHoldUpTime[],
     isDraft?: boolean,
+    returnTx?: boolean,
+    payer?: PublicKey
     ): Promise<any>{//Promise<Transaction> {
     
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
@@ -169,9 +171,9 @@ export async function createProposalInstructionsV0(
       realm,
       client
     );*/
-
+      
     //const signatory = walletPk
-    const payer = walletPk
+    //const payer = walletPk
     
     //will run only if plugin is connected with realm
     /*
