@@ -829,6 +829,7 @@ export default function TokenTransferV0View(props: any) {
 
         if (tokenBalance && tokenBalance?.value){
             for (let titem of tokenBalance.value){
+                
                 itemsToAdd.push(titem);
                     
                     /*
@@ -862,7 +863,8 @@ export default function TokenTransferV0View(props: any) {
         try{
             setLoadingWallet(true);
             const gwToAdd = await fetchWalletHoldings(governanceWallet.vault.pubkey);
-            console.log("fetching rules now");
+            console.log("fetching rules now " + governanceRulesWallet);
+            
             const rwToAdd = await fetchWalletHoldings(governanceRulesWallet);
 
             //governanceWallet.tokens.value = gwToAdd;//[...governanceWallet.tokens.value, ...itemsToAdd];
