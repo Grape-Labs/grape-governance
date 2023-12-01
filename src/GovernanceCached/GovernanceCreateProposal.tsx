@@ -18,6 +18,8 @@ import base58 from 'bs58'
 import Confetti from 'react-dom-confetti';
 import { useSnackbar } from 'notistack';
 import { createProposalInstructionsLegacy } from './Proposals/createProposalInstructionsLegacy';
+import { createProposalInstructionsV0, InstructionDataWithHoldUpTime } from './Proposals/createProposalInstructionsV0';
+
 import { 
   getRealm, 
   createInstructionData, 
@@ -25,8 +27,12 @@ import {
   getVoterWeightRecord,
   getVoterWeightRecordAddress,
   getMaxVoterWeightRecord,
-  
+  getInstructionDataFromBase64,
+  Governance,
+  ProgramAccount,
+  serializeInstructionToBase64,
 } from '@solana/spl-governance';
+import { UiInstruction } from '../utils/governanceTools/proposalCreationTypes'
 
 import {
   Typography,
@@ -181,6 +187,8 @@ export default function GovernanceCreateProposalView(props: any){
     const [proposalType, setProposalType] = React.useState(null);
     const [isCouncilVote, setIsCouncilVote] = React.useState(false);
     const [governanceWallet, setGovernanceWallet] = React.useState(null);
+    const [governanceWalletMinInstructHoldUpTime, setGovernanceRulesWalletMinInstructHoldUpTime] = React.useState(null);
+    const [instructionsDataWithHoldUpTime, setInstructionsDataWithHoldUpTime] = React.useState(null);
     const [governanceRulesWallet, setGovernanceRulesWallet] = React.useState(null);
     const [isGistDescription, setIsGistDescription] = React.useState(false);
     const { publicKey, sendTransaction } = useWallet();
@@ -222,7 +230,8 @@ export default function GovernanceCreateProposalView(props: any){
 
     const anchorWallet = useAnchorWallet();
 
-    function getTokenTypeString(tokenTypeValue: any) {
+    //console.log("I got it: "+JSON.stringify(instructionsDataWithHoldUpTime));
+    /*function getTokenTypeString(tokenTypeValue: any) {
       const tokenTypeEnumKey = Object.keys(GoverningTokenType).find(
         (key) => GoverningTokenType[key] === tokenTypeValue
       );
@@ -244,8 +253,32 @@ export default function GovernanceCreateProposalView(props: any){
       } else {
         return "Unknown"; // Or handle the case where the value is not found in the enum
       }
+    }*/
+    
+    const SECONDS_PER_DAY = 86400
+    /*const [
+      governance,
+      setGovernance,
+    ] = React.useState<ProgramAccount<Governance> | null>(null)
+
+    console.log("Governance: "+JSON.stringify(governance));
+*/
+    function getTimestampFromDays(days: number) {
+      return days * SECONDS_PER_DAY
     }
     
+    const getDefaultInstructionProps = (
+      x: UiInstruction,
+      selectedGovernance: ProgramAccount<Governance> | null
+    ) => ({
+      holdUpTime: x.customHoldUpTime
+        ? getTimestampFromDays(x.customHoldUpTime)
+        : selectedGovernance?.account?.config.minInstructionHoldUpTime,
+      prerequisiteInstructions: x.prerequisiteInstructions || [],
+      signers: x.signers,
+      prerequisiteInstructionsSigners: x.prerequisiteInstructionsSigners || [],
+      chunkBy: x.chunkBy || 2,
+    })
 
     const calculateProposalFee = async() => {
       // get governance settings
@@ -266,7 +299,6 @@ export default function GovernanceCreateProposalView(props: any){
       // 2. call createDAOProposal.tsx with the respective variables to create the prop and return to execute
       // temporarily use a static program id, make it dynamic for more flexibility
       const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-
       const programId = new PublicKey(cachedRealm?.owner || GOVERNANCE_PROGRAM_ID);
       let governingTokenMint = new PublicKey(cachedRealm.account?.communityMint);
       if (isCouncilVote){
@@ -274,7 +306,61 @@ export default function GovernanceCreateProposalView(props: any){
       }
 
       if (publicKey){
-        const propSimulation = await createProposalInstructionsLegacy(
+        if (instructionsDataWithHoldUpTime) {
+          console.log("Exeucte createProposalInstructionsV0");
+          const propSimulation = await createProposalInstructionsV0(
+            programId,
+            new PublicKey(cachedRealm.pubkey),
+            new PublicKey(governanceRulesWallet),
+            governingTokenMint,
+            publicKey,
+            title,
+            description,
+            connection,
+            transaction,
+            authTransaction,
+            anchorWallet,//anchorWallet,
+            null,//sendTransaction,
+            instructionsDataWithHoldUpTime, //instructionsArray //nstructions,
+            true
+          );
+          if (propSimulation){
+            if (propSimulation?.err)
+              setProposalSimulationErr(JSON.stringify(propSimulation?.err));
+            setProposalSimulationLogs(propSimulation?.logs);
+            setProposalSimulationUnitsConsumed(propSimulation?.unitsConsumed);
+          } else{
+            setProposalSimulationErr("Could not simulate...");
+          }
+        }else {
+          console.log("Execute createProposalInstructionsLegacy");
+          const propSimulation = await createProposalInstructionsLegacy(
+            programId,
+            new PublicKey(cachedRealm.pubkey),
+            new PublicKey(governanceRulesWallet),
+            governingTokenMint,
+            publicKey,//intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
+            title,
+            description,
+            connection,
+            transaction,
+            authTransaction,
+            anchorWallet,//anchorWallet,
+            null,//sendTransaction,
+            true,//isDraft,
+            //returnTx,
+            //intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
+          );
+          if (propSimulation){
+            if (propSimulation?.err)
+              setProposalSimulationErr(JSON.stringify(propSimulation?.err));
+              setProposalSimulationLogs(propSimulation?.logs);
+              setProposalSimulationUnitsConsumed(propSimulation?.unitsConsumed);
+          } else{
+            setProposalSimulationErr("Could not simulate...");
+          }
+        }
+        /*const propSimulation = await createProposalInstructions(
           programId,
           new PublicKey(cachedRealm.pubkey),
           new PublicKey(governanceRulesWallet),
@@ -300,7 +386,7 @@ export default function GovernanceCreateProposalView(props: any){
         } else{
           setProposalSimulationErr("Could not simulate...");
         }
-
+        */
         //setProposalSimulation((JSON.stringify(propSimulation)));
       }  
     }
@@ -313,7 +399,7 @@ export default function GovernanceCreateProposalView(props: any){
       
       // get governance settings
       setCreateDisabled(true);
-      
+      //console.log("setSentInstructionsObject: ", setSentInstructionsObject);
       enqueueSnackbar(`Assembling Governance Transactions`,{ variant: 'info' });
       // 1. Generate the instructions to pass to governance
       const transaction = new Transaction();
@@ -335,13 +421,13 @@ export default function GovernanceCreateProposalView(props: any){
       const programId = new PublicKey(cachedRealm?.owner || GOVERNANCE_PROGRAM_ID);
 
       //const governingTokenMint = new PublicKey('8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA');
-      /*
+     /*
       console.log("cachedRealm: "+JSON.stringify(cachedRealm));
       console.log("cachedRealm.pubkey: "+JSON.stringify(cachedRealm.pubkey));
       console.log("governanceWallet: "+JSON.stringify(governanceWallet));
       console.log("governanceRulesWallet: "+JSON.stringify(governanceRulesWallet));
-      */
-      let governingTokenMint = new PublicKey(cachedRealm.account?.communityMint);
+      */      
+     let governingTokenMint = new PublicKey(cachedRealm.account?.communityMint);
       if (isCouncilVote){
         governingTokenMint = new PublicKey(cachedRealm.account?.config?.councilMint);
       }
@@ -369,82 +455,168 @@ export default function GovernanceCreateProposalView(props: any){
         );
         const cnfrmkey = enqueueSnackbar('Creating Governance Proposal',{ variant: 'info', action:snackprogress, persist: true });
         
-        const propResponse = await createProposalInstructionsLegacy(
-          programId,
-          new PublicKey(cachedRealm.pubkey),
-          new PublicKey(governanceRulesWallet),
-          governingTokenMint,
-          intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
-          title,
-          description,
-          connection,
-          transaction,
-          authTransaction,
-          anchorWallet,//anchorWallet,
-          null,//sendTransaction,
-          isDraft,
-          returnTx,
-          intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
-        );
-        
-        closeSnackbar(cnfrmkey);
-        
-        if (returnTx){
-          console.log("returnTx: "+JSON.stringify(propResponse));
-          if (setSentInstructionsObject){
-            //setSentInstructionsObject(propResponse);
-            let tdescription = '';
-            tdescription = `Creating DAO Proposal at ${cachedRealm.pubKey} using ${governingTokenMint} Governing Token Mint`;
-            
-            setSentInstructionsObject({
-                "type":`Create DAO Proposal`,
-                "description":tdescription,
-                "governanceInstructions":propResponse,
-                "authorInstructions":null,
-                "transactionEstimatedFee":null,
-            });
-          }
-        } else{
-          //await createProposalInstructions()
-            
-          console.log("propAddress: "+JSON.stringify(propResponse));
-          
-          if (propResponse && propResponse?.address && propResponse?.response){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
-            
-            const snackaction = (key:any) => (
-              <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponse.address.toBase58()}`} target='_blank'  sx={{color:'white'}}>
-                  {propResponse.proposalAddress.toBase58()}
-              </Button>
-            );
-            
-            //enqueueSnackbar('Governance Transaction completed - redirecting in 5 seconds to proposal',{ variant: 'success', action:snackaction });
-            
-            const snackprogress = (key:any) => (
-              <CircularProgress sx={{padding:'10px'}} />
-            );
-            const cnfrmkey = enqueueSnackbar('Redirecting in a few seconds to the proposal',{ variant: 'success', action:snackprogress, persist: true });
+        //let propResponse: { address: { toBase58: () => any; }; response: any; proposalAddress: { toBase58: () => {}; }; };
+        //console.log("instructionsArray: "+JSON.stringify(instructionsArray));
+        //console.log("setSentInstructionsObject: "+JSON.stringify(instructionsDataWithHoldUpTime));
+        if (instructionsDataWithHoldUpTime) {
+          console.log("Exeucte createProposalInstructionsV0");
+          const propResponseV0 = await createProposalInstructionsV0(
+            programId,
+            new PublicKey(cachedRealm.pubkey),
+            new PublicKey(governanceRulesWallet),
+            governingTokenMint,
+            publicKey,
+            title,
+            description,
+            connection,
+            transaction,
+            authTransaction,
+            anchorWallet,//anchorWallet,
+            null,//sendTransaction,
+            instructionsDataWithHoldUpTime, //instructionsArray //nstructions,
+            isDraft
+          );
 
-            setProposalMade(true);
-            
-            // redirect to proposal
-            const redirectTimer = setTimeout(() => {
-              //navigate(`/proposal/${cachedRealm.pubkey}/${propAddress.toBase58()}`, { replace: true });
-              closeSnackbar(cnfrmkey);
-              navigate(`/dao/${cachedRealm.pubkey}`, {replace: true});
-            }, 12500); // 12500 milliseconds = 12.5 seconds
-            
-            return () => clearTimeout(redirectTimer);
-          } else if (propResponse && propResponse.address){
-            const snackaction = (key:any) => (
-              <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponse.address.toBase58()}`} target='_blank'  sx={{color:'white'}}>
-                  {propResponse.proposalAddress.toBase58()}
-              </Button>
-            );
-            enqueueSnackbar('Redirecting in a few seconds to the proposal',{ variant: 'info', action:snackprogress });
-            setCreateDisabled(false);
+          closeSnackbar(cnfrmkey);
+        
+          if (returnTx){
+            console.log("returnTx: "+JSON.stringify(propResponseV0));
+            if (setSentInstructionsObject){
+              //setSentInstructionsObject(propResponse);
+              let tdescription = '';
+              tdescription = `Creating DAO Proposal at ${cachedRealm.pubKey} using ${governingTokenMint} Governing Token Mint`;
+              
+              setSentInstructionsObject({
+                  "type":`Create DAO Proposal`,
+                  "description":tdescription,
+                  "governanceInstructions":propResponseV0,
+                  "authorInstructions":null,
+                  "transactionEstimatedFee":null,
+              });
+            }
           } else{
-            enqueueSnackbar(`An error occured...`,{ variant: 'error' });
-            setCreateDisabled(false);
+            //await createProposalInstructions()
+              
+            //console.log("propAddressV0: "+JSON.stringify(propResponseV0));
+            //console.log("propAddressV0 address: "+JSON.stringify(propResponseV0.address.toBase58()));
+            //console.log("propAddressV0 transactionSuccess: "+JSON.stringify(propResponseV0.transactionSuccess));
+            
+            if (propResponseV0 && propResponseV0?.address && propResponseV0?.transactionSuccess){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
+              
+              const snackaction = (key:any) => (
+                <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponseV0.address.toBase58()}`} target='_blank'  sx={{color:'white'}}>
+                    {propResponseV0.proposalAddress.toBase58()}
+                </Button>
+              );
+              //enqueueSnackbar('Governance Transaction completed - redirecting in 5 seconds to proposal',{ variant: 'success', action:snackaction });
+              
+              const snackprogress = (key:any) => (
+                <CircularProgress sx={{padding:'10px'}} />
+              );
+              const cnfrmkey = enqueueSnackbar('Redirecting in a few seconds to the proposal',{ variant: 'success', action:snackprogress, persist: true });
+              setProposalMade(true);
+              
+              // redirect to proposal
+              const redirectTimer = setTimeout(() => {
+                //navigate(`/proposal/${cachedRealm.pubkey}/${propAddress.toBase58()}`, { replace: true });
+                closeSnackbar(cnfrmkey);
+                navigate(`/dao/${cachedRealm.pubkey}`, {replace: true});
+              }, 12500); // 12500 milliseconds = 12.5 seconds
+              return () => clearTimeout(redirectTimer);
+            } else if (propResponseV0 && propResponseV0?.address && !(propResponseV0?.transactionSuccess)){
+              const snackaction = (key:any) => (
+                <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponseV0.address.toBase58()}`} target='_blank'  sx={{color:'white'}}>
+                    {propResponseV0.proposalAddress.toBase58()}
+                </Button>
+              );
+
+              enqueueSnackbar('Redirecting in a few seconds to the proposal',{ variant: 'info', action:snackprogress });
+              setCreateDisabled(false);
+            } else{
+              enqueueSnackbar(`An error occured...`,{ variant: 'error' });
+              setCreateDisabled(false);
+            }
+          }
+
+        } else{
+          console.log("Execute createProposalInstructions");
+          const propResponse = await createProposalInstructionsLegacy(
+            programId,
+            new PublicKey(cachedRealm.pubkey),
+            new PublicKey(governanceRulesWallet),
+            governingTokenMint,
+            intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
+            title,
+            description,
+            connection,
+            transaction,
+            authTransaction,
+            anchorWallet,//anchorWallet,
+            null,//sendTransaction,
+            isDraft,
+            returnTx,
+            intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
+          );
+        
+          closeSnackbar(cnfrmkey);
+        
+          if (returnTx){
+            //console.log("returnTx: "+JSON.stringify(propResponse));
+            if (setSentInstructionsObject){
+              //setSentInstructionsObject(propResponse);
+              let tdescription = '';
+              tdescription = `Creating DAO Proposal at ${cachedRealm.pubKey} using ${governingTokenMint} Governing Token Mint`;
+              
+              setSentInstructionsObject({
+                  "type":`Create DAO Proposal`,
+                  "description":tdescription,
+                  "governanceInstructions":propResponse,
+                  "authorInstructions":null,
+                  "transactionEstimatedFee":null,
+              });
+            }
+          } else{
+            //await createProposalInstructions()
+              
+            //console.log("propAddress: "+JSON.stringify(propResponse));
+            
+            if (propResponse && propResponse?.address && propResponse?.response){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
+              
+              const snackaction = (key:any) => (
+                <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponse.address.toBase58()}`} target='_blank'  sx={{color:'white'}}>
+                    {propResponse.proposalAddress.toBase58()}
+                </Button>
+              );
+              
+              //enqueueSnackbar('Governance Transaction completed - redirecting in 5 seconds to proposal',{ variant: 'success', action:snackaction });
+              
+              const snackprogress = (key:any) => (
+                <CircularProgress sx={{padding:'10px'}} />
+              );
+              const cnfrmkey = enqueueSnackbar('Redirecting in a few seconds to the proposal',{ variant: 'success', action:snackprogress, persist: true });
+
+              setProposalMade(true);
+              
+              // redirect to proposal
+              const redirectTimer = setTimeout(() => {
+                //navigate(`/proposal/${cachedRealm.pubkey}/${propAddress.toBase58()}`, { replace: true });
+                closeSnackbar(cnfrmkey);
+                navigate(`/dao/${cachedRealm.pubkey}`, {replace: true});
+              }, 12500); // 12500 milliseconds = 12.5 seconds
+              
+              return () => clearTimeout(redirectTimer);
+            } else if (propResponse && propResponse.address){
+              const snackaction = (key:any) => (
+                <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponse.address.toBase58()}`} target='_blank'  sx={{color:'white'}}>
+                    {propResponse.proposalAddress.toBase58()}
+                </Button>
+              );
+              enqueueSnackbar('Redirecting in a few seconds to the proposal',{ variant: 'info', action:snackprogress });
+              setCreateDisabled(false);
+            } else{
+              enqueueSnackbar(`An error occured...`,{ variant: 'error' });
+              setCreateDisabled(false);
+            }
           }
         }
       } else{
@@ -635,11 +807,13 @@ export default function GovernanceCreateProposalView(props: any){
         // get rules wallet:
         console.log("HERE!")
         let rulesWallet = null;
+        let minInstructionHoldUpTime = null;
         {cachedTreasury && cachedTreasury
           .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
           .map((item: any, key: number) => {
             if (nativeWallet === item.vault?.nativeTreasury){
               rulesWallet = item.vault.pubkey;
+              minInstructionHoldUpTime = item.vault.governance.account.config.minInstructionHoldUpTime;
               //console.log("Selected Item: "+JSON.stringify(item));
 
               if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff')
@@ -650,8 +824,9 @@ export default function GovernanceCreateProposalView(props: any){
         )}
 
         // use RPC here to get teh rules wallet details
-        
+        //console.log("line 707 get minInstructionHoldUpTime: ", minInstructionHoldUpTime);
         setGovernanceRulesWallet(rulesWallet);
+        setGovernanceRulesWalletMinInstructHoldUpTime(minInstructionHoldUpTime);
         
         getGovernanceRules(rulesWallet);
         setProposalType(1);
@@ -1374,7 +1549,7 @@ export default function GovernanceCreateProposalView(props: any){
 
                             {proposalType === 6 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <TokenTransferV0View governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} setInstructionsObject={setInstructionsObject} />
+                                <TokenTransferV0View governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} governanceWalletMinInstructHoldUpTime={governanceWalletMinInstructHoldUpTime} setInstructionsObject={setInstructionsObject} setInstructionsDataWithHoldUpTime={setInstructionsDataWithHoldUpTime}/>
                               </FormControl>
                             }
                             
