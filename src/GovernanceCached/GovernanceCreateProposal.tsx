@@ -468,7 +468,7 @@ export default function GovernanceCreateProposalView(props: any){
             
           console.log("propAddress: "+JSON.stringify(propResponse));
           
-          if (propResponse && propResponse?.address && propResponse?.response){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
+          if (propResponse && propResponse?.address && (propResponse?.response || propResponse?.transactionSuccess)){ // only move this route if we have a propTx returned (otherwise we are running in the function above)
             
             const snackaction = (key:any) => (
               <Button href={`https://governance.so/proposal/${cachedRealm.pubkey}/${propResponse.address.toBase58()}`} target='_blank'  sx={{color:'white'}}>
