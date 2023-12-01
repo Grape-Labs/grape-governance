@@ -17,7 +17,7 @@ import remarkGfm from 'remark-gfm';
 import base58 from 'bs58'
 import Confetti from 'react-dom-confetti';
 import { useSnackbar } from 'notistack';
-import { createProposalInstructions } from './Proposals/createDAOProposalInstructions';
+import { createProposalInstructionsLegacy } from './Proposals/createProposalInstructionsLegacy';
 import { 
   getRealm, 
   createInstructionData, 
@@ -274,7 +274,7 @@ export default function GovernanceCreateProposalView(props: any){
       }
 
       if (publicKey){
-        const propSimulation = await createProposalInstructions(
+        const propSimulation = await createProposalInstructionsLegacy(
           programId,
           new PublicKey(cachedRealm.pubkey),
           new PublicKey(governanceRulesWallet),
@@ -369,7 +369,7 @@ export default function GovernanceCreateProposalView(props: any){
         );
         const cnfrmkey = enqueueSnackbar('Creating Governance Proposal',{ variant: 'info', action:snackprogress, persist: true });
         
-        const propResponse = await createProposalInstructions(
+        const propResponse = await createProposalInstructionsLegacy(
           programId,
           new PublicKey(cachedRealm.pubkey),
           new PublicKey(governanceRulesWallet),

@@ -33,7 +33,7 @@ import { sendTransactions, prepareTransactions, SequenceType, WalletSigner, getW
 
 import { AnyMxRecord } from 'dns';
 
-export async function createProposalInstructions(
+export async function createProposalInstructionsLegacy(
     token_realm_program_id: PublicKey, 
     realmPk: PublicKey,
     governancePk: PublicKey,
