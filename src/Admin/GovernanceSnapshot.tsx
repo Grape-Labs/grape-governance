@@ -1256,9 +1256,9 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         const commMint = grealm.account?.communityMint;
         var governanceEmitted = [];
-        let getAwards = true; // adjust if we want to get rewards for the following emitting pubkeys
-        if (!getAwards || hoursDiff > (24*30)){ // refresh every 30 days
-        //    getAwards = true;
+        let getAwards = false; // adjust if we want to get rewards for the following emitting pubkeys
+        if (!getAwards || hoursDiff > (24*15)){ // refresh every 30 days
+            getAwards = true;
         }
         
         let linkedWallets = {
@@ -1301,6 +1301,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 ];
 
                 for (var rewardsWallet of voterRewardsEmitWallets){
+                    console.log("Checking Rewards Wallet: "+rewardsWallet+ " with "+commMint.toBase58());
                     const emitted_governance = await getTokenTransfers(rewardsWallet, commMint.toBase58(), null, excludeAddress);
                     if (emitted_governance && emitted_governance.length > 0){
                         //console.log("emitted: "+emitted_governance);
@@ -1426,10 +1427,12 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                                         // check if from grant governance power...
                                         if (tTransfer.toUserAccount === address) { // i.e. 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip'
                                             // check any of the accountData items if it matches (grant will have no balance change)
-                                            for (let adata of emitItem.accountData){
-                                                if (adata.account === tokenOwnerRecord.toBase58() &&
-                                                    adata.nativeBalanceChange === 0)
-                                                    awardWallet = true;
+                                            if (emitItem.accountData){
+                                                for (let adata of emitItem.accountData){
+                                                    if (adata.account === tokenOwnerRecord.toBase58() &&
+                                                        adata.nativeBalanceChange === 0)
+                                                        awardWallet = true;
+                                                }
                                             }
                                         }
 
