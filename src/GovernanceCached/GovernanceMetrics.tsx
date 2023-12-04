@@ -985,7 +985,6 @@ function RenderVoterRecordTable(props:any) {
                     if (governanceStartDate < governanceEndDate){
                         skipProp = true;
                         // check if proposal draft date is within start/end
-                        //console.log("draft at "+Number(item.account?.draftAt))
                         if ((Number(item.account?.draftAt) >= governanceStartDate) && 
                             (Number(item.account?.draftAt) <= governanceEndDate)){
                                 console.log("Skipping Prop "+item.pubkey)
@@ -1488,10 +1487,9 @@ function RenderVoterRecordTable(props:any) {
         }catch(e){
             console.log("ERR: "+e);
         }
-        
         endTimer();
         setLoadingTable(false);
-        setLoading(true);
+        setLoading(false);
     }
 
     React.useEffect(() => { 
