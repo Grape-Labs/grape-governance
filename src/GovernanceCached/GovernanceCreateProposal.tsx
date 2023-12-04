@@ -19,6 +19,9 @@ import Confetti from 'react-dom-confetti';
 import { useSnackbar } from 'notistack';
 import { createProposalInstructionsLegacy } from './Proposals/createProposalInstructionsLegacy';
 import { createProposalInstructionsV0, InstructionDataWithHoldUpTime } from './Proposals/createProposalInstructionsV0';
+import { CopyToClipboard } from 'react-copy-to-clipboard';
+
+import ExplorerView from '../utils/grapeTools/Explorer';
 
 import { 
   getRealm, 
@@ -56,6 +59,7 @@ import {
   Divider,
 } from '@mui/material/';
 
+import FileCopyIcon from '@mui/icons-material/FileCopy';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import GavelIcon from '@mui/icons-material/Gavel';
@@ -99,6 +103,7 @@ import {
 } from '../utils/grapeTools/constants';
 
 import { 
+  shortenString,
   isGated,
   findObjectByGoverningTokenOwner,
   convertSecondsToLegibleFormat,
@@ -193,6 +198,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
     const [cachedGovernance, setCachedGovernance] = React.useState(null);
+    const [tokenInfo, setTokenInfo] = React.useState(null);
     const [cachedRealm, setCachedRealm] = React.useState(null);
     const [cachedTreasury, setCachedTreasury] = React.useState(null);
     const [startTime, setStartTime] = React.useState(null);
@@ -223,8 +229,12 @@ export default function GovernanceCreateProposalView(props: any){
     const [proposalInstructions, setProposalInstructions] = React.useState(null);
     const [verified, setVerified] = React.useState(false);
     const [isProposer, setIsProposer] = React.useState(false);
-
+    const [isCopied, setIsCopied] = React.useState(false);
     const anchorWallet = useAnchorWallet();
+
+    const handleCopy = () => {
+      setIsCopied(true);
+    };
 
     /*
     function getTokenTypeString(tokenTypeValue: any) {
@@ -692,7 +702,6 @@ export default function GovernanceCreateProposalView(props: any){
         setIsCouncilVote(false);
         //setIsCouncilVote(false);
         // get rules wallet:
-        console.log("HERE!")
         let rulesWallet = null;
         let minInstructionHoldUpTime = null;
         {cachedTreasury && cachedTreasury
@@ -719,6 +728,8 @@ export default function GovernanceCreateProposalView(props: any){
         setProposalType(1);
 
       };
+
+      
     
       return (
         <>
@@ -760,7 +771,7 @@ export default function GovernanceCreateProposalView(props: any){
                                   <Grid item xs sx={{textAlign:'right'}}>
                                     <Typography variant="caption">
                                       {(item.vault?.nativeTreasury?.solBalance/(10 ** 9)).toFixed(2)} SOL -&nbsp;
-                                      {item.vault?.nativeTreasury?.tokens?.value.map((item, index) => (
+                                      {item.vault?.nativeTreasury?.tokens?.value.map((item:any, index:number) => (
                                         <>
                                         {(item.account.data.parsed.info.mint === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" &&
                                           ((item.account.data.parsed.info.tokenAmount.amount / 10 ** item.account.data.parsed.info.tokenAmount.decimals) > 0.9)) &&
@@ -814,7 +825,61 @@ export default function GovernanceCreateProposalView(props: any){
 
                                         <Tooltip title={
                                           <>
-                                            
+                                            {item.vault?.nativeTreasury?.vault?.pubkey &&
+                                              <>Native Wallet: 
+                                              <CopyToClipboard text={item.vault.nativeTreasury.vault.pubkey} onCopy={handleCopy}>
+                                                  <Button
+                                                    variant="text"
+                                                    color="inherit"
+                                                    sx={{ 
+                                                      ml:1,
+                                                      fontSize:'10px',
+                                                      borderRadius:'17px',
+                                                      textTransform:'none',
+                                                      '&:hover .MuiSvgIcon-root': {
+                                                        opacity: 1,
+                                                      },
+                                                    }}
+                                                    startIcon={
+                                                      <FileCopyIcon sx={{
+                                                        color:'rgba(255,255,255,0.25)',
+                                                        opacity: 0}} />
+                                                    }
+                                                  >
+                                                
+                                                  {shortenString(item.vault.nativeTreasury.vault.pubkey,8,8)}
+                                                  </Button>
+                                                </CopyToClipboard>
+                                              </>
+                                            }
+                                            {item.vault.pubkey &&
+                                              <><br/>Rules: 
+                                                <CopyToClipboard text={item.vault.pubkey} onCopy={handleCopy}>
+                                                  <Button
+                                                    variant="text"
+                                                    color="inherit"
+                                                    sx={{ 
+                                                      ml:1,
+                                                      fontSize:'10px',
+                                                      borderRadius:'17px',
+                                                      textTransform:'none',
+                                                      '&:hover .MuiSvgIcon-root': {
+                                                        opacity: 1,
+                                                      },
+                                                    }}
+                                                    startIcon={
+                                                      <FileCopyIcon sx={{
+                                                        color:'rgba(255,255,255,0.25)',
+                                                        opacity: 0}} />
+                                                    }
+                                                  >
+                                                
+                                                  {shortenString(item.vault.pubkey,8,8)}
+                                                  </Button>
+                                                </CopyToClipboard>
+                                                {/*<ExplorerView address={item.vault.pubkey} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='10px' />*/}
+                                              </>
+                                            }
                                             {item.vault.governance?.account?.accountType && (() => {
                                               const accountType = item.vault.governance.account.accountType as string;
                                               //console.log("accountType: "+accountType);
@@ -822,7 +887,7 @@ export default function GovernanceCreateProposalView(props: any){
 
                                               if (governanceTypeLabel) {
                                                 return (
-                                                  <>Governance Type: {governanceTypeLabel}</>
+                                                  <><br/>Governance Type: {governanceTypeLabel}</>
                                                 );
                                               } else {
                                                 return (
@@ -842,9 +907,9 @@ export default function GovernanceCreateProposalView(props: any){
                                               
                                               if (numericValue && !isNaN(numericValue)) {
                                                 const u64BigInt = BigInt(numericValue);
-                                                const u64Number = Number(u64BigInt);
+                                                const u64Number = tokenInfo ? Number(u64BigInt) / 10 ** tokenInfo.decimals : Number(u64BigInt);
                                                 return (
-                                                  <><br/>Proposal Minimum (Community): {u64Number}</>
+                                                  <><br/>Proposal Minimum (Community): {u64Number.toLocaleString()}</>
                                                 );
                                               } else {
                                                 return (
@@ -1032,6 +1097,13 @@ export default function GovernanceCreateProposalView(props: any){
         setRealmName(grealm.account.name);
     }
 
+    const getCommunityTokenInfo = async () => {
+      if (cachedRealm){
+        let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(cachedRealm.account.communityMint));
+        setTokenInfo(tokenDetails.value.data.parsed.info);
+      }
+    }
+
     const getCachedGovernanceFromLookup = async () => {
         
         let cached_governance = new Array();
@@ -1152,6 +1224,7 @@ export default function GovernanceCreateProposalView(props: any){
     React.useEffect(() => {
       if (cachedRealm && publicKey){
         setLoading(true);
+        getCommunityTokenInfo();
         checkMemberStatus();
       }
     }, [cachedRealm, publicKey])

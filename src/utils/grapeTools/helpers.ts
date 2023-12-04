@@ -82,6 +82,17 @@ export function timeConvert(n: number, decimals = 0, abbr = false): string {
   return returnString;
 }
 
+export const shortenString = (input: any, startChars = 6, endChars = 6) => {
+  if (input.length <= startChars + endChars) {
+    return input;
+  }
+
+  const start = input.slice(0, startChars);
+  const end = input.slice(-endChars);
+
+  return `${start}...${end}`;
+};
+
 export const getFormattedNumberToLocale = (value: any, digits = 0) => {
   const converted = parseFloat(value.toString());
   const formatted = new Intl.NumberFormat('en-US', {
