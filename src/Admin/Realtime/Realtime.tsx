@@ -1241,6 +1241,14 @@ export function GovernanceRealtimeView(props: any) {
             callGovernanceLookup();
             getGovernanceParameters();
         }
+        
+        const interval = setInterval(() => {
+            getGovernanceParameters();
+          }, 300000); // Call getGovernanceParameters every 5 minutes (300000 milliseconds)
+        
+          return () => {
+            clearInterval(interval); // Clear the interval when the component unmounts to prevent memory leaks
+        };
     }, []);
     
     const startTimer = () => {
