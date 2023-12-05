@@ -655,9 +655,18 @@ function TablePaginationActions(props) {
                                                         
                                                     </Grid>
                                                 </Grid>
-                                                <Divider orientation="vertical" flexItem>
+                                                
+                                                <Divider orientation="vertical" flexItem
+                                                    sx={{
+                                                    // Responsive visibility for mobile devices
+                                                    '@media (max-width: 600px)': {
+                                                        display: 'none',
+                                                    },
+                                                    }}
+                                                >
                                                     
                                                 </Divider>
+                                                
                                                 <Grid item xs
                                                     sx={{textAlign:'right'}}
                                                 >
