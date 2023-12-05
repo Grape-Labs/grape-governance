@@ -19,12 +19,14 @@ const client = new ApolloClient({
     cache: new InMemoryCache(),
 });
 
-function GET_QUERY_PROPOSALS(governanceArray?:string[]){
+function GET_QUERY_PROPOSALS(governanceArray?:string[], realmOwner?:string){
+
+    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
     if (governanceArray){
         return gql`
         query MyQuery {
-            GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_ProposalV2(offset: 0, where: {governance: {_in: [${governanceArray.map(pubkey => `"${pubkey}"`).join(', ')}]}}) {
+            ${programId}_ProposalV2(offset: 0, where: {governance: {_in: [${governanceArray.map(pubkey => `"${pubkey}"`).join(', ')}]}}) {
             pubkey
             abstainVoteWeight
             closedAt
@@ -54,7 +56,7 @@ function GET_QUERY_PROPOSALS(governanceArray?:string[]){
             votingAtSlot
             votingCompletedAt
             }
-            GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_ProposalV1(offset: 0, where: {governance: {_in: [${governanceArray.map(pubkey => `"${pubkey}"`).join(', ')}]}}) {
+            ${programId}_ProposalV1(offset: 0, where: {governance: {_in: [${governanceArray.map(pubkey => `"${pubkey}"`).join(', ')}]}}) {
             pubkey
             closedAt
             descriptionLink
@@ -86,7 +88,7 @@ function GET_QUERY_PROPOSALS(governanceArray?:string[]){
     } else{
         return gql`
             query MyQuery {
-                GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_ProposalV2(offset: 0) {
+                ${programId}_ProposalV2(offset: 0) {
                     pubkey
                     abstainVoteWeight
                     closedAt
@@ -116,7 +118,7 @@ function GET_QUERY_PROPOSALS(governanceArray?:string[]){
                     votingAtSlot
                     votingCompletedAt
                 }
-                GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw_ProposalV1(offset: 0) {
+                ${programId}_ProposalV1(offset: 0) {
                     pubkey
                     closedAt
                     descriptionLink
@@ -395,7 +397,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
 };
 
 export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any) => {
-    const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance) });
+    const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, realmOwner) });
 
     const allProposals = new Array();
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
@@ -413,7 +415,7 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
         });
         
         allProposals.push({
-            owner: realmOwner ? new PublicKey(realmOwner) : null,
+            owner: programId === 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw' ? new PublicKey(programId) : null,
             pubkey: new PublicKey(account?.pubkey),
             account:{
                 accountType: account.accountType,
@@ -449,7 +451,7 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
 
     data[programId+"_ProposalV1"] && data[programId+"_ProposalV1"].map((account) => {
         allProposals.push({
-            owner: realmOwner ? new PublicKey(realmOwner) : null,
+            owner: programId === 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw' ? new PublicKey(programId) : null,
             pubkey: new PublicKey(account?.pubkey),
             account:{
                 accountType: account.accountType,

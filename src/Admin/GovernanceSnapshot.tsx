@@ -1258,7 +1258,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         var governanceEmitted = [];
         let getAwards = false; // adjust if we want to get rewards for the following emitting pubkeys
         if (!getAwards || hoursDiff > (24*15)){ // refresh every 30 days
-            getAwards = true;
+            //getAwards = true;
         }
         
         let linkedWallets = {
