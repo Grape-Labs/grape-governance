@@ -47,7 +47,7 @@ import { SwitchProps } from '@mui/material/Switch';
 
 import { createSvgIcon } from '@mui/material/utils';
 
-import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
+import { gistApi, resolveProposalDescription } from '../../utils/grapeTools/github';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
@@ -67,18 +67,18 @@ const CustomSearchIcon = createSvgIcon(
     'Search'
 )
 
-import ExplorerView from '../utils/grapeTools/Explorer';
+import ExplorerView from '../../utils/grapeTools/Explorer';
 
 import { useSnackbar } from 'notistack';
 
-import GovernanceNavigation from './GovernanceNavigation'; 
-import GovernancePower from './GovernancePower';
+import GovernanceNavigation from '../../GovernanceCached/GovernanceNavigation'; 
+import GovernancePower from '../../GovernanceCached/GovernancePower';
 import {
     fetchGovernanceLookupFile,
     getFileFromLookup
-} from './CachedStorageHelpers'; 
-import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
-import { GovernanceProposalDialog } from './GovernanceProposalDialog';
+} from '../../GovernanceCached/CachedStorageHelpers'; 
+import { createCastVoteTransaction } from '../../utils/governanceTools/components/instructions/createVote';
+import { GovernanceProposalDialog } from '../../GovernanceCached/GovernanceProposalDialog';
 import moment from 'moment';
 
 import GitHubIcon from '@mui/icons-material/GitHub';
@@ -115,7 +115,7 @@ import {
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI,
     FRICTIONLESS_BG,
-} from '../utils/grapeTools/constants';
+} from '../../utils/grapeTools/constants';
 
 import { 
     getGovernance,
@@ -130,10 +130,10 @@ import {
 import { 
     getAllProposalsIndexed,
     getAllGovernancesIndexed
-} from './api/queries';
+} from '../../GovernanceCached/api/queries';
 
-import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
-import ProgressBar from '../components/progress-bar/progress-bar';
+import { formatAmount, getFormattedNumberToLocale } from '../../utils/grapeTools/helpers'
+import ProgressBar from '../../components/progress-bar/progress-bar';
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
 const transformImageUri = (uri) => {
@@ -494,7 +494,8 @@ function TablePaginationActions(props) {
 
         const resolveDescription = async(descriptionStr: string) => {
             try{
-                const url = new URL(description);
+                const cleanString = description.replace(/(\s+)(https?:\/\/[a-zA-Z0-9\.\/]+)/g, '$2');
+                const url = new URL(cleanString);
                 const pathname = url.pathname;
                 const parts = pathname.split('/');
                 //console.log("pathname: "+pathname)
@@ -600,7 +601,6 @@ function TablePaginationActions(props) {
                                                     <Grid item xs={12}
                                                         sx={{mb:1}}
                                                     >
-                                                        
                                                             
                                                             {gist ?
                                                                 <Box sx={{ alignItems: 'left', textAlign: 'left'}}>

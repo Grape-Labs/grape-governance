@@ -10,7 +10,7 @@ import OathTipLinkLogin from "./GovernanceCached/TipLinkGovernance";
 import FrictionlessView from "./Frictionless/FrictionlessView";
 import { MyGovernanceView } from "./GovernanceCached/MyGovernance";
 import { GovernanceCachedView } from "./GovernanceCached/Governance";
-import { GovernanceRealtimeView } from "./GovernanceCached/GovernanceRealtime";
+import { GovernanceRealtimeView } from "./Admin/Realtime/Realtime";
 import { PremiumView } from "./GovernanceCached/Premium";
 import { GovernanceMetricsView } from "./GovernanceCached/GovernanceMetrics";
 import { GovernanceMembersView } from "./GovernanceCached/GovernanceMembers";
@@ -216,10 +216,11 @@ function DashboardContent() {
                               <CssBaseline />
                               
                               <Routes>
-
-                                <Route path="beta/*" element={<GovernanceRealtimeView />} >
+                                
+                                <Route path="/*" element={<GovernanceRealtimeView />} >
                                     <Route path=":handlekey" element={<GovernanceRealtimeView />} />
                                 </Route>
+                                
                               </Routes>
                             
                           </WalletProvider>
