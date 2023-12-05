@@ -277,7 +277,7 @@ export default function TokenTransferView(props: any) {
                     );
                 }
                 */
-                setPayerInstructions(pTransaction);
+                //setPayerInstructions(pTransaction);
                 setTransactionInstructions(transaction);
                 // Estimate the transaction fee
                 

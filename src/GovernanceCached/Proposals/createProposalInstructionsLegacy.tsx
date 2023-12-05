@@ -237,7 +237,8 @@ export async function createProposalInstructionsLegacy(
 
     if (authTransaction && authTransaction.instructions.length > 0){
       for (var instruction of authTransaction.instructions){ 
-        instructions.push(instruction)
+        //prerequisiteInstructions.push(instruction);
+        //instructions.push(instruction)
         //instructions.unshift(instruction);
       }
     }

@@ -600,13 +600,11 @@ function TablePaginationActions(props) {
                                                     <Grid item xs={12}
                                                         sx={{mb:1}}
                                                     >
-                                                        <Typography variant="body1" 
-                                                            color='gray' 
-                                                            sx={{ display: 'flex', alignItems: 'center' }}>
+                                                        
                                                             
                                                             {gist ?
                                                                 <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
-                                                                    <div
+                                                                    <Grid
                                                                         style={{
                                                                             border: 'none',
                                                                             padding:4,
@@ -628,7 +626,7 @@ function TablePaginationActions(props) {
                                                                                 }}
                                                                             />
                                                                         </>
-                                                                    </div>
+                                                                    </Grid>
                                                                     <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
                                                                         <Button
                                                                             color='inherit'
@@ -644,13 +642,16 @@ function TablePaginationActions(props) {
                                                                 <>
                                                                     {description &&
                                                                         <>
-                                                                            {description}
+                                                                            <Typography variant="body1" 
+                                                                                color='gray' 
+                                                                                sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                                {description}
+                                                                            </Typography>
                                                                         </>
                                                                     }
                                                                 </>
                                                             }
                                                         
-                                                        </Typography>
                                                         
                                                     </Grid>
                                                 </Grid>
