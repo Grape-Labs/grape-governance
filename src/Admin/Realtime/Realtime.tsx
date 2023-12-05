@@ -831,7 +831,7 @@ function TablePaginationActions(props) {
                     sx={{ 
                         ml:1,
                         mr:1,
-                        mb:2 
+                        mb:2
                     }}>
                     <Grid container direction="row">
                         <Grid item sm={8} xs={12}
@@ -1278,6 +1278,10 @@ export function GovernanceRealtimeView(props: any) {
                                 //backgroundImage: `url(${FRICTIONLESS_BG})`,
                                 backgroundRepeat: "repeat",
                                 backgroundSize: "cover",
+                                // Responsive padding for mobile devices
+                                '@media (max-width: 600px)': {
+                                    p: 0,
+                                },
                             }} 
                         > 
                         <Typography variant="caption" sx={{color:'white'}}>Loading Governance Realtime Proposals</Typography>
@@ -1307,6 +1311,10 @@ export function GovernanceRealtimeView(props: any) {
                                 //backgroundImage: `url(${FRICTIONLESS_BG})`,
                                 backgroundRepeat: "repeat",
                                 backgroundSize: "cover",
+                                // Responsive padding for mobile devices
+                                '@media (max-width: 600px)': {
+                                    p: 0,
+                                },
                             }} 
                         > 
                         
@@ -1316,19 +1324,33 @@ export function GovernanceRealtimeView(props: any) {
                                     background: `#19141F`,
                                     borderRadius: '17px',
                                     m:2,
-                                    p: 4}}
+                                    p: 4,
+                                    // Responsive padding for mobile devices
+                                    '@media (max-width: 600px)': {
+                                        m: 0,
+                                        p: 0,
+                                    },
+                                }}
                                 > 
 
-                            <Grid container direction="row" sx={{mb:2}}>
+                            <Grid container direction="row" sx={{
+                                ml:1,
+                                mr:1,
+                                mb:2,
+                                }}>
                                 <Grid item xs>
                                     <Typography variant="h4" sx={{ textAlign: "left" }}>Realtime Proposals <BlinkingDot /></Typography>
                                 </Grid>
-                                <Grid item  alignContent={"right"}>
+                                <Grid item alignContent={"right"}>
                                     <Typography variant="body2" 
                                         sx={{ 
                                             textAlign:"left",
                                             fontSize:"10px",
-                                            color:"gray" }}>
+                                            color:"gray",
+                                            // Responsive padding for mobile devices
+                                            '@media (max-width: 600px)': {
+                                                mr:1.5,
+                                            }, }}>
                                                 Powered by<br/>GRAPE X SOLANA</Typography>
 
                                 </Grid>
@@ -1347,7 +1369,12 @@ export function GovernanceRealtimeView(props: any) {
                                     <Grid
                                         sx={{
                                             m: 0,
-                                            textAlign:'left'
+                                            textAlign:'left',
+                                            // Responsive padding for mobile devices
+                                            '@media (max-width: 600px)': {
+                                                ml:1,
+                                                mb:1,
+                                            },
                                         }}
                                     >
                                         <Typography 
