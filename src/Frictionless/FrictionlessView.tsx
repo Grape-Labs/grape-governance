@@ -31,6 +31,7 @@ import {
   FormControl,
   InputLabel,
   CircularProgress,
+  Avatar,
 } from '@mui/material/';
 
 import { 
@@ -67,10 +68,13 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 
 import { parseMintNaturalAmountFromDecimalAsBN } from '../utils/grapeTools/helpers';
 
+
+
 import { 
   RPC_CONNECTION,
   FRICTIONLESS_WALLET,
   FRICTIONLESS_BG,
+  FRICTIONLESS_LOGO,
 } from '../utils/grapeTools/constants';
 
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
@@ -814,7 +818,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                 borderRadius: '17px',
                 mt:2,
                 p: 2,
-                pt: 4,
+                pt: 1,
                 pb: 4,
                 alignItems: 'center', textAlign: 'center',
                 backgroundImage: `url(${FRICTIONLESS_BG})`,
@@ -832,10 +836,9 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
               </div>
             </>
           
-          
           <Typography variant="h1" sx={{ 
             textAlign: "center",
-            mb:2,
+            mb:4,
             background: '-webkit-linear-gradient(90deg,rgba(255,255,255,0.75),rgba(0,0,0,0.1))',
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
@@ -845,7 +848,18 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
             WebkitTextStroke: '1px var(--color-rep-outline)',
             textStroke: '1px var(--color-rep-outline)',
             color: 'rgba(0,0,0,0)'*/
-            }}>Frictionless</Typography>
+            }}>
+
+              <img
+                srcSet={`${FRICTIONLESS_LOGO}?w=200&fit=crop&auto=format&dpr=2 2x`}
+                src={`${FRICTIONLESS_LOGO}?w=200&fit=crop&auto=format`}
+                alt={'Frictionless'}
+                loading="lazy"
+              />
+          
+          </Typography>
+
+
           <Divider>
             <Chip label="Frictionless x Solana" />
           </Divider>

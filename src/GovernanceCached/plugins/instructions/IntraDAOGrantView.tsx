@@ -320,20 +320,22 @@ export default function IntraDAOGrantView(props: any) {
                     console.log("ERROR: Something went wrong");
                 } else{
                     if (instructions){
-                        /*
+                        
                         for (var instruction of instructions){
-                            for (var key of instruction.keys){
-                                if (key.pubkey.toBase58() === destPublicKey.toBase58()){
-                                    key.isSigner = false;
+                            for (var key of instruction.keys){ // force remove realmConfig which is set to writable by default
+                                if (key.pubkey.toBase58() === "CH3w5UZF4TLvsvB6ARHg12SKCpkZfsDoR1Mh6HPfp5Qj"){
+                                    key.isWritable = false;
                                 }
                             }
-                        }*/
+                        }
 
                         console.log("Adding IX: "+JSON.stringify(instructions));
                         transaction.add(...instructions);
                     }
                 }
             }
+
+            
 
             setTransactionInstructions(transaction);
             return transaction;

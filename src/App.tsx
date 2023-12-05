@@ -188,7 +188,6 @@ function DashboardContent() {
                         <ConnectionProvider endpoint={endpoint}>
                             <WalletProvider wallets={wallets} autoConnect>
                             
-                            
                               <CssBaseline />
                               
                               <Routes>
@@ -216,7 +215,7 @@ function DashboardContent() {
                               <CssBaseline />
                               
                               <Routes>
-                                
+
                                 <Route path="/*" element={<GovernanceRealtimeView />} >
                                     <Route path=":handlekey" element={<GovernanceRealtimeView />} />
                                 </Route>

@@ -2,6 +2,8 @@ import { Connection } from '@solana/web3.js';
 import STATIC_LOGO from '../../public/grape_logo.svg';
 import STATIC_CREATOR_LOGO from '../../public/Element_46x.png';
 import FRICTIONLESS_ASSET_1 from '../../public/isolated_graphic_frictionless.jpeg';
+import FRICTIONLESS_LOGO_ASSET from '../../public/frictionless_logo.png';
+export const FRICTIONLESS_LOGO = FRICTIONLESS_LOGO_ASSET;
 export const FRICTIONLESS_BG = FRICTIONLESS_ASSET_1;
 export const APP_LOGO = STATIC_LOGO;
 export const CREATOR_LOGO = STATIC_CREATOR_LOGO;
