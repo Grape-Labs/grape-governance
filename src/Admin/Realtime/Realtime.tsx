@@ -1172,41 +1172,39 @@ export function GovernanceRealtimeView(props: any) {
 
                     //console.log("ggov: "+JSON.stringify(ggov));
                     //console.log("proposalCount: "+grealm?.account?.proposalCount);
+                    const gprops = await getAllProposalsIndexed(null, null, null); // default instance
+                    // fetch also custom programs instances
+                    const mango = await getAllProposalsIndexed(null, "Mango", null); // mango
+                    const marinade = await getAllProposalsIndexed(null, "Marinade_DAO", null); 
+                    const pyth = await getAllProposalsIndexed(null, "Pyth_Governance", null); 
+                    const jet = await getAllProposalsIndexed(null, "Jet_Custody", null); 
+                    const psy = await getAllProposalsIndexed(null, "Psy_Finance", null);
+                    const monke = await getAllProposalsIndexed(null, "MonkeDAO", null);
+                    const helium = await getAllProposalsIndexed(null, "Helium", null);
+                    
+                    gprops.push(...mango, ...marinade, ...pyth, ...jet, ...psy, ...monke, ...helium);
 
-                        const gprops = await getAllProposalsIndexed(null, null, null); // default instance
-                        // fetch also custom programs instances
-                        const mango = await getAllProposalsIndexed(null, "Mango", null); // mango
-                        const marinade = await getAllProposalsIndexed(null, "Marinade_DAO", null); 
-                        const pyth = await getAllProposalsIndexed(null, "Pyth_Governance", null); 
-                        const jet = await getAllProposalsIndexed(null, "Jet_Custody", null); 
-                        const psy = await getAllProposalsIndexed(null, "Psy_Finance", null);
-                        const monke = await getAllProposalsIndexed(null, "MonkeDAO", null);
-                        const helium = await getAllProposalsIndexed(null, "Helium", null);
-                        
-                        gprops.push(...mango, ...marinade, ...pyth, ...jet, ...psy, ...monke, ...helium);
-
-                        //console.log("Indexed Proposals: "+JSON.stringify(gprops));
-                        //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
-                        // with the results compare with cached_governance
-                        //console.log("All Proposals: "+JSON.stringify(gpropsRpc))
-                        const rpcprops = new Array();
-                        for (const props of gprops){
-                            if (props && props.length > 0){
-                                for (const prop of props){
-                                    if (prop){
-                                        rpcprops.push(prop);
-                                    }
+                    //console.log("Indexed Proposals: "+JSON.stringify(gprops));
+                    //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
+                    // with the results compare with cached_governance
+                    //console.log("All Proposals: "+JSON.stringify(gpropsRpc))
+                    const rpcprops = new Array();
+                    for (const props of gprops){
+                        if (props && props.length > 0){
+                            for (const prop of props){
+                                if (prop){
+                                    rpcprops.push(prop);
                                 }
-                            } else{
-                                rpcprops.push(props);
                             }
+                        } else{
+                            rpcprops.push(props);
                         }
-                        const sortedRPCResults = rpcprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
+                    }
+                    const sortedRPCResults = rpcprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
                     //console.log("prop: "+JSON.stringify(sortedRPCResults[0]))
                     setAllProposals(sortedRPCResults);
                     setProposals(sortedRPCResults);
-
-                
+                    
             }catch(e){console.log("ERR: "+e)}
         }
         setLoading(false);
