@@ -472,7 +472,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
 export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, filterProposal?:any) => {
 
     let proposal = null;
-    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk);
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk).owner;
     
     console.log("filterGovernance: "+filterGovernance);
 
@@ -502,8 +502,10 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
 
     const allProposals = new Array();
 
-    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk);
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk).owner;
     
+    //console.log("programId: "+JSON.stringify(programId));
+
     data[programId+"_ProposalV2"] && data[programId+"_ProposalV2"].map((account) => {
         const options = account?.options?.map && account.options.map((option) => {
             return {
