@@ -20,6 +20,7 @@ import {
     InstructionData  } from '@solana/spl-governance';
 import { 
         getRealmIndexed,
+        getProposalIndexed,
         getAllProposalsIndexed,
         getAllGovernancesIndexed,
         getAllTokenOwnerRecordsIndexed,
@@ -648,8 +649,12 @@ export function GovernanceProposalV2View(props: any){
         }
 
         if (!vresults){
-
             const gp = await getProposal(RPC_CONNECTION, thisitem.pubkey);
+            /*
+            const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, realmOwner);
+            const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
+            const gp = await getProposalIndexed(governanceRulesStrArr, realmOwner, governanceAddress, thisitem.pubkey.toBase58());
+            */
             if (gp){
                 vresults = JSON.parse(JSON.stringify(gp));
             }
@@ -930,10 +935,37 @@ export function GovernanceProposalV2View(props: any){
                         }
 
                         if (ataArray && ataArray.length <= 100 ){ // to fix add support for over 100 records for gma
+
                             const owners = await connection.getMultipleParsedAccounts(ataArray);
                             setInstructionOwnerRecord(owners.value);
                             setInstructionOwnerRecordATA(ataArray);
                         }
+
+                        /* IMPORTANT Move to this for better efficiency
+                        const chunkSize = 100;
+                        const holderArr = new Array();
+                        // Loop through the array in chunks
+                        for (let i = 0; i < ataArray.length; i += chunkSize) {
+                            // Slice the array to get a chunk of 100 items
+                            const chunk = ataArray.slice(i, i + chunkSize);
+
+                            // Fetch parsed account information for the current chunk
+                            const accountInfo = await connection.getMultipleParsedAccounts(chunk);
+                            if (accountInfo){
+                                // Extract relevant data from the account information and parse it to ensure deep cloning
+                                const holders = JSON.parse(JSON.stringify(accountInfo)).value.map(
+                                (data:any, key:number) => {
+                                    // Map the account data to a new format, extracting address and converting balance
+                                    return {data};
+                                }
+                                );
+
+                                holderArr.push(...holders);
+                                // Process the fetched information as needed
+                                console.log(`Processed ${holders.length} accounts in chunk ${i / chunkSize + 1}`);
+                            }
+                        }
+                        */
                         
                     }
                     
@@ -977,7 +1009,7 @@ export function GovernanceProposalV2View(props: any){
                             castedNo += (Number(item.account?.voterWeight));
                         }
                     } else{
-                        if (item.account.voteWeight.yes && item.account.voteWeight.yes > 0){
+                        if (item.account?.voteWeight?.yes && item.account.voteWeight.yes > 0){
                             uYes++;
                             voterVotes = (Number(item.account?.voteWeight?.yes));
                             castedYes += (Number(item.account?.voteWeight?.yes));
@@ -1387,27 +1419,36 @@ export function GovernanceProposalV2View(props: any){
         }
         var grealm = null;
         var realmPk = null;
-
-        if (!thisitem && governanceLookup){
-            console.log("Getting proposal via RPC");
-            const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
-            setThisitem(prop);
-        }
+        var realmOwner = null;
 
         if (!realm){
             grealm = await getRealmIndexed(governanceAddress);
-            ////if (!grealm)
+            //if (!grealm)
             //    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
 
             //grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress));
             realmPk = new PublicKey(grealm.pubkey);
-            
+            realmOwner = grealm.owner;
             setRealm(grealm);
             setRealmName(grealm?.account?.name);
         } else{
             setRealmName(realm.account?.name);
+            realmOwner = realm.owner.toBase58();
             realmPk = new PublicKey(realm.pubkey);
         }
+
+        if (!thisitem && governanceLookup){
+            console.log("Getting proposal via RPC");
+            //const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
+            const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, realmOwner);
+            const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
+            console.log("here...")
+            const prop = await getProposalIndexed(governanceRulesStrArr, realmOwner, governanceAddress, proposalPk);
+            setThisitem(prop);
+        }
+
+
+
         if (!memberMap){
             let rawTokenOwnerRecords = null;
             let indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realmPk).toBase58());

@@ -401,12 +401,24 @@ export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any,
 
     let proposal = null;
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    
+    console.log("filterGovernance: "+filterGovernance);
 
+    const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, realmOwner) });
+    
+    const allProposals = await getAllProposalsIndexed (filterGovernance, realmOwner, realmPk);
+
+    if (allProposals){
+        for (var item of allProposals){
+            if (item.pubkey.toBase58() === filterProposal){
+                proposal = item;
+            }
+        }
+    }
+    
     if (!proposal){ // fallback to RPC call is governance not found in index
         const prop = await getProposal(RPC_CONNECTION, new PublicKey(filterProposal));
         return prop;
-        //for (let item of prop)
-        //    proposal.push(item);
     }
 
     //console.log("allProposals: "+JSON.stringify(allProposals))
