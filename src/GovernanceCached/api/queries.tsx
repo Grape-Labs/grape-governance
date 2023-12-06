@@ -50,8 +50,14 @@ const govOwners = [
 
 function findGovOwnerByDao(dao) {
     const matchingGovOwner = govOwners.find((govOwner) => govOwner.dao === dao);
-    console.log("found: "+JSON.stringify(matchingGovOwner));
-    return matchingGovOwner;
+    if (!matchingGovOwner)
+        return {
+            owner: 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw'
+        }
+    else
+        return matchingGovOwner;
+    //console.log("found: "+JSON.stringify(matchingGovOwner));
+    
   }
 
 /*
@@ -406,8 +412,7 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
 
 export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwner?:any) => {
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-
-
+    
     if (filterRealm){
         
         const { data } = await client.query({ query: GET_QUERY_MEMBERS(filterRealm) });
@@ -432,7 +437,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
                 }
             })
         });
-        
+
         data[programId+"_TokenOwnerRecordV1"] && data[programId+"_TokenOwnerRecordV1"].map((item) => {
             allResults.push({
                 //owner: new PublicKey(item.owner),
@@ -467,8 +472,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
 export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, filterProposal?:any) => {
 
     let proposal = null;
-    const programId = realmOwner ? realmOwner : 
-        findGovOwnerByDao(realmPk) ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk);
     
     console.log("filterGovernance: "+filterGovernance);
 
@@ -498,8 +502,7 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
 
     const allProposals = new Array();
 
-    const programId = realmOwner ? realmOwner : 
-        findGovOwnerByDao(realmPk) ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk);
     
     data[programId+"_ProposalV2"] && data[programId+"_ProposalV2"].map((account) => {
         const options = account?.options?.map && account.options.map((option) => {
