@@ -15,7 +15,7 @@ export const HELLO_MOON_BEARER = process.env.REACT_APP_API_HELLOMOON_API_KEY;
 export const HELLO_MOON_ENDPOINT = HELLO_MOON_BEARER ? `https://rpc.hellomoon.io/${HELLO_MOON_BEARER}` : `https://api.mainnet-beta.solana.com`;
 export const SHYFT_KEY = process.env.REACT_APP_API_SHYFT_KEY;
 export const SHYFT_RPC_ENDPOINT = SHYFT_KEY ? `https://rpc.shyft.to?api_key=${SHYFT_KEY}` : `https://api.mainnet-beta.solana.com`;
-export const RPC_ENDPOINT = SHYFT_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
+export const RPC_ENDPOINT = QUICKNODE_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
 //export const RPC_LABEL = QUICKNODE_RPC_ENDPOINT ? 'QuickNode' : 'Solana Mainnet'; 
 export const WS_ENDPOINT = process.env?.REACT_APP_API_QUICKNODE_RPC_ENDPOINT ? process.env.REACT_APP_API_QUICKNODE_RPC_ENDPOINT.replace('https://', 'wss://') : 'wss://api.mainnet-beta.solana.com';
 
