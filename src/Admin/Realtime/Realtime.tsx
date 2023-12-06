@@ -1288,15 +1288,12 @@ export function GovernanceRealtimeView(props: any) {
                                 //backgroundImage: `url(${FRICTIONLESS_BG})`,
                                 backgroundRepeat: "repeat",
                                 backgroundSize: "cover",
-                                // Responsive padding for mobile devices
-                                '@media (max-width: 600px)': {
-                                    p: 0,
-                                },
+                                
                             }} 
                         > 
-                        <Typography variant="caption" sx={{color:'white'}}>Loading Governance Realtime Proposals</Typography>
-                        
-                        <LinearProgress color="inherit" />
+                            <Typography variant="caption" sx={{color:'white'}}>Loading Governance Realtime Proposals</Typography>
+                            
+                            <LinearProgress color="inherit" />
                         
                     </Box>
                 </Grid>
