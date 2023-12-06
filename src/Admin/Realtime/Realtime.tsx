@@ -1183,7 +1183,7 @@ export function GovernanceRealtimeView(props: any) {
                     //console.log("proposalCount: "+grealm?.account?.proposalCount);
                     const gprops = await getAllProposalsIndexed(null, null, null); // default instance
                     // fetch also custom programs instances
-                    /*
+                    
                     const mango = await getAllProposalsIndexed(null, "Mango", null); // mango
                     const marinade = await getAllProposalsIndexed(null, "Marinade_DAO", null); 
                     const pyth = await getAllProposalsIndexed(null, "Pyth_Governance", null); 
@@ -1193,7 +1193,7 @@ export function GovernanceRealtimeView(props: any) {
                     const helium = await getAllProposalsIndexed(null, "Helium", null);
                     
                     gprops.push(...mango, ...marinade, ...pyth, ...jet, ...psy, ...monke, ...helium);
-                    */
+                    
                     //console.log("Indexed Proposals: "+JSON.stringify(gprops));
                     //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
                     // with the results compare with cached_governance
