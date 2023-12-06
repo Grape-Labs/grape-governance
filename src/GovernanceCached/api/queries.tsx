@@ -6,6 +6,7 @@ import {
 
 import { 
     getGovernance,
+    getProposal,
     getRealm, 
     getAllGovernances,
     getAllProposals, 
@@ -395,6 +396,22 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
         
     }
 };
+
+export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, filterProposal?:any) => {
+
+    let proposal = null;
+    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+    if (!proposal){ // fallback to RPC call is governance not found in index
+        const prop = await getProposal(RPC_CONNECTION, new PublicKey(filterProposal));
+        return prop;
+        //for (let item of prop)
+        //    proposal.push(item);
+    }
+
+    //console.log("allProposals: "+JSON.stringify(allProposals))
+    return proposal;
+}
 
 export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any) => {
     const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, realmOwner) });

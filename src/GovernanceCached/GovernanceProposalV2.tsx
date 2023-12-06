@@ -1395,7 +1395,6 @@ export function GovernanceProposalV2View(props: any){
         }
 
         if (!realm){
-
             //grealm = await getRealmIndexed(governanceAddress);
             //if (!grealm)
                 grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
