@@ -51,6 +51,21 @@ const govOwners = [
         name: 'Helium',
         dao: '2VfPJn8ML1hNBnsEBo7SzmG11UJc7gbY8b23A3K8expd'
     },
+    {
+        owner: 'MGovW65tDhMMcpEmsegpsdgvzb6zUwGsNjhXFxRAnjd',
+        name: 'MEAN_DAO',
+        dao: '5o6gEoeJBpuXT1H1ijFTq3KcSGx7ayabdG2hji7cB3FG'
+    },
+    {
+        owner: 'J9uWvULFL47gtCPvgR3oN7W357iehn5WF2Vn9MJvcSxz',
+        name: 'Orca',
+        dao: '66Du7mXgS2KMQBUk6m9h3TszMjqZqdWhsG3Duuf69VNW'
+    },
+    {
+        owner: 'ALLGnZikNaJQeN4KCAbDjZRSzvSefUdeTpk18yfizZvT',
+        name: 'ALLOVR_DAO',
+        dao: 'A7nud4wxpAySc7Ai11vwXtkez79tHvcEvSquFBxw4iDh'
+    },
 ]
 
 function findGovOwnerByDao(dao) {
@@ -79,15 +94,15 @@ function findGovOwnerByDao(dao) {
        'GCockTxUjxuMdojHiABVZ5NKp6At8eTKDiizbPjiCo4m': 'Chicken_Tribe',
        'gUAedF544JeE6NYbQakQvribHykUNgaPJqcgf3UQVnY': 'Ukraine_SOL',
        'Ghope52FuF6HU3AAhJuAAyS2fiqbVhkAotb7YprL5tdS': 'RadRugsDAO',
-       'MGovW65tDhMMcpEmsegpsdgvzb6zUwGsNjhXFxRAnjd': 'MEAN_DAO',
+       'MGovW65tDhMMcpEmsegpsdgvzb6zUwGsNjhXFxRAnjd': 'MEAN_DAO', +
        'A7kmu2kUcnQwAVn8B4znQmGJeUrsJ1WEhYVMtmiBLkEr': 'Solend_DAO',
-       'hgovkRU6Ghe1Qoyb54HdSLdqN7VtxaifBzRmh9jtd3S': 'Helium',
+       'hgovkRU6Ghe1Qoyb54HdSLdqN7VtxaifBzRmh9jtd3S': 'Helium', +
        'GmtpXy362L8cZfkRmTZMYunWVe8TyRjX5B7sodPZ63LJ': 'Metaplex_Found',
        'AVoAYTs36yB5izAaBkxRG67wL1AMwG3vo41hKtUSb8is': 'Serum',
        'GMpXgTSJt2nJ7zjD1RwbT2QyPhKqD2MjAZuEaLsfPYLF': 'Metaplex_Genesis',
-       'J9uWvULFL47gtCPvgR3oN7W357iehn5WF2Vn9MJvcSxz': 'Orca',
+       'J9uWvULFL47gtCPvgR3oN7W357iehn5WF2Vn9MJvcSxz': 'Orca', +
         'pytGY6tWRgGinSCvRLnSv4fHfBTMoiDGiCsesmHWM6U': 'Pyth_Governance', +
-       'ALLGnZikNaJQeN4KCAbDjZRSzvSefUdeTpk18yfizZvT': 'ALLOVR_DAO',
+       'ALLGnZikNaJQeN4KCAbDjZRSzvSefUdeTpk18yfizZvT': 'ALLOVR_DAO',+
 */
 
 
@@ -351,7 +366,7 @@ export const getRealmIndexed = async (filterRealm?:any) => {
                     }
                 })
             });
-            
+
             data[programId+"_RealmV1"] && data[programId+"_RealmV1"].map((item) => {
                 allRealms.push({
                     pubkey: new PublicKey(filterRealm),
