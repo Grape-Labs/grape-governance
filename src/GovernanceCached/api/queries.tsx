@@ -46,6 +46,11 @@ const govOwners = [
         name: 'MonkeDAO',
         dao: 'B1CxhV1khhj7n5mi5hebbivesqH9mvXr5Hfh2nD2UCh6'
     },
+    {
+        owner: 'hgovkRU6Ghe1Qoyb54HdSLdqN7VtxaifBzRmh9jtd3S',
+        name: 'Helium',
+        dao: '2VfPJn8ML1hNBnsEBo7SzmG11UJc7gbY8b23A3K8expd'
+    },
 ]
 
 function findGovOwnerByDao(dao) {
