@@ -15,6 +15,71 @@ import {
     tryGetRealmConfig, 
     getRealmConfig  } from '@solana/spl-governance';
 
+const govOwners = [
+    {
+        owner: 'GovMaiHfpVPw8BAM1mbdzgmSZYDw2tdP32J2fapoQoYs',
+        name: 'Marinade_DAO',
+        dao: '899YG3yk4F66ZgbNWLHriZHTXSKk9e1kvsKEquW7L6Mo'
+    },
+    {
+        owner: 'GqTPL6qRf5aUuqscLh8Rg2HTxPUXfhhAXDptTLhp1t2J',
+        name: 'Mango',
+        dao: 'DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE'
+    },
+    {
+        owner: 'GovHgfDPyQ1GwazJTDY2avSVY8GGcpmCapmmCsymRaGe',
+        name: 'Psy_Finance',
+        dao: 'FiG6YoqWnVzUmxFNukcRVXZC51HvLr6mts8nxcm7ScR8'
+    },
+    {
+        owner: 'JPGov2SBA6f7XSJF5R4Si5jEJekGiyrwP2m7gSEqLUs',
+        name: 'Jet_Custody',
+        dao: 'FbpwgUzRPTneoZHDMNnM1zXb7Jm9iY8MzX2mAM8L6f43'
+    },
+    {
+        owner: 'pytGY6tWRgGinSCvRLnSv4fHfBTMoiDGiCsesmHWM6U',
+        name: 'Pyth_Governance',
+        dao: '4ct8XU5tKbMNRphWy4rePsS9kBqPhDdvZoGpmprPaug4'
+    },
+    {
+        owner: 'GMnke6kxYvqoAXgbFGnu84QzvNHoqqTnijWSXYYTFQbB',
+        name: 'MonkeDAO',
+        dao: 'B1CxhV1khhj7n5mi5hebbivesqH9mvXr5Hfh2nD2UCh6'
+    },
+]
+
+function findGovOwnerByDao(dao) {
+    const matchingGovOwner = govOwners.find((govOwner) => govOwner.dao === dao);
+    console.log("found: "+JSON.stringify(matchingGovOwner));
+    return matchingGovOwner;
+  }
+
+/*
+
+        'GovMaiHfpVPw8BAM1mbdzgmSZYDw2tdP32J2fapoQoYs': 'Marinade_DAO', +
+        'GqTPL6qRf5aUuqscLh8Rg2HTxPUXfhhAXDptTLhp1t2J': 'Mango', + 
+        'AEauWRrpn9Cs6GXujzdp1YhMmv2288kBt3SdEcPYEerr': 'Metaplex_DAO',
+        'JPGov2SBA6f7XSJF5R4Si5jEJekGiyrwP2m7gSEqLUs': 'Jet_Custody', +
+        'GovHgfDPyQ1GwazJTDY2avSVY8GGcpmCapmmCsymRaGe': 'Psy_Finance', +
+        'GMnke6kxYvqoAXgbFGnu84QzvNHoqqTnijWSXYYTFQbB': 'MonkeDAO', +
+       '5hAykmD4YGcQ7Am3N7nC9kyELq6CThAkU82nhNKDJiCy': 'SOCEAN',
+       'jdaoDN37BrVRvxuXSeyR7xE5Z9CAoQApexGrQJbnj6V': 'JungleDeFi_DAO',
+       'HT19EcD68zn7NoCF79b2ucQF8XaMdowyPt5ccS6g1PUx': 'Ratio_Finance',
+       'GCockTxUjxuMdojHiABVZ5NKp6At8eTKDiizbPjiCo4m': 'Chicken_Tribe',
+       'gUAedF544JeE6NYbQakQvribHykUNgaPJqcgf3UQVnY': 'Ukraine_SOL',
+       'Ghope52FuF6HU3AAhJuAAyS2fiqbVhkAotb7YprL5tdS': 'RadRugsDAO',
+       'MGovW65tDhMMcpEmsegpsdgvzb6zUwGsNjhXFxRAnjd': 'MEAN_DAO',
+       'A7kmu2kUcnQwAVn8B4znQmGJeUrsJ1WEhYVMtmiBLkEr': 'Solend_DAO',
+       'hgovkRU6Ghe1Qoyb54HdSLdqN7VtxaifBzRmh9jtd3S': 'Helium',
+       'GmtpXy362L8cZfkRmTZMYunWVe8TyRjX5B7sodPZ63LJ': 'Metaplex_Found',
+       'AVoAYTs36yB5izAaBkxRG67wL1AMwG3vo41hKtUSb8is': 'Serum',
+       'GMpXgTSJt2nJ7zjD1RwbT2QyPhKqD2MjAZuEaLsfPYLF': 'Metaplex_Genesis',
+       'J9uWvULFL47gtCPvgR3oN7W357iehn5WF2Vn9MJvcSxz': 'Orca',
+        'pytGY6tWRgGinSCvRLnSv4fHfBTMoiDGiCsesmHWM6U': 'Pyth_Governance', +
+       'ALLGnZikNaJQeN4KCAbDjZRSzvSefUdeTpk18yfizZvT': 'ALLOVR_DAO',
+*/
+
+
 const client = new ApolloClient({
     uri: 'https://programs.shyft.to/v0/graphql/?api_key='+SHYFT_KEY,
     cache: new InMemoryCache(),
@@ -341,6 +406,8 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
 
 export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwner?:any) => {
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+
     if (filterRealm){
         
         const { data } = await client.query({ query: GET_QUERY_MEMBERS(filterRealm) });
@@ -365,7 +432,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
                 }
             })
         });
-
+        
         data[programId+"_TokenOwnerRecordV1"] && data[programId+"_TokenOwnerRecordV1"].map((item) => {
             allResults.push({
                 //owner: new PublicKey(item.owner),
@@ -400,7 +467,8 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
 export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, filterProposal?:any) => {
 
     let proposal = null;
-    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = realmOwner ? realmOwner : 
+        findGovOwnerByDao(realmPk) ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     
     console.log("filterGovernance: "+filterGovernance);
 
@@ -415,7 +483,7 @@ export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any,
             }
         }
     }
-    
+
     if (!proposal){ // fallback to RPC call is governance not found in index
         const prop = await getProposal(RPC_CONNECTION, new PublicKey(filterProposal));
         return prop;
@@ -429,7 +497,9 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
     const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, realmOwner) });
 
     const allProposals = new Array();
-    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+    const programId = realmOwner ? realmOwner : 
+        findGovOwnerByDao(realmPk) ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     
     data[programId+"_ProposalV2"] && data[programId+"_ProposalV2"].map((account) => {
         const options = account?.options?.map && account.options.map((option) => {

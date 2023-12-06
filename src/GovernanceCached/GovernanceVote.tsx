@@ -259,7 +259,7 @@ export function VoteForProposal(props:any){
 
         //console.log("realm: "+JSON.stringify(realm))
 
-        const programId = new PublicKey(thisitem.owner);
+        const programId = new PublicKey(realm.owner);
         
         let rawTokenOwnerRecords = null;
         if (memberMap){
@@ -481,7 +481,7 @@ export function VoteForProposal(props:any){
 
         //console.log("realm: "+JSON.stringify(realm))
 
-        const programId = new PublicKey(thisitem.owner);
+        const programId = new PublicKey(realm.owner);
         
         /*
         const ownerTokenRecord = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, publicKey)
@@ -684,7 +684,7 @@ export function VoteForProposal(props:any){
 
     const loadMemberMap = async() => {
         
-        const programId = new PublicKey(thisitem.owner);
+        const programId = new PublicKey(realm.owner);
         const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
         setMemberMap(rawTokenOwnerRecords);
 
