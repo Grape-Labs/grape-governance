@@ -1000,9 +1000,9 @@ export function GovernanceDirectoryView(props: Props) {
                                 :
                                 <Grid item xs={12} sm={6} key={key}>
                                     
-                                    {(item.realm.owner !== 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw') &&
+                                    {/*(item.realm.owner !== 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw') &&
                                         console.log(item.realm.account.name+": "+item.realm.owner)
-                                    }
+                                    */}
                                     <GovernanceCardView 
                                         item={item}
                                     />

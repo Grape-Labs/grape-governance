@@ -1441,12 +1441,9 @@ export function GovernanceProposalV2View(props: any){
             //const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
             const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, realmOwner);
             const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
-            console.log("here...")
             const prop = await getProposalIndexed(governanceRulesStrArr, realmOwner, governanceAddress, proposalPk);
             setThisitem(prop);
         }
-
-
 
         if (!memberMap){
             let rawTokenOwnerRecords = null;

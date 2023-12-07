@@ -37,6 +37,11 @@ const govOwners = [
         dao: 'FbpwgUzRPTneoZHDMNnM1zXb7Jm9iY8MzX2mAM8L6f43'
     },
     {
+        owner: 'JPGov2SBA6f7XSJF5R4Si5jEJekGiyrwP2m7gSEqLUs',
+        name: 'Jet_Custody',
+        dao: 'ATnhhZJ74xg4mzxDyNQ5YAE1BZ98PhrhAsMS4xNXquvX'
+    },
+    {
         owner: 'pytGY6tWRgGinSCvRLnSv4fHfBTMoiDGiCsesmHWM6U',
         name: 'Pyth_Governance',
         dao: '4ct8XU5tKbMNRphWy4rePsS9kBqPhDdvZoGpmprPaug4'
@@ -80,7 +85,7 @@ function findGovOwnerByDao(dao) {
     
   }
 
-/*
+    /*
 
         'GovMaiHfpVPw8BAM1mbdzgmSZYDw2tdP32J2fapoQoYs': 'Marinade_DAO', +
         'GqTPL6qRf5aUuqscLh8Rg2HTxPUXfhhAXDptTLhp1t2J': 'Mango', + 
@@ -103,7 +108,7 @@ function findGovOwnerByDao(dao) {
        'J9uWvULFL47gtCPvgR3oN7W357iehn5WF2Vn9MJvcSxz': 'Orca', +
         'pytGY6tWRgGinSCvRLnSv4fHfBTMoiDGiCsesmHWM6U': 'Pyth_Governance', +
        'ALLGnZikNaJQeN4KCAbDjZRSzvSefUdeTpk18yfizZvT': 'ALLOVR_DAO',+
-*/
+    */
 
 
 const client = new ApolloClient({
@@ -526,7 +531,8 @@ export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any,
 
     const allProposals = await getAllProposalsIndexed (filterGovernance, realmOwner, realmPk);
 
-    if (allProposals){
+    if (allProposals && allProposals.length > 0){
+        //console.log("allProposals: "+JSON.stringify(allProposals))
         for (var item of allProposals){
             if (item.pubkey.toBase58() === filterProposal){
                 proposal = item;
@@ -641,11 +647,9 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
     
     if ((!allProposals || allProposals.length <= 0) && realmPk){ // fallback to RPC call is governance not found in index
         const allProps = await getAllProposals(RPC_CONNECTION, new PublicKey(realmOwner), new PublicKey(realmPk));
-        for (let item of allProps)
-            allProposals.push(item);
+        if (allProps && allProps.length > 0)
+            return allProps[0];
+    } else{
+        return allProposals;
     }
-
-    //console.log("allProposals: "+JSON.stringify(allProposals))
-
-    return allProposals;
 };
