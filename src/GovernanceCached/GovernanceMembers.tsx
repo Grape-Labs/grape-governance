@@ -466,7 +466,7 @@ export function GovernanceMembersView(props: any) {
                 
                 let trecords = null;
 
-                const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58())
+                const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), grealm.owner)
                 //console.log("indexTokenOwnerRecords "+JSON.stringify(indexedTokenOwnerRecords));
                 //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
                 if (cachedMemberMap){

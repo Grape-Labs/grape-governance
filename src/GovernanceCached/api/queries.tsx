@@ -472,14 +472,12 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
 
 export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwner?:any) => {
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    
     if (filterRealm){
         const allResults = new Array();
 
         try{
             const { data } = await client.query({ query: GET_QUERY_MEMBERS(filterRealm, programId) });
             // normalize data
-        
             
             data[programId+"_TokenOwnerRecordV2"] && data[programId+"_TokenOwnerRecordV2"].map((item) => {
                 allResults.push({
@@ -523,12 +521,13 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
         }
 
         if (!allResults || allResults.length <= 0){ // fallback to RPC call is governance not found in index
+            console.log("No Members in Index attempting RPC");
             const rpcResults = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(programId), new PublicKey(filterRealm));
             return rpcResults;
             //allResults.push(...results);
         }
 
-        //console.log("allResults "+JSON.stringify(allResults))
+        console.log("allResults "+JSON.stringify(allResults))
         return allResults;
         
     }
