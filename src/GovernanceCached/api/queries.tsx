@@ -96,9 +96,14 @@ const govOwners = [
         name: 'SOCEAN',
         dao: '759qyfKDMMuo9v36tW7fbGanL63mZFPNbhU7zjPrkuGK'
     },
+    {
+        owner: 'jdaoDN37BrVRvxuXSeyR7xE5Z9CAoQApexGrQJbnj6V',
+        name: 'JungleDeFi_DAO',
+        dao: '5g94Ver64ruf9CGBL3k2oQGdKCUt4QKjN7NQojSrHAwH'
+    },
 ]
 
-function findGovOwnerByDao(dao) {
+function findGovOwnerByDao(dao:string) {
     const matchingGovOwner = govOwners.find((govOwner) => govOwner.dao === dao);
     if (!matchingGovOwner)
         return {
@@ -107,18 +112,14 @@ function findGovOwnerByDao(dao) {
     else
         return matchingGovOwner;
     //console.log("found: "+JSON.stringify(matchingGovOwner));
-    
   }
 
     /*
-       '5hAykmD4YGcQ7Am3N7nC9kyELq6CThAkU82nhNKDJiCy': 'SOCEAN',
-       'jdaoDN37BrVRvxuXSeyR7xE5Z9CAoQApexGrQJbnj6V': 'JungleDeFi_DAO',
        'HT19EcD68zn7NoCF79b2ucQF8XaMdowyPt5ccS6g1PUx': 'Ratio_Finance',
        'GCockTxUjxuMdojHiABVZ5NKp6At8eTKDiizbPjiCo4m': 'Chicken_Tribe',
        'gUAedF544JeE6NYbQakQvribHykUNgaPJqcgf3UQVnY': 'Ukraine_SOL',
        'Ghope52FuF6HU3AAhJuAAyS2fiqbVhkAotb7YprL5tdS': 'RadRugsDAO',
        'A7kmu2kUcnQwAVn8B4znQmGJeUrsJ1WEhYVMtmiBLkEr': 'Solend_DAO',
-       'AVoAYTs36yB5izAaBkxRG67wL1AMwG3vo41hKtUSb8is': 'Serum',
     */
 
 
