@@ -412,7 +412,7 @@ export function GovernanceMembersView(props: any) {
                 }
                 setParticipating(pcp);
                 */
-
+                
                 let grealm = null;
                 if (cachedRealm){
                     console.log("Realm from cache")
@@ -455,7 +455,6 @@ export function GovernanceMembersView(props: any) {
                 thisTokenDecimals = gTD;
                 setGoverningTokenDecimals(thisTokenDecimals);
                 
-
                 setGoverningTokenDecimals(thisTokenDecimals);
 
                 const tknSupply = await connection.getTokenSupply(new PublicKey(grealm.account.communityMint));

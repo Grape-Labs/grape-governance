@@ -101,6 +101,11 @@ const govOwners = [
         name: 'JungleDeFi_DAO',
         dao: '5g94Ver64ruf9CGBL3k2oQGdKCUt4QKjN7NQojSrHAwH'
     },
+    {
+        owner: 'jtogvBNH3WBSWDYD5FJfQP2ZxNTuf82zL8GkEhPeaJx',
+        name: 'Jito',
+        dao: 'jjCAwuuNpJCNMLAanpwgJZ6cdXzLPXe2GfD6TaDQBXts'
+    },
 ]
 
 function findGovOwnerByDao(dao:string) {
