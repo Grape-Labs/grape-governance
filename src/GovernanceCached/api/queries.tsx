@@ -71,6 +71,31 @@ const govOwners = [
         name: 'ALLOVR_DAO',
         dao: 'A7nud4wxpAySc7Ai11vwXtkez79tHvcEvSquFBxw4iDh'
     },
+    {
+        owner: 'AEauWRrpn9Cs6GXujzdp1YhMmv2288kBt3SdEcPYEerr',
+        name: 'Metaplex_DAO',
+        dao: 'DA5G7QQbFioZ6K33wQcH8fVdgFcnaDjLD7DLQkapZg5X'
+    },
+    {
+        owner: 'GMpXgTSJt2nJ7zjD1RwbT2QyPhKqD2MjAZuEaLsfPYLF',
+        name: 'Metaplex_Genesis',
+        dao: 'Cdui9Va8XnKVng3VGZXcfBFF6XSxbqSi2XruMc7iu817'
+    },
+    {
+        owner: 'GmtpXy362L8cZfkRmTZMYunWVe8TyRjX5B7sodPZ63LJ',
+        name: 'Metaplex_Found',
+        dao: '2sEcHwzsNBwNoTM1yAXjtF1HTMQKUAXf8ivtdpSpo9Fv'
+    },
+    {
+        owner: 'AVoAYTs36yB5izAaBkxRG67wL1AMwG3vo41hKtUSb8is',
+        name: 'Serum',
+        dao: '3MMDxjv1SzEFQDKryT7csAvaydYtrgMAc3L9xL9CVLCg'
+    },
+    {
+        owner: '5hAykmD4YGcQ7Am3N7nC9kyELq6CThAkU82nhNKDJiCy',
+        name: 'SOCEAN',
+        dao: '759qyfKDMMuo9v36tW7fbGanL63mZFPNbhU7zjPrkuGK'
+    },
 ]
 
 function findGovOwnerByDao(dao) {
@@ -86,28 +111,14 @@ function findGovOwnerByDao(dao) {
   }
 
     /*
-
-        'GovMaiHfpVPw8BAM1mbdzgmSZYDw2tdP32J2fapoQoYs': 'Marinade_DAO', +
-        'GqTPL6qRf5aUuqscLh8Rg2HTxPUXfhhAXDptTLhp1t2J': 'Mango', + 
-        'AEauWRrpn9Cs6GXujzdp1YhMmv2288kBt3SdEcPYEerr': 'Metaplex_DAO',
-        'JPGov2SBA6f7XSJF5R4Si5jEJekGiyrwP2m7gSEqLUs': 'Jet_Custody', +
-        'GovHgfDPyQ1GwazJTDY2avSVY8GGcpmCapmmCsymRaGe': 'Psy_Finance', +
-        'GMnke6kxYvqoAXgbFGnu84QzvNHoqqTnijWSXYYTFQbB': 'MonkeDAO', +
        '5hAykmD4YGcQ7Am3N7nC9kyELq6CThAkU82nhNKDJiCy': 'SOCEAN',
        'jdaoDN37BrVRvxuXSeyR7xE5Z9CAoQApexGrQJbnj6V': 'JungleDeFi_DAO',
        'HT19EcD68zn7NoCF79b2ucQF8XaMdowyPt5ccS6g1PUx': 'Ratio_Finance',
        'GCockTxUjxuMdojHiABVZ5NKp6At8eTKDiizbPjiCo4m': 'Chicken_Tribe',
        'gUAedF544JeE6NYbQakQvribHykUNgaPJqcgf3UQVnY': 'Ukraine_SOL',
        'Ghope52FuF6HU3AAhJuAAyS2fiqbVhkAotb7YprL5tdS': 'RadRugsDAO',
-       'MGovW65tDhMMcpEmsegpsdgvzb6zUwGsNjhXFxRAnjd': 'MEAN_DAO', +
        'A7kmu2kUcnQwAVn8B4znQmGJeUrsJ1WEhYVMtmiBLkEr': 'Solend_DAO',
-       'hgovkRU6Ghe1Qoyb54HdSLdqN7VtxaifBzRmh9jtd3S': 'Helium', +
-       'GmtpXy362L8cZfkRmTZMYunWVe8TyRjX5B7sodPZ63LJ': 'Metaplex_Found',
        'AVoAYTs36yB5izAaBkxRG67wL1AMwG3vo41hKtUSb8is': 'Serum',
-       'GMpXgTSJt2nJ7zjD1RwbT2QyPhKqD2MjAZuEaLsfPYLF': 'Metaplex_Genesis',
-       'J9uWvULFL47gtCPvgR3oN7W357iehn5WF2Vn9MJvcSxz': 'Orca', +
-        'pytGY6tWRgGinSCvRLnSv4fHfBTMoiDGiCsesmHWM6U': 'Pyth_Governance', +
-       'ALLGnZikNaJQeN4KCAbDjZRSzvSefUdeTpk18yfizZvT': 'ALLOVR_DAO',+
     */
 
 
@@ -547,6 +558,32 @@ export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any,
 
     //console.log("allProposals: "+JSON.stringify(allProposals))
     return proposal;
+}
+
+export const getAllProposalsFromAllPrograms = async () => {
+    // default instance
+    console.log("Fetching Proposals from Default ProgramID");
+    const allProposals = await getAllProposalsIndexed (null, null, null);
+    
+    const uniqueOwners = [];
+
+    govOwners.forEach(govOwner => {
+        const { owner, name, dao } = govOwner;
+
+        const uniqueOwner = { owner, name, dao };
+        if (!uniqueOwners.some(u => u.owner === owner)) {
+        uniqueOwners.push(uniqueOwner);
+        }
+    });
+
+    for (var owner of uniqueOwners){
+        console.log("Fetching Proposals from ProgramID: "+owner.name);
+        const props = await getAllProposalsIndexed(null, owner.name, null); // mango
+        allProposals.push(...props);
+    }
+    
+    //console.log("allProposals: "+JSON.stringify(allProposals))
+    return allProposals;
 }
 
 export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any) => {
