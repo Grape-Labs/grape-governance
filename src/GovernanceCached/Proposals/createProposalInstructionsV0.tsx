@@ -1,5 +1,5 @@
 
-import { Keypair, PublicKey, TransactionInstruction, Transaction, } from '@solana/web3.js'
+import { Keypair, PublicKey, TransactionInstruction, Transaction, AddressLookupTableProgram} from '@solana/web3.js'
 import { BN, web3 } from '@project-serum/anchor';
 
 import { 
@@ -32,6 +32,7 @@ import { UiInstruction } from '../../utils/governanceTools/proposalCreationTypes
 
 import { sendTransactions, WalletSigner, getWalletPublicKey } from '../../utils/governanceTools/sendTransactions';
 //import { AnyMxRecord } from 'dns';
+import { sendSignAndConfirmTransactions } from '../../utils/governanceTools/v0_tools/modifiedMangolana'
 
 export const deduplicateObjsFilter = (value, index, self) =>
   index === self.findIndex((t) => JSON.stringify(t) === JSON.stringify(value))
@@ -85,7 +86,8 @@ export async function createProposalInstructionsV0(
     instructionsData: InstructionDataWithHoldUpTime[],
     isDraft?: boolean,
     returnTx?: boolean,
-    payer?: PublicKey
+    payer?: PublicKey,
+    callbacks?: Parameters<typeof sendTransactionsV3>[0]['callbacks']
     ): Promise<any>{//Promise<Transaction> {
     
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
@@ -384,14 +386,96 @@ export async function createProposalInstructionsV0(
               sequenceType: SequenceType.Sequential,
             }
           })
+        /////////////////////////////////////////////////////////
+        //START ADDITIONAL CODE FROM createLUTproposals
+        ////////////////////////////////////////////////////////
+        const keys = txes
+        .map((x) =>
+          x.instructionsSet.map((y) =>
+            y.transactionInstruction.keys.map((z) => z.pubkey)
+          )
+        )
+        .flat()
+        .flat()
+        const slot = await connection.getSlot()
+        const [
+          lookupTableInst,
+          lookupTableAddress,
+        ] = AddressLookupTableProgram.createLookupTable({
+          authority: payer,
+          payer: payer,
+          recentSlot: slot,
+        })
+        // add addresses to the `lookupTableAddress` table via an `extend` instruction
+        // need to split into multiple instructions because of the ~20 address limit
+        // https://docs.solana.com/developing/lookup-tables#:~:text=NOTE%3A%20Due%20to,transaction%27s%20memory%20limits.
+        // const extendInstruction = AddressLookupTableProgram.extendLookupTable({
+        //   payer: payer,
+        //   authority: payer,
+        //   lookupTable: lookupTableAddress,
+        //   addresses: keys,
+        // })
+        const extendInstructions = chunks(keys, 15).map((chunk) =>
+          AddressLookupTableProgram.extendLookupTable({
+            payer: payer,
+            authority: payer,
+            lookupTable: lookupTableAddress,
+            addresses: chunk,
+          })
+        )
+        // Send this `extendInstruction` in a transaction to the cluster
+        // to insert the listing of `addresses` into your lookup table with address `lookupTableAddress`
+
+        console.log('lookup table address:', lookupTableAddress.toBase58())
+        let resolve = undefined
+        const promise = new Promise((r) => {
+          //@ts-ignore
+          resolve = r
+        })
+        // TODO merge all into one call of sendSignAndConfirmTransactions, so the user only signs once
+        await sendSignAndConfirmTransactions({
+          connection,
+          wallet,
+          transactionInstructions: [
+            {
+              instructionsSet: [{ transactionInstruction: lookupTableInst }],
+              sequenceType: SequenceType.Sequential,
+            },
+            ...extendInstructions.map((x) => {
+              return {
+                instructionsSet: [{ transactionInstruction: x }],
+                sequenceType: SequenceType.Sequential,
+              }
+            }),
+          ],
+          callbacks: {
+            afterAllTxConfirmed: resolve,
+          },
+        })
+        await promise
+        
+        const lookupTableAccount = await connection
+          .getAddressLookupTable(lookupTableAddress, { commitment: 'singleGossip' })
+          .then((res) => res.value)
+        if (lookupTableAccount === null) throw new Error()
+        ////////////////////////////////////////////////////
+        //END ADDITIONAL CODE FROM createLUTproposals  
+        ///////////////////////////////////////////////////
         let transactionSuccess = false;
         try {
-          const stresponse =  await sendTransactionsV3({
+          const stresponse = await sendTransactionsV3({
+            callbacks,
+            connection,
+            wallet,
+            transactionInstructions: txes,
+            lookupTableAccounts: [lookupTableAccount],
+          });
+          /*const stresponse =  await sendTransactionsV3({
               connection, 
               wallet, 
               transactionInstructions: txes
               //[prerequisiteInstructions, instructions, ...insertChunks],
-          });
+          });*/
           // Assuming `sendTransactionsV3` resolves to a meaningful value on success
           transactionSuccess = true;
           console.log('Transaction successful:', transactionSuccess);
