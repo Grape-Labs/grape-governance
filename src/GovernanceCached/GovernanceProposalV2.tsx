@@ -642,9 +642,13 @@ export function GovernanceProposalV2View(props: any){
         let from_cache = false;
         
         let vresults = null;
-        for (var vitem of cachedGovernance){
-            if (thisitem.pubkey.toBase58() === vitem.pubkey.toBase58()){
-                vresults = vitem;
+        if (cachedGovernance){
+            //console.log("cachedGovernance: "+JSON.stringify(cachedGovernance));
+            for (var vitem of cachedGovernance){
+                if (thisitem.pubkey.toBase58() === vitem.pubkey.toBase58()){
+                    vresults = vitem;
+                    //console.log("vitem: "+JSON.stringify(vitem));
+                }
             }
         }
 
@@ -695,7 +699,7 @@ export function GovernanceProposalV2View(props: any){
 
                 // check if there are voters but no voter record!
                 //console.log("vresults: "+JSON.stringify(vresults));
-
+                
                 if (!isFresh){ // voting state we can fetch via rpc
                     console.log("Fetching voting proposal current results via RPC")
                     from_cache = false;
@@ -1320,8 +1324,9 @@ export function GovernanceProposalV2View(props: any){
                     //    setCachedRealm(glitem.realm);
                     if (glitem?.memberFilename){
                         const cached_members = await getFileFromLookup(glitem.memberFilename, storagePool);
-                        setCachedMemberMap(cached_members);
-                        // do we push this as a member map
+                        if (cached_members)
+                            setCachedMemberMap(cached_members);
+                            // do we push this as a member map
                     }
                     //if (glitem?.totalVaultValue)
                     //    setTotalVaultValue(glitem.totalVaultValue);
@@ -1335,64 +1340,68 @@ export function GovernanceProposalV2View(props: any){
         // convert values in governance to BigInt and PublicKeys accordingly
         let counter = 0;
 
-        for (let cupdated of cached_governance){
-            cupdated.account.governance = new PublicKey(cupdated.account.governance);
-            cupdated.account.governingTokenMint = new PublicKey(cupdated.account.governingTokenMint);
-            cupdated.account.tokenOwnerRecord = new PublicKey(cupdated.account.tokenOwnerRecord);
-            cupdated.owner = new PublicKey(cupdated.owner);
-            cupdated.pubkey = new PublicKey(cupdated.pubkey);
+        if (cached_governance){
+            for (let cupdated of cached_governance){
+                cupdated.account.governance = new PublicKey(cupdated.account.governance);
+                cupdated.account.governingTokenMint = new PublicKey(cupdated.account.governingTokenMint);
+                cupdated.account.tokenOwnerRecord = new PublicKey(cupdated.account.tokenOwnerRecord);
+                cupdated.owner = new PublicKey(cupdated.owner);
+                cupdated.pubkey = new PublicKey(cupdated.pubkey);
 
-            
-            if (cupdated.account?.options && cupdated.account?.options[0]?.voteWeight)
-                cupdated.account.options[0].voteWeight = Number("0x"+cupdated.account.options[0].voteWeight)
-            if (cupdated.account?.denyVoteWeight)
-                cupdated.account.denyVoteWeight = Number("0x"+cupdated.account.denyVoteWeight).toString()
+                
+                if (cupdated.account?.options && cupdated.account?.options[0]?.voteWeight)
+                    cupdated.account.options[0].voteWeight = Number("0x"+cupdated.account.options[0].voteWeight)
+                if (cupdated.account?.denyVoteWeight)
+                    cupdated.account.denyVoteWeight = Number("0x"+cupdated.account.denyVoteWeight).toString()
 
-            if (cupdated.account?.yesVotesCount)
-                cupdated.account.yesVotesCount = Number("0x"+cupdated.account.yesVotesCount).toString()
-            if (cupdated.account?.noVotesCount)
-                cupdated.account.noVotesCount = Number("0x"+cupdated.account.noVotesCount).toString()
-            
-            
-            cupdated.account.draftAt = Number("0x"+cupdated.account.draftAt).toString()
-            cupdated.account.signingOffAt = Number("0x"+cupdated.account.signingOffAt).toString()
-            cupdated.account.votingAt = Number("0x"+cupdated.account.votingAt).toString()
-            cupdated.account.votingAtSlot = Number("0x"+cupdated.account.votingAtSlot).toString()
-            cupdated.account.vetoVoteWeight = Number("0x"+cupdated.account.vetoVoteWeight).toString()
-            cupdated.account.votingCompletedAt = Number("0x"+cupdated.account.votingCompletedAt).toString()
+                if (cupdated.account?.yesVotesCount)
+                    cupdated.account.yesVotesCount = Number("0x"+cupdated.account.yesVotesCount).toString()
+                if (cupdated.account?.noVotesCount)
+                    cupdated.account.noVotesCount = Number("0x"+cupdated.account.noVotesCount).toString()
+                
+                
+                cupdated.account.draftAt = Number("0x"+cupdated.account.draftAt).toString()
+                cupdated.account.signingOffAt = Number("0x"+cupdated.account.signingOffAt).toString()
+                cupdated.account.votingAt = Number("0x"+cupdated.account.votingAt).toString()
+                cupdated.account.votingAtSlot = Number("0x"+cupdated.account.votingAtSlot).toString()
+                cupdated.account.vetoVoteWeight = Number("0x"+cupdated.account.vetoVoteWeight).toString()
+                cupdated.account.votingCompletedAt = Number("0x"+cupdated.account.votingCompletedAt).toString()
 
-            // move to nested voting results
-            if (cupdated?.votingResults){
-                for (let inner of cupdated.votingResults){
-                    inner.pubkey = new PublicKey(inner.pubkey);
-                    inner.proposal = new PublicKey(inner.proposal);
-                    inner.governingTokenOwner = new PublicKey(inner.governingTokenOwner);
-                    inner.voteAddress = new PublicKey(inner.voteAddress);
-                    if (inner.vote?.councilMint)
-                        inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
-                    inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
-                    if (inner.vote?.councilMint)
-                        inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
-                    inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
-                    /*
-                    inner.quorumWeight.voterWeight = Number("0x"+inner.quorumWeight.voterWeight).toString()
-                    inner.vote.voterWeight = Number("0x"+inner.vote.voterWeight).toString()
+                // move to nested voting results
+                if (cupdated?.votingResults){
+                    for (let inner of cupdated.votingResults){
+                        inner.pubkey = new PublicKey(inner.pubkey);
+                        inner.proposal = new PublicKey(inner.proposal);
+                        inner.governingTokenOwner = new PublicKey(inner.governingTokenOwner);
+                        inner.voteAddress = new PublicKey(inner.voteAddress);
+                        if (inner.vote?.councilMint)
+                            inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
+                        inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
+                        if (inner.vote?.councilMint)
+                            inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
+                        inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
+                        /*
+                        inner.quorumWeight.voterWeight = Number("0x"+inner.quorumWeight.voterWeight).toString()
+                        inner.vote.voterWeight = Number("0x"+inner.vote.voterWeight).toString()
 
-                    inner.quorumWeight.legacyYes = Number("0x"+inner.quorumWeight.legacyYes).toString()
-                    inner.vote.legacyYes = Number("0x"+inner.vote.legacyYes).toString()
-                    inner.quorumWeight.legacyNo = Number("0x"+inner.quorumWeight.legacyNo).toString()
-                    inner.vote.legacyNo = Number("0x"+inner.vote.legacyNo).toString()
-                    */
+                        inner.quorumWeight.legacyYes = Number("0x"+inner.quorumWeight.legacyYes).toString()
+                        inner.vote.legacyYes = Number("0x"+inner.vote.legacyYes).toString()
+                        inner.quorumWeight.legacyNo = Number("0x"+inner.quorumWeight.legacyNo).toString()
+                        inner.vote.legacyNo = Number("0x"+inner.vote.legacyNo).toString()
+                        */
+                    }
                 }
+
+                counter++;
             }
+            
+            //console.log("cached_governance: "+JSON.stringify(cached_governance))
 
-            counter++;
+            setCachedGovernance(cached_governance);
+            //getGovernanceParameters(cached_governance);
+        } else{
+            console.log("Governance Cache Not Found!");
         }
-        
-        //console.log("cached_governance: "+JSON.stringify(cached_governance))
-
-        setCachedGovernance(cached_governance);
-        //getGovernanceParameters(cached_governance);
     }
 
     const getCachedSetup = async() => {
@@ -1413,7 +1422,6 @@ export function GovernanceProposalV2View(props: any){
     const validateGovernanceSetup = async() => {
         
         setLoadingValidation(true);
-
         if (!tokenMap){
             await getTokens();
         }
@@ -1436,12 +1444,13 @@ export function GovernanceProposalV2View(props: any){
             realmPk = new PublicKey(realm.pubkey);
         }
 
-        if (!thisitem && governanceLookup){
-            console.log("Getting proposal via RPC");
+        if (!thisitem){
+            console.log("Calling Index/RPC");
             //const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
             const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, realmOwner);
             const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
             const prop = await getProposalIndexed(governanceRulesStrArr, realmOwner, governanceAddress, proposalPk);
+            
             setThisitem(prop);
         }
 
@@ -1488,15 +1497,17 @@ export function GovernanceProposalV2View(props: any){
 
     React.useEffect(() => { 
         if (!loadingValidation){
-            if (cachedGovernance && !realm){
+            if (//cachedGovernance && 
+                !realm){
                 console.log("Step 2.")
                 validateGovernanceSetup();
             }
         }
-    }, [cachedGovernance, governanceLookup, loadingValidation]);
+    }, [governanceLookup, cachedGovernance, loadingValidation]);
 
     React.useEffect(() => { 
-        if (cachedGovernance &&
+
+        if (//cachedGovernance &&
             governanceLookup &&
             tokenMap &&
             memberMap &&
@@ -1517,7 +1528,7 @@ export function GovernanceProposalV2View(props: any){
                     //getGovernanceProps()
                 }
             }*/
-    }, [loadingValidation, thisitem, !thisGovernance, cachedGovernance, governanceLookup, tokenMap, memberMap, realm]);
+    }, [loadingValidation, cachedGovernance, thisitem, !thisGovernance, governanceLookup, tokenMap, memberMap, realm]);
 
     React.useEffect(() => { 
         // check again if this voter has voted:
