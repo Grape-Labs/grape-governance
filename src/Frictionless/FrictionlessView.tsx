@@ -56,6 +56,7 @@ import {
 } from '@solana/spl-governance';
 
 import { 
+  getRealmIndexed,
   getAllProposalsIndexed,
   getAllGovernancesIndexed
 } from '../GovernanceCached/api/queries';
@@ -202,8 +203,6 @@ async function createAndSendV0Tx(txInstructions: TransactionInstruction[], payer
   console.log("   ✅ - Compiled transaction message");
   const transaction = new VersionedTransaction(messageV0);
 
-  
-
   // Step 3 - Sign your transaction with the required `Signers`
   //transaction.addSignature(publicKey);
   if (pda){
@@ -267,7 +266,7 @@ async function createAndSendV0Tx(txInstructions: TransactionInstruction[], payer
       if (confirmation.value.err) { 
           enqueueSnackbar(`Vote Error`,{ variant: 'error' });
           //throw new Error("   ❌ - Transaction not confirmed.") }
-          console.log(`   ❌ - Transaction simulation error! ${confirmation.value.err}`);
+          console.log(`   ❌ - Transaction simulation error! ${JSON.stringify(confirmation.value.err)}`);
           return null;
       }
       
@@ -296,14 +295,15 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
       
       // 1. Grant Dao if not a member:
       if (!realm){
-        const rlm = await getRealm(RPC_CONNECTION, realmPk);
+        const rlm = await getRealmIndexed(realmPk.toBase58());
+        //const rlm = await getRealm(RPC_CONNECTION, realmPk);
         gRealm = rlm;
         programId = rlm.owner;
-        communityMint = rlm.account.communityMint;
+        communityMint = new PublicKey(rlm.account.communityMint);
       } else{
         gRealm = realm;
         programId = realm.owner;
-        communityMint = realm.account.communityMint;
+        communityMint = new PublicKey(realm.account.communityMint);
       }
 
       programId = gRealm.owner;
@@ -377,7 +377,9 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
         
         let txid = null;
         
-        if (!findGoverningTokenOwner(tokenOwnerRecords, realmPk, generatedWallet.publicKey)){
+        const foundRecord = findGoverningTokenOwner(tokenOwnerRecords, realmPk, generatedWallet.publicKey);
+
+        if (!foundRecord){
           console.log("Creating Governance Token Owner Record "+generatedWallet.publicKey.toBase58());
           txid = await createAndSendV0Tx([...ixCreateTokenOwnerRecord, ...ixDepositGoverningTokens], fromKeypair, null, "Creating Blockchain Record");
 
@@ -391,8 +393,6 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
         //const rawTokenOwnerRecord = await getTokenOwnerRecord(RPC_CONNECTION, fromKeypair.publicKey);
         //console.log("rawTokenOwnerRecord: "+JSON.stringify(tokenOwnerRecordsByOwner));
         
-        const foundRecord = findGoverningTokenOwner(tokenOwnerRecords, realmPk, generatedWallet.publicKey);
-
         if (foundRecord){
           
           //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, gRealm.owner, realmPk);
@@ -416,7 +416,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
           const type = votingType;
           const multiChoice = null;//props?.multiChoice || null;
           const isCommunityVote = proposalType; //propVoteType !== 'Council';
-        
+          
           console.log("Preparing Vote");
 
           let rank = 0;
@@ -468,6 +468,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
             fromKeypair.publicKey,//new PublicKey(generatedPk),
             fromKeypair.publicKey
           )*/
+          
           
           /*
           console.log("Realm: "+gRealm.owner.toBase58());
@@ -550,13 +551,14 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
     const fetchGovernanceProposals = async () => {
       setProposalLoading(true);
 
-      const rlm = await getRealm(RPC_CONNECTION, new PublicKey(realmPk));
+      //const rlm = await getRealm(RPC_CONNECTION, new PublicKey(realmPk));
+      const rlm = await getRealmIndexed(realmPk);
       setThisRealm(rlm);
       
-      const ag = await getAllGovernancesIndexed(realmPk);
+      const ag = await getAllGovernancesIndexed(realmPk, rlm.owner);
       const governanceRulesStrArr = ag.map(item => item.pubkey);
       //const ag = await getAllGovernances(RPC_CONNECTION, rlm.owner, new PublicKey(realmPk));
-      console.log("ag: "+JSON.stringify(ag))
+      //console.log("ag: "+JSON.stringify(ag))
       setAllGovernances(ag);
 
       const gprops = await getAllProposalsIndexed(governanceRulesStrArr, rlm.owner.toBase58(), realmPk);
@@ -588,7 +590,6 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
       setParticipatingGovernanceProposalsRecordRows(sortedRPCResults);
       
       const voteRecords = await getVoteRecordsByVoter(RPC_CONNECTION, rlm.owner, generatedWallet.publicKey);
-      //console.log("voteRecords "+JSON.stringify(voteRecords));
       setGeneratedParticipation(voteRecords);
       
       //console.log("sortedRPCResults: "+JSON.stringify(sortedRPCResults));
@@ -652,6 +653,19 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
               const endingStr = currentTime <= timeEndingTime ? `Ending ${timeAgo}` : ``;
               const coolOffStr = moment.unix(coolOffTime).hours();
 
+              const hasParticipated = generatedParticipation &&
+                generatedParticipation.length > 0 &&
+                generatedParticipation.some((gitem: any) => {
+                  if (
+                    gitem.account.proposal.toBase58() === item.pubkey.toBase58() &&
+                    gitem.account.governingTokenOwner.toBase58() === generatedWallet.publicKey.toBase58()
+                  ) {
+                    return true
+                  } else {
+                    return false
+                  }
+                })
+
                 //if (item.account.state === 2){
                   return (
                     <>
@@ -663,6 +677,10 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                             p:2,
                             background: 'rgba(255,255,255,0.05)',
                             borderRadius: '17px',
+                            '@media (max-width: 600px)': {
+                              mt: 2,
+                              p: 0.5,
+                            },
 
                           }}
                         >
@@ -734,11 +752,8 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                                           <CircularProgress />
                                         :
                                         <>
-                                          {(generatedParticipation && generatedParticipation.length > 0 && generatedParticipation.map((gitem) => {
-                                              return (gitem.account.proposal.toBase58() === item.pubkey.toBase58() &&
-                                                      gitem.account.governingTokenOwner.toBase58() === generatedWallet.publicKey.toBase58()
-                                                      );
-                                          })) ?
+                                        
+                                          {hasParticipated === true ?
                                             <>
                                               <Button
                                                 variant="outlined"
@@ -824,6 +839,10 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
                 backgroundImage: `url(${FRICTIONLESS_BG})`,
                 backgroundRepeat: "repeat",
                 backgroundSize: "cover",
+                '@media (max-width: 600px)': {
+                  m: 0,
+                  p: 0.5,
+              },
             }} 
         > 
           
@@ -869,7 +888,12 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
             background: `rgba(0, 0, 0, 0.8)`,
             borderRadius: '17px',
             m:2,
-            p: 4}}
+            p:4,
+            '@media (max-width: 600px)': {
+              m: 1,
+              p: 0.5,
+          },
+          }}
         > 
 
 
