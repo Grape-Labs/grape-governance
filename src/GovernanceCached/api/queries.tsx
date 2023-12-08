@@ -100,12 +100,12 @@ const govOwners = [
         owner: 'jdaoDN37BrVRvxuXSeyR7xE5Z9CAoQApexGrQJbnj6V',
         name: 'JungleDeFi_DAO',
         dao: '5g94Ver64ruf9CGBL3k2oQGdKCUt4QKjN7NQojSrHAwH'
-    },
+    },/*
     {
         owner: 'jtogvBNH3WBSWDYD5FJfQP2ZxNTuf82zL8GkEhPeaJx',
         name: 'Jito',
         dao: 'jjCAwuuNpJCNMLAanpwgJZ6cdXzLPXe2GfD6TaDQBXts'
-    },
+    },*/
 ]
 
 function findGovOwnerByDao(dao:string) {
@@ -133,134 +133,210 @@ const client = new ApolloClient({
     cache: new InMemoryCache(),
 });
 
-function GET_QUERY_PROPOSALS(governanceArray?:string[], realmOwner?:string){
+function GET_QUERY_PROPOSALS(governanceArray?:string[], realmOwner?:string, programIds?:any[]){
 
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
     if (governanceArray){
         return gql`
-        query MyQuery {
-            ${programId}_ProposalV2(offset: 0, where: {governance: {_in: [${governanceArray.map(pubkey => `"${pubkey}"`).join(', ')}]}}) {
-            pubkey
-            abstainVoteWeight
-            closedAt
-            denyVoteWeight
-            descriptionLink
-            draftAt
-            executingAt
-            executionFlags
-            governance
-            governingTokenMint
-            lamports
-            maxVoteWeight
-            maxVotingTime
-            name
-            options
-            reserved1
-            signatoriesCount
-            signatoriesSignedOffCount
-            signingOffAt
-            startVotingAt
-            state
-            tokenOwnerRecord
-            vetoVoteWeight
-            voteThreshold
-            voteType
-            votingAt
-            votingAtSlot
-            votingCompletedAt
-            }
-            ${programId}_ProposalV1(offset: 0, where: {governance: {_in: [${governanceArray.map(pubkey => `"${pubkey}"`).join(', ')}]}}) {
-            pubkey
-            closedAt
-            descriptionLink
-            draftAt
-            executingAt
-            executionFlags
-            governance
-            governingTokenMint
-            instructionsCount
-            instructionsExecutedCount
-            instructionsNextIndex
-            lamports
-            maxVoteWeight
-            name
-            noVotesCount
-            signatoriesCount
-            signatoriesSignedOffCount
-            signingOffAt
-            state
-            tokenOwnerRecord
-            voteThreshold
-            votingAt
-            votingAtSlot
-            votingCompletedAt
-            yesVotesCount
+            query MyQuery {
+                ${programId}_ProposalV2(offset: 0, where: {governance: {_in: [${governanceArray.map(pubkey => `"${pubkey}"`).join(', ')}]}}) {
+                pubkey
+                abstainVoteWeight
+                closedAt
+                denyVoteWeight
+                descriptionLink
+                draftAt
+                executingAt
+                executionFlags
+                governance
+                governingTokenMint
+                lamports
+                maxVoteWeight
+                maxVotingTime
+                name
+                options
+                reserved1
+                signatoriesCount
+                signatoriesSignedOffCount
+                signingOffAt
+                startVotingAt
+                state
+                tokenOwnerRecord
+                vetoVoteWeight
+                voteThreshold
+                voteType
+                votingAt
+                votingAtSlot
+                votingCompletedAt
+                }
+                ${programId}_ProposalV1(offset: 0, where: {governance: {_in: [${governanceArray.map(pubkey => `"${pubkey}"`).join(', ')}]}}) {
+                pubkey
+                closedAt
+                descriptionLink
+                draftAt
+                executingAt
+                executionFlags
+                governance
+                governingTokenMint
+                instructionsCount
+                instructionsExecutedCount
+                instructionsNextIndex
+                lamports
+                maxVoteWeight
+                name
+                noVotesCount
+                signatoriesCount
+                signatoriesSignedOffCount
+                signingOffAt
+                state
+                tokenOwnerRecord
+                voteThreshold
+                votingAt
+                votingAtSlot
+                votingCompletedAt
+                yesVotesCount
             }
     }
     `;
     } else{
-        return gql`
-            query MyQuery {
-                ${programId}_ProposalV2(offset: 0) {
-                    pubkey
-                    abstainVoteWeight
-                    closedAt
-                    denyVoteWeight
-                    descriptionLink
-                    draftAt
-                    executingAt
-                    executionFlags
-                    governance
-                    governingTokenMint
-                    lamports
-                    maxVoteWeight
-                    maxVotingTime
-                    name
-                    options
-                    reserved1
-                    signatoriesCount
-                    signatoriesSignedOffCount
-                    signingOffAt
-                    startVotingAt
-                    state
-                    tokenOwnerRecord
-                    vetoVoteWeight
-                    voteThreshold
-                    voteType
-                    votingAt
-                    votingAtSlot
-                    votingCompletedAt
-                }
-                ${programId}_ProposalV1(offset: 0) {
-                    pubkey
-                    closedAt
-                    descriptionLink
-                    draftAt
-                    executingAt
-                    executionFlags
-                    governance
-                    governingTokenMint
-                    instructionsCount
-                    instructionsExecutedCount
-                    instructionsNextIndex
-                    lamports
-                    maxVoteWeight
-                    name
-                    noVotesCount
-                    signatoriesCount
-                    signatoriesSignedOffCount
-                    signingOffAt
-                    state
-                    tokenOwnerRecord
-                    voteThreshold
-                    votingAt
-                    votingAtSlot
-                    votingCompletedAt
-                    yesVotesCount
-                }
+        
+        if (programIds && programIds.length > 0){
+            let query = ``;
+            let cnt = 0;
+            for (var item of programIds){
+                //if (cnt < 2)
+                query += `
+                    ${item.name}_ProposalV2(offset: 0) {
+                        pubkey
+                        abstainVoteWeight
+                        closedAt
+                        denyVoteWeight
+                        descriptionLink
+                        draftAt
+                        executingAt
+                        executionFlags
+                        governance
+                        governingTokenMint
+                        lamports
+                        maxVoteWeight
+                        maxVotingTime
+                        name
+                        options
+                        reserved1
+                        signatoriesCount
+                        signatoriesSignedOffCount
+                        signingOffAt
+                        startVotingAt
+                        state
+                        tokenOwnerRecord
+                        vetoVoteWeight
+                        voteThreshold
+                        voteType
+                        votingAt
+                        votingAtSlot
+                        votingCompletedAt
+                    }
+                    ${item.name}_ProposalV1(offset: 0) {
+                        pubkey
+                        closedAt
+                        descriptionLink
+                        draftAt
+                        executingAt
+                        executionFlags
+                        governance
+                        governingTokenMint
+                        instructionsCount
+                        instructionsExecutedCount
+                        instructionsNextIndex
+                        lamports
+                        maxVoteWeight
+                        name
+                        noVotesCount
+                        signatoriesCount
+                        signatoriesSignedOffCount
+                        signingOffAt
+                        state
+                        tokenOwnerRecord
+                        voteThreshold
+                        votingAt
+                        votingAtSlot
+                        votingCompletedAt
+                        yesVotesCount
+                    }
+                `
+                
+                cnt++;
+                
+            } 
+            return gql`query MyQuery {${query}}`;
         }
-        `;
+
+
+        if (!programIds){
+
+            return gql`
+                query MyQuery {
+                    ${programId}_ProposalV2(offset: 0) {
+                        pubkey
+                        abstainVoteWeight
+                        closedAt
+                        denyVoteWeight
+                        descriptionLink
+                        draftAt
+                        executingAt
+                        executionFlags
+                        governance
+                        governingTokenMint
+                        lamports
+                        maxVoteWeight
+                        maxVotingTime
+                        name
+                        options
+                        reserved1
+                        signatoriesCount
+                        signatoriesSignedOffCount
+                        signingOffAt
+                        startVotingAt
+                        state
+                        tokenOwnerRecord
+                        vetoVoteWeight
+                        voteThreshold
+                        voteType
+                        votingAt
+                        votingAtSlot
+                        votingCompletedAt
+                    }
+                    ${programId}_ProposalV1(offset: 0) {
+                        pubkey
+                        closedAt
+                        descriptionLink
+                        draftAt
+                        executingAt
+                        executionFlags
+                        governance
+                        governingTokenMint
+                        instructionsCount
+                        instructionsExecutedCount
+                        instructionsNextIndex
+                        lamports
+                        maxVoteWeight
+                        name
+                        noVotesCount
+                        signatoriesCount
+                        signatoriesSignedOffCount
+                        signingOffAt
+                        state
+                        tokenOwnerRecord
+                        voteThreshold
+                        votingAt
+                        votingAtSlot
+                        votingCompletedAt
+                        yesVotesCount
+                    }
+                }
+            `;
+        }
     }
 }
 
@@ -581,107 +657,198 @@ export const getAllProposalsFromAllPrograms = async () => {
         }
     });
 
+    
+    const batch_props = await getAllProposalsIndexed(null, null, null, uniqueOwners); // mango
+    allProposals.push(...batch_props);
+    /*
     for (var owner of uniqueOwners){
         console.log("Fetching Proposals from ProgramID: "+owner.name);
         const props = await getAllProposalsIndexed(null, owner.name, null); // mango
         allProposals.push(...props);
     }
-    
+    */
     //console.log("allProposals: "+JSON.stringify(allProposals))
     return allProposals;
 }
 
-export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any) => {
+export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, uniqueOwners?:string[]) => {
     const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk).owner;
     const allProposals = new Array();
 
     try{
-        const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, realmOwner) });
 
-        //console.log("programId: "+JSON.stringify(programId));
-
-        data[programId+"_ProposalV2"] && data[programId+"_ProposalV2"].map((account) => {
-            const options = account?.options?.map && account.options.map((option) => {
-                return {
-                    label: option.label,
-                    voteWeight: parseInt(option.voteWeight, 16),
-                    voteResult: option.voteResult,
-                    instructionsExecutedCount: option.instructionsExecutedCount,
-                    instructionsCount: option.instructionsCount,
-                    instructionsNextIndex: option.instructionsNextIndex,
-                };
+        const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, realmOwner, uniqueOwners) });
+        
+        if (uniqueOwners && data){
+            console.log("data: "+JSON.stringify(data));
+            for (var ownerItem of uniqueOwners){
+                data[ownerItem.name+"_ProposalV2"] && data[ownerItem.name+"_ProposalV2"].map((account) => {
+                    const options = account?.options?.map && account.options.map((option) => {
+                        return {
+                            label: option.label,
+                            voteWeight: parseInt(option.voteWeight, 16),
+                            voteResult: option.voteResult,
+                            instructionsExecutedCount: option.instructionsExecutedCount,
+                            instructionsCount: option.instructionsCount,
+                            instructionsNextIndex: option.instructionsNextIndex,
+                        };
+                    });
+                    
+                    allProposals.push({
+                        owner: new PublicKey(ownerItem.owner),
+                        pubkey: new PublicKey(account?.pubkey),
+                        account:{
+                            accountType: account.accountType,
+                            governance: new PublicKey(account.governance),
+                            governingTokenMint: new PublicKey(account.governingTokenMint),
+                            state: account.state,
+                            tokenOwnerRecord: new PublicKey(account.tokenOwnerRecord),
+                            signatoriesCount: account.signatoriesCount,
+                            signatoriesSignedOffCount: account.signatoriesSignedOffCount,
+                            descriptionLink: account.descriptionLink,
+                            name: account.name,
+                            voteType: account.voteType,
+                            options,
+                            denyVoteWeight: account?.denyVoteWeight ? parseInt(account.denyVoteWeight) : "00",
+                            reserved1: account.reserved1,
+                            draftAt: account.draftAt,
+                            signingOffAt: account.signingOffAt,
+                            votingAt: account.votingAt,
+                            votingAtSlot: account.votingAtSlot,
+                            executionFlags: account.executionFlags,
+                            vetoVoteWeight: account.vetoVoteWeight,
+                            abstainVoteWeight: account?.abstainVoteWeight,
+                            closedAt: account?.closedAt,
+                            executingAt: account?.executingAt,
+                            maxVoteWeight: account?.maxVoteWeight,
+                            maxVotingTime: account?.maxVotingTime,
+                            startVotingAt: account?.startVotingAt,
+                            voteThreshold: account?.voteThreshold,
+                            votingCompletedAt: account?.votingCompletedAt,
+                        }
+                    })
+                });
+    
+                data[ownerItem.name+"_ProposalV1"] && data[ownerItem.name+"_ProposalV1"].map((account) => {
+                    allProposals.push({
+                        owner: new PublicKey(ownerItem.owner),
+                        pubkey: new PublicKey(account?.pubkey),
+                        account:{
+                            accountType: account.accountType,
+                            governance: new PublicKey(account.governance),
+                            governingTokenMint: new PublicKey(account.governingTokenMint),
+                            state: account.state,
+                            tokenOwnerRecord: new PublicKey(account.tokenOwnerRecord),
+                            signatoriesCount: account.signatoriesCount,
+                            signatoriesSignedOffCount: account.signatoriesSignedOffCount,
+                            descriptionLink: account.descriptionLink,
+                            name: account.name,
+                            voteType: account.voteType,
+                            reserved1: account.reserved1,
+                            draftAt: account.draftAt,
+                            signingOffAt: account.signingOffAt,
+                            votingAt: account.votingAt,
+                            votingAtSlot: account.votingAtSlot,
+                            executionFlags: account.executionFlags,
+                            vetoVoteWeight: account.vetoVoteWeight,
+                            abstainVoteWeight: account?.abstainVoteWeight,
+                            closedAt: account?.closedAt,
+                            executingAt: account?.executingAt,
+                            maxVoteWeight: account?.maxVoteWeight,
+                            maxVotingTime: account?.maxVotingTime,
+                            startVotingAt: account?.startVotingAt,
+                            voteThreshold: account?.voteThreshold,
+                            votingCompletedAt: account?.votingCompletedAt,
+                            yesVoteCount: account?.yesVoteCount ? parseInt(account.yesVoteCount) : "00",
+                            noVoteCount: account?.noVoteCount ? parseInt(account.noVoteCount) : "00",
+                        }
+                    })
+                });
+            }   
+        } else if (data){
+            data[programId+"_ProposalV2"] && data[programId+"_ProposalV2"].map((account) => {
+                const options = account?.options?.map && account.options.map((option) => {
+                    return {
+                        label: option.label,
+                        voteWeight: parseInt(option.voteWeight, 16),
+                        voteResult: option.voteResult,
+                        instructionsExecutedCount: option.instructionsExecutedCount,
+                        instructionsCount: option.instructionsCount,
+                        instructionsNextIndex: option.instructionsNextIndex,
+                    };
+                });
+                
+                allProposals.push({
+                    owner: programId === 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw' ? new PublicKey(programId) : null,
+                    pubkey: new PublicKey(account?.pubkey),
+                    account:{
+                        accountType: account.accountType,
+                        governance: new PublicKey(account.governance),
+                        governingTokenMint: new PublicKey(account.governingTokenMint),
+                        state: account.state,
+                        tokenOwnerRecord: new PublicKey(account.tokenOwnerRecord),
+                        signatoriesCount: account.signatoriesCount,
+                        signatoriesSignedOffCount: account.signatoriesSignedOffCount,
+                        descriptionLink: account.descriptionLink,
+                        name: account.name,
+                        voteType: account.voteType,
+                        options,
+                        denyVoteWeight: account?.denyVoteWeight ? parseInt(account.denyVoteWeight) : "00",
+                        reserved1: account.reserved1,
+                        draftAt: account.draftAt,
+                        signingOffAt: account.signingOffAt,
+                        votingAt: account.votingAt,
+                        votingAtSlot: account.votingAtSlot,
+                        executionFlags: account.executionFlags,
+                        vetoVoteWeight: account.vetoVoteWeight,
+                        abstainVoteWeight: account?.abstainVoteWeight,
+                        closedAt: account?.closedAt,
+                        executingAt: account?.executingAt,
+                        maxVoteWeight: account?.maxVoteWeight,
+                        maxVotingTime: account?.maxVotingTime,
+                        startVotingAt: account?.startVotingAt,
+                        voteThreshold: account?.voteThreshold,
+                        votingCompletedAt: account?.votingCompletedAt,
+                    }
+                })
             });
-            
-            allProposals.push({
-                owner: programId === 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw' ? new PublicKey(programId) : null,
-                pubkey: new PublicKey(account?.pubkey),
-                account:{
-                    accountType: account.accountType,
-                    governance: new PublicKey(account.governance),
-                    governingTokenMint: new PublicKey(account.governingTokenMint),
-                    state: account.state,
-                    tokenOwnerRecord: new PublicKey(account.tokenOwnerRecord),
-                    signatoriesCount: account.signatoriesCount,
-                    signatoriesSignedOffCount: account.signatoriesSignedOffCount,
-                    descriptionLink: account.descriptionLink,
-                    name: account.name,
-                    voteType: account.voteType,
-                    options,
-                    denyVoteWeight: account?.denyVoteWeight ? parseInt(account.denyVoteWeight) : "00",
-                    reserved1: account.reserved1,
-                    draftAt: account.draftAt,
-                    signingOffAt: account.signingOffAt,
-                    votingAt: account.votingAt,
-                    votingAtSlot: account.votingAtSlot,
-                    executionFlags: account.executionFlags,
-                    vetoVoteWeight: account.vetoVoteWeight,
-                    abstainVoteWeight: account?.abstainVoteWeight,
-                    closedAt: account?.closedAt,
-                    executingAt: account?.executingAt,
-                    maxVoteWeight: account?.maxVoteWeight,
-                    maxVotingTime: account?.maxVotingTime,
-                    startVotingAt: account?.startVotingAt,
-                    voteThreshold: account?.voteThreshold,
-                    votingCompletedAt: account?.votingCompletedAt,
-                }
-            })
-        });
 
-        data[programId+"_ProposalV1"] && data[programId+"_ProposalV1"].map((account) => {
-            allProposals.push({
-                owner: programId === 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw' ? new PublicKey(programId) : null,
-                pubkey: new PublicKey(account?.pubkey),
-                account:{
-                    accountType: account.accountType,
-                    governance: new PublicKey(account.governance),
-                    governingTokenMint: new PublicKey(account.governingTokenMint),
-                    state: account.state,
-                    tokenOwnerRecord: new PublicKey(account.tokenOwnerRecord),
-                    signatoriesCount: account.signatoriesCount,
-                    signatoriesSignedOffCount: account.signatoriesSignedOffCount,
-                    descriptionLink: account.descriptionLink,
-                    name: account.name,
-                    voteType: account.voteType,
-                    reserved1: account.reserved1,
-                    draftAt: account.draftAt,
-                    signingOffAt: account.signingOffAt,
-                    votingAt: account.votingAt,
-                    votingAtSlot: account.votingAtSlot,
-                    executionFlags: account.executionFlags,
-                    vetoVoteWeight: account.vetoVoteWeight,
-                    abstainVoteWeight: account?.abstainVoteWeight,
-                    closedAt: account?.closedAt,
-                    executingAt: account?.executingAt,
-                    maxVoteWeight: account?.maxVoteWeight,
-                    maxVotingTime: account?.maxVotingTime,
-                    startVotingAt: account?.startVotingAt,
-                    voteThreshold: account?.voteThreshold,
-                    votingCompletedAt: account?.votingCompletedAt,
-                    yesVoteCount: account?.yesVoteCount ? parseInt(account.yesVoteCount) : "00",
-                    noVoteCount: account?.noVoteCount ? parseInt(account.noVoteCount) : "00",
-                }
-            })
-        });
+            data[programId+"_ProposalV1"] && data[programId+"_ProposalV1"].map((account) => {
+                allProposals.push({
+                    owner: programId === 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw' ? new PublicKey(programId) : null,
+                    pubkey: new PublicKey(account?.pubkey),
+                    account:{
+                        accountType: account.accountType,
+                        governance: new PublicKey(account.governance),
+                        governingTokenMint: new PublicKey(account.governingTokenMint),
+                        state: account.state,
+                        tokenOwnerRecord: new PublicKey(account.tokenOwnerRecord),
+                        signatoriesCount: account.signatoriesCount,
+                        signatoriesSignedOffCount: account.signatoriesSignedOffCount,
+                        descriptionLink: account.descriptionLink,
+                        name: account.name,
+                        voteType: account.voteType,
+                        reserved1: account.reserved1,
+                        draftAt: account.draftAt,
+                        signingOffAt: account.signingOffAt,
+                        votingAt: account.votingAt,
+                        votingAtSlot: account.votingAtSlot,
+                        executionFlags: account.executionFlags,
+                        vetoVoteWeight: account.vetoVoteWeight,
+                        abstainVoteWeight: account?.abstainVoteWeight,
+                        closedAt: account?.closedAt,
+                        executingAt: account?.executingAt,
+                        maxVoteWeight: account?.maxVoteWeight,
+                        maxVotingTime: account?.maxVotingTime,
+                        startVotingAt: account?.startVotingAt,
+                        voteThreshold: account?.voteThreshold,
+                        votingCompletedAt: account?.votingCompletedAt,
+                        yesVoteCount: account?.yesVoteCount ? parseInt(account.yesVoteCount) : "00",
+                        noVoteCount: account?.noVoteCount ? parseInt(account.noVoteCount) : "00",
+                    }
+                })
+            });
+        }
     } catch(e){
         console.log("Index Err Reverting to RPC")
     }
