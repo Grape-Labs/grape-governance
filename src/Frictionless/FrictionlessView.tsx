@@ -168,7 +168,7 @@ function FrictionlessView() {
       }
       //const [pda, bump] = PublicKey.findProgramAddressSync([Buffer.from(seed)], programId);
       const pda = Keypair.fromSeed(seedBytes);//PublicKey.findProgramAddressSync([Buffer.from(seed)], programId);
-      //console.log("pda: "+JSON.stringify(pda));
+      console.log("pda: "+JSON.stringify(pda));
       //const seed = frictionlessNativeTreasury+seedStr+fromKeypair.publicKey;
       //const seedBytes = Buffer.from(seed, 'utf8');
       //const keypair = Keypair.fromSeed(seedBytes);
