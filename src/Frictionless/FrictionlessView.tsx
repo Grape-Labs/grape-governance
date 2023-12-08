@@ -157,6 +157,7 @@ function FrictionlessView() {
       // Derive the PDA address
       const programId = fromKeypair.publicKey;
       const seed = seedStr+frictionlessDao;
+      console.log("seed: "+seed);
       let seedBytes = Buffer.from(seed, 'utf8');
 
       if (seedBytes.length < 32) {

@@ -227,7 +227,7 @@ function MultiChainOathView(props:any) {
       };
 
       if (userHandle){
-        console.log("using handle")
+        console.log("using handle "+userHandle)
         setConnectedUser(userHandle);
         setConnectedAddress(userHandle);
         setAuthMode(authMode);
