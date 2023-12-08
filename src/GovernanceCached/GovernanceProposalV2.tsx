@@ -2068,7 +2068,7 @@ export function GovernanceProposalV2View(props: any){
                                                                 padding:4,
                                                             }} 
                                                         >
-                                                            <iframe src={thisitem.account?.descriptionLink} width="100%" height="500px" style={{"border": "none"}}></iframe>
+                                                            <iframe src={thisitem.account?.descriptionLink} width="100%" height="750px" style={{"border": "none"}}></iframe>
                                                         </Grid>
                                                             <>
 
