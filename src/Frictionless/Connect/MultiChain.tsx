@@ -124,7 +124,8 @@ function MultiChainOathView(props:any) {
     const [disconnectWallet, setDisconnectWallet] = React.useState(null);
     const [authMode, setAuthMode] = React.useState(null);
     const [open, setOpen] = React.useState(false);
-    
+    const [autoConnect, setAutoConnect] = React.useState(false);
+
     const recoveredAddress = React.useRef<string>()
     
     function generateVerificationCode() {
@@ -137,11 +138,10 @@ function MultiChainOathView(props:any) {
     async function handleLogin() {
         setLoading(true)
         try {
-          // handle login...
-
           generatePublicKeyFromString(connectedAddress);
           setLoading(false)
           setOpen(false);
+          setAutoConnect(false);
         } catch (error) {
           console.log("error", error);
           setLoading(false)
@@ -166,7 +166,8 @@ function MultiChainOathView(props:any) {
     
     React.useEffect(() => {
       if (connectedAddress){
-        //handleLogin();
+        if (autoConnect)
+          handleLogin();
         console.log("connectedAddress "+JSON.stringify(connectedAddress));
       }
         
@@ -224,30 +225,33 @@ function MultiChainOathView(props:any) {
       //const twitterHandle = user?.identities.find(identity => identity.provider === 'twitter')?.username;
       //const discordHandle = user?.identities.find(identity => identity.provider === 'discord')?.username;
       const userHandle = user?.username || user?.verifiedCredentials[0].oauthUsername;
-
+      
       const getConnectedAccounts = async () => {
         const connectedAccounts = await primaryWallet?.connector.getConnectedAccounts();
         return connectedAccounts;
       };
 
       if (userHandle){
-        console.log("using handle "+userHandle)
+        //console.log("using handle "+userHandle)
         setConnectedUser(userHandle);
         setConnectedAddress(userHandle);
         setAuthMode(authMode);
         return <><DisconnectComponent /></>
       }else if (userEmail){
-        console.log("using email")
+        //console.log("using email")
         setConnectedUser(user);
         setConnectedAddress(userEmail);
         setAuthMode(authMode);
         return <><DisconnectComponent /></>
       } else if (primaryWalletAddress){
-        console.log("using wallet")
+        //console.log("using wallet")
         setConnectedUser(user);
         setConnectedAddress(primaryWalletAddress);
         setAuthMode(authMode);
         return <><DisconnectComponent /></>
+      }
+      if (autoConnect && connectedAddress){
+        handleLogin();
       }
     }
 
@@ -326,7 +330,7 @@ function MultiChainOathView(props:any) {
                                   );
                                   //const { authMode, primaryWallet, user } = useDynamicContext();
                                   //const primaryWalletAddress = primaryWallet?.address;
-                                  
+                                  setAutoConnect(true);
                                   //handleLogin(primaryWalletAddress);
                                 },
                                 onLinkSuccess: () => {
@@ -338,12 +342,14 @@ function MultiChainOathView(props:any) {
                                   );
                                   //const { authMode, primaryWallet, user } = useDynamicContext();
                                   //const userEmail = user?.email;
+                                  setAutoConnect(true);
                                   //handleLogin(userEmail);
                                 },
                                 onAuthSuccess: () => {
                                   console.log("OAuth Verification Success!")
                                   //const { authMode, primaryWallet, user } = useDynamicContext();
                                   //const userHandle = user?.username || user?.verifiedCredentials[0].oauthUsername;
+                                  setAutoConnect(true);
                                   //handleLogin(userHandle);
                                 }
                               },
