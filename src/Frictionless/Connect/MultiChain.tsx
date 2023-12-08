@@ -219,7 +219,7 @@ function MultiChainOathView(props:any) {
       const userEmail = user?.email;
       //const twitterHandle = user?.identities.find(identity => identity.provider === 'twitter')?.username;
       //const discordHandle = user?.identities.find(identity => identity.provider === 'discord')?.username;
-      const userHandle = user?.username
+      const userHandle = user?.username || user?.verifiedCredentials[0].oauthUsername;
 
       const getConnectedAccounts = async () => {
         const connectedAccounts = await primaryWallet?.connector.getConnectedAccounts();
