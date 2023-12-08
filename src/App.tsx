@@ -2,6 +2,8 @@ import React, { useMemo, Suspense } from 'react';
 
 //import {  } from "react-router";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+//import { SpeedInsights } from '@vercel/speed-insights/react';
+
 import { AdminView } from "./Admin/Admin";
 //import GovernanceAppPageView from "./GovernanceCached/v2/page";
 import { GovernanceRPCView } from "./GovernanceRPC/Governance";
@@ -162,6 +164,7 @@ function DashboardContent() {
 
   return (
     <>
+      
       <SnackbarProvider>
         <Router>
             <Routes>

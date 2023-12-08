@@ -213,6 +213,7 @@ export function GovernanceProposalV2View(props: any){
     const [uniqueNo, setUniqueNo] = React.useState(0);
     const [gist, setGist] = React.useState(null);
     const [gDocs, setGoogleDocs] = React.useState(null);
+    const [gitBook, setGitBook] = React.useState(null);
     const [proposalDescription, setProposalDescription] = React.useState(null);
     const [thisGovernance, setThisGovernance] = React.useState(null);
     const [proposalAuthor, setProposalAuthor] = React.useState(null);
@@ -1229,29 +1230,36 @@ export function GovernanceProposalV2View(props: any){
         votingResults.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
         
         try{
-            const url = new URL(thisitem.account?.descriptionLink);
-            const pathname = url.pathname;
-            const parts = pathname.split('/');
-            //console.log("pathname: "+pathname)
-            let tGist = null;
-            if (parts.length > 1)
-                tGist = parts[2];
-            
 
-            if (url.hostname === "gist.github.com"){
-
-                setGist(tGist);
+            const cleanString = thisitem.account?.descriptionLink.replace(/(\s+)(https?:\/\/[a-zA-Z0-9\.\/]+)/g, '$2');
                 
-                const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
-    
-                // Regular expression to match image URLs
-                const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
-                const stringWithPreviews = rpd.replace(imageUrlRegex, (match:any, imageUrl:any) => {
-                    return "![Image X]("+imageUrl+")";
-                });
-                setProposalDescription(rpd);
-            } else if (url.hostname === "docs.google.com") {
-                setGoogleDocs(tGist);
+            if (cleanString && cleanString.length > 0 && cleanString.includes('http')) {
+                const url = new URL(cleanString);
+
+                const pathname = url.pathname;
+                const parts = pathname.split('/');
+                //console.log("pathname: "+pathname)
+                let tGist = null;
+                if (parts.length > 1)
+                    tGist = parts[2];
+
+                if (url.hostname === "gist.github.com"){
+
+                    setGist(tGist);
+                    
+                    const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
+        
+                    // Regular expression to match image URLs
+                    const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
+                    const stringWithPreviews = rpd.replace(imageUrlRegex, (match:any, imageUrl:any) => {
+                        return "![Image X]("+imageUrl+")";
+                    });
+                    setProposalDescription(rpd);
+                } else if (url.hostname === "docs.google.com") {
+                    setGoogleDocs(tGist);
+                } else if (url.hostname.includes("gitbook.io")){
+                    setGitBook(tGist);
+                }
             }
         } catch(e){
             console.log("ERR: "+e)
@@ -2094,6 +2102,21 @@ export function GovernanceProposalV2View(props: any){
                                                                     sx={{ display: 'flex', alignItems: 'center' }}>
                                                                     {thisitem.account?.descriptionLink}
                                                                 </Typography>
+                                                                
+                                                                {gitBook &&
+                                                                    <>
+                                                                        <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
+                                                                            <Button
+                                                                                color='inherit'
+                                                                                target='_blank'
+                                                                                href={thisitem.account?.descriptionLink}
+                                                                                sx={{borderRadius:'17px'}}
+                                                                            >
+                                                                                <ArticleIcon sx={{mr:1}} /> GitBook
+                                                                            </Button>
+                                                                        </Box>
+                                                                    </>
+                                                                }
                                                             </>
                                                         }
                                                     </>

@@ -473,6 +473,7 @@ function TablePaginationActions(props) {
         const item = props?.item;
         const [gist, setGist] = React.useState(null);
         const [gDocs, setGoogleDocs] = React.useState(null);
+        const [gitBook, setGitBook] = React.useState(null);
 
         const [governanceInfo, setGovernanceInfo] = React.useState(null);
 
@@ -498,36 +499,42 @@ function TablePaginationActions(props) {
         const resolveDescription = async(descriptionStr: string) => {
             try{
                 const cleanString = description.replace(/(\s+)(https?:\/\/[a-zA-Z0-9\.\/]+)/g, '$2');
-                const url = new URL(cleanString);
-                const pathname = url.pathname;
-                const parts = pathname.split('/');
-                console.log("pathname: "+pathname)
-                console.log("hostname: "+url.hostname)
                 
-                let tGist = null;
-                if (parts.length > 1)
-                    tGist = parts[2];
-                
-                
-                if (url.hostname === "gist.github.com"){
+                if (cleanString && cleanString.length > 0 && cleanString.includes('http')) {
+                        const url = new URL(cleanString);
 
-                    setGist(tGist);
+                        const pathname = url.pathname;
+                        const parts = pathname.split('/');
+                        //console.log("pathname: "+pathname)
+                        //console.log("hostname: "+url.hostname)
+                        
+                        let tGist = null;
+                        if (parts.length > 1)
+                            tGist = parts[2];
+                        
+                        if (url.hostname === "gist.github.com"){
+
+                            setGist(tGist);
+                            
+                            const rpd = await resolveProposalDescription(description);
+                
+                            // Regular expression to match image URLs
+                            const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
+                            const stringWithPreviews = rpd.replace(imageUrlRegex, (match:any, imageUrl:any) => {
+                                return "![Image X]("+imageUrl+")";
+                            });
+                            
+                
+                            setDescriptionMarkdown(rpd);
+                        } else if (url.hostname === "docs.google.com") {
+                            setGoogleDocs(tGist);
+                        } else if (url.hostname.includes("gitbook.io")){
+                            setGitBook(tGist);
+                        }
                     
-                    const rpd = await resolveProposalDescription(description);
-        
-                    // Regular expression to match image URLs
-                    const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
-                    const stringWithPreviews = rpd.replace(imageUrlRegex, (match:any, imageUrl:any) => {
-                        return "![Image X]("+imageUrl+")";
-                    });
-                    
-        
-                    setDescriptionMarkdown(rpd);
-                } else if (url.hostname === "docs.google.com") {
-                    setGoogleDocs(tGist);
                 }
             } catch(e){
-                console.log("ERR: "+e)
+                console.log("Invalid URL: "+e)
             }
         }
 
@@ -686,6 +693,20 @@ function TablePaginationActions(props) {
                                                                                         sx={{ display: 'flex', alignItems: 'center' }}>
                                                                                         {description}
                                                                                     </Typography>
+                                                                                    {gitBook &&
+                                                                                        <>
+                                                                                            <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
+                                                                                                <Button
+                                                                                                    color='inherit'
+                                                                                                    target='_blank'
+                                                                                                    href={description}
+                                                                                                    sx={{borderRadius:'17px'}}
+                                                                                                >
+                                                                                                    <ArticleIcon sx={{mr:1}} /> GitBook
+                                                                                                </Button>
+                                                                                            </Box>
+                                                                                        </>
+                                                                                    }
                                                                                 </>
                                                                             }
                                                                         </>

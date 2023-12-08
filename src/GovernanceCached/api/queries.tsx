@@ -642,7 +642,7 @@ export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any,
 
 export const getAllProposalsFromAllPrograms = async () => {
     // default instance
-    console.log("Fetching Proposals from Default ProgramID");
+    console.log("Fetching Proposals from Default Gov ProgramID");
     const allProposals = await getAllProposalsIndexed (null, null, null);
     
     // prepare all custom programId instances and pass as a single fetch
@@ -656,6 +656,7 @@ export const getAllProposalsFromAllPrograms = async () => {
     });
 
     // passing uniqueOwners array will do everything in a single call
+    console.log("Fetching Proposals from Custom Gov Instances");
     const batch_props = await getAllProposalsIndexed(null, null, null, uniqueOwners); 
     allProposals.push(...batch_props);
     /*
@@ -676,7 +677,6 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
     try{
 
         const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, realmOwner, uniqueOwners) });
-        
         if (uniqueOwners && data){
             for (var ownerItem of uniqueOwners){
                 data[ownerItem.name+"_ProposalV2"] && data[ownerItem.name+"_ProposalV2"].map((account) => {
