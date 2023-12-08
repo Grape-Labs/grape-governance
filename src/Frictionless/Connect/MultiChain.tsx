@@ -119,7 +119,7 @@ function MultiChainOathView(props:any) {
     const [fromDisconnect, setFromDisconnect] = React.useState(false);
     const [generatedPin, setGeneratedPin] = React.useState(null);
     const [pinCode, setPinCode] = React.useState(null);
-    const [connectedAddress, setConnectedAddress] = React.useState(null);
+    const [connectedAddress, setConnectedAddress] = React.useState("");
     const [connectedUser, setConnectedUser] = React.useState(null);
     const [disconnectWallet, setDisconnectWallet] = React.useState(null);
     const [authMode, setAuthMode] = React.useState(null);
@@ -138,6 +138,7 @@ function MultiChainOathView(props:any) {
         setLoading(true)
         try {
           // handle login...
+
           generatePublicKeyFromString(connectedAddress);
           setLoading(false)
           setOpen(false);
@@ -155,7 +156,7 @@ function MultiChainOathView(props:any) {
       //if (primaryWallet)
       setOpen(true);
       setDisconnectWallet(true);
-      //getVotingParticipants();
+      setConnectedAddress(null);
     };
 
     const handleClose = () => {
@@ -164,8 +165,11 @@ function MultiChainOathView(props:any) {
 
     
     React.useEffect(() => {
-      if (connectedAddress)
+      if (connectedAddress){
+        //handleLogin();
         console.log("connectedAddress "+JSON.stringify(connectedAddress));
+      }
+        
     }, [connectedAddress])
     
     React.useEffect(() => {
@@ -320,7 +324,10 @@ function MultiChainOathView(props:any) {
                                   console.log(
                                     `onSignedMessage was called: ${messageToSign}, ${signedMessage}`
                                   );
-                                  handleLogin();
+                                  //const { authMode, primaryWallet, user } = useDynamicContext();
+                                  //const primaryWalletAddress = primaryWallet?.address;
+                                  
+                                  //handleLogin(primaryWalletAddress);
                                 },
                                 onLinkSuccess: () => {
                                   console.log("Link Success!")
@@ -329,11 +336,15 @@ function MultiChainOathView(props:any) {
                                   console.log(
                                     `Email Verification Success!`
                                   );
-                                  handleLogin();
+                                  //const { authMode, primaryWallet, user } = useDynamicContext();
+                                  //const userEmail = user?.email;
+                                  //handleLogin(userEmail);
                                 },
                                 onAuthSuccess: () => {
                                   console.log("OAuth Verification Success!")
-                                  handleLogin();
+                                  //const { authMode, primaryWallet, user } = useDynamicContext();
+                                  //const userHandle = user?.username || user?.verifiedCredentials[0].oauthUsername;
+                                  //handleLogin(userHandle);
                                 }
                               },
                             }}> 
