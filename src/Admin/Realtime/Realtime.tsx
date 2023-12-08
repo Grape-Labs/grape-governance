@@ -81,6 +81,7 @@ import { createCastVoteTransaction } from '../../utils/governanceTools/component
 import { GovernanceProposalDialog } from '../../GovernanceCached/GovernanceProposalDialog';
 import moment from 'moment';
 
+import ArticleIcon from '@mui/icons-material/Article';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import HistoryIcon from '@mui/icons-material/History';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
@@ -471,6 +472,7 @@ function TablePaginationActions(props) {
         const draftAt = props.draftAt;
         const item = props?.item;
         const [gist, setGist] = React.useState(null);
+        const [gDocs, setGoogleDocs] = React.useState(null);
 
         const [governanceInfo, setGovernanceInfo] = React.useState(null);
 
@@ -499,23 +501,31 @@ function TablePaginationActions(props) {
                 const url = new URL(cleanString);
                 const pathname = url.pathname;
                 const parts = pathname.split('/');
-                //console.log("pathname: "+pathname)
+                console.log("pathname: "+pathname)
+                console.log("hostname: "+url.hostname)
+                
                 let tGist = null;
                 if (parts.length > 1)
                     tGist = parts[2];
                 
-                setGist(tGist);
                 
-                const rpd = await resolveProposalDescription(description);
-    
-                // Regular expression to match image URLs
-                const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
-                const stringWithPreviews = rpd.replace(imageUrlRegex, (match:any, imageUrl:any) => {
-                    return "![Image X]("+imageUrl+")";
-                });
-                
-    
-                setDescriptionMarkdown(rpd);
+                if (url.hostname === "gist.github.com"){
+
+                    setGist(tGist);
+                    
+                    const rpd = await resolveProposalDescription(description);
+        
+                    // Regular expression to match image URLs
+                    const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
+                    const stringWithPreviews = rpd.replace(imageUrlRegex, (match:any, imageUrl:any) => {
+                        return "![Image X]("+imageUrl+")";
+                    });
+                    
+        
+                    setDescriptionMarkdown(rpd);
+                } else if (url.hostname === "docs.google.com") {
+                    setGoogleDocs(tGist);
+                }
             } catch(e){
                 console.log("ERR: "+e)
             }
@@ -641,17 +651,49 @@ function TablePaginationActions(props) {
                                                                 </Box>
                                                                 :
                                                                 <>
-                                                                    {description &&
+                                                                    {gDocs ?
+                                                                    <>
+                                                                        <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
+                                                                            <Grid
+                                                                                style={{
+                                                                                    border: 'none',
+                                                                                    padding:4,
+                                                                                }} 
+                                                                            >
+                                                                                <iframe src={description} width="100%" height="500px"></iframe>
+                                                                            </Grid>
+                                                                                <>
+
+                                                                                    <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
+                                                                                        <Button
+                                                                                            color='inherit'
+                                                                                            target='_blank'
+                                                                                            href={description}
+                                                                                            sx={{borderRadius:'17px'}}
+                                                                                        >
+                                                                                            <ArticleIcon sx={{mr:1}} /> Google Docs
+                                                                                        </Button>
+                                                                                    </Box>
+                                                                                </>
+                                                                        </Box>
+                                                                    </>
+                                                                    :
                                                                         <>
-                                                                            <Typography variant="body1" 
-                                                                                color='gray' 
-                                                                                sx={{ display: 'flex', alignItems: 'center' }}>
-                                                                                {description}
-                                                                            </Typography>
+                                                                            {description &&
+                                                                                <>
+                                                                                    <Typography variant="body1" 
+                                                                                        color='gray' 
+                                                                                        sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                                        {description}
+                                                                                    </Typography>
+                                                                                </>
+                                                                            }
                                                                         </>
                                                                     }
                                                                 </>
                                                             }
+
+                                                            
                                                         
                                                         
                                                     </Grid>

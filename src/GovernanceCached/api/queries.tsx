@@ -274,7 +274,6 @@ function GET_QUERY_PROPOSALS(governanceArray?:string[], realmOwner?:string, prog
 
 
         if (!programIds){
-
             return gql`
                 query MyQuery {
                     ${programId}_ProposalV2(offset: 0) {
@@ -646,11 +645,10 @@ export const getAllProposalsFromAllPrograms = async () => {
     console.log("Fetching Proposals from Default ProgramID");
     const allProposals = await getAllProposalsIndexed (null, null, null);
     
+    // prepare all custom programId instances and pass as a single fetch
     const uniqueOwners = [];
-
     govOwners.forEach(govOwner => {
         const { owner, name, dao } = govOwner;
-
         const uniqueOwner = { owner, name, dao };
         if (!uniqueOwners.some(u => u.owner === owner)) {
         uniqueOwners.push(uniqueOwner);
@@ -680,7 +678,6 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
         const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, realmOwner, uniqueOwners) });
         
         if (uniqueOwners && data){
-            console.log("data: "+JSON.stringify(data));
             for (var ownerItem of uniqueOwners){
                 data[ownerItem.name+"_ProposalV2"] && data[ownerItem.name+"_ProposalV2"].map((account) => {
                     const options = account?.options?.map && account.options.map((option) => {
