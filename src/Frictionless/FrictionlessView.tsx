@@ -69,8 +69,6 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 
 import { parseMintNaturalAmountFromDecimalAsBN } from '../utils/grapeTools/helpers';
 
-
-
 import { 
   RPC_CONNECTION,
   FRICTIONLESS_WALLET,
@@ -820,6 +818,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
     //await openlogin.logout();
     setLoading(false)
   };
+
   return (
     <>
       <Grid

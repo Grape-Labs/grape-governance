@@ -116,7 +116,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 function MultiChainOathView(props:any) {
     const generatePublicKeyFromString = props.generatePublicKeyFromString;
     const setLoading = props.setLoading;
-
+    const [fromDisconnect, setFromDisconnect] = React.useState(false);
     const [generatedPin, setGeneratedPin] = React.useState(null);
     const [pinCode, setPinCode] = React.useState(null);
     const [connectedAddress, setConnectedAddress] = React.useState(null);
@@ -213,7 +213,7 @@ function MultiChainOathView(props:any) {
     function Profile() {
       const { authMode, primaryWallet, user } = useDynamicContext();
       
-      console.log("user: "+JSON.stringify(user))
+      //console.log("user: "+JSON.stringify(user))
 
       const primaryWalletAddress = primaryWallet?.address;
       const userEmail = user?.email;
@@ -240,7 +240,6 @@ function MultiChainOathView(props:any) {
         setConnectedUser(user);
         setConnectedAddress(primaryWalletAddress);
         setAuthMode(authMode);
-        
         return <><DisconnectComponent /></>
       }
     }
@@ -315,17 +314,24 @@ function MultiChainOathView(props:any) {
                               eventsCallbacks: {
                                 onSignedMessage: ({ messageToSign, signedMessage }) => {
                                   // here we can login no need to use the Profile
-                                  
-                                  /*
                                   console.log(
                                     `onSignedMessage was called: ${messageToSign}, ${signedMessage}`
-                                  );*/
+                                  );
+                                  handleLogin();
+                                },
+                                onLinkSuccess: () => {
+                                  console.log("Link Success!")
                                 },
                                 onEmailVerificationSuccess: () => {
                                   console.log(
                                     `Email Verification Success!`
                                   );
+                                  handleLogin();
                                 },
+                                onAuthSuccess: () => {
+                                  console.log("OAuth Verification Success!")
+                                  handleLogin();
+                                }
                               },
                             }}> 
                             <DynamicWidget 
