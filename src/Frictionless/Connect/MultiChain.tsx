@@ -227,16 +227,19 @@ function MultiChainOathView(props:any) {
       };
 
       if (userHandle){
+        console.log("using handle")
         setConnectedUser(userHandle);
-        setConnectedAddress(userEmail);
+        setConnectedAddress(userHandle);
         setAuthMode(authMode);
         return <><DisconnectComponent /></>
       }else if (userEmail){
+        console.log("using email")
         setConnectedUser(user);
         setConnectedAddress(userEmail);
         setAuthMode(authMode);
         return <><DisconnectComponent /></>
       } else if (primaryWalletAddress){
+        console.log("using wallet")
         setConnectedUser(user);
         setConnectedAddress(primaryWalletAddress);
         setAuthMode(authMode);
