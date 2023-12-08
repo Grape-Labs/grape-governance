@@ -657,13 +657,13 @@ export const getAllProposalsFromAllPrograms = async () => {
         }
     });
 
-    
-    const batch_props = await getAllProposalsIndexed(null, null, null, uniqueOwners); // mango
+    // passing uniqueOwners array will do everything in a single call
+    const batch_props = await getAllProposalsIndexed(null, null, null, uniqueOwners); 
     allProposals.push(...batch_props);
     /*
     for (var owner of uniqueOwners){
         console.log("Fetching Proposals from ProgramID: "+owner.name);
-        const props = await getAllProposalsIndexed(null, owner.name, null); // mango
+        const props = await getAllProposalsIndexed(null, owner.name, null);
         allProposals.push(...props);
     }
     */
