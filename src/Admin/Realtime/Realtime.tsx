@@ -660,7 +660,7 @@ function TablePaginationActions(props) {
                                                                                     padding:4,
                                                                                 }} 
                                                                             >
-                                                                                <iframe src={description} width="100%" height="500px"></iframe>
+                                                                                <iframe src={description} width="100%" height="500px" style={{"border": "none"}}></iframe>
                                                                             </Grid>
                                                                                 <>
 
@@ -691,7 +691,7 @@ function TablePaginationActions(props) {
                                                                         </>
                                                                     }
                                                                 </>
-                                                            }
+                                                                }
 
                                                             
                                                         

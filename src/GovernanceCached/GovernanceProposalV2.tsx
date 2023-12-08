@@ -102,6 +102,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import ArticleIcon from '@mui/icons-material/Article';
 import InfoIcon from '@mui/icons-material/Info';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLess from '@mui/icons-material/ExpandLess';
@@ -211,6 +212,7 @@ export function GovernanceProposalV2View(props: any){
     const [uniqueYes, setUniqueYes] = React.useState(0);
     const [uniqueNo, setUniqueNo] = React.useState(0);
     const [gist, setGist] = React.useState(null);
+    const [gDocs, setGoogleDocs] = React.useState(null);
     const [proposalDescription, setProposalDescription] = React.useState(null);
     const [thisGovernance, setThisGovernance] = React.useState(null);
     const [proposalAuthor, setProposalAuthor] = React.useState(null);
@@ -1235,18 +1237,22 @@ export function GovernanceProposalV2View(props: any){
             if (parts.length > 1)
                 tGist = parts[2];
             
-            setGist(tGist);
-            
-            const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
 
-            // Regular expression to match image URLs
-            const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
-            const stringWithPreviews = rpd.replace(imageUrlRegex, (match:any, imageUrl:any) => {
-                return "![Image X]("+imageUrl+")";
-            });
-            
+            if (url.hostname === "gist.github.com"){
 
-            setProposalDescription(rpd);
+                setGist(tGist);
+                
+                const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
+    
+                // Regular expression to match image URLs
+                const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
+                const stringWithPreviews = rpd.replace(imageUrlRegex, (match:any, imageUrl:any) => {
+                    return "![Image X]("+imageUrl+")";
+                });
+                setProposalDescription(rpd);
+            } else if (url.hostname === "docs.google.com") {
+                setGoogleDocs(tGist);
+            }
         } catch(e){
             console.log("ERR: "+e)
         }
@@ -2051,14 +2057,50 @@ export function GovernanceProposalV2View(props: any){
                                                 </Box>
                                             </Box>
                                             :
+                                            
                                             <>
-                                                {thisitem.account?.descriptionLink &&
+                                                {gDocs ?
+                                                <>
+                                                    <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
+                                                        <Grid
+                                                            style={{
+                                                                border: 'none',
+                                                                padding:4,
+                                                            }} 
+                                                        >
+                                                            <iframe src={thisitem.account?.descriptionLink} width="100%" height="500px" style={{"border": "none"}}></iframe>
+                                                        </Grid>
+                                                            <>
+
+                                                                <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
+                                                                    <Button
+                                                                        color='inherit'
+                                                                        target='_blank'
+                                                                        href={thisitem.account?.descriptionLink}
+                                                                        sx={{borderRadius:'17px'}}
+                                                                    >
+                                                                        <ArticleIcon sx={{mr:1}} /> Google Docs
+                                                                    </Button>
+                                                                </Box>
+                                                            </>
+                                                    </Box>
+                                                </>
+                                                :
                                                     <>
-                                                        <Typography variant='body1'>{thisitem.account?.descriptionLink}</Typography>
+                                                        {thisitem.account?.descriptionLink &&
+                                                            <>
+                                                                <Typography variant="body1" 
+                                                                    color='gray' 
+                                                                    sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                    {thisitem.account?.descriptionLink}
+                                                                </Typography>
+                                                            </>
+                                                        }
                                                     </>
                                                 }
                                             </>
                                         }
+                                        
                                     </Box>
                                 </Box>
                             </Grid>
