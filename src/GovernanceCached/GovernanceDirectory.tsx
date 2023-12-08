@@ -722,7 +722,7 @@ export function GovernanceDirectoryView(props: Props) {
                                             background: 'rgba(0, 0, 0, 0.2)',
                                         }}
                                     >
-                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'center'}}>
                                             <>Total Treasury Value</>
                                         </Typography>
                                         <Tooltip title={<>
@@ -757,7 +757,7 @@ export function GovernanceDirectoryView(props: Props) {
                                             background: 'rgba(0, 0, 0, 0.2)',
                                         }}
                                     >
-                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'center'}}>
                                             <>Total in Stable Coins</>
                                         </Typography>
                                         <Tooltip title={<>
@@ -793,7 +793,7 @@ export function GovernanceDirectoryView(props: Props) {
                                             background: 'rgba(0, 0, 0, 0.2)',
                                         }}
                                     >
-                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'center'}}>
                                             <>Total Treasury Sol Value</>
                                         </Typography>
                                         <Tooltip title={<>
@@ -829,7 +829,7 @@ export function GovernanceDirectoryView(props: Props) {
                                             background: 'rgba(0, 0, 0, 0.2)',
                                         }}
                                     >
-                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'center'}}>
                                             <>Total Treasury Sol</>
                                         </Typography>
                                         <Tooltip title={<>
@@ -864,7 +864,7 @@ export function GovernanceDirectoryView(props: Props) {
                                             background: 'rgba(0, 0, 0, 0.2)',
                                         }}
                                     >
-                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'center'}}>
                                             <>Unique Voters</>
                                         </Typography>
                                         <Tooltip title={<>
@@ -903,7 +903,7 @@ export function GovernanceDirectoryView(props: Props) {
                                             background: 'rgba(0, 0, 0, 0.2)',
                                         }}
                                     >
-                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'center'}}>
                                             <>Proposals</>
                                         </Typography>
                                         <Tooltip title={<>
@@ -938,7 +938,7 @@ export function GovernanceDirectoryView(props: Props) {
                                             background: 'rgba(0, 0, 0, 0.2)',
                                         }}
                                     >
-                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'left'}}>
+                                        <Typography variant="body2" sx={{color:'#2ecc71', textAlign:'center'}}>
                                             <>Voters Participating in Multisigs</>
                                         </Typography>
                                         <Tooltip title={<>
