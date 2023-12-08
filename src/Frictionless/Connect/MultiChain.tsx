@@ -213,6 +213,8 @@ function MultiChainOathView(props:any) {
     function Profile() {
       const { authMode, primaryWallet, user } = useDynamicContext();
       
+      console.log("user: "+JSON.stringify(user))
+
       const primaryWalletAddress = primaryWallet?.address;
       const userEmail = user?.email;
       //const twitterHandle = user?.identities.find(identity => identity.provider === 'twitter')?.username;
