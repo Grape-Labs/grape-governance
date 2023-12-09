@@ -58,7 +58,8 @@ import {
 import { 
   getRealmIndexed,
   getAllProposalsIndexed,
-  getAllGovernancesIndexed
+  getAllGovernancesIndexed,
+  getAllTokenOwnerRecordsIndexed,
 } from '../GovernanceCached/api/queries';
 
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
@@ -377,15 +378,16 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
         
         let txid = null;
         
-        const foundRecord = findGoverningTokenOwner(tokenOwnerRecords, realmPk, generatedWallet.publicKey);
+        let foundRecord = findGoverningTokenOwner(tokenOwnerRecords, realmPk, generatedWallet.publicKey);
 
         if (!foundRecord){
           console.log("Creating Governance Token Owner Record "+generatedWallet.publicKey.toBase58());
           txid = await createAndSendV0Tx([...ixCreateTokenOwnerRecord, ...ixDepositGoverningTokens], fromKeypair, null, "Creating Blockchain Record");
 
-          await sleep(20000);
-
+          await sleep(4000);
+          
           tokenOwnerRecords = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, generatedWallet.publicKey);
+          foundRecord = findGoverningTokenOwner(tokenOwnerRecords, realmPk, generatedWallet.publicKey);
         } else{
           console.log("Governance Token Owner Record Exists");
         }
