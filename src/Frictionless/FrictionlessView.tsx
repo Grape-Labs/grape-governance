@@ -383,7 +383,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
           console.log("Creating Governance Token Owner Record "+generatedWallet.publicKey.toBase58());
           txid = await createAndSendV0Tx([...ixCreateTokenOwnerRecord, ...ixDepositGoverningTokens], fromKeypair, null, "Creating Blockchain Record");
 
-          await sleep(4000);
+          await sleep(8000);
 
           tokenOwnerRecords = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, generatedWallet.publicKey);
         } else{
