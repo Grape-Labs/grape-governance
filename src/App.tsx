@@ -195,7 +195,7 @@ function DashboardContent() {
                               
                               <Routes>
 
-                                <Route path="beta/*" element={<FrictionlessView />} >
+                                <Route path="/*" element={<FrictionlessView />} >
                                     <Route path=":handlekey" element={<FrictionlessView />} />
                                 </Route>
                               </Routes>
