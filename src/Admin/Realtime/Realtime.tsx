@@ -280,18 +280,22 @@ function TablePaginationActions(props) {
   
     const handleFirstPageButtonClick = (event) => {
         onPageChange(event, 0);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleBackButtonClick = (event) => {
         onPageChange(event, page - 1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
   
     const handleNextButtonClick = (event) => {
         onPageChange(event, page + 1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
   
     const handleLastPageButtonClick = (event) => {
         onPageChange(event, Math.max(0, Math.ceil(count / rowsPerPage) - 1));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     
     return (
