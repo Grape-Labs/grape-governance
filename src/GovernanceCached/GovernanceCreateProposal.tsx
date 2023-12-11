@@ -616,8 +616,7 @@ export default function GovernanceCreateProposalView(props: any){
               >Intra DAO: Grant DAO Voting Power</MenuItem>
               <Divider/>
               <MenuItem value={9}
-                disabled
-                //disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
+                disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
               >Swap</MenuItem>
               <MenuItem value={8} 
                 disabled={(
@@ -1533,17 +1532,17 @@ export default function GovernanceCreateProposalView(props: any){
                                 <JupiterDCAView payerWallet={publicKey} pluginType={8} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
-                            {/*proposalType === 9 &&
+                            {proposalType === 9 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <JupiterSwapView payerWallet={publicKey} pluginType={9} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
-                            */}
+                            }
 
-                            {proposalType === 9 &&
+                            {/*proposalType === 9 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <PhoenixSwapView payerWallet={publicKey} pluginType={9} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
-                            }
+                            */}
 
 
 

@@ -929,9 +929,9 @@ export default function JupiterDCAView(props: any) {
                                 </Grid>
                                 :<></>
                             }
-                            {(periodDuration > 0 && periodDuration < 2) ?
+                            {(periodDuration > 0 && periodDuration < 1) ?
                                 <Grid sx={{textAlign:'right',}}>
-                                    <Typography variant="caption" color="error">At least 2 cycles are needed</Typography>
+                                    <Typography variant="caption" color="error">At least 1 cycles are needed</Typography>
                                 </Grid>
                                 :<></>
                             }
@@ -940,7 +940,7 @@ export default function JupiterDCAView(props: any) {
                         }
                     </Grid>  
                 </Grid>
-
+                
                 <FormControl fullWidth>
                     <FormGroup>
                         <FormControlLabel

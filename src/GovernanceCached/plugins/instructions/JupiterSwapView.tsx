@@ -173,7 +173,7 @@ export default function JupiterSwapView(props: any) {
         const fromMintAddressPk = new PublicKey(tokenMint);
         const toMintAddressPk = new PublicKey(toMintAddress);
         //const dca = new DCA(connection, Network.MAINNET);
-        let toDecimals = 6;
+        let toDecimals = 0;
         let fromDecimals = tokenDecimals;
 
         for (var item of availableTokens){
@@ -201,10 +201,9 @@ export default function JupiterSwapView(props: any) {
         
         let integerTokenAmount = Math.floor(tokenAmount * Math.pow(10, fromDecimals));
         const inAmount = BigInt(integerTokenAmount);
-        console.log("inAmount: "+inAmount);
         
         const quoteResponse = await (
-            await fetch('https://quote-api.jup.ag/v6/quote?inputMint='+tokenMint+'&outputMint='+toMintAddress+'&amount='+tokenAmount+'&slippageBps=50&maxAccounts=54'
+            await fetch('https://quote-api.jup.ag/v6/quote?inputMint='+tokenMint+'&outputMint='+toMintAddress+'&amount='+inAmount+'&slippageBps=50&maxAccounts=54'
             )
           ).json();
         
@@ -228,6 +227,7 @@ export default function JupiterSwapView(props: any) {
             ).json();
 
             */
+
             const transactions = await (
                 await fetch('https://quote-api.jup.ag/v6/swap', {
                 method: 'POST',
@@ -251,80 +251,86 @@ export default function JupiterSwapView(props: any) {
                 })
             ).json();
             
-            const { swapTransaction } = transactions;
+            if (transactions){
+                const { swapTransaction } = transactions;
 
-            //const { tx, dcaPubKey } = await dca.createDCA(params);
-            
-            //const latestBlockHash = await connection.getLatestBlockhash();
-            //tx.recentBlockhash = latestBlockHash;
+                //const { tx, dcaPubKey } = await dca.createDCA(params);
+                
+                //const latestBlockHash = await connection.getLatestBlockhash();
+                //tx.recentBlockhash = latestBlockHash;
 
-            //console.log("DCA B64: "+tx.serializeMessage().toString("base64"));
-            //setPayerInstructions(pTransaction);
-            
-            const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
-            
-            const tx = Transaction.from(swapTransactionBuf);
-            
-            let transaction = VersionedTransaction.deserialize(swapTransactionBuf);
-            
-            //const rawTx = transaction.serialize();
-            //const deserializedTransaction = Transaction.from(swapTransactionBuf);
-            
-            /*
-            const {
-                tokenLedgerInstruction, // If you are using `useTokenLedger = true`.
-                computeBudgetInstructions, // The necessary instructions to setup the compute budget.
-                setupInstructions, // Setup missing ATA for the users.
-                swapInstruction: swapInstructionPayload, // The actual swap instruction.
-                cleanupInstruction, // Unwrap the SOL if `wrapAndUnwrapSol = true`.
-                addressLookupTableAddresses, // The lookup table addresses that you can use if you are using versioned transaction.
-              } = instructions;
-              
-              //const addressLookupTableAccounts: AddressLookupTableAccount[] = [];
-              
-              console.log("instructions: "+JSON.stringify(instructions));
+                //console.log("DCA B64: "+tx.serializeMessage().toString("base64"));
+                //setPayerInstructions(pTransaction);
+                
+                const swapTransactionBuf = Buffer.from(swapTransaction, 'base64');
+                
+                const tx = Transaction.from(swapTransactionBuf);
+                
+                let transaction = VersionedTransaction.deserialize(swapTransactionBuf);
+                
+                //const rawTx = transaction.serialize();
+                //const deserializedTransaction = Transaction.from(swapTransactionBuf);
+                
+                /*
+                const {
+                    tokenLedgerInstruction, // If you are using `useTokenLedger = true`.
+                    computeBudgetInstructions, // The necessary instructions to setup the compute budget.
+                    setupInstructions, // Setup missing ATA for the users.
+                    swapInstruction: swapInstructionPayload, // The actual swap instruction.
+                    cleanupInstruction, // Unwrap the SOL if `wrapAndUnwrapSol = true`.
+                    addressLookupTableAddresses, // The lookup table addresses that you can use if you are using versioned transaction.
+                } = instructions;
+                
+                //const addressLookupTableAccounts: AddressLookupTableAccount[] = [];
+                
+                console.log("instructions: "+JSON.stringify(instructions));
 
-              const swapInstruction = new TransactionInstruction({
-                programId: new PublicKey(swapInstructionPayload.programId),
-                keys: swapInstructionPayload.accounts.map((key) => ({
-                  pubkey: new PublicKey(key.pubkey),
-                    isSigner: key.isSigner,
-                    isWritable: key.isWritable,
-                  })),
-                data: Buffer.from(swapInstructionPayload.data, "base64"),
-              });
+                const swapInstruction = new TransactionInstruction({
+                    programId: new PublicKey(swapInstructionPayload.programId),
+                    keys: swapInstructionPayload.accounts.map((key) => ({
+                    pubkey: new PublicKey(key.pubkey),
+                        isSigner: key.isSigner,
+                        isWritable: key.isWritable,
+                    })),
+                    data: Buffer.from(swapInstructionPayload.data, "base64"),
+                });
 
-            console.log("tx: "+JSON.stringify(swapInstruction));
+                console.log("tx: "+JSON.stringify(swapInstruction));
 
-           //tx.add(new TransactionInstruction(instructions));
-            const tx = new Transaction();
-            */
-            //tx.add(swapInstruction);
-            
-            
-            const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
-            tx.recentBlockhash = latestBlockHash;
-            tx.feePayer = fromWalletAddress;
-            const simulationResult = await connection.simulateTransaction(tx);
-            if (simulationResult?.err) {
-                console.error('Transaction simulation failed:', simulationResult);
-                return;
-            }else{
-                console.log('simulationResult: '+JSON.stringify(simulationResult));
-                const computeUnits = simulationResult.value?.unitsConsumed; //simulationResult.value?.transaction?.message.recentBlockhashFeeCalculator.totalFees;
-                //const lamportsPerSol = 1000000000;
-                const sol = computeUnits / 10 ** 9;
-                console.log(`Estimated fee: ${sol}`);
-                //setTransactionEstimatedFee(sol);//feeInLamports/10 ** 9;
+            //tx.add(new TransactionInstruction(instructions));
+                const tx = new Transaction();
+                */
+                //tx.add(swapInstruction);
+                
+                const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
+                tx.recentBlockhash = latestBlockHash;
+                tx.feePayer = fromWalletAddress;
+                
+                /*
+                const simulationResult = await connection.simulateTransaction(tx);
+                if (simulationResult?.err) {
+                    console.error('Transaction simulation failed:', simulationResult);
+                    return;
+                }else{
+                    console.log('simulationResult: '+JSON.stringify(simulationResult));
+                    const computeUnits = simulationResult.value?.unitsConsumed; //simulationResult.value?.transaction?.message.recentBlockhashFeeCalculator.totalFees;
+                    //const lamportsPerSol = 1000000000;
+                    const sol = computeUnits / 10 ** 9;
+                    console.log(`Estimated fee: ${sol}`);
+                    //setTransactionEstimatedFee(sol);//feeInLamports/10 ** 9;
+                }
+                */
+
+                /*
+                const serializedTransaction = swapTransaction.serialize();
+                const transactionSize = serializedTransaction.length;
+                console.log(`Transaction size: ${transactionSize} bytes`);
+                */
+                setTransactionInstructions(tx);
+                // Estimate the transaction fee
+            } else{
+                console.log("No Tx for Swap!");
             }
-
-            /*
-            const serializedTransaction = swapTransaction.serialize();
-            const transactionSize = serializedTransaction.length;
-            console.log(`Transaction size: ${transactionSize} bytes`);
-            */
-            setTransactionInstructions(tx);
-            // Estimate the transaction fee
         }
         return null; 
     }
