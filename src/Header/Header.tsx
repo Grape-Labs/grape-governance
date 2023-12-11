@@ -445,7 +445,7 @@ export function Header(props: any) {
                         }
 
                         <ListItem disablePadding>
-                            <Tooltip title={`back to Directory`} placement="right" arrow>
+                            <Tooltip title={`Realtime Proposals`} placement="right" arrow>
                                 <ListItemButton 
                                     component={Link}
                                     to={'/realtime'}
