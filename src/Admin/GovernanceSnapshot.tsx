@@ -2646,13 +2646,16 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                 console.log("Adding new Governance to Lookup");
                 //console.log("governanceFetchedDetails "+JSON.stringify(governanceFetchedDetails))
                 let communityFmtSupplyFractionPercentage = null;
-                if (this_realm.account.config?.communityMintMaxVoteWeightSource)
-                    communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
+                try{
+                    if (this_realm.account.config?.communityMintMaxVoteWeightSource)
+                        communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
+                } catch(err){
+                    console.log("ERR: communityFmtSupplyFractionPercentage")
+                }
                 //let memberCount = 0;
                 //if (memberMap)
                 //    memberCount = new Set(memberMap).size; // memberMap.length;
-                
-                freshGovernanceLookup.push({
+                const newItem = {
                     governanceAddress:govAddress,
                     governanceName:governanceFetchedDetails?.governanceName,
                     version:0,
@@ -2682,7 +2685,8 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                     totalVaultNftValue: governanceFetchedDetails?.totalVaultNftValue,
                     communityMint: communityMint,
                     councilMint: councilMint,
-                });
+                }
+                freshGovernanceLookup.push(newItem);
             }
             
             //console.log("lookup: "+JSON.stringify(lookup))
@@ -2710,9 +2714,12 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
         } else{ // create governanceLookup
 
             let communityFmtSupplyFractionPercentage = null;
-            if (this_realm.account.config?.communityMintMaxVoteWeightSource)
-                communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
-
+            try{
+                if (this_realm.account.config?.communityMintMaxVoteWeightSource)
+                    communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
+            } catch(err){
+                console.log("ERR: communityFmtSupplyFractionPercentage")
+            }
             lookup.push({
                 governanceAddress:govAddress,
                 governanceName:governanceFetchedDetails?.governanceName,
