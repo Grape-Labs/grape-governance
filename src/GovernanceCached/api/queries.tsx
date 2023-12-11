@@ -643,7 +643,7 @@ export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any,
 
 export const getAllProposalsFromAllPrograms = async () => {
     // default instance
-    console.log("Fetching Proposals from Default Gov ProgramID");
+    console.log("Fetching Proposals from Default Governance ProgramID");
     const allProposals = await getAllProposalsIndexed (null, null, null);
     
     // prepare all custom programId instances and pass as a single fetch
@@ -657,7 +657,7 @@ export const getAllProposalsFromAllPrograms = async () => {
     });
 
     // passing uniqueOwners array will do everything in a single call
-    console.log("Fetching Proposals from Custom Gov Instances");
+    console.log("Fetching Proposals from Custom Governance Deployments");
     const batch_props = await getAllProposalsIndexed(null, null, null, uniqueOwners); 
     allProposals.push(...batch_props);
     /*

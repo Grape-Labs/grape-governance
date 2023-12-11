@@ -464,6 +464,15 @@ function TablePaginationActions(props) {
           return "";
         }
       };
+
+    function isValidURL(urlString:string) {
+        try {
+          const url = new URL(urlString);
+          return true;
+        } catch (error) {
+          return false;
+        }
+    }
     
     function GetGovernanceFromRulesView(props:any){
         const governanceLookup = props.governanceLookup;
@@ -504,7 +513,8 @@ function TablePaginationActions(props) {
             try{
                 const cleanString = description.replace(/(\s+)(https?:\/\/[a-zA-Z0-9\.\/]+)/g, '$2');
                 
-                if (cleanString && cleanString.length > 0 && cleanString.includes('http')) {
+                if (cleanString && cleanString.length > 0 && isValidURL(description)) {
+
                         const url = new URL(cleanString);
 
                         const pathname = url.pathname;
@@ -1234,8 +1244,9 @@ export function GovernanceRealtimeView(props: any) {
     const getGovernanceParameters = async () => {
         if (!loading){
             
-
             startTimer();
+            setAllProposals(null);
+            setProposals(null);
             setLoading(true);
             try{
                 

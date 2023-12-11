@@ -67,6 +67,7 @@ import ClickAwayListener from '@mui/base/ClickAwayListener';
 
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 
+import PodcastsIcon from '@mui/icons-material/Podcasts';
 import HomeIcon from '@mui/icons-material/Home';
 import PersonIcon from '@mui/icons-material/Person';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -442,6 +443,18 @@ export function Header(props: any) {
                                 </Tooltip>
                             </ListItem>
                         }
+
+                        <ListItem disablePadding>
+                            <Tooltip title={`back to Directory`} placement="right" arrow>
+                                <ListItemButton 
+                                    component={Link}
+                                    to={'/realtime'}
+                                >
+                                <ListItemIcon><PodcastsIcon/></ListItemIcon>
+                                <Typography variant="h6">Realtime</Typography>
+                                </ListItemButton>
+                            </Tooltip>
+                        </ListItem>
 
                         <ListItem disablePadding>
                             <Tooltip title={`*tools for whitelisted addresses`} placement="right" arrow>

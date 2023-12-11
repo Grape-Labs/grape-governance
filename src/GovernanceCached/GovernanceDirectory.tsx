@@ -705,7 +705,22 @@ export function GovernanceDirectoryView(props: Props) {
 
                     {(!searchFilter || (searchFilter && searchFilter.length <= 0)) &&
                     <>
-                        <Box sx={{mb:2}}>
+                        {/*
+                        <Box sx={{mb:1}}>
+                            <Box
+                                sx={{ 
+                                    mb: 1, 
+                                    width: '100%',
+                                    background: 'rgba(0,0,0,0.2)',
+                                    borderRadius: '17px'
+                                }}
+                            > 
+                                Realtime
+                            </Box>
+                        </Box>
+                        */}
+                        
+                        <Box sx={{mb:1}}>
                             <GovernanceRealtimeInfo governanceLookup={governanceLookup} governanceAddress={"GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"} title={'Latest Activity'} expanded={true} />
                         </Box>
                         
