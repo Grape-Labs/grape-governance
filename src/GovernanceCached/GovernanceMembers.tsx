@@ -207,7 +207,7 @@ function RenderGovernanceMembersTable(props:any) {
                 )
             }
         },
-        { field: 'unstaked', headerName: 'Not Staked', width: 170, headerAlign: 'center', align: 'right',
+        { field: 'unstaked', headerName: 'Not Staked', width: 170, headerAlign: 'center', align: 'right', hide: true,
             renderCell: (params) => {
                 return(
                     <Typography variant="caption">
