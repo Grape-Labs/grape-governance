@@ -141,7 +141,7 @@ function GET_QUERY_PROPOSALS(governanceArray?:string[], realmOwner?:string, prog
     if (governanceArray){
         return gql`
             query MyQuery {
-                ${programId}_ProposalV2(offset: 0, where: {governance: {_in: [${governanceArray.map(pubkey => `"${pubkey}"`).join(', ')}]}}) {
+                ${programId}_ProposalV2(offset: 0, order_by: {draftAt: desc}, where: {governance: {_in: [${governanceArray.map(pubkey => `"${pubkey}"`).join(', ')}]}}) {
                 pubkey
                 abstainVoteWeight
                 closedAt
@@ -171,7 +171,7 @@ function GET_QUERY_PROPOSALS(governanceArray?:string[], realmOwner?:string, prog
                 votingAtSlot
                 votingCompletedAt
                 }
-                ${programId}_ProposalV1(offset: 0, where: {governance: {_in: [${governanceArray.map(pubkey => `"${pubkey}"`).join(', ')}]}}) {
+                ${programId}_ProposalV1(offset: 0, order_by: {draftAt: desc}, where: {governance: {_in: [${governanceArray.map(pubkey => `"${pubkey}"`).join(', ')}]}}) {
                 pubkey
                 closedAt
                 descriptionLink
@@ -208,7 +208,7 @@ function GET_QUERY_PROPOSALS(governanceArray?:string[], realmOwner?:string, prog
             for (var item of programIds){
                 //if (cnt < 2)
                 query += `
-                    ${item.name}_ProposalV2(offset: 0) {
+                    ${item.name}_ProposalV2(offset: 0, order_by: {draftAt: desc}) {
                         pubkey
                         abstainVoteWeight
                         closedAt
@@ -238,7 +238,7 @@ function GET_QUERY_PROPOSALS(governanceArray?:string[], realmOwner?:string, prog
                         votingAtSlot
                         votingCompletedAt
                     }
-                    ${item.name}_ProposalV1(offset: 0) {
+                    ${item.name}_ProposalV1(offset: 0, order_by: {draftAt: desc}) {
                         pubkey
                         closedAt
                         descriptionLink
@@ -277,7 +277,7 @@ function GET_QUERY_PROPOSALS(governanceArray?:string[], realmOwner?:string, prog
         if (!programIds){
             return gql`
                 query MyQuery {
-                    ${programId}_ProposalV2(offset: 0) {
+                    ${programId}_ProposalV2(offset: 0, order_by: {draftAt: desc}) {
                         pubkey
                         abstainVoteWeight
                         closedAt
@@ -307,7 +307,7 @@ function GET_QUERY_PROPOSALS(governanceArray?:string[], realmOwner?:string, prog
                         votingAtSlot
                         votingCompletedAt
                     }
-                    ${programId}_ProposalV1(offset: 0) {
+                    ${programId}_ProposalV1(offset: 0, order_by: {draftAt: desc}) {
                         pubkey
                         closedAt
                         descriptionLink
