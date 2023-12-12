@@ -100,12 +100,12 @@ const govOwners = [
         owner: 'jdaoDN37BrVRvxuXSeyR7xE5Z9CAoQApexGrQJbnj6V',
         name: 'JungleDeFi_DAO',
         dao: '5g94Ver64ruf9CGBL3k2oQGdKCUt4QKjN7NQojSrHAwH'
-    },/*
+    },
     {
         owner: 'jtogvBNH3WBSWDYD5FJfQP2ZxNTuf82zL8GkEhPeaJx',
         name: 'Jito',
         dao: 'jjCAwuuNpJCNMLAanpwgJZ6cdXzLPXe2GfD6TaDQBXts'
-    },*/
+    },
 ]
 
 function findGovOwnerByDao(dao:string) {
@@ -655,6 +655,7 @@ export const getAllProposalsFromAllPrograms = async () => {
         uniqueOwners.push(uniqueOwner);
         }
     });
+    console.log("allProposals: "+JSON.stringify(allProposals))
 
     // passing uniqueOwners array will do everything in a single call
     console.log("Fetching Proposals from Custom Governance Deployments");
