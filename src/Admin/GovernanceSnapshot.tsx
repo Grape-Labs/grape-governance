@@ -1148,6 +1148,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         const govTx = new Array();
         let tmpOffset = 0;
         // before checking solscan, fetch what we already have:
+        
         if (governanceLookupItem?.governanceTransactionsFilename){
             console.log("governanceLookupItem: "+JSON.stringify(governanceLookupItem));
             const cached_transaction_map = await getFileFromLookup(governanceLookupItem.governanceTransactionsFilename, storagePool);
@@ -1162,17 +1163,17 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 offset = tmpOffset;
                 console.log("Offset updated to calculated offset: "+tmpOffset)
                 // given that offset here will be smaller than what we have cached push those items out
-                /*
-                const offsetDiff = cached_transaction_map.length - offset;
+                
+                //const offsetDiff = cached_transaction_map.length - offset;
 
                 // Remove items from the end of the govTx array based on offsetDiff
-                if (offsetDiff > 0) {
-                    govTx.splice(-offsetDiff);
-                }
-                */
+                //if (offsetDiff > 0) {
+                //    govTx.splice(-offsetDiff);
+                //}
+                
             }
         }
-
+        
         // now with what is missing check solscan
         let cntoff = 0;
         offset = 0; // so offset is not serving its purpose because items are pushed to the front!
@@ -1180,7 +1181,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         let govFreshTx = new Array();
         while (hasnext){
             if (setPrimaryStatus) setPrimaryStatus("Fetching Governance Transactions ("+(offset+1)+" - "+(offset+limit)+")");
-            const apiUrl = "https://api.solscan.io/account/token/txs";
+            //const apiUrl = "https://api.solscan.io/account/token/txs";
+            const apiUrl = "https://api.solscan.io/v2/account/token/txs";
             
             const response = await axios.get(
                 apiUrl, {

@@ -685,7 +685,9 @@ function GetParticipants(props: any){
                 transactionData,
                 memberMap,
                 null,
-                isCommunityVote
+                isCommunityVote,
+                null,
+                null,
             );
 
             try{

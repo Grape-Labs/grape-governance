@@ -8,6 +8,7 @@ import {
     TransactionInstruction,
     sendAndConfirmTransaction,
   } from "@solana/web3.js";
+  import { AnchorProvider, Wallet } from '@coral-xyz/anchor'
   
 //  import { SPL_PUBLIC_KEY, RPC_CONNECTION } from "../constants/Solana";
 import { RPC_CONNECTION } from '../../../../utils/grapeTools/constants';  
@@ -23,7 +24,6 @@ import {
   
 } from "@solana/spl-governance";
 // plugin stuff
-import { Wallet } from "@project-serum/anchor";
 import { VsrClient } from "@blockworks-foundation/voter-stake-registry-client/index";
 import {
   getRegistrarPDA,
@@ -85,29 +85,31 @@ export const createCastVoteTransaction = async (
 
       //console.log("realm: "+JSON.stringify(selectedRealm));
 
-      if (new PublicKey(selectedRealm.pubkey).toBase58() === "DA5G7QQbFioZ6K33wQcH8fVdgFcnaDjLD7DLQkapZg5X") {
+      if (new PublicKey(selectedRealm!.pubkey).toBase58() === "DA5G7QQbFioZ6K33wQcH8fVdgFcnaDjLD7DLQkapZg5X") {
         programVersion = 2;
       } else {
         programVersion = await getGovernanceProgramVersion(
           connection,
-          new PublicKey(selectedRealm.owner)
+          new PublicKey(selectedRealm!.owner)
         );
       }
-    
+      
       // PLUGIN STUFF
-      // let votePlugin;
+      /*
+      let votePlugin;
       // // TODO: update this to handle any vsr plugin, rn only runs for mango dao
-      // if (
-      //   selectedRealm?.realmId ===
-      //   "DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE"
-      // ) {
-      //   votePlugin = await getVotingPlugin(
-      //     selectedRealm,
-      //     walletKeypair,
-      //     new PublicKey(tokenOwnerRecord.walletId),
-      //     instructions
-      //   );
-      // }
+       if (
+         selectedRealm!.pubkey ===
+         "DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE"
+       ) {
+         votePlugin = await getVotingPlugin(
+           selectedRealm,
+           undefined,
+           new PublicKey(tokenOwnerRecord.walletId),
+           instructions
+         );
+      }
+      */
       // END PLUGIN STUFF
       
 
@@ -249,8 +251,8 @@ export const createCastVoteTransaction = async (
     walletPubkey: any,
     instructions: any
   ) => {
-    const options = Provider.defaultOptions();//AnchorProvider.defaultOptions();
-    const provider = new Provider(
+    const options = AnchorProvider.defaultOptions();//AnchorProvider.defaultOptions();
+    const provider = new AnchorProvider(
       connection,
       walletKeypair as unknown as Wallet,
       options

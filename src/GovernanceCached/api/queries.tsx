@@ -15,7 +15,7 @@ import {
     tryGetRealmConfig, 
     getRealmConfig  } from '@solana/spl-governance';
 
-const govOwners = [
+export const govOwners = [
     {
         owner: 'GovMaiHfpVPw8BAM1mbdzgmSZYDw2tdP32J2fapoQoYs',
         name: 'Marinade_DAO',
