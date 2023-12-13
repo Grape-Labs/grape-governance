@@ -1153,6 +1153,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             console.log("governanceLookupItem: "+JSON.stringify(governanceLookupItem));
             const cached_transaction_map = await getFileFromLookup(governanceLookupItem.governanceTransactionsFilename, storagePool);
             console.log("HERE cached_transaction_map: "+JSON.stringify(cached_transaction_map))
+            
             if (cached_transaction_map){
                 console.log("calculated length: "+cached_transaction_map.length);
                 for (const item of cached_transaction_map) {
@@ -1235,11 +1236,12 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             } else{
                 hasnext = false;
             }
+            
             console.log("ending loop")
         }
 
-        //if (govFreshTx && govFreshTx.length > 0)
-        //    govTx.unshift(govFreshTx);
+        if (govFreshTx && govFreshTx.length > 0)
+            govTx.unshift(govFreshTx);
 
         console.log("SOLSCAN Skipped Final: "+cntoff);
         //setGovernanceTransactions(govTx);
@@ -1718,7 +1720,7 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
                                 if (!forceSkip)
                                     skip_process = true;
                             }
-                            
+
                             /*
                                 const GOVERNANCE_STATE = {
                                     0:'Draft',
