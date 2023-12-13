@@ -1152,7 +1152,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         if (governanceLookupItem?.governanceTransactionsFilename){
             console.log("governanceLookupItem: "+JSON.stringify(governanceLookupItem));
             const cached_transaction_map = await getFileFromLookup(governanceLookupItem.governanceTransactionsFilename, storagePool);
-            console.log("HERE cached_transaction_map: "+JSON.stringify(cached_transaction_map))
+            //console.log("HERE cached_transaction_map: "+JSON.stringify(cached_transaction_map))
             
             if (cached_transaction_map){
                 console.log("calculated length: "+cached_transaction_map.length);

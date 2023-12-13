@@ -278,22 +278,22 @@ function TablePaginationActions(props) {
     const theme = useTheme();
     const { count, page, rowsPerPage, onPageChange } = props;
   
-    const handleFirstPageButtonClick = (event) => {
+    const handleFirstPageButtonClick = (event:any) => {
         onPageChange(event, 0);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleBackButtonClick = (event) => {
+    const handleBackButtonClick = (event:any) => {
         onPageChange(event, page - 1);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
   
-    const handleNextButtonClick = (event) => {
+    const handleNextButtonClick = (event:any) => {
         onPageChange(event, page + 1);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
   
-    const handleLastPageButtonClick = (event) => {
+    const handleLastPageButtonClick = (event:any) => {
         onPageChange(event, Math.max(0, Math.ceil(count / rowsPerPage) - 1));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -353,7 +353,7 @@ function TablePaginationActions(props) {
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
     const governanceLookup = props.governanceLookup;
-
+    
     // Avoid a layout jump when reaching the last page with empty rows.
     const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - proposals.length) : 0;
     

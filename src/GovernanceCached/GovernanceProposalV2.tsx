@@ -925,8 +925,17 @@ export function GovernanceProposalV2View(props: any){
                                         //console.log("instructionItem.account.instructions[0].data "+JSON.stringify(instructionItem.account.instructions[0].data))
                                         //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
                                         //console.log("instructionItem.account.instructions[0].data "+buffer.toString("utf-8"))
-
-                                    }else if (programId === "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"){
+                                    } else if (programId === "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"){
+                                        if (instructionItem.account.instructions[0]?.data){
+                                            const buffer = Buffer.from(instructionItem.account.instructions[0].data);
+                                            const newObject = {
+                                                type:"SPL Governance",
+                                                description:buffer.toString(),
+                                                data:instructionItem.account.instructions[0].data
+                                            };
+                                            instructionItem.account.instructions[0].info = newObject;
+                                        }
+                                    } else if (programId === "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"){
                                         if (instructionItem.account.instructions[0]?.data){
                                             const buffer = Buffer.from(instructionItem.account.instructions[0].data);
                                             const newObject = {
@@ -936,7 +945,17 @@ export function GovernanceProposalV2View(props: any){
                                             };
                                             instructionItem.account.instructions[0].info = newObject;
                                         }
-                                    }
+                                    } else {
+                                        if (instructionItem.account.instructions[0]?.data){
+                                            const buffer = Buffer.from(instructionItem.account.instructions[0].data);
+                                            const newObject = {
+                                                type:"Unknown Program",
+                                                description:buffer.toString("utf-8"),
+                                                data:instructionItem.account.instructions[0].data
+                                            };
+                                            instructionItem.account.instructions[0].info = newObject;
+                                        }
+                                    } 
                                 }
                             }
                         }

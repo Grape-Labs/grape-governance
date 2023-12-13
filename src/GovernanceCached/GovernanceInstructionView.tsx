@@ -609,7 +609,7 @@ export function InstructionView(props: any) {
                             </Grid>
                         }
 
-                        {instructionDetails.info?.data && 
+                        {instructionDetails.info?.data ?
                             <Grid container sx={{mt:1}}>
                                 <Grid item>
                                     <Typography variant="h6" component="span" color="#999">
@@ -628,27 +628,29 @@ export function InstructionView(props: any) {
                                     </Grid>
                                 </Grid>
                             </Grid>
-                        }
-
-                        {instructionDetails?.data && 
-                            <Grid container sx={{mt:1}}>
-                                <Grid item>
-                                    <Typography variant="h6" component="span" color="#999">
-                                        Data
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <Grid container>
-                                        <Grid item xs>
-                                            <CustomTextarea
-                                                minRows={4}
-                                                value={JSON.stringify(instructionDetails.data)}
-                                                readOnly
-                                            />
+                        :
+                        <>
+                            {instructionDetails?.data && 
+                                <Grid container sx={{mt:1}}>
+                                    <Grid item>
+                                        <Typography variant="h6" component="span" color="#999">
+                                            Data
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Grid container>
+                                            <Grid item xs>
+                                                <CustomTextarea
+                                                    minRows={4}
+                                                    value={JSON.stringify(instructionDetails.data)}
+                                                    readOnly
+                                                />
+                                            </Grid>
                                         </Grid>
                                     </Grid>
                                 </Grid>
-                            </Grid>
+                            }
+                        </>
                         }
 
                         {/*
