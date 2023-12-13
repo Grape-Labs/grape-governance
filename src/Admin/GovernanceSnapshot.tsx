@@ -1224,7 +1224,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                             }
                         }
                         if (!foundGtx){
-                            govFreshTx.push(tx);
+                            govTx.push(tx);
                             console.log("Adding tx: "+JSON.stringify(tx));
                         } else{
                             //console.log("Skipped: "+cntoff);
@@ -1238,13 +1238,12 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             console.log("ending loop")
         }
 
-        if (govFreshTx && govFreshTx.length > 0)
-            govTx.unshift(govFreshTx);
+        //if (govFreshTx && govFreshTx.length > 0)
+        //    govTx.unshift(govFreshTx);
 
         console.log("SOLSCAN Skipped Final: "+cntoff);
         //setGovernanceTransactions(govTx);
         
-
         if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records");
 
         // to do get member map
@@ -1258,7 +1257,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         const commMint = grealm.account?.communityMint;
         var governanceEmitted = [];
-        let getAwards = false; // adjust if we want to get rewards for the following emitting pubkeys
+        let getAwards = true; // adjust if we want to get rewards for the following emitting pubkeys
         if (!getAwards || hoursDiff > (24*15)){ // refresh every 30 days
             //getAwards = true;
         }
@@ -1639,7 +1638,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
     //setMax(sortedResults.length);
     //setLoading(false);
-    
+    //console.log("adding solscan txi: "+JSON.stringify(govTx))
     const governanceDetails = {
         address: address,
         totalVaultValue: totalVaultValue,
