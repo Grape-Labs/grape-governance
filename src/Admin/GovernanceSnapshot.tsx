@@ -1430,6 +1430,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                                             // check any of the accountData items if it matches (grant will have no balance change)
                                             if (emitItem.accountData){
                                                 for (let adata of emitItem.accountData){
+                                                    console.log("checking "+JSON.stringify(adata));
                                                     if (adata.account === tokenOwnerRecord.toBase58() &&
                                                         adata.nativeBalanceChange === 0)
                                                         awardWallet = true;
@@ -1703,6 +1704,7 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
             if (cached_governance && cached_governance.length > 0){
                 for (let cgov of cached_governance){
                     if (cgov.pubkey === thisitem.pubkey.toBase58()){
+                        //console.log("state: "+cgov.account.state)
                         if ((cgov.account.state === 1)||
                             (cgov.account.state === 3)||
                             (cgov.account.state === 4)||
@@ -1716,7 +1718,7 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
                                 if (!forceSkip)
                                     skip_process = true;
                             }
-
+                            
                             /*
                                 const GOVERNANCE_STATE = {
                                     0:'Draft',
@@ -1796,8 +1798,6 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
                 //setTokenDecimals(td);
                 //setVoteType(vType)
 
-                //console.log("vrs check 2 m:"+JSON.stringify(memberMap))
-
                 if (vType){
                     //setPropVoteType(vType);
                     /*
@@ -1812,6 +1812,7 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
                 //console.log("vrs check 3")
 
                 //console.log("CALLING getGovernanceProps ********************--------------------------------")
+                
                 ggv = await getGovernanceProps(thisitem, this_realm, connection);
                 //console.log("CALLED ggv ********************--------------------------------"+ggv)
                 
@@ -1821,15 +1822,18 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
                     proposalPk: new PublicKey(thisitem.pubkey),
                 });
 
+                console.log("voteRecord:"+JSON.stringify(voteRecord))
+                
                 //console.log("vrs check 4")
                 const vrs = [];
                 let csvFile = '';
                 let uYes = 0;
                 let uNo = 0;
+
                 if (voteRecord?.value){
                     let counter = 0;
 
-                    //console.log("vrs check inner 1")
+                    console.log("vrs check inner 1")
                     for (let item of voteRecord.value){
                         counter++;
                         
@@ -1858,9 +1862,9 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
                             voteAddress:item.pubkey.toBase58(),
                             vote:{
                                 vote:item.account.vote,
-                                voterWeight:(item.account?.voterWeight ?  item.account?.voterWeight.toNumber() : null),
-                                legacyYes:(item.account?.voteWeight?.yes ?  item.account?.voteWeight?.yes.toNumber() : null),
-                                legacyNo:(item.account?.voteWeight?.no ?  item.account?.voteWeight?.no.toNumber() : null),
+                                voterWeight:(item.account?.voterWeight ?  Number(item.account.voterWeight) : null),
+                                legacyYes:(item.account?.voteWeight?.yes ?  Number(item.account.voteWeight?.yes) : null),
+                                legacyNo:(item.account?.voteWeight?.no ?  Number(item.account.voteWeight?.no) : null),
                                 decimals:((this_realm.account.config?.councilMint && this_realm.account.config?.councilMint?.toBase58() === thisitem.account.governingTokenMint?.toBase58()) ? 0 : td),
                                 councilMint:(this_realm.account.config?.councilMint ? new PublicKey(this_realm.account.config?.councilMint).toBase58() : null),
                                 governingTokenMint:thisitem.account.governingTokenMint?.toBase58() 
@@ -1879,11 +1883,11 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
                         let voterWeight = 0;
                         if (item.account?.voterWeight){
                             voteType = item.account?.vote?.voteType;
-                            voterWeight = item.account?.voterWeight.toNumber();
+                            voterWeight = Number(item.account.voterWeight);
                         } else{
                             if (item.account?.voteWeight?.yes && item.account?.voteWeight?.yes > 0){
                                 voteType = 0
-                                voterWeight = item.account?.voteWeight?.yes
+                                voterWeight = item.account.voteWeight.yes
                             }else{
                                 voteType = 1
                                 voterWeight = item.account?.voteWeight?.no
@@ -1893,6 +1897,8 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
                         //csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, (new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
                         //    csvFile += item.pubkey.toBase58();
                     }
+                } else {
+                    console.log("WARNING: No vote record found!!!");
                 }
 
                 console.log("Prop Participation: "+vrs.length)
@@ -1967,7 +1973,7 @@ const getGovernanceProps = async (thisitem: any, this_realm: any, connection: Co
         //console.log("communityMintPromise ("+thisitem.account.governingTokenMint+") "+JSON.stringify(governingMintPromise))
         //setGoverningMintInfo(governingMintPromise);
         
-        const communityWeight = governingMintPromise.value.data.parsed.info.supply - this_realm.account.config.minCommunityTokensToCreateGovernance.toNumber();
+        const communityWeight = Number(governingMintPromise.value.data.parsed.info.supply) - Number(this_realm.account.config.minCommunityTokensToCreateGovernance);
         //console.log("communityWeight: "+communityWeight);
         
         const communityMintMaxVoteWeightSource = this_realm.account.config.communityMintMaxVoteWeightSource
@@ -2004,8 +2010,9 @@ const getGovernanceProps = async (thisitem: any, this_realm: any, connection: Co
         //if (totalVotes && totalVotes > 0)
         //    setTotalQuorum(totalVotes);
         
-        const qt = totalVotes-thisitem.account.options[0].voteWeight.toNumber()/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals);
-        const yesVotes = thisitem.account.options[0].voteWeight.toNumber()/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals);
+
+        const qt = totalVotes- Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals);
+        const yesVotes = Number(thisitem.account.options[0].voteWeight)/Math.pow(10, governingMintPromise.value.data.parsed.info.decimals);
         
         const excess = yesVotes - totalVotes;
         

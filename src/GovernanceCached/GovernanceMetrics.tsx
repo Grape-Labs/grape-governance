@@ -666,7 +666,7 @@ function RenderVoterRecordTable(props:any) {
                     }
 
                     if (!skip){
-                        console.log("checking: "+JSON.stringify(transaction));
+                        //console.log("checking: "+JSON.stringify(transaction));
 
                         let address = transaction.change?.address;
                         let changeType = transaction.change?.changeType;
@@ -980,7 +980,6 @@ function RenderVoterRecordTable(props:any) {
             let participationCount = 0;
 
             for (var item of cachedGovernance){
-
                 let skipProp = false;
                 if (governanceStartDate && governanceEndDate){
                     if (governanceStartDate < governanceEndDate){
@@ -1044,7 +1043,6 @@ function RenderVoterRecordTable(props:any) {
                             var totalcouncilvotesagainst = 0;
                             
                             propcreator = 0;
-                            //console.log(author+" v "+inner_item.governingTokenOwner.toBase58())
                             if (authorAddress === inner_item.governingTokenOwner.toBase58()){ // has created this proposal
                                 if (realm.account.config?.councilMint && (new PublicKey(realm.account.config?.councilMint).toBase58() === item.account.governingTokenMint.toBase58())){ 
                                     councilpropcreator = 1;
@@ -1283,6 +1281,8 @@ function RenderVoterRecordTable(props:any) {
                                 highestParticipationProposalName = item.account?.name + ' on ' + moment.unix(Number(item.account?.draftAt)).format("YYYY-MM-DD") + ' '+GOVERNANNCE_STATE[item.account.state];
                             }
                         }
+                    } else {
+                        console.log("Could not find voting results!")
                     }
 
                     // item.account.governingTokenOwner.toBase58()
