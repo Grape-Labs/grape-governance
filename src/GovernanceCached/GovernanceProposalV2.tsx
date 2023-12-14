@@ -938,10 +938,9 @@ export function GovernanceProposalV2View(props: any){
                                                 const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
                                                 const instruction = instructionItem.account.instructions[0];
 
-                                                console.log("instruction.data: "+JSON.stringify(instruction.data))
-                                                
+                                                //console.log("instruction.data: "+JSON.stringify(instruction.data))
                                                 const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
-                                                console.log("hexString: "+hexString);
+                                                //console.log("hexString: "+hexString);
                                                 decodedIx = borshCoder.instruction.decode(hexString, 'hex');
 
                                                 //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
@@ -957,7 +956,7 @@ export function GovernanceProposalV2View(props: any){
                                             }
 
                                             const newObject = {
-                                                type:"SPL Governance",
+                                                type:"SPL Governance Program by Solana",
                                                 decodedIx:decodedIx,
                                                 description:description,
                                                 data:instructionItem.account.instructions[0].data
@@ -968,7 +967,7 @@ export function GovernanceProposalV2View(props: any){
                                         if (instructionItem.account.instructions[0]?.data){
                                             const buffer = Buffer.from(instructionItem.account.instructions[0].data);
                                             const newObject = {
-                                                type:"Memo",
+                                                type:"Memo Program by Solana",
                                                 description:buffer.toString("utf-8"),
                                                 data:instructionItem.account.instructions[0].data
                                             };
