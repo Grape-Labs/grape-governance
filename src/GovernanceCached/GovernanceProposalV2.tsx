@@ -850,7 +850,7 @@ export function GovernanceProposalV2View(props: any){
                                                 */
                                                 
                                                 //const fileContent = await fs.readFile('./plugins/idl/JupiterDCA.json', options:{encoding:'utf-8'});
-                                                const jsonData = require('./plugins/idl/JupiterDCA.json');
+                                                const jsonData = await require('./plugins/idl/DCA265Vj8a9CEuX1eb1LWRnDT7uK6q1xMipnNyatn23M.json');
                                                 //const jsonData = require('./plugins/idl/'+instructionItem.account.instructions[0].programId+'.json');
                                                 //const fileContent = await fs.readFileSync('./plugins/idl/JupiterDCA.json');
                                                 
@@ -908,7 +908,7 @@ export function GovernanceProposalV2View(props: any){
                                                     }
                                                 }
                                             } catch (error) {
-                                                console.error(`ERR: ${error.message}`);
+                                                console.error(`ERR: ${error}`);
                                             }
                                             
                                             //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
@@ -928,10 +928,38 @@ export function GovernanceProposalV2View(props: any){
                                     } else if (programId === "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"){
                                         if (instructionItem.account.instructions[0]?.data){
                                             //const instruction = instructionItem.account.instructions[0];
-                                            const buffer = Buffer.from(instructionItem.account.instructions[0].data);
+                                            //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
+                                            
+                                            let description = "SPL Governance Interaction";
+                                            let decodedIx = null;
+                                            try {
+                                                //const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
+                                                const jsonData = await require('./plugins/idl/SPLGovernance.json');
+                                                console.log("here 1 require "+JSON.stringify(jsonData))
+                                                const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
+                                                console.log("here 2 borsh coder?")
+                                                
+                                                const instruction = instructionItem.account.instructions[0];
+                                                console.log("here 3 Ix")
+                                                
+                                                const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
+                                                decodedIx = borshCoder.instruction.decode(hexString, 'hex');
+                                                
+                                                console.log("here 4")
+                                                
+                                                //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
+                                                
+                                                console.log("decodedIx: "+JSON.stringify(decodedIx));
+                                            } catch (error) {
+                                                console.error(`ERR: ${error}`);
+                                            }
+
+                                            console.log("here...")
+                                            
                                             const newObject = {
                                                 type:"SPL Governance",
-                                                description:buffer.toString(),
+                                                decodedIx:decodedIx,
+                                                description:description,
                                                 data:instructionItem.account.instructions[0].data
                                             };
                                             instructionItem.account.instructions[0].info = newObject;
