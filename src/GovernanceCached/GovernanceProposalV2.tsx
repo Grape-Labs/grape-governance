@@ -862,7 +862,7 @@ export function GovernanceProposalV2View(props: any){
                                                 //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
                                                 
                                                 console.log("decodedIx: "+JSON.stringify(decodedIx));
-                                               
+                                                
                                                 if (decodedIx){
                                                     if (decodedIx?.name){
                                                         description = "Name: "+decodedIx.name;
@@ -927,6 +927,7 @@ export function GovernanceProposalV2View(props: any){
                                         //console.log("instructionItem.account.instructions[0].data "+buffer.toString("utf-8"))
                                     } else if (programId === "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"){
                                         if (instructionItem.account.instructions[0]?.data){
+                                            //const instruction = instructionItem.account.instructions[0];
                                             const buffer = Buffer.from(instructionItem.account.instructions[0].data);
                                             const newObject = {
                                                 type:"SPL Governance",
@@ -2607,7 +2608,8 @@ export function GovernanceProposalV2View(props: any){
                                                                                     ${item?.name || (item?.mint && trimAddress(item.mint)) || 'Explore'}
                                                                                     to ${item.uniqueDestinationAta.size} unique wallet${(item.uniqueDestinationAta.size > 1) ? `s`:``}
                                                                                 `} 
-                                                                                hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                                                                hideTitle={false} style='text' color='white' fontSize='12px'
+                                                                                showNftData={true} />
                                                                         </Grid>
                                                                     </Grid>
                                                                 </>
