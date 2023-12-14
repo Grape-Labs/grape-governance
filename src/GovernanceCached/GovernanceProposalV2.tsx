@@ -908,7 +908,7 @@ export function GovernanceProposalV2View(props: any){
                                                     }
                                                 }
                                             } catch (error) {
-                                                console.error(`ERR: ${error}`);
+                                                console.log(`ERR: ${error}`);
                                             }
                                             
                                             //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
@@ -934,28 +934,28 @@ export function GovernanceProposalV2View(props: any){
                                             let decodedIx = null;
                                             try {
                                                 //const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
-                                                const jsonData = await require('./plugins/idl/SPLGovernance.json');
-                                                console.log("here 1 require "+JSON.stringify(jsonData))
+                                                const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
                                                 const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
-                                                console.log("here 2 borsh coder?")
-                                                
                                                 const instruction = instructionItem.account.instructions[0];
-                                                console.log("here 3 Ix")
+
+                                                console.log("instruction.data: "+JSON.stringify(instruction.data))
                                                 
                                                 const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
+                                                console.log("hexString: "+hexString);
                                                 decodedIx = borshCoder.instruction.decode(hexString, 'hex');
-                                                
-                                                console.log("here 4")
-                                                
+
                                                 //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
-                                                
                                                 console.log("decodedIx: "+JSON.stringify(decodedIx));
+                                                if (!decodedIx){
+                                                    const buffer = Buffer.from(instructionItem.account.instructions[0].data);
+                                                    description = buffer.toString("utf-8");
+                                                }
                                             } catch (error) {
-                                                console.error(`ERR: ${error}`);
+                                                console.log('ERR: ', error);
+                                                const buffer = Buffer.from(instructionItem.account.instructions[0].data);
+                                                description = buffer.toString("utf-8");
                                             }
 
-                                            console.log("here...")
-                                            
                                             const newObject = {
                                                 type:"SPL Governance",
                                                 decodedIx:decodedIx,
