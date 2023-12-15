@@ -571,7 +571,11 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={3} disabled>Import from base58</MenuItem>
               <Divider/>
               <MenuItem value={20} 
-              //  disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
+                disabled={(
+                  governanceAddress !== 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip' && 
+                  governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
+                  governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
+                ) ? true : false}
               >Speed Dial</MenuItem>
               {/*MenuItem value={30} 
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
@@ -586,33 +590,41 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={11}>SNS Transfer</MenuItem>
               <Divider/>
               <MenuItem value={30}
+                /*
                 disabled={(
                   governanceAddress !== 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip' && 
                   governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
                   governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
                 ) ? true : false}
+                */
               >Intra DAO: Join a DAO</MenuItem>
               <MenuItem value={31}
+                /*
                 disabled={(
                   governanceAddress !== 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip' && 
                   governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
                   governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
                 ) ? true : false}
+                */
               >Intra DAO: Vote on a DAO Proposal</MenuItem>
               <MenuItem value={33}
+                /*
                 disabled={(
                   governanceAddress !== 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip' && 
                   governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' 
                   //&& 
                   //governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
                 ) ? true : false}
+                */
               >Intra DAO: Make a DAO Proposal</MenuItem>
               <MenuItem value={32}
+                /*
                 disabled={(
                   governanceAddress !== 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip' && 
                   governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
                   governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
                 ) ? true : false}
+                */
               >Intra DAO: Grant DAO Voting Power</MenuItem>
               <Divider/>
               <MenuItem value={9}
@@ -624,24 +636,23 @@ export default function GovernanceCreateProposalView(props: any){
                   governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
                 ) ? true : false}
               >DCA / Scheduled Swap</MenuItem>
-              
-              {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ||
-                governanceAddress === 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg')
-                &&
-                <Divider/>
-              }  
+               
+              <Divider />
 
-              {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ||
-                governanceAddress === 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg')
-              &&
-                <MenuItem value={40}>List on Magic Eden</MenuItem>
-                
-              }
-              {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' || 
-                governanceAddress === 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg')
-              &&
-                <MenuItem value={41}>Buy from Magic Eden</MenuItem>
-              }
+              <MenuItem value={40}
+                disabled={(
+                  governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
+                  governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
+                ) ? true : false}
+              >List on Magic Eden</MenuItem>
+              
+              <MenuItem value={41}
+                disabled={(
+                  governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
+                  governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg'
+                ) ? true : false}
+              >Buy from Magic Eden</MenuItem>
+              
 
               {/*governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
                 <MenuItem value={16}>List on Tensor</MenuItem>

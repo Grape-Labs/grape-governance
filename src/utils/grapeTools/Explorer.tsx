@@ -215,14 +215,14 @@ export default function ExplorerView(props:any){
                 }),
                 });
             const { result } = await response.json();
-            console.log("Asset: ", result);
+            //console.log("Asset: ", result);
 
             if (result){
                 if (result?.content?.metadata?.name){
                     setSolanaDomain(result?.content?.metadata?.name);
                 }
                 const image = result?.content?.links?.image;
-                    
+                
                 if (image){
                     if (image){
                         setProfilePictureUrl(image);
