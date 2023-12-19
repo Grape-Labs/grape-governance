@@ -414,8 +414,10 @@ export default function LookupTableView(props: any) {
         }
 
     }
+
+
     
-    React.useState(() => {
+    React.useEffect(() => {
         if (governanceWallet && !consolidatedGovernanceWallet && !loadingWallet) {
             getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
             //setConsolidatedGovernanceWallet(gWallet);

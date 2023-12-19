@@ -468,53 +468,18 @@ export default function IntraDAOGrantView(props: any) {
         return walletObject;
     }
 
-    async function getAndUpdateWalletHoldings(wallet:string){
+
+    async function getAndUpdateWalletHoldings(){
         try{
             setLoadingWallet(true);
             const gwToAdd = await fetchWalletHoldings(governanceWallet.vault.pubkey);
             console.log("fetching rules now");
             const rwToAdd = await fetchWalletHoldings(governanceRulesWallet);
 
-            /*
-            
-            const solBalance = await connection.getBalance(new PublicKey(wallet));
-
-            const tokenBalance = await connection.getParsedTokenAccountsByOwner(
-                new PublicKey(wallet),
-                {
-                programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-                }
-            )
-            // loop through governanceWallet
-            governanceWallet.solBalance = solBalance;
-            const itemsToAdd = [];
-
-            console.log("governanceWallet "+JSON.stringify(governanceWallet));
-            if (tokenBalance?.value){
-                for (let titem of tokenBalance?.value){
-                    if (governanceWallet.tokens.value){
-                        let foundCached = false;
-                        for (let gitem of governanceWallet.tokens.value){
-                            if (titem.pubkey.toBase58() === gitem.pubkey){
-                                foundCached = true;
-                                gitem.account.data.parsed.info.tokenAmount.amount = titem.account.data.parsed.info.tokenAmount.amount;
-                                gitem.account.data.parsed.info.tokenAmount.uiAmount = titem.account.data.parsed.info.tokenAmount.uiAmount;
-                                itemsToAdd.push(gitem);
-                            }
-                        }
-                        if (!foundCached) {
-                            itemsToAdd.push(titem);
-                        }
-                    }
-                }
-            }
-            */
-
-            //governanceWallet.tokens.value = itemsToAdd;//[...governanceWallet.tokens.value, ...itemsToAdd];
-            //setConsolidatedGovernanceWallet([governanceWallet]);
             const walletObjects = [gwToAdd, rwToAdd];
 
             setConsolidatedGovernanceWallet(walletObjects);
+
             setLoadingWallet(false);
         } catch(e){
             console.log("ERR: "+e);
@@ -910,7 +875,7 @@ export default function IntraDAOGrantView(props: any) {
     
     React.useEffect(() => {
         if (governanceWallet && !consolidatedGovernanceWallet && !loadingWallet) {
-            getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
+            getAndUpdateWalletHoldings();
             //setConsolidatedGovernanceWallet(gWallet);
         }
     }, [governanceWallet, consolidatedGovernanceWallet]);

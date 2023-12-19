@@ -433,10 +433,12 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
             const filteredData = data.filter(item =>
                 item.tokenTransfers.some(transfer => transfer.mint === tokenMintAddress)
             );
-
-            const filteredData2 = excludeAddress ? filteredData.filter(item =>
-                item.tokenTransfers.some(transfer => !excludeAddress.includes(transfer?.fromUserAccount))
-            ) : filteredData;
+            
+            let filteredData2 = filteredData;
+            
+                filteredData2 = excludeAddress ? filteredData.filter(item =>
+                    item.tokenTransfers.some(transfer => !excludeAddress.includes(transfer?.fromUserAccount))
+                ) : filteredData;
             
             const finalData = filteredData2.map(item => ({
                 tokenTransfers: item.tokenTransfers,
@@ -444,7 +446,7 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
                 signature: item.signature,
             }));
             
-            //console.log("finalData for ("+tokenMintAddress+"): "+JSON.stringify(finalData));
+            
             //console.log("last tx "+sourceAddress+": "+JSON.stringify(finalData[finalData.length-1]));
 
             if (data.length > 1){
@@ -466,7 +468,9 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
         //return data;
         
     }
-    //console.log("HELIUS token transfers for "+sourceAddress+": "+tokenTransfers.length+" - "+JSON.stringify(tokenTransfers));
+
+    //if (sourceAddress === "6WQ1cjJWPz9Ab72iL1myK19Uza8ESty9STSq4WBXkde9")
+    //    console.log("HELIUS token transfers for "+sourceAddress+": "+tokenTransfers.length+" - "+JSON.stringify(tokenTransfers));
     return tokenTransfers;
     
     /*
@@ -1225,7 +1229,11 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                             }
                         }
                         if (!foundGtx){
-                            govTx.push(tx);
+                            //govFreshTx.push(tx);
+                            if (govTx && govTx.length <= 0)
+                                govTx.push(tx);
+                            else
+                                govTx.unshift(tx);
                             console.log("Adding tx: "+JSON.stringify(tx));
                         } else{
                             //console.log("Skipped: "+cntoff);
@@ -1240,9 +1248,17 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             console.log("ending loop")
         }
 
-        if (govFreshTx && govFreshTx.length > 0)
-            govTx.unshift(govFreshTx);
-
+        /*
+        if (govFreshTx && govFreshTx.length > 0){
+            if (govTx && govTx.length > 0){
+                govTx.unshift(govFreshTx);
+            }else{
+                for (var gvItem of govFreshTx)
+                    govTx.push(gvItem);
+            }
+        } 
+        */
+            
         console.log("SOLSCAN Skipped Final: "+cntoff);
         //setGovernanceTransactions(govTx);
         
@@ -1334,7 +1350,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
         // check token owner records
         let mcount = 0;
-        
+        const cachedSignatureData = new Array();
         for (const owner of rawTokenOwnerRecords){
             mcount++;
             if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance");
@@ -1350,6 +1366,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             var hasAwards = false;
             const sizeLimit = 1000;
             let cacheMemberSize = null;
+            
             if (cached_members && cached_members.length > 0){
                 for (let cachedOwner of cached_members){ // smart fetching so we do not query this call again
                     if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord.toBase58()){
@@ -1404,13 +1421,17 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             }
 
             if (!hasAwards){
+                console.log("Checking Award Emitted...")
                 if (grealm.account?.communityMint){
                     // get all emitted to this wallet
                     // we should save also all instances to keep historic data
                     if (governanceEmitted && governanceEmitted.length > 0){
+                        
+
                         for (let emitItem of governanceEmitted){
-                            if (!excludeSignatures.some(address => emitItem.signature.includes(address))){
-                                if (emitItem.tokenTransfers){
+                            if (emitItem.tokenTransfers){
+                                if (!excludeSignatures.some(address => emitItem.signature.includes(address))){ // this cannot take into consideration rewards! Check inner instructions also
+                                    
                                     for (let tTransfer of emitItem.tokenTransfers){
                                         let awardWallet = false;
                                         
@@ -1427,17 +1448,66 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                                                 awardWallet = true;
                                         }  
                                         
-                                        // check if from grant governance power...
-                                        if (tTransfer.toUserAccount === address) { // i.e. 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip'
+                                        if (tTransfer.fromTokenAccount === "6WQ1cjJWPz9Ab72iL1myK19Uza8ESty9STSq4WBXkde9" &&
+                                            tTransfer.toUserAccount === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"){
+                                            
+                                            //tTransfer.toUserAccount === tokenOwnerRecord.toBase58() &&
+                                            //tTransfer.toUserAccount === linkedWallet){//"By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"){
+                                            
+                                            let foundSig = false;
+                                            for (let sig of cachedSignatureData){
+                                                if (sig.signature === emitItem.signature)
+                                                    foundSig = true;
+                                            }
+                                            if (!foundSig){
+                                                const parsedTx = await connection.getParsedTransaction(emitItem.signature);
+                                                cachedSignatureData.push({
+                                                    signature:emitItem.signature,
+                                                    transaction:parsedTx
+                                                });
+
+                                                //console.log("Found Grant Voting Power #("+cachedSignatureData.length+") "+JSON.stringify(tTransfer));
+                                                //console.log("Found Grant Voting Power #1 AD "+JSON.stringify(parsedTx));
+                                            }
+
+                                            //if (tTransfer.toUserAccount === address) { // i.e. 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip'
                                             // check any of the accountData items if it matches (grant will have no balance change)
-                                            if (emitItem.accountData){
-                                                for (let adata of emitItem.accountData){
-                                                    console.log("checking "+JSON.stringify(adata));
-                                                    if (adata.account === tokenOwnerRecord.toBase58() &&
-                                                        adata.nativeBalanceChange === 0)
-                                                        awardWallet = true;
+                                            for (let sig of cachedSignatureData){
+                                                if (sig.signature === emitItem.signature){
+                                                    if (sig.transaction.meta.innerInstructions[0].instructions[0].accounts.length > 3){
+                                                        /*
+                                                        if (linkedWallet === "KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT" ||
+                                                            tokenOwnerRecord.toBase58() === "KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT"){
+                                                            console.log("TX: "+JSON.stringify(sig));
+                                                        }*/
+                                                        for (let ix of sig.transaction.meta.innerInstructions[0].instructions[0].accounts){
+                                                            if ((ix === linkedWallet ||
+                                                                ix === tokenOwnerRecord.toBase58())){
+                                                                    awardWallet = true;
+                                                                    console.log("******* Grant Voting Power Found!!! *******")
+                                                                }
+                                                        }
+                                                        
+                                                    }
                                                 }
                                             }
+                                            
+                                            /*
+                                            if (emitItem.accountData){
+                                                
+                                                console.log("Found Grant Voting Power #1 AD here "+JSON.stringify(emitItem));
+
+                                                for (let adata of emitItem.accountData){
+                                                    console.log("checking "+JSON.stringify(adata));
+
+                                                    if ((adata.account === tokenOwnerRecord.toBase58() ||  adata.account === linkedWallet) &&
+                                                        adata.nativeBalanceChange === 0){
+                                                        awardWallet = true;
+                                                        console.log("******* Grant Voting Power Found!!! *******")
+                                                    }
+                                                }
+                                            }
+                                            */
                                         }
 
                                         if (awardWallet){
@@ -1460,8 +1530,10 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                                             //if (+tTransfer.tokenAmount >= 200000)
                                             //    console.log("Emitted rewards (> 200k) "+tTransfer.toUserAccount+" (source: "+tTransfer.fromUserAccount+"): "+tTransfer.tokenAmount+" balance: "+owner.governanceAwards + " - sig: "+emitItem.signature)
                                         }
+                                        
                                     }
-                                }
+                                } 
+
                             }
                         }
                     }
