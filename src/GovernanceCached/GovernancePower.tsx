@@ -642,8 +642,8 @@ export default function GovernancePower(props: any){
         const selectedMintAddress = props?.mintAddress;
         const selectedMintAvailableAmount = props?.mintAvailableAmount;
         const selectedMintDepositedAmount = props?.mintVotingPower;
-        const decimals = props?.mintDecimals || mintDecimals;
         const isCouncil= props?.isCouncil;
+        const decimals = isCouncil ? 0 : (props?.decimals || mintDecimals);
         // generateMEEditListingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, price: number, newPrice: number)
         const [delegatedStr, setDelegatedStr] = React.useState(null);
 
@@ -1052,7 +1052,7 @@ export default function GovernancePower(props: any){
 
                                     }
                                 </Button>
-                                <AdvancedCommunityVoteDepositPrompt mintVotingPower={depositedCommunityMint} mintAvailableAmount={walletCommunityMintAmount} mintAddress={walletCommunityMintAddress} mintName={mintName} mintDecimals={mintDecimals} />
+                                <AdvancedCommunityVoteDepositPrompt mintVotingPower={depositedCommunityMint} mintAvailableAmount={walletCommunityMintAmount} mintAddress={walletCommunityMintAddress} mintName={mintName} decimals={mintDecimals} />
                             </ButtonGroup>
                         }
 
@@ -1122,7 +1122,7 @@ export default function GovernancePower(props: any){
 
                                         }
                                     
-                                        <AdvancedCommunityVoteDepositPrompt inlineAdvanced={true} mintVotingPower={depositedCommunityMint} mintAvailableAmount={walletCommunityMintAmount} mintAddress={walletCommunityMintAddress} mintName={mintName} mintDecimals={mintDecimals} />
+                                        <AdvancedCommunityVoteDepositPrompt inlineAdvanced={true} mintVotingPower={depositedCommunityMint} mintAvailableAmount={walletCommunityMintAmount} mintAddress={walletCommunityMintAddress} mintName={mintName} decimals={mintDecimals} />
                                     
                                     </>
                                 }
@@ -1130,7 +1130,7 @@ export default function GovernancePower(props: any){
                             {depositedCouncilMint &&
                                 <>
                                 {(depositedCouncilMint).toLocaleString()} Council
-                                <AdvancedCommunityVoteDepositPrompt isCouncil={true} inlineAdvanced={true} mintVotingPower={depositedCouncilMint} mintAvailableAmount={walletCouncilMintAmount} mintAddress={walletCouncilMintAddress} mintDecimals={0} />
+                                <AdvancedCommunityVoteDepositPrompt isCouncil={true} inlineAdvanced={true} mintVotingPower={depositedCouncilMint} mintAvailableAmount={walletCouncilMintAmount} mintAddress={walletCouncilMintAddress} decimals={0} />
                                 
                                 </>
                             }
