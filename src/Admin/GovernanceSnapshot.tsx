@@ -416,10 +416,43 @@ const getSocialConnections = async(address: string) => {
 
 const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string, destinationAddress: string, excludeAddress: string[]) => {
     
-    // HELIUS:
+    // SHYFT:
     let hasnext = true;
     let tokenTransfers = null;
     let lastSignature = null;
+
+    /*
+    while (hasnext){
+        let before = "";
+        if (lastSignature)
+            before = "&before_tx_signature="+lastSignature;
+        const url = "https://api.shyft.to/sol/v1/transaction/history?network=mainnet-beta&tx_num=100&account="+sourceAddress+"&enable_raw=true";
+        const { data } = await axios.get(url)
+
+    }*/
+    /*
+    var myHeaders = new Headers();
+    myHeaders.append("x-api-key", "<API-KEY>");
+
+    var requestOptions = {
+        method: 'GET',
+        headers: myHeaders,
+        redirect: 'follow'
+    };
+
+    fetch(
+        "https://api.shyft.to/sol/v1/transaction/history?network=mainnet-beta&tx_num=2&account=Apeng15Pm8EjpAcaAXpNUxZjS2jMmGqikfs281Fz9hNj&enable_raw=true",
+        requestOptions
+    )
+    .then(response => response.text())
+    .then(result => console.log(result))
+    .catch(error => console.log('error', error));
+    */
+
+    // HELIUS:
+    hasnext = true;
+    tokenTransfers = null;
+    lastSignature = null;
     while (hasnext){
         let before = "";
         if (lastSignature)
@@ -445,7 +478,6 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
                 timestamp: item.timestamp,
                 signature: item.signature,
             }));
-            
             
             //console.log("last tx "+sourceAddress+": "+JSON.stringify(finalData[finalData.length-1]));
 
@@ -1474,40 +1506,15 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                                             // check any of the accountData items if it matches (grant will have no balance change)
                                             for (let sig of cachedSignatureData){
                                                 if (sig.signature === emitItem.signature){
-                                                    if (sig.transaction.meta.innerInstructions[0].instructions[0].accounts.length > 3){
-                                                        /*
-                                                        if (linkedWallet === "KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT" ||
-                                                            tokenOwnerRecord.toBase58() === "KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT"){
-                                                            console.log("TX: "+JSON.stringify(sig));
-                                                        }*/
-                                                        for (let ix of sig.transaction.meta.innerInstructions[0].instructions[0].accounts){
-                                                            if ((ix === linkedWallet ||
-                                                                ix === tokenOwnerRecord.toBase58())){
-                                                                    awardWallet = true;
-                                                                    console.log("******* Grant Voting Power Found!!! *******")
-                                                                }
-                                                        }
-                                                        
+                                                    
+                                                    if (sig.transaction.meta.innerInstructions[0].instructions[0].accounts[3].toBase58() === tokenOwnerRecord.toBase58())  {
+                                                        awardWallet = true;
+                                                        console.log("******* Grant Voting Power Found ("+tokenOwnerRecord.toBase58()+")!!! *******")
                                                     }
+                                                
                                                 }
                                             }
                                             
-                                            /*
-                                            if (emitItem.accountData){
-                                                
-                                                console.log("Found Grant Voting Power #1 AD here "+JSON.stringify(emitItem));
-
-                                                for (let adata of emitItem.accountData){
-                                                    console.log("checking "+JSON.stringify(adata));
-
-                                                    if ((adata.account === tokenOwnerRecord.toBase58() ||  adata.account === linkedWallet) &&
-                                                        adata.nativeBalanceChange === 0){
-                                                        awardWallet = true;
-                                                        console.log("******* Grant Voting Power Found!!! *******")
-                                                    }
-                                                }
-                                            }
-                                            */
                                         }
 
                                         if (awardWallet){

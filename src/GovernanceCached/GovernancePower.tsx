@@ -638,10 +638,12 @@ export default function GovernancePower(props: any){
 
     function AdvancedCommunityVoteDepositPrompt(props: any){
         const selectedMintName = props?.mintName;
+        const inlineAdvanced = props?.inlineAdvanced;
         const selectedMintAddress = props?.mintAddress;
         const selectedMintAvailableAmount = props?.mintAvailableAmount;
         const selectedMintDepositedAmount = props?.mintVotingPower;
-        const decimals = mintDecimals;
+        const decimals = props?.mintDecimals || mintDecimals;
+        const isCouncil= props?.isCouncil;
         // generateMEEditListingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, price: number, newPrice: number)
         const [delegatedStr, setDelegatedStr] = React.useState(null);
 
@@ -694,14 +696,20 @@ export default function GovernancePower(props: any){
                 <Tooltip title="Advanced">
                     <Button 
                         aria-label="Deposit"
-                        variant="outlined" 
+                        variant={inlineAdvanced ? `text`:`outlined`} 
                         color='success'
                         onClick={handleClickOpen}
                         sx={{
-                            borderTopRightRadius:'17px',
-                            borderBottomRightRadius:'17px',
+                            borderRadius: inlineAdvanced ? '17px' : undefined,
+                            borderTopRightRadius: inlineAdvanced ? undefined : '17px',
+                            borderBottomRightRadius: inlineAdvanced ? undefined : '17px',
                             borderColor:'rgba(255,255,255,0.05)',
-                            fontSize:'10px'}}
+                            fontSize:'10px',
+                            pl: inlineAdvanced ? undefined : 1,
+                            pr: inlineAdvanced ? undefined : 1,
+                            minWidth: inlineAdvanced ? '0' : undefined,
+                            //p: inlineAdvanced ? undefined : 1,
+                        }}
                     ><SettingsIcon  sx={{fontSize:'14px'}} /></Button>
                 </Tooltip>
 
@@ -730,31 +738,35 @@ export default function GovernancePower(props: any){
                                     width:"100%",
                                     minWidth:'360px'
                                 }}>
-                                <Box sx={{ my: 3, mx: 2 }}>
-                                    <Grid container alignItems="center">
-                                    <Grid item xs>
-                                        <Typography gutterBottom variant="h5" component="div">
-                                        New Voting Power
+                                {selectedMintAvailableAmount > 0 &&
+                                    <>
+                                    <Box sx={{ my: 3, mx: 2 }}>
+                                        <Grid container alignItems="center">
+                                        <Grid item xs>
+                                            <Typography gutterBottom variant="h5" component="div">
+                                            New Voting Power
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item>
+                                            {newDepositAmount ?
+                                            <Typography gutterBottom variant="h6" component="div">
+                                                {(Number(((selectedMintDepositedAmount/10**decimals)+(+newDepositAmount)).toFixed(0))).toLocaleString()}
+                                            </Typography>
+                                            :
+                                            <Typography gutterBottom variant="h6" component="div">
+                                                {(Number((((+selectedMintDepositedAmount + +selectedMintAvailableAmount)/10**decimals)).toFixed(0))).toLocaleString()}
+                                            </Typography>
+                                            }
+                                        </Grid>
+                                        </Grid>
+                                        <Typography color="text.secondary" variant="body2">
+                                            Total voting power after depositing
                                         </Typography>
-                                    </Grid>
-                                    <Grid item>
-                                        {newDepositAmount ?
-                                        <Typography gutterBottom variant="h6" component="div">
-                                            {(Number(((selectedMintDepositedAmount/10**decimals)+(+newDepositAmount)).toFixed(0))).toLocaleString()}
-                                        </Typography>
-                                        :
-                                        <Typography gutterBottom variant="h6" component="div">
-                                            {(Number((((+selectedMintDepositedAmount + +selectedMintAvailableAmount)/10**decimals)).toFixed(0))).toLocaleString()}
-                                        </Typography>
-                                        }
-                                    </Grid>
-                                    </Grid>
-                                    <Typography color="text.secondary" variant="body2">
-                                        Total voting power after depositing
-                                    </Typography>
-                                </Box>
+                                    </Box>
 
-                                <Divider variant="middle" />
+                                    <Divider variant="middle" />
+                                    </>
+                                }
                                 <Box sx={{ my: 3, mx: 2 }}>
                                     <Grid container alignItems="center">
                                     <Grid item xs>
@@ -774,7 +786,7 @@ export default function GovernancePower(props: any){
                                                 <IconButton 
                                                         aria-label="Deposit"
                                                         color='inherit'
-                                                        onClick={handleWithdrawCommunityMax}
+                                                        onClick={isCouncil ? handleWithdrawCouncilMax : handleWithdrawCommunityMax}
                                                         sx={{
                                                             borderRadius:'17px',
                                                             borderColor:'rgba(255,255,255,0.05)',
@@ -786,23 +798,26 @@ export default function GovernancePower(props: any){
                                             </Tooltip>
                                     </Typography>
                                 </Box>
-                                <Box sx={{ my: 3, mx: 2 }}>
-                                    <Grid container alignItems="center">
-                                    <Grid item xs>
-                                        <Typography gutterBottom variant="subtitle1" component="div">
-                                        Available to Deposit
+                                
+                                {selectedMintAvailableAmount > 0 &&
+                                    <Box sx={{ my: 3, mx: 2 }}>
+                                        <Grid container alignItems="center">
+                                        <Grid item xs>
+                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                            Available to Deposit
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item>
+                                            <Typography gutterBottom variant="body1" component="div">
+                                            {(selectedMintAvailableAmount/10**decimals).toLocaleString()}
+                                            </Typography>
+                                        </Grid>
+                                        </Grid>
+                                        <Typography color="text.secondary" variant="caption">
+                                        This is the voting power you have in your wallet
                                         </Typography>
-                                    </Grid>
-                                    <Grid item>
-                                        <Typography gutterBottom variant="body1" component="div">
-                                        {(selectedMintAvailableAmount/10**decimals).toLocaleString()}
-                                        </Typography>
-                                    </Grid>
-                                    </Grid>
-                                    <Typography color="text.secondary" variant="caption">
-                                    This is the voting power you have in your wallet
-                                    </Typography>
-                                </Box>
+                                    </Box>
+                                }
                                 <Box sx={{ my: 3, mx: 2 }}>
                                     <Grid container alignItems="center">
                                     <Grid item xs>
@@ -812,7 +827,7 @@ export default function GovernancePower(props: any){
                                         <Typography gutterBottom variant="body1" component="div">
                                             <ExplorerView 
                                                 address={selectedMintAddress} 
-                                                title={`Governing Mint ${mintName ? mintName : `${selectedMintAddress.slice(0, 3)}...${selectedMintAddress.slice(-3)}`}`} 
+                                                title={`Governing Mint ${selectedMintName ? selectedMintName : `${selectedMintAddress.slice(0, 3)}...${selectedMintAddress.slice(-3)}`}`} 
                                                 type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' 
                                                 showTokenMetadata={true} /> 
                                         </Typography>
@@ -895,43 +910,46 @@ export default function GovernancePower(props: any){
                         </Grid>
                     </DialogContentText>
                     
-                    <RegexTextField
-                        regex={/[^0-9]+\.?[^0-9]/gi}
-                        autoFocus
-                        autoComplete='off'
-                        margin="dense"
-                        id="preview_deposit_id"
-                        label='Set the amount to deposit'
-                        type="text"
-                        fullWidth
-                        variant="standard"
-                        value={newDepositAmount}
-                        defaultValue={(selectedMintAvailableAmount/10**decimals)}
-                        helperText={
-                            <Grid sx={{textAlign:'right',}}>
-                                <Typography variant="caption" color="info">
-                                    <Button
-                                        variant="text"
-                                        size="small"
-                                        onClick={(e) => setNewDepositAmount(selectedMintAvailableAmount/10**decimals)}
-                                        sx={{borderRadius:'17px'}}
-                                    >
-                                        Max
-                                    </Button>
-                                </Typography>
-                            </Grid>
-                        }
-                        onChange={(e: any) => {
-                            setNewDepositAmount(e.target.value)}
-                        }
-                        inputProps={{
-                            style: { 
-                                textAlign:'center', 
-                                fontSize: '34px'
+                    {selectedMintAvailableAmount > 0 &&
+                        <RegexTextField
+                            regex={/[^0-9]+\.?[^0-9]/gi}
+                            autoFocus
+                            autoComplete='off'
+                            margin="dense"
+                            id="preview_deposit_id"
+                            label='Set the amount to deposit'
+                            type="text"
+                            fullWidth
+                            variant="standard"
+                            value={newDepositAmount}
+                            defaultValue={(selectedMintAvailableAmount/10**decimals)}
+                            helperText={
+                                <Grid sx={{textAlign:'right',}}>
+                                    <Typography variant="caption" color="info">
+                                        <Button
+                                            variant="text"
+                                            size="small"
+                                            onClick={(e) => setNewDepositAmount(selectedMintAvailableAmount/10**decimals)}
+                                            sx={{borderRadius:'17px'}}
+                                        >
+                                            Max
+                                        </Button>
+                                    </Typography>
+                                </Grid>
                             }
+                            onChange={(e: any) => {
+                                setNewDepositAmount(e.target.value)}
+                            }
+                            inputProps={{
+                                style: { 
+                                    textAlign:'center', 
+                                    fontSize: '34px'
+                                }
+                            
+                            }}
                         
-                        }}
-                    />
+                        />
+                    }
                         
                     {/*
                     <TextField
@@ -945,27 +963,31 @@ export default function GovernancePower(props: any){
                         onChange={(e) => setNewListPrice(e.target.value)}
                         />*/}
                     </DialogContent>
-                    <DialogActions>
-                        <Button color="success" onClick={handleAdvancedDepositVotesToGovernance}
-                            sx={{borderRadius:'17px'}}
-                            disabled={
-                                (newDepositAmount <= (selectedMintAvailableAmount/10**decimals)) ? false : true
-                            }
-                        ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
-                        {/*
-                        <ButtonGroup>
+                    {selectedMintAvailableAmount > 0 &&
+                        <DialogActions>
+                            
+                            
                             <Button color="success" onClick={handleAdvancedDepositVotesToGovernance}
-                                sx={{borderTopLeftRadius:'17px',borderBottomLeftRadius:'17px'}}
+                                sx={{borderRadius:'17px'}}
                                 disabled={
-                                    newDepositAmount ? false : true
+                                    (newDepositAmount <= (selectedMintAvailableAmount/10**decimals)) ? false : true
                                 }
                             ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
-                            <Button color="success" onClick={handleAdvancedDepositMaxVotesToGovernance}
-                                sx={{borderTopRightRadius:'17px',borderBottomRightRadius:'17px'}}
-                            ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit Max</Button>
-                        </ButtonGroup>
-                        */}
-                    </DialogActions>
+                            {/*
+                            <ButtonGroup>
+                                <Button color="success" onClick={handleAdvancedDepositVotesToGovernance}
+                                    sx={{borderTopLeftRadius:'17px',borderBottomLeftRadius:'17px'}}
+                                    disabled={
+                                        newDepositAmount ? false : true
+                                    }
+                                ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
+                                <Button color="success" onClick={handleAdvancedDepositMaxVotesToGovernance}
+                                    sx={{borderTopRightRadius:'17px',borderBottomRightRadius:'17px'}}
+                                ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit Max</Button>
+                            </ButtonGroup>
+                            */}
+                        </DialogActions>
+                    }
                 </Dialog>
             </>
 
@@ -1030,14 +1052,14 @@ export default function GovernancePower(props: any){
 
                                     }
                                 </Button>
-                                <AdvancedCommunityVoteDepositPrompt mintVotingPower={depositedCommunityMint} mintAvailableAmount={walletCommunityMintAmount} mintAddress={walletCommunityMintAddress} mintName={mintName} />
+                                <AdvancedCommunityVoteDepositPrompt mintVotingPower={depositedCommunityMint} mintAvailableAmount={walletCommunityMintAmount} mintAddress={walletCommunityMintAddress} mintName={mintName} mintDecimals={mintDecimals} />
                             </ButtonGroup>
                         }
 
                         {(walletCouncilMintAmount && walletCouncilMintAmount > 0) &&
                             <Button 
                                 aria-label="Deposit"
-                                variant="outlined" 
+                                variant='outlined'
                                 color='inherit'
                                 onClick={handleDepositCouncilMax}
                                 sx={{
@@ -1048,7 +1070,7 @@ export default function GovernancePower(props: any){
                                     textTransform:'none',
                                 }}
                             >
-                                <DownloadIcon sx={{fontSize:'14px',mr:1}}/> Deposit  {walletCouncilMintAmount} Council
+                                <DownloadIcon sx={{fontSize:'14px',mr:1}}/> Deposit {walletCouncilMintAmount} Council
                             </Button>
                         }
 
@@ -1082,31 +1104,34 @@ export default function GovernancePower(props: any){
                               mb: ((walletCouncilMintAmount && walletCouncilMintAmount > 0) || (walletCommunityMintAmount && walletCommunityMintAmount > 0)) ? 0 : 1
                         }}>
                             <Typography sx={{fontSize:'12px'}}>
-                            {depositedCommunityMint &&
-                                <>
-
-                                    {(mintDecimals) ? 
+                                {depositedCommunityMint &&
                                     <>
-                                        {(+(depositedCommunityMint/10**mintDecimals).toFixed(0)).toLocaleString()}
-                                    </>
-                                    :
-                                    <>
-                                        {depositedCommunityMint}
-                                    </>
-                                    }
-                                    {mintName ?
-                                        <>&nbsp;{mintName}</>
-                                        :<>&nbsp;Community</>
 
-                                    }
-                                
-                                
-                                </>
-                            }
+                                        {(mintDecimals) ? 
+                                        <>
+                                            {(+(depositedCommunityMint/10**mintDecimals).toFixed(0)).toLocaleString()}
+                                        </>
+                                        :
+                                        <>
+                                            {depositedCommunityMint}
+                                        </>
+                                        }
+                                        {mintName ?
+                                            <>&nbsp;{mintName}</>
+                                            :<>&nbsp;Community</>
+
+                                        }
+                                    
+                                        <AdvancedCommunityVoteDepositPrompt inlineAdvanced={true} mintVotingPower={depositedCommunityMint} mintAvailableAmount={walletCommunityMintAmount} mintAddress={walletCommunityMintAddress} mintName={mintName} mintDecimals={mintDecimals} />
+                                    
+                                    </>
+                                }
                             {(depositedCommunityMint && depositedCouncilMint) && ` & `}
                             {depositedCouncilMint &&
                                 <>
                                 {(depositedCouncilMint).toLocaleString()} Council
+                                <AdvancedCommunityVoteDepositPrompt isCouncil={true} inlineAdvanced={true} mintVotingPower={depositedCouncilMint} mintAvailableAmount={walletCouncilMintAmount} mintAddress={walletCouncilMintAddress} mintDecimals={0} />
+                                
                                 </>
                             }
                             </Typography>
