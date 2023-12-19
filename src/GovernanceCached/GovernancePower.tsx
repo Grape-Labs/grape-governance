@@ -42,6 +42,9 @@ import {
 
 import { useSnackbar } from 'notistack';
 
+import LoginIcon from '@mui/icons-material/Login';
+import LogoutIcon from '@mui/icons-material/Logout';
+import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import CancelIcon from '@mui/icons-material/Cancel';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
@@ -90,6 +93,7 @@ import {
 import { 
     findObjectByGoverningTokenOwner
   } from '../utils/grapeTools/helpers';
+//import { LogoutIcon } from '@dynamic-labs/sdk-react-core';
 
 export interface DialogTitleProps {
     id: string;
@@ -793,7 +797,7 @@ export default function GovernancePower(props: any){
                                                             ml:1,
                                                         }}
                                                     >
-                                                    <UploadIcon sx={{fontSize:'12px'}} />
+                                                    <LogoutIcon sx={{fontSize:'12px'}} />
                                                 </IconButton>
                                             </Tooltip>
                                     </Typography>
@@ -972,7 +976,7 @@ export default function GovernancePower(props: any){
                                 disabled={
                                     (newDepositAmount <= (selectedMintAvailableAmount/10**decimals)) ? false : true
                                 }
-                            ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
+                            ><LoginIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
                             {/*
                             <ButtonGroup>
                                 <Button color="success" onClick={handleAdvancedDepositVotesToGovernance}

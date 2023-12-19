@@ -430,7 +430,7 @@ function GET_QUERY_REALM(realm:string, realmOwner?:string){
 
 export const getRealmIndexed = async (filterRealm?:any) => {
     if (filterRealm){
-        const programId = findGovOwnerByDao(filterRealm).owner;
+        const programId = findGovOwnerByDao(filterRealm)?.owner;
         const allRealms = new Array();
 
         try{
@@ -505,7 +505,9 @@ export const getRealmIndexed = async (filterRealm?:any) => {
 };
 
 export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any) => {
-    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    //const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
     const allRules = new Array();
 
     if (filterRealm){
@@ -552,7 +554,9 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
 };
 
 export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwner?:any) => {
-    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    //const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
     if (filterRealm){
         const allResults = new Array();
 
@@ -617,7 +621,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
 export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, filterProposal?:any) => {
 
     let proposal = null;
-    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk).owner;
+    //const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk).owner;
     
     console.log("filterGovernance: "+filterGovernance);
 
@@ -673,12 +677,15 @@ export const getAllProposalsFromAllPrograms = async () => {
 }
 
 export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, uniqueOwners?:string[]) => {
-    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk).owner;
+
+    const programId = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const allProposals = new Array();
 
     try{
 
-        const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, realmOwner, uniqueOwners) });
+        console.log("programId: "+programId);
+
+        const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, programId, uniqueOwners) });
         if (uniqueOwners && data){
             for (var ownerItem of uniqueOwners){
                 data[ownerItem.name+"_ProposalV2"] && data[ownerItem.name+"_ProposalV2"].map((account) => {
