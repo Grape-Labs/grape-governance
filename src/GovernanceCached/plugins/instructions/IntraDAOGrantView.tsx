@@ -621,8 +621,92 @@ export default function IntraDAOGrantView(props: any) {
                     },
                   }}
                 >
-                    {governanceWallet && governanceWallet.tokens.value
+
+
+                    {(consolidatedGovernanceWallet) && 
+                        
+                        consolidatedGovernanceWallet.map((governanceItem: any, key: number) => {
+                            
+                            return (
+                                governanceItem.tokens
+                                    .filter((item: any) => 
+                                        (item.account.data.parsed.info.mint === filter[0] || item.account.data.parsed.info.mint === filter[1]) &&
+                                        item.account.data.parsed.info.tokenAmount.amount > 0
+
+                                    )
+                                    .map((item: any, key: number) => {
+                                        
+                                        //if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
+                                        //    item.account.data.parsed.info.tokenAmount.amount > 0) {
+
+                                            return (
+                                                <MenuItem key={key} value={item.pubkey}>
+                                                    
+                                                    <Grid container
+                                                        alignItems="center"
+                                                    >
+                                                        <Grid item xs={12}>
+                                                        <Grid container>
+                                                            <Grid item sm={8}>
+                                                            <Grid
+                                                                container
+                                                                direction="row"
+                                                                justifyContent="left"
+                                                                alignItems="left"
+                                                            >
+
+                                                                {item.account?.tokenMap?.tokenName ?
+                                                                    <Grid 
+                                                                        container
+                                                                        direction="row"
+                                                                        alignItems="center"
+                                                                    >
+                                                                        <Grid item>
+                                                                            <Avatar alt={item.account.tokenMap.tokenName} src={item.account.tokenMap.tokenLogo} />
+                                                                        </Grid>
+                                                                        <Grid item sx={{ml:1}}>
+                                                                            <Typography variant="h6">
+                                                                            {item.account.tokenMap.tokenName}
+                                                                            </Typography>
+                                                                        </Grid>
+                                                                    </Grid>
+                                                                :
+                                                                    <>
+                                                                        <ShowTokenMintInfo mintAddress={item.account.data.parsed.info.mint} />
+                                                                    </>
+                                                                }
+                                                            </Grid>
+                                                            </Grid>
+                                                            <Grid item xs sx={{textAlign:'right'}}>
+                                                            <Typography variant="h6">
+
+                                                                {(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals).toLocaleString()}
+                                                            </Typography>
+                                                            </Grid>
+                                                        </Grid>  
+
+                                                        <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
+                                                            <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
+                                                                {item.account.data.parsed.info.mint}
+                                                            </Typography>
+                                                        </Grid>
+                                                        </Grid>
+                                                    </Grid>
+                                                </MenuItem>
+                                            );
+                                        //} else {
+                                        //    return null; // Don't render anything for items without nativeTreasuryAddress
+                                        //}
+                                    })
+                            )
+                            })
+                            
+                        }
+
+
+                    {/*governanceWallet && governanceWallet.tokens.value
                     // ? item.account.data.parsed.info.mint === filter
+                            
                             .filter((item: any) => 
                                 item.account.data?.parsed?.info?.tokenAmount?.amount > 0
                             )
@@ -639,7 +723,6 @@ export default function IntraDAOGrantView(props: any) {
 
                                     return (
                                         <MenuItem key={key} value={item.pubkey}>
-                                            {/*console.log("wallet: "+JSON.stringify(item))*/}
                                             
                                             <Grid container
                                                 alignItems="center"
@@ -678,7 +761,6 @@ export default function IntraDAOGrantView(props: any) {
                                                     </Grid>
                                                     <Grid item xs sx={{textAlign:'right'}}>
                                                     <Typography variant="h6">
-                                                        {/*item.vault?.nativeTreasury?.solBalance/(10 ** 9)*/}
 
                                                         {(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals).toLocaleString()}
                                                     </Typography>
@@ -697,7 +779,7 @@ export default function IntraDAOGrantView(props: any) {
                                 } else {
                                     return null; // Don't render anything for items without nativeTreasuryAddress
                                 }
-                            })}
+                            })*/}
                     
                 </Select>
               </FormControl>
