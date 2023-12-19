@@ -1155,62 +1155,66 @@ export function GovernanceCachedView(props: any) {
 
         // convert values in governance to BigInt and PublicKeys accordingly
         let counter = 0;
-        for (let cupdated of cached_governance){
+        if (cached_governance){
+            for (let cupdated of cached_governance){
 
-            cupdated.account.governance = new PublicKey(cupdated.account.governance);
-            cupdated.account.governingTokenMint = new PublicKey(cupdated.account.governingTokenMint);
-            cupdated.account.tokenOwnerRecord = new PublicKey(cupdated.account.tokenOwnerRecord);
-            cupdated.owner = new PublicKey(cupdated.owner);
-            cupdated.pubkey = new PublicKey(cupdated.pubkey);
+                cupdated.account.governance = new PublicKey(cupdated.account.governance);
+                cupdated.account.governingTokenMint = new PublicKey(cupdated.account.governingTokenMint);
+                cupdated.account.tokenOwnerRecord = new PublicKey(cupdated.account.tokenOwnerRecord);
+                cupdated.owner = new PublicKey(cupdated.owner);
+                cupdated.pubkey = new PublicKey(cupdated.pubkey);
 
-            
-            if (cupdated.account?.options && cupdated.account?.options[0]?.voteWeight)
-                cupdated.account.options[0].voteWeight = Number("0x"+cupdated.account.options[0].voteWeight)
-            if (cupdated.account?.denyVoteWeight)
-                cupdated.account.denyVoteWeight = Number("0x"+cupdated.account.denyVoteWeight).toString()
+                
+                if (cupdated.account?.options && cupdated.account?.options[0]?.voteWeight)
+                    cupdated.account.options[0].voteWeight = Number("0x"+cupdated.account.options[0].voteWeight)
+                if (cupdated.account?.denyVoteWeight)
+                    cupdated.account.denyVoteWeight = Number("0x"+cupdated.account.denyVoteWeight).toString()
 
-            if (cupdated.account?.yesVotesCount)
-                cupdated.account.yesVotesCount = Number("0x"+cupdated.account.yesVotesCount).toString()
-            if (cupdated.account?.noVotesCount)
-                cupdated.account.noVotesCount = Number("0x"+cupdated.account.noVotesCount).toString()
-            
-            
-            cupdated.account.draftAt = Number("0x"+cupdated.account.draftAt).toString()
-            cupdated.account.signingOffAt = Number("0x"+cupdated.account.signingOffAt).toString()
-            cupdated.account.votingAt = Number("0x"+cupdated.account.votingAt).toString()
-            cupdated.account.votingAtSlot = Number("0x"+cupdated.account.votingAtSlot).toString()
-            cupdated.account.vetoVoteWeight = Number("0x"+cupdated.account.vetoVoteWeight).toString()
-            cupdated.account.votingCompletedAt = Number("0x"+cupdated.account.votingCompletedAt).toString()
+                if (cupdated.account?.yesVotesCount)
+                    cupdated.account.yesVotesCount = Number("0x"+cupdated.account.yesVotesCount).toString()
+                if (cupdated.account?.noVotesCount)
+                    cupdated.account.noVotesCount = Number("0x"+cupdated.account.noVotesCount).toString()
+                
+                
+                cupdated.account.draftAt = Number("0x"+cupdated.account.draftAt).toString()
+                cupdated.account.signingOffAt = Number("0x"+cupdated.account.signingOffAt).toString()
+                cupdated.account.votingAt = Number("0x"+cupdated.account.votingAt).toString()
+                cupdated.account.votingAtSlot = Number("0x"+cupdated.account.votingAtSlot).toString()
+                cupdated.account.vetoVoteWeight = Number("0x"+cupdated.account.vetoVoteWeight).toString()
+                cupdated.account.votingCompletedAt = Number("0x"+cupdated.account.votingCompletedAt).toString()
 
-            // move to nested voting results
-            if (cupdated?.votingResults){
-                for (let inner of cupdated.votingResults){
-                    inner.pubkey = new PublicKey(inner.pubkey);
-                    inner.proposal = new PublicKey(inner.proposal);
-                    inner.governingTokenOwner = new PublicKey(inner.governingTokenOwner);
-                    inner.voteAddress = new PublicKey(inner.voteAddress);
-                    if (inner.vote?.councilMint)
-                        inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
-                    inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
-                    if (inner.vote?.councilMint)
-                        inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
-                    inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
-                    /*
-                    inner.quorumWeight.voterWeight = Number("0x"+inner.quorumWeight.voterWeight).toString()
-                    inner.vote.voterWeight = Number("0x"+inner.vote.voterWeight).toString()
+                // move to nested voting results
+                if (cupdated?.votingResults){
+                    for (let inner of cupdated.votingResults){
+                        inner.pubkey = new PublicKey(inner.pubkey);
+                        inner.proposal = new PublicKey(inner.proposal);
+                        inner.governingTokenOwner = new PublicKey(inner.governingTokenOwner);
+                        inner.voteAddress = new PublicKey(inner.voteAddress);
+                        if (inner.vote?.councilMint)
+                            inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
+                        inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
+                        if (inner.vote?.councilMint)
+                            inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
+                        inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
+                        /*
+                        inner.quorumWeight.voterWeight = Number("0x"+inner.quorumWeight.voterWeight).toString()
+                        inner.vote.voterWeight = Number("0x"+inner.vote.voterWeight).toString()
 
-                    inner.quorumWeight.legacyYes = Number("0x"+inner.quorumWeight.legacyYes).toString()
-                    inner.vote.legacyYes = Number("0x"+inner.vote.legacyYes).toString()
-                    inner.quorumWeight.legacyNo = Number("0x"+inner.quorumWeight.legacyNo).toString()
-                    inner.vote.legacyNo = Number("0x"+inner.vote.legacyNo).toString()
-                    */
+                        inner.quorumWeight.legacyYes = Number("0x"+inner.quorumWeight.legacyYes).toString()
+                        inner.vote.legacyYes = Number("0x"+inner.vote.legacyYes).toString()
+                        inner.quorumWeight.legacyNo = Number("0x"+inner.quorumWeight.legacyNo).toString()
+                        inner.vote.legacyNo = Number("0x"+inner.vote.legacyNo).toString()
+                        */
+                    }
                 }
-            }
 
-            counter++;
+                counter++;
+            }
+            
+            setCachedGovernance(cached_governance);
+        } else{
+            console.log("ERROR: Cached Governance for "+governanceAddress+" try to refetch cache for this address");
         }
-        
-        setCachedGovernance(cached_governance);
         //getGovernanceParameters(cached_governance);
     }
 

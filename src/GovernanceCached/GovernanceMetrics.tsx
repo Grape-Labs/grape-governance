@@ -2882,6 +2882,61 @@ export function GovernanceMetricsView(props: any) {
 
                                             {metricsFlowsObject &&
                                                 <>
+                                                {(metricsFlowsObject?.metricsPreviousInflows || metricsFlowsObject.metricsPreviousOutflows) ?
+                                                    <Grid item xs={12} sm={6} md={6} key={1}>
+                                                        <Box
+                                                            sx={{
+                                                                borderRadius:'24px',
+                                                                m:2,
+                                                                p:1,
+                                                                background: 'rgba(0, 0, 0, 0.2)'
+                                                            }}
+                                                        >
+                                                            <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                                <>Previous Month Growth</>
+                                                            </Typography>
+                                                            <Tooltip title={<>
+                                                                    Previous Month Growth in Governance Votes (Community Mint: {metricsFlowsObject.governanceCommunityTokenMintName})
+                                                                    <br/>
+                                                                        In: {getFormattedNumberToLocale(metricsFlowsObject.metricsPreviousInflows)}
+                                                                        <br/>
+                                                                        Out: {getFormattedNumberToLocale(metricsFlowsObject.metricsPreviousOutflows)}
+                                                                    </>
+                                                                }>
+                                                                <Button
+                                                                    color='inherit'
+                                                                    sx={{
+                                                                        borderRadius:'17px'
+                                                                    }}
+                                                                >
+                                                                    <Grid container
+                                                                        sx={{
+                                                                            verticalAlign: 'bottom'}}
+                                                                        >
+                                                                        <Typography variant="h4">
+                                                                            
+                                                                            {getFormattedNumberToLocale(metricsFlowsObject.metricsPreviousInflows + metricsFlowsObject.metricsPreviousOutflows)}
+                                                                            
+                                                                            {/*metricsFlowsObject?.metricsPreviousInflows && 
+                                                                                <Badge badgeContent={<ArrowDownwardIcon sx={{ fontSize: 10 }} />} color="success">
+                                                                                    {getFormattedNumberToLocale(metricsFlowsObject.metricsPreviousInflows)}
+                                                                                </Badge>
+                                                                            
+                                                                                /
+                                                                            metricsFlowsObject?.metricsPreviousOutflows && 
+                                                                                <Badge badgeContent={<ArrowUpwardIcon sx={{ fontSize: 10 }} />} color="error">
+                                                                                    {getFormattedNumberToLocale(metricsFlowsObject.metricsPreviousOutflows)}
+                                                                                </Badge>
+                                                                            */}
+                                                                        </Typography>
+                                                                    </Grid>
+                                                                </Button>
+                                                            </Tooltip>
+                                                        </Box>
+                                                    </Grid>
+                                                    :<></>
+                                                    }
+                                                
                                                 {(metricsFlowsObject?.metricsInflows ||  metricsFlowsObject.metricsOutflows) ?
                                                     <>
                                                         <Grid item xs={12} sm={6} md={6} key={1}>
@@ -2938,62 +2993,6 @@ export function GovernanceMetricsView(props: any) {
                                                         </Grid>
                                                     </>:<></>
                                                 }
-
-                                                {(metricsFlowsObject?.metricsPreviousInflows || metricsFlowsObject.metricsPreviousOutflows) ?
-
-                                                    <Grid item xs={12} sm={6} md={6} key={1}>
-                                                        <Box
-                                                            sx={{
-                                                                borderRadius:'24px',
-                                                                m:2,
-                                                                p:1,
-                                                                background: 'rgba(0, 0, 0, 0.2)'
-                                                            }}
-                                                        >
-                                                            <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                                <>Previous Month Growth</>
-                                                            </Typography>
-                                                            <Tooltip title={<>
-                                                                    Previous Month Growth in Governance Votes (Community Mint: {metricsFlowsObject.governanceCommunityTokenMintName})
-                                                                    <br/>
-                                                                        In: {getFormattedNumberToLocale(metricsFlowsObject.metricsPreviousInflows)}
-                                                                        <br/>
-                                                                        Out: {getFormattedNumberToLocale(metricsFlowsObject.metricsPreviousOutflows)}
-                                                                    </>
-                                                                }>
-                                                                <Button
-                                                                    color='inherit'
-                                                                    sx={{
-                                                                        borderRadius:'17px'
-                                                                    }}
-                                                                >
-                                                                    <Grid container
-                                                                        sx={{
-                                                                            verticalAlign: 'bottom'}}
-                                                                        >
-                                                                        <Typography variant="h4">
-                                                                            
-                                                                            {getFormattedNumberToLocale(metricsFlowsObject.metricsPreviousInflows + metricsFlowsObject.metricsPreviousOutflows)}
-                                                                            
-                                                                            {/*metricsFlowsObject?.metricsPreviousInflows && 
-                                                                                <Badge badgeContent={<ArrowDownwardIcon sx={{ fontSize: 10 }} />} color="success">
-                                                                                    {getFormattedNumberToLocale(metricsFlowsObject.metricsPreviousInflows)}
-                                                                                </Badge>
-                                                                            
-                                                                                /
-                                                                            metricsFlowsObject?.metricsPreviousOutflows && 
-                                                                                <Badge badgeContent={<ArrowUpwardIcon sx={{ fontSize: 10 }} />} color="error">
-                                                                                    {getFormattedNumberToLocale(metricsFlowsObject.metricsPreviousOutflows)}
-                                                                                </Badge>
-                                                                            */}
-                                                                        </Typography>
-                                                                    </Grid>
-                                                                </Button>
-                                                            </Tooltip>
-                                                        </Box>
-                                                    </Grid>
-                                                    :<></>
-                                                }
                                                 </>
                                             }
                                         </Grid>
@@ -3001,7 +3000,7 @@ export function GovernanceMetricsView(props: any) {
                                     
                                     {metricsFlowsObject &&
                                         <>
-                                        {metricsFlowsObject?.governanceTransactionsData ?
+                                        {/*metricsFlowsObject?.governanceTransactionsData ?
                                         <>{metricsFlowsObject.governanceTransactionsData.length > 0 ?
                                             <Box>
                                                 <Chart
@@ -3030,7 +3029,7 @@ export function GovernanceMetricsView(props: any) {
                                             }
                                             </>
                                         :<></>
-                                        }
+                                        */}
 
                                         {metricsFlowsObject?.governanceBalanceOverTimeData ?
                                         <>{metricsFlowsObject.governanceBalanceOverTimeData.length > 0 ?
