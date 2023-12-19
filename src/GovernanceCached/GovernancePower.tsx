@@ -693,11 +693,11 @@ export default function GovernancePower(props: any){
         return (
             <>
             
-                <Tooltip title="Advanced">
+                <Tooltip title="Delegation &amp; Advanced Tools">
                     <Button 
                         aria-label="Deposit"
                         variant={inlineAdvanced ? `text`:`outlined`} 
-                        color='success'
+                        color={inlineAdvanced ? 'inherit' : 'success'}
                         onClick={handleClickOpen}
                         sx={{
                             borderRadius: inlineAdvanced ? '17px' : undefined,
@@ -705,12 +705,12 @@ export default function GovernancePower(props: any){
                             borderBottomRightRadius: inlineAdvanced ? undefined : '17px',
                             borderColor:'rgba(255,255,255,0.05)',
                             fontSize:'10px',
-                            pl: inlineAdvanced ? undefined : 1,
-                            pr: inlineAdvanced ? undefined : 1,
+                            pl: inlineAdvanced ? 0.5 : 1,
+                            pr: inlineAdvanced ? 0.5 : 1,
                             minWidth: inlineAdvanced ? '0' : undefined,
                             //p: inlineAdvanced ? undefined : 1,
                         }}
-                    ><SettingsIcon  sx={{fontSize:'14px'}} /></Button>
+                    ><SettingsIcon  sx={{fontSize: inlineAdvanced ? '10px' : '14px',}} /></Button>
                 </Tooltip>
 
                 <Dialog open={open} onClose={handleClose}
