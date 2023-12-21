@@ -26,6 +26,7 @@ import {
         getGovernanceIndexed,
         getAllGovernancesIndexed,
         getAllTokenOwnerRecordsIndexed,
+        getProposalInstructionsIndexed,
 } from './api/queries';
 import {
     fetchGovernanceLookupFile,
@@ -736,35 +737,36 @@ export function GovernanceProposalV2View(props: any){
                     from_cache = true;
                     
                 }
-            
-
+                
                 // if this is voting we should fetch via RPC
                 
                 let instructions = null;
                 //if ((thisitem.account.state === 0 || thisitem.account.state === 2) && !thisitem?.instructions){
                 if (!thisitem?.instructions){
-                    console.log("Instructons will be loaded via RPC")
-                    if (thisitem.pubkey){
-                        instructions = await getGovernanceAccounts(
-                            connection,
-                            new PublicKey(thisitem.owner || realm.owner),
-                            ProposalTransaction,
-                            [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
-                        );
-                        thisitem.instructions = instructions;
-                    }
+                    instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+
+                    // reverse normalize it
+
+                    //console.log("ix: "+JSON.stringify(instructions[0]))
+                    //if (instructions[0].account.instructions)
+                        thisitem.instructions = instructions; //[0].account.instructions;
+                        //console.log("ix index: "+JSON.stringify(thisitem.instructions))
+                        // consider changing the output? or handle with nested instruction
+
+
                 }
+                //console.log("ix: "+JSON.stringify(thisitem.instructions))
 
 
                 if (thisitem?.instructions){
-                    thisitem.instructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
-                    setProposalInstructions(thisitem.instructions);
+                    let useInstructions = thisitem.instructions;
+                    useInstructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
                     
-                    // we need to optimize the proposal instructions rpc calls
+                    setProposalInstructions(useInstructions);
                     
                     var ataArray = new Array();
-                    if (thisitem.instructions){
-                        for (var instructionItem of thisitem.instructions){
+                    if (useInstructions){
+                        for (var instructionItem of useInstructions){
                             if (instructionItem.account?.instructions && instructionItem.account.instructions.length > 0){
                                 for (var accountInstruction of instructionItem.account.instructions){
                                     for (var account of accountInstruction.accounts){
@@ -784,225 +786,223 @@ export function GovernanceProposalV2View(props: any){
                                     }
                                 }
 
-                                
-                                if (instructionItem?.account?.instructions[0].data && instructionItem.account.instructions[0].data.length > 0){
-                                    const typeOfInstruction = instructionItem.account.instructions[0].data[0];
-                                    //console.log("instructionDetails "+JSON.stringify(instructionDetails))
-                                    const programId = new PublicKey(instructionItem?.account?.instructions[0].programId).toBase58();
-                                    const instructionInfo = InstructionMapping?.[programId]?.[typeOfInstruction];
-                                    
-                                    
-                                    //console.log("instructionInfo "+JSON.stringify(instructionInfo))
-                                    
-                                    if (instructionInfo?.name === "Token Transfer"){
-                                        const gai = await connection.getParsedAccountInfo(new PublicKey(instructionItem.account.instructions[0].accounts[0].pubkey))
+                                for (var accountInstruction of instructionItem.account.instructions){
+                                    //if (instructionItem?.account?.instructions[0].data && instructionItem.account.instructions[0].data.length > 0){
+                                        const typeOfInstruction = accountInstruction.data[0];
+                                        //console.log("instructionDetails "+JSON.stringify(instructionDetails))
+                                        const programId = new PublicKey(instructionItem?.account?.instructions[0].programId).toBase58();
+                                        const instructionInfo = InstructionMapping?.[programId]?.[typeOfInstruction];
                                         
-                                        if (gai){
-                                            //setInstructionRecord(gai.value);
-                                            
-                                            try{
-                                                const amountBN = new BN(instructionItem.account.instructions[0]?.data?.slice(1), 'le');
-                                                const decimals = gai.value?.data.parsed.info.tokenAmount?.decimals || 0;
-                                                const divisor = new BN(10).pow(new BN(decimals));
-
-                                                const amount = amountBN.div(divisor).toString(); 
-
-                                                const newObject = {
-                                                    type:"TokenTransfer",
-                                                    pubkey: instructionItem.account.instructions[0].accounts[0].pubkey,
-                                                    mint: gai.value?.data.parsed.info.mint,
-                                                    name: tokenMap.get(gai.value?.data.parsed.info.mint)?.symbol,
-                                                    logoURI: tokenMap.get(gai.value?.data.parsed.info.mint)?.logoURI,
-                                                    amount: amount,
-                                                    data: instructionItem.account.instructions[0].data
-                                                };
-
-                                                //console.log("newObject "+JSON.stringify(newObject))
-                                                instructionItem.account.instructions[0].info = newObject;
-                                            } catch(e){
-                                                console.log("ERR: "+e);
-                                            }
-                                            instructionItem.account.instructions[0].gai = gai;
-                                            
-                                            /*
-                                            const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instructionItem.account.instructions[0].accounts[0].pubkey);
-                
-                                            if (!hasInstruction){
-                                                setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
-                                            }
-                                            */
-                                        }
-                                    } else if (programId === "DCA265Vj8a9CEuX1eb1LWRnDT7uK6q1xMipnNyatn23M"){
+                                        //console.log("typeOfInstruction "+JSON.stringify(typeOfInstruction))
                                         
-                                        console.log("DCA PROGRAM INSTRUCTION: "+JSON.stringify(instructionItem.account))
-                                        
-                                        if (instructionItem.account.instructions[0]?.data){
+                                        if (instructionInfo?.name === "Token Transfer"){
+                                            const gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                            
+                                            if (gai){
+                                                //setInstructionRecord(gai.value);
+                                                
+                                                try{
+                                                    const amountBN = new BN(accountInstruction?.data?.slice(1), 'le');
+                                                    const decimals = gai.value?.data.parsed.info.tokenAmount?.decimals || 0;
+                                                    const divisor = new BN(10).pow(new BN(decimals));
 
-                                            //console.log("DCA string: "+JSON.stringify(instructionItem.account.instructions[0]));
-                                            
-                                            
-                                            //console.log("DCA Base64: "+encodeURI(JSON.stringify(instructionItem.account.instructions[0]).toString("base64")))
-                                            
-                                            //console.log("programId")
-                                            //const jsonData = require('./plugins/idl/'+instructionItem.account.instructions[0].programId+'.json');
-                                            //const jsonData = require('./plugins/idl/JupiterDCA.json');
-                                            ////const fileContent = await fs.readFileSync('./plugins/idl/JupiterDCA.json');
-                                            let description = "";
-                                            let u64BigInt, u64Number;
-                                            let decodedIx;
-                                            try {
-                                                /*
-                                                const filePath = './plugins/idl/'+instructionItem.account.instructions[0].programId+'.tsx';
-                                                const filePath2 = './plugins/idl/JupiterDCA.json';
-                                                
-                                                const data = import(filePath2);
-                                                const parsedData = JSON.parse(JSON.stringify(data));
-                                                //const parsedData = (data.idl);
-                                                //setJsonData(parsedData);
-                                                const borshCoder = new BorshCoder(parsedData);
-                                                */
-                                                
-                                                //const fileContent = await fs.readFile('./plugins/idl/JupiterDCA.json', options:{encoding:'utf-8'});
-                                                const jsonData = await require('./plugins/idl/DCA265Vj8a9CEuX1eb1LWRnDT7uK6q1xMipnNyatn23M.json');
-                                                //const jsonData = require('./plugins/idl/'+instructionItem.account.instructions[0].programId+'.json');
-                                                //const fileContent = await fs.readFileSync('./plugins/idl/JupiterDCA.json');
-                                                
-                                                const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
-                                                // `4` is the index of the instruction which interacts with Candy Machine V2 
-                                                const instruction = instructionItem.account.instructions[0];
-                                                const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
-                                                decodedIx = borshCoder.instruction.decode(hexString, 'hex');
-                                                //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
-                                                
-                                                console.log("decodedIx: "+JSON.stringify(decodedIx));
-                                                
-                                                if (decodedIx){
-                                                    if (decodedIx?.name){
-                                                        description = "Name: "+decodedIx.name;
-                                                    }
-                                                    if (decodedIx.data?.inAmount){
-                                                        u64BigInt = BigInt(decodedIx.data.inAmount);
-                                                        u64Number = Number(u64BigInt);
-                                                        description += " - In: "+u64Number;
-                                                    }
-                                                    if (decodedIx.data?.inAmountPerCycle){
-                                                        u64BigInt = BigInt(decodedIx.data.inAmountPerCycle);
-                                                        u64Number = Number(u64BigInt);
-                                                        description += " - In p/Cycle: " + u64Number;
-                                                    }
-                                                    if (decodedIx.data?.cycleFrequency){
-                                                        u64BigInt = BigInt(decodedIx.data.cycleFrequency);
-                                                        u64Number = Number(u64BigInt);
-                                                        description += " - Cycle Frequency: "+u64Number+"s";
-                                                    }
-                                                    if (decodedIx.data?.inAmount && decodedIx.data?.inAmountPerCycle){
-                                                        u64BigInt = BigInt(decodedIx.data.inAmount);
-                                                        u64Number = Number(u64BigInt);
-                                                        var u64BigInt2 = BigInt(decodedIx.data.inAmountPerCycle);
-                                                        var u64Number2 = Number(u64BigInt2);
-                                                        
+                                                    const amount = amountBN.div(divisor).toString(); 
 
-                                                        description += " - Cycles: "+Math.floor(u64Number/u64Number2)+"";
-                                                    }
-                                                    if (decodedIx.data?.minPrice){
-                                                        u64BigInt = BigInt(decodedIx.data.minPrice);
-                                                        u64Number = Number(u64BigInt);
-                                                        description += " - Min Price: "+u64Number;
-                                                    }
-                                                    if (decodedIx.data?.maxPrice){
-                                                        u64BigInt = BigInt(decodedIx.data.maxPrice);
-                                                        u64Number = Number(u64BigInt);
-                                                        description += " - Max Price: "+u64Number;
-                                                    }
-                                                    if (decodedIx.data?.startAt){
-                                                        u64BigInt = BigInt(decodedIx.data.startAt);
-                                                        u64Number = Number(u64BigInt);
-                                                        description += " - Starting: "+u64Number;
-                                                    }
+                                                    const newObject = {
+                                                        type:"TokenTransfer",
+                                                        pubkey: accountInstruction.accounts[0].pubkey,
+                                                        mint: gai.value?.data.parsed.info.mint,
+                                                        name: tokenMap.get(gai.value?.data.parsed.info.mint)?.symbol,
+                                                        logoURI: tokenMap.get(gai.value?.data.parsed.info.mint)?.logoURI,
+                                                        amount: amount,
+                                                        data: accountInstruction.data
+                                                    };
+
+                                                    //console.log("newObject "+JSON.stringify(newObject))
+                                                    accountInstruction.info = newObject;
+                                                } catch(e){
+                                                    console.log("ERR: "+e);
                                                 }
-                                            } catch (error) {
-                                                console.log(`ERR: ${error}`);
+                                                accountInstruction.gai = gai;
+                                                
+                                                /*
+                                                const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instructionItem.account.instructions[0].accounts[0].pubkey);
+                    
+                                                if (!hasInstruction){
+                                                    setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
+                                                }
+                                                */
                                             }
+                                        } else if (programId === "DCA265Vj8a9CEuX1eb1LWRnDT7uK6q1xMipnNyatn23M"){
                                             
-                                            //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
-                                            const newObject = {
-                                                type:"DCA Program by Jupiter",
-                                                description:description,
-                                                decodedIx:decodedIx,
-                                                data:instructionItem.account.instructions[0].data
-                                            };
-                                            instructionItem.account.instructions[0].info = newObject;
-                                        }
-
-                                        //console.log("instructionItem.account.instructions[0] "+JSON.stringify(instructionItem.account.instructions[0]))
-                                        //console.log("instructionItem.account.instructions[0].data "+JSON.stringify(instructionItem.account.instructions[0].data))
-                                        //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
-                                        //console.log("instructionItem.account.instructions[0].data "+buffer.toString("utf-8"))
-                                    } else if (programId === "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"){
-                                        if (instructionItem.account.instructions[0]?.data){
-                                            //const instruction = instructionItem.account.instructions[0];
-                                            //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
+                                            console.log("DCA PROGRAM INSTRUCTION: "+JSON.stringify(instructionItem.account))
                                             
-                                            let description = "SPL Governance Interaction";
-                                            let decodedIx = null;
-                                            try {
-                                                //const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
-                                                const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
-                                                const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
-                                                const instruction = instructionItem.account.instructions[0];
+                                            if (accountInstruction?.data){
 
-                                                //console.log("instruction.data: "+JSON.stringify(instruction.data))
-                                                const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
-                                                //console.log("hexString: "+hexString);
-                                                decodedIx = borshCoder.instruction.decode(hexString, 'hex');
+                                                //console.log("DCA string: "+JSON.stringify(instructionItem.account.instructions[0]));
+                                                
+                                                
+                                                //console.log("DCA Base64: "+encodeURI(JSON.stringify(instructionItem.account.instructions[0]).toString("base64")))
+                                                
+                                                //console.log("programId")
+                                                //const jsonData = require('./plugins/idl/'+instructionItem.account.instructions[0].programId+'.json');
+                                                //const jsonData = require('./plugins/idl/JupiterDCA.json');
+                                                ////const fileContent = await fs.readFileSync('./plugins/idl/JupiterDCA.json');
+                                                let description = "";
+                                                let u64BigInt, u64Number;
+                                                let decodedIx;
+                                                try {
+                                                    /*
+                                                    const filePath = './plugins/idl/'+instructionItem.account.instructions[0].programId+'.tsx';
+                                                    const filePath2 = './plugins/idl/JupiterDCA.json';
+                                                    
+                                                    const data = import(filePath2);
+                                                    const parsedData = JSON.parse(JSON.stringify(data));
+                                                    //const parsedData = (data.idl);
+                                                    //setJsonData(parsedData);
+                                                    const borshCoder = new BorshCoder(parsedData);
+                                                    */
+                                                    
+                                                    //const fileContent = await fs.readFile('./plugins/idl/JupiterDCA.json', options:{encoding:'utf-8'});
+                                                    const jsonData = await require('./plugins/idl/DCA265Vj8a9CEuX1eb1LWRnDT7uK6q1xMipnNyatn23M.json');
+                                                    //const jsonData = require('./plugins/idl/'+instructionItem.account.instructions[0].programId+'.json');
+                                                    //const fileContent = await fs.readFileSync('./plugins/idl/JupiterDCA.json');
+                                                    
+                                                    const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
+                                                    // `4` is the index of the instruction which interacts with Candy Machine V2 
+                                                    const instruction = instructionItem.account.instructions[0];
+                                                    const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
+                                                    decodedIx = borshCoder.instruction.decode(hexString, 'hex');
+                                                    //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
+                                                    
+                                                    console.log("decodedIx: "+JSON.stringify(decodedIx));
+                                                    
+                                                    if (decodedIx){
+                                                        if (decodedIx?.name){
+                                                            description = "Name: "+decodedIx.name;
+                                                        }
+                                                        if (decodedIx.data?.inAmount){
+                                                            u64BigInt = BigInt(decodedIx.data.inAmount);
+                                                            u64Number = Number(u64BigInt);
+                                                            description += " - In: "+u64Number;
+                                                        }
+                                                        if (decodedIx.data?.inAmountPerCycle){
+                                                            u64BigInt = BigInt(decodedIx.data.inAmountPerCycle);
+                                                            u64Number = Number(u64BigInt);
+                                                            description += " - In p/Cycle: " + u64Number;
+                                                        }
+                                                        if (decodedIx.data?.cycleFrequency){
+                                                            u64BigInt = BigInt(decodedIx.data.cycleFrequency);
+                                                            u64Number = Number(u64BigInt);
+                                                            description += " - Cycle Frequency: "+u64Number+"s";
+                                                        }
+                                                        if (decodedIx.data?.inAmount && decodedIx.data?.inAmountPerCycle){
+                                                            u64BigInt = BigInt(decodedIx.data.inAmount);
+                                                            u64Number = Number(u64BigInt);
+                                                            var u64BigInt2 = BigInt(decodedIx.data.inAmountPerCycle);
+                                                            var u64Number2 = Number(u64BigInt2);
+                                                            
 
-                                                //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
-                                                console.log("decodedIx: "+JSON.stringify(decodedIx));
-                                                if (!decodedIx){
-                                                    const buffer = Buffer.from(instructionItem.account.instructions[0].data);
+                                                            description += " - Cycles: "+Math.floor(u64Number/u64Number2)+"";
+                                                        }
+                                                        if (decodedIx.data?.minPrice){
+                                                            u64BigInt = BigInt(decodedIx.data.minPrice);
+                                                            u64Number = Number(u64BigInt);
+                                                            description += " - Min Price: "+u64Number;
+                                                        }
+                                                        if (decodedIx.data?.maxPrice){
+                                                            u64BigInt = BigInt(decodedIx.data.maxPrice);
+                                                            u64Number = Number(u64BigInt);
+                                                            description += " - Max Price: "+u64Number;
+                                                        }
+                                                        if (decodedIx.data?.startAt){
+                                                            u64BigInt = BigInt(decodedIx.data.startAt);
+                                                            u64Number = Number(u64BigInt);
+                                                            description += " - Starting: "+u64Number;
+                                                        }
+                                                    }
+                                                } catch (error) {
+                                                    console.log(`ERR: ${error}`);
+                                                }
+                                                
+                                                //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
+                                                const newObject = {
+                                                    type:"DCA Program by Jupiter",
+                                                    description:description,
+                                                    decodedIx:decodedIx,
+                                                    data:accountInstruction.data
+                                                };
+                                                accountInstruction.info = newObject;
+                                            }
+
+                                            //console.log("instructionItem.account.instructions[0] "+JSON.stringify(instructionItem.account.instructions[0]))
+                                            //console.log("instructionItem.account.instructions[0].data "+JSON.stringify(instructionItem.account.instructions[0].data))
+                                            //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
+                                            //console.log("instructionItem.account.instructions[0].data "+buffer.toString("utf-8"))
+                                        } else if (programId === "GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw"){
+                                            if (accountInstruction?.data){
+                                                //const instruction = instructionItem.account.instructions[0];
+                                                //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
+                                                
+                                                let description = "SPL Governance Interaction";
+                                                let decodedIx = null;
+                                                try {
+                                                    //const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
+                                                    const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
+                                                    const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
+                                                    const instruction = accountInstruction;
+
+                                                    //console.log("instruction.data: "+JSON.stringify(instruction.data))
+                                                    const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
+                                                    //console.log("hexString: "+hexString);
+                                                    decodedIx = borshCoder.instruction.decode(hexString, 'hex');
+
+                                                    //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
+                                                    console.log("decodedIx: "+JSON.stringify(decodedIx));
+                                                    if (!decodedIx){
+                                                        const buffer = Buffer.from(accountInstruction.data);
+                                                        description = buffer.toString("utf-8");
+                                                    }
+                                                } catch (error) {
+                                                    console.log('ERR: ', error);
+                                                    const buffer = Buffer.from(accountInstruction.data);
                                                     description = buffer.toString("utf-8");
                                                 }
-                                            } catch (error) {
-                                                console.log('ERR: ', error);
-                                                const buffer = Buffer.from(instructionItem.account.instructions[0].data);
-                                                description = buffer.toString("utf-8");
-                                            }
 
-                                            const newObject = {
-                                                type:"SPL Governance Program by Solana",
-                                                decodedIx:decodedIx,
-                                                description:description,
-                                                data:instructionItem.account.instructions[0].data
-                                            };
-                                            instructionItem.account.instructions[0].info = newObject;
-                                        }
-                                    } else if (programId === "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"){
-                                        if (instructionItem.account.instructions[0]?.data){
-                                            const buffer = Buffer.from(instructionItem.account.instructions[0].data);
-                                            const newObject = {
-                                                type:"Memo Program by Solana",
-                                                description:buffer.toString("utf-8"),
-                                                data:instructionItem.account.instructions[0].data
-                                            };
-                                            instructionItem.account.instructions[0].info = newObject;
-                                        }
-                                    } else {
-                                        if (instructionItem.account.instructions[0]?.data){
-                                            const buffer = Buffer.from(instructionItem.account.instructions[0].data);
-                                            const newObject = {
-                                                type:"Unknown Program",
-                                                description:buffer.toString("utf-8"),
-                                                data:instructionItem.account.instructions[0].data
-                                            };
-                                            instructionItem.account.instructions[0].info = newObject;
-                                        }
-                                    } 
+                                                const newObject = {
+                                                    type:"SPL Governance Program by Solana",
+                                                    decodedIx:decodedIx,
+                                                    description:description,
+                                                    data:accountInstruction.data
+                                                };
+                                                accountInstruction.info = newObject;
+                                            }
+                                        } else if (programId === "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"){
+                                            if (accountInstruction?.data){
+                                                const buffer = Buffer.from(accountInstruction.data);
+                                                const newObject = {
+                                                    type:"Memo Program by Solana",
+                                                    description:buffer.toString("utf-8"),
+                                                    data:accountInstruction.data
+                                                };
+                                                accountInstruction.info = newObject;
+                                            }
+                                        } else {
+                                            if (accountInstruction?.data){
+                                                const buffer = Buffer.from(accountInstruction.data);
+                                                const newObject = {
+                                                    type:"Unknown Program",
+                                                    description:buffer.toString("utf-8"),
+                                                    data:accountInstruction.data
+                                                };
+                                                accountInstruction.info = newObject;
+                                            }
+                                        } 
                                 }
                             }
                         }
 
                         if (ataArray && ataArray.length <= 100 ){ // to fix add support for over 100 records for gma
-
                             const owners = await connection.getMultipleParsedAccounts(ataArray);
                             setInstructionOwnerRecord(owners.value);
                             setInstructionOwnerRecordATA(ataArray);
@@ -2599,7 +2599,7 @@ export function GovernanceProposalV2View(props: any){
                                         </ListItemIcon>
                                         <ListItemText primary={<>
                                             Instructions
-                                            &nbsp;{proposalInstructions.length}
+                                            &nbsp;{proposalInstructions[0].account.instructions.length > 1 ? proposalInstructions[0].account.instructions.length : proposalInstructions.length}
                                             </>
                                         } />
                                             {openInstructions ? <ExpandLess /> : <ExpandMoreIcon />}
@@ -2662,9 +2662,21 @@ export function GovernanceProposalV2View(props: any){
                                         </Box>
                                         
                                         <Timeline>
-                                            {proposalInstructions && (proposalInstructions).map((item: any, index:number) => (
-                                                <InstructionView cachedTokenMeta={cachedTokenMeta} setInstructionTransferDetails={setInstructionTransferDetails} instructionTransferDetails={instructionTransferDetails} memberMap={memberMap} tokenMap={tokenMap} instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
-                                            ))}
+                                            {proposalInstructions[0].account.instructions.length > 1 ?
+                                            <>
+                                                {proposalInstructions[0].account.instructions && (proposalInstructions[0].account.instructions).map((item: any, index:number) => (
+                                                    <>
+                                                        <InstructionView cachedTokenMeta={cachedTokenMeta} setInstructionTransferDetails={setInstructionTransferDetails} instructionTransferDetails={instructionTransferDetails} memberMap={memberMap} tokenMap={tokenMap} instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
+                                                    </>
+                                                ))}
+                                            </>
+                                            :
+                                            <>
+                                                {proposalInstructions && (proposalInstructions).map((item: any, index:number) => (
+                                                    <InstructionView cachedTokenMeta={cachedTokenMeta} setInstructionTransferDetails={setInstructionTransferDetails} instructionTransferDetails={instructionTransferDetails} memberMap={memberMap} tokenMap={tokenMap} instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
+                                                ))}
+                                            </>
+                                            }
                                         </Timeline>
                                     </Collapse>
                                     

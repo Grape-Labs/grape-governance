@@ -13,6 +13,9 @@ import {
     getAllTokenOwnerRecords, 
     getRealmConfigAddress, 
     tryGetRealmConfig, 
+    ProposalTransaction,
+    getGovernanceAccounts,
+    pubkeyFilter,
     getRealmConfig  } from '@solana/spl-governance';
 
 export const govOwners = [
@@ -134,11 +137,33 @@ const client = new ApolloClient({
     cache: new InMemoryCache(),
 });
 
+function GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk?:string, realmOwner?:string){
+
+    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+ 
+    return gql`
+        query MyQuery {
+            ${programId}_ProposalTransactio(
+            where: {proposal: {_eq: "${proposalPk}"}}
+            ) {
+                executedAt
+                executionStatus
+                holdUpTime
+                instructions
+                lamports
+                optionIndex
+                proposal
+                transactionIndex
+            }
+        }
+        
+    `;
+}
+
 function GET_QUERY_PROPOSAL(proposalPk?:string, realmOwner?:string){
 
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-
-        
+ 
     return gql`
         query MyQuery {
             ${programId}_ProposalV2_by_pk(pubkey: ${proposalPk}) {
@@ -496,6 +521,65 @@ function GET_QUERY_REALM(realm:string, realmOwner?:string){
         `
 }
 
+export const getProposalInstructionsIndexed = async (filterRealm?:any, proposalPk?:any) => {
+    const programId = findGovOwnerByDao(filterRealm)?.owner;
+
+    const allProposalIx = new Array();
+    try{
+        const { data } = await client.query({ query: GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk, programId) });
+        
+        data[programId+"_ProposalTransactio"] && data[programId+"_ProposalTransactio"].map((item) => {
+            if (item?.instructions){
+                
+
+                allProposalIx.push({
+                    pubkey: new PublicKey(0),
+                    account: {
+                            proposal: new PublicKey(proposalPk),
+                            executedAt: item.executedAt,
+                            executionStatus: item.executionStatus,
+                            holdUpTime: item.holdUpTime,
+                            instructions: item.instructions.map((ixn) => {
+                                return {
+                                    programId: new PublicKey(ixn.programId),
+                                    accounts: ixn.accounts.map((acts) => {
+                                        return {
+                                            pubkey: new PublicKey(acts.pubkey),
+                                            isSigner: acts.isSigner,
+                                            isWritable: acts.isWritable,
+                                        }
+                                    }),
+                                    data: ixn.data,
+                                }
+                            })
+                        }
+                    }
+                )
+            
+            }
+        });
+        
+        //console.log("allProposalIx Index: "+JSON.stringify(allProposalIx));
+    }catch(e){
+        console.log("Ix Index Err reverting to RPC "+e);
+    }
+
+    
+    if ((!allProposalIx || allProposalIx.length <= 0) && filterRealm){ // fallback to RPC call is governance not found in index
+        const instructions = await getGovernanceAccounts(
+            RPC_CONNECTION,
+            new PublicKey(programId),
+            ProposalTransaction,
+            [pubkeyFilter(1, new PublicKey(proposalPk))!]
+        );
+        allProposalIx.push(...instructions);
+    }
+    //console.log("allProposalIx: "+JSON.stringify(allProposalIx));
+    return allProposalIx;
+    
+    
+}
+
 export const getRealmIndexed = async (filterRealm?:any) => {
     if (filterRealm){
         const programId = findGovOwnerByDao(filterRealm)?.owner;
@@ -507,7 +591,6 @@ export const getRealmIndexed = async (filterRealm?:any) => {
             
             //console.log("data: "+JSON.stringify(data));
             
-
             data[programId+"_RealmV2"] && data[programId+"_RealmV2"].map((item) => {
                 allRealms.push({
                     pubkey: new PublicKey(filterRealm),

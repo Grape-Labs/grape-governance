@@ -192,7 +192,7 @@ export function InstructionView(props: any) {
     const instructionOwnerRecordATA = props.instructionOwnerRecordATA;
     const instruction = props.instruction;
     const instructionTransferDetails = props.instructionTransferDetails;
-    const instructionDetails = instruction.account?.instructions?.[0] || instruction.account?.instruction;
+    const instructionDetails = instruction.account?.instructions?.[0] || instruction.account?.instruction || instruction;
     const setInstructionTransferDetails = props.setInstructionTransferDetails;
     const memberMap = props.memberMap;
     const tokenMap = props.tokenMap;
@@ -503,7 +503,8 @@ export function InstructionView(props: any) {
                             >
 
                             <Typography variant="subtitle1">
-                                Instruction {index+1} <ExplorerView address={new PublicKey(instruction.pubkey).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                Instruction {index+1} 
+                                {/*<ExplorerView address={new PublicKey(instruction.pubkey).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='12px'/>*/}
                             </Typography>
                             <Typography>
                                 {instructionInfo?.name || <ExplorerView address={new PublicKey(instructionDetails.programId).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px'/>}
