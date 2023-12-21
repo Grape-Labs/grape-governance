@@ -33,7 +33,7 @@ export const RPC_CONNECTION = new Connection(
 );
 */
 export const RPC_CONNECTION = new Connection(
-    RPC_ENDPOINT
+    RPC_ENDPOINT, 'processed'
 );
 
 export const MAILGUN_KEY = process.env.REACT_APP_API_MAILGUN_KEY || null;

@@ -245,7 +245,7 @@ function GetParticipants(props: any){
     const [exceededQuorumPercentage, setExceededQuorumPercentage] = React.useState(null);
     const [selectedDelegate, setSelectedDelegate] = React.useState("");
     const { publicKey, wallet, sendTransaction, signTransaction } = useWallet();
-    const freeconnection = new Connection(TX_RPC_ENDPOINT);
+    //const freeconnection = new Connection(TX_RPC_ENDPOINT);
     const [loadingParticipants, setLoadingParticipants] = React.useState(false);
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
@@ -692,7 +692,7 @@ function GetParticipants(props: any){
 
             try{
                 enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
-                const signature = await sendTransaction(vvvt, freeconnection, {
+                const signature = await sendTransaction(vvvt, connection, {
                     skipPreflight: true,
                     preflightCommitment: "confirmed",
                 });
