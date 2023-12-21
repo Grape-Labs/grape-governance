@@ -266,8 +266,8 @@ export function VoteForProposal(props:any){
             rawTokenOwnerRecords = memberMap;
         } else{
             rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58())
-            if (!rawTokenOwnerRecords)
-                rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
+            //if (!rawTokenOwnerRecords)
+            //    rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
         }
 
         //console.log("rawTokenOwnerRecords: "+JSON.stringify(rawTokenOwnerRecords))
@@ -496,7 +496,8 @@ export function VoteForProposal(props:any){
         if (memberMap){
             rawTokenOwnerRecords = memberMap;
         } else{
-            rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
+            rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58())
+            //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
         }
 
         //console.log("rawTokenOwnerRecords: "+JSON.stringify(rawTokenOwnerRecords))
@@ -685,7 +686,8 @@ export function VoteForProposal(props:any){
     const loadMemberMap = async() => {
         
         const programId = new PublicKey(realm.owner);
-        const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
+        //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
+        const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58())
         setMemberMap(rawTokenOwnerRecords);
 
         let memberItem = rawTokenOwnerRecords.find(item => 

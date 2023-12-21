@@ -75,6 +75,17 @@ import {
     withSetGovernanceDelegate,
 } from '@solana/spl-governance';
 
+import { 
+    getRealmIndexed,
+    getProposalIndexed,
+    getProposalNewIndexed,
+    getAllProposalsIndexed,
+    getGovernanceIndexed,
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
+    getTokenOwnerRecordsByOwnerIndexed,
+} from './api/queries';
+
 import { parseMintNaturalAmountFromDecimalAsBN } from '../utils/grapeTools/helpers';
 
 import { 
@@ -231,9 +242,11 @@ export default function GovernancePower(props: any){
             setWalletCommunityMintAddress(communityMint);
             setWalletCouncilMintAddress(councilMint);
 
-            const tokenOwnerRecord = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realm?.owner || SYSTEM_PROGRAM_ID), publicKey);
+            //const tokenOwnerRecordV1 = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realm?.owner || SYSTEM_PROGRAM_ID), publicKey);
+            //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecordV1));
+            const tokenOwnerRecord = await getTokenOwnerRecordsByOwnerIndexed(governanceAddress, null, publicKey.toBase58());
 
-            console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecord));
+            //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecord));
             // find all instances of this governanceAddress:
             let depCommunityMint = null;
             let depCouncilMint = null;
@@ -296,7 +309,9 @@ export default function GovernancePower(props: any){
 
     React.useEffect(() => {
         if (publicKey && rpcMemberMap){
-            const foundObject = findObjectByGoverningTokenOwner(rpcMemberMap, publicKey.toBase58(), true, 0)
+
+            //const foundObject = findObjectByGoverningTokenOwner(rpcMemberMap, publicKey.toBase58(), true, 0)
+            const foundObject = getTokenOwnerRecordsByOwnerIndexed(governanceAddress, null, publicKey.toBase58());
             if (foundObject){
                 setIsParticipatingInDao(true);
             }

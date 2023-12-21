@@ -109,6 +109,17 @@ import {
   convertSecondsToLegibleFormat,
 } from '../utils/grapeTools/helpers';
 
+import { 
+  getRealmIndexed,
+  getProposalIndexed,
+  getProposalNewIndexed,
+  getAllProposalsIndexed,
+  getGovernanceIndexed,
+  getAllGovernancesIndexed,
+  getAllTokenOwnerRecordsIndexed,
+  getTokenOwnerRecordsByOwnerIndexed,
+} from './api/queries';
+
 import {
     fetchGovernanceLookupFile,
     getFileFromLookup
@@ -1195,7 +1206,8 @@ export default function GovernanceCreateProposalView(props: any){
     const checkMemberStatus = async() => {
       //console.log("cachedRealm: "+JSON.stringify(cachedRealm))
       //console.log("checking: "+publicKey.toBase58())
-      const canParticipate = await findObjectByGoverningTokenOwner(null, publicKey.toBase58(), true, 0, cachedRealm);
+      //const canParticipate = await findObjectByGoverningTokenOwner(null, publicKey.toBase58(), true, 0, cachedRealm);
+      const canParticipate = getTokenOwnerRecordsByOwnerIndexed(governanceAddress, null, publicKey.toBase58());
       //console.log("canParticipate: "+JSON.stringify(canParticipate));
       //const canParticipate = false;
       if (canParticipate) 

@@ -50,6 +50,17 @@ import {
     findObjectByGoverningTokenOwner
   } from '../utils/grapeTools/helpers';
 
+  import { 
+    getRealmIndexed,
+    getProposalIndexed,
+    getProposalNewIndexed,
+    getAllProposalsIndexed,
+    getGovernanceIndexed,
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
+    getTokenOwnerRecordsByOwnerIndexed,
+} from './api/queries';
+
 export default function GovernanceNavigation(props: any){
     const governanceAddress = props.governanceAddress;
     const [realm, setRealm] = React.useState(props?.realm || null);
@@ -67,7 +78,9 @@ export default function GovernanceNavigation(props: any){
 
     React.useEffect(() => {
         if (publicKey && rpcMemberMap){
-            const foundObject = findObjectByGoverningTokenOwner(rpcMemberMap, publicKey.toBase58(), true, 0)
+            const foundObject = getTokenOwnerRecordsByOwnerIndexed(governanceAddress, null, publicKey.toBase58());
+
+            //const foundObject = findObjectByGoverningTokenOwner(rpcMemberMap, publicKey.toBase58(), true, 0)
             if (foundObject){
                 setIsParticipatingInDao(true);
             }
@@ -76,13 +89,15 @@ export default function GovernanceNavigation(props: any){
 
     React.useEffect(() => {
         if (publicKey && cachedMemberMap){
-            const foundObject = findObjectByGoverningTokenOwner(cachedMemberMap, publicKey.toBase58(), false, 0)
+            //const foundObject = findObjectByGoverningTokenOwner(cachedMemberMap, publicKey.toBase58(), false, 0)
+            const foundObject = getTokenOwnerRecordsByOwnerIndexed(governanceAddress, null, publicKey.toBase58());
+
             if (foundObject){
                 setIsParticipatingInDao(true);
             }
         } else if (publicKey && !cachedMemberMap){
-            console.log("key ++ cache")
-            getRpcMemberMap();
+            //console.log("key ++ cache")
+            //getRpcMemberMap();
         }
     }, [cachedMemberMap, publicKey]);
 

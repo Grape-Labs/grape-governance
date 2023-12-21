@@ -770,8 +770,8 @@ export function GovernanceCachedView(props: any) {
                 } else{
                     console.log("Realm from index");
                     grealm = await getRealmIndexed(governanceAddress);
-                    if (!grealm)
-                        grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
+                    //if (!grealm)
+                    //    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
                 }
                 //console.log("grealm: "+JSON.stringify(grealm));
                 setRealm(grealm);

@@ -134,6 +134,74 @@ const client = new ApolloClient({
     cache: new InMemoryCache(),
 });
 
+function GET_QUERY_PROPOSAL(proposalPk?:string, realmOwner?:string){
+
+    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+        
+    return gql`
+        query MyQuery {
+            ${programId}_ProposalV2_by_pk(pubkey: ${proposalPk}) {
+                pubkey
+                abstainVoteWeight
+                closedAt
+                denyVoteWeight
+                descriptionLink
+                draftAt
+                executingAt
+                executionFlags
+                governance
+                governingTokenMint
+                lamports
+                maxVoteWeight
+                maxVotingTime
+                name
+                options
+                reserved1
+                signatoriesCount
+                signatoriesSignedOffCount
+                signingOffAt
+                startVotingAt
+                state
+                tokenOwnerRecord
+                vetoVoteWeight
+                voteThreshold
+                voteType
+                votingAt
+                votingAtSlot
+                votingCompletedAt
+            }
+            ${programId}_ProposalV1_by_pk(pubkey: ${proposalPk}) {
+                pubkey
+                closedAt
+                descriptionLink
+                draftAt
+                executingAt
+                executionFlags
+                governance
+                governingTokenMint
+                instructionsCount
+                instructionsExecutedCount
+                instructionsNextIndex
+                lamports
+                maxVoteWeight
+                name
+                noVotesCount
+                signatoriesCount
+                signatoriesSignedOffCount
+                signingOffAt
+                state
+                tokenOwnerRecord
+                voteThreshold
+                votingAt
+                votingAtSlot
+                votingCompletedAt
+                yesVotesCount
+            }
+        }
+    `;
+}
+
 function GET_QUERY_PROPOSALS(governanceArray?:string[], realmOwner?:string, programIds?:any[]){
 
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
@@ -504,6 +572,17 @@ export const getRealmIndexed = async (filterRealm?:any) => {
     }
 };
 
+export const getGovernanceIndexed = async (filterRealm?:any, realmOwner?:any, governancePk?:any) => {
+    const allgovs = await getAllGovernancesIndexed(filterRealm, realmOwner);
+    if (allgovs){
+        for (let item of allgovs){
+            if (item.pubkey.toBase58() === governancePk){
+                return item;
+            }
+        }
+    }
+}
+
 export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any) => {
     //const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const programId = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
@@ -519,6 +598,7 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
             data[programId+"_GovernanceV2"] && data[programId+"_GovernanceV2"].map((item) => {
                 allRules.push({
                     pubkey: new PublicKey(item.pubkey),
+                    owner: programId,
                     account: {
                         realm: new PublicKey(item.realm),
                         governedAccount: new PublicKey(item.governedAccount),
@@ -530,7 +610,8 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
 
             data[programId+"_GovernanceV1"] && data[programId+"_GovernanceV1"].map((item) => {
                 allRules.push({
-                    pubkey: new PublicKey(item?.pubkey),
+                    pubkey: new PublicKey(item.pubkey),
+                    owner: programId,
                     account: {
                         realm: new PublicKey(item.realm),
                         governedAccount: new PublicKey(item.governedAccount),
@@ -552,6 +633,19 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
         return allRules;
     }
 };
+
+export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:any, realmOwner?:any, tokenOwner?:any) => {
+    const allTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed (filterRealm, realmOwner);
+    const ownerRecords = new Array();
+    if (allTokenOwnerRecords && allTokenOwnerRecords.length > 0){
+        for (var item of allTokenOwnerRecords){
+            if (item.account.governingTokenOwner.toBase58() === tokenOwner){
+                ownerRecords.push(item);
+            }
+        }
+    }
+    return ownerRecords;
+}
 
 export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwner?:any) => {
     //const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
@@ -636,9 +730,11 @@ export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any,
         }
     }
 
-    if (!proposal){ // fallback to RPC call is governance not found in index
-        const prop = await getProposal(RPC_CONNECTION, new PublicKey(filterProposal));
-        return prop;
+    if (filterProposal){
+        if (!proposal){ // fallback to RPC call is governance not found in index
+            const prop = await getProposal(RPC_CONNECTION, new PublicKey(filterProposal));
+            return prop;
+        }
     }
 
     //console.log("allProposals: "+JSON.stringify(allProposals))
@@ -856,7 +952,7 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
             });
         }
     } catch(e){
-        console.log("Index Err Reverting to RPC")
+        console.log("Prop Index Err Reverting to RPC")
     }
     
     
@@ -866,5 +962,112 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
             return allProps[0];
     } else{
         return allProposals;
+    }
+};
+
+export const getProposalNewIndexed = async (proposalPk?:any, realmOwner?:any, realmPk?:any) => {
+
+    const programId = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const indexedProp = new Array();
+
+    try{
+
+        console.log("programId: "+programId);
+
+        const { data } = await client.query({ query: GET_QUERY_PROPOSAL(proposalPk, realmOwner) });
+        {
+            data[programId+"_ProposalV2"] && data[programId+"_ProposalV2"].map((account) => {
+                const options = account?.options?.map && account.options.map((option) => {
+                    return {
+                        label: option.label,
+                        voteWeight: parseInt(option.voteWeight, 16),
+                        voteResult: option.voteResult,
+                        instructionsExecutedCount: option.instructionsExecutedCount,
+                        instructionsCount: option.instructionsCount,
+                        instructionsNextIndex: option.instructionsNextIndex,
+                    };
+                });
+                
+                indexedProp.push({
+                    owner: programId,
+                    pubkey: new PublicKey(account?.pubkey),
+                    account:{
+                        accountType: account.accountType,
+                        governance: new PublicKey(account.governance),
+                        governingTokenMint: new PublicKey(account.governingTokenMint),
+                        state: account.state,
+                        tokenOwnerRecord: new PublicKey(account.tokenOwnerRecord),
+                        signatoriesCount: account.signatoriesCount,
+                        signatoriesSignedOffCount: account.signatoriesSignedOffCount,
+                        descriptionLink: account.descriptionLink,
+                        name: account.name,
+                        voteType: account.voteType,
+                        options,
+                        denyVoteWeight: account?.denyVoteWeight ? parseInt(account.denyVoteWeight) : "00",
+                        reserved1: account.reserved1,
+                        draftAt: account.draftAt,
+                        signingOffAt: account.signingOffAt,
+                        votingAt: account.votingAt,
+                        votingAtSlot: account.votingAtSlot,
+                        executionFlags: account.executionFlags,
+                        vetoVoteWeight: account.vetoVoteWeight,
+                        abstainVoteWeight: account?.abstainVoteWeight,
+                        closedAt: account?.closedAt,
+                        executingAt: account?.executingAt,
+                        maxVoteWeight: account?.maxVoteWeight,
+                        maxVotingTime: account?.maxVotingTime,
+                        startVotingAt: account?.startVotingAt,
+                        voteThreshold: account?.voteThreshold,
+                        votingCompletedAt: account?.votingCompletedAt,
+                    }
+                })
+            });
+
+            data[programId+"_ProposalV1"] && data[programId+"_ProposalV1"].map((account) => {
+                indexedProp.push({
+                    owner: programId,
+                    pubkey: new PublicKey(account?.pubkey),
+                    account:{
+                        accountType: account.accountType,
+                        governance: new PublicKey(account.governance),
+                        governingTokenMint: new PublicKey(account.governingTokenMint),
+                        state: account.state,
+                        tokenOwnerRecord: new PublicKey(account.tokenOwnerRecord),
+                        signatoriesCount: account.signatoriesCount,
+                        signatoriesSignedOffCount: account.signatoriesSignedOffCount,
+                        descriptionLink: account.descriptionLink,
+                        name: account.name,
+                        voteType: account.voteType,
+                        reserved1: account.reserved1,
+                        draftAt: account.draftAt,
+                        signingOffAt: account.signingOffAt,
+                        votingAt: account.votingAt,
+                        votingAtSlot: account.votingAtSlot,
+                        executionFlags: account.executionFlags,
+                        vetoVoteWeight: account.vetoVoteWeight,
+                        abstainVoteWeight: account?.abstainVoteWeight,
+                        closedAt: account?.closedAt,
+                        executingAt: account?.executingAt,
+                        maxVoteWeight: account?.maxVoteWeight,
+                        maxVotingTime: account?.maxVotingTime,
+                        startVotingAt: account?.startVotingAt,
+                        voteThreshold: account?.voteThreshold,
+                        votingCompletedAt: account?.votingCompletedAt,
+                        yesVoteCount: account?.yesVoteCount ? parseInt(account.yesVoteCount) : "00",
+                        noVoteCount: account?.noVoteCount ? parseInt(account.noVoteCount) : "00",
+                    }
+                })
+            });
+        }
+    } catch(e){
+        console.log("New Prop Index Err Reverting to RPC")
+    }
+    
+    
+    if ((!indexedProp || indexedProp.length <= 0) && realmPk){ // fallback to RPC call is governance not found in index
+        const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
+        return prop;
+    } else{
+        return indexedProp[0];
     }
 };

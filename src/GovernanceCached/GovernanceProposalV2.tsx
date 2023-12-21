@@ -21,7 +21,9 @@ import {
 import { 
         getRealmIndexed,
         getProposalIndexed,
+        getProposalNewIndexed,
         getAllProposalsIndexed,
+        getGovernanceIndexed,
         getAllGovernancesIndexed,
         getAllTokenOwnerRecordsIndexed,
 } from './api/queries';
@@ -410,8 +412,17 @@ export function GovernanceProposalV2View(props: any){
         }
 
         //if (!governance){ // temporary until we cache all governances for a single realm
-            governance = await getGovernance(connection, thisitem.account.governance);    
+            //console.log("getGovernance")
+            governance = await getGovernanceIndexed(governanceAddress, null, new PublicKey(thisitem.account.governance).toBase58());   
+            //console.log("results: "+JSON.stringify(governance)); 
+            
+            //governance = await getGovernance(connection, thisitem.account.governance);   
+            //console.log("results: "+JSON.stringify(governance)); 
+            //const governance_i = await getAllGovernancesIndexed(governanceAddress);
+            //console.log("ri: "+JSON.stringify(governance_i));
+
         //}
+
 
         setThisGovernance(governance);
         
@@ -656,12 +667,14 @@ export function GovernanceProposalV2View(props: any){
         }
 
         if (!vresults){
-            const gp = await getProposal(RPC_CONNECTION, thisitem.pubkey);
-            /*
-            const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, realmOwner);
+            //const gp = await getProposal(RPC_CONNECTION, thisitem.pubkey);
+            const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress);
             const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
-            const gp = await getProposalIndexed(governanceRulesStrArr, realmOwner, governanceAddress, thisitem.pubkey.toBase58());
-            */
+            const gp = await getProposalIndexed(governanceRulesStrArr, null, governanceAddress, proposalPk);
+            //const gpiv2 = await getProposalNewIndexed(thisitem.pubkey);
+            //console.log("gp: "+JSON.stringify(gp));
+            //console.log("gpiv2: "+JSON.stringify(gpiv2));
+            
             if (gp){
                 vresults = JSON.parse(JSON.stringify(gp));
             }
@@ -1492,8 +1505,8 @@ export function GovernanceProposalV2View(props: any){
 
         if (!realm){
             grealm = await getRealmIndexed(governanceAddress);
-            if (!grealm)
-                grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
+            //if (!grealm)
+            //    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
 
             realmPk = new PublicKey(grealm.pubkey);
             realmOwner = grealm.owner;
