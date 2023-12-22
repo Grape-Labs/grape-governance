@@ -157,8 +157,7 @@ export default function TokenTransferView(props: any) {
                 })}
         
         console.log("tokenATA: "+tokenAta);
-
-
+        
         //const toWallet = new PublicKey(toAddress);
         const mintPubkey = new PublicKey(tokenMint);
         const amountToSend = +tokenAmount;

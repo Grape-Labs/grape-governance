@@ -231,7 +231,7 @@ export async function createProposalInstructionsLegacy(
     //const authInstructions: TransactionInstruction[] = [];
 
     if (authTransaction){
-      console.log("auth: "+JSON.stringify(authTransaction))
+      //console.log("auth: "+JSON.stringify(authTransaction))
       
       /*
       let authinstructionData: InstructionData[]=[];
@@ -281,7 +281,7 @@ export async function createProposalInstructionsLegacy(
 
     if (authTransaction && authTransaction.instructions.length > 0){
       for (var instruction of authTransaction.instructions){ 
-        //prerequisiteInstructions.push(instruction);
+        prerequisiteInstructions.push(instruction);
         //instructions.push(instruction)
         //instructions.unshift(instruction);
       }
