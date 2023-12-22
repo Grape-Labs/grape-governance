@@ -231,6 +231,8 @@ export async function createProposalInstructionsLegacy(
     //const authInstructions: TransactionInstruction[] = [];
 
     if (authTransaction){
+      console.log("auth: "+JSON.stringify(authTransaction))
+      
       /*
       let authinstructionData: InstructionData[]=[];
       for (var authinstruction of authTransaction.instructions){

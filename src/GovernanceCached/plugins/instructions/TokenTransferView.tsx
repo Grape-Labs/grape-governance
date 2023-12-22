@@ -247,10 +247,9 @@ export default function TokenTransferView(props: any) {
                             ASSOCIATED_TOKEN_PROGRAM_ID
                         );
                         //transaction.add(transactionInstruction);
-                        //if (publicKey)
-                        //    pTransaction.add(transactionInstruction);
-                        //else
-                        
+                        if (publicKey)
+                            pTransaction.add(transactionInstruction);
+                        else
                             transaction.add(transactionInstruction);
                     }
 
@@ -277,7 +276,7 @@ export default function TokenTransferView(props: any) {
                     );
                 }
                 */
-                //setPayerInstructions(pTransaction);
+                setPayerInstructions(pTransaction);
                 setTransactionInstructions(transaction);
                 // Estimate the transaction fee
                 

@@ -514,7 +514,7 @@ export default function GovernanceCreateProposalView(props: any){
             setProposalMade(true);
             if (setEditPropOpen)
               setEditPropOpen(false);
-            
+
             // redirect to proposal
             const redirectTimer = setTimeout(() => {
               //navigate(`/proposal/${cachedRealm.pubkey}/${propAddress.toBase58()}`, { replace: true });

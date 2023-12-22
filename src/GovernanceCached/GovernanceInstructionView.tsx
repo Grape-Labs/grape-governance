@@ -219,14 +219,16 @@ export function InstructionView(props: any) {
                 //console.log("instructionOwnerRecord "+JSON.stringify(instructionOwnerRecord))
                 //console.log("instructionOwnerRecordATA "+JSON.stringify(instructionOwnerRecordATA))
                 var index = 0;
-                for (var item of instructionOwnerRecordATA){
-                    if (new PublicKey(item).toBase58() === new PublicKey(pubkey).toBase58()){
-                        if (instructionOwnerRecord[index]?.data?.parsed?.info){
-                            setOwnerRecord(instructionOwnerRecord[index].data.parsed.info);
-                            //console.log("instructionOwnerRecord[index] "+JSON.stringify(instructionOwnerRecord[index]))
+                if (instructionOwnerRecordATA){
+                    for (var item of instructionOwnerRecordATA){
+                        if (new PublicKey(item).toBase58() === new PublicKey(pubkey).toBase58()){
+                            if (instructionOwnerRecord[index]?.data?.parsed?.info){
+                                setOwnerRecord(instructionOwnerRecord[index].data.parsed.info);
+                                //console.log("instructionOwnerRecord[index] "+JSON.stringify(instructionOwnerRecord[index]))
+                            }
                         }
+                        index++;
                     }
-                    index++;
                 }
             }
 

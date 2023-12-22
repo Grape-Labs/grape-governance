@@ -1003,11 +1003,35 @@ export function GovernanceProposalV2View(props: any){
                             }
                         }
 
+                        /*
                         if (ataArray && ataArray.length <= 100 ){ // to fix add support for over 100 records for gma
+
                             const owners = await connection.getMultipleParsedAccounts(ataArray);
                             setInstructionOwnerRecord(owners.value);
                             setInstructionOwnerRecordATA(ataArray);
+                        }*/
+
+                        const chunks = [];
+                        let chunk = [];
+
+                        for (let i = 0; i < ataArray.length; i++) {
+                            chunk.push(ataArray[i]);
+                            
+                            if (chunk.length === 100) {
+                                const owners = await connection.getMultipleParsedAccounts(chunk);
+                                chunks.push(owners.value);
+                                chunk = [];
+                            }
                         }
+
+                        // Push any remaining records from the last chunk
+                        if (chunk.length > 0) {
+                            const owners = await connection.getMultipleParsedAccounts(chunk);
+                            chunks.push(owners.value);
+                        }
+
+                        setInstructionOwnerRecord(chunks);
+                        setInstructionOwnerRecordATA(ataArray);
 
                         /* IMPORTANT Move to this for better efficiency
                         const chunkSize = 100;
