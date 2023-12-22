@@ -250,6 +250,7 @@ export default function TokenTransferView(props: any) {
                         //if (publicKey)
                         //    pTransaction.add(transactionInstruction);
                         //else
+                        
                             transaction.add(transactionInstruction);
                     }
 
