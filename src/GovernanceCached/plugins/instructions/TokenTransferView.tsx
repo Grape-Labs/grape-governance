@@ -155,7 +155,6 @@ export default function TokenTransferView(props: any) {
                         }
                     })
                 })}
-
         
         console.log("tokenATA: "+tokenAta);
 
@@ -255,7 +254,7 @@ export default function TokenTransferView(props: any) {
                     }
 
                     const amount = Math.floor((destinationObject.amount * Math.pow(10, decimals)));
-
+                    
                     transaction.add(
                         createTransferInstruction(
                             new PublicKey(tokenAta || fromTokenAccount),
