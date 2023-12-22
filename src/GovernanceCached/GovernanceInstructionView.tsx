@@ -474,6 +474,7 @@ export function InstructionView(props: any) {
                         style='text'
                         color='white'
                         fontSize='12px'
+                        showTokenMetadata={true}
                     />
                 }
                 </>
@@ -510,7 +511,7 @@ export function InstructionView(props: any) {
                                 {instructionInfo?.name || <ExplorerView address={new PublicKey(instructionDetails.programId).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px'/>}
                                 
                                 {instructionInfo?.name === 'Token Transfer' &&
-                                    <>  
+                                    <> 
                                     <br/>
                                         <InstructionTransferRecord />
                                     </>

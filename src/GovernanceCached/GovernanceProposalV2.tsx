@@ -99,6 +99,7 @@ import {
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
  
+import { EditGovernanceProposalDialog } from './EditGovernanceProposal';
 import { VoteForProposal } from './GovernanceVote';
 import { InstructionView } from './GovernanceInstructionView';
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
@@ -2503,6 +2504,18 @@ export function GovernanceProposalV2View(props: any){
                                                         <Grid item>
                                                             <Typography gutterBottom variant="body1" component="div">
                                                                 {GOVERNANCE_STATE[thisitem.account?.state]}
+                                                                {+thisitem.account.state === 0 ?
+                                                                    <> 
+                                                                        <EditGovernanceProposalDialog 
+                                                                            governanceAddress={governanceAddress}
+                                                                            governanceRulesWallet={thisitem.account.governance}
+                                                                            payerWallet={publicKey}
+                                                                            governanceLookup={governanceLookup}
+                                                                            editProposalAddress={thisitem.pubkey}
+                                                                        />
+                                                                    </>
+                                                                    :<></>
+                                                                }
                                                             </Typography>
                                                         </Grid>
                                                         </Grid>

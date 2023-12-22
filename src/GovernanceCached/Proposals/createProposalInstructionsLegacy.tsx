@@ -28,6 +28,18 @@ import {
   MultiChoiceType,
 } from '@solana/spl-governance';
 
+import { 
+  getRealmIndexed,
+  getProposalIndexed,
+  getProposalNewIndexed,
+  getAllProposalsIndexed,
+  getGovernanceIndexed,
+  getAllGovernancesIndexed,
+  getAllTokenOwnerRecordsIndexed,
+  getTokenOwnerRecordsByOwnerIndexed,
+  getProposalInstructionsIndexed
+} from '../api/queries';
+
 import { chunks } from '../../utils/governanceTools/helpers';
 import { sendTransactions, prepareTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../../utils/governanceTools/sendTransactions';
 
@@ -48,7 +60,8 @@ export async function createProposalInstructionsLegacy(
     sendTransaction: any,
     isDraft?: boolean,
     returnTx?: boolean,
-    payer?: PublicKey): Promise<any>{//Promise<Transaction> {
+    payer?: PublicKey,
+    editAddress?: PublicKey): Promise<any>{//Promise<Transaction> {
     
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
     //let initialInstructions: TransactionInstruction[] = [];
@@ -148,45 +161,69 @@ export async function createProposalInstructionsLegacy(
       'createProposal',
       createNftTicketsIxs
     )*/
+    let proposalAddress = null;
+    let ixCount = 0;
 
-    const proposalAddress = await withCreateProposal(
-      instructions,
-      programId,
-      programVersion,
-      realmPk,
-      governancePk,
-      tokenOwnerRecordPk,
-      name,
-      descriptionLink,
-      governingTokenMint,
-      governanceAuthority,
-      proposalIndex,
-      voteType,
-      options,
-      useDenyOption,
-      payer,
-      //plugin?.voterWeightPk
-    );
+    if (!editAddress){
+      proposalAddress = await withCreateProposal(
+        instructions,
+        programId,
+        programVersion,
+        realmPk,
+        governancePk,
+        tokenOwnerRecordPk,
+        name,
+        descriptionLink,
+        governingTokenMint,
+        governanceAuthority,
+        proposalIndex,
+        voteType,
+        options,
+        useDenyOption,
+        payer,
+        //plugin?.voterWeightPk
+      );
+    
 
-    console.log("Proposal Address: "+JSON.stringify(proposalAddress))
-    
-    await withAddSignatory(
-      instructions,
-      programId,
-      programVersion,
-      proposalAddress,
-      tokenOwnerRecordPk,
-      governanceAuthority,
-      signatory,
-      payer
-    )
-    
+      console.log("Proposal Address: "+JSON.stringify(proposalAddress))
+      
+      await withAddSignatory(
+        instructions,
+        programId,
+        programVersion,
+        proposalAddress,
+        tokenOwnerRecordPk,
+        governanceAuthority,
+        signatory,
+        payer
+      )
+      
+      
+    } else{
+      proposalAddress = editAddress;
+      console.log("Editing Proposal");
+
+      const ix = await getProposalInstructionsIndexed(realmPk.toBase58(), proposalAddress);
+      if (ix && ix.length > 0) { 
+        ixCount = ix.length;
+      } 
+      
+      if (ix && ix.length > 0 && ix[0]?.account?.instructions && ix[0].account.instructions.length > 0){
+        console.log("ixCount: "+ixCount)
+        if (ixCount <= 1){
+          ixCount = 0;
+          ixCount = ix[0].account.instructions.length;
+        }
+      }
+    }
+
     // TODO: Return signatoryRecordAddress from the SDK call
     const signatoryRecordAddress = await getSignatoryRecordAddress(
       programId,
       proposalAddress,
       signatory
     )
+    
     
     const insertInstructions: TransactionInstruction[] = [];
     //we don't have any prerequisiteInstructions to execute so we will leave this null
@@ -218,6 +255,11 @@ export async function createProposalInstructionsLegacy(
     }
     
     for(let j= 0; j < transactionInstr.instructions.length; j++) {
+
+      //console.log("ixCount: "+ixCount);
+      //console.log("j: "+j);
+      console.log("At Ix Index: "+(ixCount+j));
+      
       await withInsertTransaction(
         insertInstructions,
         programId,
@@ -226,7 +268,7 @@ export async function createProposalInstructionsLegacy(
         proposalAddress,
         tokenOwnerRecordPk,
         walletPk,
-        j,
+        ixCount+j,
         0,
         0,
         [instructionData[j]],

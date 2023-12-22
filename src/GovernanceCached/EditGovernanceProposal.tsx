@@ -19,8 +19,9 @@ import {
 
 import { useSnackbar } from 'notistack';
  
-import { GovernanceProposalV2View } from './GovernanceProposalV2';
+import GovernanceCreateProposalView from './GovernanceCreateProposal';
 
+import EditIcon from '@mui/icons-material/Edit';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
@@ -66,22 +67,13 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     },
 }));
 
-const GOVERNANCE_STATE = {
-    0:'Draft',
-    1:'Signing Off',
-    2:'Voting',
-    3:'Succeeded',
-    4:'Executing',
-    5:'Completed',
-    6:'Cancelled',
-    7:'Defeated',
-    8:'Executing w/errors!',
-}
-
-export function GovernanceProposalDialog(props: any){
+export function EditGovernanceProposalDialog(props: any){
     const cachedGovernance = props.cachedGovernance;
     const isCancelled = props.isCancelled || false;
     const governanceLookup = props.governanceLookup;
+    const governanceRulesWallet = props.governanceRulesWallet;
+    const editProposalAddress = props.editProposalAddress;
+
     const tokenMap = props.tokenMap;
     const memberMap = props.memberMap;
     const governanceAddress = props.governanceAddress;
@@ -95,7 +87,7 @@ export function GovernanceProposalDialog(props: any){
     //const [thisitem, setThisItem] = React.useState(props.item);
     const realm = props.realm;
     
-    const [open, setOpen] = React.useState(false);
+    const [open, setEditPropOpen] = React.useState(false);
     
     const [expanded, setExpanded] = React.useState<string | false>(false);
     const handleChange =
@@ -113,59 +105,28 @@ export function GovernanceProposalDialog(props: any){
     );
 
     const handleCloseDialog = () => {
-        setOpen(false);
+        setEditPropOpen(false);
     }
 
     const handleClickOpen = () => {
-        setOpen(true);
+        setEditPropOpen(true);
         //getVotingParticipants();
     };
 
     const handleClose = () => {
-        setOpen(false);
+        setEditPropOpen(false);
     };
 
     return (
         <>
-
-            {title ? 
-                <Tooltip title={description ? description : `Get Voting Details for this Proposal`}>
-                    <Button 
-                        onClick={handleClickOpen}
-                        color='inherit'
-                        sx={{textAlign:'left',textTransform:'none',borderRadius:'17px'}}>
-                          <Typography variant="h6" 
-                            color={(state === 2) ? `white` : `gray`}
-                            sx={{ textDecoration: isCancelled ? 'line-through' : 'none' }}>
-                              {title}
-                              {isCouncil &&
-                                <Tooltip title='Council Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon sx={{ fontSize:16 }} /></Button></Tooltip>
-                              }
-
-                              {governanceType === 0 ?
-                                  <></>
-                              :
-                                  <>
-                                      {governanceType === 1 ?
-                                          <></>
-                                      :
-                                      <Tooltip title='NFT Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><ImageOutlinedIcon sx={{ fontSize:16 }} /></Button></Tooltip>
-                                      }
-                                  </>
-                              }
-                        </Typography>
-                    </Button>
-
-                </Tooltip>
-            :
-              <Tooltip title='Get Voting Details for this Proposal'>
-                  <Button 
-                      onClick={handleClickOpen}
-                      sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
-                      <FitScreenIcon />
-                  </Button>
-              </Tooltip>
-            }
+            <Tooltip title='Edit Proposal'>
+                <Button 
+                    onClick={handleClickOpen}
+                    sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
+                    <EditIcon />
+                </Button>
+            </Tooltip>
+        
 
             <BootstrapDialog 
                 maxWidth={"xl"}
@@ -181,12 +142,23 @@ export function GovernanceProposalDialog(props: any){
                     }}
                 >
                 <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog}>
-                    Proposal Details
+                    Edit Proposal {editProposalAddress.toBase58()}
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
-                    <GovernanceProposalV2View governanceLookup={governanceLookup} isCancelled={isCancelled} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
-                                            
+                    <GovernanceCreateProposalView 
+                            governanceAddress={governanceAddress} 
+                            governanceRulesWallet={governanceRulesWallet} 
+                            //payerWallet={publicKey} 
+                            //governanceWallet={governanceWallet?.vault.pubkey} 
+                            //setInstructionsObject={setInstructionsObject} 
+                            governanceLookup={governanceLookup} 
+                            editProposalAddress={editProposalAddress} 
+                            setEditPropOpen={setEditPropOpen} 
+                        />
+                    
+
+
                 </DialogContent> 
             </BootstrapDialog>
         </>

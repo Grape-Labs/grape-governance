@@ -118,7 +118,9 @@ import {
   getAllGovernancesIndexed,
   getAllTokenOwnerRecordsIndexed,
   getTokenOwnerRecordsByOwnerIndexed,
+  getProposalInstructionsIndexed
 } from './api/queries';
+
 
 import {
     fetchGovernanceLookupFile,
@@ -186,9 +188,11 @@ export default function GovernanceCreateProposalView(props: any){
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
     //const governanceAddress = urlParams;
+    const editProposalAddress = props?.editProposalAddress;
     const governanceAddress = props?.governanceAddress || urlParams;
     const sentRulesAddress = props?.governanceRulesWallet;
     const sentGovernanceWallet = props?.governanceWallet;
+    const setEditPropOpen = props?.setEditPropOpen;
     const setSentInstructionsObject = props?.setInstructionsObject;
     const intraDAO = props?.governanceAddress ? true : false;
     const showGovernanceTitle = true;
@@ -343,6 +347,8 @@ export default function GovernanceCreateProposalView(props: any){
             anchorWallet,//anchorWallet,
             null,
             true,
+            null,
+            editProposalAddress,
           );
         }
         //console.log("Simulation: ",propSimulation);
@@ -464,6 +470,7 @@ export default function GovernanceCreateProposalView(props: any){
             isDraft,
             returnTx,
             intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
+            editProposalAddress
           );
         }
         
@@ -505,6 +512,8 @@ export default function GovernanceCreateProposalView(props: any){
             const cnfrmkey = enqueueSnackbar('Redirecting in a few seconds to the proposal',{ variant: 'success', action:snackprogress, persist: true });
 
             setProposalMade(true);
+            if (setEditPropOpen)
+              setEditPropOpen(false);
             
             // redirect to proposal
             const redirectTimer = setTimeout(() => {
@@ -712,8 +721,47 @@ export default function GovernanceCreateProposalView(props: any){
       }
     }
 
+    const handleNativeWalletFromRules = (rulesWallet:string) => {//(nativeWallet: string, rulesWallet: string) => {
+      getGovernanceRules(rulesWallet);
+      setGovernanceRulesWallet(rulesWallet);
+      
+      let nativeWallet = null;
+      //console.log("menu item: "+JSON.stringify(nativeWallet))
+      
+      setCommunitySupport(false);
+      setIsCouncilVote(false);
+      //setIsCouncilVote(false);
+      // get rules wallet:
+      let minInstructionHoldUpTime = null;
+      {cachedTreasury && cachedTreasury
+        .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
+        .map((item: any, key: number) => {
+            if (rulesWallet === item.vault.pubkey){
+              nativeWallet = item.vault?.nativeTreasury
+              minInstructionHoldUpTime = item.vault.governance.account.config.minInstructionHoldUpTime;
+              setGovernanceWallet(nativeWallet);
+      
+              if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff')
+                setCommunitySupport(true);
+                setIsCouncilVote(true);
+            }
+          }
+          
+        
+      )}
+
+      // use RPC here to get the rules wallet details
+      
+      setGovernanceRulesWallet(rulesWallet);
+      setGovernanceRulesWalletMinInstructHoldUpTime(minInstructionHoldUpTime);
+
+      getGovernanceRules(rulesWallet);
+      setProposalType(1);
+
+    };
+
     function GovernanceSelect() {
-    
+      
       const handleGovernanceWalletChange = (event: SelectChangeEvent) => {//(nativeWallet: string, rulesWallet: string) => {
         const nativeWallet = event.target.value as string;
         //console.log("menu item: "+JSON.stringify(nativeWallet))
@@ -740,7 +788,7 @@ export default function GovernanceCreateProposalView(props: any){
           }
         )}
 
-        // use RPC here to get teh rules wallet details
+        // use RPC here to get the rules wallet details
         
         setGovernanceRulesWallet(rulesWallet);
         setGovernanceRulesWalletMinInstructHoldUpTime(minInstructionHoldUpTime);
@@ -1244,6 +1292,12 @@ export default function GovernanceCreateProposalView(props: any){
     }, [instructionsObject]);
 
     React.useEffect(() => {
+      if (cachedGovernance && sentRulesAddress){
+        handleNativeWalletFromRules(sentRulesAddress.toBase58())
+      }
+    }, [cachedGovernance])
+
+    React.useEffect(() => {
       if (cachedRealm && publicKey){
         setLoading(true);
         getCommunityTokenInfo();
@@ -1464,68 +1518,76 @@ export default function GovernanceCreateProposalView(props: any){
                             <Grid container>
                               <Grid item xs={12}>
                                 <Typography variant="h6">
-                                    Create Proposal
+                                  {!editProposalAddress &&
+                                    <>
+                                      Create Proposal
+                                    </>
+                                  }
                                   </Typography>
                                 </Grid>
                             </Grid>
-
-                          <FormControl fullWidth  sx={{mb:2}}>
-                              <TextField 
-                                  fullWidth 
-                                  label="Title" 
-                                  id="fullWidth"
-                                  //value={title}
-                                  onChange={(e) => {
-                                      if (!title || title.length < maxTitleLen)
-                                          setTitle(e.target.value)
-                                      }}
-                                  sx={{borderRadius:'17px', maxlength:maxTitleLen}} 
-                              />
-                              <Grid sx={{textAlign:'right',}}>
-                                <Typography variant="caption">{title ? title.length > 0 ? maxTitleLen - title.length : maxTitleLen : maxTitleLen} characters remaining</Typography>
-                              </Grid>
-                          </FormControl>
-
-                          <FormControl fullWidth  sx={{mb:2}}>
-                              <TextField 
-                                  fullWidth
-                                  label="Description"
-                                  multiline
-                                  rows={4}
-                                  maxRows={4}
-                                  //value={description}
-                                  onChange={(e) => {
-                                      if (!description || description.length < maxDescriptionLen)
-                                          handleDescriptionChange(e.target.value)
-                                      }}
-                                  
-                                  sx={{maxlength:maxDescriptionLen}}
-                                  />
-                              <Grid sx={{textAlign:'right',}}>
-
-                                {isGistDescription ?
-                                  <>
-                                    <GovernanceGistDialog gist={description} />
-                                    <Button
-                                        color='inherit'
-                                        size='small'
-                                        target='_blank'
-                                        href={description}
-                                        sx={{borderRadius:'17px'}}
-                                    >
-                                        <GitHubIcon sx={{mr:1}} /> GIST
-                                    </Button>
-                                  </>
-                                :
-                                  <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
-                                }
-                              </Grid>
-                              
-                          </FormControl>
                           
-                          <FormControl fullWidth  sx={{mb:2}}>
-                              <GovernanceSelect />
-                          </FormControl>
+                          {!editProposalAddress ?
+                          <>
+                            <FormControl fullWidth  sx={{mb:2}}>
+                                <TextField 
+                                    fullWidth 
+                                    label="Title" 
+                                    id="fullWidth"
+                                    //value={title}
+                                    onChange={(e) => {
+                                        if (!title || title.length < maxTitleLen)
+                                            setTitle(e.target.value)
+                                        }}
+                                    sx={{borderRadius:'17px', maxlength:maxTitleLen}} 
+                                />
+                                <Grid sx={{textAlign:'right',}}>
+                                  <Typography variant="caption">{title ? title.length > 0 ? maxTitleLen - title.length : maxTitleLen : maxTitleLen} characters remaining</Typography>
+                                </Grid>
+                            </FormControl>
+
+                            <FormControl fullWidth  sx={{mb:2}}>
+                                <TextField 
+                                    fullWidth
+                                    label="Description"
+                                    multiline
+                                    rows={4}
+                                    maxRows={4}
+                                    //value={description}
+                                    onChange={(e) => {
+                                        if (!description || description.length < maxDescriptionLen)
+                                            handleDescriptionChange(e.target.value)
+                                        }}
+                                    
+                                    sx={{maxlength:maxDescriptionLen}}
+                                    />
+                                <Grid sx={{textAlign:'right',}}>
+
+                                  {isGistDescription ?
+                                    <>
+                                      <GovernanceGistDialog gist={description} />
+                                      <Button
+                                          color='inherit'
+                                          size='small'
+                                          target='_blank'
+                                          href={description}
+                                          sx={{borderRadius:'17px'}}
+                                      >
+                                          <GitHubIcon sx={{mr:1}} /> GIST
+                                      </Button>
+                                    </>
+                                  :
+                                    <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
+                                  }
+                                </Grid>
+                                
+                            </FormControl>
+                            
+                            <FormControl fullWidth  sx={{mb:2}}>
+                                <GovernanceSelect />
+                            </FormControl>
+                          </>
+                          :<></>}
                           
                           {governanceWallet && 
                           <>
@@ -1720,25 +1782,30 @@ export default function GovernanceCreateProposalView(props: any){
                             
                           </>
                           }
-                          <FormControl fullWidth >
-                              <FormControlLabel  disabled={true} required control={<Switch />} label="Multiple Choice Vote" />
-                          </FormControl>
-                          
-                          <FormControl fullWidth >
-                              <FormControlLabel 
-                                control={
-                                  <Switch 
-                                    checked={isCouncilVote} //communitySupport ? false : true}
-                                    onChange={
-                                      (e) => {
-                                        setIsCouncilVote(e.target.checked)
+
+                          {!editProposalAddress ?
+                            <>
+                            <FormControl fullWidth >
+                                <FormControlLabel  disabled={true} required control={<Switch />} label="Multiple Choice Vote" />
+                            </FormControl>
+                            
+                            <FormControl fullWidth >
+                                <FormControlLabel 
+                                  control={
+                                    <Switch 
+                                      checked={isCouncilVote} //communitySupport ? false : true}
+                                      onChange={
+                                        (e) => {
+                                          setIsCouncilVote(e.target.checked)
+                                        }
                                       }
-                                    }
-                                    disabled={!communitySupport}
-                                  />
-                                } 
-                                label="Council Vote" />
-                          </FormControl>
+                                      disabled={!communitySupport}
+                                    />
+                                  } 
+                                  label="Council Vote" />
+                            </FormControl>
+                            </>
+                          :<></>}
                           
                           {!intraDAO ?
                             <Grid sx={{textAlign:'right'}}>
@@ -1800,16 +1867,14 @@ export default function GovernanceCreateProposalView(props: any){
                             </Grid>
                             :
                             <>
-                              <Button 
+                              {editProposalAddress ?
+                                <Button 
                                   disabled={!(
-                                    (title && title.length > 0) &&
-                                    (description && description.length > 0) &&
-                                    (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
-                                    (!createDisabled)
+                                    (instructionsArray && instructionsArray.length > 0)
                                     )
                                   }
                                   fullWidth
-                                  onClick={(e) => createProposal(false, true)}
+                                  onClick={(e) => createProposal(true, false)}
                                   variant="contained"
                                   color="success"
                                   sx={{borderRadius:'17px'}}>
@@ -1817,7 +1882,28 @@ export default function GovernanceCreateProposalView(props: any){
                                         active={ proposalMade }
                                         config={ confettiConfig }
                                     />        
-                                    Add Proposal Creation To Parent Proposal</Button>
+                                    Add to Draft</Button>
+                              
+                              :
+                                <Button 
+                                    disabled={!(
+                                      (title && title.length > 0) &&
+                                      (description && description.length > 0) &&
+                                      (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
+                                      (!createDisabled)
+                                      )
+                                    }
+                                    fullWidth
+                                    onClick={(e) => createProposal(false, true)}
+                                    variant="contained"
+                                    color="success"
+                                    sx={{borderRadius:'17px'}}>
+                                      <Confetti
+                                          active={ proposalMade }
+                                          config={ confettiConfig }
+                                      />        
+                                      Add Proposal Creation To Parent Proposal</Button>
+                                }
                             </>
                           }
                           
