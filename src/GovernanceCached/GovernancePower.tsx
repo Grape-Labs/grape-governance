@@ -242,7 +242,7 @@ export default function GovernancePower(props: any){
             setWalletCommunityMintAddress(communityMint);
             setWalletCouncilMintAddress(councilMint);
 
-            //const tokenOwnerRecordV1 = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realm?.owner || SYSTEM_PROGRAM_ID), publicKey);
+            //const tokenOwnerRecord = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realm?.owner || SYSTEM_PROGRAM_ID), publicKey);
             //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecordV1));
             const tokenOwnerRecord = await getTokenOwnerRecordsByOwnerIndexed(governanceAddress, null, publicKey.toBase58());
 
