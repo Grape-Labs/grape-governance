@@ -218,13 +218,14 @@ export function InstructionView(props: any) {
             const fetchOwnerRecord = () => {
                 //console.log("instructionOwnerRecord "+JSON.stringify(instructionOwnerRecord))
                 //console.log("instructionOwnerRecordATA "+JSON.stringify(instructionOwnerRecordATA))
+                //console.log("pubkey: "+JSON.stringify(pubkey));
                 var index = 0;
                 if (instructionOwnerRecordATA){
                     for (var item of instructionOwnerRecordATA){
                         if (new PublicKey(item).toBase58() === new PublicKey(pubkey).toBase58()){
                             if (instructionOwnerRecord[index]?.data?.parsed?.info){
                                 setOwnerRecord(instructionOwnerRecord[index].data.parsed.info);
-                                //console.log("instructionOwnerRecord[index] "+JSON.stringify(instructionOwnerRecord[index]))
+                                console.log("instructionOwnerRecord[index] "+JSON.stringify(instructionOwnerRecord[index]))
                             }
                         }
                         index++;
@@ -567,8 +568,13 @@ export function InstructionView(props: any) {
                                                     </IconButton>
                                                 </Tooltip>
                                             </>}
-
-                                            <ExplorerView showSolanaProfile={false} address={new PublicKey(item.pubkey).toBase58()} type='address' shorten={0} hideTitle={false} style='text' color='white' fontSize='12px'/>
+                                            
+                                            <ExplorerView 
+                                                showSolanaProfile={false} 
+                                                address={new PublicKey(item.pubkey).toBase58()} 
+                                                type='address' 
+                                                shorten={0} 
+                                                hideTitle={false} style='text' color='white' fontSize='12px'/>
                                             
                                         </Typography>
                                         <br/><br/>

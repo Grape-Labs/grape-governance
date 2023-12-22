@@ -1016,10 +1016,10 @@ export function GovernanceProposalV2View(props: any){
 
                         for (let i = 0; i < ataArray.length; i++) {
                             chunk.push(ataArray[i]);
-                            
+
                             if (chunk.length === 100) {
                                 const owners = await connection.getMultipleParsedAccounts(chunk);
-                                chunks.push(owners.value);
+                                chunks.push(...owners.value);
                                 chunk = [];
                             }
                         }
@@ -1027,9 +1027,8 @@ export function GovernanceProposalV2View(props: any){
                         // Push any remaining records from the last chunk
                         if (chunk.length > 0) {
                             const owners = await connection.getMultipleParsedAccounts(chunk);
-                            chunks.push(owners.value);
+                            chunks.push(...owners.value);
                         }
-
                         setInstructionOwnerRecord(chunks);
                         setInstructionOwnerRecordATA(ataArray);
 
