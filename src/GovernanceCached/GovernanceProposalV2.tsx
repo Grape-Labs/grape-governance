@@ -1586,7 +1586,7 @@ export function GovernanceProposalV2View(props: any){
     } 
 
     React.useEffect(() => { 
-
+        
         if (!loadingValidation){
             console.log("Step 1.");
             getCachedSetup();
