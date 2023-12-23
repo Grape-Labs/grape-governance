@@ -70,6 +70,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 export function EditGovernanceProposalDialog(props: any){
     const cachedGovernance = props.cachedGovernance;
     const isCancelled = props.isCancelled || false;
+    const setReload = props?.setReload;
     const governanceLookup = props.governanceLookup;
     const governanceRulesWallet = props.governanceRulesWallet;
     const editProposalAddress = props.editProposalAddress;
@@ -154,6 +155,7 @@ export function EditGovernanceProposalDialog(props: any){
                         governanceLookup={governanceLookup} 
                         editProposalAddress={editProposalAddress} 
                         setEditPropOpen={setEditPropOpen} 
+                        setReload={setReload}
                     />
                     
                 </DialogContent> 

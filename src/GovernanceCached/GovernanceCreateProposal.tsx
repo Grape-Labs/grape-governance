@@ -188,6 +188,7 @@ export default function GovernanceCreateProposalView(props: any){
     const {handlekey} = useParams<{ handlekey: string }>();
     const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
     //const governanceAddress = urlParams;
+    const setReload = props?.setReload;
     const editProposalAddress = props?.editProposalAddress;
     const governanceAddress = props?.governanceAddress || urlParams;
     const sentRulesAddress = props?.governanceRulesWallet;
@@ -514,6 +515,9 @@ export default function GovernanceCreateProposalView(props: any){
             setProposalMade(true);
             if (setEditPropOpen)
               setEditPropOpen(false);
+
+            if (setReload) 
+              setReload(true);
 
             // redirect to proposal
             const redirectTimer = setTimeout(() => {

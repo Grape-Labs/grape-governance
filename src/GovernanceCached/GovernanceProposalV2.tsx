@@ -1586,7 +1586,7 @@ export function GovernanceProposalV2View(props: any){
     } 
 
     React.useEffect(() => { 
-        
+
         if (!loadingValidation){
             console.log("Step 1.");
             getCachedSetup();
@@ -2548,6 +2548,7 @@ export function GovernanceProposalV2View(props: any){
                                                                             payerWallet={publicKey}
                                                                             governanceLookup={governanceLookup}
                                                                             editProposalAddress={thisitem.pubkey}
+                                                                            setReload={setReload}
                                                                         />
                                                                     </>
                                                                     :<>
