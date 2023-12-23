@@ -123,10 +123,9 @@ export function EditGovernanceProposalDialog(props: any){
                 <Button 
                     onClick={handleClickOpen}
                     sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
-                    <EditIcon />
+                    Draft <EditIcon fontSize="small" sx={{ml:1}}/>
                 </Button>
             </Tooltip>
-        
 
             <BootstrapDialog 
                 maxWidth={"xl"}
