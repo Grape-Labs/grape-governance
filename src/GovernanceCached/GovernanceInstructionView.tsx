@@ -279,7 +279,7 @@ export function InstructionView(props: any) {
         );
         
         const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
-            
+
         let tokenOwnerRecordPk = null;
         for (let member of memberMap){
             if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58())
@@ -667,13 +667,15 @@ export function InstructionView(props: any) {
 
                             {(publicKey && proposalAuthor === publicKey.toBase58() && state === 0) ?
                                 <>
-                                    <IconButton 
-                                        sx={{ml:1}}
-                                        color='error'
-                                        onClick={handleRemoveIx}
-                                    >
-                                        <DeleteIcon fontSize='small' />
-                                    </IconButton>
+                                    <Tooltip title="Remove Transaction &amp; Claim Rent Back">
+                                        <IconButton 
+                                            sx={{ml:1}}
+                                            color='error'
+                                            onClick={handleRemoveIx}
+                                        >
+                                            <DeleteIcon fontSize='small' />
+                                        </IconButton>
+                                    </Tooltip>
                                 </>
                                 :
                                 <></>
