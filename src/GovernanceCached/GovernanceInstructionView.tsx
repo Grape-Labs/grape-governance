@@ -207,6 +207,7 @@ export function InstructionView(props: any) {
     const instructionTransferDetails = props.instructionTransferDetails;
     const instructionDetails = instruction.account?.instructions?.[0] || instruction.account?.instruction || instruction;
     const setInstructionTransferDetails = props.setInstructionTransferDetails;
+    const governingTokenMint = props.governingTokenMint;
     const memberMap = props.memberMap;
     const tokenMap = props.tokenMap;
     const cachedTokenMeta = props.cachedTokenMeta;
@@ -282,7 +283,8 @@ export function InstructionView(props: any) {
 
         let tokenOwnerRecordPk = null;
         for (let member of memberMap){
-            if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58())
+            if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
+                new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
                 tokenOwnerRecordPk = new PublicKey(member.pubkey);
         }
 
