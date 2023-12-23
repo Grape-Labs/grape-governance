@@ -71,10 +71,11 @@ export function EditGovernanceProposalDialog(props: any){
     const cachedGovernance = props.cachedGovernance;
     const isCancelled = props.isCancelled || false;
     const setReload = props?.setReload;
+    const proposalAuthor = props.proposalAuthor;
     const governanceLookup = props.governanceLookup;
     const governanceRulesWallet = props.governanceRulesWallet;
     const editProposalAddress = props.editProposalAddress;
-
+    const governingTokenMint = props.governingTokenMint;
     const tokenMap = props.tokenMap;
     const memberMap = props.memberMap;
     const governanceAddress = props.governanceAddress;
@@ -149,6 +150,8 @@ export function EditGovernanceProposalDialog(props: any){
                     <GovernanceCreateProposalView 
                         governanceAddress={governanceAddress} 
                         governanceRulesWallet={governanceRulesWallet} 
+                        governingTokenMint={governingTokenMint}
+                        proposalAuthor={proposalAuthor}
                         //payerWallet={publicKey} 
                         //governanceWallet={governanceWallet?.vault.pubkey} 
                         //setInstructionsObject={setInstructionsObject} 

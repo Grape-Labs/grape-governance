@@ -744,9 +744,11 @@ export function GovernanceProposalV2View(props: any){
                 
                 let instructions = null;
                 // always load ix
+
+                if (!thisitem?.instructions || thisitem.account.state === 0){
+                
                 //if (!thisitem?.instructions){
                     //instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
-
                     instructions = await getGovernanceAccounts(
                         connection,
                         new PublicKey(thisitem.owner || realm.owner),
@@ -754,10 +756,19 @@ export function GovernanceProposalV2View(props: any){
                         [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
                     );
                     thisitem.instructions = instructions;
-                //}
+                } else {
+                    if (!thisitem?.instructions){
+                        instructions = await getGovernanceAccounts(
+                            connection,
+                            new PublicKey(thisitem.owner || realm.owner),
+                            ProposalTransaction,
+                            [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
+                        );
+                        thisitem.instructions = instructions;
+                    }
+                }
                 //console.log("ix: "+JSON.stringify(thisitem.instructions))
-
-
+                
                 if (thisitem?.instructions){
                     let useInstructions = thisitem.instructions;
                     useInstructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
@@ -2545,6 +2556,8 @@ export function GovernanceProposalV2View(props: any){
                                                                         <EditGovernanceProposalDialog 
                                                                             governanceAddress={governanceAddress}
                                                                             governanceRulesWallet={thisitem.account.governance}
+                                                                            governingTokenMint={thisitem.account.governingTokenMint}
+                                                                            proposalAuthor={thisitem.account.tokenOwnerRecord}
                                                                             payerWallet={publicKey}
                                                                             governanceLookup={governanceLookup}
                                                                             editProposalAddress={thisitem.pubkey}

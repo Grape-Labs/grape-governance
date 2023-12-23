@@ -202,6 +202,7 @@ export default function GovernanceCreateProposalView(props: any){
     const maxTitleLen = 130;
     const maxDescriptionLen = 350;//512;
     const [proposalType, setProposalType] = React.useState(null);
+    const sentGoverningTokenMint = props?.governingTokenMint;
     const [isCouncilVote, setIsCouncilVote] = React.useState(false);
     const [governanceWallet, setGovernanceWallet] = React.useState(null);
     const [governanceWalletMinInstructHoldUpTime, setGovernanceRulesWalletMinInstructHoldUpTime] = React.useState(null);
@@ -238,6 +239,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [totalGovernanceNftFloorValue, setTotalGovernanceNftFloorValue] = React.useState(null);
     const [totalGovernanceStableCoinValue, setTotalGovernanceStableCoinValue] = React.useState(null);
 
+    const proposalAuthor=props?.proposalAuthor;
     const [proposalSimulation, setProposalSimulation] = React.useState(null);
     const [proposalSimulationUnitsConsumed, setProposalSimulationUnitsConsumed] = React.useState(null);
     const [proposalSimulationLogs, setProposalSimulationLogs] = React.useState(null);
@@ -307,7 +309,18 @@ export default function GovernanceCreateProposalView(props: any){
 
       const programId = new PublicKey(cachedRealm?.owner || GOVERNANCE_PROGRAM_ID);
       let governingTokenMint = new PublicKey(cachedRealm.account?.communityMint);
-      if (isCouncilVote){
+      
+      let councilVote = isCouncilVote;
+
+      if (sentGoverningTokenMint){
+        if (new PublicKey(cachedRealm.account?.councilMint).toBase58() === new PublicKey(sentGoverningTokenMint).toBase58()){
+          councilVote = true;
+        } else{
+          councilVote = false;
+        }
+      }
+
+      if (councilVote){
         governingTokenMint = new PublicKey(cachedRealm.account?.config?.councilMint);
       }
 
@@ -405,10 +418,21 @@ export default function GovernanceCreateProposalView(props: any){
       console.log("governanceRulesWallet: "+JSON.stringify(governanceRulesWallet));
       */
       let governingTokenMint = new PublicKey(cachedRealm.account?.communityMint);
-      if (isCouncilVote){
-        governingTokenMint = new PublicKey(cachedRealm.account?.config?.councilMint);
+      
+      let councilVote = isCouncilVote;
+
+      if (sentGoverningTokenMint){
+        if (governingTokenMint.toBase58() === new PublicKey(sentGoverningTokenMint).toBase58()){
+          councilVote = false;
+        } else{
+          councilVote = true;
+        }
       }
 
+      if (councilVote){
+        governingTokenMint = new PublicKey(cachedRealm.account?.config?.councilMint);
+      }
+      
       if (publicKey){
         // check if !whitelisted otherwise add a memo:
         const memoText = "Created on Governance by Grape - Building a new DAO Experience on Solana";
@@ -426,13 +450,14 @@ export default function GovernanceCreateProposalView(props: any){
           }
         }
         */
-
+        
         const snackprogress = (key:any) => (
           <CircularProgress sx={{padding:'10px'}} />
         );
         const cnfrmkey = enqueueSnackbar('Creating Governance Proposal',{ variant: 'info', action:snackprogress, persist: true });
         
         let propResponse = null;
+
         if (instructionsDataWithHoldUpTime){
           console.log("in v0")
           propResponse = await createProposalInstructionsV0(

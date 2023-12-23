@@ -115,12 +115,26 @@ export async function createProposalInstructionsLegacy(
 
     console.log("2");
     
-    const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
-      programId,
-      realmPk,
-      governingTokenMint,
-      walletPk,
-    );
+    let tokenOwnerRecordPk = null;
+    
+    const memberMap = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58());
+    for (let member of memberMap){
+        if (new PublicKey(member.account.governingTokenOwner).toBase58() === walletPk.toBase58() &&
+            new PublicKey(member.account.governingTokenMint).toBase58() === governingTokenMint.toBase58()){
+          // check if same token owner also
+          //console.log("member found: "+JSON.stringify(member));
+          tokenOwnerRecordPk = new PublicKey(member.pubkey);
+        }
+    }
+    
+    if (!tokenOwnerRecordPk){
+      tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+        programId,
+        realmPk,
+        governingTokenMint,
+        walletPk,
+      );
+    }
 
     const governanceAuthority = walletPk
     console.log("programId: "+programId.toBase58());
@@ -186,7 +200,7 @@ export async function createProposalInstructionsLegacy(
         //plugin?.voterWeightPk
       );
     
-
+      
       console.log("Proposal Address: "+JSON.stringify(proposalAddress))
       
       await withAddSignatory(
@@ -259,11 +273,10 @@ export async function createProposalInstructionsLegacy(
     }
     
     for(let j= 0; j < transactionInstr.instructions.length; j++) {
-
+      
       //console.log("ixCount: "+ixCount);
       //console.log("j: "+j);
       console.log("At Ix Index: "+(ixCount+j));
-      
       await withInsertTransaction(
         insertInstructions,
         programId,
