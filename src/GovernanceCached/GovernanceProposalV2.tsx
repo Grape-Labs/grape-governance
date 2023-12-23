@@ -248,6 +248,7 @@ export function GovernanceProposalV2View(props: any){
     const [excessVotes, setExcessVotes] = React.useState(null);
     const [openInstructions, setOpenInstructions] = React.useState(false);
     const [expandInfo, setExpandInfo] = React.useState(false);
+    const [reload, setReload] = React.useState(false);
 
     const toggleInfoExpand = () => {
         setExpandInfo(!expandInfo)
@@ -742,20 +743,18 @@ export function GovernanceProposalV2View(props: any){
                 // if this is voting we should fetch via RPC
                 
                 let instructions = null;
-                //if ((thisitem.account.state === 0 || thisitem.account.state === 2) && !thisitem?.instructions){
-                if (!thisitem?.instructions){
-                    instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                // always load ix
+                //if (!thisitem?.instructions){
+                    //instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
 
-                    // reverse normalize it
-
-                    //console.log("ix: "+JSON.stringify(instructions[0]))
-                    //if (instructions[0].account.instructions)
-                        thisitem.instructions = instructions; //[0].account.instructions;
-                        //console.log("ix index: "+JSON.stringify(thisitem.instructions))
-                        // consider changing the output? or handle with nested instruction
-
-
-                }
+                    instructions = await getGovernanceAccounts(
+                        connection,
+                        new PublicKey(thisitem.owner || realm.owner),
+                        ProposalTransaction,
+                        [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
+                    );
+                    thisitem.instructions = instructions;
+                //}
                 //console.log("ix: "+JSON.stringify(thisitem.instructions))
 
 
@@ -1587,8 +1586,9 @@ export function GovernanceProposalV2View(props: any){
     } 
 
     React.useEffect(() => { 
+
         if (!loadingValidation){
-            console.log("Step 1.")
+            console.log("Step 1.");
             getCachedSetup();
         }
     }, []);
@@ -1606,18 +1606,30 @@ export function GovernanceProposalV2View(props: any){
     React.useEffect(() => { 
 
         if (//cachedGovernance &&
-            governanceLookup &&
+            (governanceLookup &&
             tokenMap &&
             memberMap &&
             thisitem &&
-            realm){
+            realm) || reload){
             if (!loadingValidation){
                 if (!loadingParticipants){
                     //console.log("C "+JSON.stringify(cachedGovernance))
                     console.log("Step 4.")
-                    getVotingParticipants();
+                    
+                    if (reload){
+                        setTimeout(() => {
+                            // Your function code here
+                            if (thisitem?.instructions)
+                                thisitem.instructions = null;
+                            getVotingParticipants();
+                            setReload(false);
+                          }, 7500);
+                    } else{
+                        getVotingParticipants();
+                    }
                 }
             }
+            
         }
             /*
             if (thisitem.account?.state === 2){ // if voting state
@@ -1626,7 +1638,7 @@ export function GovernanceProposalV2View(props: any){
                     //getGovernanceProps()
                 }
             }*/
-    }, [loadingValidation, cachedGovernance, thisitem, !thisGovernance, governanceLookup, tokenMap, memberMap, realm]);
+    }, [loadingValidation, cachedGovernance, thisitem, !thisGovernance, governanceLookup, tokenMap, memberMap, realm, reload]);
 
     React.useEffect(() => { 
         // check again if this voter has voted:
@@ -2705,14 +2717,14 @@ export function GovernanceProposalV2View(props: any){
                                             <>
                                                 {proposalInstructions[0].account.instructions && (proposalInstructions[0].account.instructions).map((item: any, index:number) => (
                                                     <>
-                                                        <InstructionView cachedTokenMeta={cachedTokenMeta} setInstructionTransferDetails={setInstructionTransferDetails} instructionTransferDetails={instructionTransferDetails} memberMap={memberMap} tokenMap={tokenMap} instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
+                                                        <InstructionView setReload={setReload} realm={realm} proposalAuthor={proposalAuthor} state={thisitem.account.state} cachedTokenMeta={cachedTokenMeta} setInstructionTransferDetails={setInstructionTransferDetails} instructionTransferDetails={instructionTransferDetails} memberMap={memberMap} tokenMap={tokenMap} instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
                                                     </>
                                                 ))}
                                             </>
                                             :
                                             <>
                                                 {proposalInstructions && (proposalInstructions).map((item: any, index:number) => (
-                                                    <InstructionView cachedTokenMeta={cachedTokenMeta} setInstructionTransferDetails={setInstructionTransferDetails} instructionTransferDetails={instructionTransferDetails} memberMap={memberMap} tokenMap={tokenMap} instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
+                                                    <InstructionView setReload={setReload} realm={realm} proposalAuthor={proposalAuthor} state={thisitem.account.state} cachedTokenMeta={cachedTokenMeta} setInstructionTransferDetails={setInstructionTransferDetails} instructionTransferDetails={instructionTransferDetails} memberMap={memberMap} tokenMap={tokenMap} instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
                                                 ))}
                                             </>
                                             }

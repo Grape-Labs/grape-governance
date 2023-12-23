@@ -1,22 +1,29 @@
 import { 
-    getRealm, 
-    getProposal,
-    getAllProposals, 
-    getGovernance, 
-    getGovernanceAccounts, 
-    getGovernanceChatMessages, 
-    getTokenOwnerRecord, 
+    getRealms, 
+    getGovernance,
+    getVoteRecordsByVoter, 
+    getTokenOwnerRecordAddress,
+    getTokenOwnerRecordForRealm, 
     getTokenOwnerRecordsByOwner, 
-    getAllTokenOwnerRecords, 
-    getRealmConfigAddress, 
-    getGovernanceAccount, 
-    getAccountTypes, 
-    ProposalTransaction,
-    pubkeyFilter,
-    GovernanceAccountType, 
-    tryGetRealmConfig, 
-    getRealmConfig,
-    InstructionData  } from '@solana/spl-governance';
+    getGovernanceAccounts, 
+    pubkeyFilter, 
+    TokenOwnerRecord, 
+    withCreateProposal,
+    VoteType, 
+    getGovernanceProgramVersion,
+    serializeInstructionToBase64,
+    createInstructionData,
+    withInsertTransaction,
+    withRemoveTransaction,
+    InstructionData,
+    AccountMetaData,
+    getRealm,
+    withSignOffProposal,
+    withAddSignatory,
+    getSignatoryRecordAddress,
+    getAllProposals,
+    MultiChoiceType,
+} from '@solana/spl-governance';
 import {
     fetchGovernanceLookupFile,
     getFileFromLookup
@@ -27,7 +34,7 @@ import { BorshCoder } from "@coral-xyz/anchor";
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token-v2";
-import { PublicKey, TokenAmount, Connection, TransactionInstruction, Transaction, TransactionVersion } from '@solana/web3.js';
+import { Signer, Connection, TransactionMessage, PublicKey, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError, TransactionOrVersionedTransaction } from '@solana/wallet-adapter-base';
 import React, { useCallback } from 'react';
@@ -88,6 +95,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import DeleteIcon from '@mui/icons-material/Delete';
 import DeveloperModeIcon from '@mui/icons-material/DeveloperMode';
 import BallotIcon from '@mui/icons-material/Ballot';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
@@ -113,6 +121,7 @@ import {
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
+import NavItem from '../components/nav-section/vertical/nav-item';
 
 const CustomTextarea = styled(TextareaAutosize)(({ theme }) => ({
     width: '100%', // Make it full width
@@ -188,6 +197,10 @@ async function getExplorerInspectorUrl(
 
 export function InstructionView(props: any) {
     const index = props.index;
+    const proposalAuthor = props?.proposalAuthor;
+    const state = props.state; 
+    const realm = props.realm;
+    const setReload= props.setReload;
     const instructionOwnerRecord = props.instructionOwnerRecord;
     const instructionOwnerRecordATA = props.instructionOwnerRecordATA;
     const instruction = props.instruction;
@@ -198,9 +211,123 @@ export function InstructionView(props: any) {
     const tokenMap = props.tokenMap;
     const cachedTokenMeta = props.cachedTokenMeta;
     const [iVLoading, setIVLoading] = React.useState(false);
-    const { publicKey } = useWallet();
+    const { publicKey, sendTransaction, signTransaction } = useWallet();
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     
     const METAPLEX_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+
+    async function createAndSendV0Tx(txInstructions: TransactionInstruction[]) {
+        // Step 1 - Fetch Latest Blockhash
+        let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+        console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
+    
+        // Step 2 - Generate Transaction Message
+        const messageV0 = new TransactionMessage({
+            payerKey: publicKey,
+            recentBlockhash: latestBlockhash.blockhash,
+            instructions: txInstructions
+        }).compileToV0Message();
+        console.log("   ✅ - Compiled transaction message");
+        const transaction = new VersionedTransaction(messageV0);
+        
+        console.log("   ✅ - Transaction Signed");
+    
+        // Step 4 - Send our v0 transaction to the cluster
+        //const txid = await RPC_CONNECTION.sendTransaction(transaction, { maxRetries: 5 });
+        
+        //const tx = new Transaction();
+        //tx.add(txInstructions[0]);
+        
+        const txid = await sendTransaction(transaction, RPC_CONNECTION, {
+            skipPreflight: true,
+            preflightCommitment: "confirmed",
+            maxRetries: 5
+        });
+        
+        console.log("   ✅ - Transaction sent to network with txid: "+txid);
+    
+        // Step 5 - Confirm Transaction 
+        const snackprogress = (key:any) => (
+            <CircularProgress sx={{padding:'10px'}} />
+        );
+        const cnfrmkey = enqueueSnackbar(`Confirming Transaction`,{ variant: 'info', action:snackprogress, persist: true });
+        const confirmation = await RPC_CONNECTION.confirmTransaction({
+            signature: txid,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+        });
+        closeSnackbar(cnfrmkey);
+        if (confirmation.value.err) { 
+            enqueueSnackbar(`Transaction Error`,{ variant: 'error' });
+            throw new Error("   ❌ - Transaction not confirmed.") }
+
+        console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
+        return txid;
+    }
+
+    const handleRemoveIx = async() => {
+
+        console.log("instruction "+JSON.stringify(instruction));
+        console.log("instructionDetails: "+JSON.stringify(instructionDetails))
+
+        const programId = new PublicKey(realm.owner);
+        let instructions: TransactionInstruction[] = [];
+        const proposal = new PublicKey(instruction.account.proposal);
+        const programVersion = await getGovernanceProgramVersion(
+            RPC_CONNECTION,
+            programId,
+        );
+        
+        const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
+            
+        let tokenOwnerRecordPk = null;
+        for (let member of memberMap){
+            if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58())
+                tokenOwnerRecordPk = new PublicKey(member.pubkey);
+        }
+
+        /*
+        const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+            programId,
+            realmPk,
+            governingTokenMint,
+            publicKey,
+        );*/
+
+        const beneficiary = publicKey;
+        const governanceAuthority = publicKey;
+        
+        console.log("Preparing Remove Instruction Selected");
+        await withRemoveTransaction(
+            instructions,
+            programId,
+            programVersion,
+            proposal,
+            tokenOwnerRecordPk,
+            governanceAuthority,
+            proposalTransaction,
+            beneficiary,
+        )
+        
+        // with instructions run a transaction and make it rain!!!
+        if (instructions && instructions.length > 0){
+            const signature = await createAndSendV0Tx(instructions);
+            if (signature){
+                enqueueSnackbar(`Transaction Removed from Proposal - ${signature}`,{ variant: 'success' });
+                //pTransaction.add(lookupTableInst);
+                //pTransaction.feePayer = publicKey;
+                
+                if (setReload) 
+                    setReload(true);
+
+            } else{
+                enqueueSnackbar(`Error`,{ variant: 'error' });
+            }
+            
+            return null;
+        }
+    }
+
 
     if (instructionDetails){
         const typeOfInstruction = instructionDetails?.data[0];
@@ -278,6 +405,7 @@ export function InstructionView(props: any) {
             )
         }
 
+        
         const getObjectByMint = (mintValue:string) => {
             //if (cachedTokenMeta)
             //    console.log("cachedTokenMeta: "+JSON.stringify(cachedTokenMeta));
@@ -536,6 +664,21 @@ export function InstructionView(props: any) {
                         
                         <Typography variant="h6" component="span" color="#999">
                             Instruction Accounts
+
+                            {(publicKey && proposalAuthor === publicKey.toBase58() && state === 0) ?
+                                <>
+                                    <IconButton 
+                                        sx={{ml:1}}
+                                        color='error'
+                                        onClick={handleRemoveIx}
+                                    >
+                                        <DeleteIcon fontSize='small' />
+                                    </IconButton>
+                                </>
+                                :
+                                <></>
+                            }
+
                         </Typography>
                         <Typography>
 

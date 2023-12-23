@@ -154,6 +154,7 @@ function GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk?:string, realmOwner?:string)
                 optionIndex
                 proposal
                 transactionIndex
+                pubkey
             }
         }
         
@@ -535,6 +536,7 @@ export const getProposalInstructionsIndexed = async (filterRealm?:any, proposalP
                 allProposalIx.push({
                     pubkey: new PublicKey(0),
                     account: {
+                            pubkey: new PublicKey(item.pubkey),
                             proposal: new PublicKey(proposalPk),
                             executedAt: item.executedAt,
                             executionStatus: item.executionStatus,
