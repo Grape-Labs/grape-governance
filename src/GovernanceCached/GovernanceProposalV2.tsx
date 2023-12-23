@@ -2527,7 +2527,8 @@ export function GovernanceProposalV2View(props: any){
                                                         <Grid item>
                                                             <Typography gutterBottom variant="body1" component="div">
                                                                 {GOVERNANCE_STATE[thisitem.account?.state]}
-                                                                {+thisitem.account.state === 0 ?
+                                                                
+                                                                {(publicKey && proposalAuthor === publicKey.toBase58() && +thisitem.account.state === 0) ?
                                                                     <> 
                                                                         <EditGovernanceProposalDialog 
                                                                             governanceAddress={governanceAddress}

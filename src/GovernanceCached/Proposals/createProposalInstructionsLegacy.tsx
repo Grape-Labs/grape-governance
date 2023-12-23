@@ -18,6 +18,7 @@ import {
   serializeInstructionToBase64,
   createInstructionData,
   withInsertTransaction,
+  withRemoveTransaction,
   InstructionData,
   AccountMetaData,
   getRealm,
@@ -61,7 +62,8 @@ export async function createProposalInstructionsLegacy(
     isDraft?: boolean,
     returnTx?: boolean,
     payer?: PublicKey,
-    editAddress?: PublicKey): Promise<any>{//Promise<Transaction> {
+    editAddress?: PublicKey,
+    removeTransaction?: number): Promise<any>{//Promise<Transaction> {
     
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
     //let initialInstructions: TransactionInstruction[] = [];

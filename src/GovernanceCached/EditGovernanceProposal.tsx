@@ -147,18 +147,16 @@ export function EditGovernanceProposalDialog(props: any){
                 <DialogContent>
                     
                     <GovernanceCreateProposalView 
-                            governanceAddress={governanceAddress} 
-                            governanceRulesWallet={governanceRulesWallet} 
-                            //payerWallet={publicKey} 
-                            //governanceWallet={governanceWallet?.vault.pubkey} 
-                            //setInstructionsObject={setInstructionsObject} 
-                            governanceLookup={governanceLookup} 
-                            editProposalAddress={editProposalAddress} 
-                            setEditPropOpen={setEditPropOpen} 
-                        />
+                        governanceAddress={governanceAddress} 
+                        governanceRulesWallet={governanceRulesWallet} 
+                        //payerWallet={publicKey} 
+                        //governanceWallet={governanceWallet?.vault.pubkey} 
+                        //setInstructionsObject={setInstructionsObject} 
+                        governanceLookup={governanceLookup} 
+                        editProposalAddress={editProposalAddress} 
+                        setEditPropOpen={setEditPropOpen} 
+                    />
                     
-
-
                 </DialogContent> 
             </BootstrapDialog>
         </>
