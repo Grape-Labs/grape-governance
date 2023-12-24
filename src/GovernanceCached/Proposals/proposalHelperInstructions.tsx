@@ -1,7 +1,3 @@
-
-import { PublicKey, SystemProgram, TransactionInstruction, Transaction, } from '@solana/web3.js'
-import { BN, web3 } from '@project-serum/anchor';
-
 import { 
   getRealms, 
   getGovernance,
@@ -43,8 +39,81 @@ import {
 
 import { chunks } from '../../utils/governanceTools/helpers';
 import { sendTransactions, prepareTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../../utils/governanceTools/sendTransactions';
+import { Signer, Connection, TransactionMessage, PublicKey, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletError, WalletNotConnectedError, TransactionOrVersionedTransaction } from '@solana/wallet-adapter-base';
+import { useSnackbar } from 'notistack';
 
-import { AnyMxRecord } from 'dns';
+import { 
+  PROXY, 
+  RPC_CONNECTION,
+  TX_RPC_ENDPOINT, 
+  GGAPI_STORAGE_POOL, 
+  GGAPI_STORAGE_URI } from '../../utils/grapeTools/constants';
+
+  import {
+    CircularProgress,
+  } from '@mui/material/';
+
+
+export async function createAndSendV0Tx(txi: TransactionInstruction[]){
+  const { publicKey, sendTransaction } = useWallet();
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+
+  async function sendV0Tx(txInstructions: TransactionInstruction[]) {
+  
+    // Step 1 - Fetch Latest Blockhash
+    console.log("Getting bh TX")
+    let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+    console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
+  
+    // Step 2 - Generate Transaction Message
+    const messageV0 = new TransactionMessage({
+        payerKey: publicKey,
+        recentBlockhash: latestBlockhash.blockhash,
+        instructions: txInstructions
+    }).compileToV0Message();
+    console.log("   ✅ - Compiled transaction message");
+    const transaction = new VersionedTransaction(messageV0);
+    
+    console.log("   ✅ - Transaction Signed");
+  
+    // Step 4 - Send our v0 transaction to the cluster
+    //const txid = await RPC_CONNECTION.sendTransaction(transaction, { maxRetries: 5 });
+    
+    //const tx = new Transaction();
+    //tx.add(txInstructions[0]);
+    
+    const txid = await sendTransaction(transaction, RPC_CONNECTION, {
+        skipPreflight: true,
+        preflightCommitment: "confirmed",
+        maxRetries: 5
+    });
+    
+    console.log("   ✅ - Transaction sent to network with txid: "+txid);
+  
+    // Step 5 - Confirm Transaction 
+    const snackprogress = (key:any) => (
+        <CircularProgress sx={{padding:'10px'}} />
+    );
+    const cnfrmkey = enqueueSnackbar(`Confirming Transaction`,{ variant: 'info', action:snackprogress, persist: true });
+    const confirmation = await RPC_CONNECTION.confirmTransaction({
+        signature: txid,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+    });
+    closeSnackbar(cnfrmkey);
+    if (confirmation.value.err) { 
+        enqueueSnackbar(`Transaction Error`,{ variant: 'error' });
+        throw new Error("   ❌ - Transaction not confirmed.") }
+  
+    console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
+    return txid;
+  }
+
+  return await sendV0Tx(txi);
+}
+
 
 export async function createProposalInstructionsLegacy(
     token_realm_program_id: PublicKey, 

@@ -91,6 +91,7 @@ import {
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
  
+import { createAndSendV0Tx } from './Proposals/proposalHelperInstructions'
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
@@ -217,11 +218,11 @@ export function InstructionView(props: any) {
     
     const METAPLEX_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
 
-    async function createAndSendV0Tx(txInstructions: TransactionInstruction[]) {
+    async function createAndSendV0TxInline(txInstructions: TransactionInstruction[]) {
         // Step 1 - Fetch Latest Blockhash
         let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
         console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
-    
+      
         // Step 2 - Generate Transaction Message
         const messageV0 = new TransactionMessage({
             payerKey: publicKey,
@@ -232,7 +233,7 @@ export function InstructionView(props: any) {
         const transaction = new VersionedTransaction(messageV0);
         
         console.log("   ✅ - Transaction Signed");
-    
+      
         // Step 4 - Send our v0 transaction to the cluster
         //const txid = await RPC_CONNECTION.sendTransaction(transaction, { maxRetries: 5 });
         
@@ -246,7 +247,7 @@ export function InstructionView(props: any) {
         });
         
         console.log("   ✅ - Transaction sent to network with txid: "+txid);
-    
+      
         // Step 5 - Confirm Transaction 
         const snackprogress = (key:any) => (
             <CircularProgress sx={{padding:'10px'}} />
@@ -261,15 +262,16 @@ export function InstructionView(props: any) {
         if (confirmation.value.err) { 
             enqueueSnackbar(`Transaction Error`,{ variant: 'error' });
             throw new Error("   ❌ - Transaction not confirmed.") }
-
+      
         console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
         return txid;
     }
+      
 
     const handleRemoveIx = async() => {
 
-        console.log("instruction "+JSON.stringify(instruction));
-        console.log("instructionDetails: "+JSON.stringify(instructionDetails))
+        //console.log("instruction "+JSON.stringify(instruction));
+        //console.log("instructionDetails: "+JSON.stringify(instructionDetails))
 
         const programId = new PublicKey(realm.owner);
         let instructions: TransactionInstruction[] = [];
@@ -313,7 +315,7 @@ export function InstructionView(props: any) {
         
         // with instructions run a transaction and make it rain!!!
         if (instructions && instructions.length > 0){
-            const signature = await createAndSendV0Tx(instructions);
+            const signature = await createAndSendV0TxInline(instructions);
             if (signature){
                 enqueueSnackbar(`Transaction Removed from Proposal - ${signature}`,{ variant: 'success' });
                 //pTransaction.add(lookupTableInst);

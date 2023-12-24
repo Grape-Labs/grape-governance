@@ -99,7 +99,8 @@ import {
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
  
-import { EditGovernanceProposalDialog } from './EditGovernanceProposal';
+import { EditGovernanceProposalDialog } from './ManageEditGovernanceProposal';
+import { SignOffGovernanceProposal } from './ManageGovernanceProposal';
 import { VoteForProposal } from './GovernanceVote';
 import { InstructionView } from './GovernanceInstructionView';
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
@@ -2575,6 +2576,26 @@ export function GovernanceProposalV2View(props: any){
                                                             Voting Status
                                                         </Typography>
                                                     </Box>
+
+                                                    {(publicKey && proposalAuthor === publicKey.toBase58() && +thisitem.account.state === 0) ?
+                                                        <Box sx={{ my: 3, mx: 2 }}>
+                                                            <Grid container alignItems="center">
+                                                                <SignOffGovernanceProposal 
+                                                                    governanceAddress={governanceAddress}
+                                                                    governanceRulesWallet={thisitem.account.governance}
+                                                                    governingTokenMint={thisitem.account.governingTokenMint}
+                                                                    proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                    payerWallet={publicKey}
+                                                                    governanceLookup={governanceLookup}
+                                                                    editProposalAddress={thisitem.pubkey}
+                                                                    realm={realm}
+                                                                    memberMap={memberMap}
+                                                                    setReload={setReload}
+                                                                />
+                                                            </Grid>
+                                                        </Box>
+                                                        :<></>
+                                                    }
                                                     
                                                     {(thisitem.account.signingOffAt && csvGenerated) &&
                                                         <Box sx={{ my: 3, mx: 2 }}>
