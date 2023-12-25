@@ -1048,9 +1048,9 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
     }
     
     if ((!allProposals || allProposals.length <= 0) && realmPk){ // fallback to RPC call is governance not found in index
-        const allProps = await getAllProposals(RPC_CONNECTION, new PublicKey(realmOwner || programId), new PublicKey(realmPk));
+        const allProps = await getAllProposals(RPC_CONNECTION, new PublicKey(programId), new PublicKey(realmPk));
         if (allProps && allProps.length > 0)
-            return allProps[0];
+            return allProps;
     } else{
         return allProposals;
     }
