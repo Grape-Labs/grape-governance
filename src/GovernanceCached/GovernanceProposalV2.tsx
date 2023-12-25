@@ -1571,7 +1571,7 @@ export function GovernanceProposalV2View(props: any){
 
         if (!memberMap){
             let rawTokenOwnerRecords = null;
-            let indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realmPk).toBase58());
+            let indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realmPk).toBase58(), grealm.owner || realm.owner.toBase58());
             
             console.log("cachedMemberMap: "+JSON.stringify(cachedMemberMap));
             if (cachedMemberMap){

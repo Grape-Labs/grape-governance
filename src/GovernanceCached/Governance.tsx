@@ -1011,7 +1011,7 @@ export function GovernanceCachedView(props: any) {
                     }
                     
                     //const gprops = await getAllProposals(RPC_CONNECTION, grealm.owner, realmPk);
-                    const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm.owner);
+                    const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm?.owner);
                     const allprops: any[] = [];
                     let passed = 0;
                     let defeated = 0;
