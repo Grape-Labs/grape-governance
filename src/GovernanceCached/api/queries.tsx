@@ -645,6 +645,9 @@ export const getRealmIndexed = async (filterRealm?:any) => {
             console.log("Realm Index Err reverting to RPC");
         }
 
+        //console.log("programId: "+programId);
+        //console.log("allRealms: "+JSON.stringify(allRealms));
+
         if ((!allRealms || allRealms.length <= 0) && filterRealm){ // fallback to RPC call is governance not found in index
             console.log("No indexed realm found reverting to RPC getRealms")
             const realm = await getRealm(RPC_CONNECTION, new PublicKey(filterRealm));
@@ -653,6 +656,7 @@ export const getRealmIndexed = async (filterRealm?:any) => {
             console.log("Indexed realm found!")
         }
 
+        console.log("allRealms: "+JSON.stringify(allRealms));        
         return allRealms && allRealms[0];
     }
 };
@@ -861,12 +865,13 @@ export const getAllProposalsFromAllPrograms = async () => {
 
 export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, uniqueOwners?:string[]) => {
 
+    //console.log("realmOwner: " +realmOwner);
     const programId = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const allProposals = new Array();
 
     try{
 
-        console.log("programId: "+programId);
+        //console.log("programId: "+programId);
 
         const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, programId, uniqueOwners) });
         if (uniqueOwners && data){
@@ -1042,9 +1047,8 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
         console.log("Prop Index Err Reverting to RPC")
     }
     
-    
     if ((!allProposals || allProposals.length <= 0) && realmPk){ // fallback to RPC call is governance not found in index
-        const allProps = await getAllProposals(RPC_CONNECTION, new PublicKey(realmOwner), new PublicKey(realmPk));
+        const allProps = await getAllProposals(RPC_CONNECTION, new PublicKey(realmOwner || programId), new PublicKey(realmPk));
         if (allProps && allProps.length > 0)
             return allProps[0];
     } else{
@@ -1058,8 +1062,6 @@ export const getProposalNewIndexed = async (proposalPk?:any, realmOwner?:any, re
     const indexedProp = new Array();
 
     try{
-
-        console.log("programId: "+programId);
 
         const { data } = await client.query({ query: GET_QUERY_PROPOSAL(proposalPk, realmOwner) });
         {

@@ -871,7 +871,7 @@ export function GovernanceCachedView(props: any) {
                     //console.log("proposalCount: "+grealm?.account?.proposalCount);
 
                     if (hybridCache){
-
+                        console.log("grealm.owner: "+JSON.stringify(grealm.owner));
                         const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm.owner, governanceAddress);
                         //console.log("Indexed Proposals: "+JSON.stringify(gprops));
                         //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
@@ -1011,7 +1011,7 @@ export function GovernanceCachedView(props: any) {
                     }
                     
                     //const gprops = await getAllProposals(RPC_CONNECTION, grealm.owner, realmPk);
-                    const gprops = await getAllProposalsIndexed(governanceRulesStrArr);
+                    const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm.owner);
                     const allprops: any[] = [];
                     let passed = 0;
                     let defeated = 0;
