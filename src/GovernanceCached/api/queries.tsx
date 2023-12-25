@@ -812,10 +812,10 @@ export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any,
 
     const allProposals = await getAllProposalsIndexed (filterGovernance, realmOwner, realmPk);
 
-    if (allProposals && allProposals.length > 0){
-        //console.log("allProposals: "+JSON.stringify(allProposals))
-        for (var item of allProposals){
-            if (item.pubkey.toBase58() === filterProposal){
+    if (allProposals && allProposals.length > 0 && allProposals[0].length > 0){
+        //console.log("allProposals here: "+JSON.stringify(allProposals))
+        for (var item of allProposals[0]){
+            if (new PublicKey(item.pubkey).toBase58() === filterProposal){
                 proposal = item;
             }
         }
