@@ -36,12 +36,26 @@ import {
     InstructionData,
     AccountMetaData,
     getRealm,
+    SignatoryRecord,
     withSignOffProposal,
     withAddSignatory,
     getSignatoryRecordAddress,
     getAllProposals,
+    getProposal,
     MultiChoiceType,
 } from '@solana/spl-governance';
+
+import { 
+    getRealmIndexed,
+    getProposalIndexed,
+    getProposalNewIndexed,
+    getAllProposalsIndexed,
+    getGovernanceIndexed,
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
+    getTokenOwnerRecordsByOwnerIndexed,
+    getProposalInstructionsIndexed
+  } from './api/queries';
 
 import { sendTransactions, prepareTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../utils/governanceTools/sendTransactions';
 import { Signer, Connection, TransactionMessage, PublicKey, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
@@ -65,11 +79,80 @@ import FitScreenIcon from '@mui/icons-material/FitScreen';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import ApprovalIcon from '@mui/icons-material/Approval';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 
-export function SignOffGovernanceProposal(props: any){
+export const getAllProposalSignatories = async(programId:PublicKey, proposalAddress:PublicKey) => {
+    const programAccounts = await RPC_CONNECTION.getParsedProgramAccounts( //.getProgramAccounts(
+        programId, {
+            filters: [
+                {
+                  memcmp: {
+                    offset: 1,
+                    bytes: proposalAddress.toBase58(),
+                  },
+                },
+              ],
+        });
+    
+    const plt = new Array();
+    const proposalSignatories = new Array();
+    for (var item of programAccounts){
+        /*
+        const data = JSON.parse(JSON.stringify(item.account.data)).data;
+        const dataBuffer = Buffer.from(data, 'base64');
+        const parsedData = {}; // Parse the dataBuffer and store the parsed data in the `parsedData` object
+        console.log("parsed: "+JSON.stringify(dataBuffer));
+        */
+        proposalSignatories.push(item.pubkey);
+    }
+
+    
+
+    console.log("programAccounts: "+JSON.stringify(programAccounts));
+    // consider mapping signatories with records
+    return proposalSignatories;
+}
+
+export const getAllProposalSignatoryRecords = async(programId:PublicKey, proposalAddress:PublicKey, realmPk:PublicKey) => {
+    
+    const memberMap = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58());
+    const signatories = await getAllProposalSignatories(programId, proposalAddress);
+    console.log("memberMap: "+JSON.stringify(memberMap))
+    console.log("signatories: "+JSON.stringify(signatories))
+    const signatoryMap = new Array();
+    //for (let member of memberMap){
+        for (let signatory of signatories){
+
+            const signatoryRecordAddress = await getSignatoryRecordAddress(
+                programId,
+                proposalAddress,
+                new PublicKey(signatory)
+            )
+
+            if (signatoryRecordAddress){
+                console.log("signatoryRecordAddress: "+JSON.stringify(signatoryRecordAddress));
+            }
+
+            /*
+            if (new PublicKey(member.pubkey).toBase58() === signatory){
+                signatoryMap.push({
+                    pubkey:member.pubkey,
+                    governingTokenOwner:member.account.governeningTokenOwner,
+                    governingTokenMint:member.account.governingTokenMint,
+                })
+            }*/
+        }
+    //}
+
+    return signatoryMap;
+}
+
+export function ManageGovernanceProposal(props: any){
+    const mode = props.mode;
     const cachedGovernance = props.cachedGovernance;
     const isCancelled = props.isCancelled || false;
     const setReload = props?.setReload;
+    const proposal = props?.proposal;
     const proposalAuthor = props.proposalAuthor;
     const governanceLookup = props.governanceLookup;
     const governanceRulesWallet = props.governanceRulesWallet;
@@ -237,25 +320,161 @@ export function SignOffGovernanceProposal(props: any){
         }
     }
 
-
     const handleSignOff = async() => {
         await handleSignOffIx();
     }
 
+    const handleChangeSignatoryIx = async() => {
 
+        console.log("proposal: "+JSON.stringify(proposal));
+        
+        const newAuthor = "FDw92PNX4FtibvkDm7nd5XJUAg6ChTcVqMaFmG7kQ9JP";
+
+        const programId = new PublicKey(realm.owner);
+        let instructions: TransactionInstruction[] = [];
+        
+        const proposalAddress = new PublicKey(editProposalAddress);
+        const realmPk = new PublicKey(governanceAddress);
+        const programVersion = await getGovernanceProgramVersion(
+            RPC_CONNECTION,
+            programId,
+        );
+        
+        let tokenOwnerRecordPk = null;
+        for (let member of memberMap){
+            if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
+                new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
+                tokenOwnerRecordPk = new PublicKey(member.pubkey);
+        }
+
+        
+        let newTokenOwnerRecordPk = null;
+        for (let member of memberMap){
+            if (new PublicKey(member.account.governingTokenOwner).toBase58() === new PublicKey(newAuthor).toBase58() &&
+                new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
+                newTokenOwnerRecordPk = new PublicKey(member.pubkey);
+        }
+
+        console.log("new signatory address: "+newAuthor)
+
+        /*
+        const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+            programId,
+            realmPk,
+            governingTokenMint,
+            publicKey,
+        );*/
+        
+        
+        //const filter = pubkeyFilter(1, proposalAddress)
+        
+        const signatories = await getAllProposalSignatories(programId, proposalAddress);
+        console.log("All Signatories "+JSON.stringify(signatories));
+        
+        const signatory = publicKey;
+        
+        const signatoryRecordAddress = await getSignatoryRecordAddress(
+            programId,
+            proposalAddress,
+            signatory
+        )
+        
+
+        const beneficiary = publicKey;
+        const governanceAuthority = publicKey;
+        const payer = publicKey;
+
+        console.log("programId: "+programId.toBase58());
+        console.log("realmPk: "+realmPk.toBase58());
+        console.log("governingTokenMint: "+governingTokenMint.toBase58());
+        console.log("payer: "+payer.toBase58());
+        console.log("tokenOwnerRecordPk: "+tokenOwnerRecordPk.toBase58())
+        console.log("programVersion: "+programVersion)
+        console.log("governanceAuthority: "+governanceAuthority.toBase58())
+        console.log("newTokenOwnerRecordPk: "+newTokenOwnerRecordPk.toBase58())
+        console.log("newAuthor: "+newAuthor)
+        console.log("signatoryTokenOwnerRecordPk: "+signatoryRecordAddress.toBase58())
+        
+        await withAddSignatory(
+            instructions,
+            programId,
+            programVersion,
+            proposalAddress,
+            tokenOwnerRecordPk,//tokenOwnerRecordPk,//new PublicKey(newAuthor),//tokenOwnerRecordPk,//new PublicKey(newAuthor),
+            new PublicKey(newAuthor),//governanceAuthority,
+            new PublicKey(newAuthor),//signatoryRecordAddress,
+            payer
+        );    
+        
+        // with instructions run a transaction and make it rain!!!
+        if (instructions && instructions.length > 0){
+            const signature = await createAndSendV0TxInline(instructions);
+            if (signature){
+                enqueueSnackbar(`Signed Off Proposal - ${signature}`,{ variant: 'success' });
+                
+                if (setReload) 
+                    setReload(true);
+
+            } else{
+                enqueueSnackbar(`Error`,{ variant: 'error' });
+            }
+            
+            return null;
+        }
+    }
+
+    const handleChangeAuthor = async() => {
+        await handleChangeSignatoryIx();
+    }
 
     return (
         <>
-            <Tooltip title={<>Click to Sign Off Proposal<br/><br/>WARNING: By signing off, this proposal will no longer be editable and will be in voting status</>}>
-                <Button 
-                    onClick={handleSignOff}
-                    variant='outlined'
-                    color='inherit'
-                    fullWidth={true}
-                    sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
-                    Sign Off <ApprovalIcon fontSize="small" sx={{ml:1}}/>
-                </Button>
-            </Tooltip>
+            {mode === 1 ? // signoff
+                <Tooltip title={<>Click to Sign Off Proposal<br/><br/>WARNING: By signing off, this proposal will no longer be editable and will be in voting status</>}>
+                    <Button 
+                        onClick={handleSignOff}
+                        variant='outlined'
+                        color='inherit'
+                        fullWidth={true}
+                        sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
+                        Sign Off <ApprovalIcon fontSize="small" sx={{ml:1}}/>
+                    </Button>
+                </Tooltip>
+            :
+                <>
+                {mode === 2 ? // add signatory
+                    <>
+                        <Tooltip title={<>Add Signer<br/><br/>WARNING: Adding a signatory will allow the new PublicKey to Sign Off, Add/Remove Transactions of this proposal</>}>
+                            <Button 
+                                onClick={handleChangeAuthor}
+                                variant='outlined'
+                                color='inherit'
+                                fullWidth={true}
+                                sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
+                                Add Signer <SwapHorizIcon fontSize="small" sx={{ml:1}}/>
+                            </Button>
+                        </Tooltip>
+                    </>
+                    :<>
+                    {mode === 3 ? // cancel proposal
+                        <>
+
+                        </>
+                        :<>
+                            {mode === 4 ? // veto proposal
+                                <>
+
+                                </>
+                                :<>
+                                    
+                                </>
+                            }
+                        </>
+                    }
+                    </>
+                }
+                </>
+            }
         </>
     )
 }

@@ -100,7 +100,7 @@ import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
  
 import { EditGovernanceProposalDialog } from './ManageEditGovernanceProposal';
-import { SignOffGovernanceProposal } from './ManageGovernanceProposal';
+import { getAllProposalSignatoryRecords, getAllProposalSignatories, ManageGovernanceProposal } from './ManageGovernanceProposal';
 import { VoteForProposal } from './GovernanceVote';
 import { InstructionView } from './GovernanceInstructionView';
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
@@ -183,7 +183,6 @@ export function GovernanceProposalV2View(props: any){
     const [searchParams, setSearchParams] = useSearchParams();
     const {governance} = useParams<{ governance: string }>();
     const {proposal} = useParams<{ proposal: string }>();
-
     const showGovernanceTitle = props.showGovernanceTitle !== undefined ? props.showGovernanceTitle : true;
     const background = null; //props?.background ? props.background : null;
     const textColor = null; //props?.textColor ? props.background : null;
@@ -191,6 +190,7 @@ export function GovernanceProposalV2View(props: any){
     
     const governanceAddress = searchParams.get("governance") || governance || props?.governanceAddress;
     const [thisitem, setThisitem] = React.useState(props?.item);
+    const [proposalSignatories, setProposalSignatories] = React.useState(null);
     const proposalPk = searchParams.get("proposal") || thisitem?.pubkey || proposal;
     //const [governanceAddress, setGovernanceAddress] = React.useState(props?.governanceAddress);
     const connection = RPC_CONNECTION;
@@ -649,7 +649,13 @@ export function GovernanceProposalV2View(props: any){
                 }
             }
         }
-        
+
+        // get all signatories
+        if (thisitem.account.state === 0){
+            //const allSignatoryRecords = await getAllProposalSignatoryRecords(new PublicKey(thisitem.owner), new PublicKey(thisitem.pubkey), new PublicKey(governanceAddress))
+            //console.log("allSignatoryRecords: "+JSON.stringify(allSignatoryRecords));
+        }
+
         //if (thisitem.account?.state === 2){ // if voting state
             const thisQuorum = await getGovernanceProps()
         //}
@@ -2578,22 +2584,47 @@ export function GovernanceProposalV2View(props: any){
                                                     </Box>
 
                                                     {(publicKey && proposalAuthor === publicKey.toBase58() && +thisitem.account.state === 0) ?
-                                                        <Box sx={{ my: 3, mx: 2 }}>
-                                                            <Grid container alignItems="center">
-                                                                <SignOffGovernanceProposal 
-                                                                    governanceAddress={governanceAddress}
-                                                                    governanceRulesWallet={thisitem.account.governance}
-                                                                    governingTokenMint={thisitem.account.governingTokenMint}
-                                                                    proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                                                    payerWallet={publicKey}
-                                                                    governanceLookup={governanceLookup}
-                                                                    editProposalAddress={thisitem.pubkey}
-                                                                    realm={realm}
-                                                                    memberMap={memberMap}
-                                                                    setReload={setReload}
-                                                                />
-                                                            </Grid>
-                                                        </Box>
+                                                        <>
+                                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                                <Grid container alignItems="center">
+                                                                    <ManageGovernanceProposal 
+                                                                        governanceAddress={governanceAddress}
+                                                                        governanceRulesWallet={thisitem.account.governance}
+                                                                        governingTokenMint={thisitem.account.governingTokenMint}
+                                                                        proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                        payerWallet={publicKey}
+                                                                        governanceLookup={governanceLookup}
+                                                                        editProposalAddress={thisitem.pubkey}
+                                                                        realm={realm}
+                                                                        memberMap={memberMap}
+                                                                        setReload={setReload}
+                                                                        proposalSignatories={proposalSignatories}
+                                                                        mode={1} // signoff
+                                                                    />
+                                                                </Grid>
+                                                            </Box>
+                                                            {/*
+                                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                                <Grid container alignItems="center">
+                                                                    <ManageGovernanceProposal 
+                                                                        governanceAddress={governanceAddress}
+                                                                        governanceRulesWallet={thisitem.account.governance}
+                                                                        governingTokenMint={thisitem.account.governingTokenMint}
+                                                                        proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                        payerWallet={publicKey}
+                                                                        governanceLookup={governanceLookup}
+                                                                        editProposalAddress={thisitem.pubkey}
+                                                                        realm={realm}
+                                                                        memberMap={memberMap}
+                                                                        setReload={setReload}
+                                                                        proposal={thisitem}
+                                                                        proposalSignatories={proposalSignatories}
+                                                                        mode={2} // change author
+                                                                    />
+                                                                </Grid>
+                                                            </Box>
+                                                            */}
+                                                        </>
                                                         :<></>
                                                     }
                                                     
