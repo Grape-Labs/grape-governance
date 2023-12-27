@@ -47,6 +47,8 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import { GovernanceProposalDialog } from './GovernanceProposalDialog';
 import moment from 'moment';
 
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import EditIcon from '@mui/icons-material/Edit';
 import SearchIcon from '@mui/icons-material/Search';
 import InfoIcon from '@mui/icons-material/Info';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -313,9 +315,19 @@ function RenderGovernanceTable(props:any) {
                                 :
                                     <>
                                     {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
-                                        <>{`Started: ${thisitem.account?.signingOffAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))}`}<br/>{`Ended: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.votingCompletedAt))).format("MMMM D, YYYY, h:mm a"))}`}</>
+                                        <>{`Started: ${thisitem.account?.signingOffAt && (moment.unix(Number((thisitem.account?.signingOffAt))).format("MMMM D, YYYY, h:mm a"))}`}<br/>{`Ended: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.votingCompletedAt))).format("MMMM D, YYYY, h:mm a"))}`}</>
                                     :
-                                        `Created: ${thisitem.account?.signingOffAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))}`
+                                        <>
+                                        {thisitem.account?.state === 0 ?
+                                            `Drafted: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))}`
+                                        :
+                                        <>
+                                        
+                                            Drafted: {thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))} 
+                                            <br/> Signed Off: {thisitem.account?.signingOffAt && (moment.unix(Number((thisitem.account?.signingOffAt))).format("MMMM D, YYYY, h:mm a"))}
+                                            </>
+                                        }
+                                        </>
                                     }
                                     </>
                                 } 
@@ -331,7 +343,9 @@ function RenderGovernanceTable(props:any) {
                                             { (thisitem.account?.state === 3 || thisitem.account?.state === 5) ?
                                                 <CheckCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
                                             :
+                                                <>
                                                 <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
+                                                </>
                                             }
                                         </>
                                     :
@@ -340,7 +354,14 @@ function RenderGovernanceTable(props:any) {
                                             <TimerIcon sx={{ fontSize:"small",ml:1}} />
                                         
                                         : 
+                                            <>
+                                            { thisitem.account?.state === 0 ? 
+                                            
+                                            <AccessTimeIcon sx={{ fontSize:"small", color:"gray",ml:1}} />
+                                            :
                                             <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
+                                            }
+                                            </>
                                         }
                                         </>
                                     }
