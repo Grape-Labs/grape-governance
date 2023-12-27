@@ -820,7 +820,7 @@ export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any,
                     proposal = item;
                 }
             }
-        } else if (allProposals && allProposals.length > 0 && allProposals.length > 1){
+        } else if (allProposals && allProposals.length > 0){
             //console.log("allProposals here: "+JSON.stringify(allProposals))
             for (var item of allProposals){
                 if (new PublicKey(item.pubkey).toBase58() === filterProposal){
