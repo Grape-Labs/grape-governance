@@ -812,13 +812,24 @@ export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any,
 
     const allProposals = await getAllProposalsIndexed (filterGovernance, realmOwner, realmPk);
 
-    if (allProposals && allProposals.length > 0 && allProposals[0].length > 0){
-        //console.log("allProposals here: "+JSON.stringify(allProposals))
-        for (var item of allProposals[0]){
-            if (new PublicKey(item.pubkey).toBase58() === filterProposal){
-                proposal = item;
+    try{
+        if (allProposals && allProposals.length > 0 && allProposals[0].length > 1){
+            //console.log("allProposals here: "+JSON.stringify(allProposals))
+            for (var item of allProposals[0]){
+                if (new PublicKey(item.pubkey).toBase58() === filterProposal){
+                    proposal = item;
+                }
+            }
+        } else if (allProposals && allProposals.length > 0 && allProposals.length > 1){
+            //console.log("allProposals here: "+JSON.stringify(allProposals))
+            for (var item of allProposals){
+                if (new PublicKey(item.pubkey).toBase58() === filterProposal){
+                    proposal = item;
+                }
             }
         }
+    }catch(e){
+        console.log("Single Prop ERR: "+e);
     }
 
     if (filterProposal){
