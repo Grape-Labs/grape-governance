@@ -25,7 +25,7 @@ import {
 
 import {
     fetchGovernanceLookupFile,
-} from '../GovernanceCached/CachedStorageHelpers'; 
+} from '../Governance/CachedStorageHelpers'; 
 
 import {
     WalletDialogProvider,

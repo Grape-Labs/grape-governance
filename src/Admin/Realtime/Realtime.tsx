@@ -71,14 +71,14 @@ import ExplorerView from '../../utils/grapeTools/Explorer';
 
 import { useSnackbar } from 'notistack';
 
-import GovernanceNavigation from '../../GovernanceCached/GovernanceNavigation'; 
-import GovernancePower from '../../GovernanceCached/GovernancePower';
+import GovernanceNavigation from '../../Governance/GovernanceNavigation'; 
+import GovernancePower from '../../Governance/GovernancePower';
 import {
     fetchGovernanceLookupFile,
     getFileFromLookup
-} from '../../GovernanceCached/CachedStorageHelpers'; 
+} from '../../Governance/CachedStorageHelpers'; 
 import { createCastVoteTransaction } from '../../utils/governanceTools/components/instructions/createVote';
-import { GovernanceProposalDialog } from '../../GovernanceCached/GovernanceProposalDialog';
+import { GovernanceProposalDialog } from '../../Governance/GovernanceProposalDialog';
 import moment from 'moment';
 
 import ArticleIcon from '@mui/icons-material/Article';
@@ -132,7 +132,7 @@ import {
     getAllProposalsFromAllPrograms,
     getAllProposalsIndexed,
     getAllGovernancesIndexed
-} from '../../GovernanceCached/api/queries';
+} from '../../Governance/api/queries';
 
 import { formatAmount, getFormattedNumberToLocale } from '../../utils/grapeTools/helpers'
 import ProgressBar from '../../components/progress-bar/progress-bar';

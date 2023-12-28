@@ -60,7 +60,7 @@ import {
   getAllProposalsIndexed,
   getAllGovernancesIndexed,
   getAllTokenOwnerRecordsIndexed,
-} from '../GovernanceCached/api/queries';
+} from '../Governance/api/queries';
 
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import LinkIcon from '@mui/icons-material/Link';

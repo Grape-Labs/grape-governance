@@ -14,7 +14,7 @@ import {
 import {
     fetchGovernanceLookupFile,
     getFileFromLookup
-} from '../GovernanceCached/CachedStorageHelpers'; 
+} from '../Governance/CachedStorageHelpers'; 
 
 export function ApiView(props: any){
     const [loading, setLoading] = React.useState(false);

@@ -32,7 +32,7 @@ import {
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
-} from '../GovernanceCached/api/queries';
+} from '../Governance/api/queries';
 
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import {
@@ -88,7 +88,7 @@ import {
     getFileFromLookup,
     formatBytes,
     loadWalletKey
-} from '../GovernanceCached/CachedStorageHelpers'; 
+} from '../Governance/CachedStorageHelpers'; 
 import { useSnackbar } from 'notistack';
 
 import { useWallet } from "@solana/wallet-adapter-react";
