@@ -315,14 +315,17 @@ function RenderGovernanceTable(props:any) {
                                 :
                                     <>
                                     {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
-                                        <>{`Started: ${thisitem.account?.signingOffAt && (moment.unix(Number((thisitem.account?.signingOffAt))).format("MMMM D, YYYY, h:mm a"))}`}<br/>{`Ended: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.votingCompletedAt))).format("MMMM D, YYYY, h:mm a"))}`}</>
+                                       <>
+                                       Drafted: {thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))} 
+                                       <br/> Signed Off: {thisitem.account?.signingOffAt && (moment.unix(Number((thisitem.account?.signingOffAt))).format("MMMM D, YYYY, h:mm a"))}
+                                       <br/> Ended: {thisitem.account?.votingCompletedAt && (moment.unix(Number((thisitem.account?.votingCompletedAt))).format("MMMM D, YYYY, h:mm a"))}
+                                       </>
                                     :
                                         <>
                                         {thisitem.account?.state === 0 ?
                                             `Drafted: ${thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))}`
                                         :
-                                        <>
-                                        
+                                            <>
                                             Drafted: {thisitem.account?.draftAt && (moment.unix(Number((thisitem.account?.draftAt))).format("MMMM D, YYYY, h:mm a"))} 
                                             <br/> Signed Off: {thisitem.account?.signingOffAt && (moment.unix(Number((thisitem.account?.signingOffAt))).format("MMMM D, YYYY, h:mm a"))}
                                             </>
