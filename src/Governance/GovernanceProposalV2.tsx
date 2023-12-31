@@ -118,6 +118,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CircleIcon from '@mui/icons-material/Circle';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import CodeIcon from '@mui/icons-material/Code';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import CheckIcon from '@mui/icons-material/Check';
@@ -249,7 +251,7 @@ export function GovernanceProposalV2View(props: any){
     const [openInstructions, setOpenInstructions] = React.useState(false);
     const [expandInfo, setExpandInfo] = React.useState(false);
     const [reload, setReload] = React.useState(false);
-
+    
     const toggleInfoExpand = () => {
         setExpandInfo(!expandInfo)
     };
@@ -650,9 +652,15 @@ export function GovernanceProposalV2View(props: any){
         }
 
         // get all signatories
-        if (thisitem.account.state === 0){
-            //const allSignatoryRecords = await getAllProposalSignatoryRecords(new PublicKey(thisitem.owner), new PublicKey(thisitem.pubkey), new PublicKey(governanceAddress))
-            //console.log("allSignatoryRecords: "+JSON.stringify(allSignatoryRecords));
+
+        if (thisitem.account.state === 0 || thisitem.account.state === 1){
+            if (thisitem.account.signatoriesCount > 1){
+                // how many signed off? check signatoriesSignedOffCount
+                console.log("test "+new PublicKey(thisitem.owner || realm.owner).toBase58());
+                const allSignatoryRecords = await getAllProposalSignatoryRecords(new PublicKey(thisitem.owner || realm.owner), new PublicKey(thisitem.pubkey), new PublicKey(governanceAddress))
+                console.log("allSignatoryRecords: "+JSON.stringify(allSignatoryRecords));
+                setProposalSignatories(allSignatoryRecords)
+            }
         }
 
         //if (thisitem.account?.state === 2){ // if voting state
@@ -2582,6 +2590,78 @@ export function GovernanceProposalV2View(props: any){
                                                         </Typography>
                                                     </Box>
 
+                                                    {(publicKey && proposalSignatories && proposalSignatories.length > 0 && +thisitem.account.state === 1) &&
+                                                        <>
+                                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                                <Grid container alignItems="center">
+                                                                    <Grid item xs>
+                                                                        <Typography gutterBottom variant="subtitle1" component="div">
+                                                                            Signers {proposalSignatories.length}
+                                                                        </Typography>
+                                                                    </Grid>
+                                                                    <Grid item>
+
+                                                                        {proposalSignatories
+                                                                            //.filter((obj:any,key:number) => obj.account.signatory.toBase58() === publicKey.toBase58() && obj.account.signedOff === false)
+                                                                            .map((filteredItem:any) => (
+                                                                                <>
+                                                                                {/*
+                                                                                <br/>Signer: {filteredItem.account.signatory.toBase58()}
+                                                                                <><br/></>Status: {filteredItem.account.signedOff ? `true` : `false`}
+                                                                                */}
+                                                                                    {(filteredItem.account.signatory.toBase58() === publicKey.toBase58() && filteredItem.account.signedOff === false) ? 
+                                                                                    
+                                                                                        <Grid container alignItems="center">
+                                                                                            <ManageGovernanceProposal 
+                                                                                                governanceAddress={governanceAddress}
+                                                                                                governanceRulesWallet={thisitem.account.governance}
+                                                                                                governingTokenMint={thisitem.account.governingTokenMint}
+                                                                                                proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                                                payerWallet={publicKey}
+                                                                                                governanceLookup={governanceLookup}
+                                                                                                editProposalAddress={thisitem.pubkey}
+                                                                                                realm={realm}
+                                                                                                memberMap={memberMap}
+                                                                                                setReload={setReload}
+                                                                                                proposalSignatories={proposalSignatories}
+                                                                                                mode={1} // signoff
+                                                                                            />
+                                                                                        </Grid>
+                                                                                    :
+                                                                                        <>
+                                                                                            <br/>
+                                                                                            <ButtonGroup>
+                                                                                                <Button
+                                                                                                    color='inherit'
+                                                                                                    variant='text'
+                                                                                                    disabled={true}
+                                                                                                >
+                                                                                                {filteredItem.account.signedOff ? 
+                                                                                                    <CheckCircleIcon color='success' />
+                                                                                                : 
+                                                                                                    <RadioButtonUncheckedIcon />
+                                                                                                }
+                                                                                                </Button>
+                                                                                                <ExplorerView 
+                                                                                                    address={filteredItem.account.signatory.toBase58()} 
+                                                                                                    type='address' 
+                                                                                                    shorten={4} 
+                                                                                                    hideTitle={false} 
+                                                                                                    style='text' color='white' fontSize='14px' />
+                                                                                            </ButtonGroup>
+                                                                                        </>
+                                                                                    }
+                                                                                </>
+                                                                        ))}
+                                                                    </Grid>
+                                                                    
+                                                                </Grid>
+                                                                <Typography color="text.secondary" variant="caption">
+                                                                </Typography>
+                                                            </Box>
+                                                        </>
+                                                    }
+
                                                     {(publicKey && proposalAuthor === publicKey.toBase58() && +thisitem.account.state === 0) ?
                                                         <>
                                                             <Box sx={{ my: 3, mx: 2 }}>
@@ -2627,7 +2707,7 @@ export function GovernanceProposalV2View(props: any){
                                                         :<></>
                                                     }
                                                     
-                                                    {(thisitem.account.signingOffAt && csvGenerated) &&
+                                                    {(thisitem.account.signingOffAt && thisitem.account.state !== 0 && thisitem.account.state !== 1 && csvGenerated) &&
                                                         <Box sx={{ my: 3, mx: 2 }}>
                                                             <Grid container alignItems="center">
                                                             <Grid item xs>

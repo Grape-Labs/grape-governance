@@ -1,7 +1,6 @@
 import React, { useCallback } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 
-
 import {
   Typography,
   Button,
@@ -58,7 +57,7 @@ import {
   } from './api/queries';
 
 import { sendTransactions, prepareTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../utils/governanceTools/sendTransactions';
-import { Signer, Connection, TransactionMessage, PublicKey, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
+import { Signer, Connection, MemcmpFilter, TransactionMessage, PublicKey, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError, TransactionOrVersionedTransaction } from '@solana/wallet-adapter-base';
 import { useSnackbar } from 'notistack';
@@ -81,41 +80,58 @@ import ApprovalIcon from '@mui/icons-material/Approval';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 
 export const getAllProposalSignatories = async(programId:PublicKey, proposalAddress:PublicKey) => {
+
+    const memcmpFilter = {
+        memcmp: {
+            offset: 1,
+            bytes: proposalAddress.toBase58(),
+        },
+    };
+
+    const filters: MemcmpFilter[] = [
+        memcmpFilter,
+    ];
+
+
+    //const memCmpFltr = new MemcmpFilter();
+    //const AccountType extends GovernanceAccount;
+    const filter = pubkeyFilter(1, proposalAddress)
+    
+    const signatoryResults = await getGovernanceAccounts(
+        RPC_CONNECTION,
+        programId,
+        SignatoryRecord,
+        [filter]
+    );
+
+    console.log("signatoryResults: "+JSON.stringify(signatoryResults));
+    
+    /*
     const programAccounts = await RPC_CONNECTION.getParsedProgramAccounts( //.getProgramAccounts(
         programId, {
-            filters: [
-                {
-                  memcmp: {
-                    offset: 1,
-                    bytes: proposalAddress.toBase58(),
-                  },
-                },
-              ],
+            filters: filters,
         });
     
     const plt = new Array();
+    */
+    /*
     const proposalSignatories = new Array();
-    for (var item of programAccounts){
-        /*
-        const data = JSON.parse(JSON.stringify(item.account.data)).data;
-        const dataBuffer = Buffer.from(data, 'base64');
-        const parsedData = {}; // Parse the dataBuffer and store the parsed data in the `parsedData` object
-        console.log("parsed: "+JSON.stringify(dataBuffer));
-        */
+    for (var item of signatoryResults){
         proposalSignatories.push(item.pubkey);
-    }
+    }*/
 
-    
-
-    console.log("programAccounts: "+JSON.stringify(programAccounts));
+    //console.log("programAccounts: "+JSON.stringify(programAccounts));
     // consider mapping signatories with records
-    return proposalSignatories;
+    return signatoryResults;
 }
 
 export const getAllProposalSignatoryRecords = async(programId:PublicKey, proposalAddress:PublicKey, realmPk:PublicKey) => {
     
-    const memberMap = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58());
     const signatories = await getAllProposalSignatories(programId, proposalAddress);
+    return signatories;
+
+    //const memberMap = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58());
+    /*
     console.log("memberMap: "+JSON.stringify(memberMap))
     console.log("signatories: "+JSON.stringify(signatories))
     const signatoryMap = new Array();
@@ -131,19 +147,12 @@ export const getAllProposalSignatoryRecords = async(programId:PublicKey, proposa
             if (signatoryRecordAddress){
                 console.log("signatoryRecordAddress: "+JSON.stringify(signatoryRecordAddress));
             }
-
-            /*
-            if (new PublicKey(member.pubkey).toBase58() === signatory){
-                signatoryMap.push({
-                    pubkey:member.pubkey,
-                    governingTokenOwner:member.account.governeningTokenOwner,
-                    governingTokenMint:member.account.governingTokenMint,
-                })
-            }*/
         }
     //}
 
+
     return signatoryMap;
+    */
 }
 
 export function ManageGovernanceProposal(props: any){
@@ -293,7 +302,7 @@ export function ManageGovernanceProposal(props: any){
             proposalAddress,
             signatory,
             signatoryRecordAddress,
-            undefined,
+            undefined, // do we need prop author?
             /*signatoryRecordAddress,
             undefined,
             undefined,
