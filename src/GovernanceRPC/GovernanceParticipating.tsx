@@ -21,8 +21,7 @@ import {
     LinearProgress
 } from '@mui/material';
 
-import { RPC_CONNECTION, 
-    TX_RPC_ENDPOINT
+import { RPC_CONNECTION
 } from '../utils/grapeTools/constants';
 
 

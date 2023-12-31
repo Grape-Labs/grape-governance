@@ -67,7 +67,6 @@ import IconButton from '@mui/material/IconButton';
 import { 
     PROXY, 
     RPC_CONNECTION,
-    TX_RPC_ENDPOINT, 
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'

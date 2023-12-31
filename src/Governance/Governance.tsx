@@ -70,7 +70,6 @@ import PropTypes from 'prop-types';
 import { 
     PROXY, 
     RPC_CONNECTION,
-    TX_RPC_ENDPOINT, 
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 

@@ -73,7 +73,7 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
 
 import PropTypes from 'prop-types';
-import { RPC_CONNECTION, TX_RPC_ENDPOINT } from '../utils/grapeTools/constants';
+import { RPC_CONNECTION } from '../utils/grapeTools/constants';
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
@@ -245,7 +245,6 @@ function GetParticipants(props: any){
     const [exceededQuorumPercentage, setExceededQuorumPercentage] = React.useState(null);
     const [selectedDelegate, setSelectedDelegate] = React.useState("");
     const { publicKey, wallet, sendTransaction, signTransaction } = useWallet();
-    //const freeconnection = new Connection(TX_RPC_ENDPOINT);
     const [loadingParticipants, setLoadingParticipants] = React.useState(false);
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
