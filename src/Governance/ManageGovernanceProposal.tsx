@@ -7,12 +7,15 @@ import {
   Grid,
   Box,
   Table,
+  TextField,
   Tooltip,
   LinearProgress,
   DialogTitle,
   Dialog,
   DialogContent,
   CircularProgress,
+  DialogActions,
+  DialogContentText,
 } from '@mui/material/';
  
 import { 
@@ -70,6 +73,7 @@ import {
 
 import GovernanceCreateProposalView from './GovernanceCreateProposal';
 
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import EditIcon from '@mui/icons-material/Edit';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
@@ -181,6 +185,8 @@ export function ManageGovernanceProposal(props: any){
     
     const { publicKey, sendTransaction, signTransaction } = useWallet();
 
+    const [openSignerPrompt, setOpenSignerPrompt] = React.useState(false);
+    const [signer, setSigner] = React.useState(null);
     const [open, setEditPropOpen] = React.useState(false);
     
     const [expanded, setExpanded] = React.useState<string | false>(false);
@@ -197,11 +203,7 @@ export function ManageGovernanceProposal(props: any){
         },
         [enqueueSnackbar]
     );
-
-
     
-    const METAPLEX_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
-
     async function createAndSendV0TxInline(txInstructions: TransactionInstruction[]) {
         // Step 1 - Fetch Latest Blockhash
         let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
@@ -309,8 +311,6 @@ export function ManageGovernanceProposal(props: any){
             tokenOwnerRecordPk*/
         );
 
-
-        
         // with instructions run a transaction and make it rain!!!
         if (instructions && instructions.length > 0){
             const signature = await createAndSendV0TxInline(instructions);
@@ -332,12 +332,10 @@ export function ManageGovernanceProposal(props: any){
         await handleSignOffIx();
     }
 
-    const handleChangeSignatoryIx = async() => {
+    const handleAddSignatoryIx = async() => {
 
         console.log("proposal: "+JSON.stringify(proposal));
         
-        const newAuthor = "FDw92PNX4FtibvkDm7nd5XJUAg6ChTcVqMaFmG7kQ9JP";
-
         const programId = new PublicKey(realm.owner);
         let instructions: TransactionInstruction[] = [];
         
@@ -358,12 +356,12 @@ export function ManageGovernanceProposal(props: any){
         
         let newTokenOwnerRecordPk = null;
         for (let member of memberMap){
-            if (new PublicKey(member.account.governingTokenOwner).toBase58() === new PublicKey(newAuthor).toBase58() &&
+            if (new PublicKey(member.account.governingTokenOwner).toBase58() === new PublicKey(signer).toBase58() &&
                 new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
                 newTokenOwnerRecordPk = new PublicKey(member.pubkey);
         }
 
-        console.log("new signatory address: "+newAuthor)
+        console.log("new signatory address: "+signer)
 
         /*
         const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
@@ -400,7 +398,7 @@ export function ManageGovernanceProposal(props: any){
         console.log("programVersion: "+programVersion)
         console.log("governanceAuthority: "+governanceAuthority.toBase58())
         console.log("newTokenOwnerRecordPk: "+newTokenOwnerRecordPk.toBase58())
-        console.log("newAuthor: "+newAuthor)
+        console.log("new signer: "+signer)
         console.log("signatoryTokenOwnerRecordPk: "+signatoryRecordAddress.toBase58())
         
         await withAddSignatory(
@@ -409,8 +407,8 @@ export function ManageGovernanceProposal(props: any){
             programVersion,
             proposalAddress,
             tokenOwnerRecordPk,//tokenOwnerRecordPk,//new PublicKey(newAuthor),//tokenOwnerRecordPk,//new PublicKey(newAuthor),
-            new PublicKey(newAuthor),//governanceAuthority,
-            new PublicKey(newAuthor),//signatoryRecordAddress,
+            new PublicKey(signer),//governanceAuthority,
+            new PublicKey(signer),//signatoryRecordAddress,
             payer
         );    
         
@@ -431,14 +429,23 @@ export function ManageGovernanceProposal(props: any){
         }
     }
 
-    const handleChangeAuthor = async() => {
-        await handleChangeSignatoryIx();
+    const handleAddAuthor = async() => {
+        handleCloseSigner();
+        await handleAddSignatoryIx();
     }
+
+    const handleClickOpenSigner = () => {
+        setOpenSignerPrompt(true);
+    };
+
+    const handleCloseSigner = () => {
+        setOpenSignerPrompt(false);
+    };
 
     return (
         <>
             {mode === 1 ? // signoff
-                <Tooltip title={<>Click to Sign Off Proposal<br/><br/>WARNING: By signing off, this proposal will no longer be editable and will be in voting status</>}>
+                <Tooltip title={<>Click to Sign Off Proposal<br/><br/>WARNING: By signing off, this proposal will no longer be editable and will be in voting status (*unless there are more signers required)</>}>
                     <Button 
                         onClick={handleSignOff}
                         variant='outlined'
@@ -452,16 +459,43 @@ export function ManageGovernanceProposal(props: any){
                 <>
                 {mode === 2 ? // add signatory
                     <>
-                        <Tooltip title={<>Add Signer<br/><br/>WARNING: Adding a signatory will allow the new PublicKey to Sign Off, Add/Remove Transactions of this proposal</>}>
+                        <Tooltip title={<>Add Signer to this proposal</>}>
                             <Button 
-                                onClick={handleChangeAuthor}
+                                onClick={handleClickOpenSigner}
                                 variant='outlined'
                                 color='inherit'
                                 fullWidth={true}
                                 sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
-                                Add Signer <SwapHorizIcon fontSize="small" sx={{ml:1}}/>
+                                Add Signer <GroupAddIcon fontSize="small" sx={{ml:1}}/>
                             </Button>
                         </Tooltip>
+
+                        <Dialog open={openSignerPrompt} onClose={handleCloseSigner}>
+                            <DialogTitle>Add Signer</DialogTitle>
+                            <DialogContent>
+                            <DialogContentText>
+                                WARNING: Adding a signatory will require the new PublicKey to also Sign Off this proposal, this is ideal to use if more PublicKeys should validate the proposal before being put to vote (*Add/Remove Transactions of this proposal are supported by proposal author)
+                            </DialogContentText>
+                            <TextField
+                                autoFocus
+                                margin="dense"
+                                id="signer"
+                                label="Signer PublicKey"
+                                type="text"
+                                onChange={(e) => {
+                                        setSigner(e.target.value)
+                                }}
+                                fullWidth
+                                variant="standard"
+                            />
+                            </DialogContent>
+                            <DialogActions>
+                            <Button onClick={handleCloseSigner}>Cancel</Button>
+                            <Button onClick={handleAddAuthor}
+                                disabled={!signer}
+                            >Add</Button>
+                            </DialogActions>
+                        </Dialog>
                     </>
                     :<>
                     {mode === 3 ? // cancel proposal

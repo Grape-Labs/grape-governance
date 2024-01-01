@@ -2682,7 +2682,7 @@ export function GovernanceProposalV2View(props: any){
                                                                     />
                                                                 </Grid>
                                                             </Box>
-                                                            {/*
+                                                            
                                                             <Box sx={{ my: 3, mx: 2 }}>
                                                                 <Grid container alignItems="center">
                                                                     <ManageGovernanceProposal 
@@ -2698,11 +2698,11 @@ export function GovernanceProposalV2View(props: any){
                                                                         setReload={setReload}
                                                                         proposal={thisitem}
                                                                         proposalSignatories={proposalSignatories}
-                                                                        mode={2} // change author
+                                                                        mode={2} // add signer
                                                                     />
                                                                 </Grid>
                                                             </Box>
-                                                            */}
+                                                            
                                                         </>
                                                         :<></>
                                                     }
