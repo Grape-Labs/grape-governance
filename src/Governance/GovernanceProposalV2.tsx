@@ -2324,7 +2324,7 @@ export function GovernanceProposalV2View(props: any){
                                                     </Box>
                                                 :<></>}
 
-                                                {(thisitem.account.signingOffAt && (thisitem.account.status !== 0 && thisitem.account.status !== 1)) &&
+                                                {(thisitem.account.signingOffAt && thisitem.account.status !== 0 && thisitem.account.status !== 1) &&
                                                     <Box sx={{ my: 3, mx: 2 }}>
                                                         <Grid container alignItems="center">
                                                         <Grid item xs>
@@ -2462,7 +2462,7 @@ export function GovernanceProposalV2View(props: any){
                                                     </Box>
                                                     */}
                                             
-                                                    {(thisitem.account.signingOffAt && (thisitem.account.status !== 0 && thisitem.account.status !== 1)) &&
+                                                    {(thisitem.account.signingOffAt && thisitem.account.status !== 0 && thisitem.account.status !== 1) &&
                                                         <Box sx={{ my: 3, mx: 2 }}>
                                                             <Grid container alignItems="center">
                                                             <Grid item xs>
@@ -2482,7 +2482,7 @@ export function GovernanceProposalV2View(props: any){
                                                         </Box>
                                                     }
 
-                                                    {(thisitem.account.signingOffAt && (thisitem.account.status !== 0 && thisitem.account.status !== 1)) &&
+                                                    {(thisitem.account.signingOffAt && thisitem.account.status !== 0 && thisitem.account.status !== 1) &&
                                                         <Box sx={{ my: 3, mx: 2 }}>
                                                             <Grid container alignItems="center">
                                                             <Grid item xs>
@@ -2502,7 +2502,7 @@ export function GovernanceProposalV2View(props: any){
                                                         </Box>
                                                     }
 
-                                                    {(thisitem.account.signingOffAt && (thisitem.account.status !== 0 && thisitem.account.status !== 1)) &&
+                                                    {(thisitem.account.signingOffAt && thisitem.account.status !== 0 && thisitem.account.status !== 1) &&
                                                         <Box sx={{ my: 3, mx: 2 }}>
                                                             <Grid container alignItems="center">
                                                             <Grid item xs>
@@ -2707,7 +2707,7 @@ export function GovernanceProposalV2View(props: any){
                                                         :<></>
                                                     }
                                                     
-                                                    {(thisitem.account.signingOffAt && thisitem.account.state !== 0 && thisitem.account.state !== 1 && csvGenerated) &&
+                                                    {(thisitem.account.signingOffAt && +thisitem.account.state !== 0 && +thisitem.account.state !== 1 && csvGenerated) &&
                                                         <Box sx={{ my: 3, mx: 2 }}>
                                                             <Grid container alignItems="center">
                                                             <Grid item xs>
