@@ -248,7 +248,7 @@ export function ManageGovernanceProposal(props: any){
         if (confirmation.value.err) { 
             enqueueSnackbar(`Transaction Error`,{ variant: 'error' });
             throw new Error("   ❌ - Transaction not confirmed.") }
-      
+        
         console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
         return txid;
     }
