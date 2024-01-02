@@ -2342,7 +2342,7 @@ export function GovernanceProposalV2View(props: any){
                                                                                 {thisitem.account?.votingCompletedAt ?
                                                                                     `${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account?.config.baseVotingTime)+(Number(thisGovernance?.account?.config?.votingCoolOffTime))).fromNow()}`
                                                                                 :
-                                                                                    `Ending ${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account.config.baseVotingTime)+(Number(thisGovernance?.account?.config?.votingCoolOffTime))).fromNow()}`
+                                                                                    `Ending ${moment.unix(Number(thisitem.account.signingOffAt)+Number(thisGovernance.account.config.baseVotingTime)).fromNow()}`
                                                                                 }
                                                                             </>
                                                                         }
