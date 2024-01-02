@@ -417,7 +417,6 @@ export function GovernanceProposalV2View(props: any){
         }
 
         //if (!governance){ // temporary until we cache all governances for a single realm
-            console.log("getGovernance")
             governance = await getGovernanceIndexed(governanceAddress, thisitem?.owner, new PublicKey(thisitem.account.governance).toBase58());   
             //console.log("results: "+JSON.stringify(governance)); 
             
@@ -428,7 +427,7 @@ export function GovernanceProposalV2View(props: any){
 
         //}
         
-        console.log(" governance:" +JSON.stringify(governance));
+        //console.log(" governance:" +JSON.stringify(governance));
 
         setThisGovernance(governance);
         
