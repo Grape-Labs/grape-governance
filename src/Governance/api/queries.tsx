@@ -678,6 +678,10 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
 
     const allRules = new Array();
 
+    console.log("FETCHING VIA RPC (filterRealm): "+filterRealm);
+    console.log("FETCHING VIA RPC (name): "+findGovOwnerByDao(filterRealm)?.name);
+    console.log("FETCHING VIA RPC (realmOwner): "+realmOwner);
+
     if (filterRealm){
         try{
             const { data } = await client.query({ query: GET_QUERY_RULES(filterRealm, programId) });
@@ -712,6 +716,8 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
         }catch(e){
             console.log("Error fetching all governances, reverting to RPC");
         }
+
+        console.log("FETCHING VIA RPC: "+programId);
 
         if (!allRules || allRules.length <= 0){ // fallback to RPC call is governance not found in index
             const rules = await getAllGovernances(RPC_CONNECTION, new PublicKey(programId), new PublicKey(filterRealm));

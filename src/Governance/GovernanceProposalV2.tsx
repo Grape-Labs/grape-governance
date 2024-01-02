@@ -417,8 +417,8 @@ export function GovernanceProposalV2View(props: any){
         }
 
         //if (!governance){ // temporary until we cache all governances for a single realm
-            //console.log("getGovernance")
-            governance = await getGovernanceIndexed(governanceAddress, null, new PublicKey(thisitem.account.governance).toBase58());   
+            console.log("getGovernance")
+            governance = await getGovernanceIndexed(governanceAddress, thisitem?.owner, new PublicKey(thisitem.account.governance).toBase58());   
             //console.log("results: "+JSON.stringify(governance)); 
             
             //governance = await getGovernance(connection, thisitem.account.governance);   
@@ -427,7 +427,8 @@ export function GovernanceProposalV2View(props: any){
             //console.log("ri: "+JSON.stringify(governance_i));
 
         //}
-
+        
+        console.log(" governance:" +JSON.stringify(governance));
 
         setThisGovernance(governance);
         
@@ -666,7 +667,7 @@ export function GovernanceProposalV2View(props: any){
         //if (thisitem.account?.state === 2){ // if voting state
             const thisQuorum = await getGovernanceProps()
         //}
-
+        
         // CACHE
         // fetch voting results
         let voteRecord = null;
@@ -685,7 +686,7 @@ export function GovernanceProposalV2View(props: any){
 
         if (!vresults){
             //const gp = await getProposal(RPC_CONNECTION, thisitem.pubkey);
-            const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress);
+            const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, thisitem?.owner);
             const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
             const gp = await getProposalIndexed(governanceRulesStrArr, null, governanceAddress, proposalPk);
             //const gpiv2 = await getProposalNewIndexed(thisitem.pubkey);
@@ -1575,7 +1576,7 @@ export function GovernanceProposalV2View(props: any){
             
             setThisitem(prop);
         }
-
+        
         if (!memberMap){
             let rawTokenOwnerRecords = null;
             let indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realmPk).toBase58(), grealm.owner || realm.owner.toBase58());
@@ -2501,13 +2502,13 @@ export function GovernanceProposalV2View(props: any){
                                                             </Typography>
                                                         </Box>
                                                     }
-
+                                                    
                                                     {(thisitem.account.signingOffAt && +thisitem.account.signingOffAt > 0 && thisitem.account.status !== 0 && thisitem.account.status !== 1) &&
                                                         <Box sx={{ my: 3, mx: 2 }}>
                                                             <Grid container alignItems="center">
                                                             <Grid item xs>
                                                                 <Typography gutterBottom variant="subtitle1" component="div">
-                                                                    {(thisitem.account?.votingCompletedAt && thisitem.account?.votingCompletedAt > 0) ?
+                                                                    {(thisitem.account?.votingCompletedAt && +thisitem.account?.votingCompletedAt > 0) ?
                                                                         <>Ended At</>
                                                                     :
                                                                         <>Ends At</>
