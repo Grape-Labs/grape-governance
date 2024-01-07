@@ -85,6 +85,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import ApprovalIcon from '@mui/icons-material/Approval';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import { AlreadyInitializedError } from '@metaplex-foundation/mpl-token-metadata';
 
 export const getAllProposalSignatories = async(programId:PublicKey, proposalAddress:PublicKey) => {
 
@@ -356,13 +357,13 @@ export function ManageGovernanceProposal(props: any){
                 tokenOwnerRecordPk = new PublicKey(member.pubkey);
         }
 
-        
+        /*
         let newTokenOwnerRecordPk = null;
         for (let member of memberMap){
             if (new PublicKey(member.account.governingTokenOwner).toBase58() === new PublicKey(signer).toBase58() &&
                 new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
                 newTokenOwnerRecordPk = new PublicKey(member.pubkey);
-        }
+        }*/
 
         console.log("new signatory address: "+signer)
 
@@ -388,11 +389,11 @@ export function ManageGovernanceProposal(props: any){
             signatory
         )
         
-
         const beneficiary = publicKey;
         const governanceAuthority = publicKey;
         const payer = publicKey;
-
+        
+        //alert("tokenOwnerRecordPk: "+JSON.stringify(tokenOwnerRecordPk))
         if (tokenOwnerRecordPk){
             console.log("programId: "+programId.toBase58());
             console.log("realmPk: "+realmPk.toBase58());
@@ -401,7 +402,7 @@ export function ManageGovernanceProposal(props: any){
             console.log("tokenOwnerRecordPk: "+tokenOwnerRecordPk.toBase58())
             console.log("programVersion: "+programVersion)
             console.log("governanceAuthority: "+governanceAuthority.toBase58())
-            console.log("newTokenOwnerRecordPk: "+newTokenOwnerRecordPk.toBase58())
+            //console.log("newTokenOwnerRecordPk: "+newTokenOwnerRecordPk.toBase58())
             console.log("new signer: "+signer)
             console.log("signatoryTokenOwnerRecordPk: "+signatoryRecordAddress.toBase58())
             
