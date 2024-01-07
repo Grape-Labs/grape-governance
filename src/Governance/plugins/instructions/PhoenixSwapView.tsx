@@ -663,8 +663,8 @@ export default function PhoenixSwapView(props: any) {
         }
 
     }
-
-    React.useState(() => {
+    
+    React.useEffect(() => {
         if (governanceWallet && !consolidatedGovernanceWallet) 
             getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
     }, [governanceWallet, consolidatedGovernanceWallet]);
