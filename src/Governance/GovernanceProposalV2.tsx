@@ -2702,6 +2702,26 @@ export function GovernanceProposalV2View(props: any){
                                                                     />
                                                                 </Grid>
                                                             </Box>
+                                                        {/*
+                                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                                <Grid container alignItems="center">
+                                                                    <ManageGovernanceProposal 
+                                                                        governanceAddress={governanceAddress}
+                                                                        governanceRulesWallet={thisitem.account.governance}
+                                                                        governingTokenMint={thisitem.account.governingTokenMint}
+                                                                        proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                        payerWallet={publicKey}
+                                                                        governanceLookup={governanceLookup}
+                                                                        editProposalAddress={thisitem.pubkey}
+                                                                        realm={realm}
+                                                                        memberMap={memberMap}
+                                                                        setReload={setReload}
+                                                                        proposalSignatories={proposalSignatories}
+                                                                        mode={3} // cancel
+                                                                    />
+                                                                </Grid>
+                                                            </Box>
+                                                    */}
                                                             
                                                         </>
                                                         :<></>

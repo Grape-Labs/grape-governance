@@ -41,6 +41,8 @@ import {
     SignatoryRecord,
     withSignOffProposal,
     withAddSignatory,
+    withCancelProposal,
+    withRefundProposalDeposit,
     getSignatoryRecordAddress,
     getAllProposals,
     getProposal,
@@ -73,6 +75,7 @@ import {
 
 import GovernanceCreateProposalView from './GovernanceCreateProposal';
 
+import CancelIcon from '@mui/icons-material/Cancel';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import EditIcon from '@mui/icons-material/Edit';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
@@ -206,7 +209,7 @@ export function ManageGovernanceProposal(props: any){
     
     async function createAndSendV0TxInline(txInstructions: TransactionInstruction[]) {
         // Step 1 - Fetch Latest Blockhash
-        let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+        let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('confirmed');
         console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
       
         // Step 2 - Generate Transaction Message
@@ -429,6 +432,121 @@ export function ManageGovernanceProposal(props: any){
         }
     }
 
+    const handleCancelProposal = async() => {
+        await handleCancelProposalIx();
+    }
+
+    const handleCancelProposalIx = async() => {
+
+        console.log("proposal: "+JSON.stringify(proposal));
+        
+        const programId = new PublicKey(realm.owner);
+        
+        const proposalAddress = new PublicKey(editProposalAddress);
+        const realmPk = new PublicKey(governanceAddress);
+        const programVersion = await getGovernanceProgramVersion(
+            RPC_CONNECTION,
+            programId,
+        );
+        
+        /*
+        let tokenOwnerRecordPk = null;
+        for (let member of memberMap){
+            if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
+                new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
+                tokenOwnerRecordPk = new PublicKey(member.pubkey);
+        }
+
+        
+        let newTokenOwnerRecordPk = null;
+        for (let member of memberMap){
+            if (new PublicKey(member.account.governingTokenOwner).toBase58() === new PublicKey(signer).toBase58() &&
+                new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
+                newTokenOwnerRecordPk = new PublicKey(member.pubkey);
+        }*/
+
+        console.log("new signatory address: "+signer)
+
+        
+        const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+            programId,
+            realmPk,
+            governingTokenMint,
+            publicKey,
+        );
+        
+        
+        //const filter = pubkeyFilter(1, proposalAddress)
+        
+        const signatories = await getAllProposalSignatories(programId, proposalAddress);
+        console.log("All Signatories "+JSON.stringify(signatories));
+        
+        const signatory = publicKey;
+        
+        const signatoryRecordAddress = await getSignatoryRecordAddress(
+            programId,
+            proposalAddress,
+            signatory
+        )
+
+        const beneficiary = publicKey;
+        const governanceAuthority = publicKey;
+        const payer = publicKey;
+
+        console.log("proposalAddress: "+proposalAddress.toBase58());
+        console.log("programId: "+programId.toBase58());
+        console.log("realmPk: "+realmPk.toBase58());
+        console.log("governingTokenMint: "+governingTokenMint.toBase58());
+        console.log("payer: "+payer.toBase58());
+        console.log("tokenOwnerRecordPk: "+tokenOwnerRecordPk.toBase58())
+        console.log("programVersion: "+programVersion)
+        console.log("governanceAuthority: "+governanceAuthority.toBase58())
+        //console.log("newTokenOwnerRecordPk: "+newTokenOwnerRecordPk.toBase58())
+        //console.log("new signer: "+signer)
+        console.log("signatoryTokenOwnerRecordPk: "+signatoryRecordAddress.toBase58())
+        
+        let instructions: TransactionInstruction[] = [];
+        withCancelProposal(
+            instructions,
+            programId,
+            programVersion,
+            realmPk,
+            new PublicKey(governanceRulesWallet),
+            proposalAddress,
+            tokenOwnerRecordPk,
+            governanceAuthority
+        );
+        
+        
+        //let refInstructions: TransactionInstruction[] = [];
+        /*
+        await withRefundProposalDeposit(
+            instructions,
+            programId,
+            programVersion,
+            proposalAddress,
+            governanceAuthority
+        );*/
+
+       //instructions.push(...refInstructions);
+
+        // with instructions run a transaction and make it rain!!!
+        if (instructions && instructions.length > 0){
+            const signature = await createAndSendV0TxInline(instructions);
+            if (signature){
+                enqueueSnackbar(`Cancelling Proposal - ${signature}`,{ variant: 'success' });
+                
+                if (setReload) 
+                    setReload(true);
+
+            } else{
+                enqueueSnackbar(`Error`,{ variant: 'error' });
+            }
+            
+            return null;
+        }
+    }
+
     const handleAddAuthor = async() => {
         handleCloseSigner();
         await handleAddSignatoryIx();
@@ -500,12 +618,30 @@ export function ManageGovernanceProposal(props: any){
                     :<>
                     {mode === 3 ? // cancel proposal
                         <>
-
+                            <Tooltip title={<>Cancel Proposal<br/><br/>WARNING: If this proposal has instructions, please remove those instructions before cancelling in order to claim back rent. Rent will be lost if you do not remove the instructions prior to cancelling the proposal.</>}>
+                                <Button 
+                                    onClick={handleCancelProposal}
+                                    variant='outlined'
+                                    color='error'
+                                    fullWidth={true}
+                                    sx={{color:'error',textTransform:'none',borderRadius:'17px'}}>
+                                    Cancel Proposal <CancelIcon fontSize="small" sx={{color:'error',ml:1}}/>
+                                </Button>
+                            </Tooltip>
                         </>
                         :<>
                             {mode === 4 ? // veto proposal
                                 <>
-
+                                    <Tooltip title={<>Veto Proposal<br/><br/>WARNING: If this proposal has instructions, please remove those instructions before cancelling in order to claim back rent. Rent will be lost if you do not remove the instructions prior to cancelling the proposal.</>}>
+                                        <Button 
+                                            onClick={handleCancelProposal}
+                                            variant='outlined'
+                                            color='error'
+                                            fullWidth={true}
+                                            sx={{color:'error',textTransform:'none',borderRadius:'17px'}}>
+                                            Veto Proposal <CancelIcon fontSize="small" sx={{color:'error',ml:1}}/>
+                                        </Button>
+                                    </Tooltip>
                                 </>
                                 :<>
                                     
