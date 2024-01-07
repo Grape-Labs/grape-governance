@@ -393,42 +393,46 @@ export function ManageGovernanceProposal(props: any){
         const governanceAuthority = publicKey;
         const payer = publicKey;
 
-        console.log("programId: "+programId.toBase58());
-        console.log("realmPk: "+realmPk.toBase58());
-        console.log("governingTokenMint: "+governingTokenMint.toBase58());
-        console.log("payer: "+payer.toBase58());
-        console.log("tokenOwnerRecordPk: "+tokenOwnerRecordPk.toBase58())
-        console.log("programVersion: "+programVersion)
-        console.log("governanceAuthority: "+governanceAuthority.toBase58())
-        console.log("newTokenOwnerRecordPk: "+newTokenOwnerRecordPk.toBase58())
-        console.log("new signer: "+signer)
-        console.log("signatoryTokenOwnerRecordPk: "+signatoryRecordAddress.toBase58())
-        
-        await withAddSignatory(
-            instructions,
-            programId,
-            programVersion,
-            proposalAddress,
-            tokenOwnerRecordPk,//tokenOwnerRecordPk,//new PublicKey(newAuthor),//tokenOwnerRecordPk,//new PublicKey(newAuthor),
-            new PublicKey(signer),//governanceAuthority,
-            new PublicKey(signer),//signatoryRecordAddress,
-            payer
-        );    
-        
-        // with instructions run a transaction and make it rain!!!
-        if (instructions && instructions.length > 0){
-            const signature = await createAndSendV0TxInline(instructions);
-            if (signature){
-                enqueueSnackbar(`Signed Off Proposal - ${signature}`,{ variant: 'success' });
-                
-                if (setReload) 
-                    setReload(true);
-
-            } else{
-                enqueueSnackbar(`Error`,{ variant: 'error' });
-            }
+        if (tokenOwnerRecordPk){
+            console.log("programId: "+programId.toBase58());
+            console.log("realmPk: "+realmPk.toBase58());
+            console.log("governingTokenMint: "+governingTokenMint.toBase58());
+            console.log("payer: "+payer.toBase58());
+            console.log("tokenOwnerRecordPk: "+tokenOwnerRecordPk.toBase58())
+            console.log("programVersion: "+programVersion)
+            console.log("governanceAuthority: "+governanceAuthority.toBase58())
+            console.log("newTokenOwnerRecordPk: "+newTokenOwnerRecordPk.toBase58())
+            console.log("new signer: "+signer)
+            console.log("signatoryTokenOwnerRecordPk: "+signatoryRecordAddress.toBase58())
             
-            return null;
+            await withAddSignatory(
+                instructions,
+                programId,
+                programVersion,
+                proposalAddress,
+                tokenOwnerRecordPk,//tokenOwnerRecordPk,//new PublicKey(newAuthor),//tokenOwnerRecordPk,//new PublicKey(newAuthor),
+                new PublicKey(signer),//governanceAuthority,
+                new PublicKey(signer),//signatoryRecordAddress,
+                payer
+            );    
+            
+            // with instructions run a transaction and make it rain!!!
+            if (instructions && instructions.length > 0){
+                const signature = await createAndSendV0TxInline(instructions);
+                if (signature){
+                    enqueueSnackbar(`Signed Off Proposal - ${signature}`,{ variant: 'success' });
+                    
+                    if (setReload) 
+                        setReload(true);
+
+                } else{
+                    enqueueSnackbar(`Error`,{ variant: 'error' });
+                }
+                
+                return null;
+            }
+        } else{
+            enqueueSnackbar(`Error: Token Owner Record does not exist`,{ variant: 'error' });
         }
     }
 
