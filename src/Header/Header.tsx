@@ -379,9 +379,13 @@ export function Header(props: any) {
                                     variant="h6"
                                     color="inherit"
                                     display='flex'
-                                    sx={{ml:1,mr:1}}
+                                    sx={{
+                                        ml:1,
+                                        mr:1, 
+                                        maxHeight:'40px',
+                                        maxWidth:'150px'}}
                                 >
-                                    <img src={APP_LOGO} height="40px" width="150px" className="header-logo" alt="SPL Governance | Powered by Solana" />
+                                    <img src={APP_LOGO} className="header-logo" alt="SPL Governance | Powered by Solana" />
                                 </Typography>
                             </Button>
                         

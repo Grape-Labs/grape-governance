@@ -180,7 +180,6 @@ export default function PhoenixSwapView(props: any) {
                     }
             })}
         }
-
         
         let integerTokenAmount = Math.floor(tokenAmount * Math.pow(10, fromDecimals));
         const inAmount = BigInt(integerTokenAmount);
@@ -663,7 +662,7 @@ export default function PhoenixSwapView(props: any) {
         }
 
     }
-    
+
     React.useEffect(() => {
         if (governanceWallet && !consolidatedGovernanceWallet) 
             getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
