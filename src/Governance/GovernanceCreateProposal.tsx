@@ -327,9 +327,9 @@ export default function GovernanceCreateProposalView(props: any){
 
       if (publicKey){
         let propSimulation = null;
-
+        
         if (instructionsDataWithHoldUpTime){
-          console.log("in v0")
+          console.log("Creating Proposal using v0 tx")
           propSimulation = await createProposalInstructionsV0(
             programId,
             new PublicKey(cachedRealm.pubkey),
@@ -349,7 +349,7 @@ export default function GovernanceCreateProposalView(props: any){
             editProposalAddress,
           );
         } else{
-          console.log("in legacy")
+          console.log("Creating Proposal using legacy tx")
           propSimulation = await createProposalInstructionsLegacy(
             programId,
             new PublicKey(cachedRealm.pubkey),

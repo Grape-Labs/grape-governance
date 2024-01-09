@@ -98,7 +98,7 @@ export async function createProposalInstructionsV0(
     instructionsData: InstructionDataWithHoldUpTime[],
     isDraft?: boolean,
     returnTx?: boolean,
-    payer?: PublicKey,,
+    payer?: PublicKey,
     editAddress?: PublicKey,
     callbacks?: Parameters<typeof sendTransactionsV3>[0]['callbacks']
     ): Promise<any>{//Promise<Transaction> {
@@ -268,7 +268,7 @@ export async function createProposalInstructionsV0(
     .map((x) => x.chunkBy!)
 
     const lowestChunkBy = chunkBys.length ? Math.min(...chunkBys) : 2
-      
+
     for (const [index, instruction] of instructionsData
       .filter((x) => x.data)
       .entries()) {
