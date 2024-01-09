@@ -27,6 +27,18 @@ import {
   SequenceType, 
   txBatchesToInstructionSetWithSigners 
 } from '../../utils/governanceTools/sendTransactionsV3';
+import { 
+  getRealmIndexed,
+  getProposalIndexed,
+  getProposalNewIndexed,
+  getAllProposalsIndexed,
+  getGovernanceIndexed,
+  getAllGovernancesIndexed,
+  getAllTokenOwnerRecordsIndexed,
+  getTokenOwnerRecordsByOwnerIndexed,
+  getProposalInstructionsIndexed
+} from '../api/queries';
+
 import { chunks } from '../../utils/governanceTools/helpers';
 import { UiInstruction } from '../../utils/governanceTools/proposalCreationTypes'
 
@@ -86,7 +98,8 @@ export async function createProposalInstructionsV0(
     instructionsData: InstructionDataWithHoldUpTime[],
     isDraft?: boolean,
     returnTx?: boolean,
-    payer?: PublicKey,
+    payer?: PublicKey,,
+    editAddress?: PublicKey,
     callbacks?: Parameters<typeof sendTransactionsV3>[0]['callbacks']
     ): Promise<any>{//Promise<Transaction> {
     
@@ -186,36 +199,58 @@ export async function createProposalInstructionsV0(
       createNftTicketsIxs
     )*/
 
-    const proposalAddress = await withCreateProposal(
-      instructions,
-      programId,
-      programVersion,
-      realmPk,
-      governancePk,
-      tokenOwnerRecordPk,
-      name,
-      descriptionLink,
-      governingTokenMint,
-      governanceAuthority,
-      proposalIndex,
-      voteType,
-      options,
-      useDenyOption,
-      payer,
-      //plugin?.voterWeightPk
-    );
 
-    await withAddSignatory(
-      instructions,
-      programId,
-      programVersion,
-      proposalAddress,
-      tokenOwnerRecordPk,
-      governanceAuthority,
-      signatory,
-      payer
-    )
-    
+    let proposalAddress = null;
+    let ixCount = 0;
+
+    if (!editAddress){
+
+      proposalAddress = await withCreateProposal(
+        instructions,
+        programId,
+        programVersion,
+        realmPk,
+        governancePk,
+        tokenOwnerRecordPk,
+        name,
+        descriptionLink,
+        governingTokenMint,
+        governanceAuthority,
+        proposalIndex,
+        voteType,
+        options,
+        useDenyOption,
+        payer,
+        //plugin?.voterWeightPk
+      );
+
+      await withAddSignatory(
+        instructions,
+        programId,
+        programVersion,
+        proposalAddress,
+        tokenOwnerRecordPk,
+        governanceAuthority,
+        signatory,
+        payer
+      )
+    } else{
+      
+      const ix = await getProposalInstructionsIndexed(realmPk.toBase58(), proposalAddress);
+      if (ix && ix.length > 0) { 
+        ixCount = ix.length;
+      } 
+      
+      if (ix && ix.length > 0 && ix[0]?.account?.instructions && ix[0].account.instructions.length > 0){
+        console.log("ixCount: "+ixCount)
+        if (ixCount <= 1){
+          ixCount = 0;
+          ixCount = ix[0].account.instructions.length;
+        }
+      }
+    }
+
+
     // TODO: Return signatoryRecordAddress from the SDK call
     const signatoryRecordAddress = await getSignatoryRecordAddress(
       programId,
@@ -233,7 +268,7 @@ export async function createProposalInstructionsV0(
     .map((x) => x.chunkBy!)
 
     const lowestChunkBy = chunkBys.length ? Math.min(...chunkBys) : 2
-
+      
     for (const [index, instruction] of instructionsData
       .filter((x) => x.data)
       .entries()) {
@@ -264,6 +299,7 @@ export async function createProposalInstructionsV0(
         )
       }
     }
+
 /*    
     if (authTransaction){
       //let authinstructionData: InstructionData[]=[];

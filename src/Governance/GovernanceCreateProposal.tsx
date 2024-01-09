@@ -345,6 +345,8 @@ export default function GovernanceCreateProposalView(props: any){
             null,
             instructionsDataWithHoldUpTime,
             true,
+            null,
+            editProposalAddress,
           );
         } else{
           console.log("in legacy")
@@ -478,6 +480,7 @@ export default function GovernanceCreateProposalView(props: any){
             isDraft,
             returnTx,
             intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
+            editProposalAddress
           );
         } else{
           console.log("in legacy")
