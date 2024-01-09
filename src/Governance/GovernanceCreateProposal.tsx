@@ -87,7 +87,8 @@ import CloseTokenView from './plugins/instructions/CloseTokenView';
 import TokenTransferView from './plugins/instructions/TokenTransferView';
 import TokenTransferV0View from './plugins/instructions/versioned/TokenTransferV0View';
 import JupiterDCAView from './plugins/instructions/JupiterDCAView';
-import JupiterSwapView from './plugins/instructions/JupiterSwapView';
+//import JupiterSwapView from './plugins/instructions/JupiterSwapView';
+import JupiterSwapView from './plugins/instructions/versioned/JupiterSwapV6View';
 import PhoenixSwapView from './plugins/instructions/PhoenixSwapView';
 import BuyOnMEView from './plugins/instructions/BuyOnMEView';
 import ListOnMEView from './plugins/instructions/ListOnMEView';
@@ -1648,9 +1649,14 @@ export default function GovernanceCreateProposalView(props: any){
                             }
                             {proposalType === 9 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <JupiterSwapView payerWallet={publicKey} pluginType={9} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                                <JupiterSwapView governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={9} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} governanceWalletMinInstructHoldUpTime={governanceWalletMinInstructHoldUpTime} setInstructionsObject={setInstructionsObject} setInstructionsDataWithHoldUpTime={setInstructionsDataWithHoldUpTime}/>
                               </FormControl>
                             }
+                            {/*proposalType === 9 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <JupiterSwapView payerWallet={publicKey} pluginType={9} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                              </FormControl>
+                          */}
 
                             {/*proposalType === 9 &&
                               <FormControl fullWidth sx={{mb:2}}>
