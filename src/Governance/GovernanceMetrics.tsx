@@ -273,7 +273,7 @@ function RenderVoterRecordTable(props:any) {
     const votingrecordcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
         { field: 'pubkey', headerName: 'PublicKey', width: 260, hide: true},
-        { field: 'voter', headerName: 'Voter', width: 260, hide: false,
+        { field: 'voter', headerName: 'Voter', minWidth: 260, hide: false,
             renderCell: (params) => {
                 return(
                     <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={params.value} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />

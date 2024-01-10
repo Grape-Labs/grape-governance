@@ -1,8 +1,10 @@
 import React, { useMemo, Suspense } from 'react';
-
-//import {  } from "react-router";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 //import { SpeedInsights } from '@vercel/speed-insights/react';
+
+import '@ionic/react/css/core.css';
+import { setupIonicReact } from '@ionic/react';
+
 
 import { AdminView } from "./Admin/Admin";
 //import GovernanceAppPageView from "./GovernanceCached/v2/page";
@@ -82,6 +84,8 @@ import grapeTheme from  './utils/config/theme'
 import { borderRadius } from '@mui/system';
 import { migrate } from '@shadow-drive/sdk/dist/methods';
 //import "./App.less";
+
+setupIonicReact();
 
 function Copyright(props: any): JSX.Element {
   const { t, i18n } = useTranslation();

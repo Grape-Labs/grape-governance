@@ -154,7 +154,7 @@ export function GrapeVerificationDAO(props: any){
         // const members = cached_members;
         const rpc_members = await getAllTokenOwnerRecords(RPC_CONNECTION, programId,new PublicKey(governanceAddress));
         const members = JSON.parse(JSON.stringify(rpc_members));
-
+        
         //if (cached_members){
         if (members){
           //console.log("cached_members: "+JSON.stringify(cached_members))

@@ -267,7 +267,7 @@ export function GovernanceProposalV2View(props: any){
 
     const votingresultcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
-        { field: 'pubkey', headerName: 'PublicKey', width: 170, hide: true,
+        { field: 'pubkey', headerName: 'PublicKey', minWidth: 170, hide: true,
             renderCell: (params) => {
                 return(params.value)
             }
@@ -277,14 +277,14 @@ export function GovernanceProposalV2View(props: any){
                 return(params.value)
             }
         },
-        { field: 'governingTokenOwner', headerName: 'Token Owner', width: 170, flex: 1,
+        { field: 'governingTokenOwner', headerName: 'Token Owner', minWidth: 170, flex: 1,
             renderCell: (params) => {
                 return(
                     <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={params.value} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
                 )
             }
         },
-        { field: 'voteAddress', headerName: 'Address', width: 150, sortable: false,
+        { field: 'voteAddress', headerName: 'Address', minWidth: 150, sortable: false,
             renderCell: (params) => {
                 return(
                     <ExplorerView address={params.value} type='address' shorten={4} hideTitle={false} style='text' color='white' fontSize='14px' />
