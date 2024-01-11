@@ -265,7 +265,6 @@ export default function TokenTransferV0View(props: any) {
                         //transaction.add(transactionInstruction);
                         if (publicKey)
                             pTransaction.add(transactionInstruction);
-                            
                         else
                             transaction.add(transactionInstruction);
                     }
@@ -345,7 +344,7 @@ export default function TokenTransferV0View(props: any) {
                     customHoldUpTime:
                         governanceWalletMinInstructHoldUpTime,
                 }
-
+                
                 const fullPropInstruction = new InstructionDataWithHoldUpTime({
                     instruction: uiInstruction,
                 })

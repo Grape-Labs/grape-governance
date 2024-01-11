@@ -1,0 +1,7 @@
+{
+  "name": "governance",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react"
+}
