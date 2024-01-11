@@ -32,6 +32,18 @@ import {
     serializeInstructionToBase64,
   } from '@solana/spl-governance';
 
+  import { 
+    getRealmIndexed,
+    getProposalIndexed,
+    getProposalNewIndexed,
+    getAllProposalsIndexed,
+    getGovernanceIndexed,
+    getAllGovernancesIndexed,
+    getTokenOwnerRecordsByOwnerIndexed,
+    getAllTokenOwnerRecordsIndexed,
+    getProposalInstructionsIndexed,
+} from './../../api/queries';
+
 import {
   Dialog,
   Button,
@@ -193,8 +205,9 @@ export default function IntraDAOVoteView(props: any) {
 
         //console.log("governance: "+JSON.stringify(governance));
 
-        const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, realmPk)
-        
+        //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, realmPk)
+        const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), programId.toBase58());
+
         const memberItem = rawTokenOwnerRecords.find(item => 
             (item.account.governingTokenOwner.toBase58() === fromAddress && 
             item.account.governingTokenMint.toBase58() === governingTokenMint.toBase58()));
@@ -376,7 +389,8 @@ export default function IntraDAOVoteView(props: any) {
 
     async function fetchGovernanceSpecifications(address:string){
         console.log("fetching specs");
-        const rlm = await getRealm(RPC_CONNECTION, new PublicKey(address || daoToParticipateAddress));
+        //const rlm = await getRealm(RPC_CONNECTION, new PublicKey(address || daoToParticipateAddress));
+        const rlm = await getRealmIndexed(new PublicKey(address || daoToParticipateAddress).toBase58())
         if (rlm){
             console.log("realm: "+JSON.stringify(rlm));
             setGovernance(rlm);
@@ -493,24 +507,35 @@ export default function IntraDAOVoteView(props: any) {
         }
 
 
-        const gprops = await getAllProposals(RPC_CONNECTION, governance.owner, new PublicKey(daoToParticipateAddress))
+        //const gprops = await getAllProposals(RPC_CONNECTION, governance.owner, new PublicKey(daoToParticipateAddress))
 
+        const governanceRulesIndexed = await getAllGovernancesIndexed(new PublicKey(daoToParticipateAddress).toBase58(), governance?.owner);
+        const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
+        //const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm?.owner, governanceAddress);
+        const gprops = await getAllProposalsIndexed(governanceRulesStrArr, governance?.owner.toBase58(), daoToParticipateAddress)
         const rpcprops = new Array();
         for (const props of gprops){
-            for (const prop of props){
-                if (prop){
-                    if (prop.account.state === 2){
-                        //console.log("prop com: "+JSON.stringify(prop))
-                        //console.log(prop.account.governingTokenMint.toBase58() + " vs " + selectedMint)
-                        if (prop.account.governingTokenMint.toBase58() === selectedMint){
-                            rpcprops.push(prop);
+            if (props && props.length > 0){
+                for (const prop of props){
+                    if (prop){
+                        if (prop.account.state === 2){
+                            if (prop.account.governingTokenMint.toBase58() === selectedMint){
+                                rpcprops.push(prop);
+                            }
+                        }
+                    }
+                }
+            } else{
+                if (props){
+                    if (props.account.state === 2){
+                        if (props.account.governingTokenMint.toBase58() === selectedMint){
+                            rpcprops.push(props);
                         }
                     }
                 }
             }
         }
         const sortedRPCResults = rpcprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
-        
         setParticipatingGovernanceProposalsRecordRows(sortedRPCResults);
         //console.log("sortedRPCResults: "+JSON.stringify(sortedRPCResults));
         setProposalLoading(false);
@@ -547,13 +572,14 @@ export default function IntraDAOVoteView(props: any) {
         try{
             //console.log("fetching realms ");
             const rlms = await getRealms(RPC_CONNECTION, [programId]);
+            //const rlms = await getRealmIndexed(programId.toBase58())
             //console.log("rlms "+JSON.stringify(rlms));
 
             const uTable = rlms.reduce((acc, it) => (acc[it.pubkey.toBase58()] = it, acc), {})
             //setRealms(uTable);
             
             const thisOwnerRecordsbyOwner = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, new PublicKey(fromAddress));
-        
+            //const thisOwnerRecordsbyOwner = await getTokenOwnerRecordsByOwnerIndexed(programId.toBase58(),null,new PublicKey(fromAddress).toBase58())
             //console.log("ownerRecordsbyOwner "+JSON.stringify(ownerRecordsbyOwner))
             const selectedDao: any[] = [];
             
