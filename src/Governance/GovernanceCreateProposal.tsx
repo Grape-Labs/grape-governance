@@ -79,6 +79,7 @@ import { GovernanceGistDialog } from './GovernanceGistDialog';
 
 import IntraDAOProposalView from './plugins/instructions/IntraDAOProposalView';
 import IntraDAOGrantView from './plugins/instructions/IntraDAOGrantView';
+import IntraDAOGrantV0View from './plugins/instructions/versioned/IntraDAOGrantV0View';
 import IntraDAOJoinView from './plugins/instructions/IntraDAOJoinView';
 import IntraDAOVoteView from './plugins/instructions/IntraDAOVoteView';
 import LookupTableView from './plugins/instructions/LookupTableView';
@@ -637,7 +638,11 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={5}>SOL Transfer</MenuItem>
               {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2')
                 &&
-                  <MenuItem value={6}>Token Transfer v0</MenuItem>
+                  <MenuItem value={104}>Token Transfer v0</MenuItem>
+              }
+              {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2')
+                &&
+                  <MenuItem value={105}>SOL Transfer v0</MenuItem>
               }
               <MenuItem value={10}>Close Token Account</MenuItem>
               <MenuItem value={11}>SNS Transfer</MenuItem>
@@ -679,6 +684,10 @@ export default function GovernanceCreateProposalView(props: any){
                 ) ? true : false}
                 */
               >Intra DAO: Grant DAO Voting Power</MenuItem>
+              {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2')
+                &&
+                  <MenuItem value={132}>Intra DAO: Grant DAO Voting Power v0</MenuItem>
+              }
               <Divider/>
               <MenuItem value={9}
                 disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
@@ -1639,9 +1648,14 @@ export default function GovernanceCreateProposalView(props: any){
                               </FormControl>
                             }
 
-                            {proposalType === 6 &&
+                            {proposalType === 104 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <TokenTransferV0View governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} governanceWalletMinInstructHoldUpTime={governanceWalletMinInstructHoldUpTime} setInstructionsObject={setInstructionsObject} setInstructionsDataWithHoldUpTime={setInstructionsDataWithHoldUpTime}/>
+                              </FormControl>
+                            }
+                            {proposalType === 105 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <TokenTransferV0View governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} governanceWalletMinInstructHoldUpTime={governanceWalletMinInstructHoldUpTime} setInstructionsObject={setInstructionsObject} setInstructionsDataWithHoldUpTime={setInstructionsDataWithHoldUpTime}/>
                               </FormControl>
                             }
                             
@@ -1722,7 +1736,12 @@ export default function GovernanceCreateProposalView(props: any){
                                 <IntraDAOGrantView governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
                               </FormControl>
                             }
-
+                            {proposalType === 132 &&
+                              <FormControl fullWidth sx={{mb:2}}>
+                                <IntraDAOGrantV0View governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
+                              </FormControl>
+                            }
+                            
                             {proposalType === 33 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <IntraDAOProposalView governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
