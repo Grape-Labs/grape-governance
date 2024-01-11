@@ -2,8 +2,8 @@ import React, { useMemo, Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 //import { SpeedInsights } from '@vercel/speed-insights/react';
 
-import '@ionic/react/css/core.css';
-import { setupIonicReact } from '@ionic/react';
+//import '@ionic/react/css/core.css';
+//import { setupIonicReact } from '@ionic/react';
 
 
 import { AdminView } from "./Admin/Admin";
@@ -85,7 +85,7 @@ import { borderRadius } from '@mui/system';
 import { migrate } from '@shadow-drive/sdk/dist/methods';
 //import "./App.less";
 
-setupIonicReact();
+//setupIonicReact();
 
 function Copyright(props: any): JSX.Element {
   const { t, i18n } = useTranslation();
