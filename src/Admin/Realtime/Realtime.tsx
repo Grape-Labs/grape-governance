@@ -1388,6 +1388,7 @@ export function GovernanceRealtimeView(props: any) {
                                 // Responsive padding for mobile devices
                                 '@media (max-width: 600px)': {
                                     p: 0,
+                                    mt:0.25,
                                 },
                             }} 
                         > 
@@ -1403,6 +1404,7 @@ export function GovernanceRealtimeView(props: any) {
                                     '@media (max-width: 600px)': {
                                         m: 0,
                                         p: 0,
+                                        pt:0.5,
                                     },
                                 }}
                                 > 
