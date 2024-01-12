@@ -944,6 +944,21 @@ export default function IntraDAOVoteView(props: any) {
                                             }))}
                                     
                                         </Select>
+                                        
+                                        {daoToParticipatePropAddress ?
+                                            <Grid sx={{textAlign:'right',}}>
+                                                <Tooltip title='View Proposal'>
+                                                    <IconButton 
+                                                            size="small"
+                                                            href={`https://governance.so/proposal/${daoToParticipateAddress}/${daoToParticipatePropAddress}`} target='_blank' 
+                                                            color='inherit'
+                                                            sx={{color:'white',textTransform:'none',ml:1}}>
+                                                        <OpenInNewIcon sx={{fontSize:'18px'}} />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Grid>
+                                        :
+                                            <></>}
 
                                         <FormControl fullWidth  sx={{mb:2}}>
                                             <Grid sx={{textAlign:'right',}}>
