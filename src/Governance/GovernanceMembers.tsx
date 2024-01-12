@@ -175,9 +175,9 @@ function RenderGovernanceMembersTable(props:any) {
     
     
     const memberresultscolumns: GridColDef[] = [
-        { field: 'id', headerName: 'ID', width: 70, hide: true},
-        { field: 'address', headerName: 'Address', width: 70, hide: true},
-        { field: 'record', headerName: 'Record', width: 70, hide: true},
+        { field: 'id', headerName: 'ID', minWidth: 70, hide: true},
+        { field: 'address', headerName: 'Address', minWidth: 70, hide: true},
+        { field: 'record', headerName: 'Record', minWidth: 70, hide: true},
         { field: 'member', headerName: 'Member', minWidth: 200, flex: 1,
             renderCell: (params) => {
                 return(
@@ -191,7 +191,7 @@ function RenderGovernanceMembersTable(props:any) {
                 )
             }
         },
-        { field: 'staked', headerName: 'Votes Staked', width: 170, flex: 1, headerAlign: 'center', align: 'right',
+        { field: 'staked', headerName: 'Votes Staked', minWidth: 170, flex: 1, headerAlign: 'center', align: 'right',
             sortable: true, // Enable sorting on this column
             sortComparator: (v1, v2, cellParams1, cellParams2) => {
                 // Custom sorting logic based on governanceRewards field
@@ -207,7 +207,7 @@ function RenderGovernanceMembersTable(props:any) {
                 )
             }
         },
-        { field: 'unstaked', headerName: 'Not Staked', width: 170, headerAlign: 'center', align: 'right', hide: true,
+        { field: 'unstaked', headerName: 'Not Staked', minWidth: 170, headerAlign: 'center', align: 'right', hide: true,
             renderCell: (params) => {
                 return(
                     <Typography variant="caption">
@@ -216,7 +216,7 @@ function RenderGovernanceMembersTable(props:any) {
                 )
             }
         },
-        { field: 'percentDepositedGovernance', headerName: '% of Deposited Governance', width: 170, headerAlign: 'center', align: 'right',
+        { field: 'percentDepositedGovernance', headerName: '% of Deposited Governance', minWidth: 170, headerAlign: 'center', align: 'right',
             renderCell: (params) => {
                 return(
                     <Typography variant="h6">
@@ -225,7 +225,7 @@ function RenderGovernanceMembersTable(props:any) {
                 )
             }
         },
-        { field: 'percentSupply', headerName: '% of Supply', width: 170, headerAlign: 'center', align: 'right',
+        { field: 'percentSupply', headerName: '% of Supply', minWidth: 170, headerAlign: 'center', align: 'right',
             renderCell: (params) => {
                 return(
                     <Typography variant="h6">
