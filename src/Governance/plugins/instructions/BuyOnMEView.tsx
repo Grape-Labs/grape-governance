@@ -105,6 +105,7 @@ export default function BuyOnMEView(props: any) {
     const [payerInstructions, setPayerInstructions] = React.useState(null);
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
+    const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const [selectedTokenStats, setSelectedTokenStats] = React.useState(null);
     const [selectedMintInfo, setSelectedMintInfo] = React.useState(null);
     const { publicKey } = useWallet();

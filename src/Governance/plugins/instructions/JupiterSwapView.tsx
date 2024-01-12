@@ -132,6 +132,7 @@ export default function JupiterSwapView(props: any) {
     const [pricingStrategy, setPricingStrategy] = React.useState(false);
     const [currentBuyPrice, setCurrentBuyPrice] = React.useState(null);
     const [currentDCAs, setCurrentDCAs] = React.useState([]);
+    const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const connection = RPC_CONNECTION;
     
     const availableTokens = [{
@@ -892,6 +893,8 @@ export default function JupiterSwapView(props: any) {
                             color="info"
                             sx={{borderRadius:'17px'}}>
                             Preview Instructions</Button>
+
+                        
                     
                 </Grid>
 

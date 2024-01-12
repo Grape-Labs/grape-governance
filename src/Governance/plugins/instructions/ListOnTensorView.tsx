@@ -115,6 +115,7 @@ export default function ListOnMEView(props: any) {
     const [destinationString, setDestinationString] = React.useState(null);
     const [distributionType, setDistributionType] = React.useState(false);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
+    const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     

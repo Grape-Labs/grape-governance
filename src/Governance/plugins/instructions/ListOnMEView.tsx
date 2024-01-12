@@ -48,6 +48,8 @@ import {
   Divider,
 } from '@mui/material';
 
+import CircularProgress from '@mui/material/CircularProgress';
+
 import Confetti from 'react-dom-confetti';
 import SolIcon from '../../../components/static/SolIcon';
 import SolCurrencyIcon from '../../../components/static/SolCurrencyIcon';
@@ -104,6 +106,7 @@ export default function ListOnMEView(props: any) {
     const [destinationString, setDestinationString] = React.useState(null);
     const [distributionType, setDistributionType] = React.useState(false);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
+    const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const [mintMECollection, setMintMECollection] = React.useState(null);
     const [selectedTokenStats, setSelectedTokenStats] = React.useState(null);
     const [allMintAssociations, setAllMintAssociations] = React.useState(null);
@@ -1428,6 +1431,24 @@ export default function ListOnMEView(props: any) {
                         color="info"
                         sx={{borderRadius:'17px'}}>
                         Preview Instructions</Button>
+
+
+                    <Button 
+                        disabled={(!(
+                            (tokenMint) &&
+                            (tokenAmount && tokenAmount > 0)) && !loadingInstructions)
+                        }
+                        onClick={generateMEListInstructions}
+                        variant="contained"
+                        color="info"
+                        sx={{borderRadius:'17px'}}>
+                        {loadingInstructions ? 
+                            <><CircularProgress sx={{padding:'10px'}} /> Preparing Instructions</>
+                            :
+                            <>
+                            Preview Instructions</>
+                        }</Button>
+                    
                     {/*
                     <Button 
                         disabled={!(

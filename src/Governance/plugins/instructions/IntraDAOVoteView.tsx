@@ -135,6 +135,7 @@ export default function IntraDAOVoteView(props: any) {
     const [daoToParticipateAddress, setDaoToParticipateAddress] = React.useState(null);
     const [daoToParticipatePropAddress, setDaoToParticipatePropAddress] = React.useState(null);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
+    const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const [participatingGovernanceRecordRows, setParticipatingGovernanceRecordRows] = React.useState(null);
     const [participatingGovernanceProposalsRecordRows, setParticipatingGovernanceProposalsRecordRows] = React.useState(null);
     const [votingFor, setVotingFor] = React.useState(true);
@@ -155,6 +156,7 @@ export default function IntraDAOVoteView(props: any) {
     
 
     async function participateInDAOProposal() {
+        setLoadingInstructions(true);
         const transaction = new Transaction();
         
         // we need to fetch the governance details either her or a step before
@@ -259,7 +261,7 @@ export default function IntraDAOVoteView(props: any) {
                 console.log("No instructions!");
             }
         }
-        
+        setLoadingInstructions(false);
         return null;
     }
 
@@ -1007,14 +1009,20 @@ export default function IntraDAOVoteView(props: any) {
                     <Button 
                         disabled={!(
                             (daoToParticipateAddress) &&
-                            (daoToParticipatePropAddress)
+                            (daoToParticipatePropAddress) && !loadingInstructions
                         )
                         }
                         onClick={participateInDAOProposal}
                         variant="contained"
                         color="info"
-                        sx={{borderRadius:'17px'}}>
-                        Preview Instructions</Button>
+                        sx={{borderRadius:'17px'}}
+                        >
+                            {loadingInstructions ? 
+                                <><CircularProgress sx={{padding:'10px'}} /> Preparing Instructions</>
+                                :
+                                <>
+                                Preview Instructions</>
+                            }</Button>
                 </Grid>
                 
                 {transactionInstructions && 

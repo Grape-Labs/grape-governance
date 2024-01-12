@@ -566,7 +566,7 @@ export function GovernanceProposalV2View(props: any){
     const [instructionTransferDetails, setInstructionTransferDetails] = React.useState([]);
     
     // Custom function to read a big UInt64LE
-    function readBigUInt64LE(buffer) {
+    function readBigUInt64LE(buffer:any) {
         return BigInt(buffer[0]) +
         (BigInt(buffer[1]) << BigInt(8)) +
         (BigInt(buffer[2]) << BigInt(16)) +

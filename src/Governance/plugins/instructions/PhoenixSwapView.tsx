@@ -132,6 +132,7 @@ export default function PhoenixSwapView(props: any) {
     const [pricingStrategy, setPricingStrategy] = React.useState(false);
     const [currentBuyPrice, setCurrentBuyPrice] = React.useState(null);
     const [currentDCAs, setCurrentDCAs] = React.useState([]);
+    const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const connection = RPC_CONNECTION;
     
     const availableTokens = [{

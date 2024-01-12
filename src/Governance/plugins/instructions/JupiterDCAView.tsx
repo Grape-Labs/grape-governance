@@ -132,6 +132,7 @@ export default function JupiterDCAView(props: any) {
     const [pricingStrategy, setPricingStrategy] = React.useState(false);
     const [currentBuyPrice, setCurrentBuyPrice] = React.useState(null);
     const [currentDCAs, setCurrentDCAs] = React.useState([]);
+    const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const connection = RPC_CONNECTION;
     
     const availableTokens = [{
@@ -811,7 +812,7 @@ export default function JupiterDCAView(props: any) {
 
     }
 
-    React.useState(() => {
+    React.useEffect(() => {
         if (governanceWallet && !consolidatedGovernanceWallet) 
             getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
     }, [governanceWallet, consolidatedGovernanceWallet]);
@@ -1051,14 +1052,19 @@ export default function JupiterDCAView(props: any) {
                         <Button 
                             disabled={(!(
                                 (tokenAmount && toMintAddress && tokenMint && periodDuration && period)
-                            ) || (period <= 1) || (period*periodDuration > 31557600))
+                            ) || (period <= 1) || (period*periodDuration > 31557600)) && !loadingInstructions
                             }
                             onClick={setupDCA}
                             variant="contained"
                             color="info"
                             sx={{borderRadius:'17px'}}>
-                            Preview Instructions</Button>
-                    
+                            {loadingInstructions ? 
+                                <><CircularProgress sx={{padding:'10px'}} /> Preparing Instructions</>
+                                :
+                                <>
+                                Preview Instructions</>
+                            }</Button>
+                            
                 </Grid>
 
                 {transactionInstructions && 

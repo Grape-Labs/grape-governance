@@ -115,13 +115,14 @@ export default function IntraDAOJoinView(props: any) {
     const [daoToJoinAddress, setDaoToJoinAddress] = React.useState(null);
     const [daoToJoinAddressStr, setDaoToJoinAddressStr] = React.useState(null);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
-    
+    const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
     async function joinDAO() {
+        setLoadingInstructions(true);
         //const payerWallet = new PublicKey(payerAddress);
         const fromWallet = new PublicKey(fromAddress);
         const toJoinPk = new PublicKey(daoToJoinAddress);
@@ -202,6 +203,7 @@ export default function IntraDAOJoinView(props: any) {
             }
         }
         
+        setLoadingInstructions(false);
         return null;
     }
 
@@ -748,14 +750,20 @@ export default function IntraDAOJoinView(props: any) {
                         disabled={!(
                             (daoToJoinAddress) &&
                             ((tokenAmount > 0) &&
-                            (tokenAmount <= tokenMaxAmount))
+                            (tokenAmount <= tokenMaxAmount)) && !loadingInstructions
                         )
                         }
                         onClick={joinDAO}
                         variant="contained"
                         color="info"
-                        sx={{borderRadius:'17px'}}>
-                        Preview Instructions</Button>
+                        sx={{borderRadius:'17px'}}
+                        >
+                            {loadingInstructions ? 
+                                <><CircularProgress sx={{padding:'10px'}} /> Preparing Instructions</>
+                                :
+                                <>
+                                Preview Instructions</>
+                            }</Button>
                 </Grid>
                 
                 {transactionInstructions && 

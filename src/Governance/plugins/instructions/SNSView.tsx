@@ -121,6 +121,7 @@ export default function SNSView(props: any) {
     const [selectedRecord, setSelectedRecord] = React.useState(null);
     const [destinationAddress, setDestinationAddress] = React.useState(null);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
+    const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     

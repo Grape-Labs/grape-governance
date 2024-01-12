@@ -116,10 +116,11 @@ export default function LookupTableView(props: any) {
     const [payerInstructions, setPayerInstructions] = React.useState(null);
     const [transactionEstimatedFee, setTransactionEstimatedFee] = React.useState(null);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
+    const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const { wallet, publicKey, sendTransaction, signTransaction } = useWallet();
     const connection = RPC_CONNECTION;
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
-
+    
     function clearLookupTable() {
         setEntryAddress(null);
         setEntryAddresses(null);

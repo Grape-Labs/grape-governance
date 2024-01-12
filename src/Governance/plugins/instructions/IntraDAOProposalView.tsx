@@ -127,6 +127,7 @@ export default function IntraDAOProposalView(props: any) {
     const [daoToParticipateAddress, setDaoToParticipateAddress] = React.useState(null);
     const [daoToParticipatePropAddress, setDaoToParticipatePropAddress] = React.useState(null);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
+    const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const [participatingGovernanceRecordRows, setParticipatingGovernanceRecordRows] = React.useState(null);
     const [participatingGovernanceProposalsRecordRows, setParticipatingGovernanceProposalsRecordRows] = React.useState(null);
     const [votingFor, setVotingFor] = React.useState(true);

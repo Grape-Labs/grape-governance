@@ -130,6 +130,7 @@ export default function IntraDAOGrantView(props: any) {
     const [daoToJoinAddress, setDaoToJoinAddress] = React.useState(null);
     const [daoToJoinAddressStr, setDaoToJoinAddressStr] = React.useState(null);
     const [loadingWallet, setLoadingWallet] = React.useState(false);
+    const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const [verifiedDestinationWalletArray, setVerifiedDestinationWalletArray] = React.useState(null);
     const [verifiedDAODestinationWalletArray, setVerifiedDAODestinationWalletArray] = React.useState(null);
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
@@ -145,7 +146,7 @@ export default function IntraDAOGrantView(props: any) {
     async function transferDAOPower() {
         //const payerWallet = new PublicKey(payerAddress);
         //const fromWallet = new PublicKey(fromAddress);
-
+        setLoadingInstructions(true);
         let fromWallet = null;
         console.log("consolidatedGovernanceWallet: "+JSON.stringify(consolidatedGovernanceWallet))
         {consolidatedGovernanceWallet && consolidatedGovernanceWallet
@@ -338,12 +339,14 @@ export default function IntraDAOGrantView(props: any) {
             
 
             setTransactionInstructions(transaction);
+            setLoadingInstructions(false);
             return transaction;
         } catch(err){
+            setLoadingInstructions(false);
             console.log("GEN ERR: "+JSON.stringify(err));
         }
             
-        
+        setLoadingInstructions(false);
         return null;
     }
 
@@ -1398,14 +1401,20 @@ export default function IntraDAOGrantView(props: any) {
                         disabled={!(
                             (daoToJoinAddress) &&
                             ((tokenAmount > 0) &&
-                            (tokenAmount <= tokenMaxAmount))
+                            (tokenAmount <= tokenMaxAmount)) && !loadingInstructions
                         )
                         }
                         onClick={transferDAOPower}
                         variant="contained"
                         color="info"
-                        sx={{borderRadius:'17px'}}>
-                        Preview Instructions</Button>
+                        sx={{borderRadius:'17px'}}
+                        >
+                            {loadingInstructions ? 
+                                <><CircularProgress sx={{padding:'10px'}} /> Preparing Instructions</>
+                                :
+                                <>
+                                Preview Instructions</>
+                            }</Button>
                 </Grid>
                 
                 {transactionInstructions && 
