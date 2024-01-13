@@ -559,7 +559,7 @@ export default function IntraDAOGrantView(props: any) {
                                 (res: any) => res.json())
                             .catch((error) => {
                                 // Handle any errors that occur during the fetch or parsing JSON
-                                console.error("Error fetching data:", error);
+                                console.error("Error fetching data: ", error);
                             });
                             
                             if (metadata && metadata?.image){

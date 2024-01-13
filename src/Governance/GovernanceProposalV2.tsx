@@ -2721,7 +2721,7 @@ export function GovernanceProposalV2View(props: any){
                                                                     />
                                                                 </Grid>
                                                             </Box>
-                                                    */}
+                                                        */}
                                                             
                                                         </>
                                                         :<></>

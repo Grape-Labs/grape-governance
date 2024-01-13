@@ -1636,7 +1636,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         // RPC Fetch
                         const balance = await getWalletBalance(tokenOwnerRecord, grealm.account.communityMint)
                         if (balance){
-                            owner.walletBalance = balance
+                            owner.walletBalance = balance;
                         }else{
                             const rpcBalance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.communityMint});
                             //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
@@ -1650,7 +1650,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         
                         const balance = await getWalletBalance(tokenOwnerRecord, grealm.account.councilMint);
                         if (balance){
-                            owner.walletCouncilBalance = balance
+                            owner.walletCouncilBalance = balance;
                         }else{
                             const rpcBalance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.councilMint});
                             //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));

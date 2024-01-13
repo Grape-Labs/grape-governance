@@ -524,7 +524,7 @@ function GET_QUERY_REALM(realm:string, realmOwner?:string){
 
 export const getProposalInstructionsIndexed = async (filterRealm?:any, proposalPk?:any) => {
     const programId = findGovOwnerByDao(filterRealm)?.owner;
-
+    
     const allProposalIx = new Array();
     try{
         const { data } = await client.query({ query: GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk, programId) });
