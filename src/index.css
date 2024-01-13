@@ -28,6 +28,15 @@ body .realtime-body{
   background-attachment: fixed;
 }
 
+body .realtime-body .description-desktop {
+  word-wrap: break-word; /* Wraps the URL text within the available space */
+}
+
+body .realtime-body .description-mobile {
+  textOverflow: ellipsis; /* Truncates the URL text after a certain length and adds an ellipsis (...) */
+  overflow: hidden; /* Hides any overflow beyond the specified text length */
+}
+
 body .frictionless-body{
   background: #111111;  /* fallback for old browsers */
   background: linear-gradient(to right, #1a2a6c, #b21f1f, #fdbb2d);

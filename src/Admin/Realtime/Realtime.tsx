@@ -508,6 +508,30 @@ function TablePaginationActions(props) {
 
         }, [governanceLookup]);
 
+        
+        function replaceUrls(paragraphText:string) {
+            console.log("checking: "+paragraphText);
+            const regex = /(((https?|ftp):\/\/)(?:[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%"_<>.~#?&//=]*))?)/g;
+            const matches = paragraphText.matchAll(regex);
+            let replacedText = paragraphText;
+
+            for (const [, fullUrl] of matches) {
+                const domain = fullUrl.split('/')[2];
+                replacedText = replacedText.replace(fullUrl, `[LINK] - ${domain}`);
+            }
+
+            /*
+            const regex2 = /\b(\w{31,})\b/g;
+            const matches2 = replacedText.matchAll(regex2);
+            
+            for (const [, longString] of matches2) {
+                const shortenedString = longString.slice(0, 30) + "...";
+                replacedText = replacedText.replace(longString, `[SHR] - ${shortenedString}`);
+            }
+            */
+            return replacedText;
+        }
+
         const resolveDescription = async(descriptionStr: string) => {
             try{
                 const cleanString = description.replace(/(\s+)(https?:\/\/[a-zA-Z0-9\.\/]+)/g, '$2');
@@ -544,6 +568,7 @@ function TablePaginationActions(props) {
                         } else if (url.hostname.includes("gitbook.io")){
                             setGitBook(tGist);
                         }
+                } else{ // check if it contains a partial <text />
                     
                 }
             } catch(e){
@@ -630,9 +655,15 @@ function TablePaginationActions(props) {
                                                     </Typography>
 
                                                     <Grid item xs={12}
-                                                        sx={{mb:1}}
+                                                        sx={{
+                                                            mb:1,
+                                                            '@media (max-width: 600px)': {
+                                                                textOverflow: 'ellipsis', /* Truncates the URL text after a certain length and adds an ellipsis (...) */
+                                                                overflow: 'hidden',
+                                                            }
+                                                        }}
                                                     >
-                                                            
+                                                        
                                                             {gist ?
                                                                 <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
                                                                     <Grid
@@ -704,7 +735,7 @@ function TablePaginationActions(props) {
                                                                                     <Typography variant="body1" 
                                                                                         color='gray' 
                                                                                         sx={{ display: 'flex', alignItems: 'center' }}>
-                                                                                        {description}
+                                                                                        {replaceUrls(description)}
                                                                                     </Typography>
                                                                                     {gitBook &&
                                                                                         <>
@@ -726,9 +757,6 @@ function TablePaginationActions(props) {
                                                                     }
                                                                 </>
                                                                 }
-
-                                                            
-                                                        
                                                         
                                                     </Grid>
                                                 </Grid>

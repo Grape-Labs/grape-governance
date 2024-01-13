@@ -697,6 +697,9 @@ export function GovernanceDirectoryView(props: Props) {
                                         label="Search" 
                                         variant="outlined"
                                         onChange={(e) => setSearchFilter(e.target.value)}
+                                        sx={{
+                                            '.MuiInputBase-input': { fontSize: '16px' },
+                                        }}
                                         />
                                 </Grid>
                             </Grid>

@@ -22,6 +22,17 @@ import {
     RelinquishVoteArgs,
     VoteRecord,
 } from '@solana/spl-governance';
+import { 
+    getRealmIndexed,
+    getProposalIndexed,
+    getProposalNewIndexed,
+    getAllProposalsIndexed,
+    getGovernanceIndexed,
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
+    getProposalInstructionsIndexed,
+} from './api/queries';
+
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useSnackbar } from 'notistack';
 
@@ -231,6 +242,9 @@ export function MyGovernanceView(props: any){
                 const proposal = await getProposal(RPC_CONNECTION, item.account.proposal);
                 
                 const gaccounts = await getAllGovernances(RPC_CONNECTION, programId, realmPk);
+                
+                //const gaccounts = await getAllGovernancesIndexed(realmPk, )
+                
                 //console.log("govs: "+JSON.stringify(govs))
 
 
@@ -332,9 +346,10 @@ export function MyGovernanceView(props: any){
             //const uTable = rlms.reduce((acc, it) => (acc[it.pubkey.toBase58()] = it, acc), {})
             //setRealms(uTable);
             
+
             const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, new PublicKey(pubkey));
-        
-            //console.log("ownerRecordsbyOwner "+JSON.stringify(ownerRecordsbyOwner))
+            
+            console.log("ownerRecordsbyOwner "+JSON.stringify(ownerRecordsbyOwner))
             const governance: any[] = [];
             
             let cnt = 0;
@@ -349,7 +364,10 @@ export function MyGovernanceView(props: any){
             for (const item of ownerRecordsbyOwner){
                 let isCouncil = false;
                 //const realm = uTable[item.account.realm.toBase58()];
-                const realm = await getRealm(RPC_CONNECTION, item.account.realm)
+                //const realm = await getRealm(RPC_CONNECTION, item.account.realm)
+                
+                const realm = await getRealmIndexed(item.account.realm.toBase58());
+                
                 realmArr.push(realmArr);
 
 
