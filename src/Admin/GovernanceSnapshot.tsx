@@ -29,6 +29,7 @@ import {
 } from '@solana/spl-governance';
 import { 
     getRealmIndexed,
+    getGovernanceIndexed,
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
@@ -104,7 +105,8 @@ import {
     PRIMARY_STORAGE_WALLET,
     RPC_ENDPOINT,
     WS_ENDPOINT,
-    TWITTER_PROXY
+    TWITTER_PROXY,
+    SHYFT_KEY
 } from '../utils/grapeTools/constants';
 
 import WarningIcon from '@mui/icons-material/Warning';
@@ -279,18 +281,25 @@ const getGovernanceFromLookup  = async (fileName:string, storagePool: any) => {
 } 
 
 const fetchRealm = async(address:string) => {
-    const grealm = await getRealm(RPC_CONNECTION, new PublicKey(address))
+    const grealm = await getRealmIndexed(address);
+    //const grealm = await getRealm(RPC_CONNECTION, new PublicKey(address))
     return grealm;
 }
 
 const fetchGovernanceVaults = async(grealm:any) => {
-    const connection = RPC_CONNECTION;
-
+    
     const rawGovernances = await getAllGovernances(
-        connection,
+        RPC_CONNECTION,
         new PublicKey(grealm.owner),
         new PublicKey(grealm.pubkey)
     );
+
+    /*
+    const rawGovernances = await getAllGovernancesIndexed(
+        new PublicKey(grealm.pubkey).toBase58(),
+        new PublicKey(grealm.owner).toBase58()
+    )
+    */
     
     return rawGovernances;
 }
@@ -664,6 +673,58 @@ const getAllDomains = async(address: string) => {
     return null;
 }
 
+
+
+const getWalletBalance = async(tokenOwnerRecord: PublicKey, mint: PublicKey) => {
+
+    const uri = `https://api.shyft.to/sol/v1/wallet/token_balance?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}&token=${mint.toBase58()}`;
+
+    return axios.get(uri, {
+        headers: {
+            'x-api-key': SHYFT_KEY
+        }
+        })
+        .then(response => {
+            if (response.data?.result){
+                return response.data.result?.balance;
+            }
+            return null
+        })
+        .catch(error => 
+            {   
+                // revert to RPC
+                console.error(error);
+                return null;
+            });
+}
+
+const getParsedTransaction = async(signature: string) => {
+
+    const uri = `https://api.shyft.to/sol/v1/transaction/parsed?network=mainnet-beta&txn_signature=${signature}`;
+
+        axios.get(uri, {
+        headers: {
+            'x-api-key': SHYFT_KEY
+        }
+        })
+        .then(response => {
+            if (response.data?.result){
+                return response.data.result;
+                //console.log(response.data); // Log the response data to the console
+            } else{
+                return null;
+            }
+        })
+        .catch(error => 
+            {   
+                // revert to RPC
+                console.error(error);
+                return null;
+                //const parsedTx = await connection.getParsedTransaction(emitItem.signature);
+                //return parsedTx;                     
+            });
+}
+
 const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, wallet: any, setPrimaryStatus: any, setStatus: any) => {
     //const finalList = new Array();
     //setLoading(true);
@@ -765,22 +826,27 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     );
 
     // add the native treasury address for governance rules
-    rawNativeSolAddresses.forEach((rawAddress, index) => {
-        vaultsInfo[index].nativeTreasuryAddress = rawAddress
-    });
-
-    //console.log("rawNativeSolAddresses: ("+rawNativeSolAddresses.length+") "+JSON.stringify(rawNativeSolAddresses))
-
-    //console.log("rawNativeSolAddresses: "+JSON.stringify(rawNativeSolAddresses))
-   
-    rawNativeSolAddresses.forEach((rawAddress, index) => {
-        vaultsInfo.push({
-          pubkey: rawAddress.toBase58(), // program that controls vault/token account
-          vaultId: index.toString(), // vault/token account where tokens are held
-          governance: null,
-          isGovernanceVault: false,
+    if (rawNativeSolAddresses){
+        rawNativeSolAddresses.forEach((rawAddress, index) => {
+            if (rawAddress)
+                vaultsInfo[index].nativeTreasuryAddress = rawAddress
         });
-    });
+
+        //console.log("rawNativeSolAddresses: ("+rawNativeSolAddresses.length+") "+JSON.stringify(rawNativeSolAddresses))
+
+        //console.log("rawNativeSolAddresses: "+JSON.stringify(rawNativeSolAddresses))
+    
+        rawNativeSolAddresses.forEach((rawAddress, index) => {
+            if (rawAddress){
+                vaultsInfo.push({
+                    pubkey: rawAddress.toBase58(), // program that controls vault/token account
+                    vaultId: index.toString(), // vault/token account where tokens are held
+                    governance: null,
+                    isGovernanceVault: false,
+                });
+            }
+        });
+    }
 
 
 
@@ -1371,8 +1437,9 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
         // get unique members
-        // rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58());
-        const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+        const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), new PublicKey(grealm.owner).toBase58());
+        //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+
         //setMemberMap(rawTokenOwnerRecords);
         // fetch current records if available
         let cached_members = new Array();
@@ -1492,7 +1559,10 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                                                     foundSig = true;
                                             }
                                             if (!foundSig){
+
+                                                //const parsedTx = await getParsedTransaction(emitItem.signature);
                                                 const parsedTx = await connection.getParsedTransaction(emitItem.signature);
+                                                
                                                 cachedSignatureData.push({
                                                     signature:emitItem.signature,
                                                     transaction:parsedTx
@@ -1562,18 +1632,31 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             //if (cacheMemberSize && cacheMemberSize <= sizeLimit){
                 if (!hasWalletCommunityBalance || hoursDiff > (24*3)){ // refresh every 3 days
                     if (grealm.account?.communityMint){
-                        const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.communityMint});
-                        //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
-                        if (balance?.value[0]?.account?.data?.parsed?.info)    
-                            owner.walletBalance = balance.value[0].account.data.parsed.info;
+                        
+                        // RPC Fetch
+                        const balance = await getWalletBalance(tokenOwnerRecord, grealm.account.communityMint)
+                        if (balance){
+                            owner.walletBalance = balance
+                        }else{
+                            const rpcBalance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.communityMint});
+                            //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
+                            if (rpcBalance?.value[0]?.account?.data?.parsed?.info)    
+                                owner.walletBalance = rpcBalance.value[0].account.data.parsed.info;
+                        }
                     }
                 }
                 if (!hasWalletCouncilBalance || hoursDiff > (24*30)){ // refresh every 30 days
                     if (grealm.account?.councilMint){
-                        const balance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.councilMint});
-                        //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
-                        if (balance?.value[0]?.account?.data?.parsed?.info)    
-                            owner.walletCouncilBalance = balance.value[0].account.data.parsed.info;
+                        
+                        const balance = await getWalletBalance(tokenOwnerRecord, grealm.account.councilMint);
+                        if (balance){
+                            owner.walletCouncilBalance = balance
+                        }else{
+                            const rpcBalance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.councilMint});
+                            //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
+                            if (rpcBalance?.value[0]?.account?.data?.parsed?.info)    
+                                owner.walletCouncilBalance = rpcBalance.value[0].account.data.parsed.info;
+                        }
                     }
                 }
             //}
@@ -1609,8 +1692,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
         const grules = await getAllGovernancesIndexed(realmPk.toBase58());
         const governanceRulesStrArr = grules.map(item => item.pubkey.toBase58());
-        //const gprops = await getAllProposalsIndexed(governanceRulesStrArr, new PublicKey(grealm.owner).toBase58());
-        const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
+        const gprops = await getAllProposalsIndexed(governanceRulesStrArr, new PublicKey(grealm.owner).toBase58(), realmPk.toBase58());
+        //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
         
         const allprops: any[] = [];
         let passed = 0;
@@ -2027,7 +2110,9 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
 }
 
 const getGovernanceProps = async (thisitem: any, this_realm: any, connection: Connection) => {
-    const governance = await getGovernance(connection, thisitem.account.governance);
+    //const governance = await getGovernance(connection, thisitem.account.governance);
+    //alert(this_realm.pubkey.toBase58());
+    const governance = await getGovernanceIndexed(this_realm.pubkey.toBase58(), this_realm?.owner.toBase58(), new PublicKey(thisitem.account.governance).toBase58());   
     
     //console.log("FETCHING THIS GOV")
     //getGovernanceAccounts();
@@ -2175,6 +2260,7 @@ const getFirstTransactionDate = async(walletAddress:string) => {
     //console.log("firstTransactionSignature: "+JSON.stringify(firstTransactionSignature))
     //const transactionDetails = await connection.getConfirmedTransaction(firstTransactionSignature);
     if (firstTransactionSignature){    
+        // const transactionDetails = await getParsedTransaction(firstTransactionSignature);
         const transactionDetails = (await connection.getParsedTransaction(firstTransactionSignature, {"commitment":"confirmed","maxSupportedTransactionVersion":0}));
         if (transactionDetails?.blockTime){
             const txBlockTime = moment.unix(transactionDetails.blockTime);
