@@ -520,16 +520,11 @@ function TablePaginationActions(props) {
                 replacedText = replacedText.replace(fullUrl, `[LINK] - ${domain}`);
             }
 
-            /*
-            const regex2 = /\b(\w{31,})\b/g;
-            const matches2 = replacedText.matchAll(regex2);
-            
-            for (const [, longString] of matches2) {
-                const shortenedString = longString.slice(0, 30) + "...";
-                replacedText = replacedText.replace(longString, `[SHR] - ${shortenedString}`);
-            }
-            */
-            return replacedText;
+            //const pattern = /\b.{40,}\b/g;
+            const shortenedText = replacedText.replace(/\b\w{40,}\b/g, (match) => `${match.slice(0, 40)}...`);
+            //replacedText.replace(/\b\w{40,}\b/g, (match) => `${match.slice(0, 40)}...`);
+
+            return shortenedText;
         }
 
         const resolveDescription = async(descriptionStr: string) => {
@@ -1225,14 +1220,16 @@ function TablePaginationActions(props) {
                                         }}
                                     >
                                         <TablePagination
-                                            rowsPerPageOptions={[5, 10, 25, { label: 'All', value: -1 }]}
+                                            rowsPerPageOptions={[10, 25, 50, 100, 250]}
+                                            labelRowsPerPage={"Rows:"}
+                                            showLastButton={false}
                                             colSpan={1}
                                             count={proposals && proposals.length}
                                             rowsPerPage={rowsPerPage}
                                             page={page}
                                             SelectProps={{
                                                 inputProps: {
-                                                'aria-label': 'rows per page',
+                                                    'aria-label': 'rows per page',
                                                 },
                                                 native: true,
                                             }}
