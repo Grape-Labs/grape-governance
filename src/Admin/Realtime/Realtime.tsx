@@ -930,7 +930,6 @@ function TablePaginationActions(props) {
                                 value={(filteredGovernance && filteredGovernance.length > 0) ? filteredGovernance : null}
                                 variant='outlined'
                                 onChange={(e) => setFilteredGovernance(e.target.value)} 
-                                
                                 InputProps={{
                                     startAdornment: 
                                         <InputAdornment position="start">
@@ -938,6 +937,7 @@ function TablePaginationActions(props) {
                                         </InputAdornment>,
                                 }}
                                 sx={{
+                                    fontSize:'16px',
                                     backgroundColor:'#2E2934',
                                     borderRadius:'17px',
                                     "& fieldset": {
