@@ -937,7 +937,7 @@ function TablePaginationActions(props) {
                                         </InputAdornment>,
                                 }}
                                 sx={{
-                                    fontSize:'16px',
+                                    '.MuiInputBase-input': { fontSize: '16px' },
                                     backgroundColor:'#2E2934',
                                     borderRadius:'17px',
                                     "& fieldset": {
