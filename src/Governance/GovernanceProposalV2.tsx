@@ -585,6 +585,7 @@ export function GovernanceProposalV2View(props: any){
 
         // this method is not correct, migrate to set decimals by an RPC:
         const tokenInfo = await getMint(RPC_CONNECTION, new PublicKey(thisitem.account.governingTokenMint));
+        
         const decimals = tokenInfo?.decimals;
         td = decimals;
         vType = 'Token';
@@ -763,6 +764,7 @@ export function GovernanceProposalV2View(props: any){
                 
                 //if (!thisitem?.instructions){
                     //instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                    
                     instructions = await getGovernanceAccounts(
                         connection,
                         new PublicKey(thisitem.owner || realm.owner),
@@ -791,7 +793,28 @@ export function GovernanceProposalV2View(props: any){
                     
                     var ataArray = new Array();
                     if (useInstructions){
+                        let cnt = 0;
+                        
+                        const mintArr = new Array();
                         for (var instructionItem of useInstructions){
+                            // use multiple accounts rather than a single account to get gai
+                            // do a run through to get all mints and push to an array
+                            for (let accountInstruction of instructionItem.account.instructions){
+                                console.log("pushing: "+new PublicKey(accountInstruction.accounts[0].pubkey).toBase58())
+                                mintArr.push(new PublicKey(accountInstruction.accounts[0].pubkey))
+                            }
+                        }
+
+                        let mintResults = null;
+                        if (mintArr && mintArr.length > 0){
+                            const results = await RPC_CONNECTION.getMultipleParsedAccounts(mintArr);
+                            mintResults = results.value;
+                            //console.log("mintArrResults: "+JSON.stringify(mintResults));
+                        }
+
+
+                        for (var instructionItem of useInstructions){
+                            
                             if (instructionItem.account?.instructions && instructionItem.account.instructions.length > 0){
                                 for (var accountInstruction of instructionItem.account.instructions){
                                     for (var account of accountInstruction.accounts){
@@ -821,7 +844,15 @@ export function GovernanceProposalV2View(props: any){
                                         //console.log("typeOfInstruction "+JSON.stringify(typeOfInstruction))
                                         
                                         if (instructionInfo?.name === "Token Transfer"){
-                                            const gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+
+                                            // check if we have this in gai
+                                            let gai = null;
+                                            if (mintResults && mintResults.length > 0){
+                                                gai = mintResults[cnt];
+                                            } 
+
+                                            if (!gai)
+                                                gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
                                             
                                             if (gai){
                                                 //setInstructionRecord(gai.value);
@@ -1023,8 +1054,10 @@ export function GovernanceProposalV2View(props: any){
                                                 accountInstruction.info = newObject;
                                             }
                                         } 
+                                    
                                 }
                             }
+                            cnt++;
                         }
 
                         /*

@@ -508,7 +508,7 @@ export function InstructionView(props: any) {
                         // add caching support so we do not make this call numerous times
                         const cachedMint = getObjectByMint(instruction.account.instructions[0]?.gai.value.data.parsed.info.mint);
                         
-                        //console.log("cachedTokenMeta: ("+cachedMint+") "+JSON.stringify(cachedTokenMeta));
+                        console.log("cachedTokenMeta: ("+cachedMint+") "+JSON.stringify(cachedTokenMeta));
                         
                         if (! cachedMint && !iLoading){
 

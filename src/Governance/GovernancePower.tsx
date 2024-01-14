@@ -169,6 +169,8 @@ export default function GovernancePower(props: any){
 
     const getTokenMintInfo = async(mintAddress:string) => {
         
+        
+
         const mintInfo = await getMint(RPC_CONNECTION, new PublicKey(mintAddress));
 
         //const tokenName = mintInfo.name;
