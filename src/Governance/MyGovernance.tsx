@@ -2,7 +2,9 @@ import React from "react";
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
 import { styled, useTheme } from '@mui/material/styles';
 // @ts-ignore
-import { getMint } from "@solana/spl-token-v2";
+import { 
+    getMint,
+} from "@solana/spl-token-v2";
 import { Signer, Connection, TransactionMessage, PublicKey, AddressLookupTableAccount, AddressLookupTableInstruction, AddressLookupTableProgram, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
 
 import { 
@@ -56,7 +58,9 @@ import {
     linearProgressClasses,
   } from '@mui/material';
 
-import { RPC_CONNECTION
+import { 
+    RPC_CONNECTION,
+    SHYFT_KEY
 } from '../utils/grapeTools/constants';
 
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
@@ -249,7 +253,6 @@ export function MyGovernanceView(props: any){
                 const proposal = await getProposalIndexed(governanceRulesIndexed, programId.toBase58(), realmPk.toBase58(), item.account.proposal.toBase58());
                 const gaccounts = await getAllGovernancesIndexed(realmPk.toBase58(), programId.toBase58());
                 
-
                 
                 //const gaccounts = await getAllGovernancesIndexed(realmPk, )
                 
@@ -371,6 +374,21 @@ export function MyGovernanceView(props: any){
             
             // add to an array of partipating realms
             const realmArr = new Array();
+
+            // do a run through to get all mints and push to an array
+            const mintArr = new Array();
+            for (const item of ownerRecordsbyOwner){
+                console.log("pushing: "+new PublicKey(item.account.governingTokenMint).toBase58())
+                mintArr.push(new PublicKey(item.account.governingTokenMint))
+            }
+
+            let mintResults = null;
+            if (mintArr && mintArr.length > 0){
+                const results = await RPC_CONNECTION.getMultipleParsedAccounts(mintArr);
+                mintResults = results.value;
+                //console.log("mintArrResults: "+JSON.stringify(mintResults));
+            }
+            
             for (const item of ownerRecordsbyOwner){
                 console.log("checking realm with "+item.account.realm.toBase58())
                 let isCouncil = false;
@@ -380,21 +398,33 @@ export function MyGovernanceView(props: any){
                 const realm = await getRealmIndexed(item.account.realm.toBase58());
                 
                 realmArr.push(realmArr);
-
-
                 //console.log("realm: "+JSON.stringify(realm))
                 const name = realm.account.name;
                 
                 //let votes = item.account.governingTokenDepositAmount.toNumber().toString();
                 let votes = item.account.governingTokenDepositAmount.toNumber().toString();
                 
-                const tokenInfo = await getMint(RPC_CONNECTION, new PublicKey(item.account.governingTokenMint));
-                const decimals = tokenInfo?.decimals;
+                let decimals = null;
+                // check if we have this in mintResults
+                if (mintResults){
+                    let cnt = 0;
+                    for (let mintItem of mintArr){
+                        if (mintArr[cnt].toBase58() === new PublicKey(item.account.governingTokenMint).toBase58()){
+                            decimals = mintResults[cnt].data.parsed.info.decimals;
+                        }
+                        cnt++;
+                    }
+                }
+
+                if (decimals === null){
+                    const tokenInfo = await getMint(RPC_CONNECTION, new PublicKey(item.account.governingTokenMint));
+                    decimals = tokenInfo?.decimals;
+                }
                 vType = 'Token';
                 
-                console.log("item ",item)
-                console.log("item "+JSON.stringify(item))
-                console.log("decimals ",decimals)
+                //console.log("item ",item)
+                //console.log("item "+JSON.stringify(item))
+                //console.log("decimals ",decimals)
                 if (decimals){
                     votes = (item.account.governingTokenDepositAmount.toNumber() / 10 ** decimals).toLocaleString();
                     // check if council or community
