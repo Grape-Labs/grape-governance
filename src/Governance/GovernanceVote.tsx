@@ -739,9 +739,9 @@ export function VoteForProposal(props:any){
                                             <Grid container direction='row' alignItems='center'>
                                                 <Grid item>
                                                     {type === 0 ?
-                                                        <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                        <ThumbUpIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
                                                     :
-                                                        <ThumbDownIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                        <ThumbDownIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
                                                     }
                                                 </Grid>
                                                 <Grid item>
@@ -785,9 +785,9 @@ export function VoteForProposal(props:any){
                                         <Grid container direction='row' alignItems='center'>
                                             <Grid item>
                                                     {type === 0 ?
-                                                        <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                        <ThumbUpIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
                                                     :
-                                                        <ThumbDownIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                        <ThumbDownIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
                                                     }
                                             </Grid>
                                             <Grid item>
@@ -839,9 +839,9 @@ export function VoteForProposal(props:any){
                                                 <Grid container direction='row' alignItems='center'>
                                                     <Grid item>
                                                         {type === 0 ?
-                                                            <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                            <ThumbUpIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
                                                         :
-                                                            <ThumbDownIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                            <ThumbDownIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
                                                         }
                                                     </Grid>
                                                     <Grid item>
@@ -946,9 +946,9 @@ export function VoteForProposal(props:any){
                                             <Grid container direction='row' alignItems='center'>
                                                 <Grid item>
                                                     {type === 0 ?
-                                                        <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                        <ThumbUpIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
                                                     :
-                                                        <ThumbDownIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                        <ThumbDownIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
                                                     }
                                                 </Grid>
                                                 <Grid item>
@@ -1061,9 +1061,9 @@ export function VoteForProposal(props:any){
                                             <Grid container direction='row' alignItems='center'>
                                                 <Grid item>
                                                     {type === 0 ?
-                                                        <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                        <ThumbUpIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
                                                     :
-                                                        <ThumbDownIcon fontSize='small' sx={{mr:1,ml:1}} />
+                                                        <ThumbDownIcon fontSize='small' sx={{mr:0.25,ml:0.25}} />
                                                     }
                                                 </Grid>
                                                 <Grid item>
