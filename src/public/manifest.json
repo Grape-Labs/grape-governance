@@ -5,8 +5,8 @@
     "lang": "en-US",
     "orientation": "any",
     "start_url": "/",
-    "background_color": "#fff",
-    "theme_color": "#fff",
+    "background_color": "#23063C",
+    "theme_color": "#23063C",
     "display": "standalone",
     "description": "Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS",
     "icons": [
