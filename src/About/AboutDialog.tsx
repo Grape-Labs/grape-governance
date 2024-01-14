@@ -53,7 +53,22 @@ export default function AboutDialog() {
                   <Typography variant='subtitle1'><b>Governance by Grape</b></Typography>
                 </p> 
                 <p>
-                    <Typography variant='subtitle1'>An increbibly fast DAO Tooling infrastrastructure to improve the experience of SPL Governance via Decentralized Caching Storage Engine (Grape DCSE) & introducing new ways to view historical data & extract important governance metrics which currently is difficult to achieve efficiently, and finally to provide an API where composing on SPL Governance will be accessible to any developer (even a new developer) with a minimum RPC burden. Ultimately we have achieved Web2 load speeds, with an incredible Web3 DAO primitive (SPL Governance), and this is the path to build tools for the next billion users that will board crypto by making their experience of crypto seamless & transparent.</Typography>
+                    <Typography variant='subtitle1'>
+                        An increbibly fast DAO Tooling infrastrastructure to improve the experience of SPL Governance & 
+                        introducing new ways to use SPL Governnace with an easy to use interface, view historical data & extract important governance metrics which currently is difficult to achieve efficiently, 
+                        and finally to provide an API where composing on SPL Governance will be accessible to any developer with a minimum RPC burden. 
+
+                        Ultimately we have achieved Web2 load speeds, with an incredible Web3 DAO primitive (SPL Governance), 
+                        and this is the path to build tools for the next billion users that will board crypto by making their experience of crypto seamless & transparent.
+                        <br/>
+                        <br/>
+                        Building has not stopped there, showcasing tools like "Realtime" and actual use cases for realworld organizations with simulations using "Frictionless" 
+                        proposal authors and DAOs need even more tools to their disposal 
+                        with a vast suite of plugins Governance.so has a full IntraDAO tooling, 
+                        enabling existing DAOs to join and participate in voting processes in other DAOs. Additionally, 
+                        groundbreaking IntraDAO proposal creation allows utilizing Grape and Integration Partners' comprehensive plugin suite to craft proposals. 
+                        Revolutionizing DAO tooling for the Solana ecosystem.
+                      </Typography>
                     <Typography variant='subtitle1' sx={{textAlign:'center'}}>
                     <i>"Building the Web3 infrustructure at Web2 Native Speeds!"</i>
                     </Typography>
@@ -107,9 +122,9 @@ export default function AboutDialog() {
                         <ul>
                             <Typography variant='subtitle1'>Phase 2</Typography>
                             <li><s>Build a new Proposal Building primitives</s></li>
-                            <li>Add plugins for easy third parties integration</li>
+                            <li><s>Add plugins for easy third parties integration</s></li>
                             <li>Add support for new plugins currently not available to help DAO's manage their Treasury</li>
-                            <li>Add TOKEN, METRICS, ADMIN tokens for verified accessibility</li>
+                            <li><s>Add TOKEN, METRICS, ADMIN tokens for verified accessibility</s></li>
                         </ul>
                         <ul>     
                             <Typography variant='subtitle1'>Phase 3</Typography>
