@@ -280,8 +280,8 @@ const getGovernanceFromLookup  = async (fileName:string, storagePool: any) => {
 } 
 
 const fetchRealm = async(address:string) => {
-    const grealm = await getRealmIndexed(address);
-    //const grealm = await getRealm(RPC_CONNECTION, new PublicKey(address))
+    //const grealm = await getRealmIndexed(address);
+    const grealm = await getRealm(RPC_CONNECTION, new PublicKey(address))
     return grealm;
 }
 
@@ -1436,8 +1436,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
         // get unique members
-        const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), new PublicKey(grealm.owner).toBase58());
-        //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+        //const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), new PublicKey(grealm.owner).toBase58());
+        const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
 
         //setMemberMap(rawTokenOwnerRecords);
         // fetch current records if available
@@ -1691,8 +1691,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
         const grules = await getAllGovernancesIndexed(realmPk.toBase58());
         const governanceRulesStrArr = grules.map(item => item.pubkey.toBase58());
-        const gprops = await getAllProposalsIndexed(governanceRulesStrArr, new PublicKey(grealm.owner).toBase58(), realmPk.toBase58());
-        //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
+        //const gprops = await getAllProposalsIndexed(governanceRulesStrArr, new PublicKey(grealm.owner).toBase58(), realmPk.toBase58());
+        const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
         
         const allprops: any[] = [];
         let passed = 0;
@@ -2779,7 +2779,7 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                     item.governanceVaultsFilename = governanceVaultsFileName;
                     item.realm = this_realm;
                     if (this_realm.account.config?.communityMintMaxVoteWeightSource)
-                        item.communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
+                        item.communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource?.fmtSupplyFractionPercentage();
                     item.governance = ggv?.governance;
                     item.governances = governanceFetchedDetails?.governanceVaults,
                     item.governingMintDetails = ggv?.governanceMintInfo;
@@ -2822,7 +2822,7 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
                 let communityFmtSupplyFractionPercentage = null;
                 try{
                     if (this_realm.account.config?.communityMintMaxVoteWeightSource)
-                        communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
+                        communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource?.fmtSupplyFractionPercentage();
                 } catch(err){
                     console.log("ERR: communityFmtSupplyFractionPercentage")
                 }
@@ -2890,7 +2890,7 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
             let communityFmtSupplyFractionPercentage = null;
             try{
                 if (this_realm.account.config?.communityMintMaxVoteWeightSource)
-                    communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource.fmtSupplyFractionPercentage();
+                    communityFmtSupplyFractionPercentage = this_realm.account.config.communityMintMaxVoteWeightSource?.fmtSupplyFractionPercentage();
             } catch(err){
                 console.log("ERR: communityFmtSupplyFractionPercentage")
             }
