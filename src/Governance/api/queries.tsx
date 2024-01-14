@@ -810,7 +810,7 @@ export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:any, realm
         })
     });
 
-    console.log("data results indexed: "+JSON.stringify(allResults));
+    //console.log("data results indexed: "+JSON.stringify(allResults));
     
     if (!allResults){
         const allResultsRPC = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realmOwner), new PublicKey(tokenOwner));

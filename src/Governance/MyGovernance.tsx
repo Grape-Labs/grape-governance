@@ -378,7 +378,7 @@ export function MyGovernanceView(props: any){
             // do a run through to get all mints and push to an array
             const mintArr = new Array();
             for (const item of ownerRecordsbyOwner){
-                console.log("pushing: "+new PublicKey(item.account.governingTokenMint).toBase58())
+                //console.log("pushing: "+new PublicKey(item.account.governingTokenMint).toBase58())
                 mintArr.push(new PublicKey(item.account.governingTokenMint))
             }
 
@@ -388,7 +388,7 @@ export function MyGovernanceView(props: any){
                 mintResults = results.value;
                 //console.log("mintArrResults: "+JSON.stringify(mintResults));
             }
-            
+
             for (const item of ownerRecordsbyOwner){
                 console.log("checking realm with "+item.account.realm.toBase58())
                 let isCouncil = false;
