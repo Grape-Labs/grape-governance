@@ -762,8 +762,8 @@ export function GovernanceProposalV2View(props: any){
 
                 if (!thisitem?.instructions || thisitem.account.state === 0){
                 
-                //if (!thisitem?.instructions){
-                    //instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                    //if (!thisitem?.instructions){
+                        //instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
                     
                     instructions = await getGovernanceAccounts(
                         connection,
@@ -771,6 +771,7 @@ export function GovernanceProposalV2View(props: any){
                         ProposalTransaction,
                         [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
                     );
+                    
                     thisitem.instructions = instructions;
                 } else {
                     if (!thisitem?.instructions){
@@ -794,13 +795,13 @@ export function GovernanceProposalV2View(props: any){
                     var ataArray = new Array();
                     if (useInstructions){
                         let cnt = 0;
-                        
+
                         const mintArr = new Array();
                         for (var instructionItem of useInstructions){
                             // use multiple accounts rather than a single account to get gai
                             // do a run through to get all mints and push to an array
                             for (let accountInstruction of instructionItem.account.instructions){
-                                console.log("pushing: "+new PublicKey(accountInstruction.accounts[0].pubkey).toBase58())
+                                //console.log("pushing: "+new PublicKey(accountInstruction.accounts[0].pubkey).toBase58())
                                 mintArr.push(new PublicKey(accountInstruction.accounts[0].pubkey))
                             }
                         }
