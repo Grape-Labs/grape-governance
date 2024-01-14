@@ -89,6 +89,12 @@ export default function AboutDialog() {
                             <li>GOVERN Token Gated Proposals</li>
                             <li>METRICS Token Gated Administrator UI for fetching historical and up to date SPL Governance proposals along with participation (created)</li>
                             <li>Proof of speed improvements in the respective UIs (cached storage can be fetched in less than 1 second)</li>
+                            <li>Proposal Participation for DAO Members on SPL Governance</li>
+                            <li>Proposal Creation</li>
+                            <li>Proposal Creation with extended plugins</li>
+                            <li>Draft Support & minimum loss of rent support with reclaiming of proposal instructions on draft state proposals</li>
+                            <li>Multi-Signer Support</li>
+                            <li>IntraDAO Tooling</li>
                         </ul>
                     </Typography>
                 </p>
@@ -101,7 +107,10 @@ export default function AboutDialog() {
                             <li>SPL Governance is slow for the average governance user (30+ seconds to load a governance), this results to a diminished user experience and potentially drives away participation</li>
                             <li>Most importantly this delay potentially reduces the ability to onboard traditional Web2 businesses to Web3, and secure mass adoption</li>
                             <li>If we are to board the next billion users, we need to speed things up</li>
-                            <li>Historical data is by nature historic on the blockchain and as a result via traditional fetching methods are expensive, significantly slow, RPC heavy, and redundant</li>
+                            <li>Historical data is by nature historic on the blockchain and as a result via traditional fetching methods are expensive, significantly slow, RPC heavy, and redundant</li>\
+                            <li>DAOs need better authoring tools and proposal creation workflows to make the proposal building process easy and comprehensive</li>
+                            <li>Plugins which support actual use cases from simple token transfers to multiple dao members quickly and granting of direct governance power</li>
+                            <li>Plugins which support true IntraDAO and DAO to DAO collaborative efforts, crowdsourcing for DAOs is now a reality</li>
                         </ul>
                     </Typography>
                 </p>
