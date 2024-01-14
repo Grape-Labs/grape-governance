@@ -770,7 +770,7 @@ export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:any, realm
     const allResults = new Array();
     data[programId+"_TokenOwnerRecordV1"] && data[programId+"_TokenOwnerRecordV1"].map((item) => {
         allResults.push({
-            //owner: new PublicKey(item.owner),
+            owner: new PublicKey(programId),
             pubkey: new PublicKey(item.pubkey),
             account: {
                 realm: new PublicKey(item.realm),
@@ -791,7 +791,7 @@ export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:any, realm
 
     data[programId+"_TokenOwnerRecordV2"] && data[programId+"_TokenOwnerRecordV2"].map((item) => {
         allResults.push({
-            //owner: new PublicKey(item.owner),
+            owner: new PublicKey(programId),
             pubkey: new PublicKey(item.pubkey),
             account: {
                 realm: new PublicKey(item.realm),

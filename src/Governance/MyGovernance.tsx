@@ -102,7 +102,8 @@ export function MyGovernanceView(props: any){
     const governancecolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true },
         { field: 'pubkey', headerName: 'PublicKey', width: 70, hide: true },
-        { field: 'realm', headerName: 'Governance', minWidth: 130, flex: 1, align: 'left' },
+        { field: 'realm', headerName: 'Governance', minWidth: 130, flex: 1, align: 'left', hide: true },
+        { field: 'governance', headerName: 'Governance', minWidth: 130, flex: 1, align: 'left' },
         { field: 'governingTokenMint', headerName: 'Governing Mint', width: 150, align: 'center',
             renderCell: (params) => {
                 return (
@@ -296,7 +297,7 @@ export function MyGovernanceView(props: any){
                         const voteRecordPk = await getVoteRecordAddress(
                             programId,
                             proposal.pubkey,
-                            voterTokenRecord!.pubkey
+                            publicKey
                           )
                         
                         const instructions: TransactionInstruction[] = []
@@ -469,7 +470,8 @@ export function MyGovernanceView(props: any){
                 governance.push({
                     id:cnt,
                     pubkey:item.pubkey,
-                    realm:name,
+                    realm:item.account.realm,
+                    governance:name,
                     governingTokenMint:item.account.governingTokenMint.toBase58(),
                     isCouncil:isCouncil,
                     governingTokenDepositAmount:votes,
