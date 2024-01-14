@@ -8,6 +8,17 @@ import {
     getTokenOwnerRecordsByOwner,
     getTokenOwnerRecord
 } from '@solana/spl-governance';
+import { 
+    getRealmIndexed,
+    getProposalIndexed,
+    getProposalNewIndexed,
+    getAllProposalsIndexed,
+    getGovernanceIndexed,
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
+    getTokenOwnerRecordsByOwnerIndexed,
+    getTokenOwnerRecordsByRealmIndexed,
+} from './api/queries';
 
 import ExplorerView from '../utils/grapeTools/Explorer';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
@@ -96,8 +107,8 @@ export function GovernanceView(props: any){
             const uTable = rlms.reduce((acc, it) => (acc[it.pubkey.toBase58()] = it, acc), {})
             setRealms(uTable);
             
-            const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwner(ggoconnection, programId, new PublicKey(pubkey));
-        
+            const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwnerIndexed(null, programId.toBase58(), new PublicKey(pubkey).toBase58())
+
             //console.log("ownerRecordsbyOwner "+JSON.stringify(ownerRecordsbyOwner))
             const governance: any[] = [];
             

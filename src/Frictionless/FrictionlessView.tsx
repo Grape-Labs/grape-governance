@@ -60,6 +60,7 @@ import {
   getAllProposalsIndexed,
   getAllGovernancesIndexed,
   getAllTokenOwnerRecordsIndexed,
+  getTokenOwnerRecordsByOwnerIndexed,
 } from '../Governance/api/queries';
 
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
@@ -316,7 +317,7 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
 
       //const rpc_members = await getAllTokenOwnerRecords(RPC_CONNECTION, programId,realmPk);
       let tokenOwnerRecords = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, generatedWallet.publicKey);
-
+      
       console.log("singleTokenOwnerRecord: "+JSON.stringify(tokenOwnerRecords));
       
       const transaction = new Transaction();

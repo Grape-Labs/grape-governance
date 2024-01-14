@@ -33,7 +33,7 @@ import {
   getGovernanceIndexed,
   getAllGovernancesIndexed,
   getAllTokenOwnerRecordsIndexed,
-  getTokenOwnerRecordsByOwnerIndexed,
+  getTokenOwnerRecordsByRealmIndexed,
   getProposalInstructionsIndexed
 } from '../api/queries';
 

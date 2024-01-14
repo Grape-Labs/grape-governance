@@ -83,7 +83,7 @@ import {
     getGovernanceIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
-    getTokenOwnerRecordsByOwnerIndexed,
+    getTokenOwnerRecordsByRealmIndexed,
 } from './api/queries';
 
 import { parseMintNaturalAmountFromDecimalAsBN } from '../utils/grapeTools/helpers';
@@ -244,7 +244,7 @@ export default function GovernancePower(props: any){
 
             //const tokenOwnerRecord = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realm?.owner || SYSTEM_PROGRAM_ID), publicKey);
             //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecordV1));
-            const tokenOwnerRecord = await getTokenOwnerRecordsByOwnerIndexed(governanceAddress, null, publicKey.toBase58());
+            const tokenOwnerRecord = await getTokenOwnerRecordsByRealmIndexed(governanceAddress, null, publicKey.toBase58());
 
             //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecord));
             // find all instances of this governanceAddress:
@@ -311,7 +311,7 @@ export default function GovernancePower(props: any){
         if (publicKey && rpcMemberMap){
 
             //const foundObject = findObjectByGoverningTokenOwner(rpcMemberMap, publicKey.toBase58(), true, 0)
-            const foundObject = getTokenOwnerRecordsByOwnerIndexed(governanceAddress, null, publicKey.toBase58());
+            const foundObject = getTokenOwnerRecordsByRealmIndexed(governanceAddress, null, publicKey.toBase58());
             if (foundObject){
                 setIsParticipatingInDao(true);
             }

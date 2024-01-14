@@ -35,7 +35,7 @@ import {
   getGovernanceIndexed,
   getAllGovernancesIndexed,
   getAllTokenOwnerRecordsIndexed,
-  getTokenOwnerRecordsByOwnerIndexed,
+  getTokenOwnerRecordsByRealmIndexed,
   getProposalInstructionsIndexed
 } from '../api/queries';
 
@@ -117,7 +117,7 @@ export async function createProposalInstructionsV0(
       connection,
       programId,
     );
-    
+
     //const realmPk = new PublicKey('DcR6g5EawaEoTRYcnuBjtD26VSVjWNoi1C1hKJWwvcup');
     //const governancePk = new PublicKey('JAbgQLj9MoJ2Kvie8t8Y6z6as3Epf7rDp87Po3wFwrNK');
     //const name = name;

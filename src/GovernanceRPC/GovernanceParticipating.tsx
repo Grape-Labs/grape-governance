@@ -97,7 +97,6 @@ export function GovernanceView(props: any){
             setRealms(uTable);
             
             const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwner(ggoconnection, programId, new PublicKey(pubkey));
-        
             //console.log("ownerRecordsbyOwner "+JSON.stringify(ownerRecordsbyOwner))
             const governance: any[] = [];
             

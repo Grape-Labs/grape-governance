@@ -23,16 +23,6 @@ import { CopyToClipboard } from 'react-copy-to-clipboard';
 
 import ExplorerView from '../utils/grapeTools/Explorer';
 
-import { 
-  getRealm, 
-  createInstructionData, 
-  getRealmConfig,
-  getVoterWeightRecord,
-  getVoterWeightRecordAddress,
-  getMaxVoterWeightRecord,
-  
-} from '@solana/spl-governance';
-
 import {
   Typography,
   Tooltip,
@@ -112,6 +102,14 @@ import {
 } from '../utils/grapeTools/helpers';
 
 import { 
+  getRealm, 
+  createInstructionData, 
+  getRealmConfig,
+  getVoterWeightRecord,
+  getVoterWeightRecordAddress,
+  getMaxVoterWeightRecord,
+} from '@solana/spl-governance';
+import { 
   getRealmIndexed,
   getProposalIndexed,
   getProposalNewIndexed,
@@ -119,7 +117,7 @@ import {
   getGovernanceIndexed,
   getAllGovernancesIndexed,
   getAllTokenOwnerRecordsIndexed,
-  getTokenOwnerRecordsByOwnerIndexed,
+  getTokenOwnerRecordsByRealmIndexed,
   getProposalInstructionsIndexed
 } from './api/queries';
 
@@ -1201,7 +1199,10 @@ export default function GovernanceCreateProposalView(props: any){
             console.log("Realm from cache")
             grealm = cachedRealm;
         } else{
-            grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
+
+          grealm = await getRealmIndexed(governanceAddress);
+
+          //grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
         }
         const realmPk = new PublicKey(grealm.pubkey);
         setRealm(grealm);
@@ -1297,7 +1298,7 @@ export default function GovernanceCreateProposalView(props: any){
       //console.log("cachedRealm: "+JSON.stringify(cachedRealm))
       //console.log("checking: "+publicKey.toBase58())
       //const canParticipate = await findObjectByGoverningTokenOwner(null, publicKey.toBase58(), true, 0, cachedRealm);
-      const canParticipate = getTokenOwnerRecordsByOwnerIndexed(governanceAddress, null, publicKey.toBase58());
+      const canParticipate = getTokenOwnerRecordsByRealmIndexed(governanceAddress, null, publicKey.toBase58());
       //console.log("canParticipate: "+JSON.stringify(canParticipate));
       //const canParticipate = false;
       if (canParticipate) 

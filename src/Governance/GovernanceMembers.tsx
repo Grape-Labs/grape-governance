@@ -60,8 +60,7 @@ import IconButton from '@mui/material/IconButton';
 
 import { 
     getRealm, 
-    getAllTokenOwnerRecords, 
-    getTokenOwnerRecordsByOwner } from '@solana/spl-governance';
+    getAllTokenOwnerRecords } from '@solana/spl-governance';
 import { 
     getRealmIndexed,
     getAllProposalsIndexed,

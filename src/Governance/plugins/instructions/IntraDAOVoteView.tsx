@@ -39,7 +39,7 @@ import {
     getAllProposalsIndexed,
     getGovernanceIndexed,
     getAllGovernancesIndexed,
-    getTokenOwnerRecordsByOwnerIndexed,
+    getTokenOwnerRecordsByRealmIndexed,
     getAllTokenOwnerRecordsIndexed,
     getProposalInstructionsIndexed,
 } from './../../api/queries';
@@ -581,7 +581,7 @@ export default function IntraDAOVoteView(props: any) {
             //setRealms(uTable);
             
             const thisOwnerRecordsbyOwner = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, new PublicKey(fromAddress));
-            //const thisOwnerRecordsbyOwner = await getTokenOwnerRecordsByOwnerIndexed(programId.toBase58(),null,new PublicKey(fromAddress).toBase58())
+            //const thisOwnerRecordsbyOwner = await getTokenOwnerRecordsByRealmIndexed(programId.toBase58(),null,new PublicKey(fromAddress).toBase58())
             //console.log("ownerRecordsbyOwner "+JSON.stringify(ownerRecordsbyOwner))
             const selectedDao: any[] = [];
             

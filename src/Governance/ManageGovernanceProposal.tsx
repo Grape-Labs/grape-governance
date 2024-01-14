@@ -23,8 +23,7 @@ import {
     getGovernance,
     getVoteRecordsByVoter, 
     getTokenOwnerRecordAddress,
-    getTokenOwnerRecordForRealm, 
-    getTokenOwnerRecordsByOwner, 
+    getTokenOwnerRecordForRealm,  
     getGovernanceAccounts, 
     pubkeyFilter, 
     TokenOwnerRecord, 
@@ -57,7 +56,7 @@ import {
     getGovernanceIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
-    getTokenOwnerRecordsByOwnerIndexed,
+    getTokenOwnerRecordsByRealmIndexed,
     getProposalInstructionsIndexed
   } from './api/queries';
 

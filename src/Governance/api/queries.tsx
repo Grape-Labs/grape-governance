@@ -4,13 +4,16 @@ import {
     SHYFT_KEY,
     RPC_CONNECTION } from '../../utils/grapeTools/constants';
 
+import BN from 'bignumber.js';
+
 import { 
     getGovernance,
     getProposal,
     getRealm, 
     getAllGovernances,
     getAllProposals, 
-    getAllTokenOwnerRecords, 
+    getAllTokenOwnerRecords,
+    getTokenOwnerRecordsByOwner, 
     getRealmConfigAddress, 
     tryGetRealmConfig, 
     ProposalTransaction,
@@ -522,9 +525,46 @@ function GET_QUERY_REALM(realm:string, realmOwner?:string){
         `
 }
 
+
+function GET_QUERY_ALL_TOKEN_OWNER_RECORDS(owner:string, realmOwner?:string){
+    console.log("TokenOwner: "+owner)
+
+    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    return gql `
+        query MyQuery {
+            ${programId}_TokenOwnerRecordV1(where: {governingTokenOwner: {_eq: "${owner}"}}) {
+                governingTokenOwner
+                governingTokenMint
+                governingTokenDepositAmount
+                governanceDelegate
+                lamports
+                outstandingProposalCount
+                pubkey
+                realm
+                reserved
+                unrelinquishedVotesCount
+                version
+            }
+            ${programId}_TokenOwnerRecordV2(where: {governingTokenOwner: {_eq: "${owner}"}}) {
+                governanceDelegate
+                governingTokenDepositAmount
+                governingTokenMint
+                governingTokenOwner
+                lamports
+                outstandingProposalCount
+                pubkey
+                realm
+                reserved
+                unrelinquishedVotesCount
+                version
+            }
+        }
+        `
+}
+
 export const getProposalInstructionsIndexed = async (filterRealm?:any, proposalPk?:any) => {
     const programId = findGovOwnerByDao(filterRealm)?.owner;
-    
+
     const allProposalIx = new Array();
     try{
         const { data } = await client.query({ query: GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk, programId) });
@@ -724,6 +764,63 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
 };
 
 export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:any, realmOwner?:any, tokenOwner?:any) => {
+    const programId = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const { data } = await client.query({ query: GET_QUERY_ALL_TOKEN_OWNER_RECORDS(tokenOwner, realmOwner) });
+
+    const allResults = new Array();
+    data[programId+"_TokenOwnerRecordV1"] && data[programId+"_TokenOwnerRecordV1"].map((item) => {
+        allResults.push({
+            //owner: new PublicKey(item.owner),
+            pubkey: new PublicKey(item.pubkey),
+            account: {
+                realm: new PublicKey(item.realm),
+                accountType: item.accountType,
+                governingTokenMint: new PublicKey(item.governingTokenMint),
+                governingTokenOwner: new PublicKey(item.governingTokenOwner),
+                governanceDelegate: item?.governanceDelegate ? new PublicKey(item.governanceDelegate):null,
+                //governingTokenDepositAmount: item.governingTokenDepositAmount.toString(16),
+                governingTokenDepositAmount: new BN(item.governingTokenDepositAmount),
+                unrelinquishedVotesCount: item.unrelinquishedVotesCount,
+                totalVotesCount: item.totalVotesCount,
+                outstandingProposalCount: item.outstandingProposalCount,
+                reserved: item.reserved,
+                version: item.version
+            }
+        })
+    });
+
+    data[programId+"_TokenOwnerRecordV2"] && data[programId+"_TokenOwnerRecordV2"].map((item) => {
+        allResults.push({
+            //owner: new PublicKey(item.owner),
+            pubkey: new PublicKey(item.pubkey),
+            account: {
+                realm: new PublicKey(item.realm),
+                accountType: item.accountType,
+                governingTokenMint: new PublicKey(item.governingTokenMint),
+                governingTokenOwner: new PublicKey(item.governingTokenOwner),
+                governanceDelegate: item?.governanceDelegate ? new PublicKey(item.governanceDelegate):null,
+                //governingTokenDepositAmount: item.governingTokenDepositAmount.toString(16),
+                governingTokenDepositAmount: new BN(item.governingTokenDepositAmount),
+                unrelinquishedVotesCount: item.unrelinquishedVotesCount,
+                totalVotesCount: item.totalVotesCount,
+                outstandingProposalCount: item.outstandingProposalCount,
+                reserved: item.reserved,
+                version: item.version
+            }
+        })
+    });
+
+    console.log("data results indexed: "+JSON.stringify(allResults));
+    
+    if (!allResults){
+        const allResultsRPC = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realmOwner), new PublicKey(tokenOwner));
+        return allResultsRPC;
+    }
+
+    return allResults;
+}
+
+export const getTokenOwnerRecordsByRealmIndexed = async (filterRealm?:any, realmOwner?:any, tokenOwner?:any) => {
     const allTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed (filterRealm, realmOwner);
     const ownerRecords = new Array();
     if (allTokenOwnerRecords && allTokenOwnerRecords.length > 0){
@@ -733,6 +830,12 @@ export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:any, realm
             }
         }
     }
+
+
+    if (!ownerRecords){
+        //ownerRecords = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realmOwner), new PublicKey(tokenOwner));
+    }
+
     return ownerRecords;
 }
 

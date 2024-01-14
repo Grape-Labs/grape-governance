@@ -58,7 +58,7 @@ import {
     getGovernanceIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
-    getTokenOwnerRecordsByOwnerIndexed,
+    getTokenOwnerRecordsByRealmIndexed,
 } from './api/queries';
 
 export default function GovernanceNavigation(props: any){
@@ -78,7 +78,7 @@ export default function GovernanceNavigation(props: any){
 
     React.useEffect(() => {
         if (publicKey && rpcMemberMap){
-            const foundObject = getTokenOwnerRecordsByOwnerIndexed(governanceAddress, null, publicKey.toBase58());
+            const foundObject = getTokenOwnerRecordsByRealmIndexed(governanceAddress, null, publicKey.toBase58());
 
             //const foundObject = findObjectByGoverningTokenOwner(rpcMemberMap, publicKey.toBase58(), true, 0)
             if (foundObject){
@@ -90,7 +90,7 @@ export default function GovernanceNavigation(props: any){
     React.useEffect(() => {
         if (publicKey && cachedMemberMap){
             //const foundObject = findObjectByGoverningTokenOwner(cachedMemberMap, publicKey.toBase58(), false, 0)
-            const foundObject = getTokenOwnerRecordsByOwnerIndexed(governanceAddress, null, publicKey.toBase58());
+            const foundObject = getTokenOwnerRecordsByRealmIndexed(governanceAddress, null, publicKey.toBase58());
 
             if (foundObject){
                 setIsParticipatingInDao(true);

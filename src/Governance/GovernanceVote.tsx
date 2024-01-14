@@ -25,6 +25,7 @@ import {
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
+    getTokenOwnerRecordsByOwnerIndexed,
 } from './api/queries';
 import {
     fetchGovernanceLookupFile,
@@ -481,15 +482,6 @@ export function VoteForProposal(props:any){
         //console.log("realm: "+JSON.stringify(realm))
 
         const programId = new PublicKey(realm.owner);
-        
-        /*
-        const ownerTokenRecord = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, publicKey)
-        console.log("ownerTokenRecord: "+JSON.stringify(ownerTokenRecord))
-
-        let memberItem = ownerTokenRecord.find(item => 
-            (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
-            item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
-        */
         
         let rawTokenOwnerRecords = null;
         if (memberMap){

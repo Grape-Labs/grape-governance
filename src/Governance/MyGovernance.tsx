@@ -30,6 +30,8 @@ import {
     getGovernanceIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
+    getTokenOwnerRecordsByRealmIndexed,
+    getTokenOwnerRecordsByOwnerIndexed,
     getProposalInstructionsIndexed,
 } from './api/queries';
 
@@ -239,9 +241,15 @@ export function MyGovernanceView(props: any){
             //console.log("gtor1: "+JSON.stringify(gtor[0]))
             for (var item of gtor){
                 
-                const proposal = await getProposal(RPC_CONNECTION, item.account.proposal);
+                //const proposal = await getProposal(RPC_CONNECTION, item.account.proposal);
+                //const gaccounts = await getAllGovernances(RPC_CONNECTION, programId, realmPk);
                 
-                const gaccounts = await getAllGovernances(RPC_CONNECTION, programId, realmPk);
+                const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58(), programId.toBase58());
+                const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
+                const proposal = await getProposalIndexed(governanceRulesIndexed, programId.toBase58(), realmPk.toBase58(), item.account.proposal.toBase58());
+                const gaccounts = await getAllGovernancesIndexed(realmPk.toBase58(), programId.toBase58());
+                
+
                 
                 //const gaccounts = await getAllGovernancesIndexed(realmPk, )
                 
@@ -346,10 +354,12 @@ export function MyGovernanceView(props: any){
             //const uTable = rlms.reduce((acc, it) => (acc[it.pubkey.toBase58()] = it, acc), {})
             //setRealms(uTable);
             
+            const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwnerIndexed(null, programId, new PublicKey(pubkey).toBase58());
+            //console.log("ownerRecordsbyOwner Indexed: "+JSON.stringify(testOwnerRecordsByOwner))
 
-            const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, new PublicKey(pubkey));
+            //const ownerRecordsbyOwner2 = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, new PublicKey(pubkey));
             
-            console.log("ownerRecordsbyOwner "+JSON.stringify(ownerRecordsbyOwner))
+            //console.log("ownerRecordsbyOwner "+JSON.stringify(ownerRecordsbyOwner2))
             const governance: any[] = [];
             
             let cnt = 0;
@@ -362,6 +372,7 @@ export function MyGovernanceView(props: any){
             // add to an array of partipating realms
             const realmArr = new Array();
             for (const item of ownerRecordsbyOwner){
+                console.log("checking realm with "+item.account.realm.toBase58())
                 let isCouncil = false;
                 //const realm = uTable[item.account.realm.toBase58()];
                 //const realm = await getRealm(RPC_CONNECTION, item.account.realm)
@@ -373,6 +384,8 @@ export function MyGovernanceView(props: any){
 
                 //console.log("realm: "+JSON.stringify(realm))
                 const name = realm.account.name;
+                
+                //let votes = item.account.governingTokenDepositAmount.toNumber().toString();
                 let votes = item.account.governingTokenDepositAmount.toNumber().toString();
                 
                 const tokenInfo = await getMint(RPC_CONNECTION, new PublicKey(item.account.governingTokenMint));
