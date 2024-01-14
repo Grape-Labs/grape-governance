@@ -37,6 +37,7 @@ import {
     getProposalInstructionsIndexed,
 } from './api/queries';
 
+import { WalletDialogProvider, WalletMultiButton } from '@solana/wallet-adapter-material-ui';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useSnackbar } from 'notistack';
 
@@ -87,7 +88,7 @@ export async function getUnrelinquishedVoteRecords(
 }
 
 export function MyGovernanceView(props: any){
-    const [pubkey, setPubkey] = React.useState(props?.pubkey);;
+    const [pubkey, setPubkey] = React.useState(props?.pubkey || null);
     const [realms, setRealms] = React.useState(null);
     const [governanceRecord, setGovernanceRecord] = React.useState(null);
     const [governanceRecordRows, setGovernanceRecordRows] = React.useState(null);
@@ -350,18 +351,11 @@ export function MyGovernanceView(props: any){
         const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
         
         try{
-            //console.log("fetching realms ");
-            //const rlms = await getRealms(ticonnection, [programId]);
-            //console.log("rlms ",rlms);
-
-            //const uTable = rlms.reduce((acc, it) => (acc[it.pubkey.toBase58()] = it, acc), {})
-            //setRealms(uTable);
+            setLoadingGovernance(true);
             
             const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwnerIndexed(null, programId, new PublicKey(pubkey).toBase58());
             //console.log("ownerRecordsbyOwner Indexed: "+JSON.stringify(testOwnerRecordsByOwner))
-
             //const ownerRecordsbyOwner2 = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, new PublicKey(pubkey));
-            
             //console.log("ownerRecordsbyOwner "+JSON.stringify(ownerRecordsbyOwner2))
             const governance: any[] = [];
             
@@ -377,8 +371,8 @@ export function MyGovernanceView(props: any){
 
             // do a run through to get all mints and push to an array
             const mintArr = new Array();
-            for (const item of ownerRecordsbyOwner){
-                //console.log("pushing: "+new PublicKey(item.account.governingTokenMint).toBase58())
+            for (let item of ownerRecordsbyOwner){
+                console.log("pushing: "+new PublicKey(item.account.governingTokenMint).toBase58())
                 mintArr.push(new PublicKey(item.account.governingTokenMint))
             }
 
@@ -494,22 +488,24 @@ export function MyGovernanceView(props: any){
             
             setGovernanceRecord(ownerRecordsbyOwner);
             setGovernanceRecordRows(governance);
-
+            setLoadingGovernance(false);
+        
         }catch(e){
             console.log("ERR: "+e);
+            setLoadingGovernance(false);
         }
         
     }
 
     const fetchGovernancePositions = async () => {
-        setLoadingGovernance(true);
         await fetchGovernance();
-        setLoadingGovernance(false);
     }
 
     React.useEffect(() => {
         //setLoadingGovernance(true);
+        console.log("checking: "+JSON.stringify(pubkey))
         if (pubkey && tokenMap){
+            console.log("pubkey: "+JSON.stringify(pubkey))
             fetchGovernancePositions();
         }
     }, [tokenMap, pubkey]);
@@ -521,6 +517,9 @@ export function MyGovernanceView(props: any){
         }
         if (!tokenMap){
             getTokens();
+        }
+        if (!publicKey){
+            setPubkey(null);
         }
     }, [publicKey]);
 
@@ -548,42 +547,60 @@ export function MyGovernanceView(props: any){
                     </Grid>
                 </Grid>
             
-            
-                <Box sx={{ p:1}}>
-                    {loadingGovernance ?
-                        <LinearProgress color="inherit" />
-                    :
-                        <>
-                        {governanceRecord && governanceRecordRows && 
-                            <div style={{ height: 600, width: '100%' }}>
-                                <div style={{ display: 'flex', height: '100%' }}>
-                                    <div style={{ flexGrow: 1 }}>
-                                        
-                                        <DataGrid
-                                            rows={governanceRecordRows}
-                                            columns={governancecolumns}
-                                            initialState={{
-                                                sorting: {
-                                                    sortModel: [{ field: 'value', sort: 'desc' }],
-                                                },
-                                            }}
-                                            sx={{
-                                                borderRadius:'17px',
-                                                borderColor:'rgba(255,255,255,0.25)',
-                                                '& .MuiDataGrid-cell':{
-                                                    borderColor:'rgba(255,255,255,0.25)'
-                                                }}}
-                                            pageSize={25}
-                                            rowsPerPageOptions={[]}
-                                        />
-                                        
+                {(pubkey) ?
+                    <Box sx={{ p:1}}>
+                        {loadingGovernance ?
+                            <>
+                                <LinearProgress color="inherit" />
+                            </>
+                        :
+                            <>
+                            {governanceRecord && governanceRecordRows && 
+                                <div style={{ height: 600, width: '100%' }}>
+                                    <div style={{ display: 'flex', height: '100%' }}>
+                                        <div style={{ flexGrow: 1 }}>
+                                            
+                                            <DataGrid
+                                                rows={governanceRecordRows}
+                                                columns={governancecolumns}
+                                                initialState={{
+                                                    sorting: {
+                                                        sortModel: [{ field: 'value', sort: 'desc' }],
+                                                    },
+                                                }}
+                                                sx={{
+                                                    borderRadius:'17px',
+                                                    borderColor:'rgba(255,255,255,0.25)',
+                                                    '& .MuiDataGrid-cell':{
+                                                        borderColor:'rgba(255,255,255,0.25)'
+                                                    }}}
+                                                pageSize={25}
+                                                rowsPerPageOptions={[]}
+                                            />
+                                            
+                                        </div>
                                     </div>
-                                </div>
-                            </div>    
+                                </div>    
+                            }
+                            </>
                         }
-                        </>
-                    }
                     </Box>
+                :
+                    <>
+                        <Box 
+                            sx={{
+                            mt:6,
+                            p:4,
+                            alignItems: 'center', textAlign: 'center'
+                        }} >
+                            <WalletDialogProvider className="grape-wallet-provider">
+                                <WalletMultiButton className="grape-wallet-button">
+                                    Connect your wallet
+                                </WalletMultiButton>
+                            </WalletDialogProvider>
+                        </Box>
+                    </>
+                }
                 </>
             </Box>
         </>
