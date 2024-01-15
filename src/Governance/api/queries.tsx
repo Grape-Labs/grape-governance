@@ -975,8 +975,8 @@ export const getAllProposalsFromAllPrograms = async () => {
 
     // show up to the latest 1k props
     let resProps = allProposals;
-    if (allProposals.length > 1000)
-        resProps = allProposals.slice(0, 1000);
+    //if (allProposals.length > 3000)
+    //    resProps = allProposals.slice(0, 3000);
 
     return resProps;
 }
