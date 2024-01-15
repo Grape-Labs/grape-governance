@@ -24,6 +24,7 @@ import {
   Button,
   Grid,
   Box,
+  IconButton,
   ButtonGroup,
   CircularProgress,
   Dialog,
@@ -31,7 +32,6 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
-  IconButton,
   Divider,
   List, 
   ListItem, 
@@ -713,15 +713,11 @@ export default function GovernancePower(props: any){
             <>
             
                 <Tooltip title="Delegation &amp; Advanced Tools">
-                    <Button 
-                        aria-label="Deposit"
-                        variant={inlineAdvanced ? `text`:`outlined`} 
+                    <IconButton
+                        aria-label="Advanced"
                         color={inlineAdvanced ? 'inherit' : 'success'}
                         onClick={handleClickOpen}
                         sx={{
-                            borderRadius: inlineAdvanced ? '17px' : undefined,
-                            borderTopRightRadius: inlineAdvanced ? undefined : '17px',
-                            borderBottomRightRadius: inlineAdvanced ? undefined : '17px',
                             borderColor:'rgba(255,255,255,0.05)',
                             fontSize:'10px',
                             pl: inlineAdvanced ? 0.5 : 1,
@@ -729,7 +725,7 @@ export default function GovernancePower(props: any){
                             minWidth: inlineAdvanced ? '0' : undefined,
                             //p: inlineAdvanced ? undefined : 1,
                         }}
-                    ><SettingsIcon  sx={{fontSize: inlineAdvanced ? '10px' : '14px',}} /></Button>
+                    ><SettingsIcon  sx={{fontSize: inlineAdvanced ? '10px' : '14px',}} /></IconButton>
                 </Tooltip>
 
                 <Dialog open={open} onClose={handleClose}
