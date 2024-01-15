@@ -93,7 +93,6 @@
         "@strata-foundation/react": "^3.11.2",
         "@strata-foundation/spl-token-bonding": "^3.11.2",
         "@strata-foundation/spl-token-collective": "^3.11.2",
-        "@streamflow/stream": "^5.9.7",
         "@tanstack/react-query": "4.14.3",
         "@tensor-oss/tensorswap-sdk": "^1.15.0",
         "@testing-library/jest-dom": "^5.16.4",

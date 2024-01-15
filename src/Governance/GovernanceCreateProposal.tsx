@@ -67,7 +67,7 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import { GovernanceGistDialog } from './GovernanceGistDialog';
 
-import StreamflowPaymentsView from './plugins/instructions/StreamflowPaymentsView';
+//import StreamflowPaymentsView from './plugins/instructions/StreamflowPaymentsView';
 import IntraDAOProposalView from './plugins/instructions/IntraDAOProposalView';
 import IntraDAOGrantView from './plugins/instructions/IntraDAOGrantView';
 import IntraDAOGrantV0View from './plugins/instructions/versioned/IntraDAOGrantV0View';
@@ -690,7 +690,7 @@ export default function GovernanceCreateProposalView(props: any){
 
               <Divider />
               <MenuItem value={50}
-                disabled={governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' ? true : false}
+                disbled={true}
               >Payments</MenuItem>
               <MenuItem value={51}
                 disabled={true}
@@ -1695,11 +1695,11 @@ export default function GovernanceCreateProposalView(props: any){
                               </FormControl>
                             */}
 
-                            {proposalType === 50 &&
+                            {/*proposalType === 50 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <StreamflowPaymentsView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
-                            }
+                            */}
 
 
 
