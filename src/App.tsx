@@ -8,9 +8,6 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 
 import { AdminView } from "./Admin/Admin";
 //import GovernanceAppPageView from "./GovernanceCached/v2/page";
-import { GovernanceRPCView } from "./GovernanceRPC/Governance";
-import OathLogin from "./Governance/OathGovernance";
-import OathTipLinkLogin from "./Governance/TipLinkGovernance";
 import FrictionlessView from "./Frictionless/FrictionlessView";
 import { MyGovernanceView } from "./Governance/MyGovernance";
 import { GovernanceCachedView } from "./Governance/Governance";
@@ -273,10 +270,6 @@ function DashboardContent() {
                                             */}
                                               <Route path="profile/*" element={<MyGovernanceView />} >
                                                 <Route path=":handlekey" element={<MyGovernanceView />} />
-                                              </Route>
-
-                                              <Route path="rpcgovernance/*" element={<GovernanceRPCView />} >
-                                                  <Route path=":handlekey" element={<GovernanceRPCView />} />
                                               </Route>
 
                                               <Route path="governance/*" element={<GovernanceCachedView />} >

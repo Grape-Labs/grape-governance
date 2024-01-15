@@ -508,6 +508,21 @@ function TablePaginationActions(props) {
 
         }, [governanceLookup]);
 
+
+        const shortenWordRegex: RegExp = /^(.{6})(?:\.(.{6}))?$/;
+
+        const shortenWord: (word: string) => string = (word: string) => {
+        if (word.length > 40) {
+            return word.substring(0,6)+"..."+word.substring(word.length-6,word.length);
+        } else {
+            return word;
+        }
+        };
+
+        const shortenString: (string: string) => string = (string: string) => {
+        return string.split(' ').map(shortenWord).join(' ');
+        };
+
         
         function replaceUrls(paragraphText:string) {
             console.log("checking: "+paragraphText);
@@ -521,7 +536,8 @@ function TablePaginationActions(props) {
             }
             
             //const pattern = /\b.{40,}\b/g;
-            const shortenedText = replacedText;//replacedText.replace(/\b\w{40,}\b/g, (match) => `${match.slice(0, 40)}...`);
+            console.log("checking: "+replacedText);
+            const shortenedText = shortenString(replacedText);//replacedText.replace(/\b\w{40,}\b/g, (match) => `${match.slice(0, 40)}...`);
             //replacedText.replace(/\b\w{40,}\b/g, (match) => `${match.slice(0, 40)}...`);
 
             return shortenedText;
@@ -646,7 +662,7 @@ function TablePaginationActions(props) {
                                                         //color="white"
                                                         sx={{ textDecoration: (state === 6) ? 'line-through' : 'none' }}
                                                     >
-                                                        {name}
+                                                        {shortenString(name)}
                                                     </Typography>
 
                                                     <Grid item xs={12}
