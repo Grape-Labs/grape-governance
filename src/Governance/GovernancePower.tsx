@@ -720,8 +720,6 @@ export default function GovernancePower(props: any){
                         sx={{
                             borderColor:'rgba(255,255,255,0.05)',
                             fontSize:'10px',
-                            pl: inlineAdvanced ? 0.5 : 1,
-                            pr: inlineAdvanced ? 0.5 : 1,
                             minWidth: inlineAdvanced ? '0' : undefined,
                             //p: inlineAdvanced ? undefined : 1,
                         }}
