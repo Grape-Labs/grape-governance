@@ -513,7 +513,7 @@ function TablePaginationActions(props) {
 
         const shortenWord: (word: string) => string = (word: string) => {
         if (word.length > 40) {
-            return word.substring(0,6)+"..."+word.substring(word.length-6,word.length);
+            return word.substring(0,6)+"..."+word.substring(word.length-8,word.length);
         } else {
             return word;
         }
