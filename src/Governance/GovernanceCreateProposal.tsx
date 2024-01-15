@@ -689,8 +689,9 @@ export default function GovernanceCreateProposalView(props: any){
               }
 
               <Divider />
+
               <MenuItem value={50}
-                disbled={true}
+                disabled={true}
               >Payments</MenuItem>
               <MenuItem value={51}
                 disabled={true}
