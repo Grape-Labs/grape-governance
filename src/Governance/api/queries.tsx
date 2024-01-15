@@ -982,7 +982,7 @@ export const getAllProposalsFromAllPrograms = async () => {
 }
 
 export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, uniqueOwners?:string[]) => {
-
+    
     //console.log("realmOwner: " +realmOwner);
     const programId = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const allProposals = new Array();
