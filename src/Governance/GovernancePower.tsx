@@ -169,8 +169,6 @@ export default function GovernancePower(props: any){
 
     const getTokenMintInfo = async(mintAddress:string) => {
         
-        
-
         const mintInfo = await getMint(RPC_CONNECTION, new PublicKey(mintAddress));
 
         //const tokenName = mintInfo.name;
@@ -298,7 +296,7 @@ export default function GovernancePower(props: any){
             if (tokenBalance?.value){
                 for (let titem of tokenBalance?.value){
                     if (titem.account.data.parsed.info.mint === communityMint){
-                        setWalletCommunityMintAmount(titem.account.data.parsed.info.tokenAmount.amount);
+                       setWalletCommunityMintAmount(titem.account.data.parsed.info.tokenAmount.amount);
                         if (!fetchedTMI)
                             await getTokenMintInfo(communityMint);
                     } else if (titem.account.data.parsed.info.mint === councilMint){
