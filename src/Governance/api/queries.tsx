@@ -972,7 +972,13 @@ export const getAllProposalsFromAllPrograms = async () => {
     }
     */
     //console.log("allProposals: "+JSON.stringify(allProposals))
-    return allProposals;
+
+    // show up to the latest 1k props
+    let resProps = allProposals;
+    if (allProposals.length > 1000)
+        resProps = allProposals.slice(0, 1000);
+
+    return resProps;
 }
 
 export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, uniqueOwners?:string[]) => {
