@@ -519,9 +519,9 @@ function TablePaginationActions(props) {
                 const domain = fullUrl.split('/')[2];
                 replacedText = replacedText.replace(fullUrl, `[LINK] - ${domain}`);
             }
-
+            
             //const pattern = /\b.{40,}\b/g;
-            const shortenedText = replacedText.replace(/\b\w{40,}\b/g, (match) => `${match.slice(0, 40)}...`);
+            const shortenedText = replacedText;//replacedText.replace(/\b\w{40,}\b/g, (match) => `${match.slice(0, 40)}...`);
             //replacedText.replace(/\b\w{40,}\b/g, (match) => `${match.slice(0, 40)}...`);
 
             return shortenedText;
@@ -1220,7 +1220,7 @@ function TablePaginationActions(props) {
                                         }}
                                     >
                                         <TablePagination
-                                            rowsPerPageOptions={[10, 25, 50, 100, 250]}
+                                            rowsPerPageOptions={[5, 10, 25, 50, 100]}
                                             labelRowsPerPage={"Rows:"}
                                             showLastButton={false}
                                             colSpan={1}

@@ -644,9 +644,9 @@ export const getRealmIndexed = async (filterRealm?:any) => {
                             councilMint: new PublicKey(item.config.councilMint),
                             communityMintMaxVoteWeightSource: {
                                 type:item.config.communityMintMaxVoteWeightSource.type,
-                                value:item.config.communityMintMaxVoteWeightSource.value.toString(16)
+                                value:new BN(item.config.communityMintMaxVoteWeightSource.value)
                             },
-                            minCommunityTokensToCreateGovernance: item.config.minCommunityTokensToCreateGovernance.toString(16),
+                            minCommunityTokensToCreateGovernance: new BN(item.config.minCommunityTokensToCreateGovernance),
                             useCommunityVoterWeightAddin: item.config.useCommunityVoterWeightAddin,
                             useMaxCommunityVoterWeightAddin: item.config.useMaxCommunityVoterWeightAddin,
                             reserved: item.config.reserved,
@@ -669,9 +669,9 @@ export const getRealmIndexed = async (filterRealm?:any) => {
                             councilMint: new PublicKey(item.config.councilMint),
                             communityMintMaxVoteWeightSource: {
                                 type:item.config.communityMintMaxVoteWeightSource.type,
-                                value:item.config.communityMintMaxVoteWeightSource.value.toString(16)
+                                value:new BN(item.config.communityMintMaxVoteWeightSource.value)
                             },
-                            minCommunityTokensToCreateGovernance: item.config.minCommunityTokensToCreateGovernance.toString(16),
+                            minCommunityTokensToCreateGovernance: new BN(item.config.minCommunityTokensToCreateGovernance),
                             useCommunityVoterWeightAddin: item.config.useCommunityVoterWeightAddin,
                             useMaxCommunityVoterWeightAddin: item.config.useMaxCommunityVoterWeightAddin,
                             reserved: item.config.reserved,
@@ -778,7 +778,6 @@ export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:any, realm
                 governingTokenMint: new PublicKey(item.governingTokenMint),
                 governingTokenOwner: new PublicKey(item.governingTokenOwner),
                 governanceDelegate: item?.governanceDelegate ? new PublicKey(item.governanceDelegate):null,
-                //governingTokenDepositAmount: item.governingTokenDepositAmount.toString(16),
                 governingTokenDepositAmount: new BN(item.governingTokenDepositAmount),
                 unrelinquishedVotesCount: item.unrelinquishedVotesCount,
                 totalVotesCount: item.totalVotesCount,
@@ -799,7 +798,6 @@ export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:any, realm
                 governingTokenMint: new PublicKey(item.governingTokenMint),
                 governingTokenOwner: new PublicKey(item.governingTokenOwner),
                 governanceDelegate: item?.governanceDelegate ? new PublicKey(item.governanceDelegate):null,
-                //governingTokenDepositAmount: item.governingTokenDepositAmount.toString(16),
                 governingTokenDepositAmount: new BN(item.governingTokenDepositAmount),
                 unrelinquishedVotesCount: item.unrelinquishedVotesCount,
                 totalVotesCount: item.totalVotesCount,
