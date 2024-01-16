@@ -1,6 +1,8 @@
 {
     "name": "Governance by Grape",
     "short_name": "Governance",
+    "description": "Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS",
+    "id": "app.governance.so",
     "dir": "ltr",
     "lang": "en-US",
     "orientation": "portrait-primary",
@@ -8,42 +10,10 @@
     "background_color": "#23063C",
     "theme_color": "#23063C",
     "display": "standalone",
-    "description": "Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS",
-    "shortcuts": [
-      {
-        "name": "Realtime Governance",
-        "short_name": "Realtime",
-        "description": "Open the realtime",
-        "url": "/realtime",
-        "icons": [
-          {
-            "src": "android/android-launchericon-192-192.png",
-            "sizes": "192x192"
-          }
-        ]
-      },
-      {
-        "name": "Profile",
-        "url": "/profile",
-        "description": "View your DAO Profile",
-        "icons": [
-            {
-              "src": "android/android-launchericon-192-192.png",
-              "sizes": "192x192"
-            }
-        ]
-      },
-      {
-        "name": "Grape DAO",
-        "url": "/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip",
-        "description": "Join & Participate in the OG DAO on Solana",
-        "icons": [
-            {
-              "src": "apple-touch-icon.png",
-              "sizes": "192x192"
-            }
-        ]
-      }
+    "display_override": [
+        "window-controls-overlay",
+        "standalone",
+        "browser"
     ],
     "icons": [
         {
@@ -83,12 +53,36 @@
           "purpose": "any"
         }
     ],
-    "id": "app.governance.so",
-    "display_override": [
-      "window-controls-overlay",
-      "standalone",
-      "browser"
-    ],
+    "shortcuts": [
+        {
+          "name": "Realtime Governance",
+          "short_name": "Realtime",
+          "description": "Open Realtime Proposals and see what is going on in the Solana DAO landscape",
+          "url": "/realtime"
+        },
+        {
+          "name": "Profile",
+          "url": "/profile",
+          "description": "View your DAO Profile",
+          "icons": [
+              {
+                "src": "android/android-launchericon-192-192.png",
+                "sizes": "192x192"
+              }
+          ]
+        },
+        {
+          "name": "Grape DAO",
+          "url": "/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip",
+          "description": "Join & Participate in the OG DAO on Solana",
+          "icons": [
+              {
+                "src": "apple-touch-icon.png",
+                "sizes": "192x192"
+              }
+          ]
+        }
+      ],
     "categories": [
       "utilities"
     ]
