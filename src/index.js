@@ -6,6 +6,8 @@ import reportWebVitals from './reportWebVitals';
 // import i18n (needs to be bundled) 
 import './i18n';
 
+Notification.requestPermission();
+
 ReactDOM.render(
   <React.StrictMode>
     <App />
