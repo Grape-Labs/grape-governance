@@ -5,7 +5,6 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 //import '@ionic/react/css/core.css';
 //import { setupIonicReact } from '@ionic/react';
 
-
 import { AdminView } from "./Admin/Admin";
 //import GovernanceAppPageView from "./GovernanceCached/v2/page";
 import FrictionlessView from "./Frictionless/FrictionlessView";
@@ -161,6 +160,7 @@ function DashboardContent() {
 
   React.useEffect(() => {
     inject();
+    Notification.requestPermission();
 }, []);
 
   return (
