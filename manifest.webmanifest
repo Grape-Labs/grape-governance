@@ -47,16 +47,16 @@
           "purpose": "any"
         },
         {
-          "src": "./src/public/ios/512.png",
-          "type": "image/png",
-          "sizes": "512x512",
-          "purpose": "any"
-        },
-        {
           "src": "./src/public/ios/maskable-512.png",
           "type": "image/png",
           "sizes": "512x512",
           "purpose": "maskable"
+        },
+        {
+          "src": "./src/public/ios/512.png",
+          "type": "image/png",
+          "sizes": "512x512",
+          "purpose": "any"
         }
     ],
     "shortcuts": [
@@ -75,7 +75,7 @@
         {
           "name": "Grape DAO Governance",
           "short_name": "Grape DAO",
-          "description": "Join & Participate in the OG DAO on Solana",
+          "description": "Participate in the OG DAO on Solana",
           "url": "/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"
         }
       ],
