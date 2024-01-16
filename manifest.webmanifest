@@ -17,37 +17,37 @@
     ],
     "icons": [
         {
-          "src": "android/android-launchericon-48-48.png",
+          "src": "./src/public/android/android-launchericon-48-48.png",
           "type": "image/png",
           "sizes": "48x48",
           "purpose": "any"
         },
         {
-          "src": "android/android-launchericon-96-96.png",
+          "src": "./src/public/android/android-launchericon-96-96.png",
           "type": "image/png",
           "sizes": "96x96",
           "purpose": "any"
         },
         {
-          "src": "ios/144.png",
+          "src": "./src/public/ios/144.png",
           "type": "image/png",
           "sizes": "144x144",
           "purpose": "any"
         },
         {
-          "src": "ios/152.png",
+          "src": "./src/public/ios/152.png",
           "type": "image/png",
           "sizes": "152x152",
           "purpose": "any"
         },
         {
-          "src": "ios/192.png",
+          "src": "./src/public/ios/192.png",
           "type": "image/png",
           "sizes": "192x192",
           "purpose": "any"
         },
         {
-          "src": "ios/512.png",
+          "src": "./src/public/ios/512.png",
           "type": "image/png",
           "sizes": "512x512",
           "purpose": "any"
@@ -66,7 +66,7 @@
           "description": "View your DAO Profile",
           "icons": [
               {
-                "src": "android/android-launchericon-192-192.png",
+                "src": "./src/public/android/android-launchericon-192-192.png",
                 "sizes": "192x192"
               }
           ]
@@ -77,7 +77,7 @@
           "description": "Join & Participate in the OG DAO on Solana",
           "icons": [
               {
-                "src": "apple-touch-icon.png",
+                "src": "./src/public/apple-touch-icon.png",
                 "sizes": "192x192"
               }
           ]
