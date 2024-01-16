@@ -57,20 +57,20 @@
         {
           "name": "Realtime Governance",
           "short_name": "Realtime",
-          "description": "Open Realtime Proposals and see what is going on in the Solana DAO landscape",
-          "url": "/realtime"
+          "url": "/realtime",
+          "description": "Open Realtime Proposals and see what is going on in the Solana DAO landscape"
         },
         {
           "name": "Your Governance Profile",
           "short_name": "Profile",
-          "description": "View your DAO Profile",
-          "url": "/profile"
+          "url": "/profile",
+          "description": "View your DAO Profile"
         },
         {
           "name": "Grape DAO Governance",
           "short_name": "Grape DAO",
-          "description": "Participate in the OG DAO on Solana",
-          "url": "/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"
+          "url": "/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip",
+          "description": "Participate in the OG DAO on Solana"
         }
       ],
     "categories": [
