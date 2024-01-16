@@ -66,7 +66,7 @@
           "description": "View your DAO Profile",
           "icons": [
               {
-                "src": "./src/public/android/android-launchericon-192-192.png",
+                "src": "./src/public/ios/192.png",
                 "sizes": "192x192"
               }
           ]
@@ -77,7 +77,7 @@
           "description": "Join & Participate in the OG DAO on Solana",
           "icons": [
               {
-                "src": "./src/public/apple-touch-icon.png",
+                "src": "./src/public/ios/192.png",
                 "sizes": "192x192"
               }
           ]
