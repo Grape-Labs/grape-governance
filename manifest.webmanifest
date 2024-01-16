@@ -1,10 +1,10 @@
 {
-    "name": "Governance by Grape",
+    "name": "Governance",
     "short_name": "Governance",
     "description": "Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS",
-    "id": "app.governance.so",
+    "id": "governance.so",
     "dir": "ltr",
-    "lang": "en-US",
+    "lang": "en",
     "orientation": "portrait-primary",
     "start_url": "/",
     "background_color": "#23063C",
