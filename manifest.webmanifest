@@ -56,18 +56,15 @@
     "shortcuts": [
         {
           "name": "Realtime",
-          "url": "https://governance.so/realtime",
-          "description": "Open Realtime Proposals and see what is going on in the Solana DAO landscape"
+          "url": "/realtime"
         },
         {
           "name": "Profile",
-          "url": "https://governance.so/profile",
-          "description": "View your DAO Profile"
+          "url": "/profile"
         },
         {
           "name": "Grape DAO",
-          "url": "https://governance.so/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip",
-          "description": "Participate in the OG DAO on Solana"
+          "url": "/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"
         }
       ],
     "categories": [
