@@ -6,7 +6,7 @@
     "dir": "ltr",
     "lang": "en",
     "orientation": "portrait-primary",
-    "start_url": "/",
+    "start_url": ".",
     "background_color": "#23063C",
     "theme_color": "#23063C",
     "display": "standalone",
@@ -63,14 +63,14 @@
         {
           "name": "Your Governance Profile",
           "short_name": "Profile",
-          "url": "/profile",
-          "description": "View your DAO Profile"
+          "description": "View your DAO Profile",
+          "url": "/profile"
         },
         {
           "name": "Grape DAO Governance",
           "short_name": "Grape",
-          "url": "/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip",
-          "description": "Join & Participate in the OG DAO on Solana"
+          "description": "Join & Participate in the OG DAO on Solana",
+          "url": "/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"
         }
       ],
     "categories": [
