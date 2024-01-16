@@ -81,12 +81,6 @@
           "type": "image/png",
           "sizes": "512x512",
           "purpose": "any"
-        },
-        {
-          "src": "ios/maskable-512.png",
-          "type": "image/png",
-          "sizes": "512x512",
-          "purpose": "maskable"
         }
     ],
     "id": "app.governance.so",
