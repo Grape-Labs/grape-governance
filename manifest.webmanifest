@@ -64,27 +64,13 @@
           "name": "Your Governance Profile",
           "short_name": "Profile",
           "url": "/profile",
-          "description": "View your DAO Profile",
-          "icons": [
-              {
-                "src": "./src/public/ios/192.png",
-                "sizes": "192x192",
-                "purpose": "any"
-              }
-          ]
+          "description": "View your DAO Profile"
         },
         {
           "name": "Grape DAO Governance",
           "short_name": "Grape",
           "url": "/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip",
-          "description": "Join & Participate in the OG DAO on Solana",
-          "icons": [
-              {
-                "src": "./src/public/ios/192.png",
-                "sizes": "192x192",
-                "purpose": "any"
-              }
-          ]
+          "description": "Join & Participate in the OG DAO on Solana"
         }
       ],
     "categories": [
