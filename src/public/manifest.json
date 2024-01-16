@@ -47,43 +47,43 @@
     ],
     "icons": [
         {
-          "src": "/android/android-launchericon-48-48.png",
+          "src": "android/android-launchericon-48-48.png",
           "type": "image/png",
           "sizes": "48x48",
           "purpose": "any"
         },
         {
-          "src": "/android/android-launchericon-96-96.png",
+          "src": "android/android-launchericon-96-96.png",
           "type": "image/png",
           "sizes": "96x96",
           "purpose": "any"
         },
         {
-          "src": "/ios/144.png",
+          "src": "ios/144.png",
           "type": "image/png",
           "sizes": "144x144",
           "purpose": "any"
         },
         {
-          "src": "/ios/152.png",
+          "src": "ios/152.png",
           "type": "image/png",
           "sizes": "152x152",
           "purpose": "any"
         },
         {
-          "src": "/ios/192.png",
+          "src": "ios/192.png",
           "type": "image/png",
           "sizes": "192x192",
           "purpose": "any"
         },
         {
-          "src": "/ios/512.png",
+          "src": "ios/512.png",
           "type": "image/png",
           "sizes": "512x512",
           "purpose": "any"
         },
         {
-          "src": "/ios/maskable-512.png",
+          "src": "ios/maskable-512.png",
           "type": "image/png",
           "sizes": "512x512",
           "purpose": "maskable"
