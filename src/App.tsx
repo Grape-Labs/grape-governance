@@ -157,9 +157,13 @@ function DashboardContent() {
   ], [network]);
   
   const renderLoader = () => <p>Loading</p>;
-  
+
   React.useEffect(() => {
-    Notification.requestPermission();
+    try{
+      Notification.requestPermission();
+    }catch(e){
+      console.log("Err: "+e);
+    }
     inject();
 }, []);
 
