@@ -66,7 +66,7 @@
           "description": "See what is going on in realtime from all DAOs on Solana",
           "icons": [
             {
-              "src": "./src/public/short_feed.png",
+              "src": "./src/public/shortcut_user.png",
               "sizes": "512x512"
             }
           ]
@@ -77,7 +77,7 @@
           "description": "View the DAOs youa are participating in",
           "icons": [
             {
-              "src": "./src/public/short_user.png",
+              "src": "./src/public/shortcut_user.png",
               "sizes": "512x512"
             }
           ]
@@ -88,7 +88,7 @@
           "description": "The OG Community DAO of Solana",
           "icons": [
             {
-              "src": "./src/public/short_grape.png",
+              "src": "./src/public/shortcut_grape.png",
               "sizes": "512x512"
             }
           ]
