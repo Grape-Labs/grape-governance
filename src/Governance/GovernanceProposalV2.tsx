@@ -1388,9 +1388,8 @@ export function GovernanceProposalV2View(props: any){
                 if (url.hostname === "gist.github.com"){
 
                     setGist(tGist);
-                    
                     const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
-        
+                    
                     // Regular expression to match image URLs
                     const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
                     const stringWithPreviews = rpd.replace(imageUrlRegex, (match:any, imageUrl:any) => {

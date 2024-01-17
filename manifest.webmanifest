@@ -63,17 +63,35 @@
         {
           "name": "Realtime",
           "url": "/realtime",
-          "description": "See what is going on in realtime from all DAOs on Solana"
+          "description": "See what is going on in realtime from all DAOs on Solana",
+          "icons": [
+            {
+              "src": "./src/public/shortcut_feed.png",
+              "sizes": "192x192"
+            }
+          ]
         },
         {
           "name": "Profile",
           "url": "/profile",
-          "description": "View the DAOs you are participating in"
+          "description": "View the DAOs you are participating in",
+          "icons": [
+            {
+              "src": "./src/public/shortcut_user.png",
+              "sizes": "192x192"
+            }
+          ]
         },
         {
           "name": "Grape DAO",
           "url": "/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip",
-          "description": "The OG Community DAO of Solana"
+          "description": "The OG Community DAO of Solana",
+          "icons": [
+              {
+                "src": "./src/public/shortcut_grape.png",
+                "sizes": "192x192"
+              }
+          ]
         }
     ],
     "categories": [
