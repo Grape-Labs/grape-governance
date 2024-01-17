@@ -955,22 +955,26 @@ export function GovernanceMembersView(props: any) {
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Total Votes Deposited</>
                                                 </Typography>
+                                                
                                                 <Tooltip title={<>
-                                                        <Typography variant="subtitle2">
-                                                                <strong>Total Not Staked:</strong>
-                                                        </Typography>
-                                                        <Typography variant="body2">
-                                                            
-                                                            <ul>
-                                                            {/*totalVotesCasted && <>Total Votes Deposited</>}
-                                                            {(totalVotesCasted && totalDepositedCouncilVotes) &&
-                                                                <>/</>
-                                                            }
-                                                            {totalCouncilVotes && <>Total Council Votes Deposited</>*/}
-                                                            
-                                                            {totalUnstakedVotes ? <li>{getFormattedNumberToLocale(totalUnstakedVotes)} held in voter wallets</li> : <li>-</li>}
-                                                            </ul>
-                                                        </Typography>
+                                                    {totalUnstakedVotes ?
+                                                            <>
+                                                                <Typography variant="subtitle2">
+                                                                        <strong>Total Not Staked:</strong>
+                                                                </Typography>
+                                                                <Typography variant="body2">
+                                                                    
+                                                                    <ul>
+                                                                    {/*totalVotesCasted && <>Total Votes Deposited</>}
+                                                                    {(totalVotesCasted && totalDepositedCouncilVotes) &&
+                                                                        <>/</>
+                                                                    }
+                                                                    {totalCouncilVotes && <>Total Council Votes Deposited</>*/}
+                                                                    
+                                                                    <li>{getFormattedNumberToLocale(totalUnstakedVotes)} held in voter wallets</li> : <li>-</li>}
+                                                                    </ul>
+                                                                </Typography>
+                                                            </>:<>Votes Deposited &amp; Eligible to participate in this DAO</>}
                                                         </>
                                                     }>
                                                     <Button
@@ -997,6 +1001,7 @@ export function GovernanceMembersView(props: any) {
                                                         </Grid>
                                                     </Button>
                                                 </Tooltip>
+                                                
                                             </Box>
                                         </Grid>
                                         {circulatingSupply && 
