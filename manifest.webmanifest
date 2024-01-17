@@ -47,9 +47,15 @@
           "purpose": "any"
         },
         {
-          "src": "./src/public/ios/512.png",
+          "src": "./src/public/icon.png",
           "type": "image/png",
           "sizes": "512x512",
+          "purpose": "maskable"
+        },
+        {
+          "src": "./src/public/icon@2x.png",
+          "type": "image/png",
+          "sizes": "1024x1024",
           "purpose": "maskable"
         }
     ],
