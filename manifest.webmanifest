@@ -117,7 +117,7 @@
         "sizes": "2796x1290",
         "type": "image/png",
         "platform": "android",
-        "form_factor": "wide",
+        "form_factor": "narrow",
         "label": "DAO Voter Management"
       }
     ]
