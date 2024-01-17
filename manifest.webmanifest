@@ -113,7 +113,7 @@
         "label": "Mobile Wallet"
       },
       {
-        "src": "./src/public/scrn_wallet.png",
+        "src": "./src/public/scrn_connect_tools.png",
         "sizes": "2796x1290",
         "type": "image/png",
         "platform": "android",
