@@ -36,12 +36,10 @@ async function fetchGistFile(gistUrl: string) {
   }
   const pieces = gistUrl.match(urlRegex)
 
-  //alert(gistUrl)
   
   if (pieces) {
     const justIdWithoutUser = pieces[4]
 
-    alert(justIdWithoutUser)
     if (justIdWithoutUser) {
       const apiUrl = 'https://api.github.com/gists/' + justIdWithoutUser
       const apiResponse = await axios.get(apiUrl, {
