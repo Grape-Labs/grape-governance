@@ -81,16 +81,164 @@
     ],
     "screenshots" : [
       {
-        "src": "./src/public/governance_(Samsung Galaxy S20 Ultra).png",
-        "sizes": "995x2208",
+        "src": "./src/public/scrn_proposal.png",
+        "sizes": "1290x2796",
         "type": "image/png",
-        "platform": "android"
+        "platform": "android",
+        "form_factor": "narrow",
+        "label": "Proposal View"
       },
       {
-        "src": "./src/public/governance_(Samsung Galaxy S20 Ultra) (1).png",
-        "sizes": "995x2208",
+        "src": "./src/public/scrn_realtime.png",
+        "sizes": "1290x2796",
         "type": "image/png",
-        "platform": "android"
+        "platform": "android",
+        "form_factor": "narrow",
+        "label": "Realtime"
+      },
+      {
+        "src": "./src/public/scrn_governance.png",
+        "sizes": "1290x2796",
+        "type": "image/png",
+        "platform": "android",
+        "form_factor": "narrow",
+        "label": "Directory"
+      },
+      {
+        "src": "./src/public/scrn_wallet.png",
+        "sizes": "1290x2796",
+        "type": "image/png",
+        "platform": "android",
+        "form_factor": "narrow",
+        "label": "Mobile Wallet"
+      },
+      {
+        "src": "./src/public/scrn_wallet.png",
+        "sizes": "2796x1290",
+        "type": "image/png",
+        "platform": "android",
+        "form_factor": "wide",
+        "label": "DAO Voter Management"
+      },
+      {
+        "src": "./src/public/scrn_proposal.png",
+        "sizes": "1290x2796",
+        "type": "image/png",
+        "platform": "play",
+        "form_factor": "narrow",
+        "label": "Proposal View"
+      },
+      {
+        "src": "./src/public/scrn_realtime.png",
+        "sizes": "1290x2796",
+        "type": "image/png",
+        "platform": "play",
+        "form_factor": "narrow",
+        "label": "Realtime"
+      },
+      {
+        "src": "./src/public/scrn_governance.png",
+        "sizes": "1290x2796",
+        "type": "image/png",
+        "platform": "play",
+        "form_factor": "narrow",
+        "label": "Directory"
+      },
+      {
+        "src": "./src/public/scrn_wallet.png",
+        "sizes": "1290x2796",
+        "type": "image/png",
+        "platform": "play",
+        "form_factor": "narrow",
+        "label": "Mobile Wallet"
+      },
+      {
+        "src": "./src/public/scrn_wallet.png",
+        "sizes": "2796x1290",
+        "type": "image/png",
+        "platform": "play",
+        "form_factor": "wide",
+        "label": "DAO Voter Management"
+      },
+      {
+        "src": "./src/public/scrn_proposal.png",
+        "sizes": "1290x2796",
+        "type": "image/png",
+        "platform": "ios",
+        "form_factor": "narrow",
+        "label": "Proposal View"
+      },
+      {
+        "src": "./src/public/scrn_realtime.png",
+        "sizes": "1290x2796",
+        "type": "image/png",
+        "platform": "ios",
+        "form_factor": "narrow",
+        "label": "Realtime"
+      },
+      {
+        "src": "./src/public/scrn_governance.png",
+        "sizes": "1290x2796",
+        "type": "image/png",
+        "platform": "ios",
+        "form_factor": "narrow",
+        "label": "Directory"
+      },
+      {
+        "src": "./src/public/scrn_wallet.png",
+        "sizes": "1290x2796",
+        "type": "image/png",
+        "platform": "ios",
+        "form_factor": "narrow",
+        "label": "Mobile Wallet"
+      },
+      {
+        "src": "./src/public/scrn_wallet.png",
+        "sizes": "2796x1290",
+        "type": "image/png",
+        "platform": "ios",
+        "form_factor": "wide",
+        "label": "DAO Voter Management"
+      },
+      {
+        "src": "./src/public/scrn_proposal.png",
+        "sizes": "1290x2796",
+        "type": "image/png",
+        "platform": "itunes",
+        "form_factor": "narrow",
+        "label": "Proposal View"
+      },
+      {
+        "src": "./src/public/scrn_realtime.png",
+        "sizes": "1290x2796",
+        "type": "image/png",
+        "platform": "itunes",
+        "form_factor": "narrow",
+        "label": "Realtime"
+      },
+      {
+        "src": "./src/public/scrn_governance.png",
+        "sizes": "1290x2796",
+        "type": "image/png",
+        "platform": "itunes",
+        "form_factor": "narrow",
+        "label": "Directory"
+      },
+      {
+        "src": "./src/public/scrn_wallet.png",
+        "sizes": "1290x2796",
+        "type": "image/png",
+        "platform": "itunes",
+        "form_factor": "narrow",
+        "label": "Mobile Wallet"
+      },
+      {
+        "src": "./src/public/scrn_wallet.png",
+        "sizes": "2796x1290",
+        "type": "image/png",
+        "platform": "itunes",
+        "form_factor": "wide",
+        "label": "DAO Voter Management"
       }
     ]
     
