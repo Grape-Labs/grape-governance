@@ -2,7 +2,7 @@
     "name": "Governance",
     "short_name": "Governance",
     "description": "Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS",
-    "id": "governance.so",
+    "id": "app.governance.so",
     "dir": "ltr",
     "lang": "en",
     "orientation": "any",
