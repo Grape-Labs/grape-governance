@@ -63,7 +63,7 @@ import {
     FormControlLabel
 } from '@mui/material';
 
-import ClickAwayListener from '@mui/base/ClickAwayListener';
+import ClickAwayListener from '@mui/material/ClickAwayListener';
 
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 

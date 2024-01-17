@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const urlRegex =
   // eslint-disable-next-line
-  /(https:\/\/)(gist\.github.com\/)([\w-\/]{1,39}\/)([\w]{1,32})/
+  /(https:\/\/)(gist\.github.com\/)([\w-\d\/]{1,39}\/)([\w]{1,32})/
   //https://gist.github.com/eth-alex/70b10cec9592dfd68fce2bf793fcf99a
   //https://gist.github.com/grapemaster/ee181dd429cbab0056dd643f1d35c4e1
   
