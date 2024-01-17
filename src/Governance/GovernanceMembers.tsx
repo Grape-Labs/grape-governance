@@ -960,7 +960,7 @@ export function GovernanceMembersView(props: any) {
                                                     {totalUnstakedVotes ?
                                                             <>
                                                                 <Typography variant="subtitle2">
-                                                                        <strong>Total Not Staked:</strong>
+                                                                    <strong>Total Not Staked:</strong>
                                                                 </Typography>
                                                                 <Typography variant="body2">
                                                                     
