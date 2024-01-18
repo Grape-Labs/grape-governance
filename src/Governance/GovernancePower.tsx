@@ -3,8 +3,6 @@ import { PublicKey, TokenAmount, Connection, TransactionInstruction, Transaction
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useWallet } from '@solana/wallet-adapter-react';
 import React, { useCallback } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
 import { 
     TOKEN_PROGRAM_ID, 

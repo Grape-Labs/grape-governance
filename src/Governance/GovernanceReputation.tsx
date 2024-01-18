@@ -13,8 +13,6 @@ import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
 import Gist from 'react-gist';
 import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
 import dayjs, { Dayjs } from 'dayjs';
 

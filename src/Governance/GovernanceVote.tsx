@@ -41,13 +41,6 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
 import React, { useCallback } from 'react';
 import { styled, useTheme, ThemeProvider } from '@mui/material/styles';
-import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
-import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
-import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
-import { InstructionMapping } from "../utils/grapeTools/InstructionMapping";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkImages from 'remark-images';
 
 import { trimAddress } from "../utils/grapeTools/WalletAddress";
 

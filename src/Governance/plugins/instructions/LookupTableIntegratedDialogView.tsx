@@ -4,9 +4,6 @@ import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-bas
 import React, { useCallback } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkImages from 'remark-images';
 
 import {
   Typography,

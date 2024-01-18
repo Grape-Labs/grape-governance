@@ -49,10 +49,11 @@ import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github'
 
 import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 
+/*
 import { 
     tryGetName,
 } from '@cardinal/namespaces';
-
+*/
 import { TldParser, NameRecordHeader } from "@onsol/tldparser";
 
 import { getProfilePicture } from '@solflare-wallet/pfp';
@@ -368,10 +369,12 @@ const getSocialConnections = async(address: string) => {
             //const identity = await cardinalResolver.resolveReverse(address);
             //console.log("identity "+JSON.stringify(cardinal_registration))
             
-            const cardinal_registration = await tryGetName(
+
+            const cardinal_registration = null;
+            /*await tryGetName(
                 connection, 
                 new PublicKey(address)
-            );
+            );*/
             
             if (cardinal_registration){
                 found_cardinal = true;

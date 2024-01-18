@@ -8,13 +8,6 @@ import React, { useCallback } from 'react';
 import { Link, useParams, useSearchParams, useNavigate } from "react-router-dom";
 //import { useHistory } from "react-router";
 import { styled, useTheme } from '@mui/material/styles';
-import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
-import Gist from 'react-gist';
-import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
-import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import base58 from 'bs58'
 import Confetti from 'react-dom-confetti';
 import { useSnackbar } from 'notistack';
 import { createProposalInstructionsLegacy } from './Proposals/createProposalInstructionsLegacy';

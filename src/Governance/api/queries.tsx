@@ -138,6 +138,9 @@ const client = new ApolloClient({
     //uri: 'https://programs.shyft.to/v0/graphql/?api_key='+SHYFT_KEY,
     uri: 'https://grape.shyft.to/v1/graphql/',
     cache: new InMemoryCache(),
+    headers: {
+        'Accept-Encoding': 'gzip'
+    }
 });
 
 function GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk?:string, realmOwner?:string){
