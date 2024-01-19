@@ -676,6 +676,28 @@ const getAllDomains = async(address: string) => {
 }
 
 
+const getWalletAllTokenBalance = async(tokenOwnerRecord: PublicKey) => {
+
+    const uri = `https://api.shyft.to/sol/v1/wallet/all_tokens?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}}`;
+
+    return axios.get(uri, {
+        headers: {
+            'x-api-key': SHYFT_KEY
+        }
+        })
+        .then(response => {
+            if (response.data?.result){
+                return response.data.result;
+            }
+            return null
+        })
+        .catch(error => 
+            {   
+                // revert to RPC
+                console.error(error);
+                return null;
+            });
+}
 
 const getWalletBalance = async(tokenOwnerRecord: PublicKey, mint: PublicKey) => {
 
@@ -700,11 +722,11 @@ const getWalletBalance = async(tokenOwnerRecord: PublicKey, mint: PublicKey) => 
             });
 }
 
-const getParsedTransaction = async(signature: string) => {
+const getParsedTransaction = async(txn_signature: string) => {
 
-    const uri = `https://api.shyft.to/sol/v1/transaction/parsed?network=mainnet-beta&txn_signature=${signature}`;
+    const uri = `https://api.shyft.to/sol/v1/transaction/parsed?network=mainnet-beta&txn_signature=${txn_signature}`;
 
-        axios.get(uri, {
+    return axios.get(uri, {
         headers: {
             'x-api-key': SHYFT_KEY
         }
@@ -724,7 +746,7 @@ const getParsedTransaction = async(signature: string) => {
                 return null;
                 //const parsedTx = await connection.getParsedTransaction(emitItem.signature);
                 //return parsedTx;                     
-            });
+        });
 }
 
 const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, wallet: any, setPrimaryStatus: any, setStatus: any) => {
@@ -1452,241 +1474,245 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         // check token owner records
         let mcount = 0;
         const cachedSignatureData = new Array();
-        for (const owner of rawTokenOwnerRecords){
-            mcount++;
-            if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance");
-            const tokenOwnerRecord = owner.account.governingTokenOwner;
-            
-            // IMPORTANT to speed this up check first tx for mmember wallet...
-            
-            var hasBeenFound = false;
-            var hasFtd = false;
-            var hasMltsg = false;
-            var hasWalletCommunityBalance = false;
-            var hasWalletCouncilBalance = false;
-            var hasAwards = false;
-            const sizeLimit = 1000;
-            let cacheMemberSize = null;
-            
-            if (cached_members && cached_members.length > 0){
-                for (let cachedOwner of cached_members){ // smart fetching so we do not query this call again
-                    if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord.toBase58()){
-                        hasBeenFound = true;
-                        
-                        // get any handles / domains linked
-                        //if (cachedOwner?.socialConnections && cachedOwner.account.governingTokenOwner !== '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8'){
-                        if (cachedOwner?.socialConnections){
-                            owner.socialConnections = cachedOwner?.socialConnections;
-                        } else{
-                            const socialConnections = await getSocialConnections(tokenOwnerRecord.toBase58());
-                            if (socialConnections){
-                                owner.socialConnections = socialConnections;
-                                console.log("socialConnections "+tokenOwnerRecord.toBase58()+": "+JSON.stringify(socialConnections))
-                            }else {
-                                owner.socialConnections = null;
-                                console.log("no socialConnections for "+tokenOwnerRecord.toBase58()+"")
+        const sizeLimit = 2000;
+        const processVoterRecordDetails = rawTokenOwnerRecords.length > sizeLimit ? false : true;
+        
+        if (processVoterRecordDetails){
+            for (const owner of rawTokenOwnerRecords){
+                mcount++;
+                if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance");
+                const tokenOwnerRecord = owner.account.governingTokenOwner;
+                
+                // IMPORTANT to speed this up check first tx for mmember wallet...
+                
+                var hasBeenFound = false;
+                var hasFtd = false;
+                var hasMltsg = false;
+                var hasWalletCommunityBalance = false;
+                var hasWalletCouncilBalance = false;
+                var hasAwards = false;
+                let cacheMemberSize = null;
+                
+                if (cached_members && cached_members.length > 0){
+                    for (let cachedOwner of cached_members){ // smart fetching so we do not query this call again
+                        if (cachedOwner.account.governingTokenOwner === tokenOwnerRecord.toBase58()){
+                            hasBeenFound = true;
+                            
+                            // get any handles / domains linked
+                            //if (cachedOwner?.socialConnections && cachedOwner.account.governingTokenOwner !== '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8'){
+                            if (cachedOwner?.socialConnections){
+                                owner.socialConnections = cachedOwner?.socialConnections;
+                            } else{
+                                const socialConnections = await getSocialConnections(tokenOwnerRecord.toBase58());
+                                if (socialConnections){
+                                    owner.socialConnections = socialConnections;
+                                    console.log("socialConnections "+tokenOwnerRecord.toBase58()+": "+JSON.stringify(socialConnections))
+                                }else {
+                                    owner.socialConnections = null;
+                                    console.log("no socialConnections for "+tokenOwnerRecord.toBase58()+"")
+                                }
                             }
-                        }
-                        
-                        if (cachedOwner?.firstTransactionDate){
-                            owner.firstTransactionDate = cachedOwner.firstTransactionDate;
-                            hasFtd = true;
-                        }
-                        if (cachedOwner?.multisigs){
-                            owner.multisigs = cachedOwner?.multisigs;
-                            hasMltsg = true;
-                        }
-                        if (cachedOwner?.walletBalance){
-                            owner.walletBalance = cachedOwner.walletBalance;
-                            hasWalletCommunityBalance = true;
-                        }
-                        if (cachedOwner?.walletCouncilBalance){
-                            owner.walletCouncilBalance = cachedOwner.walletCouncilBalance;
-                            hasWalletCouncilBalance = true;
-                        }
-                        if (cachedOwner?.governanceAwards && cachedOwner?.governanceAwardDetails){
-                            if (!getAwards){
-                                owner.governanceAwards = cachedOwner.governanceAwards;
-                                owner.governanceAwardDetails = cachedOwner.governanceAwardDetails;
-                                hasAwards = true;
+                            
+                            if (cachedOwner?.firstTransactionDate){
+                                owner.firstTransactionDate = cachedOwner.firstTransactionDate;
+                                hasFtd = true;
                             }
-                        }
-                        
-                    }
-                }
-                cacheMemberSize = cached_members.length;
-            }
-
-            if (!hasBeenFound){
-
-            }
-
-            if (!hasAwards){
-                console.log("Checking Award Emitted...")
-                if (grealm.account?.communityMint){
-                    // get all emitted to this wallet
-                    // we should save also all instances to keep historic data
-                    if (governanceEmitted && governanceEmitted.length > 0){
-                        
-
-                        for (let emitItem of governanceEmitted){
-                            if (emitItem.tokenTransfers){
-                                if (!excludeSignatures.some(address => emitItem.signature.includes(address))){ // this cannot take into consideration rewards! Check inner instructions also
-                                    
-                                    for (let tTransfer of emitItem.tokenTransfers){
-                                        let awardWallet = false;
-                                        
-                                        let linkedWallet = null;
-                                        if (linkedWallets.hasOwnProperty(tokenOwnerRecord.toBase58())) {
-                                            linkedWallet = linkedWallets[tokenOwnerRecord.toBase58()];
-                                        }
-
-                                        if (tTransfer.toUserAccount === tokenOwnerRecord.toBase58() &&
-                                            tTransfer.toUserAccount !== "GrapevviL94JZRiZwn2LjpWtmDacXU8QhAJvzpUMMFdL"){
-                                                awardWallet = true;
-                                        } else if (tTransfer.toUserAccount === linkedWallet &&
-                                            tTransfer.toUserAccount !== "GrapevviL94JZRiZwn2LjpWtmDacXU8QhAJvzpUMMFdL"){
-                                                awardWallet = true;
-                                        }  
-                                        
-                                        if (tTransfer.fromTokenAccount === "6WQ1cjJWPz9Ab72iL1myK19Uza8ESty9STSq4WBXkde9" &&
-                                            tTransfer.toUserAccount === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"){
-                                            
-                                            //tTransfer.toUserAccount === tokenOwnerRecord.toBase58() &&
-                                            //tTransfer.toUserAccount === linkedWallet){//"By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"){
-                                            
-                                            let foundSig = false;
-                                            for (let sig of cachedSignatureData){
-                                                if (sig.signature === emitItem.signature)
-                                                    foundSig = true;
-                                            }
-                                            if (!foundSig){
-
-                                                //const parsedTx = await getParsedTransaction(emitItem.signature);
-                                                const parsedTx = await connection.getParsedTransaction(emitItem.signature);
-                                                
-                                                cachedSignatureData.push({
-                                                    signature:emitItem.signature,
-                                                    transaction:parsedTx
-                                                });
-
-                                                //console.log("Found Grant Voting Power #("+cachedSignatureData.length+") "+JSON.stringify(tTransfer));
-                                                //console.log("Found Grant Voting Power #1 AD "+JSON.stringify(parsedTx));
-                                            }
-
-                                            //if (tTransfer.toUserAccount === address) { // i.e. 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip'
-                                            // check any of the accountData items if it matches (grant will have no balance change)
-                                            for (let sig of cachedSignatureData){
-                                                if (sig.signature === emitItem.signature){
-                                                    
-                                                    if (sig.transaction.meta.innerInstructions[0].instructions[0].accounts[3].toBase58() === tokenOwnerRecord.toBase58())  {
-                                                        awardWallet = true;
-                                                        console.log("******* Grant Voting Power Found ("+tokenOwnerRecord.toBase58()+")!!! *******")
-                                                    }
-                                                
-                                                }
-                                            }
-                                            
-                                        }
-
-                                        if (awardWallet){
-                                            if (owner?.governanceAwards){
-                                                owner.governanceAwards += +tTransfer.tokenAmount;
-                                                owner.governanceAwardDetails.push({
-                                                    tokenTransfers:tTransfer,
-                                                    signature:emitItem.signature,
-                                                    timestamp:emitItem.timestamp
-                                                });
-                                            }else{
-                                                owner.governanceAwards = +tTransfer.tokenAmount;
-                                                owner.governanceAwardDetails = new Array();
-                                                owner.governanceAwardDetails.push({
-                                                    tokenTransfers:tTransfer,
-                                                    signature:emitItem.signature,
-                                                    timestamp:emitItem.timestamp
-                                                });
-                                            }
-                                            //if (+tTransfer.tokenAmount >= 200000)
-                                            //    console.log("Emitted rewards (> 200k) "+tTransfer.toUserAccount+" (source: "+tTransfer.fromUserAccount+"): "+tTransfer.tokenAmount+" balance: "+owner.governanceAwards + " - sig: "+emitItem.signature)
-                                        }
-                                        
-                                    }
-                                } 
-
+                            if (cachedOwner?.multisigs){
+                                owner.multisigs = cachedOwner?.multisigs;
+                                hasMltsg = true;
                             }
+                            if (cachedOwner?.walletBalance){
+                                owner.walletBalance = cachedOwner.walletBalance;
+                                hasWalletCommunityBalance = true;
+                            }
+                            if (cachedOwner?.walletCouncilBalance){
+                                owner.walletCouncilBalance = cachedOwner.walletCouncilBalance;
+                                hasWalletCouncilBalance = true;
+                            }
+                            if (cachedOwner?.governanceAwards && cachedOwner?.governanceAwardDetails){
+                                if (!getAwards){
+                                    owner.governanceAwards = cachedOwner.governanceAwards;
+                                    owner.governanceAwardDetails = cachedOwner.governanceAwardDetails;
+                                    hasAwards = true;
+                                }
+                            }
+                            
                         }
                     }
+                    cacheMemberSize = cached_members.length;
                 }
-            }
 
-            /*
-            //if (!hasWalletCommunityBalance || hoursDiff > (24*3)){ // refresh every 3 days
-                //if (tokenOwnerRecord.toBase58() === 'KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT'){
-                //if (tokenOwnerRecord.toBase58() === '3PKhzE9wuEkGPHHu2sNCvG86xNtDJduAcyBPXpE6cSNt'){
-                    const url = `https://api.helius.xyz/v0/addresses/${tokenOwnerRecord.toBase58()}/transactions?api-key=${HELIUS_API}&type=TRANSFER`
-                    const response = await fetch(url);
-                    const data = await response.json();
-                    console.log(tokenOwnerRecord.toBase58()+" wallet transactions: ", data);
-                //}
-            //}
-            */
+                if (!hasBeenFound){
 
-            //if (cacheMemberSize && cacheMemberSize <= sizeLimit){
-                if (!hasWalletCommunityBalance || hoursDiff > (24*3)){ // refresh every 3 days
+                }
+
+                if (!hasAwards){
+                    console.log("Checking Award Emitted...")
                     if (grealm.account?.communityMint){
-                        
-                        // RPC Fetch
-                        const balance = await getWalletBalance(tokenOwnerRecord, grealm.account.communityMint)
-                        if (balance){
-                            owner.walletBalance = balance;
-                        }else{
-                            const rpcBalance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.communityMint});
-                            //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
-                            if (rpcBalance?.value[0]?.account?.data?.parsed?.info)    
-                                owner.walletBalance = rpcBalance.value[0].account.data.parsed.info;
+                        // get all emitted to this wallet
+                        // we should save also all instances to keep historic data
+                        if (governanceEmitted && governanceEmitted.length > 0){
+                            
+
+                            for (let emitItem of governanceEmitted){
+                                if (emitItem.tokenTransfers){
+                                    if (!excludeSignatures.some(address => emitItem.signature.includes(address))){ // this cannot take into consideration rewards! Check inner instructions also
+                                        
+                                        for (let tTransfer of emitItem.tokenTransfers){
+                                            let awardWallet = false;
+                                            
+                                            let linkedWallet = null;
+                                            if (linkedWallets.hasOwnProperty(tokenOwnerRecord.toBase58())) {
+                                                linkedWallet = linkedWallets[tokenOwnerRecord.toBase58()];
+                                            }
+
+                                            if (tTransfer.toUserAccount === tokenOwnerRecord.toBase58() &&
+                                                tTransfer.toUserAccount !== "GrapevviL94JZRiZwn2LjpWtmDacXU8QhAJvzpUMMFdL"){
+                                                    awardWallet = true;
+                                            } else if (tTransfer.toUserAccount === linkedWallet &&
+                                                tTransfer.toUserAccount !== "GrapevviL94JZRiZwn2LjpWtmDacXU8QhAJvzpUMMFdL"){
+                                                    awardWallet = true;
+                                            }  
+                                            
+                                            if (tTransfer.fromTokenAccount === "6WQ1cjJWPz9Ab72iL1myK19Uza8ESty9STSq4WBXkde9" &&
+                                                tTransfer.toUserAccount === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"){
+                                                
+                                                //tTransfer.toUserAccount === tokenOwnerRecord.toBase58() &&
+                                                //tTransfer.toUserAccount === linkedWallet){//"By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip"){
+                                                
+                                                let foundSig = false;
+                                                for (let sig of cachedSignatureData){
+                                                    if (sig.signature === emitItem.signature)
+                                                        foundSig = true;
+                                                }
+                                                if (!foundSig){
+
+                                                    //const parsedTx = await getParsedTransaction(emitItem.signature);
+                                                    const parsedTx = await connection.getParsedTransaction(emitItem.signature);
+                                                    
+                                                    cachedSignatureData.push({
+                                                        signature:emitItem.signature,
+                                                        transaction:parsedTx
+                                                    });
+
+                                                    //console.log("Found Grant Voting Power #("+cachedSignatureData.length+") "+JSON.stringify(tTransfer));
+                                                    //console.log("Found Grant Voting Power #1 AD "+JSON.stringify(parsedTx));
+                                                }
+
+                                                //if (tTransfer.toUserAccount === address) { // i.e. 'By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip'
+                                                // check any of the accountData items if it matches (grant will have no balance change)
+                                                for (let sig of cachedSignatureData){
+                                                    if (sig.signature === emitItem.signature){
+                                                        
+                                                        if (sig.transaction.meta.innerInstructions[0].instructions[0].accounts[3].toBase58() === tokenOwnerRecord.toBase58())  {
+                                                            awardWallet = true;
+                                                            console.log("******* Grant Voting Power Found ("+tokenOwnerRecord.toBase58()+")!!! *******")
+                                                        }
+                                                    
+                                                    }
+                                                }
+                                                
+                                            }
+
+                                            if (awardWallet){
+                                                if (owner?.governanceAwards){
+                                                    owner.governanceAwards += +tTransfer.tokenAmount;
+                                                    owner.governanceAwardDetails.push({
+                                                        tokenTransfers:tTransfer,
+                                                        signature:emitItem.signature,
+                                                        timestamp:emitItem.timestamp
+                                                    });
+                                                }else{
+                                                    owner.governanceAwards = +tTransfer.tokenAmount;
+                                                    owner.governanceAwardDetails = new Array();
+                                                    owner.governanceAwardDetails.push({
+                                                        tokenTransfers:tTransfer,
+                                                        signature:emitItem.signature,
+                                                        timestamp:emitItem.timestamp
+                                                    });
+                                                }
+                                                //if (+tTransfer.tokenAmount >= 200000)
+                                                //    console.log("Emitted rewards (> 200k) "+tTransfer.toUserAccount+" (source: "+tTransfer.fromUserAccount+"): "+tTransfer.tokenAmount+" balance: "+owner.governanceAwards + " - sig: "+emitItem.signature)
+                                            }
+                                            
+                                        }
+                                    } 
+
+                                }
+                            }
                         }
                     }
                 }
-                if (!hasWalletCouncilBalance || hoursDiff > (24*30)){ // refresh every 30 days
-                    if (grealm.account?.councilMint){
-                        
-                        const balance = await getWalletBalance(tokenOwnerRecord, grealm.account.councilMint);
-                        if (balance){
-                            owner.walletCouncilBalance = balance;
-                        }else{
-                            const rpcBalance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.councilMint});
-                            //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
-                            if (rpcBalance?.value[0]?.account?.data?.parsed?.info)    
-                                owner.walletCouncilBalance = rpcBalance.value[0].account.data.parsed.info;
+
+                /*
+                //if (!hasWalletCommunityBalance || hoursDiff > (24*3)){ // refresh every 3 days
+                    //if (tokenOwnerRecord.toBase58() === 'KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT'){
+                    //if (tokenOwnerRecord.toBase58() === '3PKhzE9wuEkGPHHu2sNCvG86xNtDJduAcyBPXpE6cSNt'){
+                        const url = `https://api.helius.xyz/v0/addresses/${tokenOwnerRecord.toBase58()}/transactions?api-key=${HELIUS_API}&type=TRANSFER`
+                        const response = await fetch(url);
+                        const data = await response.json();
+                        console.log(tokenOwnerRecord.toBase58()+" wallet transactions: ", data);
+                    //}
+                //}
+                */
+
+                //if (cacheMemberSize && cacheMemberSize <= sizeLimit){
+                    if (!hasWalletCommunityBalance || hoursDiff > (24*3)){ // refresh every 3 days
+                        if (grealm.account?.communityMint){
+                            
+                            // RPC Fetch
+                            const balance = await getWalletBalance(tokenOwnerRecord, grealm.account.communityMint)
+                            if (balance){
+                                owner.walletBalance = balance;
+                            }else{
+                                const rpcBalance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.communityMint});
+                                //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
+                                if (rpcBalance?.value[0]?.account?.data?.parsed?.info)    
+                                    owner.walletBalance = rpcBalance.value[0].account.data.parsed.info;
+                            }
                         }
                     }
-                }
-            //}
+                    if (!hasWalletCouncilBalance || hoursDiff > (24*30)){ // refresh every 30 days
+                        if (grealm.account?.councilMint){
+                            
+                            const balance = await getWalletBalance(tokenOwnerRecord, grealm.account.councilMint);
+                            if (balance){
+                                owner.walletCouncilBalance = balance;
+                            }else{
+                                const rpcBalance = await connection.getParsedTokenAccountsByOwner(tokenOwnerRecord,{mint:grealm.account.councilMint});
+                                //console.log(tokenOwnerRecord.toBase58()+" "+JSON.stringify(balance));
+                                if (rpcBalance?.value[0]?.account?.data?.parsed?.info)    
+                                    owner.walletCouncilBalance = rpcBalance.value[0].account.data.parsed.info;
+                            }
+                        }
+                    }
+                //}
 
-            if (!hasMltsg || hoursDiff > (24*15)){ // refresh every 15 days
-                try{
-                    const squadsMultisigs = "https://rust-api-sd2oj.ondigitalocean.app/multisig?address="+tokenOwnerRecord.toBase58()+"&useProd=true"
-                    const multisigs = await window.fetch(squadsMultisigs).then(
-                        (res: any) => res.json());
-                    if (multisigs?.multisigs)
-                        owner.multisigs = multisigs;
-                    else
-                        owner.multisigs = {multisigs:[]};
-                }catch(merr){
-                    console.log("ERR: "+merr);
+                if (!hasMltsg || hoursDiff > (24*15)){ // refresh every 15 days
+                    try{
+                        const squadsMultisigs = "https://rust-api-sd2oj.ondigitalocean.app/multisig?address="+tokenOwnerRecord.toBase58()+"&useProd=true"
+                        const multisigs = await window.fetch(squadsMultisigs).then(
+                            (res: any) => res.json());
+                        if (multisigs?.multisigs)
+                            owner.multisigs = multisigs;
+                        else
+                            owner.multisigs = {multisigs:[]};
+                    }catch(merr){
+                        console.log("ERR: "+merr);
+                    }
                 }
+
+                if (!hasFtd){
+                    let ftd = await getFirstTransactionDate(tokenOwnerRecord.toBase58());
+                    if (ftd){
+                        const txBlockTime = moment.unix(ftd)
+                        owner.firstTransactionDate = ftd;
+                        console.log("First Transaction Date for "+tokenOwnerRecord.toBase58()+": "+txBlockTime.format('llll'));
+                        if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance - "+tokenOwnerRecord.toBase58()+" "+txBlockTime.format(''));
+                    }
+                }
+
             }
-
-            if (!hasFtd){
-                let ftd = await getFirstTransactionDate(tokenOwnerRecord.toBase58());
-                if (ftd){
-                    const txBlockTime = moment.unix(ftd)
-                    owner.firstTransactionDate = ftd;
-                    console.log("First Transaction Date for "+tokenOwnerRecord.toBase58()+": "+txBlockTime.format('llll'));
-                    if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance - "+tokenOwnerRecord.toBase58()+" "+txBlockTime.format(''));
-                }
-            }
-
         }
 
         if (setPrimaryStatus) setPrimaryStatus("Fetching All Proposals");
@@ -2261,20 +2287,28 @@ const getFirstTransactionDate = async(walletAddress:string) => {
     const firstTransactionSignature = signaturesArray[signaturesArray.length - 1];
     //console.log("firstTransactionSignature: "+JSON.stringify(firstTransactionSignature))
     //const transactionDetails = await connection.getConfirmedTransaction(firstTransactionSignature);
-    if (firstTransactionSignature){    
-        // const transactionDetails = await getParsedTransaction(firstTransactionSignature);
-        const transactionDetails = (await connection.getParsedTransaction(firstTransactionSignature, {"commitment":"confirmed","maxSupportedTransactionVersion":0}));
-        if (transactionDetails?.blockTime){
-            const txBlockTime = moment.unix(transactionDetails.blockTime);
-            //console.log("txBlockTime: "+txBlockTime.format('YYYY-MM-DD HH:mm'))
-            //const txSlot = moment(new Date(transactionDetails.slot * 1000));
-            //console.log("txSlot: "+txSlot.format('YYYY-MM-DD HH:mm'))
+    if (firstTransactionSignature){  
+        
+        let transactionDetails = await getParsedTransaction(firstTransactionSignature);
+        
+        if (!transactionDetails){
+            transactionDetails = (await connection.getParsedTransaction(firstTransactionSignature, {"commitment":"confirmed","maxSupportedTransactionVersion":0}));
+            if (transactionDetails?.blockTime){
+                const txBlockTime = moment.unix(transactionDetails.blockTime);
+                //console.log("txBlockTime: "+txBlockTime.format('YYYY-MM-DD HH:mm'))
+                //const txSlot = moment(new Date(transactionDetails.slot * 1000));
+                //console.log("txSlot: "+txSlot.format('YYYY-MM-DD HH:mm'))
 
-            //return new Date(transactionDetails.slot * 1000);
-            return transactionDetails.blockTime;
-        } else{
-            return null;
+                //return new Date(transactionDetails.slot * 1000);
+                return transactionDetails.blockTime;
+            } else{
+                return null;
+            }
+        } else {
+            return moment(transactionDetails.timestamp).unix();
         }
+
+
     } else{
         return null;
     }
