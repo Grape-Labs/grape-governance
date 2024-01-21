@@ -67,6 +67,7 @@ import ClickAwayListener from '@mui/material/ClickAwayListener';
 
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 
+import InstallMobileIcon from '@mui/icons-material/InstallMobile';
 import PodcastsIcon from '@mui/icons-material/Podcasts';
 import HomeIcon from '@mui/icons-material/Home';
 import PersonIcon from '@mui/icons-material/Person';
@@ -231,7 +232,7 @@ export function Header(props: any) {
     const searchParams = new URLSearchParams(location.search);
     //const [fetchType, setFetchType] = React.useState(currPath.includes("rpcgovernance") ? "rpcgovernance" : currPath.includes("metrics") ? "metrics" : currPath.includes("members") ? "members" : currPath.includes("treasury") ? "treasury" : "cachedgovernance");
     const [fetchType, setFetchType] = React.useState(currPath.includes("rpcgovernance") ? "rpcgovernance" : "dao");
-    
+    const [showInstallAppButton, setShowInstallAppButton] = React.useState(false);
     const [anchorEl, setAnchorEl] = React.useState(null);
     const isWalletOpen = Boolean(anchorEl);
     const [newinputpkvalue, setNewInputPKValue] = React.useState("");
@@ -333,10 +334,34 @@ export function Header(props: any) {
         }
     }
 
+    const installApp = (event: any) => {
+        alert("HERE!");
+
+        event.show();
+        event.userChoice.then(choiceResult => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('App installed');
+            } else {
+                console.log('App installation declined');
+            }
+
+            setShowInstallAppButton(false);
+                
+        });
+    }
+
     React.useEffect(() => { 
         if (!governanceAutocomplete){
             getGovernanceLookupFile();
         }
+        
+        if (navigator.serviceWorker && window.PushManager) {
+        //if ('serviceWorker' in navigator && 'PushManager' in window) {
+	        window.addEventListener('beforeinstallprompt', (e) => {
+	            e.preventDefault();
+				setShowInstallAppButton(true);
+	        });
+	    }
     }, []);
 
     React.useEffect(() => {
@@ -393,6 +418,17 @@ export function Header(props: any) {
                             <Tooltip title={`Go to SPL Governance`}><IconButton sx={{borderRadius:'17px'}} component="a" href='https://realms.today/realms'><DashboardOutlinedIcon/></IconButton></Tooltip>
                             */}
                         </Box>
+                        
+                        {showInstallAppButton &&
+                        <Tooltip title="Install Governance">
+                            <IconButton
+                                onClick={installApp}
+                            >
+                                <InstallMobileIcon />
+                            </IconButton>
+                        </Tooltip>
+                        }
+
                         <div className="grape-wallet-adapter">
                             <WalletDialogProvider className="grape-wallet-provider">
                                 <WalletMultiButton className="grape-wallet-button" />
