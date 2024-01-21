@@ -104,12 +104,11 @@ export default function AboutDialog() {
                     </Typography>
                     <Typography variant='body2'>
                         <ul>
-                            <li>SPL Governance is slow for the average governance user (30+ seconds to load a governance), this results to a diminished user experience and potentially drives away participation</li>
-                            <li>Most importantly this delay potentially reduces the ability to onboard traditional Web2 businesses to Web3, and secure mass adoption</li>
-                            <li>If we are to board the next billion users, we need to speed things up</li>
-                            <li>Historical data is by nature historic on the blockchain and as a result via traditional fetching methods are expensive, significantly slow, RPC heavy, and redundant</li>\
+                            <li>SPL Governance is difficult experience for the average governance user (loading along with functionality), this results to a diminished user experience and potentially drives away participation</li>
+                            <li>If we are to board the next billion users, we need to speed things up and improve the experience</li>
+                            <li>Historical data is by nature historic on the blockchain and as a result via traditional fetching methods are expensive, significantly slow, RPC heavy, and redundant</li>
                             <li>DAOs need better authoring tools and proposal creation workflows to make the proposal building process easy and comprehensive</li>
-                            <li>Plugins which support actual use cases from simple token transfers to multiple dao members quickly and granting of direct governance power</li>
+                            <li>Plugins which have been created for actual use cases from simple token transfers to multiple dao members quickly and granting of direct governance power</li>
                             <li>Plugins which support true IntraDAO and DAO to DAO collaborative efforts, crowdsourcing for DAOs is now a reality</li>
                         </ul>
                     </Typography>

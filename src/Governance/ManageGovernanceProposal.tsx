@@ -187,7 +187,7 @@ export function ManageGovernanceProposal(props: any){
     const realm = props.realm;
     
     const { publicKey, sendTransaction, signTransaction } = useWallet();
-
+    
     const [openSignerPrompt, setOpenSignerPrompt] = React.useState(false);
     const [signer, setSigner] = React.useState(null);
     const [open, setEditPropOpen] = React.useState(false);
