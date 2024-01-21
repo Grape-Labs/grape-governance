@@ -335,7 +335,7 @@ export function Header(props: any) {
     }
 
     const installApp = (event: any) => {
-        alert("HERE!");
+        alert("Calling Install App!");
 
         event.show();
         event.userChoice.then(choiceResult => {
@@ -355,14 +355,19 @@ export function Header(props: any) {
             getGovernanceLookupFile();
         }
         
+    }, []);
+
+    React.useEffect(() => { 
         if (navigator.serviceWorker && window.PushManager) {
+        //    alert("found serviceWork and PushManager")
         //if ('serviceWorker' in navigator && 'PushManager' in window) {
-	        window.addEventListener('beforeinstallprompt', (e) => {
-	            e.preventDefault();
+            window.addEventListener('beforeinstallprompt', (e) => {
+                alert("prevent default")
+                e.preventDefault();
 				setShowInstallAppButton(true);
 	        });
 	    }
-    }, []);
+    }, [navigator.serviceWorker, window.PushManager]);
 
     React.useEffect(() => {
         if (governanceAddress && governanceAddress.length > 0){
@@ -420,13 +425,13 @@ export function Header(props: any) {
                         </Box>
                         
                         {showInstallAppButton &&
-                        <Tooltip title="Install Governance">
-                            <IconButton
-                                onClick={installApp}
-                            >
-                                <InstallMobileIcon />
-                            </IconButton>
-                        </Tooltip>
+                            <Tooltip title="Install Governance" sx={{mr:1}}>
+                                <IconButton
+                                    onClick={installApp}
+                                >
+                                    <InstallMobileIcon />
+                                </IconButton>
+                            </Tooltip>
                         }
 
                         <div className="grape-wallet-adapter">
