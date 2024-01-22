@@ -343,7 +343,7 @@ export function Header(props: any) {
         
     }, []);
 
-    React.useEffect(() => { 
+    React.useEffect(() => {
         if (prompt) {
             setShowInstallAppButton(true);
         }
