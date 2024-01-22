@@ -33,7 +33,7 @@ import {
     WalletMultiButton
 } from '@solana/wallet-adapter-material-ui';
 
-import { useTheme } from '@mui/material/styles';
+import { useAddToHomescreenPrompt } from "./useAddToHomeScreen";
 
 import {
     Box,
@@ -67,6 +67,7 @@ import ClickAwayListener from '@mui/material/ClickAwayListener';
 
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 
+import InstallMobileIcon from '@mui/icons-material/InstallMobile';
 import PodcastsIcon from '@mui/icons-material/Podcasts';
 import HomeIcon from '@mui/icons-material/Home';
 import PersonIcon from '@mui/icons-material/Person';
@@ -232,6 +233,8 @@ export function Header(props: any) {
     //const [fetchType, setFetchType] = React.useState(currPath.includes("rpcgovernance") ? "rpcgovernance" : currPath.includes("metrics") ? "metrics" : currPath.includes("members") ? "members" : currPath.includes("treasury") ? "treasury" : "cachedgovernance");
     const [fetchType, setFetchType] = React.useState(currPath.includes("rpcgovernance") ? "rpcgovernance" : "dao");
     
+    const [prompt, promptToInstall] = useAddToHomescreenPrompt();
+    const [showInstallAppButton, setShowInstallAppButton] = React.useState(false);
     const [anchorEl, setAnchorEl] = React.useState(null);
     const isWalletOpen = Boolean(anchorEl);
     const [newinputpkvalue, setNewInputPKValue] = React.useState("");
@@ -337,7 +340,14 @@ export function Header(props: any) {
         if (!governanceAutocomplete){
             getGovernanceLookupFile();
         }
+        
     }, []);
+
+    React.useEffect(() => {
+        if (prompt) {
+            setShowInstallAppButton(true);
+        }
+    }, [prompt]);
 
     React.useEffect(() => {
         if (governanceAddress && governanceAddress.length > 0){
@@ -393,6 +403,20 @@ export function Header(props: any) {
                             <Tooltip title={`Go to SPL Governance`}><IconButton sx={{borderRadius:'17px'}} component="a" href='https://realms.today/realms'><DashboardOutlinedIcon/></IconButton></Tooltip>
                             */}
                         </Box>
+                        
+                        {showInstallAppButton &&
+                            <div onClick={() => setShowInstallAppButton(false)}>
+                                <Tooltip title="Install Governance" sx={{mr:1}}>
+                                    <IconButton
+                                        onClick={promptToInstall}
+                                    >
+                                        <InstallMobileIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            </div>
+                        }
+                        
+
                         <div className="grape-wallet-adapter">
                             <WalletDialogProvider className="grape-wallet-provider">
                                 <WalletMultiButton className="grape-wallet-button" />
