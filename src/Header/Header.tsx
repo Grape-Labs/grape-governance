@@ -33,7 +33,7 @@ import {
     WalletMultiButton
 } from '@solana/wallet-adapter-material-ui';
 
-import { useTheme } from '@mui/material/styles';
+import { useAddToHomescreenPrompt } from "./useAddToHomeScreen";
 
 import {
     Box,
@@ -232,6 +232,8 @@ export function Header(props: any) {
     const searchParams = new URLSearchParams(location.search);
     //const [fetchType, setFetchType] = React.useState(currPath.includes("rpcgovernance") ? "rpcgovernance" : currPath.includes("metrics") ? "metrics" : currPath.includes("members") ? "members" : currPath.includes("treasury") ? "treasury" : "cachedgovernance");
     const [fetchType, setFetchType] = React.useState(currPath.includes("rpcgovernance") ? "rpcgovernance" : "dao");
+    
+    const [prompt, promptToInstall] = useAddToHomescreenPrompt();
     const [showInstallAppButton, setShowInstallAppButton] = React.useState(false);
     const [anchorEl, setAnchorEl] = React.useState(null);
     const isWalletOpen = Boolean(anchorEl);
@@ -334,22 +336,6 @@ export function Header(props: any) {
         }
     }
 
-    const installApp = (event: any) => {
-        //alert("Calling Install App!");
-
-        event.show();
-        event.userChoice.then(choiceResult => {
-            if (choiceResult.outcome === 'accepted') {
-                console.log('App installed');
-            } else {
-                console.log('App installation declined');
-            }
-
-            setShowInstallAppButton(false);
-                
-        });
-    }
-
     React.useEffect(() => { 
         if (!governanceAutocomplete){
             getGovernanceLookupFile();
@@ -358,16 +344,10 @@ export function Header(props: any) {
     }, []);
 
     React.useEffect(() => { 
-        if (navigator.serviceWorker && window.PushManager) {
-        //    alert("found serviceWork and PushManager")
-        //if ('serviceWorker' in navigator && 'PushManager' in window) {
-            window.addEventListener('beforeinstallprompt', (e) => {
-                //alert("prevent default")
-                e.preventDefault();
-				setShowInstallAppButton(true);
-	        });
-	    }
-    }, [navigator.serviceWorker, window.PushManager]);
+        if (prompt) {
+            setShowInstallAppButton(true);
+        }
+    }, [prompt]);
 
     React.useEffect(() => {
         if (governanceAddress && governanceAddress.length > 0){
@@ -424,14 +404,17 @@ export function Header(props: any) {
                             */}
                         </Box>
                         
-                        
-                            <Tooltip title="Install Governance" sx={{mr:1}}>
-                                <IconButton
-                                    onClick={installApp}
-                                >
-                                    <InstallMobileIcon />
-                                </IconButton>
-                            </Tooltip>
+                        {showInstallAppButton &&
+                            <div onClick={() => setShowInstallAppButton(false)}>
+                                <Tooltip title="Install Governance" sx={{mr:1}}>
+                                    <IconButton
+                                        onClick={promptToInstall}
+                                    >
+                                        <InstallMobileIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            </div>
+                        }
                         
 
                         <div className="grape-wallet-adapter">
