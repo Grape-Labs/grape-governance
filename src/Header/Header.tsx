@@ -335,7 +335,7 @@ export function Header(props: any) {
     }
 
     const installApp = (event: any) => {
-        alert("Calling Install App!");
+        //alert("Calling Install App!");
 
         event.show();
         event.userChoice.then(choiceResult => {
@@ -362,7 +362,7 @@ export function Header(props: any) {
         //    alert("found serviceWork and PushManager")
         //if ('serviceWorker' in navigator && 'PushManager' in window) {
             window.addEventListener('beforeinstallprompt', (e) => {
-                alert("prevent default")
+                //alert("prevent default")
                 e.preventDefault();
 				setShowInstallAppButton(true);
 	        });
@@ -424,7 +424,7 @@ export function Header(props: any) {
                             */}
                         </Box>
                         
-                        {showInstallAppButton &&
+                        
                             <Tooltip title="Install Governance" sx={{mr:1}}>
                                 <IconButton
                                     onClick={installApp}
@@ -432,7 +432,7 @@ export function Header(props: any) {
                                     <InstallMobileIcon />
                                 </IconButton>
                             </Tooltip>
-                        }
+                        
 
                         <div className="grape-wallet-adapter">
                             <WalletDialogProvider className="grape-wallet-provider">
