@@ -63,17 +63,21 @@
         {
           "name": "Realtime",
           "url": "/realtime",
-          "description": "See what is going on in realtime from all DAOs on Solana"
+          "description": "See what is going on in realtime from all DAOs on Solana",
+          "src": "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/shortcut_feed.png"
         },
         {
           "name": "Profile",
           "url": "/profile",
-          "description": "View the DAOs you are participating in"
+          "description": "View the DAOs you are participating in",
+          "src": "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/shortcut_user.png"
+          
         },
         {
           "name": "Grape DAO",
           "url": "/dao/By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip",
-          "description": "The OG Community DAO of Solana"
+          "description": "The OG Community DAO of Solana",
+          "src": "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/shortcut_grape.png"
         }
     ],
     "categories": [
