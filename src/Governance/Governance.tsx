@@ -1280,7 +1280,6 @@ export function GovernanceCachedView(props: any) {
             if (manifestLink) {
                 manifestLink.parentNode.removeChild(manifestLink);
             }
-
             let content = encodeURIComponent(JSON.stringify(manifest));
             let url = "data:application/manifest+json,"+content;
             let element = document.createElement('link');
@@ -1288,6 +1287,16 @@ export function GovernanceCachedView(props: any) {
             element.setAttribute('href', url);
             document.querySelector('head').appendChild(element);
             
+        } else { // revert to original JSON
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            if (manifestLink) {
+                manifestLink.parentNode.removeChild(manifestLink);
+            }
+            let url = '/up_/manifest.webmanifest';
+            let element = document.createElement('link');
+            element.setAttribute('rel', 'manifest');
+            element.setAttribute('href', url);
+            document.querySelector('head').appendChild(element);
         }
     }, [daoName, daoIcon]);
 
