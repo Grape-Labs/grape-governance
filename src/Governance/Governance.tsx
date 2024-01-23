@@ -71,7 +71,8 @@ import {
     PROXY, 
     RPC_CONNECTION,
     GGAPI_STORAGE_POOL, 
-    GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
+    GGAPI_STORAGE_URI,
+    SHYFT_KEY } from '../utils/grapeTools/constants';
 
 import { 
     getGovernance,
@@ -722,6 +723,8 @@ export function GovernanceCachedView(props: any) {
     const [allGovernances, setAllGovernances] = React.useState(null);
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
+    const [daoName, setDaoName] = React.useState(null);
+    const [daoIcon, setDaoIcon] = React.useState(null);
 
     const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
@@ -1115,6 +1118,119 @@ export function GovernanceCachedView(props: any) {
         }
     }, [cachedGovernance, allProposals, filterState]);
     
+    // we should have a step 4 where we get the token used and set an icon with the token metadata if available
+    /*
+    
+    //for brevity, we're not including the isDesktop function here
+    let iconUrl = isDesktop() ? '/desktop.png' : '/mobile.png';
+    let manifest = { 
+    name: "App name",
+    icons: [{
+        src: iconUrl, 
+        sizes: "512x512", 
+        type:"image/png"
+    }]
+    };
+    let content = encodeURIComponent(JSON.stringify(manifest));
+    let url = "data:application/manifest+json,"+content;
+    let element = document.createElement('link');
+    element.setAttribute('rel', 'manifest');
+    element.setAttribute('href', url);
+    document.querySelector('head').appendChild(element);
+    
+    */
+
+    const fetchTokenData = async(address:string) => {
+        try{
+            const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
+
+            const response = await fetch(uri, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 'rpc-id',
+                    method: 'getAsset',
+                    params: {
+                    id: address
+                    },
+                }),
+                });
+            const { result } = await response.json();
+            
+            if (result){
+                if (result?.content?.metadata?.name){
+                    //setSolanaDomain(result?.content?.metadata?.name);
+                    setDaoName(result.content.metadata.name);
+                }
+                const image = result?.content?.links?.image;
+                
+                if (image){
+                    setDaoIcon(image);
+                } else { // check token registry if token exists
+
+                }
+            }
+        } catch(e){
+            console.log("ERR: "+e);
+        }
+    }
+
+    React.useEffect(() => {
+        if (daoName && daoIcon){
+            // use helmet to adjust header and set manifest accordingly if needed
+
+            //let iconUrl = isDesktop() ? '/desktop.png' : '/mobile.png';
+            let manifest = { 
+                name: {daoName} + ' DAO',
+                short_name: {daoName},
+                description: {daoName}+" Governance #OPOS",
+                id: {daoName}+".governance.so.",
+                dir: "ltr",
+                lang: "en",
+                orientation: "any",
+                start_url: "https://www.governance.so/dao/"+{governanceAddress},
+                background_color: "#23063C",
+                theme_color: "#23063C",
+                display: "standalone",
+                display_override: [
+                    "window-controls-overlay",
+                    "standalone",
+                    "browser"
+                ],
+                icons: [{
+                    src: daoIcon, 
+                    sizes: "512x512", 
+                    type:"image/png"
+                }]
+            };
+
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            if (manifestLink) {
+                manifestLink.parentNode.removeChild(manifestLink);
+            }
+
+            let content = encodeURIComponent(JSON.stringify(manifest));
+            let url = "data:application/manifest+json,"+content;
+            let element = document.createElement('link');
+            element.setAttribute('rel', 'manifest');
+            element.setAttribute('href', url);
+            document.querySelector('head').appendChild(element);
+            
+        }
+    }, [daoName, daoIcon]);
+
+    React.useEffect(() => {
+        if (realm){
+            console.log("Fetch community mint if available and set token metadata accordingly");
+            if (realm.account?.communityMint){
+                // use DAS to efficiently get the token metadata
+                fetchTokenData(new PublicKey(realm.account.communityMint).toBase58());
+            }
+        }
+    }, [realm]);
 
     React.useEffect(() => {
         if (cachedGovernance && governanceAddress){
