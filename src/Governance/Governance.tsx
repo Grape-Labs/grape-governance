@@ -1186,8 +1186,8 @@ export function GovernanceCachedView(props: any) {
             let manifest = { 
                 name: `${daoName} DAO`,
                 short_name: {daoName},
-                description: `${daoName} Governance, participate &amp; see what is going on in the ${daoName} quickly and easily from your device #OPOS`,
-                id: {daoName}+".governance.so.",
+                description: `${daoName} Governance, participate, collaborate & learn on everything going on in ${daoName} quickly and easily from the convenience of your device #OPOS`,
+                id: `${daoName}.governance.so`,
                 dir: "ltr",
                 lang: "en",
                 orientation: "any",
