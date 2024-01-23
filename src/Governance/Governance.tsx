@@ -1186,7 +1186,7 @@ export function GovernanceCachedView(props: any) {
             let manifest = { 
                 name: `${daoName} DAO`,
                 short_name: {daoName},
-                description: {daoName}+" Governance #OPOS",
+                description: `${daoName} Governance, participate &amp; see what is going on in the ${daoName} quickly and easily from your device #OPOS`,
                 id: {daoName}+".governance.so.",
                 dir: "ltr",
                 lang: "en",
@@ -1204,7 +1204,76 @@ export function GovernanceCachedView(props: any) {
                     src: daoIcon, 
                     sizes: "512x512", 
                     type:"image/png"
-                }]
+                }],
+                "shortcuts": [
+                    {
+                    "name": "Realtime",
+                    "url": "/realtime",
+                    "description": "See what is going on in realtime from all DAOs on Solana",
+                    "icons": [
+                        {
+                        "src": "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/shortcut_feed.png",
+                        "sizes": "192x192"
+                        }
+                    ]
+                    },
+                    {
+                    "name": "Profile",
+                    "url": "/profile",
+                    "description": "View the DAOs you are participating in",
+                    "icons": [
+                        {
+                        "src": "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/shortcut_user.png",
+                        "sizes": "192x192"
+                        }
+                    ]
+                    }
+                ],
+                "categories": [
+                    "utilities"
+                ],
+                "screenshots" : [
+                {
+                    "src": "./src/public/scrn_proposal.png",
+                    "sizes": "1290x2796",
+                    "type": "image/png",
+                    "platform": "android",
+                    "form_factor": "narrow",
+                    "label": "Proposal View"
+                },
+                {
+                    "src": "./src/public/scrn_realtime.png",
+                    "sizes": "1290x2796",
+                    "type": "image/png",
+                    "platform": "android",
+                    "form_factor": "narrow",
+                    "label": "Realtime"
+                },
+                {
+                    "src": "./src/public/scrn_governance.png",
+                    "sizes": "1290x2796",
+                    "type": "image/png",
+                    "platform": "android",
+                    "form_factor": "narrow",
+                    "label": "Directory"
+                },
+                {
+                    "src": "./src/public/scrn_wallet.png",
+                    "sizes": "1290x2796",
+                    "type": "image/png",
+                    "platform": "android",
+                    "form_factor": "narrow",
+                    "label": "Mobile Wallet"
+                },
+                {
+                    "src": "./src/public/scrn_connect_tools.png",
+                    "sizes": "2796x1290",
+                    "type": "image/png",
+                    "platform": "android",
+                    "form_factor": "narrow",
+                    "label": "DAO Voter Management"
+                }
+                ]
             };
 
             const manifestLink = document.querySelector('link[rel="manifest"]');
