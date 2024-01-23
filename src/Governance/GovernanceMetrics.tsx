@@ -912,9 +912,11 @@ function RenderVoterRecordTable(props:any) {
                     
                     //console.log(memberItem.account.governingTokenOwner+": "+rewards)
                     
-                    unstakedgovernancevotes = (memberItem.walletBalance?.tokenAmount?.amount ? Number((+memberItem.walletBalance.tokenAmount.amount /Math.pow(10, memberItem.walletBalance.tokenAmount.decimals || 0)).toFixed(0)) : 0)
-                
-                    unstakedcouncilvotes = (memberItem?.walletCouncilBalance?.tokenAmount?.amount ? Number((+memberItem.walletCouncilBalance.tokenAmount.amount /Math.pow(10, memberItem.walletCouncilBalance.tokenAmount.decimals || 0)).toFixed(0)) : 0)
+                    unstakedgovernancevotes = memberItem?.walletBalance === '' || isNaN(memberItem?.walletBalance) ? 0 : +Number(memberItem.walletBalance).toFixed(0);
+                    //unstakedgovernancevotes = (memberItem.walletBalance?.tokenAmount?.amount ? Number((+memberItem.walletBalance.tokenAmount.amount /Math.pow(10, memberItem.walletBalance.tokenAmount.decimals || 0)).toFixed(0)) : 0)
+                    
+                    unstakedcouncilvotes = memberItem?.walletCouncilBalance === '' || isNaN(memberItem?.walletCouncilBalance) ? 0 : +Number(memberItem.walletCouncilBalance).toFixed(0);
+                    //unstakedcouncilvotes = (memberItem?.walletCouncilBalance?.tokenAmount?.amount ? Number((+memberItem.walletCouncilBalance.tokenAmount.amount /Math.pow(10, memberItem.walletCouncilBalance.tokenAmount.decimals || 0)).toFixed(0)) : 0)
                 //}
                 if (depositedgovernancevotes>0)
                     totalEligibleVoters++;

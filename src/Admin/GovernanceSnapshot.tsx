@@ -710,6 +710,7 @@ const getWalletBalance = async(tokenOwnerRecord: PublicKey, mint: PublicKey) => 
         })
         .then(response => {
             if (response.data?.result){
+                console.log("balance for "+tokenOwnerRecord.toBase58()+": "+response.data.result?.balance)
                 return response.data.result?.balance;
             }
             return null
