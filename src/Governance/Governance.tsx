@@ -1184,14 +1184,14 @@ export function GovernanceCachedView(props: any) {
 
             //let iconUrl = isDesktop() ? '/desktop.png' : '/mobile.png';
             let manifest = { 
-                name: {daoName} + ' DAO',
+                name: `${daoName} DAO`,
                 short_name: {daoName},
                 description: {daoName}+" Governance #OPOS",
                 id: {daoName}+".governance.so.",
                 dir: "ltr",
                 lang: "en",
                 orientation: "any",
-                start_url: "https://www.governance.so/dao/"+{governanceAddress},
+                start_url: `https://www.governance.so/dao/${governanceAddress}`,
                 background_color: "#23063C",
                 theme_color: "#23063C",
                 display: "standalone",
