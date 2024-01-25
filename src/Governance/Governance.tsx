@@ -1325,7 +1325,7 @@ export function GovernanceCachedView(props: any) {
             element = document.createElement('link');
             element.setAttribute('rel', 'apple-touch-icon');
             element.setAttribute('sizes', '512x512');
-            element.setAttribute('href', 'https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governanceicon.png');
+            element.setAttribute('href', 'https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/touch-icon.png');
             document.querySelector('head').appendChild(element);
         }
     }, [daoName, daoIcon]);
