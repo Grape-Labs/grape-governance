@@ -1206,6 +1206,7 @@ export function GovernanceCachedView(props: any) {
                 background_color: "#23063C",
                 theme_color: "#23063C",
                 display: "standalone",
+                handle_links: "preferred",
                 display_override: [
                     "window-controls-overlay",
                     "standalone",
