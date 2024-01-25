@@ -1181,13 +1181,24 @@ export function GovernanceCachedView(props: any) {
     React.useEffect(() => {
         if (daoName && daoIcon){
             // use helmet to adjust header and set manifest accordingly if needed
-
+            /*
+            const img = daoIcon;
+            const text = `Welcome to ${daoName}, download this App to get started with an imersive experience!!!`;
+            const notification = new Notification("Welcome", { body: text, icon: img });
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === "visible") {
+                  // The tab has become visible so clear the now-stale Notification.
+                  notification.close();
+                }
+            });
+            alert("HERE...")
+            */
             //let iconUrl = isDesktop() ? '/desktop.png' : '/mobile.png';
             let manifest = { 
                 name: `${daoName} DAO`,
                 short_name: {daoName},
                 description: `${daoName} Governance, participate, collaborate & learn on everything going on in ${daoName} quickly and easily from the convenience of your device #OPOS`,
-                id: `${daoName}.governance.so`,
+                id: `${daoName.replace(/\s/g, '')}.governance.so`,
                 dir: "ltr",
                 lang: "en",
                 orientation: "any",
@@ -1208,7 +1219,7 @@ export function GovernanceCachedView(props: any) {
                 shortcuts: [
                     {
                     name: "Realtime",
-                    url: "/realtime",
+                    url: "../realtime",
                     description: "See what is going on in realtime from all DAOs on Solana",
                     icons: [
                         {
@@ -1219,7 +1230,7 @@ export function GovernanceCachedView(props: any) {
                     },
                     {
                     name: "Profile",
-                    url: "/profile",
+                    url: "../profile",
                     description: "View the DAOs you are participating in",
                     icons: [
                         {

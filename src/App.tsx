@@ -158,9 +158,30 @@ function DashboardContent() {
   
   const renderLoader = () => <p>Loading</p>;
 
+  function askNotificationPermission() {
+    // function to actually ask the permissions
+    function handlePermission(permission) {
+      // set the button to shown or hidden, depending on what the user answers
+      //notificationBtn.style.display =
+      const perms =  
+      Notification.permission === "granted" ? "none" : "block";
+      //alert(perms);
+      console.log("Notification Permissions: "+perms);
+    }
+  
+    // Let's check if the browser supports notifications
+    if (!("Notification" in window)) {
+      console.log("This browser does not support notifications.");
+    } else {
+      Notification.requestPermission().then((permission) => {
+        handlePermission(permission);
+      });
+    }
+  }
+
   React.useEffect(() => {
     try{
-      Notification.requestPermission();
+      askNotificationPermission();
     }catch(e){
       console.log("Err: "+e);
     }
