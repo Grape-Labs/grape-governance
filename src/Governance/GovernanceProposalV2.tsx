@@ -2125,9 +2125,9 @@ export function GovernanceProposalV2View(props: any){
                                                         <VoteForProposal 
                                                             title={`${
                                                                 thisitem.account?.denyVoteWeight ?
-                                                                againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes / 10 ** tokenDecimals))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))
+                                                                againstVotes ? getFormattedNumberToLocale(formatAmount(+(againstVotes / 10 ** tokenDecimals).toFixed(0))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))
                                                                 :
-                                                                againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes / 10 ** tokenDecimals))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))
+                                                                againstVotes ? getFormattedNumberToLocale(formatAmount(+(againstVotes / 10 ** tokenDecimals).toFixed(0))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))
                                                             }`}
                                                             subtitle={`Against 
                                                                     ${againstVotes ?
