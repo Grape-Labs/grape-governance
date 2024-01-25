@@ -1297,6 +1297,14 @@ export function GovernanceCachedView(props: any) {
             element.setAttribute('rel', 'manifest');
             element.setAttribute('href', url);
             document.querySelector('head').appendChild(element);
+
+            // update also the touch icon
+
+            element = document.createElement('link');
+            element.setAttribute('rel', 'apple-touch-icon');
+            element.setAttribute('sizes', '512x512');
+            element.setAttribute('href', daoIcon);
+            document.querySelector('head').appendChild(element);
             
         } else { // revert to original JSON
             const manifestLink = document.querySelector('link[rel="manifest"]');
@@ -1307,6 +1315,17 @@ export function GovernanceCachedView(props: any) {
             let element = document.createElement('link');
             element.setAttribute('rel', 'manifest');
             element.setAttribute('href', url);
+            document.querySelector('head').appendChild(element);
+
+            const appleTouchIconLink = document.querySelector('link[rel="apple-touch-icon"]');
+            if (appleTouchIconLink) {
+                appleTouchIconLink.parentNode.removeChild(appleTouchIconLink);
+            }
+
+            element = document.createElement('link');
+            element.setAttribute('rel', 'apple-touch-icon');
+            element.setAttribute('sizes', '512x512');
+            element.setAttribute('href', 'https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governanceicon.png');
             document.querySelector('head').appendChild(element);
         }
     }, [daoName, daoIcon]);
