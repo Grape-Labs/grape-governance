@@ -6984,6 +6984,14 @@
     "@solana/codecs-core" "2.0.0-experimental.8618508"
     "@solana/codecs-numbers" "2.0.0-experimental.8618508"
 
+"@solana/governance-program-library@^0.16.7":
+  version "0.16.7"
+  resolved "https://registry.yarnpkg.com/@solana/governance-program-library/-/governance-program-library-0.16.7.tgz#b485436959e75c41a37dfa204c55d4c4a68b73b2"
+  integrity sha512-q5lBjWqX1zjKnb6JrFBLGUsef2MNorpX8aGaRQHqOW9feXE+ta4fSX4XMwK9IXK3JRhLs+FrjbiiE5bG+3qG6w==
+  dependencies:
+    "@project-serum/anchor" "^0.24.2"
+    "@project-serum/serum" "^0.13.61"
+
 "@solana/options@2.0.0-experimental.8618508":
   version "2.0.0-experimental.8618508"
   resolved "https://registry.yarnpkg.com/@solana/options/-/options-2.0.0-experimental.8618508.tgz#95385340e85f9e8a81b2bfba089404a61c8e9520"

@@ -2038,6 +2038,7 @@ export function GovernanceProposalV2View(props: any){
                                                             type={0}
                                                             quorum={totalQuorum}
                                                             state={thisitem.account.state}
+                                                            governanceRules={thisGovernance}
                                                             />
                                                         }
                                                     </ButtonGroup>
@@ -2152,7 +2153,8 @@ export function GovernanceProposalV2View(props: any){
                                                             thisitem={thisitem} 
                                                             type={1}
                                                             quorum={totalQuorum}
-                                                            state={thisitem.account.state} />
+                                                            state={thisitem.account.state}
+                                                            governanceRules={thisGovernance} />
                                                     </ButtonGroup>
                                                 </Box>
                                             </Grid>
@@ -2963,6 +2965,7 @@ export function GovernanceProposalV2View(props: any){
                                                                     type={0} 
                                                                     multiChoice={{index:mindex,proposal:thisitem}}
                                                                     state={thisitem.account.state}
+                                                                    governanceRules={thisGovernance}
                                                                     />
                                                             }
                                                             >
