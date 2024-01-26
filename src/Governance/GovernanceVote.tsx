@@ -525,7 +525,6 @@ export function VoteForProposal(props:any){
         //console.log("memberMapReduced: "+JSON.stringify(memberMapReduced));
 
         // check if voter can participate
-        
         if (publicKey && memberItem) {
             
             const voteTx = new Transaction();
@@ -666,7 +665,7 @@ export function VoteForProposal(props:any){
                     } 
                 }
             } else{
-                alert("No voter record!")
+                enqueueSnackbar("Could not vote for proposal!", { variant: 'error' });
             }
             
         } else if (!memberItem){

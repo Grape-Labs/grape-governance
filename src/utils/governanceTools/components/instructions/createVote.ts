@@ -9,8 +9,7 @@ import {
     sendAndConfirmTransaction,
   } from "@solana/web3.js";
   import { AnchorProvider, Wallet } from '@coral-xyz/anchor';
-  import { useWallet } from '@solana/wallet-adapter-react';
-
+  
 import { GatewayClient } from '@solana/governance-program-library/dist'  
 
 //  import { SPL_PUBLIC_KEY, RPC_CONNECTION } from "../constants/Solana";
@@ -53,8 +52,6 @@ export const createCastVoteTransaction = async (
     //votePlugin?: VotingClient | undefined
 ) => {
     const { proposal, action } = transactionData;
-    const { wallet } = useWallet();
-    
     const walletPubkey = new PublicKey(walletPublicKey);
     let tokenOwnerRecord = null;
     const governanceAuthority = walletPubkey;
@@ -301,9 +298,10 @@ export const createCastVoteTransaction = async (
     walletPubkey: any
   ) => {
     const options = AnchorProvider.defaultOptions();//AnchorProvider.defaultOptions();
+    
     const provider = new AnchorProvider(
       connection,
-      Wallet,
+      walletPubkey,
       options
     );
     const client = await VsrClient.connect(provider, false);
