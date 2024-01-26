@@ -121,7 +121,6 @@ export const createCastVoteTransaction = async (
         console.log("Has MAX Voter Weight!");
         hasMaxVoterWeight = true;
       }
-
       if (hasVoterWeight){
         console.log("With realm: "+selectedRealm!.pubkey)
         //if (selectedRealm.pubkey === "DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE") {
@@ -135,13 +134,17 @@ export const createCastVoteTransaction = async (
         //}
       }
 
-
       const config = await tryGetRealmConfig(RPC_CONNECTION, selectedRealm.owner, selectedRealm.pubkey);
       console.log("realm config "+JSON.stringify(config));
       
       const isNftPlugin = config?.account.communityTokenConfig.voterWeightAddin && NFT_PLUGINS_PKS.includes(config?.account.communityTokenConfig.voterWeightAddin?.toBase58())
       if (isNftPlugin)
         return false;
+
+      if (new PublicKey(selectedRealm.pubkey).toBase58() === "652CA3GEcZjxVvEjCiMeAxuyFG6GaPHZeN6yh4cNJ1Ns"){
+        console.log("hard coded nft com...")
+        return null;
+      }
       // END PLUGIN STUFF
       
       //console.log("programId: "+selectedRealm.owner);
