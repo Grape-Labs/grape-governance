@@ -128,7 +128,6 @@ export const createCastVoteTransaction = async (
           votePlugin = await getVotingPlugin(
             selectedRealm,
             proposal.governingTokenMint,
-            wallet,
             new PublicKey(tokenRecordPublicKey)
           );
           
@@ -294,7 +293,6 @@ export const createCastVoteTransaction = async (
   const getVotingPlugin = async (
     selectedRealm: any,
     communityMint: any,
-    Wallet: any,
     walletPubkey: any
   ) => {
     const options = AnchorProvider.defaultOptions();//AnchorProvider.defaultOptions();
