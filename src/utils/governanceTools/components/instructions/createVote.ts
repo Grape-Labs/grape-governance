@@ -8,7 +8,9 @@ import {
     TransactionInstruction,
     sendAndConfirmTransaction,
   } from "@solana/web3.js";
-  import { AnchorProvider, Wallet } from '@coral-xyz/anchor'
+  import { AnchorProvider, Wallet } from '@coral-xyz/anchor';
+  import { useWallet } from '@solana/wallet-adapter-react';
+
 import { GatewayClient } from '@solana/governance-program-library/dist'  
 
 //  import { SPL_PUBLIC_KEY, RPC_CONNECTION } from "../constants/Solana";
@@ -55,6 +57,8 @@ export const createCastVoteTransaction = async (
     let tokenOwnerRecord = null;
     const governanceAuthority = walletPubkey;
     
+    const { wallet } = useWallet(); 
+
     //console.log("walletPublicKey "+walletPubkey.toBase58())
 
     //console.log("membersMapItem: "+JSON.stringify(membersMapItem));
@@ -125,7 +129,7 @@ export const createCastVoteTransaction = async (
           votePlugin = await getVotingPlugin(
             selectedRealm,
             proposal.governingTokenMint,
-            Wallet,
+            wallet,
             new PublicKey(tokenRecordPublicKey)
           );
           
