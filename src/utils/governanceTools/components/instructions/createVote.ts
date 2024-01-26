@@ -53,11 +53,13 @@ export const createCastVoteTransaction = async (
     //votePlugin?: VotingClient | undefined
 ) => {
     const { proposal, action } = transactionData;
+    const { wallet } = useWallet();
+    
     const walletPubkey = new PublicKey(walletPublicKey);
     let tokenOwnerRecord = null;
     const governanceAuthority = walletPubkey;
     
-    const { wallet } = useWallet(); 
+    //const { wallet } = useWallet(); 
 
     //console.log("walletPublicKey "+walletPubkey.toBase58())
 
