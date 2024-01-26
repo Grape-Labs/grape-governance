@@ -287,7 +287,6 @@ export const createCastVoteTransaction = async (
         return null;
     }
 
-
   };
   
   const getVotingPlugin = async (
