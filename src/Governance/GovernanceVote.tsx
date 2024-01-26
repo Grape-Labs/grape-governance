@@ -206,6 +206,7 @@ export function VoteForProposal(props:any){
     const openDelegateYes = Boolean(anchorElYes);
     const openDelegateNo = Boolean(anchorElNo);
     const quorum = props?.quorum;
+    const governanceRules = props?.governanceRules;
     const [open, setOpen] = React.useState(false);
     
     const handleClickOpen = () => {
@@ -270,6 +271,7 @@ export function VoteForProposal(props:any){
             (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
             item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
 
+        
         console.log("memberItem: "+JSON.stringify(memberItem));
         
         let delegatedItems = delegatedVoterRecord || rawTokenOwnerRecords.filter(item => 
@@ -470,10 +472,6 @@ export function VoteForProposal(props:any){
         setAnchorElYes(false);
         setAnchorElNo(false);
         
-        //console.log("thisitem.account.governingTokenMint: "+JSON.stringify(thisitem.account.governingTokenMint));
-
-        //console.log("realm: "+JSON.stringify(realm))
-
         const programId = new PublicKey(realm.owner);
         
         let rawTokenOwnerRecords = null;
@@ -527,10 +525,10 @@ export function VoteForProposal(props:any){
         //console.log("memberMapReduced: "+JSON.stringify(memberMapReduced));
 
         // check if voter can participate
-
         if (publicKey && memberItem) {
             
             const voteTx = new Transaction();
+            let supportedVote = true;
             
             if (wOwner){ // vote for your own if delegate is not set and value of delegate is not = 1
                 
@@ -546,13 +544,18 @@ export function VoteForProposal(props:any){
                         multiChoice,
                         type
                     );
-                    voteTx.add(tmpVote);
+                    if (tmpVote){
+                        voteTx.add(tmpVote);
+                    } else {
+                        supportedVote = false;
+                        enqueueSnackbar("Plugin Voting Support Coming Soon (VSR, NFT, Gateway)", { variant: 'error' });
+                    }
                 }
             }
             
-            if (voteTx){
+            if (voteTx && supportedVote){
                 console.log("Casting vote as: "+publicKey.toBase58());
-            }
+            } 
 
             let addCnt = voteTx ? 1 : 0;
             if (delegatedItems){ // if we wanta to add all to vote
@@ -621,49 +624,52 @@ export function VoteForProposal(props:any){
             //console.log("vvvt: "+JSON.stringify(vvvt));
             
             if (voteTx){
+                if (supportedVote){
+                    console.log("voteTx: " + JSON.stringify(voteTx));
+                    try{
+                        enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
+                        const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
+                            skipPreflight: true,
+                            preflightCommitment: "confirmed",
+                        });
+                        const snackprogress = (key:any) => (
+                            <CircularProgress sx={{padding:'10px'}} />
+                        );
+                        const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
+                        //await connection.confirmTransaction(signature, 'processed');
+                        const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
+                        await RPC_CONNECTION.confirmTransaction({
+                            blockhash: latestBlockHash.blockhash,
+                            lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+                            signature: signature}, 
+                            'finalized'
+                        );
 
-                console.log("voteTx: " + JSON.stringify(voteTx));
-                try{
-                    enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
-                    const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
-                        skipPreflight: true,
-                        preflightCommitment: "confirmed",
-                    });
-                    const snackprogress = (key:any) => (
-                        <CircularProgress sx={{padding:'10px'}} />
-                    );
-                    const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
-                    //await connection.confirmTransaction(signature, 'processed');
-                    const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
-                    await RPC_CONNECTION.confirmTransaction({
-                        blockhash: latestBlockHash.blockhash,
-                        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-                        signature: signature}, 
-                        'finalized'
-                    );
+                        closeSnackbar(cnfrmkey);
+                        const action = (key:any) => (
+                                <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
+                                    Signature: {signature}
+                                </Button>
+                        );
+                        
+                        enqueueSnackbar(`Congratulations, you have participated in voting for this Proposal`,{ variant: 'success', action });
 
-                    closeSnackbar(cnfrmkey);
-                    const action = (key:any) => (
-                            <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                                Signature: {signature}
-                            </Button>
-                    );
-                    
-                    enqueueSnackbar(`Congratulations, you have participated in voting for this Proposal`,{ variant: 'success', action });
-
-                    // trigger a refresh here...
-                    /*
-                    const redirectTimer = setTimeout(() => {
+                        // trigger a refresh here...
+                        /*
+                        const redirectTimer = setTimeout(() => {
+                            getVotingParticipants();
+                        }, 3000); // 3 seconds*/
                         getVotingParticipants();
-                    }, 3000); // 3 seconds*/
-                    getVotingParticipants();
-                }catch(e:any){
-                    enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
-                } 
+                    }catch(e:any){
+                        enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
+                    } 
+                }
             } else{
-                alert("No voter record!")
+                enqueueSnackbar("Could not vote for proposal!", { variant: 'error' });
             }
             
+        } else if (!memberItem){
+            enqueueSnackbar("Voter Record Not Found!", { variant: 'error' });
         }
     }
 
