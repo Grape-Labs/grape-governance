@@ -16,6 +16,7 @@ import {
     isGated,
     findObjectByGoverningTokenOwner,
     convertSecondsToLegibleFormat,
+    getJupiterPrices,
   } from '../../utils/grapeTools/helpers';
 
 import {
@@ -86,7 +87,13 @@ export default function WalletCardView(props:any) {
     const [rulesTokens, setRulesTokens] = React.useState(null);
     const [nativeNftTokens, setNativeNftTokens] = React.useState(null);
     const [rulesNftTokens, setRulesNftTokens] = React.useState(null);
+    const [tokenMintArray, setTokenMintArray] = React.useState(null);
+    const [usdcValue, setUsdcValue] = React.useState(null);
+    const [nativeDomains, setNativeDomains] = React.useState(null);
+    const [rulesDomains, setRulesDomains] = React.useState(null);
+    const [totalWalletValue, setTotalWalletValue] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
+    const [loadingPrices, setLoadingPrices] = React.useState(false);
     
     function SettingsMenu() {
         const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -158,9 +165,21 @@ export default function WalletCardView(props:any) {
             }
         }
     }
+
+    const getWalletValue = async() => {
+        setLoadingPrices(true);
+        const cgp = await getJupiterPrices(tokenMintArray);
+
+        //const solToUsd = cgp['So11111111111111111111111111111111111111112'].price;
+        //const solUsdValue = (ia.solBalance > 0 ? cgp['So11111111111111111111111111111111111111112'].price*(ia.solBalance/(10 ** 9)) : 0);
+
+        setUsdcValue(cgp);
+
+        setLoadingPrices(false);
+    }
     
     const getWalletAllTokenBalance = async(tokenOwnerRecord: PublicKey) => {
-
+    
         const uri = `https://api.shyft.to/sol/v1/wallet/all_tokens?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}`;
     
         return axios.get(uri, {
@@ -206,6 +225,29 @@ export default function WalletCardView(props:any) {
                 });
     }
 
+    const getWalletDomains = async(tokenOwnerRecord: PublicKey) => {
+        
+        const uri = `https://api.shyft.to/sol/v1/wallet/get_domains?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}`;
+        
+        return axios.get(uri, {
+                headers: {
+                    'x-api-key': SHYFT_KEY
+                }
+                })
+            .then(response => {
+                if (response.data?.result){
+                    return response.data.result;
+                }
+                return null
+            })
+            .catch(error => 
+                {   
+                    // revert to RPC
+                    console.error(error);
+                    return null;
+                });
+    }
+
     const getWalletBalances = async() =>{
         setLoading(true);
         // get total sol
@@ -215,10 +257,27 @@ export default function WalletCardView(props:any) {
         // get total tokens
         const token1 = await getWalletAllTokenBalance(new PublicKey(walletAddress));
         const token2 = await getWalletAllTokenBalance(new PublicKey(rulesWalletAddress));
+        // consolidate tokens?
+        const tArray = ["So11111111111111111111111111111111111111112"];
+        
+        token1 && token1
+            .map((item: any,key:number) => ( 
+                tArray.push(item.address)
+        ));
+        token2 && token2
+            .map((item: any,key:number) => ( 
+                tArray.push(item.address)
+        ));
+        setTokenMintArray(tArray);
+        
         
         // get nft balance
         const nft1 = await getWalletNftBalance(new PublicKey(walletAddress));
         const nft2 = await getWalletNftBalance(new PublicKey(rulesWalletAddress));
+
+        // get domains
+        const domains1 = await getWalletDomains(new PublicKey(walletAddress));
+        const domains2 = await getWalletDomains(new PublicKey(rulesWalletAddress));
 
         // put to unified array
         setNativeSol(sol1);
@@ -230,10 +289,49 @@ export default function WalletCardView(props:any) {
         setNativeNftTokens(nft1);
         setRulesNftTokens(nft2);
 
+        setNativeDomains(domains1);
+        setRulesDomains(domains2);
+
         // unify tokens?
         // think of how we can display them unified if needed
         setLoading(false);
     }
+
+
+    React.useEffect(() => { 
+        
+        if (usdcValue && 
+            (nativeSol && nativeSol > 0 || rulesSol && rulesSol > 0) &&
+            (nativeTokens && rulesTokens)){
+            let totalVal = 0;
+            //alert(usdcValue['So11111111111111111111111111111111111111112'].price + " " +(+nativeSol + +rulesSol));
+            totalVal += usdcValue['So11111111111111111111111111111111111111112'].price*(+nativeSol + +rulesSol);
+            if (nativeTokens){
+                for (let item of nativeTokens){
+                    if (usdcValue[item.address]){
+                        totalVal += usdcValue[item.address].price * item.balance;
+                    }
+
+                }
+            }
+            if (rulesTokens){
+                for (let item of rulesTokens){
+                    if (usdcValue[item.address]){
+                        totalVal += usdcValue[item.address].price * item.balance;
+                    }
+
+                }
+            }
+            setTotalWalletValue(totalVal);
+        }
+    }, [usdcValue, nativeSol, rulesSol, nativeTokens, rulesTokens]);
+
+
+    React.useEffect(() => { 
+        if (tokenMintArray && tokenMintArray.length > 0){
+            getWalletValue();
+        }
+    }, [tokenMintArray]);
 
     React.useEffect(() => { 
         if (walletAddress && rulesWalletAddress){
@@ -254,23 +352,31 @@ export default function WalletCardView(props:any) {
         <CardHeader
             avatar={
                 <Avatar sx={{ bgcolor: red[500] }} aria-label={walletAddress.substring(0,1)}>
-                {walletAddress.substring(0,1)}
+                    {walletAddress.substring(0,1)}
                 </Avatar>
             }
             action={
                 <SettingsMenu/>
             }
             title={shortWalletAddress}
-            subheader={`domain.sol`}
+            subheader={
+                (nativeDomains && nativeDomains.length > 0) &&
+                    <>{nativeDomains[0].name}</>    
+            }
         />
         <Grid container
             sx={{textAlign:'center', display: 'flex', justifyContent: 'center'}}
         > 
             <Grid xs={12} sx={{display: 'flex', justifyContent: 'center'}}>
-                {loading ?
+                {(loading || loadingPrices) ?
                     <Skeleton variant="rounded" width={100} height={40} sx={{m:4}} />
                 :
-                    <h2>$#.##</h2>
+                    <h2>${
+                        totalWalletValue &&
+                        +totalWalletValue.toFixed(2).toLocaleString()
+                    }</h2>
+
+                    
                 }
                 
             </Grid>
@@ -286,19 +392,28 @@ export default function WalletCardView(props:any) {
             <Typography variant="body2" color="text.secondary">
                 <List sx={{ width: '100%' }}>
 
-                    {loading ?
+                    {(loading || loadingPrices) ?
                         <Skeleton variant="rounded" width={'100%'} height={50} />
                     :
                     
                     <ListItem
                         secondaryAction={
-                            <Typography variant="subtitle1" sx={{color:'white'}}>
-                                {(nativeSol && rulesSol) &&
-                                    <>
-                                    {(nativeSol+rulesSol).toFixed(6)}
-                                    </>
-                                }
-                            </Typography>
+                            <Box sx={{textAlign:'right'}}>
+                                <Typography variant="subtitle1" sx={{color:'white'}}>
+                                    {(nativeSol && rulesSol) &&
+                                        <>
+                                        {(nativeSol+rulesSol).toFixed(6)}
+                                        </>
+                                    }
+                                </Typography>
+                                <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                {usdcValue ? 
+                                    <>{usdcValue['So11111111111111111111111111111111111111112'] ? 
+                                        <>${Number(((nativeSol+rulesSol) * usdcValue['So11111111111111111111111111111111111111112']?.price).toFixed(2)).toLocaleString()}</>
+                                        :<></>
+                                    }</>
+                                :<></>}</Typography>
+                            </Box>
                         }
                     >
                         <ListItemAvatar>
@@ -309,12 +424,11 @@ export default function WalletCardView(props:any) {
                         </ListItemAvatar>
                         <ListItemText 
                             primary={<Typography variant="subtitle1" sx={{color:'white'}}>Solana</Typography>} 
-                            secondary={<Typography variant="caption">Native SOL</Typography>}
+                            secondary={<Typography variant="caption">{usdcValue && `$${usdcValue['So11111111111111111111111111111111111111112'].price.toFixed(2)}`}</Typography>}
                             />
                     </ListItem>
                     }
                 </List>
-
                 
                 <Grid sx={{textAlign:'right'}}>
                     {nativeTokens &&
@@ -361,17 +475,29 @@ export default function WalletCardView(props:any) {
             </Grid>
         </CardActions>
         <Collapse in={expanded} timeout="auto" unmountOnExit>
-            <CardContent>
-                {nativeTokens && nativeTokens
-                    .sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
-                    .map((item: any,key:number) => (   
-                        <>
+            {(loading || loadingPrices) ?
+                <Skeleton variant="rounded" width={'100%'} height={50} />
+            :
+                <CardContent>
+                    {nativeTokens && nativeTokens
+                        .sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
+                        .map((item: any,key:number) => (   
                             <ListItem
                                 secondaryAction={
-                                    <Typography variant="subtitle1" sx={{color:'white'}}>
-                                        {item.balance.toLocaleString()}
-                                    </Typography>
+                                    <Box sx={{textAlign:'right'}}>
+                                        <Typography variant="subtitle1" sx={{color:'white'}}>
+                                            {item.balance.toLocaleString()}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                        {usdcValue ? 
+                                            <>{usdcValue[item.address] ? 
+                                                <>${(item.balance * usdcValue[item.address]?.price).toFixed(2)}</>
+                                                :<></>
+                                            }</>
+                                        :<></>}</Typography>
+                                    </Box>
                                 }
+                                key={key}
                             >
                                 <ListItemAvatar>
                                     <Avatar
@@ -383,16 +509,26 @@ export default function WalletCardView(props:any) {
                                     primary={<Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>} 
                                     secondary={
                                         <>
+                                            <Typography variant="caption">
+                                                {usdcValue ? 
+                                                    <>{usdcValue[item.address] ? 
+                                                        <>${usdcValue[item.address]?.price.toFixed(6)}</>
+                                                        :<></>
+                                                    }</>
+                                                :<></>}</Typography>
+                                            {/*
                                             <Typography variant="caption">ATA {shortenString(item.associated_account,5,5)}</Typography>
+                                            */}
                                         </>
                                     }
                                     />
                             </ListItem>
-                        </>
-                    ))
-                }
+                            
+                        ))
+                    }
 
-            </CardContent>
+                </CardContent>
+            }
         </Collapse>
 
         <Collapse in={expandedNft} timeout="auto" unmountOnExit>
@@ -400,30 +536,31 @@ export default function WalletCardView(props:any) {
                 {nativeNftTokens && nativeNftTokens
                     //.sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
                     .map((item: any,key:number) => (   
-                        <>
-                            <ListItem
-                                secondaryAction={
-                                    <Typography variant="subtitle1" sx={{color:'white'}}>
-                                        ##
-                                    </Typography>
+                        
+                        <ListItem
+                            secondaryAction={
+                                <Typography variant="subtitle1" sx={{color:'white'}}>
+                                    1
+                                </Typography>
+                            }
+                            key={key}
+                        >
+                            <ListItemAvatar>
+                                <Avatar
+                                    src={item.content.links.image}
+                                >
+                                </Avatar>
+                            </ListItemAvatar>
+                            <ListItemText 
+                                primary={<Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>} 
+                                secondary={
+                                    <>
+                                        <Typography variant="caption">{shortenString(item.id,5,5)}</Typography>
+                                    </>
                                 }
-                            >
-                                <ListItemAvatar>
-                                    <Avatar
-                                        src={item.content.links.image}
-                                    >
-                                    </Avatar>
-                                </ListItemAvatar>
-                                <ListItemText 
-                                    primary={<Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>} 
-                                    secondary={
-                                        <>
-                                            <Typography variant="caption">{shortenString(item.id,5,5)}</Typography>
-                                        </>
-                                    }
-                                    />
-                            </ListItem>
-                        </>
+                                />
+                        </ListItem>
+                        
                     ))
                 }
 
