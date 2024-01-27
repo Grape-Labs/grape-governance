@@ -344,14 +344,35 @@ export default function TokenTransferV0View(props: any) {
                     customHoldUpTime:
                         governanceWalletMinInstructHoldUpTime,
                 }
+
+                const uiInstructions: UiInstruction[] = serializedTransferToReceiptIxs.map(
+                    (serializedInstruction) => ({
+                      serializedInstruction,
+                      additionalSerializedInstructions: [], // You can set it to an empty array or any other default value
+                      isValid: true, // You can set it to a default value or based on your logic
+                      governance: governanceRulesWallet, // Set it to your default value or logic
+                      customHoldUpTime: governanceWalletMinInstructHoldUpTime, // Set it to your default value or logic
+                      prerequisiteInstructions: prerequisiteInstructions, // Set it to your default value or logic
+                    })
+                  );
+                  const instructionDataArray: InstructionDataWithHoldUpTime[] = uiInstructions.map(
+                    (uiInstruction) =>
+                      new InstructionDataWithHoldUpTime({
+                        instruction: uiInstruction,
+                        //governance: governanceRulesWallet,
+                      })
+                  );
+                  
+                setInstructionsDataWithHoldUpTime(instructionDataArray);
+                //console.log('setInstructionsDataWithHoldUpTime sent:'+JSON.stringify(instructionDataArray));
                 
-                const fullPropInstruction = new InstructionDataWithHoldUpTime({
+                /*const fullPropInstruction = new InstructionDataWithHoldUpTime({
                     instruction: uiInstruction,
                 })
 
                 instructions.push(fullPropInstruction);
                 //console.log("instructions in transfertoken: "+JSON.stringify(instructions));
-                setInstructionsDataWithHoldUpTime(instructions);
+                setInstructionsDataWithHoldUpTime(instructions);*/
                 setTransactionInstructions(transaction);
                 return transaction;
             } catch(err){
