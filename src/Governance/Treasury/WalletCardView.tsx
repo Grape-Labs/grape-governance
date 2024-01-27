@@ -373,7 +373,7 @@ export default function WalletCardView(props:any) {
                 :
                     <h2>${
                         totalWalletValue &&
-                        +totalWalletValue.toFixed(2).toLocaleString()
+                        (+totalWalletValue.toFixed(2)).toLocaleString()
                     }</h2>
 
                     
