@@ -39,6 +39,7 @@ import {
 import TreeView from '@mui/lab/TreeView';
 import TreeItem, { TreeItemProps, treeItemClasses } from '@mui/lab/TreeItem';
 
+import WalletCardView from './Treasury/WalletCardView';
 import GovernanceNavigation from './GovernanceNavigation'; 
 import {
     fetchGovernanceLookupFile,
@@ -46,11 +47,15 @@ import {
 } from './CachedStorageHelpers'; 
 
 import { 
+    getRealmIndexed,
+    getGovernanceIndexed,
     getAllProposalsIndexed,
-    getAllGovernancesIndexed
-} from './api/queries';
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
+} from '../Governance/api/queries';
 import {
-    getAllGovernances
+    getAllGovernances,
+    getNativeTreasuryAddress
 } from '@solana/spl-governance';
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers';
@@ -80,6 +85,7 @@ import PropTypes from 'prop-types';
 import { 
     RPC_CONNECTION, 
     GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
+import { InfoItem } from '@dynamic-labs/sdk-react-core/src/lib/components';
 
 const GOVERNANNCE_STATE = {
     0:'Draft',
@@ -428,6 +434,8 @@ export function GovernanceTreasuryView(props: any) {
     const [totalGovernanceNftFloorValue, setTotalGovernanceNftFloorValue] = React.useState(null);
     const [totalGovernanceStableCoinValue, setTotalGovernanceStableCoinValue] = React.useState(null);
 
+    const [governanceWallets, setGovernanceWallets] = React.useState(null);
+
     const getTokens = async () => {
         const tarray:any[] = [];
         try{
@@ -520,9 +528,62 @@ export function GovernanceTreasuryView(props: any) {
         setGovernanceLookup(fglf);
     }
 
+    const fetchGovernanceVaults = async(grealm:any) => {
+    
+        const rawGovernances = await getAllGovernances(
+            RPC_CONNECTION,
+            new PublicKey(grealm.owner),
+            new PublicKey(grealm.pubkey)
+        );
+    
+        /*
+        const rawGovernances = await getAllGovernancesIndexed(
+            new PublicKey(grealm.pubkey).toBase58(),
+            new PublicKey(grealm.owner).toBase58()
+        )
+        */
+        
+        return rawGovernances;
+    }
+
+    const fetchGovernances = async() => {
+        const governanceAddresses = await getAllGovernancesIndexed(governanceAddress);
+        //console.log("governanceAddresses: "+JSON.stringify(governanceAddresses));
+        
+
+        //if (realm){
+            const thisrealm = await getRealmIndexed(governanceAddress);
+            
+            const rawNativeSolAddresses = await Promise.all(
+                governanceAddresses.map((x) =>
+                    getNativeTreasuryAddress(
+                        //@ts-ignore
+                        new PublicKey(thisrealm.owner),
+                        x!.pubkey
+                    )
+                )
+            );
+
+        // push to a single array with rules & native
+        if (governanceAddresses.length === rawNativeSolAddresses.length){
+            let x = 0;
+            for (let item of governanceAddresses){
+                item.nativeTreasuryAddress = rawNativeSolAddresses[x];
+                x++;
+            }
+        }
+
+        //console.log("governanceAddresses: "+JSON.stringify(governanceAddresses));
+        //}
+
+        setGovernanceWallets(governanceAddresses);
+    }
+
     React.useEffect(() => {
         if (governanceLookup){
             getCachedGovernanceFromLookup();
+            // fetch all governance wallets from Index
+            fetchGovernances();
         }
     }, [governanceLookup, governanceAddress]);
     
@@ -770,6 +831,23 @@ export function GovernanceTreasuryView(props: any) {
                                 m:2,
                             }} 
                         > 
+
+                            <Grid 
+                                container 
+                                spacing={4}
+                                direction="row"
+                                justifyContent="center"
+                                alignItems="flex-start">
+                                {governanceWallets && governanceWallets
+                                    //.sort((a:any,b:any) => (b.solBalance - a.solBalance)  || b.tokens?.value.length - a.tokens?.value.length)
+                                    .map((item: any,key:number) => (                                
+                                        <Grid item md={4} sm={6} xs={12}>
+                                            <WalletCardView tokenMap={tokenMap} rulesWalletAddress={new PublicKey(item.pubkey).toBase58()} walletAddress={new PublicKey(item.nativeTreasuryAddress).toBase58()}  />
+                                        </Grid>
+                                    ))
+                                }
+                            </Grid>
+
                         
                             <TreeView
                                 aria-label="treasury"

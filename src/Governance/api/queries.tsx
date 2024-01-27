@@ -726,7 +726,6 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
             const { data } = await client.query({ query: GET_QUERY_RULES(filterRealm, programId) });
             // normalize data
             
-
             data[programId+"_GovernanceV2"] && data[programId+"_GovernanceV2"].map((item) => {
                 allRules.push({
                     pubkey: new PublicKey(item.pubkey),
