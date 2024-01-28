@@ -66,6 +66,7 @@ import {
     getAllTokenOwnerRecordsIndexed,
 } from './../api/queries';
 
+import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -105,7 +106,7 @@ export default function WalletCardView(props:any) {
     
     // on direct links handle the event that the rules are not being sent over and only the wallet is sent for rules
     const rulesWallet = props?.rulesWallet;
-    
+
     const walletAddress = props?.walletAddress;
     
     const rulesWalletAddress = rulesWallet ? new PublicKey(rulesWallet.pubkey).toBase58() : props?.rulesWalletAddress;
@@ -357,8 +358,8 @@ export default function WalletCardView(props:any) {
             const domains2 = await getWalletDomains(new PublicKey(rulesWalletAddress));
 
             // get stake accounts
-            const stake1 = await getWalletStakeAccounts(new PublicKey(walletAddress));
-            const stake2 = await getWalletStakeAccounts(new PublicKey(rulesWalletAddress));
+            //const stake1 = await getWalletStakeAccounts(new PublicKey(walletAddress));
+            //const stake2 = await getWalletStakeAccounts(new PublicKey(rulesWalletAddress));
             
             const props = await getAllProposalsIndexed([rulesWalletAddress], null, governanceAddress);
             setProposals(props);
@@ -376,8 +377,8 @@ export default function WalletCardView(props:any) {
             setNativeDomains(domains1);
             setRulesDomains(domains2);
 
-            setNativeStakeAccounts(stake1);
-            setRulesStakeAccounts(stake2);
+            //setNativeStakeAccounts(stake1);
+            //setRulesStakeAccounts(stake2);
                     
             // unify tokens?
             // think of how we can display them unified if needed
@@ -397,8 +398,7 @@ export default function WalletCardView(props:any) {
         
         if (usdcValue && 
             (nativeSol && nativeSol > 0 || rulesSol && rulesSol > 0) &&
-            (nativeTokens && rulesTokens) &&
-            (nativeStakeAccounts || rulesStakeAccounts)){
+            (nativeTokens && rulesTokens)){
             let totalVal = 0;
             let tokenAccountVal = 0;
             let stakeAccountVal = 0;
@@ -489,7 +489,7 @@ export default function WalletCardView(props:any) {
         <Card>
         <CardHeader
             avatar={
-                <Avatar sx={{ bgcolor: red[500] }} aria-label={walletAddress.substring(0,1)}>
+                <Avatar sx={{ bgcolor: red[50] }} aria-label={walletAddress.substring(0,1)}>
                     {walletAddress.substring(0,1)}
                 </Avatar>
             }
@@ -499,7 +499,7 @@ export default function WalletCardView(props:any) {
             title={ 
                 <CopyToClipboard text={walletAddress} onCopy={handleCopy}>
                     <Button color={'inherit'} variant='text'>
-                        <Typography variant="h5">
+                        <Typography variant="h6">
                             {shortWalletAddress}
                         </Typography>
                     </Button>
@@ -515,7 +515,7 @@ export default function WalletCardView(props:any) {
         > 
             <Grid xs={12} sx={{display: 'flex', justifyContent: 'center'}}>
                 {(loading || loadingPrices) ?
-                    <Skeleton variant="rounded" width={100} height={40} sx={{m:4}} />
+                    <Skeleton variant="rounded" width={100} height={40} sx={{m:1,p:0}} />
                 :
                     <h2>${
                         totalWalletValue &&
@@ -526,59 +526,69 @@ export default function WalletCardView(props:any) {
                 }
                 
             </Grid>
-            <Grid xs={6} >
-                <Button size="large" variant="contained" disabled>Receive</Button>
+            <Grid xs={6} sx={{textAlign:'center', display: 'flex', justifyContent: 'center'}} >
+                {(loading || loadingPrices) ?
+                    <Skeleton variant="rounded" width={100} height={60} sx={{m:1,p:0}} />
+                :
+                    <Button size="large" variant="contained" disabled sx={{pl:2,pr:2}}>Receive</Button>
+                }
             </Grid>
-            <Grid xs={6}>
-                <Button size="large" variant="contained" disabled>Send</Button>
+            <Grid xs={6} sx={{textAlign:'center', display: 'flex', justifyContent: 'center'}}>
+                {(loading || loadingPrices) ?
+                    <Skeleton variant="rounded" width={100} height={60} sx={{m:1,p:0}} />
+                :
+                    <Button size="large" variant="contained" disabled sx={{pl:2,pr:2}}>Send</Button>
+                }
             </Grid>
 
         </Grid>
-        <CardContent>
+        <CardContent sx={{p:0}}>
             <Typography variant="body2" color="text.secondary">
                 <List sx={{ width: '100%' }}>
 
                     {(loading || loadingPrices) ?
                         <Skeleton variant="rounded" width={'100%'} height={50} />
                     :
-                    
-                    <ListItem
-                        secondaryAction={
-                            <Box sx={{textAlign:'right'}}>
-                                <Typography variant="subtitle1" sx={{color:'white'}}>
-                                    {(nativeSol && rulesSol) &&
-                                        <>
-                                        {(nativeSol+rulesSol).toFixed(6)}
-                                        </>
-                                    }
-                                </Typography>
-                                <Typography variant="caption" sx={{color:'#919EAB'}}>
-                                {usdcValue ? 
-                                    <>{usdcValue['So11111111111111111111111111111111111111112'] ? 
-                                        <>${Number(((nativeSol+rulesSol) * usdcValue['So11111111111111111111111111111111111111112']?.price).toFixed(2)).toLocaleString()}</>
-                                        :<></>
-                                    }</>
-                                :<></>}</Typography>
-                            </Box>
-                        }
-                    >
-                        <ListItemAvatar>
-                            <Avatar
-                                src='https://solana-cdn.com/cdn-cgi/image/width=100/https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png'
+                        <>
+                            <ListItem
+                                secondaryAction={
+                                    <Box sx={{textAlign:'right'}}>
+                                        <Typography variant="h5" sx={{color:'white'}}>
+                                            {(nativeSol && rulesSol) &&
+                                                <>
+                                                {(nativeSol+rulesSol).toFixed(6)}
+                                                </>
+                                            }
+                                        </Typography>
+                                        <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                        {usdcValue ? 
+                                            <>{usdcValue['So11111111111111111111111111111111111111112'] ? 
+                                                <>${Number(((nativeSol+rulesSol) * usdcValue['So11111111111111111111111111111111111111112']?.price).toFixed(2)).toLocaleString()}</>
+                                                :<></>
+                                            }</>
+                                        :<></>}</Typography>
+                                    </Box>
+                                }
                             >
-                            </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText 
-                            primary={
-                                <CopyToClipboard text={walletAddress} onCopy={handleCopy}>
-                                    <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
-                                        <Typography variant="subtitle1" sx={{color:'white'}}>Solana</Typography>
-                                    </Button>
-                                </CopyToClipboard>
-                            } 
-                            secondary={<Typography variant="caption">{usdcValue && `$${usdcValue['So11111111111111111111111111111111111111112'].price.toFixed(2)}`}</Typography>}
-                            />
-                    </ListItem>
+                                <ListItemAvatar>
+                                    <Avatar
+                                        src='https://solana-cdn.com/cdn-cgi/image/width=100/https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png'
+                                    >
+                                    </Avatar>
+                                </ListItemAvatar>
+                                <ListItemText 
+                                    primary={
+                                        <CopyToClipboard text={walletAddress} onCopy={handleCopy}>
+                                            <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                                <Typography variant="subtitle1" sx={{color:'white'}}>Solana</Typography>
+                                            </Button>
+                                        </CopyToClipboard>
+                                    } 
+                                    secondary={<Typography variant="caption">{usdcValue && `$${usdcValue['So11111111111111111111111111111111111111112'].price.toFixed(2)}`}</Typography>}
+                                    />
+                            </ListItem>
+                            <Divider component="li" />
+                        </>
                     }
                 </List>
                 
@@ -597,6 +607,7 @@ export default function WalletCardView(props:any) {
                             onClick={handleExpandPropsClick}
                             aria-expanded={expandedProps}
                             aria-label="Proposals"
+                            color={expandedProps ? 'inherit' : 'rgba(145, 158, 171, 0.8)'}
                         >
                             <SyncAltIcon />
                         </IconButton>
@@ -612,6 +623,7 @@ export default function WalletCardView(props:any) {
                             onClick={handleExpandStakeClick}
                             aria-expanded={expandedStake}
                             aria-label="Stake Accounts"
+                            color={expandedStake ? 'inherit' : 'rgba(145, 158, 171, 0.8)'}
                         >
                             <SavingsIcon />
                         </IconButton>
@@ -627,6 +639,7 @@ export default function WalletCardView(props:any) {
                             onClick={handleExpandNftClick}
                             aria-expanded={expandedNft}
                             aria-label="Show NFTs"
+                            color={expandedNft ? 'inherit' : 'rgba(145, 158, 171, 0.8)'}
                         >
                             <GridViewIcon />
                         </IconButton>
@@ -643,6 +656,7 @@ export default function WalletCardView(props:any) {
                                 onClick={handleExpandClick}
                                 aria-expanded={expanded}
                                 aria-label="Show Tokens"
+                                color={expanded ? 'inherit' : 'rgba(145, 158, 171, 0.8)'}
                                 >
                                     <ExpandMoreIcon />
                             </ExpandMore>
@@ -656,245 +670,270 @@ export default function WalletCardView(props:any) {
             {(loading || loadingPrices) ?
                 <Skeleton variant="rounded" width={'100%'} height={50} />
             :
-                <CardContent>
-                    <Divider>
-                        <Chip label="Tokens" size="small" />
-                    </Divider>
-                    {nativeTokens && nativeTokens
-                        .sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
-                        .map((item: any,key:number) => (   
-                            <ListItem
-                                secondaryAction={
-                                    <Box sx={{textAlign:'right'}}>
-                                        <Typography variant="subtitle1" sx={{color:'white'}}>
-                                            {item.balance.toLocaleString()}
-                                        </Typography>
-                                        <Typography variant="caption" sx={{color:'#919EAB'}}>
-                                        {usdcValue ? 
-                                            <>{usdcValue[item.address] ? 
-                                                <>${(item.balance * usdcValue[item.address]?.price).toFixed(2)}</>
-                                                :<></>
-                                            }</>
-                                        :<></>}</Typography>
-                                    </Box>
-                                }
-                                key={key}
-                            >
-                                <ListItemAvatar>
-                                    <Avatar
-                                        src={item.info.image}
-                                    >
-                                    </Avatar>
-                                </ListItemAvatar>
-                                <ListItemText 
-                                    primary={
-                                        <CopyToClipboard text={item.address} onCopy={handleCopy}>
-                                            <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
-                                                <Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>
-                                            </Button>
-                                        </CopyToClipboard>
-                                    }
-                                    secondary={
-                                        <>
-                                            <Typography variant="caption">
-                                                {usdcValue ? 
-                                                    <>{usdcValue[item.address] ? 
-                                                        <>${usdcValue[item.address]?.price.toFixed(6)}</>
-                                                        :<></>
-                                                    }</>
-                                                :<></>}</Typography>
-                                            {/*
-                                            <Typography variant="caption">ATA {shortenString(item.associated_account,5,5)}</Typography>
-                                            */}
-                                        </>
-                                    }
-                                    />
-                            </ListItem>
-                            
-                        ))
-                    }
-
-                    {(rulesTokens && rulesTokens.length > 0) &&
+                <CardContent sx={{ p:0, '& .MuiCardContent-root:last-child': { pb: 0,}, }}>
+                    <List sx={{ width: '100%' }}>
                         <Divider>
-                            <Chip label="Rules Wallet: Tokens" size="small" />
+                            <Chip label="Tokens" size="small" />
                         </Divider>
-                    }
-
-                    {rulesTokens && rulesTokens
-                        .sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
-                        .map((item: any,key:number) => (   
-                            <ListItem
-                                secondaryAction={
-                                    <Box sx={{textAlign:'right'}}>
-                                        <Typography variant="subtitle1" sx={{color:'white'}}>
-                                            {item.balance.toLocaleString()}
-                                        </Typography>
-                                        <Typography variant="caption" sx={{color:'#919EAB'}}>
-                                        {usdcValue ? 
-                                            <>{usdcValue[item.address] ? 
-                                                <>${(item.balance * usdcValue[item.address]?.price).toFixed(2)}</>
-                                                :<></>
-                                            }</>
-                                        :<></>}</Typography>
-                                    </Box>
-                                }
-                                key={key}
-                            >
-                                <ListItemAvatar>
-                                    <Avatar
-                                        src={item.info.image}
-                                    >
-                                    </Avatar>
-                                </ListItemAvatar>
-                                <ListItemText 
-                                    primary={
-                                        <CopyToClipboard text={item.address} onCopy={handleCopy}>
-                                            <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
-                                                <Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>
-                                            </Button>
-                                        </CopyToClipboard>
-                                    } 
-                                    secondary={
-                                        <>
-                                            <Typography variant="caption">
-                                                {usdcValue ? 
-                                                    <>{usdcValue[item.address] ? 
-                                                        <>${usdcValue[item.address]?.price.toFixed(6)}</>
-                                                        :<></>
-                                                    }</>
-                                                :<></>}</Typography>
-                                            {/*
-                                            <Typography variant="caption">ATA {shortenString(item.associated_account,5,5)}</Typography>
-                                            */}
-                                        </>
+                        
+                        {nativeTokens && nativeTokens
+                            .sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
+                            .map((item: any,key:number) => (   
+                                <>
+                                <ListItem
+                                    secondaryAction={
+                                        <Box sx={{textAlign:'right'}}>
+                                            <Typography variant="subtitle1" sx={{color:'white'}}>
+                                                {item.balance.toLocaleString()}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                            {usdcValue ? 
+                                                <>{usdcValue[item.address] ? 
+                                                    <>${(item.balance * usdcValue[item.address]?.price).toFixed(2)}</>
+                                                    :<></>
+                                                }</>
+                                            :<></>}</Typography>
+                                        </Box>
                                     }
-                                    />
-                            </ListItem>
-                        ))
-                    }
+                                    key={key}
+                                >
+                                    <ListItemAvatar>
+                                        <Avatar
+                                            src={item.info.image}
+                                        >
+                                        </Avatar>
+                                    </ListItemAvatar>
+                                    <ListItemText 
+                                        primary={
+                                            <CopyToClipboard text={item.address} onCopy={handleCopy}>
+                                                <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>
+                                                </Button>
+                                            </CopyToClipboard>
+                                        }
+                                        secondary={
+                                            <>
+                                                <Typography variant="caption">
+                                                    {usdcValue ? 
+                                                        <>{usdcValue[item.address] ? 
+                                                            <>${usdcValue[item.address]?.price.toFixed(6)}</>
+                                                            :<></>
+                                                        }</>
+                                                    :<></>}</Typography>
+                                                {/*
+                                                <Typography variant="caption">ATA {shortenString(item.associated_account,5,5)}</Typography>
+                                                */}
+                                            </>
+                                        }
+                                        />
+                                </ListItem>
+                                {key+1 < nativeTokens.length && <Divider variant="inset" component="li" />}
+                                </>
+                                
+                            ))
+                        }
+                        
+                        {(rulesTokens && rulesTokens.length > 0) &&
+                            <Divider>
+                                <Chip label="Rules Wallet: Tokens" size="small" />
+                            </Divider>
+                        }
+
+                        {rulesTokens && rulesTokens
+                            .sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
+                            .map((item: any,key:number) => (   
+                                <>
+                                <ListItem
+                                    secondaryAction={
+                                        <Box sx={{textAlign:'right'}}>
+                                            <Typography variant="subtitle1" sx={{color:'white'}}>
+                                                {item.balance.toLocaleString()}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                            {usdcValue ? 
+                                                <>{usdcValue[item.address] ? 
+                                                    <>${(item.balance * usdcValue[item.address]?.price).toFixed(2)}</>
+                                                    :<></>
+                                                }</>
+                                            :<></>}</Typography>
+                                        </Box>
+                                    }
+                                    key={key}
+                                >
+                                    <ListItemAvatar>
+                                        <Avatar
+                                            src={item.info.image}
+                                        >
+                                        </Avatar>
+                                    </ListItemAvatar>
+                                    <ListItemText 
+                                        primary={
+                                            <CopyToClipboard text={item.address} onCopy={handleCopy}>
+                                                <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>
+                                                </Button>
+                                            </CopyToClipboard>
+                                        } 
+                                        secondary={
+                                            <>
+                                                <Typography variant="caption">
+                                                    {usdcValue ? 
+                                                        <>{usdcValue[item.address] ? 
+                                                            <>${usdcValue[item.address]?.price.toFixed(6)}</>
+                                                            :<></>
+                                                        }</>
+                                                    :<></>}</Typography>
+                                                {/*
+                                                <Typography variant="caption">ATA {shortenString(item.associated_account,5,5)}</Typography>
+                                                */}
+                                            </>
+                                        }
+                                        />
+                                </ListItem>
+                                {key+1 < rulesTokens.length && <Divider variant="inset" component="li" />}
+                                </>
+                            ))
+                        }
+                    </List>
 
                 </CardContent>
             }
         </Collapse>
 
         <Collapse in={expandedStake} timeout="auto" unmountOnExit>
-            <CardContent>
-                <Divider>
-                    <Chip label="Stake Accounts" size="small" />
-                </Divider>
-                {nativeStakeAccounts && nativeStakeAccounts
-                    //.sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
-                    .map((item: any,key:number) => (   
-                        <ListItem
-                            secondaryAction={
-                                <Box sx={{textAlign:'right'}}>
-                                    <Typography variant="subtitle1" sx={{color:'white'}}>
-                                        {item.total_amount}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{color:'#919EAB'}}>
-                                    {usdcValue ? 
-                                        <>{usdcValue['So11111111111111111111111111111111111111112'] ? 
-                                            <>${Number(((item.total_amount) * usdcValue['So11111111111111111111111111111111111111112']?.price).toFixed(2)).toLocaleString()}</>
-                                            :<></>
-                                        }</>
-                                    :<></>}</Typography>
-                                </Box>
-                            }
-                            key={key}
-                        >
-                            <ListItemAvatar>
-                                <Avatar>
-                                    ?
-                                </Avatar>
-                            </ListItemAvatar>
-                            <ListItemText 
-                                primary={
-                                    <CopyToClipboard text={item.stake_account_address} onCopy={handleCopy}>
-                                        <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
-                                            <Typography variant="subtitle1" sx={{color:'white'}}>{shortenString(item.stake_account_address,5,5)}</Typography>
-                                        </Button>
-                                    </CopyToClipboard>
-                                } 
-                                secondary={
-                                    <>
-                                    {item.status}
-                                    </>
-                                }
-                                />
-                        </ListItem>
-                        
-                    ))
-                }
+            <CardContent sx={{ p:0 }}>
+                <List sx={{ width: '100%' }}>
+                    <Divider>
+                        <Chip label="Stake Accounts" size="small" />
+                    </Divider>
+                    {nativeStakeAccounts && nativeStakeAccounts
+                        //.sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
+                        .map((item: any,key:number) => (  
+                            <> 
+                                <ListItem
+                                    secondaryAction={
+                                        <Box sx={{textAlign:'right'}}>
+                                            <Typography variant="subtitle1" sx={{color:'white'}}>
+                                                {item.total_amount}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                            {usdcValue ? 
+                                                <>{usdcValue['So11111111111111111111111111111111111111112'] ? 
+                                                    <>${Number(((item.total_amount) * usdcValue['So11111111111111111111111111111111111111112']?.price).toFixed(2)).toLocaleString()}</>
+                                                    :<></>
+                                                }</>
+                                            :<></>}</Typography>
+                                        </Box>
+                                    }
+                                    key={key}
+                                >
+                                    <ListItemAvatar>
+                                        <Avatar>
+                                            ?
+                                        </Avatar>
+                                    </ListItemAvatar>
+                                    <ListItemText 
+                                        primary={
+                                            <CopyToClipboard text={item.stake_account_address} onCopy={handleCopy}>
+                                                <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{shortenString(item.stake_account_address,5,5)}</Typography>
+                                                </Button>
+                                            </CopyToClipboard>
+                                        } 
+                                        secondary={
+                                            <>
+                                            {item.status}
+                                            </>
+                                        }
+                                        />
+                                </ListItem>
+                                {key+1 < nativeStakeAccounts.length && <Divider variant="inset" component="li" />}
+                            </>
+                        ))
+                    }
+                </List>
             </CardContent>
         </Collapse>
 
         <Collapse in={expandedProps} timeout="auto" unmountOnExit>
-            <CardContent>
-                <Divider>
-                    <Chip label="Proposals" size="small" />
-                </Divider>
-                {proposals && proposals
-                    .sort((a:any,b:any) => (b.account.draftAt - a.account.draftAt))
-                    .map((item: any,key:number) => (   
-                        <ListItem
-                            secondaryAction={
-                                <Box sx={{textAlign:'right'}}>
-                                    <Typography variant="subtitle1" sx={{color:'white'}}>
-                                        ---
-                                    </Typography>
-                                    <Typography variant="caption" sx={{color:'#919EAB'}}>
-                                        {item.account?.signingOffAt ?
-                                            <>{moment.unix(Number((item.account?.signingOffAt))).format("MMMM D, YYYY, h:mm a")}</>
-                                        :
-                                            <>{moment.unix(Number((item.account?.draftAt))).format("MMMM D, YYYY, h:mm a")}</>
-                                        }
-                                    </Typography>
-                                </Box>
-                            }
-                            key={key}
-                        >
-                            <ListItemAvatar>
-                                <Avatar>
-                                    {/*
-                                      0:'Draft',
-                                        1:'Signing Off',
-                                        2:'Voting',
-                                        3:'Succeeded',
-                                        4:'Executing',
-                                        5:'Completed',
-                                        6:'Cancelled',
-                                        7:'Defeated',
-                                        8:'Executing w/errors!',
-                                        9:'Vetoed',
-                                    */}
-                                    {item.account.state === 2 ?
-                                        <HowToVoteIcon />
-                                    :
-                                        <>
-                                        {item.account.state === 0 ?
-                                                <EditNoteIcon />
+            <CardContent sx={{ p:0 }}>
+                <List sx={{ width: '100%' }}>
+                    <Divider>
+                        <Chip label="Proposals" size="small" />
+                    </Divider>
+                    {proposals && proposals
+                        .sort((a:any,b:any) => (b.account.draftAt - a.account.draftAt))
+                        .map((item: any,key:number) => (  
+                            <> 
+                                <ListItem
+                                    secondaryAction={
+                                        <Box sx={{textAlign:'right'}}>
+                                            <Typography variant="subtitle1" sx={{color:'white'}}>
+                                                <Tooltip title="View Proposal">
+                                                    <IconButton
+                                                        href={`https://governance.so/proposal/${governanceAddress}/${item.pubkey.toBase58()}`}
+                                                        target='_blank'
+                                                        size='small'
+                                                    >
+                                                        <ZoomOutMapIcon />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Typography>
+                                            <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                                {item.account?.signingOffAt ?
+                                                    <>{moment.unix(Number((item.account?.signingOffAt))).format("MMMM D, YYYY, h:mm a")}</>
+                                                :
+                                                    <>{moment.unix(Number((item.account?.draftAt))).format("MMMM D, YYYY, h:mm a")}</>
+                                                }
+                                            </Typography>
+                                        </Box>
+                                    }
+                                    key={key}
+                                >
+                                    <ListItemAvatar>
+                                        <Avatar>
+                                            {/*
+                                            0:'Draft',
+                                                1:'Signing Off',
+                                                2:'Voting',
+                                                3:'Succeeded',
+                                                4:'Executing',
+                                                5:'Completed',
+                                                6:'Cancelled',
+                                                7:'Defeated',
+                                                8:'Executing w/errors!',
+                                                9:'Vetoed',
+                                            */}
+                                            {item.account.state === 2 ?
+                                                <HowToVoteIcon />
                                             :
-                                            <>
-                                                {item.account.state === 3 ?
-                                                        <ThumbUpIcon color={'success'}  />
+                                                <>
+                                                {item.account.state === 0 ?
+                                                        <EditNoteIcon />
                                                     :
                                                     <>
-                                                        {(item.account.state === 7 || item.account.state === 9) ?
-                                                                <ThumbDownIcon color={'error'} />
+                                                        {item.account.state === 3 ?
+                                                                <ThumbUpIcon color={'success'}  />
                                                             :
                                                             <>
-                                                                {(item.account.state === 4 || item.account.state === 8) ?
-                                                                        <AccessTimeIcon />
+                                                                {(item.account.state === 7 || item.account.state === 9) ?
+                                                                        <ThumbDownIcon color={'error'} />
                                                                     :
                                                                     <>
-                                                                        {(item.account.state === 6) ?
-                                                                                <CancelIcon color={'error'}  />
+                                                                        {(item.account.state === 4 || item.account.state === 8) ?
+                                                                                <AccessTimeIcon />
                                                                             :
                                                                             <>
-                                                                                {(item.account.state === 5) ?
-                                                                                    <CheckCircleIcon color={'success'} />
-                                                                                :
-                                                                                    <HowToVoteIcon />
+                                                                                {(item.account.state === 6) ?
+                                                                                        <CancelIcon color={'error'}  />
+                                                                                    :
+                                                                                    <>
+                                                                                        {(item.account.state === 5) ?
+                                                                                            <CheckCircleIcon color={'success'} />
+                                                                                        :
+                                                                                            <HowToVoteIcon />
+                                                                                        }
+                                                                                    </>
                                                                                 }
                                                                             </>
                                                                         }
@@ -904,147 +943,153 @@ export default function WalletCardView(props:any) {
                                                         }
                                                     </>
                                                 }
+                                                </>
+                                            }
+                                        </Avatar>
+                                    </ListItemAvatar>
+                                    <ListItemText 
+                                        primary={
+                                            <CopyToClipboard text={item.pubkey.toBase58()} onCopy={handleCopy}>
+                                                <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{item.account.name.substring(0,20)+"..."}</Typography>
+                                                </Button>
+                                            </CopyToClipboard>
+                                        } 
+                                        secondary={
+                                            <>
+                                            {GOVERNANCE_STATE[item.account.state]}
                                             </>
                                         }
-                                        </>
+                                        />
+                                </ListItem>
+                                
+                                {/*
+                                    owner: new PublicKey(ownerItem.owner),
+                                    pubkey: new PublicKey(account?.pubkey),
+                                    account:{
+                                        accountType: account.accountType,
+                                        governance: new PublicKey(account.governance),
+                                        governingTokenMint: new PublicKey(account.governingTokenMint),
+                                        state: account.state,
+                                        tokenOwnerRecord: new PublicKey(account.tokenOwnerRecord),
+                                        signatoriesCount: account.signatoriesCount,
+                                        signatoriesSignedOffCount: account.signatoriesSignedOffCount,
+                                        descriptionLink: account.descriptionLink,
+                                        name: account.name,
+                                        voteType: account.voteType,
+                                        options,
+                                        denyVoteWeight: account?.denyVoteWeight ? parseInt(account.denyVoteWeight) : "00",
+                                        reserved1: account.reserved1,
+                                        draftAt: account.draftAt,
+                                        signingOffAt: account.signingOffAt,
+                                        votingAt: account.votingAt,
+                                        votingAtSlot: account.votingAtSlot,
+                                        executionFlags: account.executionFlags,
+                                        vetoVoteWeight: account.vetoVoteWeight,
+                                        abstainVoteWeight: account?.abstainVoteWeight,
+                                        closedAt: account?.closedAt,
+                                        executingAt: account?.executingAt,
+                                        maxVoteWeight: account?.maxVoteWeight,
+                                        maxVotingTime: account?.maxVotingTime,
+                                        startVotingAt: account?.startVotingAt,
+                                        voteThreshold: account?.voteThreshold,
+                                        votingCompletedAt: account?.votingCompletedAt,
                                     }
-                                </Avatar>
-                            </ListItemAvatar>
-                            <ListItemText 
-                                primary={
-                                    <CopyToClipboard text={item.pubkey.toBase58()} onCopy={handleCopy}>
-                                        <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
-                                            <Typography variant="subtitle1" sx={{color:'white'}}>{item.account.name.substring(0,20)+"..."}</Typography>
-                                        </Button>
-                                    </CopyToClipboard>
-                                } 
-                                secondary={
-                                    <>
-                                    {GOVERNANCE_STATE[item.account.state]}
-                                    </>
                                 }
-                                />
-                        </ListItem>
-                        /*
-                        {
-                        owner: new PublicKey(ownerItem.owner),
-                        pubkey: new PublicKey(account?.pubkey),
-                        account:{
-                            accountType: account.accountType,
-                            governance: new PublicKey(account.governance),
-                            governingTokenMint: new PublicKey(account.governingTokenMint),
-                            state: account.state,
-                            tokenOwnerRecord: new PublicKey(account.tokenOwnerRecord),
-                            signatoriesCount: account.signatoriesCount,
-                            signatoriesSignedOffCount: account.signatoriesSignedOffCount,
-                            descriptionLink: account.descriptionLink,
-                            name: account.name,
-                            voteType: account.voteType,
-                            options,
-                            denyVoteWeight: account?.denyVoteWeight ? parseInt(account.denyVoteWeight) : "00",
-                            reserved1: account.reserved1,
-                            draftAt: account.draftAt,
-                            signingOffAt: account.signingOffAt,
-                            votingAt: account.votingAt,
-                            votingAtSlot: account.votingAtSlot,
-                            executionFlags: account.executionFlags,
-                            vetoVoteWeight: account.vetoVoteWeight,
-                            abstainVoteWeight: account?.abstainVoteWeight,
-                            closedAt: account?.closedAt,
-                            executingAt: account?.executingAt,
-                            maxVoteWeight: account?.maxVoteWeight,
-                            maxVotingTime: account?.maxVotingTime,
-                            startVotingAt: account?.startVotingAt,
-                            voteThreshold: account?.voteThreshold,
-                            votingCompletedAt: account?.votingCompletedAt,
-                        }
-                    }
-                        */
+                                */}
+                            {key+1 < proposals.length && <Divider variant="inset" component="li" />}
+                            </>  
+                        ))
                         
-                    ))
-                }
+                    }
+                </List>
             </CardContent>
         </Collapse>
         
         <Collapse in={expandedNft} timeout="auto" unmountOnExit>
-            <CardContent>
-                <Divider>
-                    <Chip label="Collectibles" size="small" />
-                </Divider>
-                {nativeNftTokens && nativeNftTokens
-                    //.sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
-                    .map((item: any,key:number) => (   
-                        
-                        <ListItem
-                            secondaryAction={
-                                <Typography variant="subtitle1" sx={{color:'white'}}>
-                                    1
-                                </Typography>
-                            }
-                            key={key}
-                        >
-                            <ListItemAvatar>
-                                <Avatar
-                                    src={item.content.links.image}
-                                >
-                                </Avatar>
-                            </ListItemAvatar>
-                            <ListItemText 
-                                primary={
-                                    <CopyToClipboard text={item.id} onCopy={handleCopy}>
-                                        <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
-                                            <Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>
-                                        </Button>
-                                    </CopyToClipboard>
-                                } 
-                                />
-                        </ListItem>
-                        
-                    ))
-                }
-
-                {(rulesNftTokens && rulesNftTokens.length > 0) &&
+            <CardContent sx={{ p:0 }}>
+                <List sx={{ width: '100%' }}>
                     <Divider>
-                        <Chip label="Rules Wallet: Collectibles" size="small" />
+                        <Chip label="Collectibles" size="small" />
                     </Divider>
-                }
-
-                {rulesNftTokens && rulesNftTokens
-                    //.sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
-                    .map((item: any,key:number) => (   
-                        
-                        <ListItem
-                            secondaryAction={
-                                <Typography variant="subtitle1" sx={{color:'white'}}>
-                                    1
-                                </Typography>
-                            }
-                            key={key}
-                        >
-                            <ListItemAvatar>
-                                <Avatar
-                                    src={item.content.links.image}
+                    {nativeNftTokens && nativeNftTokens
+                        //.sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
+                        .map((item: any,key:number) => (   
+                            <>
+                                <ListItem
+                                    secondaryAction={
+                                        <Typography variant="subtitle1" sx={{color:'white'}}>
+                                            1
+                                        </Typography>
+                                    }
+                                    key={key}
                                 >
-                                </Avatar>
-                            </ListItemAvatar>
-                            <ListItemText 
-                                primary={
-                                    <CopyToClipboard text={item.id} onCopy={handleCopy}>
-                                        <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
-                                            <Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>
-                                        </Button>
-                                    </CopyToClipboard>
-                                } 
-                                secondary={
-                                    <>
-                                        <Typography variant="caption">{shortenString(item.id,5,5)}</Typography>
-                                    </>
-                                }
-                                />
-                        </ListItem>
-                        
-                    ))
-                }
+                                    <ListItemAvatar>
+                                        <Avatar
+                                            src={item.content.links.image}
+                                        >
+                                        </Avatar>
+                                    </ListItemAvatar>
+                                    <ListItemText 
+                                        primary={
+                                            <CopyToClipboard text={item.id} onCopy={handleCopy}>
+                                                <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>
+                                                </Button>
+                                            </CopyToClipboard>
+                                        } 
+                                        />
+                                </ListItem>
+                                {key+1 < nativeNftTokens.length && <Divider variant="inset" component="li" />}
+                            </>
+                        ))
+                    }
+
+                    {(rulesNftTokens && rulesNftTokens.length > 0) &&
+                        <Divider>
+                            <Chip label="Rules Wallet: Collectibles" size="small" />
+                        </Divider>
+                    }
+
+                    {rulesNftTokens && rulesNftTokens
+                        //.sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
+                        .map((item: any,key:number) => (   
+                            <>
+                                <ListItem
+                                    secondaryAction={
+                                        <Typography variant="subtitle1" sx={{color:'white'}}>
+                                            1
+                                        </Typography>
+                                    }
+                                    key={key}
+                                >
+                                    <ListItemAvatar>
+                                        <Avatar
+                                            src={item.content.links.image}
+                                        >
+                                        </Avatar>
+                                    </ListItemAvatar>
+                                    <ListItemText 
+                                        primary={
+                                            <CopyToClipboard text={item.id} onCopy={handleCopy}>
+                                                <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>
+                                                </Button>
+                                            </CopyToClipboard>
+                                        } 
+                                        secondary={
+                                            <>
+                                                <Typography variant="caption">{shortenString(item.id,5,5)}</Typography>
+                                            </>
+                                        }
+                                        />
+                                </ListItem>
+                                {key+1 < rulesNftTokens.length && <Divider variant="inset" component="li" />}
+                            </>
+                            
+                        ))
+                    }
+                </List>
 
             </CardContent>
         </Collapse>

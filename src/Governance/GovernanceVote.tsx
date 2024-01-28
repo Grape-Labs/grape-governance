@@ -36,7 +36,14 @@ import { BorshCoder } from "@coral-xyz/anchor";
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token-v2";
-import { PublicKey, TokenAmount, Connection, TransactionInstruction, Transaction } from '@solana/web3.js';
+import { 
+    ComputeBudgetProgram,
+    LAMPORTS_PER_SOL,
+    PublicKey, 
+    TokenAmount, 
+    Connection, 
+    TransactionInstruction, 
+    Transaction } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
 import React, { useCallback } from 'react';
@@ -422,6 +429,12 @@ export function VoteForProposal(props:any){
 
                 //console.log("voteTx: " + JSON.stringify(voteTx));
                 try{
+                    /*
+                    const PRIORITY_RATE = 100; // MICRO_LAMPORTS 
+                    const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
+                    const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
+                    voteTx.add(PRIORITY_FEE_IX);
+                    */
                     enqueueSnackbar(`Preparing to withdraw vote`,{ variant: 'info' });
                     const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
                         skipPreflight: true,
@@ -437,7 +450,7 @@ export function VoteForProposal(props:any){
                         blockhash: latestBlockHash.blockhash,
                         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
                         signature: signature}, 
-                        'finalized'
+                        'confirmed'
                     );
 
                     closeSnackbar(cnfrmkey);
@@ -627,6 +640,12 @@ export function VoteForProposal(props:any){
                 if (supportedVote){
                     console.log("voteTx: " + JSON.stringify(voteTx));
                     try{
+                        /*
+                        const PRIORITY_RATE = 100; // MICRO_LAMPORTS 
+                        const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
+                        const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
+                        voteTx.add(PRIORITY_FEE_IX);
+                        */
                         enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
                         const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
                             skipPreflight: true,
@@ -642,7 +661,7 @@ export function VoteForProposal(props:any){
                             blockhash: latestBlockHash.blockhash,
                             lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
                             signature: signature}, 
-                            'finalized'
+                            'confirmed'
                         );
 
                         closeSnackbar(cnfrmkey);
