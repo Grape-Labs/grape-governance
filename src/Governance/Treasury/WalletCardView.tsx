@@ -53,9 +53,11 @@ import {
     Badge,
     Divider,
     Chip,
+    Snackbar,
+    Alert,
   } from '@mui/material/';
 
-  import GridViewIcon from '@mui/icons-material/GridView';
+import GridViewIcon from '@mui/icons-material/GridView';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShareIcon from '@mui/icons-material/Share';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -97,7 +99,16 @@ export default function WalletCardView(props:any) {
     const [totalWalletValue, setTotalWalletValue] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
     const [loadingPrices, setLoadingPrices] = React.useState(false);
+    const [isCopied, setIsCopied] = React.useState(false);
+
+    const handleCopy = () => {
+        setIsCopied(true);
+      };
     
+      const handleCloseSnackbar = () => {
+        setIsCopied(false);
+      };
+
     function SettingsMenu() {
         const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
         const open = Boolean(anchorEl);
@@ -128,7 +139,9 @@ export default function WalletCardView(props:any) {
                 'aria-labelledby': 'basic-button',
               }}
             >
-              <MenuItem onClick={handleClose}>Rules Wallet {shortRulesWalletAddress}</MenuItem>
+                <CopyToClipboard text={rulesWalletAddress} onCopy={handleCopy}>
+                    <MenuItem>Rules Wallet {shortRulesWalletAddress}</MenuItem>
+                </CopyToClipboard>
             </Menu>
           </div>
         );
@@ -361,7 +374,15 @@ export default function WalletCardView(props:any) {
             action={
                 <SettingsMenu/>
             }
-            title={shortWalletAddress}
+            title={ 
+                <CopyToClipboard text={walletAddress} onCopy={handleCopy}>
+                    <Button color={'inherit'} variant='text'>
+                        <Typography variant="h5">
+                            {shortWalletAddress}
+                        </Typography>
+                    </Button>
+                </CopyToClipboard>
+            }
             subheader={
                 (nativeDomains && nativeDomains.length > 0) &&
                     <>{nativeDomains[0].name}</>    
@@ -426,7 +447,13 @@ export default function WalletCardView(props:any) {
                             </Avatar>
                         </ListItemAvatar>
                         <ListItemText 
-                            primary={<Typography variant="subtitle1" sx={{color:'white'}}>Solana</Typography>} 
+                            primary={
+                                <CopyToClipboard text={walletAddress} onCopy={handleCopy}>
+                                    <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                        <Typography variant="subtitle1" sx={{color:'white'}}>Solana</Typography>
+                                    </Button>
+                                </CopyToClipboard>
+                            } 
                             secondary={<Typography variant="caption">{usdcValue && `$${usdcValue['So11111111111111111111111111111111111111112'].price.toFixed(2)}`}</Typography>}
                             />
                     </ListItem>
@@ -505,7 +532,13 @@ export default function WalletCardView(props:any) {
                                     </Avatar>
                                 </ListItemAvatar>
                                 <ListItemText 
-                                    primary={<Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>} 
+                                    primary={
+                                        <CopyToClipboard text={item.address} onCopy={handleCopy}>
+                                            <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                                <Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>
+                                            </Button>
+                                        </CopyToClipboard>
+                                    }
                                     secondary={
                                         <>
                                             <Typography variant="caption">
@@ -559,7 +592,13 @@ export default function WalletCardView(props:any) {
                                     </Avatar>
                                 </ListItemAvatar>
                                 <ListItemText 
-                                    primary={<Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>} 
+                                    primary={
+                                        <CopyToClipboard text={item.address} onCopy={handleCopy}>
+                                            <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                                <Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>
+                                            </Button>
+                                        </CopyToClipboard>
+                                    } 
                                     secondary={
                                         <>
                                             <Typography variant="caption">
@@ -605,18 +644,19 @@ export default function WalletCardView(props:any) {
                                 </Avatar>
                             </ListItemAvatar>
                             <ListItemText 
-                                primary={<Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>} 
-                                secondary={
-                                    <>
-                                        <Typography variant="caption">{shortenString(item.id,5,5)}</Typography>
-                                    </>
-                                }
+                                primary={
+                                    <CopyToClipboard text={item.id} onCopy={handleCopy}>
+                                        <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                            <Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>
+                                        </Button>
+                                    </CopyToClipboard>
+                                } 
                                 />
                         </ListItem>
                         
                     ))
                 }
-                
+
                 {(rulesNftTokens && rulesNftTokens.length > 0) &&
                     <Divider>
                         <Chip label="Rules Wallet" size="small" />
@@ -642,7 +682,13 @@ export default function WalletCardView(props:any) {
                                 </Avatar>
                             </ListItemAvatar>
                             <ListItemText 
-                                primary={<Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>} 
+                                primary={
+                                    <CopyToClipboard text={item.id} onCopy={handleCopy}>
+                                        <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                            <Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>
+                                        </Button>
+                                    </CopyToClipboard>
+                                } 
                                 secondary={
                                     <>
                                         <Typography variant="caption">{shortenString(item.id,5,5)}</Typography>
@@ -656,6 +702,17 @@ export default function WalletCardView(props:any) {
 
             </CardContent>
         </Collapse>
+        
+        <Snackbar
+            open={isCopied}
+            autoHideDuration={2000}
+            onClose={handleCloseSnackbar}
+        >
+            <Alert onClose={handleCloseSnackbar} severity="success">
+            Copied to clipboard!
+            </Alert>
+        </Snackbar>
         </Card>
+        
     );
 }
