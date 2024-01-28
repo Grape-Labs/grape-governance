@@ -246,166 +246,6 @@ function TablePaginationActions(props) {
     );
   }
 
-function RenderGovernanceMembersTable(props:any) {
-    const tokenMap = props.tokenMap;
-    const [loading, setLoading] = React.useState(false);
-    //const [proposals, setProposals] = React.useState(props.proposals);
-    const participating = props.participating;
-    const members = props.members;
-    const circulatingSupply = props.circulatingSupply;
-    const totalDepositedVotes = props.totalDepositedVotes;
-    const connection = RPC_CONNECTION;
-    const { publicKey } = useWallet();
-    const [memberVotingResults, setMemberVotingResults] = React.useState(null);
-    const [page, setPage] = React.useState(0);
-    const [rowsPerPage, setRowsPerPage] = React.useState(10);
-    // Avoid a layout jump when reaching the last page with empty rows.
-    const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - members.length) : 0;
-    const token = props.token;
-    const governingTokenMint = props?.governingTokenMint;
-    const governingTokenDecimals = props?.governingTokenDecimals || 0;
-    
-    const memberresultscolumns: GridColDef[] = [
-        { field: 'id', headerName: 'ID', width: 70, hide: true},
-        { field: 'member', headerName: 'Member', width: 170, flex: 1,
-            renderCell: (params) => {
-                return(
-                    <>
-                    <ExplorerView showSolanaProfile={true} grapeArtProfile={true} address={params.value.address} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
-                    {Number(params.value.governingCouncilDepositAmount) > 0 &&
-                        <Grid item>
-                            <Tooltip title={`Council Member - Votes: ${Number(params.value.governingCouncilDepositAmount)}`}><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon /></Button></Tooltip>
-                        </Grid>
-                    }</>
-                )
-            }
-        },
-        { field: 'staked', headerName: 'Votes Staked', width: 170, flex: 1, headerAlign: 'center', align: 'right',
-            renderCell: (params) => {
-                return(
-                    <Typography variant="h6">
-                        {getFormattedNumberToLocale(params.value.governingTokenDepositAmount)}
-                    </Typography>
-                )
-            }
-        },
-        { field: 'unstaked', headerName: 'Not Staked', width: 170, headerAlign: 'center', align: 'right',
-            renderCell: (params) => {
-                return(
-                    <Typography variant="caption">
-                        {getFormattedNumberToLocale(params.value)}
-                    </Typography>
-                )
-            }
-        },
-        { field: 'percentDepositedGovernance', headerName: '% of Deposited Governance', width: 170, headerAlign: 'center', align: 'right',
-            renderCell: (params) => {
-                return(
-                    <Typography variant="h6">
-                        {params.value}%
-                    </Typography>
-                )
-            }
-        },
-        { field: 'percentSupply', headerName: '% of Supply', width: 170, headerAlign: 'center', align: 'right',
-            renderCell: (params) => {
-                return(
-                    <Typography variant="h6">
-                        {params.value}%
-                    </Typography>
-                )
-            }
-        },
-    ];
-
-
-    const handleChangePage = (event:any, newPage:number) => {
-        setPage(newPage);
-    };
-
-    const handleChangeRowsPerPage = (event:any) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0);
-    };
-
-    /*
-    const getProposals = async (GOVERNANCE_PROGRAM_ID:string) => {
-        if (!loading){
-            setLoading(true);
-            
-        }
-        setLoading(false);
-    }*/
-
-    const createMemberTableRows = async() => {
-        const mmbr = new Array();
-        let x = 0;
-        for (const member of members){
-            mmbr.push({
-                id:x+1,
-                member:{
-                    address: member.governingTokenOwner.toBase58(),
-                    governingCouncilDepositAmount:((Number(member.governingCouncilDepositAmount) > 0) ? Number(member.governingCouncilDepositAmount) : 0),
-                    },
-                staked:
-                    {
-                        governingTokenDepositAmount:(+((Number(member.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
-                        governingCouncilDepositAmount:((Number(member.governingCouncilDepositAmount) > 0) ? Number(member.governingCouncilDepositAmount) : 0),
-                    },
-                unstaked:Number(member.walletBalanceAmount),
-                percentDepositedGovernance:Number(member.governingTokenDepositAmount) > 0 ? ((+Number(member.governingTokenDepositAmount)/totalDepositedVotes)*100).toFixed(2) : 0,
-                percentSupply:Number(member.governingTokenDepositAmount) > 0 ? ((Number(member.governingTokenDepositAmount)/circulatingSupply.value.amount)*100).toFixed(2) : 0,
-            })
-            x++;
-        }
-
-        console.log("mmbr: "+JSON.stringify(mmbr))
-        setMemberVotingResults(mmbr);
-    }
-
-    React.useEffect(() => {
-        if (members && !memberVotingResults){
-            createMemberTableRows();
-        }
-    }, [members]);
-
-    if(loading){
-        return (
-            <Box sx={{ width: '100%' }}>
-                <LinearProgress sx={{borderRadius:'10px;'}} />
-            </Box>
-        )
-    }
-    
-    return (
-        
-        <>
-            {memberVotingResults &&
-                <div style={{ height: 600, width: '100%' }}>
-                    <div style={{ display: 'flex', height: '100%' }}>
-                        <div style={{ flexGrow: 1 }}>
-                                
-                                <DataGrid
-                                    rows={memberVotingResults}
-                                    columns={memberresultscolumns}
-                                    pageSize={25}
-                                    rowsPerPageOptions={[]}
-                                    sx={{
-                                        borderRadius:'17px',
-                                        borderColor:'rgba(255,255,255,0.25)',
-                                        '& .MuiDataGrid-cell':{
-                                            borderColor:'rgba(255,255,255,0.25)'
-                                        }}}
-                                    sortingOrder={['asc', 'desc', null]}
-                                    disableSelectionOnClick
-                                />
-                        </div>
-                    </div>
-                </div>
-            }
-        </>
-    )
-}
 
 export function GovernanceTreasuryView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -439,6 +279,8 @@ export function GovernanceTreasuryView(props: any) {
     const [totalStakedValue, setTotalStakedValue] = React.useState(null);
 
     const [governanceWallets, setGovernanceWallets] = React.useState(null);
+
+    const { publicKey } = useWallet();
 
     const getTokens = async () => {
         const tarray:any[] = [];
@@ -849,7 +691,13 @@ export function GovernanceTreasuryView(props: any) {
                                 m:2,
                             }} 
                         > 
+                            {(publicKey &&
+                            (publicKey.toBase58() === "KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT" ||
+                            publicKey.toBase58() === "FDw92PNX4FtibvkDm7nd5XJUAg6ChTcVqMaFmG7kQ9JP" ||
+                            publicKey.toBase58() === "AZpn1dn3VbLdFe2JfbHe9JmUP7NX2roYyzNwKbDZqqvz" ||
+                            publicKey.toBase58() === "F8qopzCYLt5dCf4t9GxtyQkNqSAEKfqiuMcpZbuMfP2x")) ?
 
+                            
                             <Grid 
                                 container 
                                 spacing={4}
@@ -871,6 +719,13 @@ export function GovernanceTreasuryView(props: any) {
                                     ))
                                 }
                             </Grid>
+                            :<>
+                            
+                                <Grid container alignContent={'center'} justifyContent={'center'}>
+                                    <h2>Get ready for some GRAPE(ness) very soon!!!</h2>
+                                </Grid>
+
+                            </>}
 
                         </Box>
                         {endTime &&
