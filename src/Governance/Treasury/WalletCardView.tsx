@@ -528,7 +528,7 @@ export default function WalletCardView(props:any) {
 
                     {(rulesTokens && rulesTokens.length > 0) &&
                         <Divider>
-                            <Chip label="Wallet Rules" size="small" />
+                            <Chip label="Rules Wallet" size="small" />
                         </Divider>
                     }
 
@@ -616,10 +616,10 @@ export default function WalletCardView(props:any) {
                         
                     ))
                 }
-
+                
                 {(rulesNftTokens && rulesNftTokens.length > 0) &&
                     <Divider>
-                        <Chip label="Wallet Rules" size="small" />
+                        <Chip label="Rules Wallet" size="small" />
                     </Divider>
                 }
 
