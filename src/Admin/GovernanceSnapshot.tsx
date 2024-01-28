@@ -629,7 +629,7 @@ const getAllDomains = async(address: string) => {
 
 const getWalletAllTokenBalance = async(tokenOwnerRecord: PublicKey) => {
 
-    const uri = `https://api.shyft.to/sol/v1/wallet/all_tokens?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}}`;
+    const uri = `https://api.shyft.to/sol/v1/wallet/all_tokens?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}`;
 
     return axios.get(uri, {
         headers: {
@@ -819,6 +819,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     vaultId: index.toString(), // vault/token account where tokens are held
                     governance: null,
                     isGovernanceVault: false,
+                    nativeTreasuryAddress: null,
+                    domains:null,
                 });
             }
         });
@@ -1426,7 +1428,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         // check token owner records
         let mcount = 0;
         const cachedSignatureData = new Array();
-        const sizeLimit = 2000;
+        const sizeLimit = 1200;
         const processVoterRecordDetails = rawTokenOwnerRecords.length > sizeLimit ? false : true;
         
         if (processVoterRecordDetails){

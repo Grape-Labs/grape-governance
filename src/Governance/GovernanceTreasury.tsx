@@ -39,6 +39,7 @@ import {
 import TreeView from '@mui/lab/TreeView';
 import TreeItem, { TreeItemProps, treeItemClasses } from '@mui/lab/TreeItem';
 
+import WalletCardView from './Treasury/WalletCardView';
 import GovernanceNavigation from './GovernanceNavigation'; 
 import {
     fetchGovernanceLookupFile,
@@ -46,11 +47,15 @@ import {
 } from './CachedStorageHelpers'; 
 
 import { 
+    getRealmIndexed,
+    getGovernanceIndexed,
     getAllProposalsIndexed,
-    getAllGovernancesIndexed
-} from './api/queries';
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
+} from '../Governance/api/queries';
 import {
-    getAllGovernances
+    getAllGovernances,
+    getNativeTreasuryAddress
 } from '@solana/spl-governance';
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers';
@@ -80,6 +85,7 @@ import PropTypes from 'prop-types';
 import { 
     RPC_CONNECTION, 
     GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
+import { InfoItem } from '@dynamic-labs/sdk-react-core/src/lib/components';
 
 const GOVERNANNCE_STATE = {
     0:'Draft',
@@ -414,6 +420,7 @@ export function GovernanceTreasuryView(props: any) {
     const [startTime, setStartTime] = React.useState(null);
     const [endTime, setEndTime] = React.useState(null);
     
+    const isLoading = React.useRef(false);
     const [loading, setLoading] = React.useState(false);
     const connection = RPC_CONNECTION;
     const [realm, setRealm] = React.useState(null);
@@ -422,11 +429,16 @@ export function GovernanceTreasuryView(props: any) {
     const [tokenArray, setTokenArray] = React.useState(null);
     const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
 
+    const [governanceValue, setGovernanceValue] = React.useState([]);
+
     const [totalGovernanceValue, setTotalGovernanceValue] = React.useState(null);
     const [totalGovernanceSolValue, setTotalGovernanceSolValue] = React.useState(null);
     const [totalGovernanceSol, setTotalGovernanceSol] = React.useState(null);
     const [totalGovernanceNftFloorValue, setTotalGovernanceNftFloorValue] = React.useState(null);
     const [totalGovernanceStableCoinValue, setTotalGovernanceStableCoinValue] = React.useState(null);
+    const [totalStakedValue, setTotalStakedValue] = React.useState(null);
+
+    const [governanceWallets, setGovernanceWallets] = React.useState(null);
 
     const getTokens = async () => {
         const tarray:any[] = [];
@@ -505,6 +517,8 @@ export function GovernanceTreasuryView(props: any) {
         
         setCachedGovernance(cached_governance);
         endTimer();
+        setLoading(false);
+        isLoading.current = false;
     }
 
     const startTimer = () => {
@@ -520,21 +534,87 @@ export function GovernanceTreasuryView(props: any) {
         setGovernanceLookup(fglf);
     }
 
+    const fetchGovernanceVaults = async(grealm:any) => {
+    
+        const rawGovernances = await getAllGovernances(
+            RPC_CONNECTION,
+            new PublicKey(grealm.owner),
+            new PublicKey(grealm.pubkey)
+        );
+    
+        /*
+        const rawGovernances = await getAllGovernancesIndexed(
+            new PublicKey(grealm.pubkey).toBase58(),
+            new PublicKey(grealm.owner).toBase58()
+        )
+        */
+        
+        return rawGovernances;
+    }
+
+    const fetchGovernances = async() => {
+        const governanceAddresses = await getAllGovernancesIndexed(governanceAddress);
+        //console.log("governanceAddresses: "+JSON.stringify(governanceAddresses));
+        
+
+        //if (realm){
+            const thisrealm = await getRealmIndexed(governanceAddress);
+            
+            const rawNativeSolAddresses = await Promise.all(
+                governanceAddresses.map((x) =>
+                    getNativeTreasuryAddress(
+                        //@ts-ignore
+                        new PublicKey(thisrealm.owner),
+                        x!.pubkey
+                    )
+                )
+            );
+
+        // push to a single array with rules & native
+        if (governanceAddresses.length === rawNativeSolAddresses.length){
+            let x = 0;
+            for (let item of governanceAddresses){
+                item.nativeTreasuryAddress = rawNativeSolAddresses[x];
+                x++;
+            }
+        }
+
+        //console.log("governanceAddresses: "+JSON.stringify(governanceAddresses));
+        //}
+
+        setGovernanceWallets(governanceAddresses);
+    }
+
+
+    React.useEffect(() => {
+        if (governanceValue){
+            // sum all unique governances
+
+        }
+    }, [governanceValue]);
+
+    
+
+
     React.useEffect(() => {
         if (governanceLookup){
             getCachedGovernanceFromLookup();
+            // fetch all governance wallets from Index
+            fetchGovernances();
         }
     }, [governanceLookup, governanceAddress]);
     
     React.useEffect(() => { 
         if (tokenMap){  
+            isLoading.current = true;
+            setLoading(true);
             startTimer();
             callGovernanceLookup();
         }
     }, [tokenMap]);
 
     React.useEffect(() => { 
-        if (!loading){
+        if (!isLoading.current) {
             if (!tokenMap){
                 getTokens();
             }
@@ -633,10 +713,11 @@ export function GovernanceTreasuryView(props: any) {
                                                         verticalAlign: 'bottom'}}
                                                     >
                                                     <Typography variant="h4">
-                                                        {totalGovernanceValue ? 
+                                                        {governanceValue && `$${(Number(governanceValue.reduce((sum, item) => sum + item.totalVal, 0).toFixed(2)).toLocaleString())}`}
+                                                        {/*totalGovernanceValue ? 
                                                         <>${getFormattedNumberToLocale(totalGovernanceValue.toFixed(2))}</>
                                                         :
-                                                        <>-</>}
+                                                        <>-</>*/}
                                                     </Typography>
                                                 </Grid>
                                             </Button>
@@ -657,7 +738,9 @@ export function GovernanceTreasuryView(props: any) {
                                             <>Solana Treasury</>
                                         </Typography>
                                         <Tooltip title={<>
-                                                Total Value in {totalGovernanceSol && <><strong>{totalGovernanceSol.toFixed(2)}</strong></>}sol held</>
+                                                Total Value in&nbsp;
+                                                <strong>{governanceValue && `${(Number(governanceValue.reduce((sum, item) => sum + item.totalGovernanceSol, 0).toFixed(2)).toLocaleString())}`}</strong>
+                                                SOL held</>
                                             }>
                                             <Button
                                                 color='inherit'
@@ -670,11 +753,7 @@ export function GovernanceTreasuryView(props: any) {
                                                         verticalAlign: 'bottom'}}
                                                     >
                                                     <Typography variant="h4">
-                                                        {totalGovernanceSolValue ? 
-                                                        <>
-                                                        ${getFormattedNumberToLocale(totalGovernanceSolValue.toFixed(2))}</>
-                                                        :
-                                                        <>-</>}
+                                                        {governanceValue && `$${(Number(governanceValue.reduce((sum, item) => sum + item.solAccountVal, 0).toFixed(2)).toLocaleString())}`}
                                                     </Typography>
                                                 </Grid>
                                             </Button>
@@ -692,7 +771,7 @@ export function GovernanceTreasuryView(props: any) {
                                         }}
                                     >
                                         <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                            <>Stable Coin Treasury</>
+                                            <>Stable Coin Treasury (cached)</>
                                         </Typography>
                                         <Tooltip title={<>
                                                 Total Treasury in Stable Coins</>
@@ -730,7 +809,7 @@ export function GovernanceTreasuryView(props: any) {
                                         }}
                                     >
                                         <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                            <>NFT Treasury</>
+                                            <>NFT Treasury (cached)</>
                                         </Typography>
                                         <Tooltip title={<>
                                                 Total Floor Value of NFTs held in this Governance</>
@@ -770,120 +849,36 @@ export function GovernanceTreasuryView(props: any) {
                                 m:2,
                             }} 
                         > 
-                        
-                            <TreeView
-                                aria-label="treasury"
-                                //defaultExpanded={['2']}
-                                //expanded={true}
-                                defaultCollapseIcon={<ArrowDropDownIcon />}
-                                defaultExpandIcon={<ArrowRightIcon />}
-                                defaultEndIcon={<div style={{ width: 24 }} />}
-                                sx={{ flexGrow: 1, overflowY: 'auto' }}
-                                >
 
-                                {cachedTreasury
-                                .sort((a:any,b:any) => (b.solBalance - a.solBalance)  || b.tokens?.value.length - a.tokens?.value.length)
-                                .map((item: any,key:number) => (
-                                    <>
-                                        <StyledTreeItem nodeId={key.toString()} labelText={<>
-                                            <ExplorerView address={item.vault.pubkey} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
-                                            SOL Balance: <strong>{(item.solBalance /(10 ** 9))}</strong>
-                                            &nbsp;-&nbsp;
-                                            All: <strong>{item?.tokens?.value.length}</strong>
-                                            &nbsp;-&nbsp;
-                                            Tokens: <strong>{(item?.tokens?.value.length - item?.nfts?.length)}</strong>
-                                            &nbsp;-&nbsp;
-                                            NFTs: <strong>{item?.nfts?.length}</strong>
-                                            </>}> 
-                                            
-                                            <StyledTreeItem
-                                                nodeId={key.toString()+"-1"}
-                                                labelText="Sol"
-                                                labelIcon={Label}
-                                                labelInfo={(item.solBalance /(10 ** 9)).toString()}
-                                                color="#1a73e8"
-                                                bgColor="#e8f0fe"
-                                                />
-                                            
-                                            {(item?.tokens?.value && item.tokens.value.length > 0) &&
-                                                <StyledTreeItem
-                                                    nodeId={key.toString()+"-2"}
-                                                    labelText="Tokens"
-                                                    labelIcon={AccountBalanceIcon}
-                                                    labelInfo={(item?.tokens?.value.length - item?.nfts?.length).toString()}
-                                                    color="#1a73e8"
-                                                    bgColor="#e8f0fe"
-                                                >
-                                                    
-                                                    {(item?.tokens?.value && item.tokens.value.length > 0) &&
-                                                    <>
-                                                    
-                                                        {item.tokens.value
-                                                        .sort((a:any,b:any) => (b.account.data.parsed.info.tokenAmount.uiAmountString - a.account.data.parsed.info.tokenAmount.uiAmountString))
-                                                        .map((inneritem: any,innerkey:number) => (
-                                                            <StyledTreeItem
-                                                                nodeId={key.toString()+"-2-"+innerkey.toString()}
-                                                                labelText={
-                                                                    <>
-                                                                        <ExplorerView address={inneritem.account.data.parsed.info.mint} title={tokenMap.get(inneritem.account.data.parsed.info.mint)?.name || inneritem.account.data.parsed.info.mint} useLogo={tokenMap.get(inneritem.account.data.parsed.info.mint)?.logoURI} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
-                                                                    </>
-                                                                }
-                                                                labelInfo={<>
-                                                                        UI Amount: {getFormattedNumberToLocale(inneritem.account.data.parsed.info.tokenAmount.uiAmountString)}
-                                                                        <br/>Token Decimals: {inneritem.account.data.parsed.info.tokenAmount.decimals}
-                                                                    </>
-                                                                }
-                                                                color="#1a73e8"
-                                                                bgColor="#e8f0fe"
-                                                                />
-                                                        ))}
-                                                    </>}
-                                                </StyledTreeItem>
-                                            }
-                                            {(item?.nfts && item?.nfts?.length > 0) &&
-                                                <StyledTreeItem
-                                                    nodeId={key.toString()+"-3"}
-                                                    labelText="NFTs"
-                                                    labelIcon={ImageIcon}
-                                                    labelInfo={item?.nfts?.length}
-                                                    color="#1a73e8"
-                                                    bgColor="#e8f0fe"
-                                                    >
-                                                    {item?.nfts &&
-                                                    <>
-                                                        {item.nfts
-                                                        .sort((a:any,b:any) => ((a.floorPriceLamports > b.floorPriceLamports) ? 1 : -1))                                                        
-                                                        .map((inneritem: any,innerkey:number) => (
-                                                            <StyledTreeItem
-                                                                nodeId={key.toString()+"-3-"+innerkey.toString()}
-                                                                labelText={
-                                                                    <>
-                                                                        <ExplorerView address={inneritem.nftMint} title={inneritem.metadataJson.name} useLogo={inneritem?.metadataImage} type='address' shorten={8} hideTitle={false} showAddress={true} style='text' color='white' fontSize='14px' />
-                                                                    </>
-                                                                }
-                                                                labelInfo={<>
-                                                                    {+inneritem.floorPriceLamports > 0 ? <><strong>Floor Price:  {+inneritem.floorPriceLamports/(10 ** 9)} sol</strong><br/></> : ``} {+inneritem.listingCount > 0 && <>Collection Listing Count: {inneritem.listingCount}</>}
-                                                                    </>
-                                                                }
-                                                                color="#1a73e8"
-                                                                bgColor="#e8f0fe"
-                                                                />
-                                                        )).sort((a:any,b:any) => (+a.floorPriceLamports > +b.floorPriceLamports) ? 1 : -1)}
-                                                    </>}
-                                                </StyledTreeItem>
-                                            }
-                                        </StyledTreeItem>
-                                    </>
-                                ))}
+                            <Grid 
+                                container 
+                                spacing={4}
+                                direction="row"
+                                justifyContent="center"
+                                alignItems="flex-start">
+                                {governanceWallets && governanceWallets
+                                    //.sort((a:any,b:any) => (b.solBalance - a.solBalance)  || b.tokens?.value.length - a.tokens?.value.length)
+                                    .map((item: any,key:number) => (                                
+                                        <Grid item md={4} sm={6} xs={12}>
+                                            <WalletCardView 
+                                                rulesWallet={item}
+                                                governanceAddress={governanceAddress}
+                                                setGovernanceValue={setGovernanceValue}
+                                                governanceValue={governanceValue} 
+                                                tokenMap={tokenMap} 
+                                                walletAddress={new PublicKey(item.nativeTreasuryAddress).toBase58()}  />
+                                        </Grid>
+                                    ))
+                                }
+                            </Grid>
 
-                            </TreeView>
                         </Box>
                         {endTime &&
                             <Typography 
                                 variant="caption"
                                 sx={{textAlign:'center'}}
                             >
-                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Cached<br/>
+                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime<br/>
                                 {cachedTimestamp &&
                                     <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
                                 }
