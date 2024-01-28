@@ -6,6 +6,7 @@ import { styled } from '@mui/material/styles';
 import IconButton, { IconButtonProps } from '@mui/material/IconButton';
 import { red } from '@mui/material/colors';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
+import QRCode from "react-qr-code";
 
 import { 
     RPC_CONNECTION,
@@ -57,6 +58,8 @@ import {
     Chip,
     Snackbar,
     Alert,
+    Dialog,
+    DialogContentText,
   } from '@mui/material/';
 
 import { 
@@ -98,6 +101,21 @@ const ExpandMore = styled((props: ExpandMoreProps) => {
   }),
 }));
 
+export interface DialogTitleProps {
+    id: string;
+    children?: React.ReactNode;
+    onClose: () => void;
+  }
+
+  const BootstrapDialog = styled(Dialog)(({ theme }) => ({
+    '& .MuDialogContent-root': {
+      padding: theme.spacing(2),
+    },
+    '& .MuDialogActions-root': {
+      padding: theme.spacing(1),
+    },
+  }));
+
 export default function WalletCardView(props:any) {
     const [expanded, setExpanded] = React.useState(false);
     const [expandedNft, setExpandedNft] = React.useState(false);
@@ -138,6 +156,15 @@ export default function WalletCardView(props:any) {
     const [loadingPrices, setLoadingPrices] = React.useState(false);
     const [isCopied, setIsCopied] = React.useState(false);
 
+    const [openDialog, setOpenDialog] = React.useState(false);
+    
+    const handleClickOpenDialog = (event:any) => {
+        setOpenDialog(true);
+    };
+    const handleCloseDialog = () => {
+        setOpenDialog(false);
+    };
+
     const handleCopy = () => {
         setIsCopied(true);
       };
@@ -176,9 +203,15 @@ export default function WalletCardView(props:any) {
                 'aria-labelledby': 'basic-button',
               }}
             >
+                
                 <CopyToClipboard text={rulesWalletAddress} onCopy={handleCopy}>
                     <MenuItem>Rules Wallet {shortRulesWalletAddress}</MenuItem>
                 </CopyToClipboard>
+                <MenuItem>Voting Time {((rulesWallet.account.config.baseVotingTime/60)/60).toFixed(0)}h</MenuItem>
+                <MenuItem>Proposal Creation Council Minimum {rulesWallet.account.config.minCouncilTokensToCreateProposal}</MenuItem>
+                <MenuItem>Council Vote Threshhold {rulesWallet.account.config.councilVoteThreshold.value}%</MenuItem>
+                <MenuItem>Council Veto Threshhold {rulesWallet.account.config.councilVetoVoteThreshold.value}%</MenuItem>
+                <MenuItem>Proposal Creation Community Minimum {rulesWallet.account.config.minCouncilTokensToCreateProposal}</MenuItem>
             </Menu>
           </div>
         );
@@ -465,6 +498,7 @@ export default function WalletCardView(props:any) {
         //if (!loading){
         if (!isLoading.current) {    
             if (walletAddress && rulesWalletAddress){
+                console.log("rulesWallet: "+JSON.stringify(rulesWallet))
                 getWalletBalances();
             }
         }
@@ -506,14 +540,25 @@ export default function WalletCardView(props:any) {
                 </CopyToClipboard>
             }
             subheader={
+                <>{
                 (nativeDomains && nativeDomains.length > 0) &&
-                    <>{nativeDomains[0].name}</>    
+                    <>{nativeDomains[0].name}</>}   
+                    
+                </>
+
             }
         />
+
+        <Grid sx={{mt:1}}>
+            <Divider light />
+        </Grid>
+
         <Grid container
             sx={{textAlign:'center', display: 'flex', justifyContent: 'center'}}
         > 
+
             <Grid xs={12} sx={{display: 'flex', justifyContent: 'center'}}>
+            
                 {(loading || loadingPrices) ?
                     <Skeleton variant="rounded" width={100} height={40} sx={{m:1,p:0}} />
                 :
@@ -530,7 +575,11 @@ export default function WalletCardView(props:any) {
                 {(loading || loadingPrices) ?
                     <Skeleton variant="rounded" width={100} height={60} sx={{m:1,p:0}} />
                 :
-                    <Button size="large" variant="contained" disabled sx={{pl:2,pr:2}}>Receive</Button>
+                    <Button 
+                        size="large" 
+                        variant="contained" 
+                        onClick={handleClickOpenDialog}
+                        sx={{pl:2,pr:2}}>Receive</Button>
                 }
             </Grid>
             <Grid xs={6} sx={{textAlign:'center', display: 'flex', justifyContent: 'center'}}>
@@ -540,7 +589,7 @@ export default function WalletCardView(props:any) {
                     <Button size="large" variant="contained" disabled sx={{pl:2,pr:2}}>Send</Button>
                 }
             </Grid>
-
+            
         </Grid>
         <CardContent sx={{p:0}}>
             <Typography variant="body2" color="text.secondary">
@@ -579,7 +628,7 @@ export default function WalletCardView(props:any) {
                                 <ListItemText 
                                     primary={
                                         <CopyToClipboard text={walletAddress} onCopy={handleCopy}>
-                                            <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                            <Button color={'inherit'} variant='text' sx={{m:0,p:0,mintWidth:''}}>
                                                 <Typography variant="subtitle1" sx={{color:'white'}}>Solana</Typography>
                                             </Button>
                                         </CopyToClipboard>
@@ -587,7 +636,7 @@ export default function WalletCardView(props:any) {
                                     secondary={<Typography variant="caption">{usdcValue && `$${usdcValue['So11111111111111111111111111111111111111112'].price.toFixed(2)}`}</Typography>}
                                     />
                             </ListItem>
-                            <Divider component="li" />
+                            <Divider component="li" light />
                         </>
                     }
                 </List>
@@ -671,8 +720,8 @@ export default function WalletCardView(props:any) {
                 <Skeleton variant="rounded" width={'100%'} height={50} />
             :
                 <CardContent sx={{ p:0, '& .MuiCardContent-root:last-child': { pb: 0,}, }}>
-                    <List sx={{ width: '100%' }}>
-                        <Divider>
+                    <List sx={{ width: '100%' }} component="div" disablePadding>
+                        <Divider light>
                             <Chip label="Tokens" size="small" />
                         </Divider>
                         
@@ -727,14 +776,14 @@ export default function WalletCardView(props:any) {
                                         }
                                         />
                                 </ListItem>
-                                {key+1 < nativeTokens.length && <Divider variant="inset" component="li" />}
+                                {key+1 < nativeTokens.length && <Divider variant="inset" light component="li" />}
                                 </>
                                 
                             ))
                         }
                         
                         {(rulesTokens && rulesTokens.length > 0) &&
-                            <Divider>
+                            <Divider light>
                                 <Chip label="Rules Wallet: Tokens" size="small" />
                             </Divider>
                         }
@@ -790,7 +839,7 @@ export default function WalletCardView(props:any) {
                                         }
                                         />
                                 </ListItem>
-                                {key+1 < rulesTokens.length && <Divider variant="inset" component="li" />}
+                                {key+1 < rulesTokens.length && <Divider variant="inset" component="li" light />}
                                 </>
                             ))
                         }
@@ -803,7 +852,7 @@ export default function WalletCardView(props:any) {
         <Collapse in={expandedStake} timeout="auto" unmountOnExit>
             <CardContent sx={{ p:0 }}>
                 <List sx={{ width: '100%' }}>
-                    <Divider>
+                    <Divider light>
                         <Chip label="Stake Accounts" size="small" />
                     </Divider>
                     {nativeStakeAccounts && nativeStakeAccounts
@@ -847,7 +896,7 @@ export default function WalletCardView(props:any) {
                                         }
                                         />
                                 </ListItem>
-                                {key+1 < nativeStakeAccounts.length && <Divider variant="inset" component="li" />}
+                                {key+1 < nativeStakeAccounts.length && <Divider variant="inset" component="li" light />}
                             </>
                         ))
                     }
@@ -858,7 +907,7 @@ export default function WalletCardView(props:any) {
         <Collapse in={expandedProps} timeout="auto" unmountOnExit>
             <CardContent sx={{ p:0 }}>
                 <List sx={{ width: '100%' }}>
-                    <Divider>
+                    <Divider light>
                         <Chip label="Proposals" size="small" />
                     </Divider>
                     {proposals && proposals
@@ -997,7 +1046,7 @@ export default function WalletCardView(props:any) {
                                     }
                                 }
                                 */}
-                            {key+1 < proposals.length && <Divider variant="inset" component="li" />}
+                            {key+1 < proposals.length && <Divider variant="inset" component="li" light />}
                             </>  
                         ))
                         
@@ -1009,7 +1058,7 @@ export default function WalletCardView(props:any) {
         <Collapse in={expandedNft} timeout="auto" unmountOnExit>
             <CardContent sx={{ p:0 }}>
                 <List sx={{ width: '100%' }}>
-                    <Divider>
+                    <Divider light>
                         <Chip label="Collectibles" size="small" />
                     </Divider>
                     {nativeNftTokens && nativeNftTokens
@@ -1040,13 +1089,13 @@ export default function WalletCardView(props:any) {
                                         } 
                                         />
                                 </ListItem>
-                                {key+1 < nativeNftTokens.length && <Divider variant="inset" component="li" />}
+                                {key+1 < nativeNftTokens.length && <Divider variant="inset" component="li" light/>}
                             </>
                         ))
                     }
 
                     {(rulesNftTokens && rulesNftTokens.length > 0) &&
-                        <Divider>
+                        <Divider light>
                             <Chip label="Rules Wallet: Collectibles" size="small" />
                         </Divider>
                     }
@@ -1084,7 +1133,7 @@ export default function WalletCardView(props:any) {
                                         }
                                         />
                                 </ListItem>
-                                {key+1 < rulesNftTokens.length && <Divider variant="inset" component="li" />}
+                                {key+1 < rulesNftTokens.length && <Divider variant="inset" component="li" light />}
                             </>
                             
                         ))
@@ -1094,6 +1143,43 @@ export default function WalletCardView(props:any) {
             </CardContent>
         </Collapse>
         
+        <BootstrapDialog
+            onClose={handleCloseDialog}
+            aria-labelledby="customized-dialog-title"
+            open={openDialog}
+            PaperProps={{
+                style: {
+                    boxShadow: '3',
+                    borderRadius: '17px',
+                    },
+                }}
+        >
+            <DialogContentText id="alert-dialog-description">
+                <div style={{ height: "auto", margin: "0 auto", maxWidth: "100%", width: "100%", borderRadius: "10px", padding:10, backgroundColor:'#fff' }}>
+                    <QRCode
+                        size={256}
+                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                        value={walletAddress}
+                        viewBox={`0 0 256 256`}
+                    />
+                </div>
+
+                <Grid container>
+                    <Grid item xs={12} textAlign={'center'}>
+                        <CopyToClipboard text={walletAddress} onCopy={handleCopy}>
+                            <Button color={'inherit'} variant='text'>
+                                <Typography variant='body2'>{walletAddress}</Typography>
+                            </Button>
+                        </CopyToClipboard>
+                    </Grid>
+                    <Grid item xs={12} textAlign={'center'}>
+                        <Typography variant='caption'>Send to this SOL Address</Typography>
+                    </Grid>
+                </Grid>
+                
+            </DialogContentText>
+        </BootstrapDialog>
+
         <Snackbar
             open={isCopied}
             autoHideDuration={2000}
