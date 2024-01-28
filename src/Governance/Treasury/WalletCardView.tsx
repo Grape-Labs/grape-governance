@@ -57,6 +57,8 @@ import {
     Alert,
   } from '@mui/material/';
 
+import SavingsIcon from '@mui/icons-material/Savings';
+import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import GridViewIcon from '@mui/icons-material/GridView';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShareIcon from '@mui/icons-material/Share';
@@ -464,9 +466,16 @@ export default function WalletCardView(props:any) {
             </Typography>
         </CardContent>
         <CardActions disableSpacing>
-            <IconButton aria-label="share">
+            <IconButton aria-label="share" disabled={true}>
                 <ShareIcon />
             </IconButton>
+            <IconButton aria-label="proposals" disabled={true}>
+                <SyncAltIcon />
+            </IconButton>
+            <IconButton aria-label="staking" disabled={true}>
+                <SavingsIcon />
+            </IconButton>
+            
             {nativeNftTokens && nativeNftTokens.length > 0 &&
                 <Tooltip title="Show NFTs">
                     <Badge color="primary" badgeContent={nativeNftTokens.length} max={999}>
