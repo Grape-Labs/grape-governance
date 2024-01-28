@@ -49,7 +49,10 @@ import {
     ListItem,
     ListItemAvatar,
     ListItemText,
-    Skeleton
+    Skeleton,
+    Badge,
+    Divider,
+    Chip,
   } from '@mui/material/';
 
   import GridViewIcon from '@mui/icons-material/GridView';
@@ -430,14 +433,6 @@ export default function WalletCardView(props:any) {
                     }
                 </List>
                 
-                <Grid sx={{textAlign:'right'}}>
-                    {nativeTokens &&
-                        <Typography variant="caption" >{nativeTokens.length} Tokens</Typography>
-                    }
-                    {(nativeNftTokens && nativeNftTokens.length > 0) &&
-                        <Typography variant="caption" >&nbsp;{nativeNftTokens.length} NFTs</Typography>
-                    }
-                </Grid>
                 
             </Typography>
         </CardContent>
@@ -447,28 +442,32 @@ export default function WalletCardView(props:any) {
             </IconButton>
             {nativeNftTokens && nativeNftTokens.length > 0 &&
                 <Tooltip title="Show NFTs">
-                    <IconButton 
-                        //expand={expandedNft}
-                        onClick={handleExpandNftClick}
-                        aria-expanded={expandedNft}
-                        aria-label="Show NFTs"
-                    >
-                        <GridViewIcon />
-                    </IconButton>
+                    <Badge color="primary" badgeContent={nativeNftTokens.length} max={999}>
+                        <IconButton 
+                            //expand={expandedNft}
+                            onClick={handleExpandNftClick}
+                            aria-expanded={expandedNft}
+                            aria-label="Show NFTs"
+                        >
+                            <GridViewIcon />
+                        </IconButton>
+                    </Badge>
                 </Tooltip>
             }
-            <Grid container sx={{textAlign:'right'}}>
+            <Grid container justifyContent={'right'} sx={{mr:1}}>
                 {nativeTokens && nativeTokens.length > 0 &&
                 <>
                     <Tooltip title="Show Tokens">
-                        <ExpandMore
-                            expand={expanded}
-                            onClick={handleExpandClick}
-                            aria-expanded={expanded}
-                            aria-label="Show Tokens"
-                            >
-                            <ExpandMoreIcon />
-                        </ExpandMore>
+                        <Badge color="primary" badgeContent={nativeTokens.length + +rulesTokens?.length} max={999}>
+                            <ExpandMore
+                                expand={expanded}
+                                onClick={handleExpandClick}
+                                aria-expanded={expanded}
+                                aria-label="Show Tokens"
+                                >
+                                    <ExpandMoreIcon />
+                            </ExpandMore>
+                        </Badge>
                     </Tooltip>
                 </>
                 }
@@ -527,6 +526,60 @@ export default function WalletCardView(props:any) {
                         ))
                     }
 
+                    {rulesTokens &&
+                        <Divider>
+                            <Chip label="Wallet Rules" size="small" />
+                        </Divider>
+                    }
+
+                    {rulesTokens && rulesTokens
+                        .sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
+                        .map((item: any,key:number) => (   
+                            <ListItem
+                                secondaryAction={
+                                    <Box sx={{textAlign:'right'}}>
+                                        <Typography variant="subtitle1" sx={{color:'white'}}>
+                                            {item.balance.toLocaleString()}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                        {usdcValue ? 
+                                            <>{usdcValue[item.address] ? 
+                                                <>${(item.balance * usdcValue[item.address]?.price).toFixed(2)}</>
+                                                :<></>
+                                            }</>
+                                        :<></>}</Typography>
+                                    </Box>
+                                }
+                                key={key}
+                            >
+                                <ListItemAvatar>
+                                    <Avatar
+                                        src={item.info.image}
+                                    >
+                                    </Avatar>
+                                </ListItemAvatar>
+                                <ListItemText 
+                                    primary={<Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>} 
+                                    secondary={
+                                        <>
+                                            <Typography variant="caption">
+                                                {usdcValue ? 
+                                                    <>{usdcValue[item.address] ? 
+                                                        <>${usdcValue[item.address]?.price.toFixed(6)}</>
+                                                        :<></>
+                                                    }</>
+                                                :<></>}</Typography>
+                                            {/*
+                                            <Typography variant="caption">ATA {shortenString(item.associated_account,5,5)}</Typography>
+                                            */}
+                                        </>
+                                    }
+                                    />
+                            </ListItem>
+                            
+                        ))
+                    }
+
                 </CardContent>
             }
         </Collapse>
@@ -534,6 +587,43 @@ export default function WalletCardView(props:any) {
         <Collapse in={expandedNft} timeout="auto" unmountOnExit>
             <CardContent>
                 {nativeNftTokens && nativeNftTokens
+                    //.sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
+                    .map((item: any,key:number) => (   
+                        
+                        <ListItem
+                            secondaryAction={
+                                <Typography variant="subtitle1" sx={{color:'white'}}>
+                                    1
+                                </Typography>
+                            }
+                            key={key}
+                        >
+                            <ListItemAvatar>
+                                <Avatar
+                                    src={item.content.links.image}
+                                >
+                                </Avatar>
+                            </ListItemAvatar>
+                            <ListItemText 
+                                primary={<Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>} 
+                                secondary={
+                                    <>
+                                        <Typography variant="caption">{shortenString(item.id,5,5)}</Typography>
+                                    </>
+                                }
+                                />
+                        </ListItem>
+                        
+                    ))
+                }
+
+                {rulesNftTokens &&
+                    <Divider>
+                        <Chip label="Wallet Rules" size="small" />
+                    </Divider>
+                }
+
+                {rulesNftTokens && rulesNftTokens
                     //.sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
                     .map((item: any,key:number) => (   
                         
