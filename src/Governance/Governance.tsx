@@ -164,7 +164,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     },
   }));
 
-  const GOVERNANCE_STATE = {
+const GOVERNANCE_STATE = {
     0:'Draft',
     1:'Signing Off',
     2:'Voting',

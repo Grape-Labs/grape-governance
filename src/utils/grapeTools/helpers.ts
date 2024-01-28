@@ -29,6 +29,19 @@ export const VSR_PLUGIN_PKS: string[] = [
   '5sWzuuYkeWLBdAv3ULrBfqA51zF7Y4rnVzereboNDCPn',
 ]
 
+export const GOVERNANCE_STATE = {
+  0:'Draft',
+  1:'Signing Off',
+  2:'Voting',
+  3:'Succeeded',
+  4:'Executing',
+  5:'Completed',
+  6:'Cancelled',
+  7:'Defeated',
+  8:'Executing w/errors!',
+  9:'Vetoed',
+}
+
 export const HELIUM_VSR_PLUGINS_PKS: string[] = [
   HELIUM_VSR_PROGRAM_ID.toBase58(),
 ]

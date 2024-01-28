@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import axios from "axios";
+import moment from 'moment';
 import { styled } from '@mui/material/styles';
 import IconButton, { IconButtonProps } from '@mui/material/IconButton';
 import { red } from '@mui/material/colors';
@@ -17,6 +18,7 @@ import {
     findObjectByGoverningTokenOwner,
     convertSecondsToLegibleFormat,
     getJupiterPrices,
+    GOVERNANCE_STATE,
   } from '../../utils/grapeTools/helpers';
 
 import {
@@ -57,6 +59,21 @@ import {
     Alert,
   } from '@mui/material/';
 
+import { 
+    getRealmIndexed,
+    getAllProposalsIndexed,
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
+} from './../api/queries';
+
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import WarningIcon from '@mui/icons-material/Warning';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import ThumbDownIcon from '@mui/icons-material/ThumbDown';
+import EditNoteIcon from '@mui/icons-material/EditNote';
+import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import SavingsIcon from '@mui/icons-material/Savings';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import GridViewIcon from '@mui/icons-material/GridView';
@@ -83,9 +100,22 @@ const ExpandMore = styled((props: ExpandMoreProps) => {
 export default function WalletCardView(props:any) {
     const [expanded, setExpanded] = React.useState(false);
     const [expandedNft, setExpandedNft] = React.useState(false);
+    const [expandedStake, setExpandedStake] = React.useState(false);
+    const [expandedProps, setExpandedProps] = React.useState(false);
+    
+    // on direct links handle the event that the rules are not being sent over and only the wallet is sent for rules
+    const rulesWallet = props?.rulesWallet;
+    
     const walletAddress = props?.walletAddress;
-    const rulesWalletAddress = props?.rulesWalletAddress;
+    
+    const rulesWalletAddress = rulesWallet ? new PublicKey(rulesWallet.pubkey).toBase58() : props?.rulesWalletAddress;
+                                                
     const tokenMap = props?.tokenMap;
+
+    const governanceAddress = props?.governanceAddress;
+    const governanceValue = props?.governanceValue;
+    const setGovernanceValue = props?.setGovernanceValue;
+
     const shortWalletAddress = shortenString(walletAddress,5,5);
     const shortRulesWalletAddress = shortenString(rulesWalletAddress,5,5);
     const [nativeSol, setNativeSol] = React.useState(null);
@@ -98,8 +128,12 @@ export default function WalletCardView(props:any) {
     const [usdcValue, setUsdcValue] = React.useState(null);
     const [nativeDomains, setNativeDomains] = React.useState(null);
     const [rulesDomains, setRulesDomains] = React.useState(null);
+    const [proposals, setProposals] = React.useState(null);
+    const [nativeStakeAccounts, setNativeStakeAccounts] = React.useState(null);
+    const [rulesStakeAccounts, setRulesStakeAccounts] = React.useState(null);
     const [totalWalletValue, setTotalWalletValue] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
+    const isLoading = React.useRef(false);
     const [loadingPrices, setLoadingPrices] = React.useState(false);
     const [isCopied, setIsCopied] = React.useState(false);
 
@@ -243,6 +277,29 @@ export default function WalletCardView(props:any) {
                 });
     }
 
+    const getWalletStakeAccounts = async(tokenOwnerRecord: PublicKey) => {
+        
+        const uri = `https://api.shyft.to/sol/v1/wallet/stake_accounts?network=mainnet-beta&wallet_address=${tokenOwnerRecord.toBase58()}`;
+        
+        return axios.get(uri, {
+                headers: {
+                    'x-api-key': SHYFT_KEY
+                }
+                })
+            .then(response => {
+                if (response.data?.result?.data){
+                    return response.data.result.data;
+                }
+                return null
+            })
+            .catch(error => 
+                {   
+                    // revert to RPC
+                    console.error(error);
+                    return null;
+                });
+    }
+
     const getWalletDomains = async(tokenOwnerRecord: PublicKey) => {
         
         const uri = `https://api.shyft.to/sol/v1/wallet/get_domains?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}`;
@@ -268,51 +325,71 @@ export default function WalletCardView(props:any) {
 
     const getWalletBalances = async() =>{
         setLoading(true);
-        // get total sol
-        const sol1 = await getWalletBalance(new PublicKey(walletAddress));
-        const sol2 = await getWalletBalance(new PublicKey(rulesWalletAddress));
-        
-        // get total tokens
-        const token1 = await getWalletAllTokenBalance(new PublicKey(walletAddress));
-        const token2 = await getWalletAllTokenBalance(new PublicKey(rulesWalletAddress));
-        // consolidate tokens?
-        const tArray = ["So11111111111111111111111111111111111111112"];
-        
-        token1 && token1
-            .map((item: any,key:number) => ( 
-                tArray.push(item.address)
-        ));
-        token2 && token2
-            .map((item: any,key:number) => ( 
-                tArray.push(item.address)
-        ));
-        setTokenMintArray(tArray);
-        
-        
-        // get nft balance
-        const nft1 = await getWalletNftBalance(new PublicKey(walletAddress));
-        const nft2 = await getWalletNftBalance(new PublicKey(rulesWalletAddress));
+        isLoading.current = true;
+        try{
+            // get total sol
+            const sol1 = await getWalletBalance(new PublicKey(walletAddress));
+            const sol2 = await getWalletBalance(new PublicKey(rulesWalletAddress));
+            
+            // get total tokens
+            const token1 = await getWalletAllTokenBalance(new PublicKey(walletAddress));
+            const token2 = await getWalletAllTokenBalance(new PublicKey(rulesWalletAddress));
+            // consolidate tokens?
+            const tArray = ["So11111111111111111111111111111111111111112"];
+            
+            token1 && token1
+                .map((item: any,key:number) => ( 
+                    tArray.push(item.address)
+            ));
+            token2 && token2
+                .map((item: any,key:number) => ( 
+                    tArray.push(item.address)
+            ));
+            setTokenMintArray(tArray);
+            
+            
+            // get nft balance
+            const nft1 = await getWalletNftBalance(new PublicKey(walletAddress));
+            const nft2 = await getWalletNftBalance(new PublicKey(rulesWalletAddress));
 
-        // get domains
-        const domains1 = await getWalletDomains(new PublicKey(walletAddress));
-        const domains2 = await getWalletDomains(new PublicKey(rulesWalletAddress));
+            // get domains
+            const domains1 = await getWalletDomains(new PublicKey(walletAddress));
+            const domains2 = await getWalletDomains(new PublicKey(rulesWalletAddress));
 
-        // put to unified array
-        setNativeSol(sol1);
-        setRulesSol(sol2);
+            // get stake accounts
+            const stake1 = await getWalletStakeAccounts(new PublicKey(walletAddress));
+            const stake2 = await getWalletStakeAccounts(new PublicKey(rulesWalletAddress));
+            
+            const props = await getAllProposalsIndexed([rulesWalletAddress], null, governanceAddress);
+            setProposals(props);
 
-        setNativeTokens(token1);
-        setRulesTokens(token2);
+            // put to unified array
+            setNativeSol(sol1);
+            setRulesSol(sol2);
 
-        setNativeNftTokens(nft1);
-        setRulesNftTokens(nft2);
+            setNativeTokens(token1);
+            setRulesTokens(token2);
 
-        setNativeDomains(domains1);
-        setRulesDomains(domains2);
+            setNativeNftTokens(nft1);
+            setRulesNftTokens(nft2);
 
-        // unify tokens?
-        // think of how we can display them unified if needed
-        setLoading(false);
+            setNativeDomains(domains1);
+            setRulesDomains(domains2);
+
+            setNativeStakeAccounts(stake1);
+            setRulesStakeAccounts(stake2);
+                    
+            // unify tokens?
+            // think of how we can display them unified if needed
+            setLoading(false);
+            isLoading.current = false;
+        } catch (error) {
+            // Handle errors
+        } 
+        finally {
+            setLoading(false); // Ensure this is called in the finally block
+            isLoading.current = false;
+        }
     }
 
 
@@ -320,14 +397,19 @@ export default function WalletCardView(props:any) {
         
         if (usdcValue && 
             (nativeSol && nativeSol > 0 || rulesSol && rulesSol > 0) &&
-            (nativeTokens && rulesTokens)){
+            (nativeTokens && rulesTokens) &&
+            (nativeStakeAccounts || rulesStakeAccounts)){
             let totalVal = 0;
+            let tokenAccountVal = 0;
+            let stakeAccountVal = 0;
+            let solAccountVal = usdcValue['So11111111111111111111111111111111111111112'].price*(+nativeSol + +rulesSol)
             //alert(usdcValue['So11111111111111111111111111111111111111112'].price + " " +(+nativeSol + +rulesSol));
-            totalVal += usdcValue['So11111111111111111111111111111111111111112'].price*(+nativeSol + +rulesSol);
+            totalVal += solAccountVal;
+            
             if (nativeTokens){
                 for (let item of nativeTokens){
                     if (usdcValue[item.address]){
-                        totalVal += usdcValue[item.address].price * item.balance;
+                        tokenAccountVal += usdcValue[item.address].price * item.balance;
                     }
 
                 }
@@ -335,14 +417,42 @@ export default function WalletCardView(props:any) {
             if (rulesTokens){
                 for (let item of rulesTokens){
                     if (usdcValue[item.address]){
-                        totalVal += usdcValue[item.address].price * item.balance;
+                        tokenAccountVal += usdcValue[item.address].price * item.balance;
                     }
 
                 }
             }
+            totalVal+=tokenAccountVal;
+
+            if (nativeStakeAccounts){
+                for (let item of nativeStakeAccounts){
+                    stakeAccountVal += item.total_amount * usdcValue['So11111111111111111111111111111111111111112']?.price
+                }
+            } 
+            if (rulesStakeAccounts){
+                for (let item of rulesStakeAccounts){
+                    stakeAccountVal += item.total_amount * usdcValue['So11111111111111111111111111111111111111112']?.price
+                }
+            } 
+            totalVal+=stakeAccountVal;
             setTotalWalletValue(totalVal);
+
+            const newGovernanceObject = {
+                address: walletAddress,
+                totalVal: totalVal,
+                solAccountVal: solAccountVal,
+                totalGovernanceSol: (+nativeSol + +rulesSol),
+              };
+              
+            // Check if an object with the same address already exists in the array
+            const isAddressUnique = !governanceValue.some(obj => obj.address === walletAddress);
+            
+            // If the address is unique, push the new object
+            if (isAddressUnique) {
+                setGovernanceValue(prevState => [...prevState, newGovernanceObject]);
+            }
         }
-    }, [usdcValue, nativeSol, rulesSol, nativeTokens, rulesTokens]);
+    }, [usdcValue, nativeSol, rulesSol, nativeTokens, rulesTokens, nativeStakeAccounts, rulesStakeAccounts]);
 
 
     React.useEffect(() => { 
@@ -352,11 +462,14 @@ export default function WalletCardView(props:any) {
     }, [tokenMintArray]);
 
     React.useEffect(() => { 
-        if (walletAddress && rulesWalletAddress){
-            getWalletBalances();
+        //if (!loading){
+        if (!isLoading.current) {    
+            if (walletAddress && rulesWalletAddress){
+                getWalletBalances();
+            }
         }
     }, [walletAddress, rulesWalletAddress]);
-
+    
     const handleExpandClick = () => {
         setExpanded(!expanded);
     };
@@ -365,6 +478,13 @@ export default function WalletCardView(props:any) {
         setExpandedNft(!expandedNft);
     }
 
+    const handleExpandStakeClick = () => {
+        setExpandedStake(!expandedStake);
+    }
+    const handleExpandPropsClick = () => {
+        setExpandedProps(!expandedProps);
+    }
+    
     return (
         <Card>
         <CardHeader
@@ -469,12 +589,35 @@ export default function WalletCardView(props:any) {
             <IconButton aria-label="share" disabled={true}>
                 <ShareIcon />
             </IconButton>
-            <IconButton aria-label="proposals" disabled={true}>
-                <SyncAltIcon />
-            </IconButton>
-            <IconButton aria-label="staking" disabled={true}>
-                <SavingsIcon />
-            </IconButton>
+            {proposals && proposals.length > 0 &&
+                <Tooltip title="Show Proposal Activity">
+                    <Badge color="primary" badgeContent={proposals.length} max={999}>
+                        <IconButton 
+                            //expand={expandedStake}
+                            onClick={handleExpandPropsClick}
+                            aria-expanded={expandedProps}
+                            aria-label="Proposals"
+                        >
+                            <SyncAltIcon />
+                        </IconButton>
+                    </Badge>
+                </Tooltip>
+            }
+
+            {nativeStakeAccounts && nativeStakeAccounts.length > 0 &&
+                <Tooltip title="Show Stake Accounts">
+                    <Badge color="primary" badgeContent={nativeStakeAccounts.length+rulesStakeAccounts?.length} max={999}>
+                        <IconButton 
+                            //expand={expandedStake}
+                            onClick={handleExpandStakeClick}
+                            aria-expanded={expandedStake}
+                            aria-label="Stake Accounts"
+                        >
+                            <SavingsIcon />
+                        </IconButton>
+                    </Badge>
+                </Tooltip>
+            }
             
             {nativeNftTokens && nativeNftTokens.length > 0 &&
                 <Tooltip title="Show NFTs">
@@ -514,6 +657,9 @@ export default function WalletCardView(props:any) {
                 <Skeleton variant="rounded" width={'100%'} height={50} />
             :
                 <CardContent>
+                    <Divider>
+                        <Chip label="Tokens" size="small" />
+                    </Divider>
                     {nativeTokens && nativeTokens
                         .sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
                         .map((item: any,key:number) => (   
@@ -570,7 +716,7 @@ export default function WalletCardView(props:any) {
 
                     {(rulesTokens && rulesTokens.length > 0) &&
                         <Divider>
-                            <Chip label="Rules Wallet" size="small" />
+                            <Chip label="Rules Wallet: Tokens" size="small" />
                         </Divider>
                     }
 
@@ -624,7 +770,6 @@ export default function WalletCardView(props:any) {
                                     }
                                     />
                             </ListItem>
-                            
                         ))
                     }
 
@@ -632,8 +777,200 @@ export default function WalletCardView(props:any) {
             }
         </Collapse>
 
+        <Collapse in={expandedStake} timeout="auto" unmountOnExit>
+            <CardContent>
+                <Divider>
+                    <Chip label="Stake Accounts" size="small" />
+                </Divider>
+                {nativeStakeAccounts && nativeStakeAccounts
+                    //.sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
+                    .map((item: any,key:number) => (   
+                        <ListItem
+                            secondaryAction={
+                                <Box sx={{textAlign:'right'}}>
+                                    <Typography variant="subtitle1" sx={{color:'white'}}>
+                                        {item.total_amount}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                    {usdcValue ? 
+                                        <>{usdcValue['So11111111111111111111111111111111111111112'] ? 
+                                            <>${Number(((item.total_amount) * usdcValue['So11111111111111111111111111111111111111112']?.price).toFixed(2)).toLocaleString()}</>
+                                            :<></>
+                                        }</>
+                                    :<></>}</Typography>
+                                </Box>
+                            }
+                            key={key}
+                        >
+                            <ListItemAvatar>
+                                <Avatar>
+                                    ?
+                                </Avatar>
+                            </ListItemAvatar>
+                            <ListItemText 
+                                primary={
+                                    <CopyToClipboard text={item.stake_account_address} onCopy={handleCopy}>
+                                        <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                            <Typography variant="subtitle1" sx={{color:'white'}}>{shortenString(item.stake_account_address,5,5)}</Typography>
+                                        </Button>
+                                    </CopyToClipboard>
+                                } 
+                                secondary={
+                                    <>
+                                    {item.status}
+                                    </>
+                                }
+                                />
+                        </ListItem>
+                        
+                    ))
+                }
+            </CardContent>
+        </Collapse>
+
+        <Collapse in={expandedProps} timeout="auto" unmountOnExit>
+            <CardContent>
+                <Divider>
+                    <Chip label="Proposals" size="small" />
+                </Divider>
+                {proposals && proposals
+                    .sort((a:any,b:any) => (b.account.draftAt - a.account.draftAt))
+                    .map((item: any,key:number) => (   
+                        <ListItem
+                            secondaryAction={
+                                <Box sx={{textAlign:'right'}}>
+                                    <Typography variant="subtitle1" sx={{color:'white'}}>
+                                        ---
+                                    </Typography>
+                                    <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                        {item.account?.signingOffAt ?
+                                            <>{moment.unix(Number((item.account?.signingOffAt))).format("MMMM D, YYYY, h:mm a")}</>
+                                        :
+                                            <>{moment.unix(Number((item.account?.draftAt))).format("MMMM D, YYYY, h:mm a")}</>
+                                        }
+                                    </Typography>
+                                </Box>
+                            }
+                            key={key}
+                        >
+                            <ListItemAvatar>
+                                <Avatar>
+                                    {/*
+                                      0:'Draft',
+                                        1:'Signing Off',
+                                        2:'Voting',
+                                        3:'Succeeded',
+                                        4:'Executing',
+                                        5:'Completed',
+                                        6:'Cancelled',
+                                        7:'Defeated',
+                                        8:'Executing w/errors!',
+                                        9:'Vetoed',
+                                    */}
+                                    {item.account.state === 2 ?
+                                        <HowToVoteIcon />
+                                    :
+                                        <>
+                                        {item.account.state === 0 ?
+                                                <EditNoteIcon />
+                                            :
+                                            <>
+                                                {item.account.state === 3 ?
+                                                        <ThumbUpIcon color={'success'}  />
+                                                    :
+                                                    <>
+                                                        {(item.account.state === 7 || item.account.state === 9) ?
+                                                                <ThumbDownIcon color={'error'} />
+                                                            :
+                                                            <>
+                                                                {(item.account.state === 4 || item.account.state === 8) ?
+                                                                        <AccessTimeIcon />
+                                                                    :
+                                                                    <>
+                                                                        {(item.account.state === 6) ?
+                                                                                <CancelIcon color={'error'}  />
+                                                                            :
+                                                                            <>
+                                                                                {(item.account.state === 5) ?
+                                                                                    <CheckCircleIcon color={'success'} />
+                                                                                :
+                                                                                    <HowToVoteIcon />
+                                                                                }
+                                                                            </>
+                                                                        }
+                                                                    </>
+                                                                }
+                                                            </>
+                                                        }
+                                                    </>
+                                                }
+                                            </>
+                                        }
+                                        </>
+                                    }
+                                </Avatar>
+                            </ListItemAvatar>
+                            <ListItemText 
+                                primary={
+                                    <CopyToClipboard text={item.pubkey.toBase58()} onCopy={handleCopy}>
+                                        <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                            <Typography variant="subtitle1" sx={{color:'white'}}>{item.account.name.substring(0,20)+"..."}</Typography>
+                                        </Button>
+                                    </CopyToClipboard>
+                                } 
+                                secondary={
+                                    <>
+                                    {GOVERNANCE_STATE[item.account.state]}
+                                    </>
+                                }
+                                />
+                        </ListItem>
+                        /*
+                        {
+                        owner: new PublicKey(ownerItem.owner),
+                        pubkey: new PublicKey(account?.pubkey),
+                        account:{
+                            accountType: account.accountType,
+                            governance: new PublicKey(account.governance),
+                            governingTokenMint: new PublicKey(account.governingTokenMint),
+                            state: account.state,
+                            tokenOwnerRecord: new PublicKey(account.tokenOwnerRecord),
+                            signatoriesCount: account.signatoriesCount,
+                            signatoriesSignedOffCount: account.signatoriesSignedOffCount,
+                            descriptionLink: account.descriptionLink,
+                            name: account.name,
+                            voteType: account.voteType,
+                            options,
+                            denyVoteWeight: account?.denyVoteWeight ? parseInt(account.denyVoteWeight) : "00",
+                            reserved1: account.reserved1,
+                            draftAt: account.draftAt,
+                            signingOffAt: account.signingOffAt,
+                            votingAt: account.votingAt,
+                            votingAtSlot: account.votingAtSlot,
+                            executionFlags: account.executionFlags,
+                            vetoVoteWeight: account.vetoVoteWeight,
+                            abstainVoteWeight: account?.abstainVoteWeight,
+                            closedAt: account?.closedAt,
+                            executingAt: account?.executingAt,
+                            maxVoteWeight: account?.maxVoteWeight,
+                            maxVotingTime: account?.maxVotingTime,
+                            startVotingAt: account?.startVotingAt,
+                            voteThreshold: account?.voteThreshold,
+                            votingCompletedAt: account?.votingCompletedAt,
+                        }
+                    }
+                        */
+                        
+                    ))
+                }
+            </CardContent>
+        </Collapse>
+        
         <Collapse in={expandedNft} timeout="auto" unmountOnExit>
             <CardContent>
+                <Divider>
+                    <Chip label="Collectibles" size="small" />
+                </Divider>
                 {nativeNftTokens && nativeNftTokens
                     //.sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
                     .map((item: any,key:number) => (   
@@ -668,7 +1005,7 @@ export default function WalletCardView(props:any) {
 
                 {(rulesNftTokens && rulesNftTokens.length > 0) &&
                     <Divider>
-                        <Chip label="Rules Wallet" size="small" />
+                        <Chip label="Rules Wallet: Collectibles" size="small" />
                     </Divider>
                 }
 
@@ -716,12 +1053,13 @@ export default function WalletCardView(props:any) {
             open={isCopied}
             autoHideDuration={2000}
             onClose={handleCloseSnackbar}
+            sx={{zIndex:'99999'}}
         >
             <Alert onClose={handleCloseSnackbar} severity="success">
             Copied to clipboard!
             </Alert>
         </Snackbar>
-        </Card>
+    </Card>
         
     );
 }

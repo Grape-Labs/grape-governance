@@ -420,6 +420,7 @@ export function GovernanceTreasuryView(props: any) {
     const [startTime, setStartTime] = React.useState(null);
     const [endTime, setEndTime] = React.useState(null);
     
+    const isLoading = React.useRef(false);
     const [loading, setLoading] = React.useState(false);
     const connection = RPC_CONNECTION;
     const [realm, setRealm] = React.useState(null);
@@ -428,11 +429,14 @@ export function GovernanceTreasuryView(props: any) {
     const [tokenArray, setTokenArray] = React.useState(null);
     const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
 
+    const [governanceValue, setGovernanceValue] = React.useState([]);
+
     const [totalGovernanceValue, setTotalGovernanceValue] = React.useState(null);
     const [totalGovernanceSolValue, setTotalGovernanceSolValue] = React.useState(null);
     const [totalGovernanceSol, setTotalGovernanceSol] = React.useState(null);
     const [totalGovernanceNftFloorValue, setTotalGovernanceNftFloorValue] = React.useState(null);
     const [totalGovernanceStableCoinValue, setTotalGovernanceStableCoinValue] = React.useState(null);
+    const [totalStakedValue, setTotalStakedValue] = React.useState(null);
 
     const [governanceWallets, setGovernanceWallets] = React.useState(null);
 
@@ -513,6 +517,8 @@ export function GovernanceTreasuryView(props: any) {
         
         setCachedGovernance(cached_governance);
         endTimer();
+        setLoading(false);
+        isLoading.current = false;
     }
 
     const startTimer = () => {
@@ -579,6 +585,17 @@ export function GovernanceTreasuryView(props: any) {
         setGovernanceWallets(governanceAddresses);
     }
 
+
+    React.useEffect(() => {
+        if (governanceValue){
+            // sum all unique governances
+
+        }
+    }, [governanceValue]);
+
+    
+
+
     React.useEffect(() => {
         if (governanceLookup){
             getCachedGovernanceFromLookup();
@@ -589,13 +606,15 @@ export function GovernanceTreasuryView(props: any) {
     
     React.useEffect(() => { 
         if (tokenMap){  
+            isLoading.current = true;
+            setLoading(true);
             startTimer();
             callGovernanceLookup();
         }
     }, [tokenMap]);
 
     React.useEffect(() => { 
-        if (!loading){
+        if (!isLoading.current) {
             if (!tokenMap){
                 getTokens();
             }
@@ -694,10 +713,11 @@ export function GovernanceTreasuryView(props: any) {
                                                         verticalAlign: 'bottom'}}
                                                     >
                                                     <Typography variant="h4">
-                                                        {totalGovernanceValue ? 
+                                                        {governanceValue && `$${(Number(governanceValue.reduce((sum, item) => sum + item.totalVal, 0).toFixed(2)).toLocaleString())}`}
+                                                        {/*totalGovernanceValue ? 
                                                         <>${getFormattedNumberToLocale(totalGovernanceValue.toFixed(2))}</>
                                                         :
-                                                        <>-</>}
+                                                        <>-</>*/}
                                                     </Typography>
                                                 </Grid>
                                             </Button>
@@ -718,7 +738,9 @@ export function GovernanceTreasuryView(props: any) {
                                             <>Solana Treasury</>
                                         </Typography>
                                         <Tooltip title={<>
-                                                Total Value in {totalGovernanceSol && <><strong>{totalGovernanceSol.toFixed(2)}</strong></>}sol held</>
+                                                Total Value in&nbsp;
+                                                <strong>{governanceValue && `${(Number(governanceValue.reduce((sum, item) => sum + item.totalGovernanceSol, 0).toFixed(2)).toLocaleString())}`}</strong>
+                                                SOL held</>
                                             }>
                                             <Button
                                                 color='inherit'
@@ -731,11 +753,7 @@ export function GovernanceTreasuryView(props: any) {
                                                         verticalAlign: 'bottom'}}
                                                     >
                                                     <Typography variant="h4">
-                                                        {totalGovernanceSolValue ? 
-                                                        <>
-                                                        ${getFormattedNumberToLocale(totalGovernanceSolValue.toFixed(2))}</>
-                                                        :
-                                                        <>-</>}
+                                                        {governanceValue && `$${(Number(governanceValue.reduce((sum, item) => sum + item.solAccountVal, 0).toFixed(2)).toLocaleString())}`}
                                                     </Typography>
                                                 </Grid>
                                             </Button>
@@ -753,7 +771,7 @@ export function GovernanceTreasuryView(props: any) {
                                         }}
                                     >
                                         <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                            <>Stable Coin Treasury</>
+                                            <>Stable Coin Treasury (cached)</>
                                         </Typography>
                                         <Tooltip title={<>
                                                 Total Treasury in Stable Coins</>
@@ -791,7 +809,7 @@ export function GovernanceTreasuryView(props: any) {
                                         }}
                                     >
                                         <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                            <>NFT Treasury</>
+                                            <>NFT Treasury (cached)</>
                                         </Typography>
                                         <Tooltip title={<>
                                                 Total Floor Value of NFTs held in this Governance</>
@@ -842,7 +860,13 @@ export function GovernanceTreasuryView(props: any) {
                                     //.sort((a:any,b:any) => (b.solBalance - a.solBalance)  || b.tokens?.value.length - a.tokens?.value.length)
                                     .map((item: any,key:number) => (                                
                                         <Grid item md={4} sm={6} xs={12}>
-                                            <WalletCardView tokenMap={tokenMap} rulesWalletAddress={new PublicKey(item.pubkey).toBase58()} walletAddress={new PublicKey(item.nativeTreasuryAddress).toBase58()}  />
+                                            <WalletCardView 
+                                                rulesWallet={item}
+                                                governanceAddress={governanceAddress}
+                                                setGovernanceValue={setGovernanceValue}
+                                                governanceValue={governanceValue} 
+                                                tokenMap={tokenMap} 
+                                                walletAddress={new PublicKey(item.nativeTreasuryAddress).toBase58()}  />
                                         </Grid>
                                     ))
                                 }
@@ -854,7 +878,7 @@ export function GovernanceTreasuryView(props: any) {
                                 variant="caption"
                                 sx={{textAlign:'center'}}
                             >
-                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Cached<br/>
+                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime<br/>
                                 {cachedTimestamp &&
                                     <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
                                 }

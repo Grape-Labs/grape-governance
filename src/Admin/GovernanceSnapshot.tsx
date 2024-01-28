@@ -1428,7 +1428,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         // check token owner records
         let mcount = 0;
         const cachedSignatureData = new Array();
-        const sizeLimit = 2000;
+        const sizeLimit = 1200;
         const processVoterRecordDetails = rawTokenOwnerRecords.length > sizeLimit ? false : true;
         
         if (processVoterRecordDetails){
