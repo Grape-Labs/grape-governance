@@ -69,6 +69,8 @@ import {
     getAllTokenOwnerRecordsIndexed,
 } from './../api/queries';
 
+import { IntegratedGovernanceProposalDialogView } from '../IntegratedGovernanceProposal';
+
 import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -579,16 +581,30 @@ export default function WalletCardView(props:any) {
                         size="large" 
                         variant="contained" 
                         onClick={handleClickOpenDialog}
-                        sx={{pl:2,pr:2}}>Receive</Button>
+                        color='primary'
+                        sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2}}>Receive</Button>
                 }
             </Grid>
             <Grid xs={6} sx={{textAlign:'center', display: 'flex', justifyContent: 'center'}}>
                 {(loading || loadingPrices) ?
                     <Skeleton variant="rounded" width={100} height={60} sx={{m:1,p:0}} />
                 :
-                    <Button size="large" variant="contained" disabled sx={{pl:2,pr:2}}>Send</Button>
+                    <IntegratedGovernanceProposalDialogView 
+                        governanceAddress={governanceAddress}
+                        governanceRulesWallet={new PublicKey(rulesWalletAddress)}
+                        //governingTokenMint={thisitem.account.governingTokenMint}
+                        //proposalAuthor={thisitem.account.tokenOwnerRecord}
+                        //payerWallet={publicKey}
+                        //governanceLookup={governanceLookup}
+                        //editProposalAddress={thisitem.pubkey}
+                        //setReload={setReload}
+                        useButton={1}
+                        title="Send"
+                    />
                 }
             </Grid>
+
+            
             
         </Grid>
         <CardContent sx={{p:0}}>

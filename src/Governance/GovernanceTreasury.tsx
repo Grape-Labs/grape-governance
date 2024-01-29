@@ -526,7 +526,6 @@ export function GovernanceTreasuryView(props: any) {
                             </>
                         }
 
-
                         <Box sx={{ p:1}}>
                             <Grid container spacing={0}>
                                 <Grid item xs={12} md={6} lg={3} key={1}>
