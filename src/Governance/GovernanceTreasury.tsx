@@ -244,7 +244,7 @@ function TablePaginationActions(props) {
             </IconButton>
         </Box>
     );
-  }
+}
 
 
 export function GovernanceTreasuryView(props: any) {
@@ -417,6 +417,7 @@ export function GovernanceTreasuryView(props: any) {
             let x = 0;
             for (let item of governanceAddresses){
                 item.nativeTreasuryAddress = rawNativeSolAddresses[x];
+                item.walletValue = 0;
                 x++;
             }
         }
@@ -704,7 +705,7 @@ export function GovernanceTreasuryView(props: any) {
                                 justifyContent="center"
                                 alignItems="flex-start">
                                 {governanceWallets && governanceWallets
-                                    //.sort((a:any,b:any) => (b.solBalance - a.solBalance)  || b.tokens?.value.length - a.tokens?.value.length)
+                                    //.sort((a:any,b:any) => (b.walletValue - a.walletValue))
                                     .map((item: any,key:number) => (                                
                                         <Grid item md={4} sm={6} xs={12}>
                                             <WalletCardView 

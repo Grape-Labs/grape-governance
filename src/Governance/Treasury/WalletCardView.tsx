@@ -126,7 +126,7 @@ export default function WalletCardView(props:any) {
     
     // on direct links handle the event that the rules are not being sent over and only the wallet is sent for rules
     const rulesWallet = props?.rulesWallet;
-
+    
     const walletAddress = props?.walletAddress;
     
     const rulesWalletAddress = rulesWallet ? new PublicKey(rulesWallet.pubkey).toBase58() : props?.rulesWalletAddress;
@@ -471,6 +471,7 @@ export default function WalletCardView(props:any) {
             } 
             totalVal+=stakeAccountVal;
             setTotalWalletValue(totalVal);
+            rulesWallet.walletValue = totalVal;
 
             const newGovernanceObject = {
                 address: walletAddress,
@@ -928,7 +929,7 @@ export default function WalletCardView(props:any) {
                         <Chip label="Proposals" size="small" />
                     </Divider>
                     {proposals && proposals
-                        .sort((a:any,b:any) => (b.account.draftAt - a.account.draftAt))
+                        .sort((a:any,b:any) => (b.account?.draftAt - a.account?.draftAt))
                         .map((item: any,key:number) => (  
                             <> 
                                 <ListItem
@@ -937,7 +938,7 @@ export default function WalletCardView(props:any) {
                                             <Typography variant="subtitle1" sx={{color:'white'}}>
                                                 <Tooltip title="View Proposal">
                                                     <IconButton
-                                                        href={`https://governance.so/proposal/${governanceAddress}/${item.pubkey.toBase58()}`}
+                                                        href={item?.pubkey ? `https://governance.so/proposal/${governanceAddress}/${item?.pubkey.toBase58()}` : `#`}
                                                         target='_blank'
                                                         size='small'
                                                     >
@@ -970,43 +971,47 @@ export default function WalletCardView(props:any) {
                                                 8:'Executing w/errors!',
                                                 9:'Vetoed',
                                             */}
-                                            {item.account.state === 2 ?
-                                                <HowToVoteIcon />
-                                            :
+                                            {item.account?.state &&
                                                 <>
-                                                {item.account.state === 0 ?
-                                                        <EditNoteIcon />
-                                                    :
+                                                {item.account.state === 2 ?
+                                                    <HowToVoteIcon />
+                                                :
                                                     <>
-                                                        {item.account.state === 3 ?
-                                                                <ThumbUpIcon color={'success'}  />
-                                                            :
-                                                            <>
-                                                                {(item.account.state === 7 || item.account.state === 9) ?
-                                                                        <ThumbDownIcon color={'error'} />
-                                                                    :
-                                                                    <>
-                                                                        {(item.account.state === 4 || item.account.state === 8) ?
-                                                                                <AccessTimeIcon />
-                                                                            :
-                                                                            <>
-                                                                                {(item.account.state === 6) ?
-                                                                                        <CancelIcon color={'error'}  />
-                                                                                    :
-                                                                                    <>
-                                                                                        {(item.account.state === 5) ?
-                                                                                            <CheckCircleIcon color={'success'} />
+                                                    {item.account.state === 0 ?
+                                                            <EditNoteIcon />
+                                                        :
+                                                        <>
+                                                            {item.account.state === 3 ?
+                                                                    <ThumbUpIcon color={'success'}  />
+                                                                :
+                                                                <>
+                                                                    {(item.account.state === 7 || item.account.state === 9) ?
+                                                                            <ThumbDownIcon color={'error'} />
+                                                                        :
+                                                                        <>
+                                                                            {(item.account.state === 4 || item.account.state === 8) ?
+                                                                                    <AccessTimeIcon />
+                                                                                :
+                                                                                <>
+                                                                                    {(item.account.state === 6) ?
+                                                                                            <CancelIcon color={'error'}  />
                                                                                         :
-                                                                                            <HowToVoteIcon />
-                                                                                        }
-                                                                                    </>
-                                                                                }
-                                                                            </>
-                                                                        }
-                                                                    </>
-                                                                }
-                                                            </>
-                                                        }
+                                                                                        <>
+                                                                                            {(item.account.state === 5) ?
+                                                                                                <CheckCircleIcon color={'success'} />
+                                                                                            :
+                                                                                                <HowToVoteIcon />
+                                                                                            }
+                                                                                        </>
+                                                                                    }
+                                                                                </>
+                                                                            }
+                                                                        </>
+                                                                    }
+                                                                </>
+                                                            }
+                                                        </>
+                                                    }
                                                     </>
                                                 }
                                                 </>
@@ -1015,15 +1020,15 @@ export default function WalletCardView(props:any) {
                                     </ListItemAvatar>
                                     <ListItemText 
                                         primary={
-                                            <CopyToClipboard text={item.pubkey.toBase58()} onCopy={handleCopy}>
+                                            <CopyToClipboard text={item?.pubkey && item.pubkey.toBase58()} onCopy={handleCopy}>
                                                 <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
-                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{item.account.name.substring(0,20)+"..."}</Typography>
+                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{item.account?.name && item.account?.name.substring(0,20)+"..."}</Typography>
                                                 </Button>
                                             </CopyToClipboard>
                                         } 
                                         secondary={
                                             <>
-                                            {GOVERNANCE_STATE[item.account.state]}
+                                            {item.account?.state && GOVERNANCE_STATE[item.account.state]}
                                             </>
                                         }
                                         />
