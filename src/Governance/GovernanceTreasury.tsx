@@ -54,20 +54,10 @@ import {
     getAllTokenOwnerRecordsIndexed,
 } from '../Governance/api/queries';
 import {
-    getAllGovernances,
     getNativeTreasuryAddress
 } from '@solana/spl-governance';
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers';
-import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
-import ExplorerView from '../utils/grapeTools/Explorer';
-import { getProfilePicture } from '@solflare-wallet/pfp';
-import { findDisplayName } from '../utils/name-service';
-import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
-
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import ImageIcon from '@mui/icons-material/Image';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
 import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
 import FirstPageIcon from '@mui/icons-material/FirstPage';
@@ -376,34 +366,14 @@ export function GovernanceTreasuryView(props: any) {
         setGovernanceLookup(fglf);
     }
 
-    const fetchGovernanceVaults = async(grealm:any) => {
-    
-        const rawGovernances = await getAllGovernances(
-            RPC_CONNECTION,
-            new PublicKey(grealm.owner),
-            new PublicKey(grealm.pubkey)
-        );
-    
-        /*
-        const rawGovernances = await getAllGovernancesIndexed(
-            new PublicKey(grealm.pubkey).toBase58(),
-            new PublicKey(grealm.owner).toBase58()
-        )
-        */
-        
-        return rawGovernances;
-    }
-
     const fetchGovernances = async() => {
         const governanceAddresses = await getAllGovernancesIndexed(governanceAddress);
-        //console.log("governanceAddresses: "+JSON.stringify(governanceAddresses));
         
-
         //if (realm){
             const thisrealm = await getRealmIndexed(governanceAddress);
             
             const rawNativeSolAddresses = await Promise.all(
-                governanceAddresses.map((x) =>
+                governanceAddresses.map((x) =>  
                     getNativeTreasuryAddress(
                         //@ts-ignore
                         new PublicKey(thisrealm.owner),
