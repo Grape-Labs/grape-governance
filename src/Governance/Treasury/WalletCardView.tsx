@@ -564,10 +564,10 @@ export default function WalletCardView(props:any) {
                 {(loading || loadingPrices) ?
                     <Skeleton variant="rounded" width={100} height={40} sx={{m:1,p:0}} />
                 :
-                    <h2>${
+                    <h1>${
                         totalWalletValue &&
                         (+totalWalletValue.toFixed(2)).toLocaleString()
-                    }</h2>
+                    }</h1>
 
                     
                 }
@@ -607,7 +607,7 @@ export default function WalletCardView(props:any) {
             
             
         </Grid>
-        <CardContent sx={{p:0}}>
+        <CardContent sx={{p:0,mt:2}}>
             <Typography variant="body2" color="text.secondary">
                 <List sx={{ width: '100%' }}>
 
@@ -634,6 +634,7 @@ export default function WalletCardView(props:any) {
                                         :<></>}</Typography>
                                     </Box>
                                 }
+                                sx={{mb:1}}
                             >
                                 <ListItemAvatar>
                                     <Avatar
