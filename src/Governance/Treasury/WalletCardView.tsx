@@ -590,7 +590,7 @@ export default function WalletCardView(props:any) {
                 :
                     <h1>${
                         totalWalletValue &&
-                        (+totalWalletValue.toFixed(2)).toLocaleString()
+                        (totalWalletValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))
                     }</h1>
 
                     
@@ -670,7 +670,7 @@ export default function WalletCardView(props:any) {
                                         <Typography variant="caption" sx={{color:'#919EAB'}}>
                                             {usdcValue ? 
                                                 <>{usdcValue['So11111111111111111111111111111111111111112'] ? 
-                                                    <>${Number(((nativeSol+rulesSol) * usdcValue['So11111111111111111111111111111111111111112']?.price).toFixed(2)).toLocaleString()}</>
+                                                    <>${(((nativeSol+rulesSol) * usdcValue['So11111111111111111111111111111111111111112']?.price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
                                                     :<></>
                                                 }</>
                                             :<></>}</Typography>
@@ -836,7 +836,7 @@ export default function WalletCardView(props:any) {
                                             <Typography variant="caption" sx={{color:'#919EAB'}}>
                                             {usdcValue ? 
                                                 <>{usdcValue[item.address] ? 
-                                                    <>${(+(item.balance * usdcValue[item.address]?.price).toFixed(2)).toLocaleString()}</>
+                                                    <>${((item.balance * usdcValue[item.address]?.price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
                                                     :<></>
                                                 }</>
                                             :<></>}</Typography>
@@ -856,21 +856,24 @@ export default function WalletCardView(props:any) {
                                                 <Button 
                                                     color={'inherit'} 
                                                     variant='text' 
-                                                    sx={{ 
-                                                        m:0,p:0,
-                                                        '&:hover .MuiSvgIcon-root': {
-                                                            opacity: 1,
-                                                        },
-                                                    }}
+                                                    sx={{m:0,
+                                                        p:0,
+                                                        mintWidth:'' , 
+                                                            '&:hover .MuiSvgIcon-root': {
+                                                                opacity: 1,
+                                                            },
+                                                        }}
                                                     endIcon={
-                                                        <FileCopyIcon 
-                                                            fontSize={'small'} 
-                                                            sx={{
-                                                                color:'rgba(255,255,255,0.25)',
-                                                                opacity: 0,
-                                                                fontSize:"10px"}} />
+                                                    <FileCopyIcon 
+                                                        fontSize={'small'} 
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            pr:1,
+                                                            opacity: 0,
+                                                            fontSize:"10px"}} />
                                                     }
-                                                    >
+                                                    
+                                                >
                                                     <Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>
                                                 </Button>
                                             </CopyToClipboard>
@@ -933,7 +936,7 @@ export default function WalletCardView(props:any) {
                                             <Typography variant="caption" sx={{color:'#919EAB'}}>
                                             {usdcValue ? 
                                                 <>{usdcValue[item.address] ? 
-                                                    <>${(+(item.balance * usdcValue[item.address]?.price).toFixed(2)).toLocaleString()}</>
+                                                    <>${((item.balance * usdcValue[item.address]?.price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
                                                     :<></>
                                                 }</>
                                             :<></>}</Typography>
@@ -953,19 +956,24 @@ export default function WalletCardView(props:any) {
                                                 <Button 
                                                     color={'inherit'} 
                                                     variant='text' 
-                                                    sx={{m:0,p:0,
-                                                        '&:hover .MuiSvgIcon-root': {
-                                                            opacity: 1,
-                                                        },
-                                                    }}
+                                                    sx={{m:0,
+                                                        p:0,
+                                                        mintWidth:'' , 
+                                                            '&:hover .MuiSvgIcon-root': {
+                                                                opacity: 1,
+                                                            },
+                                                        }}
                                                     endIcon={
-                                                        <FileCopyIcon 
-                                                            fontSize={'small'} 
-                                                            sx={{
-                                                                color:'rgba(255,255,255,0.25)',
-                                                                opacity: 0,
-                                                                fontSize:"10px"}} />
-                                                    }>
+                                                    <FileCopyIcon 
+                                                        fontSize={'small'} 
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            pr:1,
+                                                            opacity: 0,
+                                                            fontSize:"10px"}} />
+                                                    }
+                                                    
+                                                >
                                                     <Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>
                                                 </Button>
                                             </CopyToClipboard>
@@ -1015,7 +1023,7 @@ export default function WalletCardView(props:any) {
                                             <Typography variant="caption" sx={{color:'#919EAB'}}>
                                             {usdcValue ? 
                                                 <>{usdcValue['So11111111111111111111111111111111111111112'] ? 
-                                                    <>${Number(((item.total_amount) * usdcValue['So11111111111111111111111111111111111111112']?.price).toFixed(2)).toLocaleString()}</>
+                                                    <>${(((item.total_amount) * usdcValue['So11111111111111111111111111111111111111112']?.price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
                                                     :<></>
                                                 }</>
                                             :<></>}</Typography>
@@ -1031,7 +1039,27 @@ export default function WalletCardView(props:any) {
                                     <ListItemText 
                                         primary={
                                             <CopyToClipboard text={item.stake_account_address} onCopy={handleCopy}>
-                                                <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                                <Button 
+                                                    color={'inherit'} 
+                                                    variant='text' 
+                                                    sx={{m:0,
+                                                        p:0,
+                                                        mintWidth:'' , 
+                                                            '&:hover .MuiSvgIcon-root': {
+                                                                opacity: 1,
+                                                            },
+                                                        }}
+                                                    endIcon={
+                                                    <FileCopyIcon 
+                                                        fontSize={'small'} 
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            pr:1,
+                                                            opacity: 0,
+                                                            fontSize:"10px"}} />
+                                                    }
+                                                    
+                                                >
                                                     <Typography variant="subtitle1" sx={{color:'white'}}>{shortenString(item.stake_account_address,5,5)}</Typography>
                                                 </Button>
                                             </CopyToClipboard>
@@ -1233,20 +1261,27 @@ export default function WalletCardView(props:any) {
                                     <ListItemText 
                                         primary={
                                             <CopyToClipboard text={item.id} onCopy={handleCopy}>
-                                                <Button color={'inherit'} variant='text' 
-                                                    sx={{m:0,p:0,
-                                                        '&:hover .MuiSvgIcon-root': {
-                                                            opacity: 1,
-                                                        },
-                                                    }}
+                                                <Button 
+                                                    color={'inherit'} 
+                                                    variant='text' 
+                                                    sx={{m:0,
+                                                        p:0,
+                                                        mintWidth:'' , 
+                                                            '&:hover .MuiSvgIcon-root': {
+                                                                opacity: 1,
+                                                            },
+                                                        }}
                                                     endIcon={
-                                                        <FileCopyIcon 
-                                                            fontSize={'small'} 
-                                                            sx={{
-                                                                color:'rgba(255,255,255,0.25)',
-                                                                opacity: 0,
-                                                                fontSize:"10px"}} />
-                                                    }>
+                                                    <FileCopyIcon 
+                                                        fontSize={'small'} 
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            pr:1,
+                                                            opacity: 0,
+                                                            fontSize:"10px"}} />
+                                                    }
+                                                    
+                                                >
                                                     <Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>
                                                 </Button>
                                             </CopyToClipboard>
@@ -1285,20 +1320,27 @@ export default function WalletCardView(props:any) {
                                     <ListItemText 
                                         primary={
                                             <CopyToClipboard text={item.id} onCopy={handleCopy}>
-                                                <Button color={'inherit'} variant='text' 
-                                                    sx={{m:0,p:0,
-                                                        '&:hover .MuiSvgIcon-root': {
-                                                            opacity: 1,
-                                                        },
-                                                    }}
+                                                <Button 
+                                                    color={'inherit'} 
+                                                    variant='text' 
+                                                    sx={{m:0,
+                                                        p:0,
+                                                        mintWidth:'' , 
+                                                            '&:hover .MuiSvgIcon-root': {
+                                                                opacity: 1,
+                                                            },
+                                                        }}
                                                     endIcon={
-                                                        <FileCopyIcon 
-                                                            fontSize={'small'} 
-                                                            sx={{
-                                                                color:'rgba(255,255,255,0.25)',
-                                                                opacity: 0,
-                                                                fontSize:"10px"}} />
-                                                    }>
+                                                    <FileCopyIcon 
+                                                        fontSize={'small'} 
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            pr:1,
+                                                            opacity: 0,
+                                                            fontSize:"10px"}} />
+                                                    }
+                                                    
+                                                >
                                                     <Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>
                                                 </Button>
                                             </CopyToClipboard>
