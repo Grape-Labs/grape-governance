@@ -190,12 +190,13 @@ export default function GovernanceCreateProposalView(props: any){
     const setEditPropOpen = props?.setEditPropOpen;
     const setSentInstructionsObject = props?.setInstructionsObject;
     const intraDAO = props?.governanceAddress ? true : false;
+    const usePlugin = props?.usePlugin;
     const showGovernanceTitle = true;
     const [title, setTitle] = React.useState(null);
     const [description, setDescription] = React.useState(null);
     const maxTitleLen = 130;
     const maxDescriptionLen = 350;//512;
-    const [proposalType, setProposalType] = React.useState(null);
+    const [proposalType, setProposalType] = React.useState(usePlugin || null);
     const sentGoverningTokenMint = props?.governingTokenMint;
     const [isCouncilVote, setIsCouncilVote] = React.useState(false);
     const [governanceWallet, setGovernanceWallet] = React.useState(null);
@@ -774,12 +775,12 @@ export default function GovernanceCreateProposalView(props: any){
       
       let nativeWallet = null;
       //console.log("menu item: "+JSON.stringify(nativeWallet))
-      
       setCommunitySupport(false);
       setIsCouncilVote(false);
       //setIsCouncilVote(false);
       // get rules wallet:
       let minInstructionHoldUpTime = null;
+
       {cachedTreasury && cachedTreasury
         .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
         .map((item: any, key: number) => {
@@ -793,8 +794,7 @@ export default function GovernanceCreateProposalView(props: any){
                 setIsCouncilVote(true);
             }
           }
-          
-        
+      
       )}
 
       // use RPC here to get the rules wallet details
@@ -803,7 +803,10 @@ export default function GovernanceCreateProposalView(props: any){
       setGovernanceRulesWalletMinInstructHoldUpTime(minInstructionHoldUpTime);
 
       getGovernanceRules(rulesWallet);
-      setProposalType(1);
+      if (usePlugin)
+          setProposalType(usePlugin);
+      else
+        setProposalType(1);
 
     };
 
@@ -820,6 +823,7 @@ export default function GovernanceCreateProposalView(props: any){
         // get rules wallet:
         let rulesWallet = null;
         let minInstructionHoldUpTime = null;
+        
         {cachedTreasury && cachedTreasury
           .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
           .map((item: any, key: number) => {
@@ -841,7 +845,10 @@ export default function GovernanceCreateProposalView(props: any){
         setGovernanceRulesWalletMinInstructHoldUpTime(minInstructionHoldUpTime);
 
         getGovernanceRules(rulesWallet);
-        setProposalType(1);
+        if (usePlugin)
+          setProposalType(usePlugin);
+        else
+          setProposalType(1);
 
       };
 

@@ -733,7 +733,21 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
                     account: {
                         realm: new PublicKey(item.realm),
                         governedAccount: new PublicKey(item.governedAccount),
-                        config: item.config,
+                        config: item.config, 
+                        /*{
+                            communityVoteThreshold: item.config.communityVoteThreshold,
+                            minCommunityTokensToCreateProposal: new BN(item.config.minCommunityTokensToCreateProposal),
+                            minInstructionHoldUpTime: item.config.minInstructionHoldUpTime,
+                            baseVotingTime: item.config.baseVotingTime,
+                            communityVoteTipping: item.config.communityVoteTipping,
+                            minCouncilTokensToCreateProposal: new BN(item.config.minCouncilTokensToCreateProposal),
+                            councilVoteThreshold: item.config.councilVoteThreshold,
+                            councilVetoVoteThreshold: item.config.councilVetoVoteThreshold,
+                            communityVetoVoteThreshold: item.config.communityVetoVoteThreshold,
+                            councilVoteTipping: item.config.councilVoteTipping,
+                            votingCoolOffTime: item.config.votingCoolOffTime,
+                            depositExemptProposalCount: item.config.depositExemptProposalCount,
+                        } ,*/
                         activeProposalCount: item.activeProposalCount
                     }
                 })

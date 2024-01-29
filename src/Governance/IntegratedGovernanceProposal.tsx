@@ -14,6 +14,8 @@ import {
   DialogTitle,
   Dialog,
   DialogContent,
+  MenuItem,
+  ListItemIcon,
 } from '@mui/material/';
 
 
@@ -21,6 +23,8 @@ import { useSnackbar } from 'notistack';
  
 import GovernanceCreateProposalView from './GovernanceCreateProposal';
 
+import AddCircleIcon from '@mui/icons-material/AddCircle';
+import SendIcon from '@mui/icons-material/Send';
 import EditIcon from '@mui/icons-material/Edit';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
@@ -78,11 +82,12 @@ export function IntegratedGovernanceProposalDialogView(props: any){
     const memberMap = props.memberMap;
     const governanceAddress = props.governanceAddress;
     const title = props?.title || "Proposal";
-    const usePlugin = props?.plugin;
+    const usePlugin = props?.usePlugin;
     //const [thisitem, setThisItem] = React.useState(props.item);
     const realm = props?.realm;
     const useButtonType = props?.useButton; // null = default edit, 1 = Send
-    
+    const useButtonText = props?.useButtonText || "Create";
+
     const [open, setPropOpen] = React.useState(false);
     
     const [expanded, setExpanded] = React.useState<string | false>(false);
@@ -116,13 +121,52 @@ export function IntegratedGovernanceProposalDialogView(props: any){
         <>
             <Tooltip title={title}>
                 {(useButtonType && useButtonType === 1) ?
-                    <Button onClick={handleClickOpen} color='primary' size="large" variant="contained" sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2}}>Send</Button>
+                    <Button onClick={handleClickOpen} color='primary' size="large" variant="contained" sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2}}>{useButtonText}</Button>
                 :
-                    <Button 
-                        onClick={handleClickOpen}
-                        sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
-                        Draft <EditIcon fontSize="small" sx={{ml:1}}/>
-                    </Button>
+                    <>
+                        {(useButtonType === 2 || useButtonType === 3) ? 
+                            <>
+                                <Button color={'inherit'} variant='text' 
+                                    onClick={handleClickOpen} 
+                                    sx={{m:0,p:0,
+                                        '&:hover .MuiSvgIcon-root': {
+                                            opacity: 1,
+                                        },
+                                    }}
+                                    startIcon={
+                                        <SendIcon 
+                                            fontSize={'small'} 
+                                            sx={{
+                                                color:'rgba(255,255,255,0.25)',
+                                                opacity: 0,
+                                                pl:1,
+                                                fontSize:"10px"}} />
+                                    }>
+                                    <Typography variant={useButtonType === 2 ? `h5`:`subtitle1`} sx={{color:'white'}}>
+                                        {useButtonText}
+                                    </Typography>
+                                </Button>
+                            </>
+                        :
+                            <>
+                                {useButtonType === 4 ? 
+                                    <>
+                                        <MenuItem onClick={handleClickOpen} >
+                                        <ListItemIcon>
+                                            <AddCircleIcon fontSize="small" />
+                                        </ListItemIcon>
+                                            Create Proposal</MenuItem>
+                                    </>
+                                :
+                                    <Button 
+                                        onClick={handleClickOpen}
+                                        sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
+                                        Draft <EditIcon fontSize="small" sx={{ml:1}}/>
+                                    </Button>
+                                }
+                            </>
+                        }
+                    </>
                 }
 
             </Tooltip>
@@ -150,6 +194,7 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                         governanceRulesWallet={governanceRulesWallet} 
                         governingTokenMint={governingTokenMint}
                         proposalAuthor={proposalAuthor}
+                        usePlugin={usePlugin}
                         //payerWallet={publicKey} 
                         //governanceWallet={governanceWallet?.vault.pubkey} 
                         //setInstructionsObject={setInstructionsObject} 

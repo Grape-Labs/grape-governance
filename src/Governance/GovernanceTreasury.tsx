@@ -291,29 +291,28 @@ export function GovernanceTreasuryView(props: any) {
         } catch(e){console.log("ERR: "+e); return null;}
     }
 
-    const getRealmDetails = async () => {
-        let grealm = null;
-        if (cachedRealm){
-            console.log("Realm from cache")
-            grealm = cachedRealm;
-        } else{
-            grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
+    const fetchRealm = async() =>{
+        const rlm = await getRealmIndexed(governanceAddress);
+        //console.log("rlm: "+JSON.stringify(rlm))
+        if (rlm){
+            setRealm(rlm);
+            setCachedRealm(rlm);
         }
-        const realmPk = new PublicKey(grealm.pubkey);
-        setRealm(grealm);
-        setRealmName(grealm.account.name);
     }
 
     const getCachedGovernanceFromLookup = async () => {
         
         let cached_governance = new Array();
+
+        
+
         if (governanceLookup){
             for (let glitem of governanceLookup){
                 if (glitem.governanceAddress === governanceAddress){
 
-                    if (glitem?.realm){
-                        setCachedRealm(glitem?.realm);
-                    }
+                    //if (glitem?.realm){
+                    //    setCachedRealm(glitem?.realm);
+                    //}
 
                     if (glitem?.governanceVaultsFilename){
                         const cached_treasury = await getFileFromLookup(glitem.governanceVaultsFilename, storagePool);
@@ -428,6 +427,7 @@ export function GovernanceTreasuryView(props: any) {
 
     React.useEffect(() => { 
         if (!isLoading.current) {
+            fetchRealm();
             if (!tokenMap){
                 getTokens();
             }
@@ -679,6 +679,7 @@ export function GovernanceTreasuryView(props: any) {
                                     .map((item: any,key:number) => (                                
                                         <Grid item md={4} sm={6} xs={12}>
                                             <WalletCardView 
+                                                realm={realm}
                                                 rulesWallet={item}
                                                 governanceAddress={governanceAddress}
                                                 setGovernanceValue={setGovernanceValue}
