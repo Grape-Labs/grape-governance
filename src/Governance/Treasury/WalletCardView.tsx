@@ -836,7 +836,7 @@ export default function WalletCardView(props:any) {
                                             <Typography variant="caption" sx={{color:'#919EAB'}}>
                                             {usdcValue ? 
                                                 <>{usdcValue[item.address] ? 
-                                                    <>${+((item.balance * usdcValue[item.address]?.price).toFixed(2)).toLocaleString()}</>
+                                                    <>${(+(item.balance * usdcValue[item.address]?.price).toFixed(2)).toLocaleString()}</>
                                                     :<></>
                                                 }</>
                                             :<></>}</Typography>
@@ -933,7 +933,7 @@ export default function WalletCardView(props:any) {
                                             <Typography variant="caption" sx={{color:'#919EAB'}}>
                                             {usdcValue ? 
                                                 <>{usdcValue[item.address] ? 
-                                                    <>${(item.balance * usdcValue[item.address]?.price).toFixed(2)}</>
+                                                    <>${(+(item.balance * usdcValue[item.address]?.price).toFixed(2)).toLocaleString()}</>
                                                     :<></>
                                                 }</>
                                             :<></>}</Typography>
