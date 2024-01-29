@@ -140,15 +140,7 @@ export default function GovernanceNavigation(props: any){
                             ><HowToVoteIcon /></Button>
                         </Tooltip>
                         <Tooltip title={
-                            <><strong>Metrics</strong><br/>* Via Cached Storage<br/>** Premium Feature
-                            </>}>
-                            <Button
-                                component={Link}
-                                to={'/metrics/'+governanceAddress}
-                            ><BarChartIcon /></Button>
-                        </Tooltip>
-                        <Tooltip title={
-                            <><strong>Members</strong><br/>* Realtime Hybrid Caching
+                            <><strong>Members</strong><br/>
                             </>}>
                             <Button
                                 component={Link}
@@ -156,13 +148,21 @@ export default function GovernanceNavigation(props: any){
                             ><GroupIcon /></Button>
                         </Tooltip>
                         <Tooltip title={
-                            <><strong>Treasury</strong><br/>* Via Cached Storage</>
+                            <><strong>Treasury</strong></>
                             }>
                             <Button
                                 component={Link}
                                 to={'/treasury/'+governanceAddress}
-                                sx={{borderTopRightRadius:'17px', borderBottomRightRadius:'17px'}}
                             ><AccountBalanceIcon /></Button>
+                        </Tooltip>
+                        <Tooltip title={
+                            <><strong>Metrics</strong><br/>* Via Cached Storage<br/>** Premium Feature
+                            </>}>
+                            <Button
+                                component={Link}
+                                to={'/metrics/'+governanceAddress}
+                                sx={{borderTopRightRadius:'17px', borderBottomRightRadius:'17px'}}
+                            ><BarChartIcon /></Button>
                         </Tooltip>
                         {/*
                         <Tooltip title={

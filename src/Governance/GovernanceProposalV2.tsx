@@ -99,7 +99,7 @@ import {
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
  
-import { EditGovernanceProposalDialog } from './ManageEditGovernanceProposal';
+import { IntegratedGovernanceProposalDialogView } from './IntegratedGovernanceProposal';
 import { getAllProposalSignatoryRecords, getAllProposalSignatories, ManageGovernanceProposal } from './ManageGovernanceProposal';
 import { VoteForProposal } from './GovernanceVote';
 import { InstructionView } from './GovernanceInstructionView';
@@ -2602,7 +2602,7 @@ export function GovernanceProposalV2View(props: any){
                                                                 
                                                                 {(publicKey && proposalAuthor === publicKey.toBase58() && +thisitem.account.state === 0) ?
                                                                     <> 
-                                                                        <EditGovernanceProposalDialog 
+                                                                        <IntegratedGovernanceProposalDialogView 
                                                                             governanceAddress={governanceAddress}
                                                                             governanceRulesWallet={thisitem.account.governance}
                                                                             governingTokenMint={thisitem.account.governingTokenMint}
@@ -2611,6 +2611,7 @@ export function GovernanceProposalV2View(props: any){
                                                                             governanceLookup={governanceLookup}
                                                                             editProposalAddress={thisitem.pubkey}
                                                                             setReload={setReload}
+                                                                            title="Edit Proposal"
                                                                         />
                                                                     </>
                                                                     :<>

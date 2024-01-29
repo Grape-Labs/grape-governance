@@ -185,7 +185,16 @@ export function GovernanceProposalDialog(props: any){
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
-                    <GovernanceProposalV2View governanceLookup={governanceLookup} isCancelled={isCancelled} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
+                    <GovernanceProposalV2View 
+                        governanceLookup={governanceLookup} 
+                        isCancelled={isCancelled} 
+                        governanceAddress={governanceAddress} 
+                        cachedGovernance={cachedGovernance} 
+                        item={thisitem} 
+                        realm={realm} 
+                        tokenMap={tokenMap} 
+                        memberMap={memberMap} 
+                        governanceToken={governanceToken} />
                                             
                 </DialogContent> 
             </BootstrapDialog>

@@ -67,29 +67,23 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     },
 }));
 
-export function EditGovernanceProposalDialog(props: any){
-    const cachedGovernance = props.cachedGovernance;
-    const isCancelled = props.isCancelled || false;
+export function IntegratedGovernanceProposalDialogView(props: any){
     const setReload = props?.setReload;
-    const proposalAuthor = props.proposalAuthor;
+    const proposalAuthor = props?.proposalAuthor;
     const governanceLookup = props.governanceLookup;
     const governanceRulesWallet = props.governanceRulesWallet;
-    const editProposalAddress = props.editProposalAddress;
+    const editProposalAddress = props?.editProposalAddress;
     const governingTokenMint = props.governingTokenMint;
     const tokenMap = props.tokenMap;
     const memberMap = props.memberMap;
     const governanceAddress = props.governanceAddress;
-    const governanceToken = props.governanceToken;
-    const thisitem = props.item;
-    const title = props?.title;
-    const description = props?.description;
-    const state = props?.state;
-    const isCouncil = props?.isCouncil;
-    const governanceType = props?.governanceType;
+    const title = props?.title || "Proposal";
+    const usePlugin = props?.plugin;
     //const [thisitem, setThisItem] = React.useState(props.item);
-    const realm = props.realm;
+    const realm = props?.realm;
+    const useButtonType = props?.useButton; // null = default edit, 1 = Send
     
-    const [open, setEditPropOpen] = React.useState(false);
+    const [open, setPropOpen] = React.useState(false);
     
     const [expanded, setExpanded] = React.useState<string | false>(false);
     const handleChange =
@@ -107,26 +101,30 @@ export function EditGovernanceProposalDialog(props: any){
     );
 
     const handleCloseDialog = () => {
-        setEditPropOpen(false);
+        setPropOpen(false);
     }
 
     const handleClickOpen = () => {
-        setEditPropOpen(true);
-        //getVotingParticipants();
+        setPropOpen(true);
     };
 
     const handleClose = () => {
-        setEditPropOpen(false);
+        setPropOpen(false);
     };
 
     return (
         <>
-            <Tooltip title='Edit Proposal'>
-                <Button 
-                    onClick={handleClickOpen}
-                    sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
-                    Draft <EditIcon fontSize="small" sx={{ml:1}}/>
-                </Button>
+            <Tooltip title={title}>
+                {(useButtonType && useButtonType === 1) ?
+                    <Button onClick={handleClickOpen} color='primary' size="large" variant="contained" sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2}}>Send</Button>
+                :
+                    <Button 
+                        onClick={handleClickOpen}
+                        sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
+                        Draft <EditIcon fontSize="small" sx={{ml:1}}/>
+                    </Button>
+                }
+
             </Tooltip>
 
             <BootstrapDialog 
@@ -143,7 +141,7 @@ export function EditGovernanceProposalDialog(props: any){
                     }}
                 >
                 <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog}>
-                    Edit Proposal {editProposalAddress.toBase58()}
+                    {title} {editProposalAddress && editProposalAddress.toBase58()}
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
@@ -157,7 +155,7 @@ export function EditGovernanceProposalDialog(props: any){
                         //setInstructionsObject={setInstructionsObject} 
                         governanceLookup={governanceLookup} 
                         editProposalAddress={editProposalAddress} 
-                        setEditPropOpen={setEditPropOpen} 
+                        setEditPropOpen={setPropOpen} 
                         setReload={setReload}
                     />
                     
