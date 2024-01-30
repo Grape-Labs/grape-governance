@@ -243,6 +243,7 @@ export default function ClaimExtensionView(props: any){
                     <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2}}>
                         <Stack direction="row" spacing={1}>
                             <Chip
+                                disabled={loading}
                                 variant="outlined"
                                 label="WEN"
                                 onClick={(e) => fetchClaimForToken("WENWENvqqNya429ubCdR81ZmD69brwQaaBYY6p3LCpk")}
@@ -250,6 +251,7 @@ export default function ClaimExtensionView(props: any){
                                 />
                             
                             <Chip
+                                disabled={loading}
                                 variant="outlined"
                                 label="JUP"
                                 onClick={(e) => fetchClaimForToken("JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN")}
@@ -301,7 +303,15 @@ export default function ClaimExtensionView(props: any){
                                 </Typography>
 
                         </Grid>
-                    :<></>}
+                    :<>
+                        {(!claimableAmount && claimMintInfo && !loading) ?
+                            <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2,textAlign:'center'}}>
+                                <Typography variant="h6">
+                                    Nothing to claim
+                                </Typography>
+                            </Grid>
+                        :<></>}
+                    </>}
 
                     <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2}}>
                         <Typography variant="caption">Made with ❤️ by Grape &amp; Jupiter #OPOS</Typography>
