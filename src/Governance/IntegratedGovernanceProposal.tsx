@@ -154,9 +154,9 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                                 {useButtonType === 4 ? 
                                     <>
                                         <MenuItem onClick={handleClickOpen} >
-                                        <ListItemIcon>
-                                            <AddCircleIcon fontSize="small" />
-                                        </ListItemIcon>
+                                            <ListItemIcon>
+                                                <AddCircleIcon fontSize="small" />
+                                            </ListItemIcon>
                                             Create Proposal</MenuItem>
                                     </>
                                 :

@@ -235,46 +235,6 @@ export default function WalletCardView(props:any) {
                 <Typography variant="caption" sx={{color:'#919EAB'}}>
 
                     <List sx={{ width: '100%' }}>
-                        <CopyToClipboard text={rulesWalletAddress} onCopy={handleCopy}>
-                            <ListItem>
-                                <Grid container alignItems='center' justifyContent={'center'}>
-                                    <Tooltip title="Rules Wallet">
-                                        <Button 
-                                            color={'inherit'} 
-                                            variant='text' 
-                                            sx={{m:0,
-                                                p:1,
-                                            mintWidth:'' , 
-                                                '&:hover .MuiSvgIcon-root.copyIcon': {
-                                                    display: 'block',
-                                                },'&:hover .MuiSvgIcon-root.settingsIcon': {
-                                                    display: 'none',
-                                                },
-                                            }}
-                                            startIcon={
-                                                <>
-                                                    <FileCopyIcon 
-                                                        className="copyIcon"
-                                                        sx={{
-                                                            color:'rgba(255,255,255,0.25)',
-                                                            display: 'none',
-                                                            fontSize:"14px!important"}} />
-                                                    <SettingsIcon 
-                                                        className="settingsIcon"
-                                                        sx={{
-                                                            color:'rgba(255,255,255,0.25)',
-                                                            display: 'block',
-                                                            fontSize:"14px"}} />
-                                                </>
-                                                }
-                                        >
-                                            {shortRulesWalletAddress} 
-                                        </Button>
-                                    </Tooltip>
-                                </Grid>
-                            </ListItem>
-                        </CopyToClipboard>
-
                         <ListItem>
                             
                             <Grid container>
@@ -389,9 +349,32 @@ export default function WalletCardView(props:any) {
                         <ListItem>
                             Voting Time: {((rulesWallet.account.config.baseVotingTime/60)/60).toFixed(0)}h
                         </ListItem>
+                        
+                        <ListItem>
+                            <Grid alignItems='center'>
+                                <Typography variant="caption" sx={{fontSize:'10px'}}>
+                                *These are the rules that define this Governance Wallet
+                                </Typography>
+                            </Grid>
+                        </ListItem>
                     </List>
-
+                    
                 </Typography>
+                <Divider light />
+                    <CopyToClipboard text={rulesWalletAddress} onCopy={handleCopy}>
+                        
+                            <Tooltip title="Rules Wallet">
+                                <MenuItem
+                                    color={'inherit'} 
+                                    sx={{mt:0.5}}
+                                >
+                                    <ListItemIcon>
+                                        <SettingsIcon fontSize="small" />
+                                    </ListItemIcon>
+                                    {shortRulesWalletAddress} 
+                                </MenuItem>
+                                </Tooltip>
+                    </CopyToClipboard>
                 {/*
                 <MenuItem>Voting Time {((rulesWallet.account.config.baseVotingTime/60)/60).toFixed(0)}h</MenuItem>
                 <MenuItem>Proposal Creation Council Minimum {rulesWallet.account.config.minCouncilTokensToCreateProposal}</MenuItem>
