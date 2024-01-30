@@ -984,7 +984,7 @@ export default function WalletCardView(props:any) {
                 <CardContent sx={{ p:0, '& .MuiCardContent-root:last-child': { pb: 0,}, }}>
                     <List sx={{ width: '100%' }} component="div" disablePadding>
                         <Divider light>
-                            <Chip label="Tokens" size="small" />
+                            <Chip label={`Tokens ${nativeTokens && nativeTokens.length}`} size="small" />
                         </Divider>
                         
                         {nativeTokens && nativeTokens
@@ -1100,7 +1100,7 @@ export default function WalletCardView(props:any) {
                         
                         {(rulesTokens && rulesTokens.length > 0) &&
                             <Divider light>
-                                <Chip label="Rules Wallet: Tokens" size="small" />
+                                <Chip label={`Rules Wallet Tokens ${rulesTokens && rulesTokens.length}`} size="small" />
                             </Divider>
                         }
 
@@ -1232,7 +1232,7 @@ export default function WalletCardView(props:any) {
             <CardContent sx={{ p:0 }}>
                 <List sx={{ width: '100%' }}>
                     <Divider light>
-                        <Chip label="Proposals" size="small" />
+                        <Chip label={`Proposals ${proposals && proposals.length}`} size="small" />
                     </Divider>
                     {proposals && proposals
                         .sort((a:any,b:any) => (b.account?.draftAt - a.account?.draftAt))
@@ -1387,7 +1387,7 @@ export default function WalletCardView(props:any) {
             <CardContent sx={{ p:0 }}>
                 <List sx={{ width: '100%' }}>
                     <Divider light>
-                        <Chip label="Collectibles" size="small" />
+                        <Chip label={`Collectibles ${nativeNftTokens && nativeNftTokens.length}`} size="small" />
                     </Divider>
                     {nativeNftTokens && nativeNftTokens
                         .sort((a:any,b:any) => (a.compression.compressed - b.compression.compressed))
@@ -1464,7 +1464,7 @@ export default function WalletCardView(props:any) {
 
                     {(rulesNftTokens && rulesNftTokens.length > 0) &&
                         <Divider light>
-                            <Chip label="Rules Wallet: Collectibles" size="small" />
+                            <Chip label={`Rules Wallet Collectibles ${rulesNftTokens && rulesNftTokens.length}`} size="small" />
                         </Divider>
                     }
 
