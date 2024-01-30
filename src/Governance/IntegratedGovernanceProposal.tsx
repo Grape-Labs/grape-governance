@@ -126,26 +126,28 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                     <>
                         {(useButtonType === 2 || useButtonType === 3) ? 
                             <>
-                                <Button color={'inherit'} variant='text' 
-                                    onClick={handleClickOpen} 
-                                    sx={{m:0,p:0,
-                                        '&:hover .MuiSvgIcon-root': {
-                                            opacity: 1,
-                                        },
-                                    }}
-                                    startIcon={
-                                        <SendIcon 
-                                            fontSize={'small'} 
-                                            sx={{
-                                                color:'rgba(255,255,255,0.25)',
-                                                opacity: 0,
-                                                pl:1,
-                                                fontSize:"10px"}} />
-                                    }>
-                                    <Typography variant={useButtonType === 2 ? `h5`:`subtitle1`} sx={{color:'white'}}>
-                                        {useButtonText}
-                                    </Typography>
-                                </Button>
+                                <Tooltip title="Send">
+                                    <Button color={'inherit'} variant='text' 
+                                        onClick={handleClickOpen} 
+                                        sx={{m:0,p:0,
+                                            '&:hover .MuiSvgIcon-root': {
+                                                opacity: 1,
+                                            },
+                                        }}
+                                        startIcon={
+                                            <SendIcon 
+                                                fontSize={'small'} 
+                                                sx={{
+                                                    color:'rgba(255,255,255,0.25)',
+                                                    opacity: 0,
+                                                    pl:1,
+                                                    fontSize:"10px"}} />
+                                        }>
+                                        <Typography variant={useButtonType === 2 ? `h5`:`subtitle1`} sx={{color:'white'}}>
+                                            {useButtonText}
+                                        </Typography>
+                                    </Button>
+                                </Tooltip>
                             </>
                         :
                             <>
