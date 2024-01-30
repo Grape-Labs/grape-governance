@@ -231,51 +231,163 @@ export default function WalletCardView(props:any) {
                     title="Create Proposal"
                     //usePlugin={1}
                 />
-                <CopyToClipboard text={rulesWalletAddress} onCopy={handleCopy}>
-                    <MenuItem>
-                    <ListItemIcon>
-                        <SettingsIcon fontSize="small" />
-                    </ListItemIcon>
-                    Rules {shortRulesWalletAddress} 
-                    </MenuItem>
-                </CopyToClipboard>
                 <Divider light />
                 <Typography variant="caption" sx={{color:'#919EAB'}}>
 
                     <List sx={{ width: '100%' }}>
-                        <ListItem>
-                            Community Mint: {(realm && realm?.account?.communityMint) && shortenString(realm?.account?.communityMint.toBase58(),5,5)}
-                        </ListItem>
-                        {(realm && realm?.account.config?.councilMint) &&
+                        <CopyToClipboard text={rulesWalletAddress} onCopy={handleCopy}>
                             <ListItem>
-                                Council Mint: {(realm && realm?.account.config?.councilMint) && shortenString(realm?.account.config?.councilMint.toBase58(),5,5)}
+                                <Grid container alignItems='center' justifyContent={'center'}>
+                                    <Tooltip title="Rules Wallet">
+                                        <Button 
+                                            color={'inherit'} 
+                                            variant='text' 
+                                            sx={{m:0,
+                                                p:1,
+                                            mintWidth:'' , 
+                                                '&:hover .MuiSvgIcon-root.copyIcon': {
+                                                    display: 'block',
+                                                },'&:hover .MuiSvgIcon-root.settingsIcon': {
+                                                    display: 'none',
+                                                },
+                                            }}
+                                            startIcon={
+                                                <>
+                                                    <FileCopyIcon 
+                                                        className="copyIcon"
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            display: 'none',
+                                                            fontSize:"14px!important"}} />
+                                                    <SettingsIcon 
+                                                        className="settingsIcon"
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            display: 'block',
+                                                            fontSize:"14px"}} />
+                                                </>
+                                                }
+                                        >
+                                            {shortRulesWalletAddress} 
+                                        </Button>
+                                    </Tooltip>
+                                </Grid>
                             </ListItem>
-                        }
+                        </CopyToClipboard>
+
+                        <ListItem>
+                            
+                            <Grid container>
+                                <Grid xs={12}>
+                                <strong>Governing Mint</strong>
+                                </Grid>
+                                <Grid xs={12}>
+                                
+                                {(realm && realm?.account.config?.councilMint) &&
+                                <>
+                                Council: 
+                                    <CopyToClipboard text={realm?.account.config?.councilMint} onCopy={handleCopy}>
+                                        <Button 
+                                            color={'inherit'} 
+                                            variant='text' 
+                                            sx={{m:0,
+                                                ml:1,
+                                                p:0,
+                                                pl:1,
+                                                pr:1,
+                                                fontWeight:'normal',
+                                                fontSize:'12px',
+                                                minWidth:'' , 
+                                                    '&:hover .MuiSvgIcon-root.copyIcon': {
+                                                        display: 'block',
+                                                    }
+                                                }}
+                                            startIcon={
+                                                <>
+                                                    <FileCopyIcon 
+                                                        className="copyIcon"
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            display: 'none',
+                                                            fontSize:"14px!important"}} />
+                                                </>
+                                                }
+                                        >
+                                            {shortenString(realm?.account.config?.councilMint.toBase58(),5,5)}
+                                        </Button>
+                                    </CopyToClipboard><br/>
+                                </>}
+                                    Community: 
+                                        <CopyToClipboard text={realm?.communityMint} onCopy={handleCopy}>
+                                            <Button 
+                                                color={'inherit'} 
+                                                variant='text'
+                                                sx={{m:0,
+                                                    ml:1,
+                                                    p:0,
+                                                    pl:1,
+                                                    pr:1,
+                                                    fontWeight:'normal',
+                                                    fontSize:'12px',
+                                                    minWidth:'' , 
+                                                        '&:hover .MuiSvgIcon-root.copyIcon': {
+                                                            display: 'block',
+                                                        }
+                                                    }}
+                                                startIcon={
+                                                    <>
+                                                        <FileCopyIcon 
+                                                            className="copyIcon"
+                                                            sx={{
+                                                                color:'rgba(255,255,255,0.25)',
+                                                                display: 'none',
+                                                                fontSize:"14px!important"}} />
+                                                    </>
+                                                    }
+                                            >
+                                                {shortenString(realm?.account.communityMint.toBase58(),5,5)}
+                                            </Button>
+                                        </CopyToClipboard>
+                                </Grid>
+                            </Grid>
+                        </ListItem>
                         
                         
+                        
+                        <ListItem>
+                            <Grid container>
+                                <Grid xs={12}>
+                                <strong>Proposal Creation Minimum</strong>
+                                </Grid>
+                                <Grid xs={12}>
+                                
+                                Council: {Number(rulesWallet.account.config.minCouncilTokensToCreateProposal)}<br/>
+                                Community: {
+                                    communityMintDecimals ?
+                                        (Number(rulesWallet.account.config.minCommunityTokensToCreateProposal)/10**communityMintDecimals).toLocaleString()
+                                    :
+                                        Number(rulesWallet.account.config.minCommunityTokensToCreateProposal)
+                                    }
+                                </Grid>
+                            </Grid>
+                        </ListItem>
+                        <ListItem>
+                            <Grid container>
+                                <Grid xs={12}>
+                                <strong>Vote Threshold</strong>
+                                </Grid>
+                                <Grid xs={12}>
+                                
+                                Council: {rulesWallet.account.config.councilVoteThreshold.value}%
+                                {rulesWallet.account.config?.communityVoteThreshold &&
+                                <><br/>
+                                Community: {rulesWallet.account.config.communityVoteThreshold.value}%
+                                </>}
+                                </Grid>
+                            </Grid>
+                        </ListItem>
                         <ListItem>
                             Voting Time: {((rulesWallet.account.config.baseVotingTime/60)/60).toFixed(0)}h
-                        </ListItem>
-                        <ListItem>
-                            Proposal Creation Minimum<br/> 
-                            Council: {Number(rulesWallet.account.config.minCouncilTokensToCreateProposal)}<br/>
-                            Community: {
-                                communityMintDecimals ?
-                                    (Number(rulesWallet.account.config.minCommunityTokensToCreateProposal)/10**communityMintDecimals).toLocaleString()
-                                :
-                                    Number(rulesWallet.account.config.minCommunityTokensToCreateProposal)
-                                }
-
-                        </ListItem>
-                        <ListItem>
-                            Council Vote Threshold: {rulesWallet.account.config.councilVoteThreshold.value}%
-                            {rulesWallet.account.config?.communityVoteThreshold &&
-                            <><br/>
-                            Community Vote Threshold: {rulesWallet.account.config.communityVoteThreshold.value}%
-                            </>}
-                        </ListItem>
-                        <ListItem>
-                            Veto Threshold: {rulesWallet.account.config.councilVetoVoteThreshold.value}%
                         </ListItem>
                     </List>
 
