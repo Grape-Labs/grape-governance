@@ -180,11 +180,11 @@ export default function WalletCardView(props:any) {
 
     const handleCopy = () => {
         setIsCopied(true);
-      };
+    };
     
-      const handleCloseSnackbar = () => {
+    const handleCloseSnackbar = () => {
         setIsCopied(false);
-      };
+    };
 
     function SettingsMenu() {
         const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -519,6 +519,10 @@ export default function WalletCardView(props:any) {
             }
         }
 
+        const handleAddressCopy = () => {
+            setIsCopied(true);
+        };
+
         React.useEffect(() => { 
             if (!loadingStake && !nativeStake){
                 fetchStakeAccounts();
@@ -562,7 +566,7 @@ export default function WalletCardView(props:any) {
                                     </ListItemAvatar>
                                     <ListItemText 
                                         primary={
-                                            <CopyToClipboard text={item.stake_account_address} onCopy={handleCopy}>
+                                            <CopyToClipboard text={item.stake_account_address} onCopy={handleAddressCopy}>
                                                 <Button 
                                                     color={'inherit'} 
                                                     variant='text' 
@@ -922,23 +926,25 @@ export default function WalletCardView(props:any) {
                 </Tooltip>
             }
 
-            <Tooltip title="Show Stake Accounts">
-                <Badge color="primary" max={999}>
-                    <IconButton 
-                        //expand={expandedStake}
-                        onClick={handleExpandStakeClick}
-                        aria-expanded={expandedStake}
-                        aria-label="Stake Accounts"
-                        color={expandedStake ? 'inherit' : 'rgba(145, 158, 171, 0.8)'}
-                    >
-                        <SavingsIcon />
-                    </IconButton>
-                </Badge>
-            </Tooltip>
+            {!isLoading.current &&
+                <Tooltip title="Show Stake Accounts">
+                    <Badge color="primary" max={999}>
+                        <IconButton 
+                            //expand={expandedStake}
+                            onClick={handleExpandStakeClick}
+                            aria-expanded={expandedStake}
+                            aria-label="Stake Accounts"
+                            color={expandedStake ? 'inherit' : 'rgba(145, 158, 171, 0.8)'}
+                        >
+                            <SavingsIcon />
+                        </IconButton>
+                    </Badge>
+                </Tooltip>
+            }
 
             {nativeNftTokens && nativeNftTokens.length > 0 &&
                 <Tooltip title="Show NFTs">
-                    <Badge color="primary" badgeContent={nativeNftTokens.length} max={999}>
+                    <Badge color="primary" badgeContent={nativeNftTokens.length + +rulesNftTokens?.length} max={999}>
                         <IconButton 
                             //expand={expandedNft}
                             onClick={handleExpandNftClick}
