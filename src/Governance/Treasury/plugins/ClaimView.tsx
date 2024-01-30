@@ -169,22 +169,23 @@ export default function ClaimExtensionView(props: any){
         setMintInfo(null);
         setClaimableAmount(null);
         const merkleDistributor = new MerkleDistributor(provider, {
-            targetToken: new PublicKey(claimTokenAddress || tokenAddress), // the token to be distributed.
+            targetToken: new PublicKey(tokenAddress || claimTokenAddress), // the token to be distributed.
             claimProofEndpoint: 'https://worker.jup.ag/jup-claim-proof',
         });
         // WEN WENWENvqqNya429ubCdR81ZmD69brwQaaBYY6p3LCpk
         
-        const mintInfo = await getMint(RPC_CONNECTION, new PublicKey(claimTokenAddress || tokenAddress));
+        const mintInfo = await getMint(RPC_CONNECTION, new PublicKey(tokenAddress || claimTokenAddress));
         if (mintInfo){
             setClaimMintInfo(mintInfo);
             //console.log("mintInfo: ",mintInfo);
-            const mintInfoApi = await getMintFromApi(claimTokenAddress || tokenAddress);
+            const mintInfoApi = await getMintFromApi(tokenAddress || claimTokenAddress);
             if (mintInfoApi)
                 setMintInfo(mintInfoApi)
             // governanceNativeWallet
             const claimStatus = await merkleDistributor.getUser(new PublicKey(governanceNativeWallet));
             const amount = claimStatus?.amount;
             //const isClaimed = claimStatus?.proof. .isClaimed;
+            console.log("claimStatus: "+JSON.stringify(claimStatus));
 
             setClaimableAmount(amount);
         } else{
@@ -216,7 +217,7 @@ export default function ClaimExtensionView(props: any){
             </Tooltip>
             
             <BootstrapDialog 
-                maxWidth={"xl"}
+                //maxWidth={"xl"}
                 fullWidth={true}
                 open={open} onClose={handleClose}
                 PaperProps={{
@@ -239,8 +240,8 @@ export default function ClaimExtensionView(props: any){
                     <DialogContentText>
                         Welcome to the first Governance Wallet Extension, check any merkle distribution, enter the address of the token
                     </DialogContentText>
-
-                    <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2}}>
+                    
+                    <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{mt:1,mb:1,textAlign:'center'}}>
                         <Stack direction="row" spacing={1}>
                             <Chip
                                 disabled={loading}
@@ -258,9 +259,9 @@ export default function ClaimExtensionView(props: any){
                                 avatar={<Avatar alt="WEN" src="https://static.jup.ag/jup/icon.png" />}
                                 />
                         </Stack>
-                    </Grid>
+                    </Box>
 
-                    <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2}}>
+                    
                         <TextField
                             autoFocus
                             required
@@ -275,16 +276,17 @@ export default function ClaimExtensionView(props: any){
                             onChange={(e) => setClaimTokenAddress(e.target.value)}
                             sx={{textAlign:"center"}}
                             />
-                    </Grid>
+                    
 
                     {(claimableAmount && governanceNativeWallet) ?
-                        <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2,textAlign:'center'}}>
+                        <Box  alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2,textAlign:'center'}}>
                             <Typography variant="h6">
                                 This Governance can claim {(claimableAmount/10**claimMintInfo.decimals).toLocaleString()}&nbsp;
                                 {mintInfo &&
                                 <>
                                     {mintInfo.name}
                                 </>}
+                                {/*
                                 <br/><br/>
                                 
                                 <Typography variant='body1'>Add your plugins now on governance.so - the most powerful Wallet on Solana by Grape - reach out to the Grape DAO on 
@@ -299,23 +301,24 @@ export default function ClaimExtensionView(props: any){
                                         textTransform:'none'
                                     }}>
                                         <DiscordIcon sx={{mt:1,fontSize:27.5,color:'white'}} /> <strong>Discord</strong>
-                                    </Button> to get started</Typography>
-                                </Typography>
-
-                        </Grid>
+                                    </Button> to get started
+                                    </Typography>
+                                */}
+                            </Typography>
+                        </Box>
                     :<>
                         {(!claimableAmount && claimMintInfo && !loading) ?
-                            <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2,textAlign:'center'}}>
+                            <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2,textAlign:'center'}}>
                                 <Typography variant="h6">
                                     Nothing to claim
                                 </Typography>
-                            </Grid>
+                            </Box>
                         :<></>}
                     </>}
 
-                    <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2}}>
+                    <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2, textAlign:'center'}}>
                         <Typography variant="caption">Made with ❤️ by Grape &amp; Jupiter #OPOS</Typography>
-                    </Grid>
+                    </Box>
 
                     <DialogActions>
                         <Button 
