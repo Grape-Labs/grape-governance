@@ -180,11 +180,11 @@ export default function WalletCardView(props:any) {
 
     const handleCopy = () => {
         setIsCopied(true);
-      };
+    };
     
-      const handleCloseSnackbar = () => {
+    const handleCloseSnackbar = () => {
         setIsCopied(false);
-      };
+    };
 
     function SettingsMenu() {
         const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -498,6 +498,124 @@ export default function WalletCardView(props:any) {
             setRealm(rlm);
     }
 
+    const StakeAccountsView = () => {
+        const [loadingStake, setLoadingStake] = React.useState(false);
+        const [nativeStake, setNativeStake] = React.useState(null);
+
+        const fetchStakeAccounts = async() =>{
+            setLoadingStake(true);
+            //isLoading.current = true;
+            try{
+               
+                // get stake accounts
+                const stake1 = await getWalletStakeAccounts(new PublicKey(walletAddress));
+                //const stake2 = await getWalletStakeAccounts(new PublicKey(rulesWalletAddress));
+
+                //setNativeStakeAccounts(stake1);
+                setNativeStake(stake1);
+                setLoadingStake(false);
+            }catch(e){
+                setLoadingStake(false);
+            }
+        }
+
+        const handleAddressCopy = () => {
+            setIsCopied(true);
+        };
+
+        React.useEffect(() => { 
+            if (!loadingStake && !nativeStake){
+                fetchStakeAccounts();
+            }
+        }, []);
+
+
+        return (
+            <>
+                {loadingStake ?
+                    <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2}}>
+                        <CircularProgress />        
+                    </Grid>
+                :
+                <>
+                    {(nativeStake && nativeStake.length > 0) ? nativeStake
+                        .sort((a:any,b:any) => (b.total_amount - a.total_amount))
+                        .map((item: any,key:number) => (  
+                            <> 
+                                <ListItem
+                                    secondaryAction={
+                                        <Box sx={{textAlign:'right'}}>
+                                            <Typography variant="subtitle1" sx={{color:'white'}}>
+                                                {item.total_amount}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                            {usdcValue ? 
+                                                <>{usdcValue['So11111111111111111111111111111111111111112'] ? 
+                                                    <>${(((item.total_amount) * usdcValue['So11111111111111111111111111111111111111112']?.price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
+                                                    :<></>
+                                                }</>
+                                            :<></>}</Typography>
+                                        </Box>
+                                    }
+                                    key={key}
+                                >
+                                    <ListItemAvatar>
+                                        <Avatar>
+                                            <AccessTimeIcon />
+                                        </Avatar>
+                                    </ListItemAvatar>
+                                    <ListItemText 
+                                        primary={
+                                            <CopyToClipboard text={item.stake_account_address} onCopy={handleAddressCopy}>
+                                                <Button 
+                                                    color={'inherit'} 
+                                                    variant='text' 
+                                                    sx={{m:0,
+                                                        p:0,
+                                                        mintWidth:'' , 
+                                                            '&:hover .MuiSvgIcon-root': {
+                                                                opacity: 1,
+                                                            },
+                                                        }}
+                                                    endIcon={
+                                                    <FileCopyIcon 
+                                                        fontSize={'small'} 
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            pr:1,
+                                                            opacity: 0,
+                                                            fontSize:"10px"}} />
+                                                    }
+                                                    
+                                                >
+                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{shortenString(item.stake_account_address,5,5)}</Typography>
+                                                </Button>
+                                            </CopyToClipboard>
+                                        } 
+                                        secondary={
+                                            <>
+                                            {item.status}
+                                            </>
+                                        }
+                                        />
+                                </ListItem>
+                                {key+1 < nativeStake.length && <Divider variant="inset" component="li" light />}
+                            </>
+                        ))
+                    :<>
+                        <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2}}>
+                            <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                No stake accounts for this address
+                            </Typography>
+                        </Grid>
+                    </>
+                    }
+                </>
+                }
+            </>
+        )
+    }
+
 
     React.useEffect(() => { 
         
@@ -808,9 +926,9 @@ export default function WalletCardView(props:any) {
                 </Tooltip>
             }
 
-            {nativeStakeAccounts && nativeStakeAccounts.length > 0 &&
+            {!isLoading.current &&
                 <Tooltip title="Show Stake Accounts">
-                    <Badge color="primary" badgeContent={nativeStakeAccounts.length+rulesStakeAccounts?.length} max={999}>
+                    <Badge color="primary" max={999}>
                         <IconButton 
                             //expand={expandedStake}
                             onClick={handleExpandStakeClick}
@@ -823,10 +941,10 @@ export default function WalletCardView(props:any) {
                     </Badge>
                 </Tooltip>
             }
-            
+
             {nativeNftTokens && nativeNftTokens.length > 0 &&
                 <Tooltip title="Show NFTs">
-                    <Badge color="primary" badgeContent={nativeNftTokens.length} max={999}>
+                    <Badge color="primary" badgeContent={nativeNftTokens.length + +rulesNftTokens?.length} max={999}>
                         <IconButton 
                             //expand={expandedNft}
                             onClick={handleExpandNftClick}
@@ -866,7 +984,7 @@ export default function WalletCardView(props:any) {
                 <CardContent sx={{ p:0, '& .MuiCardContent-root:last-child': { pb: 0,}, }}>
                     <List sx={{ width: '100%' }} component="div" disablePadding>
                         <Divider light>
-                            <Chip label="Tokens" size="small" />
+                            <Chip label={`Tokens ${nativeTokens && nativeTokens.length}`} size="small" />
                         </Divider>
                         
                         {nativeTokens && nativeTokens
@@ -910,7 +1028,7 @@ export default function WalletCardView(props:any) {
                                                         item.balance.toLocaleString()
                                                     }
                                                     title="Send"
-                                                    usePlugin={5}
+                                                    usePlugin={4}
                                                 />
                                             </Box>
                                             <Typography variant="caption" sx={{color:'#919EAB'}}>
@@ -982,7 +1100,7 @@ export default function WalletCardView(props:any) {
                         
                         {(rulesTokens && rulesTokens.length > 0) &&
                             <Divider light>
-                                <Chip label="Rules Wallet: Tokens" size="small" />
+                                <Chip label={`Rules Wallet Tokens ${rulesTokens && rulesTokens.length}`} size="small" />
                             </Divider>
                         }
 
@@ -1025,7 +1143,7 @@ export default function WalletCardView(props:any) {
                                                         item.balance.toLocaleString()
                                                     }
                                                     title="Send"
-                                                    usePlugin={5}
+                                                    usePlugin={4}
                                                 />
                                             </Box>
                                             <Typography variant="caption" sx={{color:'#919EAB'}}>
@@ -1105,71 +1223,7 @@ export default function WalletCardView(props:any) {
                     <Divider light>
                         <Chip label="Stake Accounts" size="small" />
                     </Divider>
-                    {nativeStakeAccounts && nativeStakeAccounts
-                        //.sort((a:any,b:any) => (b.balance - a.balance)  || b.tokens?.value.length - a.tokens?.value.length)
-                        .map((item: any,key:number) => (  
-                            <> 
-                                <ListItem
-                                    secondaryAction={
-                                        <Box sx={{textAlign:'right'}}>
-                                            <Typography variant="subtitle1" sx={{color:'white'}}>
-                                                {item.total_amount}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{color:'#919EAB'}}>
-                                            {usdcValue ? 
-                                                <>{usdcValue['So11111111111111111111111111111111111111112'] ? 
-                                                    <>${(((item.total_amount) * usdcValue['So11111111111111111111111111111111111111112']?.price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
-                                                    :<></>
-                                                }</>
-                                            :<></>}</Typography>
-                                        </Box>
-                                    }
-                                    key={key}
-                                >
-                                    <ListItemAvatar>
-                                        <Avatar>
-                                            ?
-                                        </Avatar>
-                                    </ListItemAvatar>
-                                    <ListItemText 
-                                        primary={
-                                            <CopyToClipboard text={item.stake_account_address} onCopy={handleCopy}>
-                                                <Button 
-                                                    color={'inherit'} 
-                                                    variant='text' 
-                                                    sx={{m:0,
-                                                        p:0,
-                                                        mintWidth:'' , 
-                                                            '&:hover .MuiSvgIcon-root': {
-                                                                opacity: 1,
-                                                            },
-                                                        }}
-                                                    endIcon={
-                                                    <FileCopyIcon 
-                                                        fontSize={'small'} 
-                                                        sx={{
-                                                            color:'rgba(255,255,255,0.25)',
-                                                            pr:1,
-                                                            opacity: 0,
-                                                            fontSize:"10px"}} />
-                                                    }
-                                                    
-                                                >
-                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{shortenString(item.stake_account_address,5,5)}</Typography>
-                                                </Button>
-                                            </CopyToClipboard>
-                                        } 
-                                        secondary={
-                                            <>
-                                            {item.status}
-                                            </>
-                                        }
-                                        />
-                                </ListItem>
-                                {key+1 < nativeStakeAccounts.length && <Divider variant="inset" component="li" light />}
-                            </>
-                        ))
-                    }
+                    <StakeAccountsView />
                 </List>
             </CardContent>
         </Collapse>
@@ -1178,7 +1232,7 @@ export default function WalletCardView(props:any) {
             <CardContent sx={{ p:0 }}>
                 <List sx={{ width: '100%' }}>
                     <Divider light>
-                        <Chip label="Proposals" size="small" />
+                        <Chip label={`Proposals ${proposals && proposals.length}`} size="small" />
                     </Divider>
                     {proposals && proposals
                         .sort((a:any,b:any) => (b.account?.draftAt - a.account?.draftAt))
@@ -1333,7 +1387,7 @@ export default function WalletCardView(props:any) {
             <CardContent sx={{ p:0 }}>
                 <List sx={{ width: '100%' }}>
                     <Divider light>
-                        <Chip label="Collectibles" size="small" />
+                        <Chip label={`Collectibles ${nativeNftTokens && nativeNftTokens.length}`} size="small" />
                     </Divider>
                     {nativeNftTokens && nativeNftTokens
                         .sort((a:any,b:any) => (a.compression.compressed - b.compression.compressed))
@@ -1356,7 +1410,7 @@ export default function WalletCardView(props:any) {
                                                     1
                                                 }
                                                 title="Send"
-                                                usePlugin={5}
+                                                usePlugin={4}
                                             />
                                         </Box>
                                     }
@@ -1410,7 +1464,7 @@ export default function WalletCardView(props:any) {
 
                     {(rulesNftTokens && rulesNftTokens.length > 0) &&
                         <Divider light>
-                            <Chip label="Rules Wallet: Collectibles" size="small" />
+                            <Chip label={`Rules Wallet Collectibles ${rulesNftTokens && rulesNftTokens.length}`} size="small" />
                         </Divider>
                     }
 
@@ -1435,7 +1489,7 @@ export default function WalletCardView(props:any) {
                                                     1
                                                 }
                                                 title="Send"
-                                                usePlugin={5}
+                                                usePlugin={4}
                                             />
                                         </Box>
                                     }
