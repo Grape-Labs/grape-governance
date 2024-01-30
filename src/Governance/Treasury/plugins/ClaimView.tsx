@@ -273,6 +273,7 @@ export default function ClaimExtensionView(props: any){
                             fullWidth
                             variant="outlined"
                             value={claimTokenAddress}
+                            InputLabelProps={{ shrink: true }}
                             onChange={(e) => setClaimTokenAddress(e.target.value)}
                             sx={{textAlign:"center"}}
                             />
