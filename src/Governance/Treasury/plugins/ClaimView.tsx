@@ -38,6 +38,7 @@ import {
     MenuItem,
     ListItemIcon,
     TextField,
+    Stack,
 } from '@mui/material/';
 
 import { useSnackbar } from 'notistack';
@@ -164,6 +165,9 @@ export default function ClaimExtensionView(props: any){
 
     const checkClaimStatus = async(tokenAddress?:string) => {
         setLoading(true);
+        setClaimMintInfo(null);
+        setMintInfo(null);
+        setClaimableAmount(null);
         const merkleDistributor = new MerkleDistributor(provider, {
             targetToken: new PublicKey(claimTokenAddress || tokenAddress), // the token to be distributed.
             claimProofEndpoint: 'https://worker.jup.ag/jup-claim-proof',
@@ -228,7 +232,7 @@ export default function ClaimExtensionView(props: any){
                     id='extensions-dialog'
                     onClose={handleCloseDialog}
                 >
-                    Merkle Claim Extension
+                    Claim Extension
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
@@ -237,11 +241,21 @@ export default function ClaimExtensionView(props: any){
                     </DialogContentText>
 
                     <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2}}>
-                        <Chip
-                            label="WEN"
-                            onClick={(e) => fetchClaimForToken("WENWENvqqNya429ubCdR81ZmD69brwQaaBYY6p3LCpk")}
-                            avatar={<Avatar alt="WEN" src="https://shdw-drive.genesysgo.net/GwJapVHVvfM4Mw4sWszkzywncUWuxxPd6s9VuFfXRgie/wen_logo.png" />}
-                            />
+                        <Stack direction="row" spacing={1}>
+                            <Chip
+                                variant="outlined"
+                                label="WEN"
+                                onClick={(e) => fetchClaimForToken("WENWENvqqNya429ubCdR81ZmD69brwQaaBYY6p3LCpk")}
+                                avatar={<Avatar alt="WEN" src="https://shdw-drive.genesysgo.net/GwJapVHVvfM4Mw4sWszkzywncUWuxxPd6s9VuFfXRgie/wen_logo.png" />}
+                                />
+                            
+                            <Chip
+                                variant="outlined"
+                                label="JUP"
+                                onClick={(e) => fetchClaimForToken("JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN")}
+                                avatar={<Avatar alt="WEN" src="https://static.jup.ag/jup/icon.png" />}
+                                />
+                        </Stack>
                     </Grid>
 
                     <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2}}>
@@ -257,13 +271,14 @@ export default function ClaimExtensionView(props: any){
                             variant="outlined"
                             value={claimTokenAddress}
                             onChange={(e) => setClaimTokenAddress(e.target.value)}
+                            sx={{textAlign:"center"}}
                             />
                     </Grid>
 
                     {(claimableAmount && governanceNativeWallet) ?
                         <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2,textAlign:'center'}}>
                             <Typography variant="h6">
-                                This Governance can claim {(claimableAmount/10**claimMintInfo.decimals).toLocaleString()}
+                                This Governance can claim {(claimableAmount/10**claimMintInfo.decimals).toLocaleString()}&nbsp;
                                 {mintInfo &&
                                 <>
                                     {mintInfo.name}
@@ -283,7 +298,7 @@ export default function ClaimExtensionView(props: any){
                                     }}>
                                         <DiscordIcon sx={{mt:1,fontSize:27.5,color:'white'}} /> <strong>Discord</strong>
                                     </Button> to get started</Typography>
-                            </Typography>
+                                </Typography>
 
                         </Grid>
                     :<></>}

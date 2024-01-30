@@ -322,13 +322,24 @@ export default function WalletCardView(props:any) {
                                 </Grid>
                                 <Grid xs={12}>
                                 
-                                Council: {Number(rulesWallet.account.config.minCouncilTokensToCreateProposal)}<br/>
-                                Community: {
-                                    communityMintDecimals ?
-                                        (Number(rulesWallet.account.config.minCommunityTokensToCreateProposal)/10**communityMintDecimals).toLocaleString()
-                                    :
-                                        Number(rulesWallet.account.config.minCommunityTokensToCreateProposal)
-                                    }
+                                {Number(rulesWallet.account.config.minCommunityTokensToCreateProposal) === 18446744073709551615 ?
+                                <>
+                                Council: {Number(rulesWallet.account.config.minCouncilTokensToCreateProposal)}
+                                </>:<></>}
+                                
+                                {Number(rulesWallet.account.config.minCommunityTokensToCreateProposal) === 18446744073709551615 ?
+                                    <><br/>Community: N/A</>
+                                :
+                                    <>
+                                    <br/>
+                                    Community: {
+                                        communityMintDecimals ?
+                                            (Number(rulesWallet.account.config.minCommunityTokensToCreateProposal)/10**communityMintDecimals).toLocaleString()
+                                        :
+                                            Number(rulesWallet.account.config.minCommunityTokensToCreateProposal)
+                                        }
+                                    </>
+                                }
                                 </Grid>
                             </Grid>
                         </ListItem>
@@ -338,12 +349,14 @@ export default function WalletCardView(props:any) {
                                 <strong>Vote Threshold</strong>
                                 </Grid>
                                 <Grid xs={12}>
-                                
+                                {rulesWallet.account.config?.councilVoteThreshold?.value ?
+                                <>
                                 Council: {rulesWallet.account.config.councilVoteThreshold.value}%
-                                {rulesWallet.account.config?.communityVoteThreshold &&
+                                </>:<></>}
+                                {(rulesWallet.account.config?.communityVoteThreshold && rulesWallet.account.config.communityVoteThreshold?.value) ?
                                 <><br/>
                                 Community: {rulesWallet.account.config.communityVoteThreshold.value}%
-                                </>}
+                                </>:<></>}
                                 </Grid>
                             </Grid>
                         </ListItem>
