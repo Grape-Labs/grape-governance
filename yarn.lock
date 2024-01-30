@@ -3961,6 +3961,15 @@
     "@solana/spl-token" "0.3.5"
     "@solana/web3.js" "^1.75.0"
 
+"@jup-ag/merkle-distributor-sdk@^0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@jup-ag/merkle-distributor-sdk/-/merkle-distributor-sdk-0.0.1.tgz#6afce20aabf37b9407d886b963dfc5b9f910ae5d"
+  integrity sha512-loP/zwP3+NEucBRVsnsESkPisdhd1yI45DiMh45bJgvK7nZG0ajpxQ9G64RZ7UkegmUbpNUpBRs+QJiWSVWyNg==
+  dependencies:
+    "@coral-xyz/anchor" "^0.29.0"
+    "@solana/spl-token" "0.1.8"
+    "@solana/web3.js" "~1.87.6"
+
 "@keplr-wallet/provider@0.11.56":
   version "0.11.56"
   resolved "https://registry.yarnpkg.com/@keplr-wallet/provider/-/provider-0.11.56.tgz#fdd04f30654bb53af9fda29d83dcd0396938e9b9"
@@ -7803,7 +7812,7 @@
     rpc-websockets "^7.5.1"
     superstruct "^0.14.2"
 
-"@solana/web3.js@^1.87.6":
+"@solana/web3.js@^1.87.6", "@solana/web3.js@~1.87.6":
   version "1.87.6"
   resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-1.87.6.tgz#6744cfc5f4fc81e0f58241c0a92648a7320bb3bf"
   integrity sha512-LkqsEBgTZztFiccZZXnawWa8qNCATEqE97/d0vIwjTclmVlc8pBpD1DmjfVHtZ1HS5fZorFlVhXfpwnCNDZfyg==
