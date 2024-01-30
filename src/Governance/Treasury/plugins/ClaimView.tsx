@@ -243,6 +243,7 @@ export default function ClaimExtensionView(props: any){
                     <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2}}>
                         <Stack direction="row" spacing={1}>
                             <Chip
+                                disabled={loading}
                                 variant="outlined"
                                 label="WEN"
                                 onClick={(e) => fetchClaimForToken("WENWENvqqNya429ubCdR81ZmD69brwQaaBYY6p3LCpk")}
@@ -250,6 +251,7 @@ export default function ClaimExtensionView(props: any){
                                 />
                             
                             <Chip
+                                disabled={loading}
                                 variant="outlined"
                                 label="JUP"
                                 onClick={(e) => fetchClaimForToken("JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN")}
