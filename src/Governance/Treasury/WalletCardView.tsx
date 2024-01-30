@@ -963,7 +963,7 @@ export default function WalletCardView(props:any) {
                                                 useButton={2} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
                                                 useButtonText={
                                                     (nativeSol && rulesSol) ? `${(nativeSol+rulesSol).toFixed(6)}`
-                                                    :``}
+                                                    :`Send`}
                                                 title="Send"
                                                 usePlugin={5}
                                             />

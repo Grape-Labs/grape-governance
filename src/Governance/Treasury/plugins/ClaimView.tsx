@@ -301,7 +301,15 @@ export default function ClaimExtensionView(props: any){
                                 </Typography>
 
                         </Grid>
-                    :<></>}
+                    :<>
+                        {(!claimableAmount && claimMintInfo && !loading) ?
+                            <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2,textAlign:'center'}}>
+                                <Typography variant="h6">
+                                    Nothing to claim
+                                </Typography>
+                            </Grid>
+                        :<></>}
+                    </>}
 
                     <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2}}>
                         <Typography variant="caption">Made with ❤️ by Grape &amp; Jupiter #OPOS</Typography>
