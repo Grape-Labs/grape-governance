@@ -42,6 +42,7 @@ import {
 
 import { useSnackbar } from 'notistack';
 
+import DiscordIcon from '../../../components/static/DiscordIcon';
 import ParaglidingIcon from '@mui/icons-material/Paragliding';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
@@ -260,13 +261,28 @@ export default function ClaimExtensionView(props: any){
                     </Grid>
 
                     {(claimableAmount && governanceNativeWallet) ?
-                        <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2}}>
+                        <Grid container alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2,textAlign:'center'}}>
                             <Typography variant="h6">
                                 This Governance can claim {(claimableAmount/10**claimMintInfo.decimals).toLocaleString()}
                                 {mintInfo &&
                                 <>
                                     {mintInfo.name}
                                 </>}
+                                <br/><br/>
+                                
+                                <Typography variant='body1'>Add your plugins now on governance.so - the most powerful Wallet on Solana by Grape - reach out to the Grape DAO on 
+                                    <Button 
+                                        target='_blank' href={`https://discord.gg/grapedao`}
+                                        color='inherit'
+                                        sx={{
+                                        verticalAlign: 'middle',
+                                        display: 'inline-flex',
+                                        borderRadius:'17px',
+                                        m:1,
+                                        textTransform:'none'
+                                    }}>
+                                        <DiscordIcon sx={{mt:1,fontSize:27.5,color:'white'}} /> <strong>Discord</strong>
+                                    </Button> to get started</Typography>
                             </Typography>
 
                         </Grid>
