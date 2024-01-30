@@ -474,7 +474,10 @@ export function GovernanceTreasuryView(props: any) {
                             background: 'rgba(0, 0, 0, 0.6)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:4
+                            pt:4,
+                            pb:4,
+                            pl:1,
+                            pr:1,
                         }} 
                     > 
                         {realmName &&
@@ -672,7 +675,8 @@ export function GovernanceTreasuryView(props: any) {
 
                         <Box
                             sx={{
-                                m:2,
+                                mt:2,
+                                mb:2,
                             }} 
                         > 
                             {(publicKey &&
@@ -691,7 +695,7 @@ export function GovernanceTreasuryView(props: any) {
                                 {governanceWallets && governanceWallets
                                     //.sort((a:any,b:any) => (b.walletValue - a.walletValue))
                                     .map((item: any,key:number) => (                                
-                                        <Grid item md={4} sm={6} xs={12}>
+                                        <Grid item lg={4} md={6} sm={12} xs={12}>
                                             <WalletCardView 
                                                 realm={realm}
                                                 rulesWallet={item}

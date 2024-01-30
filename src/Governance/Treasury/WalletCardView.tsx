@@ -75,6 +75,7 @@ import {
     getAllTokenOwnerRecordsIndexed,
 } from './../api/queries';
 
+import ExtensionsMenuView from './plugins/ExtensionsMenu';
 import { IntegratedGovernanceProposalDialogView } from '../IntegratedGovernanceProposal';
 
 import CompressIcon from '@mui/icons-material/Compress';
@@ -1014,6 +1015,9 @@ export default function WalletCardView(props:any) {
             <IconButton aria-label="share" disabled={true}>
                 <ShareIcon />
             </IconButton>
+            <ExtensionsMenuView 
+                governanceNativeWallet={walletAddress}
+            />
             {proposals && proposals.length > 0 &&
                 <Tooltip title="Show Proposal Activity">
                     <Badge color="primary" badgeContent={proposals.length} max={999}>
