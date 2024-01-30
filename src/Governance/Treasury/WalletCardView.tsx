@@ -142,7 +142,7 @@ export default function WalletCardView(props:any) {
     const rulesWalletAddress = rulesWallet ? new PublicKey(rulesWallet.pubkey).toBase58() : props?.rulesWalletAddress;
                                                 
     const tokenMap = props?.tokenMap;
-
+    const communityMintDecimals = props?.communityMintDecimals;
     const governanceAddress = props?.governanceAddress;
     const governanceValue = props?.governanceValue;
     const setGovernanceValue = props?.setGovernanceValue;
@@ -259,11 +259,20 @@ export default function WalletCardView(props:any) {
                         <ListItem>
                             Proposal Creation Minimum<br/> 
                             Council: {Number(rulesWallet.account.config.minCouncilTokensToCreateProposal)}<br/>
-                            Community: {Number(rulesWallet.account.config.minCommunityTokensToCreateProposal)}
+                            Community: {
+                                communityMintDecimals ?
+                                    (Number(rulesWallet.account.config.minCommunityTokensToCreateProposal)/10**communityMintDecimals).toLocaleString()
+                                :
+                                    Number(rulesWallet.account.config.minCommunityTokensToCreateProposal)
+                                }
 
                         </ListItem>
                         <ListItem>
                             Council Vote Threshold: {rulesWallet.account.config.councilVoteThreshold.value}%
+                            {rulesWallet.account.config?.communityVoteThreshold &&
+                            <><br/>
+                            Community Vote Threshold: {rulesWallet.account.config.communityVoteThreshold.value}%
+                            </>}
                         </ListItem>
                         <ListItem>
                             Veto Threshold: {rulesWallet.account.config.councilVetoVoteThreshold.value}%

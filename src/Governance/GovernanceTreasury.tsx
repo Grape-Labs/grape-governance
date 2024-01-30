@@ -1,6 +1,12 @@
 import { getRealm } from '@solana/spl-governance';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
+import { 
+    TOKEN_PROGRAM_ID, 
+    getMint,
+    getAssociatedTokenAddress
+} from "@solana/spl-token-v2";
+
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import axios from "axios";
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
@@ -268,6 +274,7 @@ export function GovernanceTreasuryView(props: any) {
     const [totalGovernanceStableCoinValue, setTotalGovernanceStableCoinValue] = React.useState(null);
     const [totalStakedValue, setTotalStakedValue] = React.useState(null);
 
+    const [communityMintDecimals, setCommunityMintDecimals] = React.useState(0);
     const [governanceWallets, setGovernanceWallets] = React.useState(null);
 
     const { publicKey } = useWallet();
@@ -294,7 +301,16 @@ export function GovernanceTreasuryView(props: any) {
     const fetchRealm = async() =>{
         const rlm = await getRealmIndexed(governanceAddress);
         //console.log("rlm: "+JSON.stringify(rlm))
+
+        
+
         if (rlm){
+            if (rlm?.account?.communityMint && rlm.account.communityMint.toBase58()){
+                const mintInfo = await getMint(RPC_CONNECTION, rlm.account.communityMint);
+                const decimals = mintInfo.decimals;
+                setCommunityMintDecimals(decimals);
+            }
+
             setRealm(rlm);
             setCachedRealm(rlm);
         }
@@ -303,8 +319,6 @@ export function GovernanceTreasuryView(props: any) {
     const getCachedGovernanceFromLookup = async () => {
         
         let cached_governance = new Array();
-
-        
 
         if (governanceLookup){
             for (let glitem of governanceLookup){
@@ -417,20 +431,20 @@ export function GovernanceTreasuryView(props: any) {
     }, [governanceLookup, governanceAddress]);
     
     React.useEffect(() => { 
-        if (tokenMap){  
+        if (realm){  
             isLoading.current = true;
             setLoading(true);
             startTimer();
             callGovernanceLookup();
         }
-    }, [tokenMap]);
+    }, [realm]);
 
     React.useEffect(() => { 
         if (!isLoading.current) {
             fetchRealm();
-            if (!tokenMap){
-                getTokens();
-            }
+            //if (!tokenMap){
+            //    getTokens();
+            //}
         }
     }, []);
 
@@ -684,6 +698,7 @@ export function GovernanceTreasuryView(props: any) {
                                                 governanceAddress={governanceAddress}
                                                 setGovernanceValue={setGovernanceValue}
                                                 governanceValue={governanceValue} 
+                                                communityMintDecimals={communityMintDecimals}
                                                 tokenMap={tokenMap} 
                                                 walletAddress={new PublicKey(item.nativeTreasuryAddress).toBase58()}  />
                                         </Grid>
