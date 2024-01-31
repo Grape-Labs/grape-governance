@@ -147,6 +147,7 @@ export default function WalletCardView(props:any) {
     const governanceAddress = props?.governanceAddress;
     const governanceValue = props?.governanceValue;
     const setGovernanceValue = props?.setGovernanceValue;
+    const governanceWallets = props?.governanceWallets;
 
     const shortWalletAddress = shortenString(walletAddress,5,5);
     const shortRulesWalletAddress = shortenString(rulesWalletAddress,5,5);
@@ -227,6 +228,8 @@ export default function WalletCardView(props:any) {
                     //editProposalAddress={thisitem.pubkey}
                     //setReload={setReload}
                     
+
+                    governanceWallets={governanceWallets}
                     useButton={4} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
                     useButtonText={"Create Proposal"}
                     title="Create Proposal"
@@ -870,17 +873,18 @@ export default function WalletCardView(props:any) {
                 </CopyToClipboard>
             }
             subheader={
-                <>{
-                (nativeDomains && nativeDomains.length > 0) &&
-                    <>{nativeDomains[0].name}</>}   
-                    
+                <>
                 </>
 
             }
         />
 
         <Grid sx={{mt:1}}>
-            <Divider light />
+            <Divider light>
+                {(nativeDomains && nativeDomains.length > 0) &&
+                <Chip variant='outlined' label={nativeDomains[0].name} size="small" />
+                }
+            </Divider>
         </Grid>
 
         <Grid container
@@ -890,7 +894,7 @@ export default function WalletCardView(props:any) {
             <Grid xs={12} sx={{display: 'flex', justifyContent: 'center'}}>
             
                 {(loading || loadingPrices) ?
-                    <Skeleton variant="rounded" width={100} height={40} sx={{m:1,p:0}} />
+                    <Skeleton variant="rounded" width={150} height={60} sx={{m:1,p:0}} />
                 :
                     <h1>${
                         totalWalletValue &&
@@ -903,19 +907,20 @@ export default function WalletCardView(props:any) {
             </Grid>
             <Grid xs={6} sx={{textAlign:'center', display: 'flex', justifyContent: 'center'}} >
                 {(loading || loadingPrices) ?
-                    <Skeleton variant="rounded" width={100} height={60} sx={{m:1,p:0}} />
+                    <Skeleton variant="rounded" width={'90%'} height={60} sx={{m:1,p:0}} />
                 :
                     <Button 
                         size="large" 
                         variant="contained" 
                         onClick={handleClickOpenDialog}
                         color='primary'
-                        sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2}}>Receive</Button>
+                        fullWidth
+                        sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2,ml:1,mr:1}}>Receive</Button>
                 }
             </Grid>
             <Grid xs={6} sx={{textAlign:'center', display: 'flex', justifyContent: 'center'}}>
                 {(loading || loadingPrices) ?
-                    <Skeleton variant="rounded" width={100} height={60} sx={{m:1,p:0}} />
+                    <Skeleton variant="rounded" width={'90%'} height={60} sx={{m:1,p:0}} />
                 :
                     <IntegratedGovernanceProposalDialogView 
                         //governanceAddress={governanceAddress}
@@ -927,6 +932,7 @@ export default function WalletCardView(props:any) {
                         //editProposalAddress={thisitem.pubkey}
                         //setReload={setReload}
                         
+                        governanceWallets={governanceWallets}
                         useButton={1} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
                         useButtonText={"Send"}
                         title="Send"
@@ -943,7 +949,48 @@ export default function WalletCardView(props:any) {
                 <List sx={{ width: '100%' }}>
 
                     {(loading || loadingPrices) ?
-                        <Skeleton variant="rounded" width={'100%'} height={50} />
+                        <ListItem
+                            secondaryAction={
+                                <>
+                                    <Skeleton
+                                        animation="wave"
+                                        height={20}
+                                        width="120px"
+                                        style={{ marginBottom: 4, textAlign: 'right' }}
+                                        />
+                                    <Skeleton
+                                        animation="wave"
+                                        height={20}
+                                        width="120px"
+                                        style={{ marginBottom: 4, textAlign: 'right' }}
+                                        />
+                                </>
+                            }
+                            sx={{mb:1}}
+                        >
+                            <ListItemAvatar>
+                                <Skeleton animation="wave" variant="circular" width={40} height={40} />
+                            </ListItemAvatar>
+                            <ListItemText 
+                                    primary={
+                                        <Skeleton
+                                            animation="wave"
+                                            height={20}
+                                            width="140px"
+                                            style={{ marginBottom: 4 }}
+                                            />
+                                    }
+                                    secondary={
+                                        <Skeleton
+                                            animation="wave"
+                                            height={20}
+                                            width="100px"
+                                            style={{ marginBottom: 2 }}
+                                            />
+                                    }
+                                    
+                            />
+                        </ListItem>
                     :
                         <>
                             <ListItem
@@ -960,6 +1007,7 @@ export default function WalletCardView(props:any) {
                                                 //editProposalAddress={thisitem.pubkey}
                                                 //setReload={setReload}
                                                 
+                                                governanceWallets={governanceWallets}
                                                 useButton={2} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
                                                 useButtonText={
                                                     (nativeSol && rulesSol) ? `${(nativeSol+rulesSol).toFixed(6)}`
@@ -1144,6 +1192,8 @@ export default function WalletCardView(props:any) {
                                                     //governanceLookup={governanceLookup}
                                                     //editProposalAddress={thisitem.pubkey}
                                                     //setReload={setReload}
+
+                                                    governanceWallets={governanceWallets}
                                                     useButton={3} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
                                                     useButtonText={
                                                         item.balance.toLocaleString()
@@ -1259,6 +1309,8 @@ export default function WalletCardView(props:any) {
                                                     //governanceLookup={governanceLookup}
                                                     //editProposalAddress={thisitem.pubkey}
                                                     //setReload={setReload}
+
+                                                    governanceWallets={governanceWallets}
                                                     useButton={3} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
                                                     useButtonText={
                                                         item.balance.toLocaleString()
@@ -1526,6 +1578,8 @@ export default function WalletCardView(props:any) {
                                                 //governanceLookup={governanceLookup}
                                                 //editProposalAddress={thisitem.pubkey}
                                                 //setReload={setReload}
+
+                                                governanceWallets={governanceWallets}
                                                 useButton={3} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
                                                 useButtonText={
                                                     1
@@ -1605,6 +1659,8 @@ export default function WalletCardView(props:any) {
                                                 //governanceLookup={governanceLookup}
                                                 //editProposalAddress={thisitem.pubkey}
                                                 //setReload={setReload}
+                                                
+                                                governanceWallets={governanceWallets}
                                                 useButton={3} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
                                                 useButtonText={
                                                     1

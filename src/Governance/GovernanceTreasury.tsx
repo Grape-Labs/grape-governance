@@ -699,6 +699,7 @@ export function GovernanceTreasuryView(props: any) {
                                             <WalletCardView 
                                                 realm={realm}
                                                 rulesWallet={item}
+                                                governanceWallets={governanceWallets}
                                                 governanceAddress={governanceAddress}
                                                 setGovernanceValue={setGovernanceValue}
                                                 governanceValue={governanceValue} 

@@ -42,6 +42,7 @@ import {
   Divider,
 } from '@mui/material/';
 
+import TollIcon from '@mui/icons-material/Toll';
 import FileCopyIcon from '@mui/icons-material/FileCopy';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -869,6 +870,12 @@ export default function GovernanceCreateProposalView(props: any){
                 onChange={handleGovernanceWalletChange}
                 //onClick={() => handleGovernanceWalletChange(item.vault.nativeTreasury, item.vault.pubkey)}
               > 
+
+                {/* LOADED IN REALTIME! */}
+
+
+                {/* USE CACHE */}
+
                 {cachedTreasury && cachedTreasury
                   .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
                   .map((item: any, key: number) => {
@@ -890,7 +897,7 @@ export default function GovernanceCreateProposalView(props: any){
                                       alignItems="left"
                                     >
                                       <AccountBalanceWalletIcon fontSize='inherit' sx={{mr:1}}/>
-                                      {item.vault?.nativeTreasury?.vault.pubkey} 
+                                      {shortenString(item.vault?.nativeTreasury?.vault.pubkey,5,5)} 
                                     </Grid>
                                   </Grid>
                                   <Grid item xs sx={{textAlign:'right'}}>
@@ -904,13 +911,14 @@ export default function GovernanceCreateProposalView(props: any){
                                         }</>
                                       ))}
 
+                                       - 
                                       {item.vault?.nativeTreasury?.tokens?.value.reduce((count, token) => {
                                         // Check if the condition is met before counting the token
                                         if (token.account.data.parsed.info.tokenAmount.amount > 0) {
                                           count++;
                                         }
                                         return count;
-                                      }, 0)} tokens
+                                      }, 0)} <TollIcon sx={{fontSize:'10px'}} />
                                     </Typography>
                                   </Grid>
                                 </Grid>  
@@ -927,7 +935,7 @@ export default function GovernanceCreateProposalView(props: any){
                                     >
                                       <Typography variant="caption">
                                         <SubdirectoryArrowRightIcon fontSize='inherit' sx={{ml:1, mr:1}}/>
-                                        {item.vault.pubkey} - {item.vault.isGovernanceVault && `rules wallet`}
+                                        {shortenString(item.vault.pubkey,5,5)}
                                       </Typography>
                                     </Grid>
 
