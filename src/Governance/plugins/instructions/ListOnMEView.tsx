@@ -885,11 +885,11 @@ export default function ListOnMEView(props: any) {
 
             <>
                 <Box
-                    sx={{ m:2,
+                    sx={{ m:1,
                         background: 'rgba(0, 0, 0, 0.2)',
                         borderRadius: '17px',
                         overflow: 'hidden',
-                        p:4
+                        p:1
                     }}
                 >
                     {(allWalletHoldingsOnME.length > 0 && allWalletHoldingsOnME.filter((item) => item.listStatus === "listed")) &&
