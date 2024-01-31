@@ -888,11 +888,11 @@ export default function TokenTransferView(props: any) {
     return (
         <Box
             sx={{
-                m:2,
+                m:1,
                 background: 'rgba(0, 0, 0, 0.2)',
                 borderRadius: '17px',
                 overflow: 'hidden',
-                p:4
+                p:1
             }} 
         >
             <Box
@@ -924,23 +924,6 @@ export default function TokenTransferView(props: any) {
             
             <FormControl fullWidth  sx={{mb:2}}>
                 <Grid container alignContent="center" alignItems="center" direction="row" xs={12}>
-                    <Grid item xs="auto">
-                        <Tooltip title={
-                            <>
-                            Distribute Evenly<br/>
-                            For custom amounts please use the following format:
-                            address,amount
-                            </>}>
-                            <FormControlLabel control={
-                                <Checkbox 
-                                    defaultChecked={distributionType}
-                                    onChange={handleDistrubtionTypeChange}
-                                />
-                                }
-                                label='Even'/>
-
-                        </Tooltip>
-                    </Grid>
                     <Grid item xs>
                         
                         {/*
@@ -984,7 +967,23 @@ export default function TokenTransferView(props: any) {
                             }}
                         />
                         {tokenMaxAmount ?
-                            <Grid sx={{textAlign:'right',}}>
+                            <Grid xs="auto" sx={{textAlign:'right',}}>
+                                <Tooltip title={
+                                    <>
+                                    Distribute Evenly<br/>
+                                    For custom amounts please use the following format:
+                                    address,amount
+                                    </>}>
+                                    <FormControlLabel control={
+                                        <Checkbox 
+                                            defaultChecked={distributionType}
+                                            onChange={handleDistrubtionTypeChange}
+                                        />
+                                        }
+                                        label='Even'/>
+
+                                </Tooltip>
+                            
                                 <ButtonGroup size='small'>
                                     <Button
                                         onClick={(e:any)=> {
