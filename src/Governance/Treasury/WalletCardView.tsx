@@ -218,24 +218,30 @@ export default function WalletCardView(props:any) {
                 'aria-labelledby': 'basic-button',
               }}
             >
-                <IntegratedGovernanceProposalDialogView 
-                    //governanceAddress={governanceAddress}
-                    governanceRulesWallet={new PublicKey(rulesWalletAddress)}
-                    //governingTokenMint={thisitem.account.governingTokenMint}
-                    //proposalAuthor={thisitem.account.tokenOwnerRecord}
-                    //payerWallet={publicKey}
-                    //governanceLookup={governanceLookup}
-                    //editProposalAddress={thisitem.pubkey}
-                    //setReload={setReload}
-                    
+                {loading ?
+                <></>
+                :
+                    <>
+                        <IntegratedGovernanceProposalDialogView 
+                            //governanceAddress={governanceAddress}
+                            governanceRulesWallet={new PublicKey(rulesWalletAddress)}
+                            //governingTokenMint={thisitem.account.governingTokenMint}
+                            //proposalAuthor={thisitem.account.tokenOwnerRecord}
+                            //payerWallet={publicKey}
+                            //governanceLookup={governanceLookup}
+                            //editProposalAddress={thisitem.pubkey}
+                            //setReload={setReload}
+                            
 
-                    governanceWallets={governanceWallets}
-                    useButton={4} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
-                    useButtonText={"Create Proposal"}
-                    title="Create Proposal"
-                    //usePlugin={1}
-                />
-                <Divider light />
+                            governanceWallets={governanceWallets}
+                            useButton={4} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
+                            useButtonText={"Create Proposal"}
+                            title="Create Proposal"
+                            //usePlugin={1}
+                        />
+                        <Divider light />
+                    </>
+                }
                 <Typography variant="caption" sx={{color:'#919EAB'}}>
 
                     <List sx={{ width: '100%' }}>
@@ -949,48 +955,51 @@ export default function WalletCardView(props:any) {
                 <List sx={{ width: '100%' }}>
 
                     {(loading || loadingPrices) ?
-                        <ListItem
-                            secondaryAction={
-                                <>
-                                    <Skeleton
-                                        animation="wave"
-                                        height={20}
-                                        width="120px"
-                                        style={{ marginBottom: 4, textAlign: 'right' }}
-                                        />
-                                    <Skeleton
-                                        animation="wave"
-                                        height={20}
-                                        width="120px"
-                                        style={{ marginBottom: 4, textAlign: 'right' }}
-                                        />
-                                </>
-                            }
-                            sx={{mb:1}}
-                        >
-                            <ListItemAvatar>
-                                <Skeleton animation="wave" variant="circular" width={40} height={40} />
-                            </ListItemAvatar>
-                            <ListItemText 
-                                    primary={
+                        <>
+                            <ListItem
+                                secondaryAction={
+                                    <>
                                         <Skeleton
                                             animation="wave"
                                             height={20}
-                                            width="140px"
-                                            style={{ marginBottom: 4 }}
+                                            width="120px"
+                                            style={{ marginBottom: 4, textAlign: 'right' }}
                                             />
-                                    }
-                                    secondary={
                                         <Skeleton
                                             animation="wave"
                                             height={20}
-                                            width="100px"
-                                            style={{ marginBottom: 2 }}
+                                            width="120px"
+                                            style={{ marginBottom: 4, textAlign: 'right' }}
                                             />
-                                    }
-                                    
-                            />
-                        </ListItem>
+                                    </>
+                                }
+                                sx={{mb:1}}
+                            >
+                                <ListItemAvatar>
+                                    <Skeleton animation="wave" variant="circular" width={40} height={40} />
+                                </ListItemAvatar>
+                                <ListItemText 
+                                        primary={
+                                            <Skeleton
+                                                animation="wave"
+                                                height={20}
+                                                width="140px"
+                                                style={{ marginBottom: 4 }}
+                                                />
+                                        }
+                                        secondary={
+                                            <Skeleton
+                                                animation="wave"
+                                                height={20}
+                                                width="100px"
+                                                style={{ marginBottom: 2 }}
+                                                />
+                                        }
+                                        
+                                />
+                            </ListItem>
+                            <Divider component="li" light />
+                        </>
                     :
                         <>
                             <ListItem
@@ -1076,9 +1085,15 @@ export default function WalletCardView(props:any) {
             <IconButton aria-label="share" disabled={true}>
                 <ShareIcon />
             </IconButton>
-            <ExtensionsMenuView 
-                governanceNativeWallet={walletAddress}
-            />
+            {loading ?
+                <></>
+            :
+                <>
+                    <ExtensionsMenuView 
+                        governanceNativeWallet={walletAddress}
+                    />
+                </>
+            }
             {proposals && proposals.length > 0 &&
                 <Tooltip title="Show Proposal Activity">
                     <Badge color="primary" badgeContent={proposals.length} max={999}>
@@ -1659,7 +1674,7 @@ export default function WalletCardView(props:any) {
                                                 //governanceLookup={governanceLookup}
                                                 //editProposalAddress={thisitem.pubkey}
                                                 //setReload={setReload}
-                                                
+
                                                 governanceWallets={governanceWallets}
                                                 useButton={3} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
                                                 useButtonText={

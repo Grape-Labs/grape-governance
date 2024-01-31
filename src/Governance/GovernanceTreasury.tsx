@@ -724,10 +724,10 @@ export function GovernanceTreasuryView(props: any) {
                                 variant="caption"
                                 sx={{textAlign:'center'}}
                             >
-                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime<br/>
+                                {/*Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime<br/>
                                 {cachedTimestamp &&
                                     <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
-                                }
+                                }*/}
                                 Cache Node: {storagePool}
                             </Typography>
                         }
