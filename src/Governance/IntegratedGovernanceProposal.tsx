@@ -179,6 +179,7 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                 open={open} onClose={handleClose}
                 PaperProps={{
                     style: {
+                        p:0,
                         background: '#13151C',
                         border: '1px solid rgba(255,255,255,0.05)',
                         borderTop: '1px solid rgba(255,255,255,0.1)',
@@ -189,7 +190,7 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                 <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog}>
                     {title} {editProposalAddress && editProposalAddress.toBase58()}
                 </BootstrapDialogTitle>
-                <DialogContent>
+                <DialogContent sx={{m:0,p:0}}>
                     
                     <GovernanceCreateProposalView 
                         governanceAddress={governanceAddress} 
@@ -204,6 +205,7 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                         editProposalAddress={editProposalAddress} 
                         setEditPropOpen={setPropOpen} 
                         setReload={setReload}
+                        fromDialog={true}
                     />
                     
                 </DialogContent> 
