@@ -871,7 +871,7 @@ export default function GovernanceCreateProposalView(props: any){
                 //onClick={() => handleGovernanceWalletChange(item.vault.nativeTreasury, item.vault.pubkey)}
               > 
 
-                {/* LOADED IN REALTIME! */}
+                {/* PASSED OR LOADED IN REALTIME! */}
 
 
                 {/* USE CACHE */}
@@ -902,16 +902,19 @@ export default function GovernanceCreateProposalView(props: any){
                                   </Grid>
                                   <Grid item xs sx={{textAlign:'right'}}>
                                     <Typography variant="caption">
-                                      {(item.vault?.nativeTreasury?.solBalance/(10 ** 9)).toFixed(2)} SOL -&nbsp;
+                                      {(item.vault?.nativeTreasury?.solBalance/(10 ** 9)).toFixed(2)} SOL 
                                       {item.vault?.nativeTreasury?.tokens?.value.map((item:any, index:number) => (
                                         <>
                                         {(item.account.data.parsed.info.mint === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" &&
-                                          ((item.account.data.parsed.info.tokenAmount.amount / 10 ** item.account.data.parsed.info.tokenAmount.decimals) > 0.9)) &&
-                                            Number((item.account.data.parsed.info.tokenAmount.amount / 10 ** item.account.data.parsed.info.tokenAmount.decimals).toFixed(2)).toLocaleString() + ' USDC '
+                                          ((item.account.data.parsed.info.tokenAmount.amount / 10 ** item.account.data.parsed.info.tokenAmount.decimals) > 0.9)) && 
+                                          <>  
+                                            &nbsp;-&nbsp;{
+                                              Number((item.account.data.parsed.info.tokenAmount.amount / 10 ** item.account.data.parsed.info.tokenAmount.decimals).toFixed(2)).toLocaleString() + ' USDC '}
+                                            </>
                                         }</>
                                       ))}
 
-                                       - 
+                                      &nbsp;-&nbsp;
                                       {item.vault?.nativeTreasury?.tokens?.value.reduce((count, token) => {
                                         // Check if the condition is met before counting the token
                                         if (token.account.data.parsed.info.tokenAmount.amount > 0) {
@@ -976,7 +979,8 @@ export default function GovernanceCreateProposalView(props: any){
                                                     startIcon={
                                                       <FileCopyIcon sx={{
                                                         color:'rgba(255,255,255,0.25)',
-                                                        opacity: 0}} />
+                                                        opacity: 0,
+                                                        fontSize:"14px!important"}} />
                                                     }
                                                   >
                                                 
@@ -1003,7 +1007,8 @@ export default function GovernanceCreateProposalView(props: any){
                                                     startIcon={
                                                       <FileCopyIcon sx={{
                                                         color:'rgba(255,255,255,0.25)',
-                                                        opacity: 0}} />
+                                                        opacity: 0,
+                                                        fontSize:"14px!important"}} />
                                                     }
                                                   >
                                                 
