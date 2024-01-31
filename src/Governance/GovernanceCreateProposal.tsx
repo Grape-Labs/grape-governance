@@ -191,6 +191,7 @@ export default function GovernanceCreateProposalView(props: any){
     const setSentInstructionsObject = props?.setInstructionsObject;
     const intraDAO = props?.governanceAddress ? true : false;
     const usePlugin = props?.usePlugin;
+    const fromDialog = props?.fromDialog;
     const showGovernanceTitle = true;
     const [title, setTitle] = React.useState(null);
     const [description, setDescription] = React.useState(null);
@@ -243,6 +244,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [verified, setVerified] = React.useState(false);
     const [isProposer, setIsProposer] = React.useState(false);
     const [isCopied, setIsCopied] = React.useState(false);
+
     const anchorWallet = useAnchorWallet();
 
     const handleCopy = () => {
@@ -1397,7 +1399,7 @@ export default function GovernanceCreateProposalView(props: any){
           <>
             <Box 
                 sx={{
-                  mt:6,
+                  mt:{ sm: fromDialog ? 0 : 6 },
                   background: 'rgba(0, 0, 0, 0.6)',
                   borderRadius: '17px',
                   p:4,
@@ -1426,7 +1428,7 @@ export default function GovernanceCreateProposalView(props: any){
           
             <Box
                 sx={{
-                    mt:6,
+                    mt:{ sm: fromDialog ? 0 : 6 },
                     background: 'rgba(0, 0, 0, 0.6)',
                     borderRadius: '17px',
                     p:4,
@@ -1443,11 +1445,11 @@ export default function GovernanceCreateProposalView(props: any){
           <>
               <Box
                   sx={{
-                      mt:6,
+                      mt:{ sm: fromDialog ? 0 : 6 },
                       background: 'rgba(0, 0, 0, 0.6)',
                       borderRadius: '17px',
                       overflow: 'hidden',
-                      p:4
+                      p:{ sm: fromDialog ? 1 : 4 }
                   }} 
                 > 
 
