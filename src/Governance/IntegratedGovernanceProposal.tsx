@@ -83,6 +83,10 @@ export function IntegratedGovernanceProposalDialogView(props: any){
     const governanceAddress = props.governanceAddress;
     const title = props?.title || "Proposal";
     const usePlugin = props?.usePlugin;
+
+    // HOLDINGS CAN BE PASSED ALONG WITH ALL GOV WALLETS
+    
+
     //const [thisitem, setThisItem] = React.useState(props.item);
     const realm = props?.realm;
     const useButtonType = props?.useButton; // null = default edit, 1 = Send
@@ -121,7 +125,7 @@ export function IntegratedGovernanceProposalDialogView(props: any){
         <>
             <Tooltip title={title}>
                 {(useButtonType && useButtonType === 1) ?
-                    <Button onClick={handleClickOpen} color='primary' size="large" variant="contained" sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2}}>{useButtonText}</Button>
+                    <Button onClick={handleClickOpen} fullWidth color='primary' size="large" variant="contained" sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2,ml:1,mr:1}}>{useButtonText}</Button>
                 :
                     <>
                         {(useButtonType === 2 || useButtonType === 3) ? 
