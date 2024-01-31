@@ -218,24 +218,30 @@ export default function WalletCardView(props:any) {
                 'aria-labelledby': 'basic-button',
               }}
             >
-                <IntegratedGovernanceProposalDialogView 
-                    //governanceAddress={governanceAddress}
-                    governanceRulesWallet={new PublicKey(rulesWalletAddress)}
-                    //governingTokenMint={thisitem.account.governingTokenMint}
-                    //proposalAuthor={thisitem.account.tokenOwnerRecord}
-                    //payerWallet={publicKey}
-                    //governanceLookup={governanceLookup}
-                    //editProposalAddress={thisitem.pubkey}
-                    //setReload={setReload}
-                    
+                {loading ?
+                <></>
+                :
+                    <>
+                        <IntegratedGovernanceProposalDialogView 
+                            //governanceAddress={governanceAddress}
+                            governanceRulesWallet={new PublicKey(rulesWalletAddress)}
+                            //governingTokenMint={thisitem.account.governingTokenMint}
+                            //proposalAuthor={thisitem.account.tokenOwnerRecord}
+                            //payerWallet={publicKey}
+                            //governanceLookup={governanceLookup}
+                            //editProposalAddress={thisitem.pubkey}
+                            //setReload={setReload}
+                            
 
-                    governanceWallets={governanceWallets}
-                    useButton={4} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
-                    useButtonText={"Create Proposal"}
-                    title="Create Proposal"
-                    //usePlugin={1}
-                />
-                <Divider light />
+                            governanceWallets={governanceWallets}
+                            useButton={4} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
+                            useButtonText={"Create Proposal"}
+                            title="Create Proposal"
+                            //usePlugin={1}
+                        />
+                        <Divider light />
+                    </>
+                }
                 <Typography variant="caption" sx={{color:'#919EAB'}}>
 
                     <List sx={{ width: '100%' }}>
@@ -1079,9 +1085,15 @@ export default function WalletCardView(props:any) {
             <IconButton aria-label="share" disabled={true}>
                 <ShareIcon />
             </IconButton>
-            <ExtensionsMenuView 
-                governanceNativeWallet={walletAddress}
-            />
+            {loading ?
+                <></>
+            :
+                <>
+                    <ExtensionsMenuView 
+                        governanceNativeWallet={walletAddress}
+                    />
+                </>
+            }
             {proposals && proposals.length > 0 &&
                 <Tooltip title="Show Proposal Activity">
                     <Badge color="primary" badgeContent={proposals.length} max={999}>
