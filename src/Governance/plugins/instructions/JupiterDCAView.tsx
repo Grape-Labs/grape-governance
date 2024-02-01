@@ -137,7 +137,7 @@ export default function JupiterDCAView(props: any) {
     const connection = RPC_CONNECTION;
     
     const [availableTokens, setAvailableTokens] = React.useState([
-        {
+        /*{
             mint:"So11111111111111111111111111111111111111112",
             name:"SOL",
             symbol:"SOL",
@@ -161,13 +161,13 @@ export default function JupiterDCAView(props: any) {
             symbol:"mSol",
             decimals:9,
             logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So/logo.png"
-        },{
+        },*/{
             mint:"8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA",
             name:"GRAPE",
             symbol:"GRAPE",
             decimals:6,
             logo:"https://lh3.googleusercontent.com/y7Wsemw9UVBc9dtjtRfVilnS1cgpDt356PPAjne5NvMXIwWz9_x7WKMPH99teyv8vXDmpZinsJdgiFQ16_OAda1dNcsUxlpw9DyMkUk=s0"
-        },{
+        }/*,{
             mint:"AZsHEMXd36Bj1EMNXhowJajpUXzrKcK57wW4ZGXVa7yR",
             name:"GUAC",
             symbol:"GUAC",
@@ -185,7 +185,7 @@ export default function JupiterDCAView(props: any) {
             symbol:"BONK",
             decimals:5,
             logo:"https://arweave.net/hQiPZOsRZXGXBJd_82PhVdlM_hACsT_q6wqwf5cSY7I"
-        }]);
+        }*/]);
 
     const objectToken = {};
     availableTokens.forEach(token => {
