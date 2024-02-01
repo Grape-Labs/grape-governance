@@ -847,6 +847,7 @@ export default function WalletCardView(props:any) {
     }
     
     return (
+        <>
         <Card>
         <CardHeader
             avatar={
@@ -1785,6 +1786,8 @@ export default function WalletCardView(props:any) {
             </DialogContentText>
         </BootstrapDialog>
 
+        
+    </Card>
         <Snackbar
             open={isCopied}
             autoHideDuration={2000}
@@ -1795,7 +1798,7 @@ export default function WalletCardView(props:any) {
             Copied to clipboard!
             </Alert>
         </Snackbar>
-    </Card>
+    </>
         
     );
 }
