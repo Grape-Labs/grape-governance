@@ -8,7 +8,7 @@ import moment from "moment";
 
 import { CloseDCAParams, CreateDCAParams, DCA, type DepositParams, type WithdrawParams, Network } from '@jup-ag/dca-sdk';
 
-import { getJupiterPrices, convertSecondsToLegibleFormat } from '../../../utils/grapeTools/helpers';
+import { shortenString, getJupiterPrices, convertSecondsToLegibleFormat } from '../../../utils/grapeTools/helpers';
 
 import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
 import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
@@ -135,47 +135,48 @@ export default function JupiterDCAView(props: any) {
     const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const connection = RPC_CONNECTION;
     
-    const availableTokens = [{
-        mint:"So11111111111111111111111111111111111111112",
-        name:"SOL",
-        decimals:9,
-        logo:"https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/So11111111111111111111111111111111111111112.png"
-    },{
-        mint:"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        name:"USDC",
-        decimals:6,
-        logo:"https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v.png"
-    },{
-        mint:"Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-        name:"USDT",
-        decimals:6,
-        logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.svg"
-    },{
-        mint:"mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
-        name:"mSol",
-        decimals:9,
-        logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So/logo.png"
-    },{
-        mint:"8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA",
-        name:"GRAPE",
-        decimals:6,
-        logo:"https://lh3.googleusercontent.com/y7Wsemw9UVBc9dtjtRfVilnS1cgpDt356PPAjne5NvMXIwWz9_x7WKMPH99teyv8vXDmpZinsJdgiFQ16_OAda1dNcsUxlpw9DyMkUk=s0"
-    },{
-        mint:"AZsHEMXd36Bj1EMNXhowJajpUXzrKcK57wW4ZGXVa7yR",
-        name:"GUAC",
-        decimals:5,
-        logo:"https://shdw-drive.genesysgo.net/36JhGq9Aa1hBK6aDYM4NyFjR5Waiu9oHrb44j1j8edUt/image.png"
-    },{
-        mint:"BaoawH9p2J8yUK9r5YXQs3hQwmUJgscACjmTkh8rMwYL",
-        name:"ALL",
-        decimals:6,
-        logo:"https://arweave.net/FY7yQGrLCAvKAup_SYEsHDoTRZXsttuYyQjvHTnOrYk"
-    },{
-        mint:"DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-        name:"BONK",
-        decimals:5,
-        logo:"https://arweave.net/hQiPZOsRZXGXBJd_82PhVdlM_hACsT_q6wqwf5cSY7I"
-    }];
+    const [availableTokens, setAvailableTokens] = React.useState([
+        {
+            mint:"So11111111111111111111111111111111111111112",
+            name:"SOL",
+            decimals:9,
+            logo:"https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/So11111111111111111111111111111111111111112.png"
+        },{
+            mint:"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            name:"USDC",
+            decimals:6,
+            logo:"https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v.png"
+        },{
+            mint:"Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+            name:"USDT",
+            decimals:6,
+            logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.svg"
+        },{
+            mint:"mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+            name:"mSol",
+            decimals:9,
+            logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So/logo.png"
+        },{
+            mint:"8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA",
+            name:"GRAPE",
+            decimals:6,
+            logo:"https://lh3.googleusercontent.com/y7Wsemw9UVBc9dtjtRfVilnS1cgpDt356PPAjne5NvMXIwWz9_x7WKMPH99teyv8vXDmpZinsJdgiFQ16_OAda1dNcsUxlpw9DyMkUk=s0"
+        },{
+            mint:"AZsHEMXd36Bj1EMNXhowJajpUXzrKcK57wW4ZGXVa7yR",
+            name:"GUAC",
+            decimals:5,
+            logo:"https://shdw-drive.genesysgo.net/36JhGq9Aa1hBK6aDYM4NyFjR5Waiu9oHrb44j1j8edUt/image.png"
+        },{
+            mint:"BaoawH9p2J8yUK9r5YXQs3hQwmUJgscACjmTkh8rMwYL",
+            name:"ALL",
+            decimals:6,
+            logo:"https://arweave.net/FY7yQGrLCAvKAup_SYEsHDoTRZXsttuYyQjvHTnOrYk"
+        },{
+            mint:"DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+            name:"BONK",
+            decimals:5,
+            logo:"https://arweave.net/hQiPZOsRZXGXBJd_82PhVdlM_hACsT_q6wqwf5cSY7I"
+        }]);
 
     const objectToken = {};
     availableTokens.forEach(token => {
@@ -484,7 +485,7 @@ export default function JupiterDCAView(props: any) {
 
                                 <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
                                     <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
-                                        {'So11111111111111111111111111111111111111112'}
+                                        {shortenString('So11111111111111111111111111111111111111112',5,5)}
                                     </Typography>
                                 </Grid>
                             </Grid>
@@ -555,7 +556,7 @@ export default function JupiterDCAView(props: any) {
 
                                                     <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
                                                         <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
-                                                            {item.account.data.parsed.info.mint}
+                                                            {shortenString(item.account.data.parsed.info.mint,5,5)}
                                                         </Typography>
                                                     </Grid>
                                                 </Grid>
