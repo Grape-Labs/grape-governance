@@ -602,6 +602,7 @@ export default function WalletCardView(props:any) {
 
             setNativeDomains(domains1);
             setRulesDomains(domains2);
+            rulesWallet.domains = domains1;
 
             //setNativeStakeAccounts(stake1);
             //setRulesStakeAccounts(stake2);
@@ -787,6 +788,7 @@ export default function WalletCardView(props:any) {
             totalVal+=stakeAccountVal;
             setTotalWalletValue(totalVal);
             rulesWallet.walletValue = totalVal;
+            rulesWallet.walletSolValue = solAccountVal;
 
             const newGovernanceObject = {
                 address: walletAddress,

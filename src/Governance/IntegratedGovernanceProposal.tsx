@@ -83,9 +83,10 @@ export function IntegratedGovernanceProposalDialogView(props: any){
     const governanceAddress = props.governanceAddress;
     const title = props?.title || "Proposal";
     const usePlugin = props?.usePlugin;
+    const governanceWallets = props?.governanceWallets;
 
     // HOLDINGS CAN BE PASSED ALONG WITH ALL GOV WALLETS
-    
+
 
     //const [thisitem, setThisItem] = React.useState(props.item);
     const realm = props?.realm;
@@ -197,6 +198,7 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                 <DialogContent sx={{m:0,p:0}}>
                     
                     <GovernanceCreateProposalView 
+                        governanceWallets={governanceWallets}
                         governanceAddress={governanceAddress} 
                         governanceRulesWallet={governanceRulesWallet} 
                         governingTokenMint={governingTokenMint}

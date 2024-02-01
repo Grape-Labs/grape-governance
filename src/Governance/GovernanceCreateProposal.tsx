@@ -186,6 +186,7 @@ export default function GovernanceCreateProposalView(props: any){
     const setReload = props?.setReload;
     const editProposalAddress = props?.editProposalAddress;
     const governanceAddress = props?.governanceAddress || urlParams;
+    const governanceWallets = props?.governanceWallets;
     const sentRulesAddress = props?.governanceRulesWallet;
     const sentGovernanceWallet = props?.governanceWallet;
     const setEditPropOpen = props?.setEditPropOpen;
@@ -211,6 +212,7 @@ export default function GovernanceCreateProposalView(props: any){
     const connection = RPC_CONNECTION;
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
+    const [realtimeGovernance, setRealtimeGovernance] = React.useState(null);
     const [cachedGovernance, setCachedGovernance] = React.useState(null);
     const [tokenInfo, setTokenInfo] = React.useState(null);
     const [cachedRealm, setCachedRealm] = React.useState(null);
@@ -860,6 +862,93 @@ export default function GovernanceCreateProposalView(props: any){
       return (
         <>
           <Box sx={{ minWidth: 120, ml:1 }}>
+          {governanceWallets &&  
+            <FormControl fullWidth>
+                <InputLabel id="governance-wallet-select-label1">Governance Wallet</InputLabel>
+                <Select
+                  labelId="governance-wallet-select-label1"
+                  id="governance-wallet-select1"
+                  value={governanceWallet}
+                  label="Governance Wallet"
+                  onChange={handleGovernanceWalletChange}
+                > 
+                {console.log("governanceWallets: "+JSON.stringify(governanceWallets))}
+                  {/* USE FRESH DATA */}
+                  {governanceWallets && governanceWallets
+                    .sort((a:any,b:any) => (b.walletValue - a.walletValue))
+                    .map((item: any, key: number) => {
+                      if (item.nativeTreasuryAddress) {
+                        // rules wallet:
+                        // item.vault.pubkey
+                        return (
+                          <MenuItem key={key} value={item.nativeTreasuryAddress.toBase58()}>
+                              <Grid container>
+                                <Grid item xs={12}>
+                                  <Grid container>
+                                    <Grid item sm={8}>
+                                      <Grid
+                                        container
+                                        direction="row"
+                                        justifyContent="left"
+                                        alignItems="left"
+                                      >
+                                        <AccountBalanceWalletIcon fontSize='inherit' sx={{mr:1}}/>
+                                        {shortenString(item.nativeTreasuryAddress.toBase58(),5,5)} 
+                                      </Grid>
+                                    </Grid>
+                                    <Grid item xs sx={{textAlign:'right'}}>
+                                      <Typography variant="caption">
+                                        {item?.walletSolValue &&
+                                          <>{item.walletSolValue.toFixed(4)}<Typography variant="caption" sx={{color:'#999'}}> SOL</Typography></>
+                                        }
+                                        {item?.walletValue&&
+                                          <>&nbsp;-&nbsp;{item.walletValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}<Typography variant="caption" sx={{color:'#999'}}> USDC</Typography></>
+                                        }
+                                        
+                                      </Typography>
+                                    </Grid>
+                                  </Grid>  
+                                </Grid>
+                                
+                                <Grid item xs={12}>
+                                  <Grid container>
+                                    <Grid item sm={8}>
+                                      <Grid
+                                        container
+                                        direction="row"
+                                        justifyContent="left"
+                                        alignItems="left"
+                                      >
+                                        <Typography variant="caption">
+                                          <SubdirectoryArrowRightIcon fontSize='inherit' sx={{ml:1, mr:1}}/>
+                                          {shortenString(item.pubkey.toBase58(),5,5)}
+                                        </Typography>
+                                      </Grid>
+
+                                    </Grid>
+                                    <Grid item xs sx={{textAlign:'right'}}>
+                                      <Typography variant="caption">
+                                        {(item?.domains && item.domains.length > 0) &&
+                                          <><LanguageIcon sx={{fontSize:'10px',mr:0.5}}/> {item.domains[0].name} {item.domains.length > 1 && <sup>{item.domains.length}</sup>}</>}
+                                        
+                                      </Typography>
+                                    </Grid>
+                                  </Grid>
+                                </Grid>
+
+                                
+
+                              </Grid>
+                          </MenuItem>
+                        );
+                      } else {
+                        return null; // Don't render anything for items without nativeTreasuryAddress
+                      }
+                    })}
+                </Select>
+              </FormControl>
+            }
+
             <FormControl fullWidth>
               <InputLabel id="governance-wallet-select-label">Governance Wallet</InputLabel>
               <Select
@@ -870,12 +959,7 @@ export default function GovernanceCreateProposalView(props: any){
                 onChange={handleGovernanceWalletChange}
                 //onClick={() => handleGovernanceWalletChange(item.vault.nativeTreasury, item.vault.pubkey)}
               > 
-
-                {/* PASSED OR LOADED IN REALTIME! */}
-
-
                 {/* USE CACHE */}
-
                 {cachedTreasury && cachedTreasury
                   .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
                   .map((item: any, key: number) => {
@@ -1386,6 +1470,10 @@ export default function GovernanceCreateProposalView(props: any){
         if (tokenMap){  
             startTimer();
             callGovernanceLookup();
+            if (governanceWallets){
+              // fetch all wallets (with balances) and show a dropdown list accordingly
+
+            }
         }
     }, [tokenMap]);
 
