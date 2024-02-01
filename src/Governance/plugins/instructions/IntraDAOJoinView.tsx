@@ -54,7 +54,7 @@ import {
   SelectChangeEvent
 } from '@mui/material';
 
-import { parseMintNaturalAmountFromDecimalAsBN } from '../../../utils/grapeTools/helpers';
+import { shortenString, parseMintNaturalAmountFromDecimalAsBN } from '../../../utils/grapeTools/helpers';
 
 import ExplorerView from '../../../utils/grapeTools/Explorer';
 
@@ -395,7 +395,7 @@ export default function IntraDAOJoinView(props: any) {
                             </Grid>
                         </Grid>       
                     :
-                        <>{mintAddress}</>
+                        <>{shortenString(mintAddress,5,5)}</>
                     }
                 </>
             )
@@ -488,7 +488,7 @@ export default function IntraDAOJoinView(props: any) {
 
                                                 <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
                                                     <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
-                                                        {item.account.data.parsed.info.mint}
+                                                        {shortenString(item.account.data.parsed.info.mint,5,5)}
                                                     </Typography>
                                                 </Grid>
                                                 </Grid>
@@ -541,11 +541,11 @@ export default function IntraDAOJoinView(props: any) {
     return (
         <Box
             sx={{
-                m:2,
+                m:1,
                 background: 'rgba(0, 0, 0, 0.2)',
                 borderRadius: '17px',
                 overflow: 'hidden',
-                p:4
+                p:1
             }} 
         >
             <Box
@@ -721,11 +721,11 @@ export default function IntraDAOJoinView(props: any) {
             {(daoToJoinAddress && tokenMint && tokenAmount) ?
                 <>  
                     <Box
-                        sx={{ m:2,
+                        sx={{ m:1,
                             background: 'rgba(0, 0, 0, 0.2)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:4
+                            p:1
                         }}
                     >
                         <Typography variant="h6">Preview/Summary</Typography>
@@ -768,11 +768,11 @@ export default function IntraDAOJoinView(props: any) {
                 
                 {transactionInstructions && 
                     <Box
-                        sx={{ m:2,
+                        sx={{ m:1,
                             background: 'rgba(0, 0, 0, 0.2)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:4
+                            p:1
                         }}
                     >
                         <Typography variant="h6">Transaction Instructions</Typography>

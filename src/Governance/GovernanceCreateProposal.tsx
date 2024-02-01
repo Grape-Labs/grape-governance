@@ -186,6 +186,7 @@ export default function GovernanceCreateProposalView(props: any){
     const setReload = props?.setReload;
     const editProposalAddress = props?.editProposalAddress;
     const governanceAddress = props?.governanceAddress || urlParams;
+    const governanceWallets = props?.governanceWallets;
     const sentRulesAddress = props?.governanceRulesWallet;
     const sentGovernanceWallet = props?.governanceWallet;
     const setEditPropOpen = props?.setEditPropOpen;
@@ -211,6 +212,7 @@ export default function GovernanceCreateProposalView(props: any){
     const connection = RPC_CONNECTION;
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
+    const [realtimeGovernance, setRealtimeGovernance] = React.useState(null);
     const [cachedGovernance, setCachedGovernance] = React.useState(null);
     const [tokenInfo, setTokenInfo] = React.useState(null);
     const [cachedRealm, setCachedRealm] = React.useState(null);
@@ -784,24 +786,41 @@ export default function GovernanceCreateProposalView(props: any){
       // get rules wallet:
       let minInstructionHoldUpTime = null;
 
-      {cachedTreasury && cachedTreasury
-        .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
-        .map((item: any, key: number) => {
-            if (rulesWallet === item.vault.pubkey){
-              nativeWallet = item.vault?.nativeTreasury
-              minInstructionHoldUpTime = item.vault.governance.account.config.minInstructionHoldUpTime;
-              setGovernanceWallet(nativeWallet);
-      
-              if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff')
-                setCommunitySupport(true);
-                setIsCouncilVote(true);
+      if (governanceWallets){
+        {/*governanceWallets && governanceWallets
+          .sort((a:any,b:any) => (b.walletValue - a.walletValue))
+          .map((item: any, key: number) => {
+            if (rulesWallet === item.pubkey.toBase58()){
+              nativeWallet = item.nativeTreasuryAddress.toBase58();
+              minInstructionHoldUpTime = item.account.config.minInstructionHoldUpTime;
+              setGovernanceWallet(item);
+              if (item.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff'){
+                  setCommunitySupport(true);
+                  setIsCouncilVote(true);
+              }
             }
-          }
+          })
+          */
+        }
+      } 
+      {
+          {cachedTreasury && cachedTreasury
+            .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
+            .map((item: any, key: number) => {
+              if (rulesWallet === item.vault.pubkey){
+                nativeWallet = item.vault?.nativeTreasury
+                minInstructionHoldUpTime = item.vault.governance.account.config.minInstructionHoldUpTime;
+                setGovernanceWallet(nativeWallet);
+        
+                if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff')
+                  setCommunitySupport(true);
+                  setIsCouncilVote(true);
+              }
+            }
+          )}
+      }
       
-      )}
-
       // use RPC here to get the rules wallet details
-      
       setGovernanceRulesWallet(rulesWallet);
       setGovernanceRulesWalletMinInstructHoldUpTime(minInstructionHoldUpTime);
 
@@ -818,7 +837,6 @@ export default function GovernanceCreateProposalView(props: any){
       const handleGovernanceWalletChange = (event: SelectChangeEvent) => {//(nativeWallet: string, rulesWallet: string) => {
         const nativeWallet = event.target.value as string;
         //console.log("menu item: "+JSON.stringify(nativeWallet))
-        
         setGovernanceWallet(nativeWallet);
         setCommunitySupport(false);
         setIsCouncilVote(false);
@@ -827,20 +845,37 @@ export default function GovernanceCreateProposalView(props: any){
         let rulesWallet = null;
         let minInstructionHoldUpTime = null;
         
-        {cachedTreasury && cachedTreasury
-          .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
-          .map((item: any, key: number) => {
-            if (nativeWallet === item.vault?.nativeTreasury){
-              rulesWallet = item.vault.pubkey;
-              minInstructionHoldUpTime = item.vault.governance.account.config.minInstructionHoldUpTime;
-              //console.log("Selected Item: "+JSON.stringify(item));
-
-              if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff')
-                setCommunitySupport(true);
-                setIsCouncilVote(true);
-            }
+        if (governanceWallets){
+          {/*governanceWallets && governanceWallets
+            .sort((a:any,b:any) => (b.walletValue - a.walletValue))
+            .map((item: any, key: number) => {
+              
+              rulesWallet = item.pubkey.toBase58();
+              minInstructionHoldUpTime = item.account.config.minInstructionHoldUpTime;
+                if (item.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff'){
+                    setCommunitySupport(true);
+                    setIsCouncilVote(true);
+                }
+              })
+            */}
+        } 
+        
+        {
+          {cachedTreasury && cachedTreasury
+            .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
+            .map((item: any, key: number) => {
+              if (nativeWallet === item.vault?.nativeTreasury){
+                rulesWallet = item.vault.pubkey;
+                minInstructionHoldUpTime = item.vault.governance.account.config.minInstructionHoldUpTime;
+                
+                if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff'){
+                  setCommunitySupport(true);
+                  setIsCouncilVote(true);
+                }
+              }
+            })
           }
-        )}
+        }
 
         // use RPC here to get the rules wallet details
         
@@ -860,269 +895,350 @@ export default function GovernanceCreateProposalView(props: any){
       return (
         <>
           <Box sx={{ minWidth: 120, ml:1 }}>
+          {/*governanceWallets ? 
             <FormControl fullWidth>
-              <InputLabel id="governance-wallet-select-label">Governance Wallet</InputLabel>
-              <Select
-                labelId="governance-wallet-select-label"
-                id="governance-wallet-select"
-                value={governanceWallet}
-                label="Governance Wallet"
-                onChange={handleGovernanceWalletChange}
-                //onClick={() => handleGovernanceWalletChange(item.vault.nativeTreasury, item.vault.pubkey)}
-              > 
-
-                {/* PASSED OR LOADED IN REALTIME! */}
-
-
-                {/* USE CACHE */}
-
-                {cachedTreasury && cachedTreasury
-                  .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
-                  .map((item: any, key: number) => {
-                    if (item.vault?.nativeTreasuryAddress) {
-                      // rules wallet:
-                      // item.vault.pubkey
-                      return (
-                        <MenuItem key={key} value={item.vault.nativeTreasury}>
-                            {/*console.log("wallet: "+JSON.stringify(item))*/}
-                            
-                            <Grid container>
-                              <Grid item xs={12}>
-                                <Grid container>
-                                  <Grid item sm={8}>
-                                    <Grid
-                                      container
-                                      direction="row"
-                                      justifyContent="left"
-                                      alignItems="left"
-                                    >
-                                      <AccountBalanceWalletIcon fontSize='inherit' sx={{mr:1}}/>
-                                      {shortenString(item.vault?.nativeTreasury?.vault.pubkey,5,5)} 
+                <InputLabel id="governance-wallet-select-label">Governance Wallet</InputLabel>
+                <Select
+                  labelId="governance-wallet-select-label"
+                  id="governance-wallet-select"
+                  value={governanceWallet}
+                  label="Governance Wallet"
+                  onChange={handleGovernanceWalletChange}
+                > 
+                  {governanceWallets && governanceWallets
+                    .sort((a:any,b:any) => (b.walletValue - a.walletValue))
+                    .map((item: any, key: number) => {
+                      if (item.nativeTreasuryAddress) {
+                        // rules wallet:
+                        // item.vault.pubkey
+                        return (
+                          <MenuItem key={key} value={item}>
+                              <Grid container>
+                                <Grid item xs={12}>
+                                  <Grid container>
+                                    <Grid item sm={8}>
+                                      <Grid
+                                        container
+                                        direction="row"
+                                        justifyContent="left"
+                                        alignItems="left"
+                                      >
+                                        <AccountBalanceWalletIcon fontSize='inherit' sx={{mr:1}}/>
+                                        {shortenString(item.nativeTreasuryAddress.toBase58(),5,5)} 
+                                      </Grid>
                                     </Grid>
-                                  </Grid>
-                                  <Grid item xs sx={{textAlign:'right'}}>
-                                    <Typography variant="caption">
-                                      {(item.vault?.nativeTreasury?.solBalance/(10 ** 9)).toFixed(2)} SOL 
-                                      {item.vault?.nativeTreasury?.tokens?.value.map((item:any, index:number) => (
-                                        <>
-                                        {(item.account.data.parsed.info.mint === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" &&
-                                          ((item.account.data.parsed.info.tokenAmount.amount / 10 ** item.account.data.parsed.info.tokenAmount.decimals) > 0.9)) && 
-                                          <>  
-                                            &nbsp;-&nbsp;{
-                                              Number((item.account.data.parsed.info.tokenAmount.amount / 10 ** item.account.data.parsed.info.tokenAmount.decimals).toFixed(2)).toLocaleString() + ' USDC '}
-                                            </>
-                                        }</>
-                                      ))}
-
-                                      &nbsp;-&nbsp;
-                                      {item.vault?.nativeTreasury?.tokens?.value.reduce((count, token) => {
-                                        // Check if the condition is met before counting the token
-                                        if (token.account.data.parsed.info.tokenAmount.amount > 0) {
-                                          count++;
-                                        }
-                                        return count;
-                                      }, 0)} <TollIcon sx={{fontSize:'10px'}} />
-                                    </Typography>
-                                  </Grid>
-                                </Grid>  
-                              </Grid>
-                              
-                              <Grid item xs={12}>
-                                <Grid container>
-                                  <Grid item sm={8}>
-                                    <Grid
-                                      container
-                                      direction="row"
-                                      justifyContent="left"
-                                      alignItems="left"
-                                    >
+                                    <Grid item xs sx={{textAlign:'right'}}>
                                       <Typography variant="caption">
-                                        <SubdirectoryArrowRightIcon fontSize='inherit' sx={{ml:1, mr:1}}/>
-                                        {shortenString(item.vault.pubkey,5,5)}
+                                        {item?.solBalance &&
+                                          <>{item.solBalance.toFixed(4)}<Typography variant="caption" sx={{color:'#999'}}> SOL</Typography></>
+                                        }
+                                        {item?.walletValue&&
+                                          <>&nbsp;-&nbsp;{item.walletValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}<Typography variant="caption" sx={{color:'#999'}}> USDC</Typography></>
+                                        }
+                                        
                                       </Typography>
                                     </Grid>
+                                  </Grid>  
+                                </Grid>
+                                
+                                <Grid item xs={12}>
+                                  <Grid container>
+                                    <Grid item sm={8}>
+                                      <Grid
+                                        container
+                                        direction="row"
+                                        justifyContent="left"
+                                        alignItems="left"
+                                      >
+                                        <Typography variant="caption">
+                                          <SubdirectoryArrowRightIcon fontSize='inherit' sx={{ml:1, mr:1}}/>
+                                          {shortenString(item.pubkey.toBase58(),5,5)}
+                                        </Typography>
+                                      </Grid>
 
-                                  </Grid>
-                                  <Grid item xs sx={{textAlign:'right'}}>
-                                    <Typography variant="caption">
-                                    
-                                      <>
-                                        {/*console.log("vault: "+JSON.stringify(item))*/}
-                                        {(item.vault?.nativeTreasury?.domains && item.vault.nativeTreasury.domains.length > 0 && item.vault.nativeTreasury.domains[0] !== item.vault?.nativeTreasury.vault.pubkey) &&
-                                        <><LanguageIcon sx={{fontSize:'10px',mr:0.5}}/> {item.vault.nativeTreasury.domains[0]} {item.vault.nativeTreasury.domains.length > 1 && <sup>{item.vault.nativeTreasury.domains.length}</sup>}</>}
+                                    </Grid>
+                                    <Grid item xs sx={{textAlign:'right'}}>
+                                      <Typography variant="caption">
+                                        {(item?.domains && item.domains.length > 0) &&
+                                          <><LanguageIcon sx={{fontSize:'10px',mr:0.5}}/> {item.domains[0].name} {item.domains.length > 1 && <sup>{item.domains.length}</sup>}</>}
                                         
-                                        <GavelIcon sx={{fontSize:'10px',ml:1}} /> 
-
-                                        {item?.vault?.governance?.account?.config?.baseVotingTime && 
-                                          <>
-                                            <AccessTimeIcon sx={{fontSize:'10px'}} /> {convertSecondsToLegibleFormat(item.vault.governance.account.config.baseVotingTime, false)}
-                                          </>
-                                        }
-
-                                        <Tooltip title={
-                                          <>
-                                            {item.vault?.nativeTreasury?.vault?.pubkey &&
-                                              <>Native Wallet: 
-                                              <CopyToClipboard text={item.vault.nativeTreasury.vault.pubkey} onCopy={handleCopy}>
-                                                  <Button
-                                                    variant="text"
-                                                    color="inherit"
-                                                    sx={{ 
-                                                      ml:1,
-                                                      fontSize:'10px',
-                                                      borderRadius:'17px',
-                                                      textTransform:'none',
-                                                      '&:hover .MuiSvgIcon-root': {
-                                                        opacity: 1,
-                                                      },
-                                                    }}
-                                                    startIcon={
-                                                      <FileCopyIcon sx={{
-                                                        color:'rgba(255,255,255,0.25)',
-                                                        opacity: 0,
-                                                        fontSize:"14px!important"}} />
-                                                    }
-                                                  >
-                                                
-                                                  {shortenString(item.vault.nativeTreasury.vault.pubkey,8,8)}
-                                                  </Button>
-                                                </CopyToClipboard>
-                                              </>
-                                            }
-                                            {item.vault.pubkey &&
-                                              <><br/>Rules: 
-                                                <CopyToClipboard text={item.vault.pubkey} onCopy={handleCopy}>
-                                                  <Button
-                                                    variant="text"
-                                                    color="inherit"
-                                                    sx={{ 
-                                                      ml:1,
-                                                      fontSize:'10px',
-                                                      borderRadius:'17px',
-                                                      textTransform:'none',
-                                                      '&:hover .MuiSvgIcon-root': {
-                                                        opacity: 1,
-                                                      },
-                                                    }}
-                                                    startIcon={
-                                                      <FileCopyIcon sx={{
-                                                        color:'rgba(255,255,255,0.25)',
-                                                        opacity: 0,
-                                                        fontSize:"14px!important"}} />
-                                                    }
-                                                  >
-                                                
-                                                  {shortenString(item.vault.pubkey,8,8)}
-                                                  </Button>
-                                                </CopyToClipboard>
-                                                {/*<ExplorerView address={item.vault.pubkey} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='10px' />*/}
-                                              </>
-                                            }
-                                            {item.vault.governance?.account?.accountType && (() => {
-                                              const accountType = item.vault.governance.account.accountType as string;
-                                              //console.log("accountType: "+accountType);
-                                              const governanceTypeLabel = GovernanceAccountType[accountType];
-
-                                              if (governanceTypeLabel) {
-                                                return (
-                                                  <><br/>Governance Type: {governanceTypeLabel}</>
-                                                );
-                                              } else {
-                                                return (
-                                                  <></>
-                                                );
-                                              }
-                                            
-                                            })()}
-
-                                            {(() => {
-                                              //const stringValue = item?.vault?.governance?.account?.config?.minCommunityTokensToCreateProposal;
-                                              
-                                              let numericValue = null; 
-                                              
-                                              if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff')
-                                                numericValue = Number("0x"+item.vault.governance.account.config.minCommunityTokensToCreateProposal);
-                                              
-                                              if (numericValue && !isNaN(numericValue)) {
-                                                const u64BigInt = BigInt(numericValue);
-                                                const u64Number = tokenInfo ? Number(u64BigInt) / 10 ** tokenInfo.decimals : Number(u64BigInt);
-                                                return (
-                                                  <><br/>Proposal Minimum (Community): {u64Number.toLocaleString()}</>
-                                                );
-                                              } else {
-                                                return (
-                                                  <></>
-                                                );
-                                              }
-                                            
-                                            })()}
-                                            
-                                            {item?.vault?.governance?.account?.config?.minCouncilTokensToCreateProposal && 
-                                              <><br/>Proposal Minimum (Council): {Number(item.vault.governance.account.config.minCouncilTokensToCreateProposal)}</>
-                                            }
-                                            {(item?.vault?.governance?.account?.activeProposalCount && Number(item.vault.governance.account.activeProposalCount) > 0) &&
-                                              <><br/>Active Proposals: {Number(item.vault.governance.account.activeProposalCount)}</>
-                                            }
-                                          </>
-                                        }>
-                                          <IconButton
-                                            color='inherit'
-                                            sx={{ml:1}}
-                                          >
-                                            <HelpOutlineIcon sx={{fontSize:'14px'}} />
-                                          </IconButton>
-                                        </Tooltip>
-
-                                        {/*
-                                        {(item?.vault?.governance?.account?.config?.minCouncilTokensToCreateProposal && Number(item?.vault?.governance?.account?.config?.minCouncilTokensToCreateProposal)>0) && 
-                                          ` - Council Min Prop ${Number(item.vault.governance.account.config.minCouncilTokensToCreateProposal)}`}
-                                        }
-
-                                        {(() => {
-                                          //const stringValue = item?.vault?.governance?.account?.config?.minCommunityTokensToCreateProposal;
-                                          
-                                          const numericValue = Number("0x"+item.vault.governance.account.config.minCommunityTokensToCreateProposal);
-                                          
-                                          if (!isNaN(numericValue)) {
-                                            const u64BigInt = BigInt(numericValue);
-                                            const u64Number = Number(u64BigInt);
-                                            return (
-                                              <> - Community Prop Min {u64Number}</>
-                                            );
-                                          } else {
-                                            return (
-                                              <></>
-                                            );
-                                          }
-                                        
-                                        })()}
-                                        
-                                        {(item?.vault?.governance?.account?.proposalCount && Number(item?.vault?.governance?.account?.proposalCount)>0) && 
-                                          ` - Props ${Number(item.vault.governance.account.proposalCount)}`}
-
-                                        {(item?.vault?.governance?.account?.activeProposalCount && Number(item?.vault?.governance?.account?.activeProposalCount)>0) && 
-                                          ` - Active ${Number(item.vault.governance.account.activeProposalCount)}`}
-                                        */}
-                                      </>
-                                    
-                                      
-                                      {/*{item.solBalance/(10 ** 9)} sol - {item?.tokens?.value.length} tokens*/}
-                                    </Typography>
+                                      </Typography>
+                                    </Grid>
                                   </Grid>
                                 </Grid>
+
+                                
+
                               </Grid>
-
+                          </MenuItem>
+                        );
+                      } else {
+                        return null; // Don't render anything for items without nativeTreasuryAddress
+                      }
+                    //})}
+                </Select>
+              </FormControl>
+            :
+                */}
+              <FormControl fullWidth>
+                <InputLabel id="governance-wallet-select-label">Governance Wallet</InputLabel>
+                <Select
+                  labelId="governance-wallet-select-label"
+                  id="governance-wallet-select"
+                  value={governanceWallet}
+                  label="Governance Wallet"
+                  onChange={handleGovernanceWalletChange}
+                  //onClick={() => handleGovernanceWalletChange(item.vault.nativeTreasury, item.vault.pubkey)}
+                > 
+                  {/* USE CACHE */}
+                  {cachedTreasury && cachedTreasury
+                    .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
+                    .map((item: any, key: number) => {
+                      if (item.vault?.nativeTreasuryAddress) {
+                        // rules wallet:
+                        // item.vault.pubkey
+                        return (
+                          <MenuItem key={key} value={item.vault.nativeTreasury}>
+                              {/*console.log("wallet: "+JSON.stringify(item))*/}
                               
+                              <Grid container>
+                                <Grid item xs={12}>
+                                  <Grid container>
+                                    <Grid item sm={8}>
+                                      <Grid
+                                        container
+                                        direction="row"
+                                        justifyContent="left"
+                                        alignItems="left"
+                                      >
+                                        <AccountBalanceWalletIcon fontSize='inherit' sx={{mr:1}}/>
+                                        {shortenString(item.vault?.nativeTreasury?.vault.pubkey,5,5)} 
+                                      </Grid>
+                                    </Grid>
+                                    <Grid item xs sx={{textAlign:'right'}}>
+                                      <Typography variant="caption">
+                                        {(item.vault?.nativeTreasury?.solBalance/(10 ** 9)).toFixed(2)} SOL 
+                                        {item.vault?.nativeTreasury?.tokens?.value.map((item:any, index:number) => (
+                                          <>
+                                          {(item.account.data.parsed.info.mint === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" &&
+                                            ((item.account.data.parsed.info.tokenAmount.amount / 10 ** item.account.data.parsed.info.tokenAmount.decimals) > 0.9)) && 
+                                            <>  
+                                              &nbsp;-&nbsp;{
+                                                Number((item.account.data.parsed.info.tokenAmount.amount / 10 ** item.account.data.parsed.info.tokenAmount.decimals).toFixed(2)).toLocaleString() + ' USDC '}
+                                              </>
+                                          }</>
+                                        ))}
 
-                            </Grid>
-                        </MenuItem>
-                      );
-                    } else {
-                      return null; // Don't render anything for items without nativeTreasuryAddress
-                    }
-                  })}
-              </Select>
-            </FormControl>
+                                        &nbsp;-&nbsp;
+                                        {item.vault?.nativeTreasury?.tokens?.value.reduce((count, token) => {
+                                          // Check if the condition is met before counting the token
+                                          if (token.account.data.parsed.info.tokenAmount.amount > 0) {
+                                            count++;
+                                          }
+                                          return count;
+                                        }, 0)} <TollIcon sx={{fontSize:'10px'}} />
+                                      </Typography>
+                                    </Grid>
+                                  </Grid>  
+                                </Grid>
+                                
+                                <Grid item xs={12}>
+                                  <Grid container>
+                                    <Grid item sm={8}>
+                                      <Grid
+                                        container
+                                        direction="row"
+                                        justifyContent="left"
+                                        alignItems="left"
+                                      >
+                                        <Typography variant="caption">
+                                          <SubdirectoryArrowRightIcon fontSize='inherit' sx={{ml:1, mr:1}}/>
+                                          {shortenString(item.vault.pubkey,5,5)}
+                                        </Typography>
+                                      </Grid>
+
+                                    </Grid>
+                                    <Grid item xs sx={{textAlign:'right'}}>
+                                      <Typography variant="caption">
+                                      
+                                        <>
+                                          {/*console.log("vault: "+JSON.stringify(item))*/}
+                                          {(item.vault?.nativeTreasury?.domains && item.vault.nativeTreasury.domains.length > 0 && item.vault.nativeTreasury.domains[0] !== item.vault?.nativeTreasury.vault.pubkey) &&
+                                          <><LanguageIcon sx={{fontSize:'10px',mr:0.5}}/> {item.vault.nativeTreasury.domains[0]} {item.vault.nativeTreasury.domains.length > 1 && <sup>{item.vault.nativeTreasury.domains.length}</sup>}</>}
+                                          
+                                          <GavelIcon sx={{fontSize:'10px',ml:1}} /> 
+
+                                          {item?.vault?.governance?.account?.config?.baseVotingTime && 
+                                            <>
+                                              <AccessTimeIcon sx={{fontSize:'10px'}} /> {convertSecondsToLegibleFormat(item.vault.governance.account.config.baseVotingTime, false)}
+                                            </>
+                                          }
+
+                                          <Tooltip title={
+                                            <>
+                                              {item.vault?.nativeTreasury?.vault?.pubkey &&
+                                                <>Native Wallet: 
+                                                <CopyToClipboard text={item.vault.nativeTreasury.vault.pubkey} onCopy={handleCopy}>
+                                                    <Button
+                                                      variant="text"
+                                                      color="inherit"
+                                                      sx={{ 
+                                                        ml:1,
+                                                        fontSize:'10px',
+                                                        borderRadius:'17px',
+                                                        textTransform:'none',
+                                                        '&:hover .MuiSvgIcon-root': {
+                                                          opacity: 1,
+                                                        },
+                                                      }}
+                                                      startIcon={
+                                                        <FileCopyIcon sx={{
+                                                          color:'rgba(255,255,255,0.25)',
+                                                          opacity: 0,
+                                                          fontSize:"14px!important"}} />
+                                                      }
+                                                    >
+                                                  
+                                                    {shortenString(item.vault.nativeTreasury.vault.pubkey,8,8)}
+                                                    </Button>
+                                                  </CopyToClipboard>
+                                                </>
+                                              }
+                                              {item.vault.pubkey &&
+                                                <><br/>Rules: 
+                                                  <CopyToClipboard text={item.vault.pubkey} onCopy={handleCopy}>
+                                                    <Button
+                                                      variant="text"
+                                                      color="inherit"
+                                                      sx={{ 
+                                                        ml:1,
+                                                        fontSize:'10px',
+                                                        borderRadius:'17px',
+                                                        textTransform:'none',
+                                                        '&:hover .MuiSvgIcon-root': {
+                                                          opacity: 1,
+                                                        },
+                                                      }}
+                                                      startIcon={
+                                                        <FileCopyIcon sx={{
+                                                          color:'rgba(255,255,255,0.25)',
+                                                          opacity: 0,
+                                                          fontSize:"14px!important"}} />
+                                                      }
+                                                    >
+                                                  
+                                                    {shortenString(item.vault.pubkey,8,8)}
+                                                    </Button>
+                                                  </CopyToClipboard>
+                                                  {/*<ExplorerView address={item.vault.pubkey} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='10px' />*/}
+                                                </>
+                                              }
+                                              {item.vault.governance?.account?.accountType && (() => {
+                                                const accountType = item.vault.governance.account.accountType as string;
+                                                //console.log("accountType: "+accountType);
+                                                const governanceTypeLabel = GovernanceAccountType[accountType];
+
+                                                if (governanceTypeLabel) {
+                                                  return (
+                                                    <><br/>Governance Type: {governanceTypeLabel}</>
+                                                  );
+                                                } else {
+                                                  return (
+                                                    <></>
+                                                  );
+                                                }
+                                              
+                                              })()}
+
+                                              {(() => {
+                                                //const stringValue = item?.vault?.governance?.account?.config?.minCommunityTokensToCreateProposal;
+                                                
+                                                let numericValue = null; 
+                                                
+                                                if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff')
+                                                  numericValue = Number("0x"+item.vault.governance.account.config.minCommunityTokensToCreateProposal);
+                                                
+                                                if (numericValue && !isNaN(numericValue)) {
+                                                  const u64BigInt = BigInt(numericValue);
+                                                  const u64Number = tokenInfo ? Number(u64BigInt) / 10 ** tokenInfo.decimals : Number(u64BigInt);
+                                                  return (
+                                                    <><br/>Proposal Minimum (Community): {u64Number.toLocaleString()}</>
+                                                  );
+                                                } else {
+                                                  return (
+                                                    <></>
+                                                  );
+                                                }
+                                              
+                                              })()}
+                                              
+                                              {item?.vault?.governance?.account?.config?.minCouncilTokensToCreateProposal && 
+                                                <><br/>Proposal Minimum (Council): {Number(item.vault.governance.account.config.minCouncilTokensToCreateProposal)}</>
+                                              }
+                                              {(item?.vault?.governance?.account?.activeProposalCount && Number(item.vault.governance.account.activeProposalCount) > 0) &&
+                                                <><br/>Active Proposals: {Number(item.vault.governance.account.activeProposalCount)}</>
+                                              }
+                                            </>
+                                          }>
+                                            <IconButton
+                                              color='inherit'
+                                              sx={{ml:1}}
+                                            >
+                                              <HelpOutlineIcon sx={{fontSize:'14px'}} />
+                                            </IconButton>
+                                          </Tooltip>
+
+                                          {/*
+                                          {(item?.vault?.governance?.account?.config?.minCouncilTokensToCreateProposal && Number(item?.vault?.governance?.account?.config?.minCouncilTokensToCreateProposal)>0) && 
+                                            ` - Council Min Prop ${Number(item.vault.governance.account.config.minCouncilTokensToCreateProposal)}`}
+                                          }
+
+                                          {(() => {
+                                            //const stringValue = item?.vault?.governance?.account?.config?.minCommunityTokensToCreateProposal;
+                                            
+                                            const numericValue = Number("0x"+item.vault.governance.account.config.minCommunityTokensToCreateProposal);
+                                            
+                                            if (!isNaN(numericValue)) {
+                                              const u64BigInt = BigInt(numericValue);
+                                              const u64Number = Number(u64BigInt);
+                                              return (
+                                                <> - Community Prop Min {u64Number}</>
+                                              );
+                                            } else {
+                                              return (
+                                                <></>
+                                              );
+                                            }
+                                          
+                                          })()}
+                                          
+                                          {(item?.vault?.governance?.account?.proposalCount && Number(item?.vault?.governance?.account?.proposalCount)>0) && 
+                                            ` - Props ${Number(item.vault.governance.account.proposalCount)}`}
+
+                                          {(item?.vault?.governance?.account?.activeProposalCount && Number(item?.vault?.governance?.account?.activeProposalCount)>0) && 
+                                            ` - Active ${Number(item.vault.governance.account.activeProposalCount)}`}
+                                          */}
+                                        </>
+                                      
+                                        
+                                        {/*{item.solBalance/(10 ** 9)} sol - {item?.tokens?.value.length} tokens*/}
+                                      </Typography>
+                                    </Grid>
+                                  </Grid>
+                                </Grid>
+
+                                
+
+                              </Grid>
+                          </MenuItem>
+                        );
+                      } else {
+                        return null; // Don't render anything for items without nativeTreasuryAddress
+                      }
+                    })}
+                </Select>
+              </FormControl>
+            
 
             {/*governanceRules &&
                <Grid sx={{textAlign:'right'}}>
@@ -1323,6 +1439,18 @@ export default function GovernanceCreateProposalView(props: any){
         setLoading(false);
     }
 
+    const getConsolidatedTreasury = async() => {
+      // compare cachedTreasury with governanceWallets
+      if (cachedTreasury){
+        for (var item of cachedTreasury){
+          console.log("cached item: "+JSON.stringify(item))
+        }
+        for (var item of governanceWallets){
+          console.log("wallet item: "+JSON.stringify(item))
+        }
+      }
+    }
+
     const checkMemberStatus = async() => {
       //console.log("cachedRealm: "+JSON.stringify(cachedRealm))
       //console.log("checking: "+publicKey.toBase58())
@@ -1378,6 +1506,12 @@ export default function GovernanceCreateProposalView(props: any){
     }, [cachedRealm, publicKey])
 
     React.useEffect(() => {
+      if (governanceWallets){
+        getConsolidatedTreasury();
+      }
+    }, [cachedTreasury]);
+    
+    React.useEffect(() => {
         if (governanceLookup)
             getCachedGovernanceFromLookup();
     }, [governanceLookup, governanceAddress]);
@@ -1386,6 +1520,10 @@ export default function GovernanceCreateProposalView(props: any){
         if (tokenMap){  
             startTimer();
             callGovernanceLookup();
+            if (governanceWallets){
+              // fetch all wallets (with balances) and show a dropdown list accordingly
+
+            }
         }
     }, [tokenMap]);
 

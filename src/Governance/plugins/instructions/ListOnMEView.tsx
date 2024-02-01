@@ -885,11 +885,11 @@ export default function ListOnMEView(props: any) {
 
             <>
                 <Box
-                    sx={{ m:2,
+                    sx={{ m:1,
                         background: 'rgba(0, 0, 0, 0.2)',
                         borderRadius: '17px',
                         overflow: 'hidden',
-                        p:4
+                        p:1
                     }}
                 >
                     {(allWalletHoldingsOnME.length > 0 && allWalletHoldingsOnME.filter((item) => item.listStatus === "listed")) &&
@@ -1309,11 +1309,11 @@ export default function ListOnMEView(props: any) {
     return (
         <Box
             sx={{
-                m:2,
+                m:1,
                 background: 'rgba(0, 0, 0, 0.2)',
                 borderRadius: '17px',
                 overflow: 'hidden',
-                p:4
+                p:1
             }} 
         >
             <Box
@@ -1467,11 +1467,11 @@ export default function ListOnMEView(props: any) {
                 
                 {transactionInstructions && 
                     <Box
-                        sx={{ m:2,
+                        sx={{ m:1,
                             background: 'rgba(0, 0, 0, 0.2)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:4
+                            p:1
                         }}
                     >
                         <Typography variant="h6">Transaction Instructions</Typography>

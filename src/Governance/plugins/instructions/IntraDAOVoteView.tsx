@@ -689,11 +689,11 @@ export default function IntraDAOVoteView(props: any) {
     return (
         <Box
             sx={{
-                m:2,
+                m:1,
                 background: 'rgba(0, 0, 0, 0.2)',
                 borderRadius: '17px',
                 overflow: 'hidden',
-                p:4
+                p:1
             }} 
         >
             <Box
@@ -832,11 +832,11 @@ export default function IntraDAOVoteView(props: any) {
                     {governance ?
                             <>
                                 <Box
-                                    sx={{ m:2,
+                                    sx={{ m:1,
                                         background: 'rgba(0, 0, 0, 0.2)',
                                         borderRadius: '17px',
                                         overflow: 'hidden',
-                                        p:4
+                                        p:1
                                     }}
                                 >
                                     <Grid sx={{textAlign:'right',}}>
@@ -988,11 +988,11 @@ export default function IntraDAOVoteView(props: any) {
             {(daoToParticipateAddress && daoToParticipatePropAddress && daoPropMaxVotes) ?
                 <>  
                     <Box
-                        sx={{ m:2,
+                        sx={{ m:1,
                             background: 'rgba(0, 0, 0, 0.2)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:4
+                            p:1
                         }}
                     >
                         <Typography variant="h6">Preview/Summary</Typography>
@@ -1042,11 +1042,11 @@ export default function IntraDAOVoteView(props: any) {
                 
                 {transactionInstructions && 
                     <Box
-                        sx={{ m:2,
+                        sx={{ m:1,
                             background: 'rgba(0, 0, 0, 0.2)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:4
+                            p:1
                         }}
                     >
                         <Typography variant="h6">Transaction Instructions</Typography>
