@@ -1456,7 +1456,7 @@ export default function WalletCardView(props:any) {
                                     <ListItemAvatar>
                                         <Avatar>
                                             {/*
-                                            0:'Draft',
+                                                0:'Draft',
                                                 1:'Signing Off',
                                                 2:'Voting',
                                                 3:'Succeeded',
@@ -1467,14 +1467,14 @@ export default function WalletCardView(props:any) {
                                                 8:'Executing w/errors!',
                                                 9:'Vetoed',
                                             */}
-                                            {item.account?.state &&
+                                            {item.account?.state ?
                                                 <>
-                                                {item.account.state === 2 ?
-                                                    <HowToVoteIcon />
+                                                {item.account.state === 0 ?
+                                                    <EditNoteIcon />
                                                 :
                                                     <>
-                                                    {item.account.state === 0 ?
-                                                            <EditNoteIcon />
+                                                    {item.account.state === 2 ?
+                                                            <HowToVoteIcon />
                                                         :
                                                         <>
                                                             {item.account.state === 3 ?
@@ -1509,8 +1509,10 @@ export default function WalletCardView(props:any) {
                                                         </>
                                                     }
                                                     </>
+                                                
                                                 }
                                                 </>
+                                                :<><EditNoteIcon /></>
                                             }
                                         </Avatar>
                                     </ListItemAvatar>
@@ -1524,7 +1526,7 @@ export default function WalletCardView(props:any) {
                                         } 
                                         secondary={
                                             <>
-                                            {item.account?.state && GOVERNANCE_STATE[item.account.state]}
+                                            {item.account?.state ? GOVERNANCE_STATE[+item.account.state]:``}
                                             </>
                                         }
                                         />
