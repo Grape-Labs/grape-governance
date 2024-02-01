@@ -70,12 +70,6 @@ import {
     Step,
     StepButton,
     ListItemIcon,
-    SwipeableDrawer,
-    SpeedDial,
-    SpeedDialIcon,
-    SpeedDialAction,
-    Backdrop,
-    Popper,
   } from '@mui/material/';
 
 import { 
@@ -88,6 +82,8 @@ import {
 import ExtensionsMenuView from './plugins/ExtensionsMenu';
 import { IntegratedGovernanceProposalDialogView } from '../IntegratedGovernanceProposal';
 
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import InfoIcon from '@mui/icons-material/Info';
 import CompressIcon from '@mui/icons-material/Compress';
 import SettingsIcon from '@mui/icons-material/Settings';
 import SendIcon from '@mui/icons-material/Send';
@@ -122,17 +118,6 @@ const ExpandMore = styled((props: ExpandMoreProps) => {
   transition: theme.transitions.create('transform', {
     duration: theme.transitions.duration.shortest,
   }),
-}));
-
-const CustomAccordionSummary = styled(AccordionSummary)(({ theme }) => ({
-    height: 10, // Set desired height
-    alignItems: 'flex-end', // Align text to bottom
-    '& .MuiAccordionSummary-expandIcon': {
-      marginLeft: 'auto', // Move expand icon to the right
-    },
-    '& .MuiTypography-root': {
-      marginRight: theme.spacing(1), // Optional: Add some margin to the right
-    },
 }));
 
 export interface DialogTitleProps {
@@ -867,6 +852,98 @@ export default function WalletCardView(props:any) {
         setExpandedProps(!expandedProps);
     }
 
+    function TokenExpandComponent(props:any) {
+        const item = props?.item;
+        const [expanded, setExpanded] = React.useState(false);
+      
+        return (
+            <>
+                <ListItem
+                    sx={{m:0,mt:'-20px',p:0}}
+                >   
+                        <Grid container justifyContent={'center'} alignItems={'center'}>
+                            <Grid item xs={12}>
+                                <Tooltip title="Show More Info">
+                                    <IconButton 
+                                        sx={{m:0,p:0,color:'rgba(255,255,255,0.02)'}}
+                                        onClick={() => setExpanded(!expanded)}
+                                    >
+                                        <MoreHorizIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            </Grid>
+                            <Collapse in={expanded} timeout="auto" unmountOnExit>
+                            
+                                <Grid item xs={12}>
+                                    <Typography variant='caption'>
+                                        Address: 
+                                        <CopyToClipboard text={item.address} onCopy={handleCopy}>
+                                                <Button 
+                                                    color={'inherit'} 
+                                                    variant='text' 
+                                                    sx={{m:0,
+                                                        ml:1,
+                                                        p:0,
+                                                        mintWidth:'' , 
+                                                            '&:hover .MuiSvgIcon-root': {
+                                                                opacity: 1,
+                                                            },
+                                                        }}
+                                                    endIcon={
+                                                    <FileCopyIcon 
+                                                        fontSize={'small'} 
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            pr:1,
+                                                            opacity: 0,
+                                                            fontSize:"10px"}} />
+                                                    }
+                                                    
+                                                >
+                                            {shortenString(item.address,5,5)}
+                                            </Button>
+                                        </CopyToClipboard><br/>
+                                        ATA: 
+                                            <CopyToClipboard text={item.associated_account} onCopy={handleCopy}>
+                                                <Button 
+                                                    color={'inherit'} 
+                                                    variant='text' 
+                                                    sx={{m:0,
+                                                        ml:1,
+                                                        p:0,
+                                                        mintWidth:'' , 
+                                                            '&:hover .MuiSvgIcon-root': {
+                                                                opacity: 1,
+                                                            },
+                                                        }}
+                                                    endIcon={
+                                                    <FileCopyIcon 
+                                                        fontSize={'small'} 
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            pr:1,
+                                                            opacity: 0,
+                                                            fontSize:"10px"}} />
+                                                    }
+                                                    
+                                                >
+                                            {shortenString(item.associated_account,5,5)}
+                                            </Button>
+                                        </CopyToClipboard><br/>
+                                        Name: {item.info.name}<br/>
+                                        Symbol: {item.info.symbol}<br/>
+                                        Decimals: {item.info.decimals}
+                                        
+                                    </Typography>
+                                </Grid>
+                            {/* ...more inner items */}
+                        </Collapse>
+                    </Grid>
+                </ListItem>
+            </>
+        )
+      } 
+
     
     return (
         <>
@@ -1303,6 +1380,7 @@ export default function WalletCardView(props:any) {
                                                                 :<></>
                                                             }</>
                                                         :<></>}</Typography>
+                                                        
                                                     {/*
                                                     <Typography variant="caption">ATA {shortenString(item.associated_account,5,5)}</Typography>
                                                     */}
@@ -1310,86 +1388,11 @@ export default function WalletCardView(props:any) {
                                             }
                                             />
                                     </ListItem>
-
-                                        {/*
-                                        <Accordion 
-                                            //expanded={true}
-                                            sx={{p:0,m:0,border:'none',
-                                                minHeight:0,
-                                                '& .MuiAccordion-root': {
-                                                    borderTop: 0,
-                                                  },                                        
-                                            }}
-                                        >
-                                            <CustomAccordionSummary aria-controls="panel-content">
-                                                <Typography sx={{fontSize:'10px'}}>Expand</Typography>
-                                            </CustomAccordionSummary>
-                                            <AccordionDetails>
-                                                <Typography variant='caption'>
-                                                    Address: 
-                                                    <CopyToClipboard text={item.address} onCopy={handleCopy}>
-                                                            <Button 
-                                                                color={'inherit'} 
-                                                                variant='text' 
-                                                                sx={{m:0,
-                                                                    ml:1,
-                                                                    p:0,
-                                                                    mintWidth:'' , 
-                                                                        '&:hover .MuiSvgIcon-root': {
-                                                                            opacity: 1,
-                                                                        },
-                                                                    }}
-                                                                endIcon={
-                                                                <FileCopyIcon 
-                                                                    fontSize={'small'} 
-                                                                    sx={{
-                                                                        color:'rgba(255,255,255,0.25)',
-                                                                        pr:1,
-                                                                        opacity: 0,
-                                                                        fontSize:"10px"}} />
-                                                                }
-                                                                
-                                                            >
-                                                        {shortenString(item.address,5,5)}
-                                                        </Button>
-                                                    </CopyToClipboard><br/>
-                                                    ATA: 
-                                                        <CopyToClipboard text={item.associated_account} onCopy={handleCopy}>
-                                                            <Button 
-                                                                color={'inherit'} 
-                                                                variant='text' 
-                                                                sx={{m:0,
-                                                                    ml:1,
-                                                                    p:0,
-                                                                    mintWidth:'' , 
-                                                                        '&:hover .MuiSvgIcon-root': {
-                                                                            opacity: 1,
-                                                                        },
-                                                                    }}
-                                                                endIcon={
-                                                                <FileCopyIcon 
-                                                                    fontSize={'small'} 
-                                                                    sx={{
-                                                                        color:'rgba(255,255,255,0.25)',
-                                                                        pr:1,
-                                                                        opacity: 0,
-                                                                        fontSize:"10px"}} />
-                                                                }
-                                                                
-                                                            >
-                                                        {shortenString(item.associated_account,5,5)}
-                                                        </Button>
-                                                    </CopyToClipboard><br/>
-                                                    Name: {item.info.name}<br/>
-                                                    Symbol: {item.info.symbol}<br/>
-                                                    Decimals: {item.info.decimals}
-                                                    
-                                                </Typography>
-                                            </AccordionDetails>
-                                        </Accordion> 
-                                    */}
-                                        {key+1 < nativeTokens.length && <Divider variant="inset" light component="li" />}
                                     
+                                    <TokenExpandComponent item={item} />
+                                    
+                                    
+                                    {key+1 < nativeTokens.length && <Divider variant="inset" light component="li" />}
                                 
                                 </>
                                 
@@ -1507,6 +1510,7 @@ export default function WalletCardView(props:any) {
                                         }
                                         />
                                 </ListItem>
+                                <TokenExpandComponent item={item} />
                                 {key+1 < rulesTokens.length && <Divider variant="inset" component="li" light />}
                                 </>
                             ))
