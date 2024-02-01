@@ -207,7 +207,7 @@ export default function ClaimExtensionView(props: any){
     
     return (
         <>
-            <Tooltip title="Extensions">
+            <Tooltip title="Check Claim Status" placement="right">
                 <MenuItem onClick={handleClickOpen}>
                 <ListItemIcon>
                     <ParaglidingIcon fontSize="small" />

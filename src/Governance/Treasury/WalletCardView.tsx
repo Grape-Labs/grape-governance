@@ -24,6 +24,10 @@ import {
   } from '../../utils/grapeTools/helpers';
 
 import {
+    Accordion,
+    AccordionActions,
+    AccordionSummary,
+    AccordionDetails,
     Typography,
     Card,
     CardHeader,
@@ -78,6 +82,8 @@ import {
 import ExtensionsMenuView from './plugins/ExtensionsMenu';
 import { IntegratedGovernanceProposalDialogView } from '../IntegratedGovernanceProposal';
 
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import InfoIcon from '@mui/icons-material/Info';
 import CompressIcon from '@mui/icons-material/Compress';
 import SettingsIcon from '@mui/icons-material/Settings';
 import SendIcon from '@mui/icons-material/Send';
@@ -790,7 +796,7 @@ export default function WalletCardView(props:any) {
             totalVal+=stakeAccountVal;
             setTotalWalletValue(totalVal);
             rulesWallet.walletValue = totalVal;
-            rulesWallet.solBalance = solAccountVal;
+            rulesWallet.solBalance = +nativeSol + +rulesSol;
 
             const newGovernanceObject = {
                 address: walletAddress,
@@ -845,8 +851,102 @@ export default function WalletCardView(props:any) {
     const handleExpandPropsClick = () => {
         setExpandedProps(!expandedProps);
     }
+
+    function TokenExpandComponent(props:any) {
+        const item = props?.item;
+        const [expanded, setExpanded] = React.useState(false);
+      
+        return (
+            <>
+                <ListItem
+                    sx={{m:0,mt:'-20px',p:0}}
+                >   
+                        <Grid container justifyContent={'center'} alignItems={'center'}>
+                            <Grid item xs={12}>
+                                <Tooltip title="Show More Info">
+                                    <IconButton 
+                                        sx={{m:0,p:0,color:'rgba(255,255,255,0.02)'}}
+                                        onClick={() => setExpanded(!expanded)}
+                                    >
+                                        <MoreHorizIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            </Grid>
+                            <Collapse in={expanded} timeout="auto" unmountOnExit>
+                            
+                                <Grid item xs={12}>
+                                    <Typography variant='caption'>
+                                        Address: 
+                                        <CopyToClipboard text={item.address} onCopy={handleCopy}>
+                                                <Button 
+                                                    color={'inherit'} 
+                                                    variant='text' 
+                                                    sx={{m:0,
+                                                        ml:1,
+                                                        p:0,
+                                                        mintWidth:'' , 
+                                                            '&:hover .MuiSvgIcon-root': {
+                                                                opacity: 1,
+                                                            },
+                                                        }}
+                                                    endIcon={
+                                                    <FileCopyIcon 
+                                                        fontSize={'small'} 
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            pr:1,
+                                                            opacity: 0,
+                                                            fontSize:"10px"}} />
+                                                    }
+                                                    
+                                                >
+                                            {shortenString(item.address,5,5)}
+                                            </Button>
+                                        </CopyToClipboard><br/>
+                                        ATA: 
+                                            <CopyToClipboard text={item.associated_account} onCopy={handleCopy}>
+                                                <Button 
+                                                    color={'inherit'} 
+                                                    variant='text' 
+                                                    sx={{m:0,
+                                                        ml:1,
+                                                        p:0,
+                                                        mintWidth:'' , 
+                                                            '&:hover .MuiSvgIcon-root': {
+                                                                opacity: 1,
+                                                            },
+                                                        }}
+                                                    endIcon={
+                                                    <FileCopyIcon 
+                                                        fontSize={'small'} 
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            pr:1,
+                                                            opacity: 0,
+                                                            fontSize:"10px"}} />
+                                                    }
+                                                    
+                                                >
+                                            {shortenString(item.associated_account,5,5)}
+                                            </Button>
+                                        </CopyToClipboard><br/>
+                                        Name: {item.info.name}<br/>
+                                        Symbol: {item.info.symbol}<br/>
+                                        Decimals: {item.info.decimals}
+                                        
+                                    </Typography>
+                                </Grid>
+                            {/* ...more inner items */}
+                        </Collapse>
+                    </Grid>
+                </ListItem>
+            </>
+        )
+      } 
+
     
     return (
+        <>
         <Card>
         <CardHeader
             avatar={
@@ -1086,9 +1186,13 @@ export default function WalletCardView(props:any) {
             </Typography>
         </CardContent>
         <CardActions disableSpacing>
-            <IconButton aria-label="share" disabled={true}>
-                <ShareIcon />
-            </IconButton>
+            <CopyToClipboard text={`https://governance.so/treasury/${governanceAddress}`} onCopy={handleCopy}>
+                <IconButton aria-label="share" 
+                //    disabled={true}
+                >
+                    <ShareIcon />
+                </IconButton>
+            </CopyToClipboard>
             {loading ?
                 <></>
             :
@@ -1149,7 +1253,7 @@ export default function WalletCardView(props:any) {
                 {((nativeTokens && nativeTokens.length > 0) || (rulesTokens && rulesTokens.length > 0)) &&
                 <>
                     <Tooltip title="Show Tokens">
-                        <Badge color="primary" badgeContent={nativeTokens.length + +rulesTokens?.length} max={999}>
+                        <Badge color="primary" badgeContent={nativeTokens?.length + +rulesTokens?.length} max={999}>
                             <ExpandMore
                                 expand={expanded}
                                 onClick={handleExpandClick}
@@ -1198,91 +1302,98 @@ export default function WalletCardView(props:any) {
                             //.sort((a:any,b:any) => (b.balance - a.balance))
                             .map((item: any,key:number) => (   
                                 <>
-                                <ListItem
-                                    secondaryAction={
-                                        <Box sx={{textAlign:'right'}}>
-                                            <Box>
-                                                <IntegratedGovernanceProposalDialogView 
-                                                    //governanceAddress={governanceAddress}
-                                                    governanceRulesWallet={new PublicKey(rulesWalletAddress)}
-                                                    //governingTokenMint={thisitem.account.governingTokenMint}
-                                                    //proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                                    //payerWallet={publicKey}
-                                                    //governanceLookup={governanceLookup}
-                                                    //editProposalAddress={thisitem.pubkey}
-                                                    //setReload={setReload}
+                                    
+                                    <ListItem
+                                        secondaryAction={
+                                            <Box sx={{textAlign:'right'}}>
+                                                <Box>
+                                                    <IntegratedGovernanceProposalDialogView 
+                                                        //governanceAddress={governanceAddress}
+                                                        governanceRulesWallet={new PublicKey(rulesWalletAddress)}
+                                                        //governingTokenMint={thisitem.account.governingTokenMint}
+                                                        //proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                        //payerWallet={publicKey}
+                                                        //governanceLookup={governanceLookup}
+                                                        //editProposalAddress={thisitem.pubkey}
+                                                        //setReload={setReload}
 
-                                                    governanceWallets={governanceWallets}
-                                                    useButton={3} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
-                                                    useButtonText={
-                                                        item.balance.toLocaleString()
-                                                    }
-                                                    title="Send"
-                                                    usePlugin={4}
-                                                />
+                                                        governanceWallets={governanceWallets}
+                                                        useButton={3} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
+                                                        useButtonText={
+                                                            item.balance.toLocaleString()
+                                                        }
+                                                        title="Send"
+                                                        usePlugin={4}
+                                                    />
+                                                </Box>
+                                                <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                                {usdcValue ? 
+                                                    <>{usdcValue[item.address] ? 
+                                                        <>${((item.balance * usdcValue[item.address]?.price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
+                                                        :<></>
+                                                    }</>
+                                                :<></>}</Typography>
                                             </Box>
-                                            <Typography variant="caption" sx={{color:'#919EAB'}}>
-                                            {usdcValue ? 
-                                                <>{usdcValue[item.address] ? 
-                                                    <>${((item.balance * usdcValue[item.address]?.price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
-                                                    :<></>
-                                                }</>
-                                            :<></>}</Typography>
-                                        </Box>
-                                    }
-                                    key={key}
-                                >
-                                    <ListItemAvatar>
-                                        <Avatar
-                                            src={item.info.image}
-                                        >
-                                        </Avatar>
-                                    </ListItemAvatar>
-                                    <ListItemText 
-                                        primary={
-                                            <CopyToClipboard text={item.address} onCopy={handleCopy}>
-                                                <Button 
-                                                    color={'inherit'} 
-                                                    variant='text' 
-                                                    sx={{m:0,
-                                                        p:0,
-                                                        mintWidth:'' , 
-                                                            '&:hover .MuiSvgIcon-root': {
-                                                                opacity: 1,
-                                                            },
-                                                        }}
-                                                    endIcon={
-                                                    <FileCopyIcon 
-                                                        fontSize={'small'} 
-                                                        sx={{
-                                                            color:'rgba(255,255,255,0.25)',
-                                                            pr:1,
-                                                            opacity: 0,
-                                                            fontSize:"10px"}} />
-                                                    }
-                                                    
-                                                >
-                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>
-                                                </Button>
-                                            </CopyToClipboard>
                                         }
-                                        secondary={
-                                            <>
-                                                <Typography variant="caption">
-                                                    {usdcValue ? 
-                                                        <>{usdcValue[item.address] ? 
-                                                            <>${usdcValue[item.address]?.price.toFixed(6)}</>
-                                                            :<></>
-                                                        }</>
-                                                    :<></>}</Typography>
-                                                {/*
-                                                <Typography variant="caption">ATA {shortenString(item.associated_account,5,5)}</Typography>
-                                                */}
-                                            </>
-                                        }
-                                        />
-                                </ListItem>
-                                {key+1 < nativeTokens.length && <Divider variant="inset" light component="li" />}
+                                        key={key}
+                                    >
+                                        <ListItemAvatar>
+                                            <Avatar
+                                                src={item.info.image}
+                                            >
+                                            </Avatar>
+                                        </ListItemAvatar>
+                                        <ListItemText 
+                                            primary={
+                                                <CopyToClipboard text={item.address} onCopy={handleCopy}>
+                                                    <Button 
+                                                        color={'inherit'} 
+                                                        variant='text' 
+                                                        sx={{m:0,
+                                                            p:0,
+                                                            mintWidth:'' , 
+                                                                '&:hover .MuiSvgIcon-root': {
+                                                                    opacity: 1,
+                                                                },
+                                                            }}
+                                                        endIcon={
+                                                        <FileCopyIcon 
+                                                            fontSize={'small'} 
+                                                            sx={{
+                                                                color:'rgba(255,255,255,0.25)',
+                                                                pr:1,
+                                                                opacity: 0,
+                                                                fontSize:"10px"}} />
+                                                        }
+                                                        
+                                                    >
+                                                        <Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>
+                                                    </Button>
+                                                </CopyToClipboard>
+                                            }
+                                            secondary={
+                                                <>
+                                                    <Typography variant="caption">
+                                                        {usdcValue ? 
+                                                            <>{usdcValue[item.address] ? 
+                                                                <>${usdcValue[item.address]?.price.toFixed(6)}</>
+                                                                :<></>
+                                                            }</>
+                                                        :<></>}</Typography>
+                                                        
+                                                    {/*
+                                                    <Typography variant="caption">ATA {shortenString(item.associated_account,5,5)}</Typography>
+                                                    */}
+                                                </>
+                                            }
+                                            />
+                                    </ListItem>
+                                    
+                                    <TokenExpandComponent item={item} />
+                                    
+                                    
+                                    {key+1 < nativeTokens.length && <Divider variant="inset" light component="li" />}
+                                
                                 </>
                                 
                             ))
@@ -1399,6 +1510,7 @@ export default function WalletCardView(props:any) {
                                         }
                                         />
                                 </ListItem>
+                                <TokenExpandComponent item={item} />
                                 {key+1 < rulesTokens.length && <Divider variant="inset" component="li" light />}
                                 </>
                             ))
@@ -1781,6 +1893,8 @@ export default function WalletCardView(props:any) {
             </DialogContentText>
         </BootstrapDialog>
 
+        
+    </Card>
         <Snackbar
             open={isCopied}
             autoHideDuration={2000}
@@ -1791,7 +1905,7 @@ export default function WalletCardView(props:any) {
             Copied to clipboard!
             </Alert>
         </Snackbar>
-    </Card>
+    </>
         
     );
 }
