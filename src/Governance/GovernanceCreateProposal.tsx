@@ -1442,12 +1442,37 @@ export default function GovernanceCreateProposalView(props: any){
     const getConsolidatedTreasury = async() => {
       // compare cachedTreasury with governanceWallets
       if (cachedTreasury){
-        for (var item of cachedTreasury){
-          console.log("cached item: "+JSON.stringify(item))
+        if (governanceWallets){
+          if (governanceWallets.length > cachedTreasury.length){
+
+            for (var gitem of governanceWallets){
+              let found = false;
+              for (var citem of cachedTreasury){
+                if (gitem.pubkey.toBase58() === citem.valt.pubkey){
+                  found = true;  
+                  citem.solBalance = gitem.solBalance*10**9;
+                }
+                //console.log("wallet item: "+JSON.stringify(item))
+              }
+              if (!found){
+                cachedTreasury.push({
+                  vault:{
+                    pubkey:gitem.pubkey.toBase58(),
+                    vaultId:cachedTreasury.length+1,
+                    nativeTreasuryAddress:gitem.nativeTreasuryAddress.toBase58(),
+                    solBalance:gitem.solBalance*10**9,
+                    domains:gitem.domains,
+                    tokens:null,
+                    nfts:null
+                  }
+                });
+              }
+            }
+            
+
+          }
         }
-        for (var item of governanceWallets){
-          console.log("wallet item: "+JSON.stringify(item))
-        }
+        
       }
     }
 
@@ -1925,11 +1950,11 @@ export default function GovernanceCreateProposalView(props: any){
                           {(instructionsArray && instructionsArray.length > 0) &&
                               <Box
                                   sx={{
-                                    m:2,
+                                    m:1,
                                     background: 'rgba(0, 0, 0, 0.2)',
                                     borderRadius: '17px',
                                     overflow: 'hidden',
-                                    p:4
+                                    p:1
                                 }} 
                               >
                                 <FormControl fullWidth sx={{mb:2}}>
