@@ -1443,14 +1443,17 @@ export default function GovernanceCreateProposalView(props: any){
       // compare cachedTreasury with governanceWallets
       if (cachedTreasury){
         if (governanceWallets){
-          if (governanceWallets.length > cachedTreasury.length){
+          //if (governanceWallets.length > cachedTreasury.length){
 
             for (var gitem of governanceWallets){
               let found = false;
               for (var citem of cachedTreasury){
-                if (gitem.pubkey.toBase58() === citem.valt.pubkey){
+                console.log("Checking: "+gitem.nativeTreasuryAddress.toBase58() + " vs "+ citem.vault.pubkey)
+                  
+                if (gitem.nativeTreasuryAddress.toBase58() === citem.vault.pubkey){
                   found = true;  
                   citem.solBalance = gitem.solBalance*10**9;
+                  
                 }
                 //console.log("wallet item: "+JSON.stringify(item))
               }
@@ -1467,7 +1470,7 @@ export default function GovernanceCreateProposalView(props: any){
                   }
                 });
               }
-            }
+            //}
             
 
           }
