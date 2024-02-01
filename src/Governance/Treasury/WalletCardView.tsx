@@ -588,6 +588,7 @@ export default function WalletCardView(props:any) {
             //const stake2 = await getWalletStakeAccounts(new PublicKey(rulesWalletAddress));
             
             const props = await getAllProposalsIndexed([rulesWalletAddress], null, governanceAddress);
+
             setProposals(props);
 
             // put to unified array
@@ -700,6 +701,7 @@ export default function WalletCardView(props:any) {
                                                     variant='text' 
                                                     sx={{m:0,
                                                         p:0,
+                                                        textAlign:'right',
                                                         mintWidth:'' , 
                                                             '&:hover .MuiSvgIcon-root': {
                                                                 opacity: 1,
@@ -1424,7 +1426,7 @@ export default function WalletCardView(props:any) {
                     <Divider light>
                         <Chip label={`Proposals ${proposals && proposals.length}`} size="small" />
                     </Divider>
-                    {proposals && proposals
+                    {(proposals && proposals.length > 0) && proposals
                         .sort((a:any,b:any) => (b.account?.draftAt - a.account?.draftAt))
                         .map((item: any,key:number) => (  
                             <> 
