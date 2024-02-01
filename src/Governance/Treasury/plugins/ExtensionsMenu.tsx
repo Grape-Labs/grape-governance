@@ -52,6 +52,7 @@ import Logout from '@mui/icons-material/Logout';
 import ExtensionIcon from '@mui/icons-material/Extension';
 
 import ClaimExtensionView from './ClaimView';
+import DemoExtensionView from './DemoView';
 
 export default function ExtensionsMenuView(props: any) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -113,6 +114,9 @@ export default function ExtensionsMenuView(props: any) {
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
         <ClaimExtensionView
+            governanceNativeWallet={governanceNativeWallet}
+        />
+        <DemoExtensionView
             governanceNativeWallet={governanceNativeWallet}
         />
       </Menu>

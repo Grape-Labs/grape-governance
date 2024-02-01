@@ -1086,9 +1086,13 @@ export default function WalletCardView(props:any) {
             </Typography>
         </CardContent>
         <CardActions disableSpacing>
-            <IconButton aria-label="share" disabled={true}>
-                <ShareIcon />
-            </IconButton>
+            <CopyToClipboard text={`https://governance.so/treasury/${governanceAddress}`} onCopy={handleCopy}>
+                <IconButton aria-label="share" 
+                //    disabled={true}
+                >
+                    <ShareIcon />
+                </IconButton>
+            </CopyToClipboard>
             {loading ?
                 <></>
             :
@@ -1149,7 +1153,7 @@ export default function WalletCardView(props:any) {
                 {((nativeTokens && nativeTokens.length > 0) || (rulesTokens && rulesTokens.length > 0)) &&
                 <>
                     <Tooltip title="Show Tokens">
-                        <Badge color="primary" badgeContent={nativeTokens.length + +rulesTokens?.length} max={999}>
+                        <Badge color="primary" badgeContent={nativeTokens?.length + +rulesTokens?.length} max={999}>
                             <ExpandMore
                                 expand={expanded}
                                 onClick={handleExpandClick}
