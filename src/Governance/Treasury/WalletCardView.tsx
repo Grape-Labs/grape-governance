@@ -1130,7 +1130,7 @@ export default function WalletCardView(props:any) {
                 </Tooltip>
             }
 
-            {nativeNftTokens && nativeNftTokens.length > 0 &&
+            {((nativeNftTokens && nativeNftTokens.length > 0) || (rulesNftTokens && rulesNftTokens.length > 0 )) &&
                 <Tooltip title="Show NFTs">
                     <Badge color="primary" badgeContent={nativeNftTokens.length + +rulesNftTokens?.length} max={999}>
                         <IconButton 
@@ -1146,7 +1146,7 @@ export default function WalletCardView(props:any) {
                 </Tooltip>
             }
             <Grid container justifyContent={'right'} sx={{mr:1}}>
-                {nativeTokens && nativeTokens.length > 0 &&
+                {((nativeTokens && nativeTokens.length > 0) || (rulesTokens && rulesTokens.length > 0)) &&
                 <>
                     <Tooltip title="Show Tokens">
                         <Badge color="primary" badgeContent={nativeTokens.length + +rulesTokens?.length} max={999}>
