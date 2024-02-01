@@ -86,7 +86,7 @@ export function IntegratedGovernanceProposalDialogView(props: any){
     const governanceWallets = props?.governanceWallets;
 
     // HOLDINGS CAN BE PASSED ALONG WITH ALL GOV WALLETS
-
+    
 
     //const [thisitem, setThisItem] = React.useState(props.item);
     const realm = props?.realm;

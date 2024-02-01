@@ -58,7 +58,13 @@ import {
   SelectChangeEvent
 } from '@mui/material';
 
-import { parseMintNaturalAmountFromDecimalAsBN } from '../../../utils/grapeTools/helpers';
+import { 
+    shortenString,
+    isGated,
+    findObjectByGoverningTokenOwner,
+    convertSecondsToLegibleFormat,
+    parseMintNaturalAmountFromDecimalAsBN,
+  } from '../../../utils/grapeTools/helpers';
 
 import { GrapeVerificationSpeedDial } from './GrapeVerificationSpeedDial';
 import { GrapeVerificationDAO } from './GrapeVerificationDAO';
@@ -597,7 +603,7 @@ export default function IntraDAOGrantView(props: any) {
                             </Grid>
                         </Grid>       
                     :
-                        <>{mintAddress}</>
+                        <>{shortenString(mintAddress,5,5)}</>
                     }
                 </>
             )
@@ -690,7 +696,7 @@ export default function IntraDAOGrantView(props: any) {
 
                                                         <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
                                                             <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
-                                                                {item.account.data.parsed.info.mint}
+                                                                {shortenString(item.account.data.parsed.info.mint,5,5)}
                                                             </Typography>
                                                         </Grid>
                                                         </Grid>
@@ -1257,11 +1263,11 @@ export default function IntraDAOGrantView(props: any) {
                         <>
                             {destinationWalletArray.length === 1 ?
                                 <Box
-                                    sx={{ m:2,
+                                    sx={{ m:1,
                                         background: 'rgba(0, 0, 0, 0.2)',
                                         borderRadius: '17px',
                                         overflow: 'hidden',
-                                        p:4
+                                        p:1
                                     }}
                                 >
                                     <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} /> {governance && <GrapeVerificationDAO title={governance ? governance.account.name : null} governanceAddress={daoToJoinAddress} governanceLookup={governanceLookup} address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray} />}</Typography>
@@ -1418,11 +1424,11 @@ export default function IntraDAOGrantView(props: any) {
                 
                 {transactionInstructions && 
                     <Box
-                        sx={{ m:2,
+                        sx={{ m:1,
                             background: 'rgba(0, 0, 0, 0.2)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:4
+                            p:1
                         }}
                     >
                         <Typography variant="h6">Transaction Instructions</Typography>

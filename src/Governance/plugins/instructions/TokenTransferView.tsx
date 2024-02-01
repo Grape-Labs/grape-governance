@@ -50,6 +50,14 @@ import {
   Checkbox
 } from '@mui/material';
 
+import { 
+    shortenString,
+    isGated,
+    findObjectByGoverningTokenOwner,
+    convertSecondsToLegibleFormat,
+  } from '../../../utils/grapeTools/helpers';
+  
+
 import Confetti from 'react-dom-confetti';
 import SolIcon from '../../../components/static/SolIcon';
 import SolCurrencyIcon from '../../../components/static/SolCurrencyIcon';
@@ -110,7 +118,7 @@ export default function TokenTransferView(props: any) {
     const [governanceRulesWallet, setGovernanceRulesWallet] = React.useState(props?.governanceRulesWallet);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
     const [hasBeenCalled, setHasBeenCalled] = React.useState(false);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.pubkey?.toBase58() || governanceWallet?.vault?.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [tokenMap, setTokenMap] = React.useState(null);
@@ -425,7 +433,7 @@ export default function TokenTransferView(props: any) {
                             </Grid>
                         </Grid>       
                     :
-                        <>{mintAddress}</>
+                        <>{shortenString(mintAddress,5,5)}</>
                     }
                 </>
             )
@@ -517,7 +525,7 @@ export default function TokenTransferView(props: any) {
 
                                                         <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
                                                             <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
-                                                                {item.account.data.parsed.info.mint}
+                                                                {shortenString(item.account.data.parsed.info.mint,5,5)}
                                                             </Typography>
                                                         </Grid>
                                                         </Grid>
@@ -762,13 +770,20 @@ export default function TokenTransferView(props: any) {
 
         let solBalance = 0;
         solBalance = await connection.getBalance(new PublicKey(wallet));
-        if (wallet === governanceWallet.vault.pubkey){
-            governanceWallet.solBalance = solBalance;
-            if (pluginType === 5)
-                setTokenMint("So11111111111111111111111111111111111111112");
-                setTokenMaxAmount(governanceWallet.solBalance/10 ** 9)
-        }
 
+        if (wallet === governanceWallet?.vault?.pubkey || wallet === governanceWallet?.nativeTreasuryAddress?.toBase58() || wallet === governanceWallet?.pubkey?.toBase58()){
+            if (governanceWallet?.vault?.pubkey){
+                governanceWallet.solBalance = solBalance;
+                setTokenMaxAmount(governanceWallet.solBalance/10 ** 9)
+            } else{
+                console.log("max: "+governanceWallet.solBalance)
+                setTokenMaxAmount(governanceWallet.solBalance)
+            }
+        }
+        if (pluginType === 5)
+            setTokenMint("So11111111111111111111111111111111111111112");
+
+        console.log("getting parsed tokens: "+wallet);
         const tokenBalance = await connection.getParsedTokenAccountsByOwner(
             new PublicKey(wallet),
             {
@@ -812,8 +827,10 @@ export default function TokenTransferView(props: any) {
     async function getAndUpdateWalletHoldings(){
         try{
             setLoadingWallet(true);
-            const gwToAdd = await fetchWalletHoldings(governanceWallet.vault.pubkey);
-            console.log("fetching rules now");
+            //console.log("fetching rules now rules: "+governanceRulesWallet);
+            //console.log("fetching governanceWallet: "+(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey.toBase58()));
+            const gwToAdd = await fetchWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey.toBase58());
+            //console.log("fetching rules now rules: "+governanceRulesWallet);
             const rwToAdd = await fetchWalletHoldings(governanceRulesWallet);
 
             //governanceWallet.tokens.value = gwToAdd;//[...governanceWallet.tokens.value, ...itemsToAdd];
@@ -1053,11 +1070,11 @@ export default function TokenTransferView(props: any) {
                         <>
                             {destinationWalletArray.length === 1 ?
                                 <Box
-                                    sx={{ m:2,
+                                    sx={{ m:1,
                                         background: 'rgba(0, 0, 0, 0.2)',
                                         borderRadius: '17px',
                                         overflow: 'hidden',
-                                        p:4
+                                        p:1
                                     }}
                                 >
                                     <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} /> <GrapeVerificationDAO governanceAddress={governanceAddress} governanceLookup={governanceLookup} address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray} /></Typography>
@@ -1111,11 +1128,11 @@ export default function TokenTransferView(props: any) {
                                 </Box>
                             :
                                 <Box
-                                    sx={{ m:2,
+                                    sx={{ m:1,
                                         background: 'rgba(0, 0, 0, 0.2)',
                                         borderRadius: '17px',
                                         overflow: 'hidden',
-                                        p:4
+                                        p:1
                                     }}
                                 >
                                     <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}/> <GrapeVerificationDAO governanceAddress={governanceAddress} governanceLookup={governanceLookup} address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray}  /></Typography>

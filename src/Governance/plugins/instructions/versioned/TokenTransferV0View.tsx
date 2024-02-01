@@ -1103,11 +1103,11 @@ export default function TokenTransferV0View(props: any) {
                         <>
                             {destinationWalletArray.length === 1 ?
                                 <Box
-                                    sx={{ m:2,
+                                    sx={{ m:1,
                                         background: 'rgba(0, 0, 0, 0.2)',
                                         borderRadius: '17px',
                                         overflow: 'hidden',
-                                        p:4
+                                        p:1
                                     }}
                                 >
                                     <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} /> <GrapeVerificationDAO governanceAddress={governanceAddress} governanceLookup={governanceLookup} address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray} /></Typography>
@@ -1161,11 +1161,11 @@ export default function TokenTransferV0View(props: any) {
                                 </Box>
                             :
                                 <Box
-                                    sx={{ m:2,
+                                    sx={{ m:1,
                                         background: 'rgba(0, 0, 0, 0.2)',
                                         borderRadius: '17px',
                                         overflow: 'hidden',
-                                        p:4
+                                        p:1
                                     }}
                                 >
                                     <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}/> <GrapeVerificationDAO governanceAddress={governanceAddress} governanceLookup={governanceLookup} address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray}  /></Typography>
@@ -1266,11 +1266,11 @@ export default function TokenTransferV0View(props: any) {
                 
                 {transactionInstructions && 
                     <Box
-                        sx={{ m:2,
+                        sx={{ m:1,
                             background: 'rgba(0, 0, 0, 0.2)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:4
+                            p:1
                         }}
                     >
                         <Typography variant="h6">Transaction Instructions</Typography>

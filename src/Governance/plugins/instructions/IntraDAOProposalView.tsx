@@ -842,11 +842,11 @@ export default function IntraDAOProposalView(props: any) {
             {(daoToParticipateAddress) ?
                 <>  
                     <Box
-                        sx={{ m:2,
+                        sx={{ m:1,
                             background: 'rgba(0, 0, 0, 0.2)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:4
+                            p:1
                         }}
                     >
                         <Typography variant="h6">Preview/Summary</Typography>

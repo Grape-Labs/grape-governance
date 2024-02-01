@@ -788,7 +788,7 @@ export default function WalletCardView(props:any) {
             totalVal+=stakeAccountVal;
             setTotalWalletValue(totalVal);
             rulesWallet.walletValue = totalVal;
-            rulesWallet.walletSolValue = solAccountVal;
+            rulesWallet.solBalance = solAccountVal;
 
             const newGovernanceObject = {
                 address: walletAddress,
