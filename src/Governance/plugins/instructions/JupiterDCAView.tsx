@@ -5,6 +5,7 @@ import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddres
 //import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
 import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 import moment from "moment";
+import axios from "axios";
 
 import { CloseDCAParams, CreateDCAParams, DCA, type DepositParams, type WithdrawParams, Network } from '@jup-ag/dca-sdk';
 
@@ -768,6 +769,40 @@ export default function JupiterDCAView(props: any) {
         });
     }
 
+    async function getTokenList(){
+        const uri = `https://token.jup.ag/strict`;
+        
+        return axios.get(uri, {
+                headers: {
+                //    'x-api-key': SHYFT_KEY
+                }
+                })
+            .then(response => {
+                if (response?.data){
+                    const tokenList = response.data;
+                    console.log("tokenList: "+JSON.stringify(tokenList))
+                    for (var item of tokenList){
+                        // fix to push only what we have not already added
+                        availableTokens.push({
+                            mint:item.address,
+                            name:item.name,//item.symbol,
+                            decimals:item.decimals,
+                            logo:item.logoURI
+                        
+                        });
+                        //return response;
+                    }
+                }
+                return null
+            })
+            .catch(error => 
+                {   
+                    // revert to RPC
+                    console.error(error);
+                    return null;
+                });
+    }
+
     async function getAndUpdateWalletHoldings(wallet:string){
         try{
             //setLoadingWallet(true);
@@ -814,8 +849,11 @@ export default function JupiterDCAView(props: any) {
     }
 
     React.useEffect(() => {
-        if (governanceWallet && !consolidatedGovernanceWallet) 
+        if (governanceWallet && !consolidatedGovernanceWallet){
+
             getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
+            getTokenList();
+        }
     }, [governanceWallet, consolidatedGovernanceWallet]);
 
     React.useEffect(() => { 
