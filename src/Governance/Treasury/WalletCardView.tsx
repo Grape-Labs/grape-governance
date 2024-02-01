@@ -24,6 +24,10 @@ import {
   } from '../../utils/grapeTools/helpers';
 
 import {
+    Accordion,
+    AccordionActions,
+    AccordionSummary,
+    AccordionDetails,
     Typography,
     Card,
     CardHeader,
@@ -66,6 +70,12 @@ import {
     Step,
     StepButton,
     ListItemIcon,
+    SwipeableDrawer,
+    SpeedDial,
+    SpeedDialIcon,
+    SpeedDialAction,
+    Backdrop,
+    Popper,
   } from '@mui/material/';
 
 import { 
@@ -112,6 +122,17 @@ const ExpandMore = styled((props: ExpandMoreProps) => {
   transition: theme.transitions.create('transform', {
     duration: theme.transitions.duration.shortest,
   }),
+}));
+
+const CustomAccordionSummary = styled(AccordionSummary)(({ theme }) => ({
+    height: 10, // Set desired height
+    alignItems: 'flex-end', // Align text to bottom
+    '& .MuiAccordionSummary-expandIcon': {
+      marginLeft: 'auto', // Move expand icon to the right
+    },
+    '& .MuiTypography-root': {
+      marginRight: theme.spacing(1), // Optional: Add some margin to the right
+    },
 }));
 
 export interface DialogTitleProps {
@@ -845,6 +866,7 @@ export default function WalletCardView(props:any) {
     const handleExpandPropsClick = () => {
         setExpandedProps(!expandedProps);
     }
+
     
     return (
         <>
@@ -1203,91 +1225,172 @@ export default function WalletCardView(props:any) {
                             //.sort((a:any,b:any) => (b.balance - a.balance))
                             .map((item: any,key:number) => (   
                                 <>
-                                <ListItem
-                                    secondaryAction={
-                                        <Box sx={{textAlign:'right'}}>
-                                            <Box>
-                                                <IntegratedGovernanceProposalDialogView 
-                                                    //governanceAddress={governanceAddress}
-                                                    governanceRulesWallet={new PublicKey(rulesWalletAddress)}
-                                                    //governingTokenMint={thisitem.account.governingTokenMint}
-                                                    //proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                                    //payerWallet={publicKey}
-                                                    //governanceLookup={governanceLookup}
-                                                    //editProposalAddress={thisitem.pubkey}
-                                                    //setReload={setReload}
+                                    
+                                    <ListItem
+                                        secondaryAction={
+                                            <Box sx={{textAlign:'right'}}>
+                                                <Box>
+                                                    <IntegratedGovernanceProposalDialogView 
+                                                        //governanceAddress={governanceAddress}
+                                                        governanceRulesWallet={new PublicKey(rulesWalletAddress)}
+                                                        //governingTokenMint={thisitem.account.governingTokenMint}
+                                                        //proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                        //payerWallet={publicKey}
+                                                        //governanceLookup={governanceLookup}
+                                                        //editProposalAddress={thisitem.pubkey}
+                                                        //setReload={setReload}
 
-                                                    governanceWallets={governanceWallets}
-                                                    useButton={3} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
-                                                    useButtonText={
-                                                        item.balance.toLocaleString()
-                                                    }
-                                                    title="Send"
-                                                    usePlugin={4}
-                                                />
+                                                        governanceWallets={governanceWallets}
+                                                        useButton={3} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
+                                                        useButtonText={
+                                                            item.balance.toLocaleString()
+                                                        }
+                                                        title="Send"
+                                                        usePlugin={4}
+                                                    />
+                                                </Box>
+                                                <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                                {usdcValue ? 
+                                                    <>{usdcValue[item.address] ? 
+                                                        <>${((item.balance * usdcValue[item.address]?.price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
+                                                        :<></>
+                                                    }</>
+                                                :<></>}</Typography>
                                             </Box>
-                                            <Typography variant="caption" sx={{color:'#919EAB'}}>
-                                            {usdcValue ? 
-                                                <>{usdcValue[item.address] ? 
-                                                    <>${((item.balance * usdcValue[item.address]?.price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
-                                                    :<></>
-                                                }</>
-                                            :<></>}</Typography>
-                                        </Box>
-                                    }
-                                    key={key}
-                                >
-                                    <ListItemAvatar>
-                                        <Avatar
-                                            src={item.info.image}
+                                        }
+                                        key={key}
+                                    >
+                                        <ListItemAvatar>
+                                            <Avatar
+                                                src={item.info.image}
+                                            >
+                                            </Avatar>
+                                        </ListItemAvatar>
+                                        <ListItemText 
+                                            primary={
+                                                <CopyToClipboard text={item.address} onCopy={handleCopy}>
+                                                    <Button 
+                                                        color={'inherit'} 
+                                                        variant='text' 
+                                                        sx={{m:0,
+                                                            p:0,
+                                                            mintWidth:'' , 
+                                                                '&:hover .MuiSvgIcon-root': {
+                                                                    opacity: 1,
+                                                                },
+                                                            }}
+                                                        endIcon={
+                                                        <FileCopyIcon 
+                                                            fontSize={'small'} 
+                                                            sx={{
+                                                                color:'rgba(255,255,255,0.25)',
+                                                                pr:1,
+                                                                opacity: 0,
+                                                                fontSize:"10px"}} />
+                                                        }
+                                                        
+                                                    >
+                                                        <Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>
+                                                    </Button>
+                                                </CopyToClipboard>
+                                            }
+                                            secondary={
+                                                <>
+                                                    <Typography variant="caption">
+                                                        {usdcValue ? 
+                                                            <>{usdcValue[item.address] ? 
+                                                                <>${usdcValue[item.address]?.price.toFixed(6)}</>
+                                                                :<></>
+                                                            }</>
+                                                        :<></>}</Typography>
+                                                    {/*
+                                                    <Typography variant="caption">ATA {shortenString(item.associated_account,5,5)}</Typography>
+                                                    */}
+                                                </>
+                                            }
+                                            />
+                                    </ListItem>
+
+                                        {/*
+                                        <Accordion 
+                                            //expanded={true}
+                                            sx={{p:0,m:0,border:'none',
+                                                minHeight:0,
+                                                '& .MuiAccordion-root': {
+                                                    borderTop: 0,
+                                                  },                                        
+                                            }}
                                         >
-                                        </Avatar>
-                                    </ListItemAvatar>
-                                    <ListItemText 
-                                        primary={
-                                            <CopyToClipboard text={item.address} onCopy={handleCopy}>
-                                                <Button 
-                                                    color={'inherit'} 
-                                                    variant='text' 
-                                                    sx={{m:0,
-                                                        p:0,
-                                                        mintWidth:'' , 
-                                                            '&:hover .MuiSvgIcon-root': {
-                                                                opacity: 1,
-                                                            },
-                                                        }}
-                                                    endIcon={
-                                                    <FileCopyIcon 
-                                                        fontSize={'small'} 
-                                                        sx={{
-                                                            color:'rgba(255,255,255,0.25)',
-                                                            pr:1,
-                                                            opacity: 0,
-                                                            fontSize:"10px"}} />
-                                                    }
+                                            <CustomAccordionSummary aria-controls="panel-content">
+                                                <Typography sx={{fontSize:'10px'}}>Expand</Typography>
+                                            </CustomAccordionSummary>
+                                            <AccordionDetails>
+                                                <Typography variant='caption'>
+                                                    Address: 
+                                                    <CopyToClipboard text={item.address} onCopy={handleCopy}>
+                                                            <Button 
+                                                                color={'inherit'} 
+                                                                variant='text' 
+                                                                sx={{m:0,
+                                                                    ml:1,
+                                                                    p:0,
+                                                                    mintWidth:'' , 
+                                                                        '&:hover .MuiSvgIcon-root': {
+                                                                            opacity: 1,
+                                                                        },
+                                                                    }}
+                                                                endIcon={
+                                                                <FileCopyIcon 
+                                                                    fontSize={'small'} 
+                                                                    sx={{
+                                                                        color:'rgba(255,255,255,0.25)',
+                                                                        pr:1,
+                                                                        opacity: 0,
+                                                                        fontSize:"10px"}} />
+                                                                }
+                                                                
+                                                            >
+                                                        {shortenString(item.address,5,5)}
+                                                        </Button>
+                                                    </CopyToClipboard><br/>
+                                                    ATA: 
+                                                        <CopyToClipboard text={item.associated_account} onCopy={handleCopy}>
+                                                            <Button 
+                                                                color={'inherit'} 
+                                                                variant='text' 
+                                                                sx={{m:0,
+                                                                    ml:1,
+                                                                    p:0,
+                                                                    mintWidth:'' , 
+                                                                        '&:hover .MuiSvgIcon-root': {
+                                                                            opacity: 1,
+                                                                        },
+                                                                    }}
+                                                                endIcon={
+                                                                <FileCopyIcon 
+                                                                    fontSize={'small'} 
+                                                                    sx={{
+                                                                        color:'rgba(255,255,255,0.25)',
+                                                                        pr:1,
+                                                                        opacity: 0,
+                                                                        fontSize:"10px"}} />
+                                                                }
+                                                                
+                                                            >
+                                                        {shortenString(item.associated_account,5,5)}
+                                                        </Button>
+                                                    </CopyToClipboard><br/>
+                                                    Name: {item.info.name}<br/>
+                                                    Symbol: {item.info.symbol}<br/>
+                                                    Decimals: {item.info.decimals}
                                                     
-                                                >
-                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>
-                                                </Button>
-                                            </CopyToClipboard>
-                                        }
-                                        secondary={
-                                            <>
-                                                <Typography variant="caption">
-                                                    {usdcValue ? 
-                                                        <>{usdcValue[item.address] ? 
-                                                            <>${usdcValue[item.address]?.price.toFixed(6)}</>
-                                                            :<></>
-                                                        }</>
-                                                    :<></>}</Typography>
-                                                {/*
-                                                <Typography variant="caption">ATA {shortenString(item.associated_account,5,5)}</Typography>
-                                                */}
-                                            </>
-                                        }
-                                        />
-                                </ListItem>
-                                {key+1 < nativeTokens.length && <Divider variant="inset" light component="li" />}
+                                                </Typography>
+                                            </AccordionDetails>
+                                        </Accordion> 
+                                    */}
+                                        {key+1 < nativeTokens.length && <Divider variant="inset" light component="li" />}
+                                    
+                                
                                 </>
                                 
                             ))

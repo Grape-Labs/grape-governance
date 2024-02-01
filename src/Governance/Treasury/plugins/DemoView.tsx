@@ -55,6 +55,7 @@ import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 export interface DialogTitleProps {
     id: string;
@@ -147,7 +148,7 @@ export default function DemoExtensionView(props: any){
                 <ListItemIcon>
                     <AddCircleOutlineIcon fontSize="small" />
                 </ListItemIcon>
-                    Extension
+                    Extensions
                 </MenuItem>
             </Tooltip>
             
