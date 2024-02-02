@@ -106,6 +106,13 @@ export default function DemoExtensionView(props: any){
     const title = props?.title || "Proposal";
     const realm = props?.realm;
     const governanceNativeWallet = props?.governanceNativeWallet;
+
+    const handleCloseExtMenu = props?.handleCloseExtMenu;
+    const expandedLoader = props?.expandedLoader;
+    const setExpandedLoader = props?.setExpandedLoader;
+    const instructions = props?.instructions;
+    const setInstructions = props?.setInstructions;
+
     const wallet = useWallet();
 
     const [loading, setLoading] = React.useState(false);
@@ -125,9 +132,10 @@ export default function DemoExtensionView(props: any){
         },
         [enqueueSnackbar]
     );
-
+        
     const handleCloseDialog = () => {
         setPropOpen(false);
+        handleCloseExtMenu();
     }
 
     const handleClickOpen = () => {
@@ -136,11 +144,15 @@ export default function DemoExtensionView(props: any){
 
     const handleClose = () => {
         setPropOpen(false);
+        handleCloseExtMenu();
     };
 
-    
+    const handleProposalIx = async() => {
+        setPropOpen(false);
+        setExpandedLoader(true);
+        handleCloseExtMenu();
+    }
 
-    
     return (
         <>
             <Tooltip title="Extensions" placement="right">

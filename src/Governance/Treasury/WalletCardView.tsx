@@ -23,6 +23,7 @@ import {
     GOVERNANCE_STATE,
   } from '../../utils/grapeTools/helpers';
 
+import { green } from '@mui/material/colors';
 import {
     Accordion,
     AccordionActions,
@@ -70,6 +71,7 @@ import {
     Step,
     StepButton,
     ListItemIcon,
+    Stack,
   } from '@mui/material/';
 
 import { 
@@ -140,7 +142,8 @@ export default function WalletCardView(props:any) {
     const [expandedNft, setExpandedNft] = React.useState(false);
     const [expandedStake, setExpandedStake] = React.useState(false);
     const [expandedProps, setExpandedProps] = React.useState(false);
-    
+    const [loaderSuccess, setLoaderSuccess] = React.useState(false);
+    const timer = React.useRef<number>();
     // on direct links handle the event that the rules are not being sent over and only the wallet is sent for rules
     const rulesWallet = props?.rulesWallet;
     
@@ -177,6 +180,8 @@ export default function WalletCardView(props:any) {
     const [loadingPrices, setLoadingPrices] = React.useState(false);
     const [isCopied, setIsCopied] = React.useState(false);
 
+    const [expandedLoader, setExpandedLoader] = React.useState(false);
+    const [instructions, setInstructions] = React.useState(false);
     const [openDialog, setOpenDialog] = React.useState(false);
     
     const handleClickOpenDialog = (event:any) => {
@@ -852,6 +857,31 @@ export default function WalletCardView(props:any) {
         setExpandedProps(!expandedProps);
     }
 
+    React.useEffect(() => { 
+        
+        if (expandedLoader && !loaderSuccess){ // remove to add simulatipon and proposal instruction building here
+                setLoaderSuccess(false);
+                //setLoading(true);
+                timer.current = window.setTimeout(() => {
+                    setLoaderSuccess(true);
+                    //setLoading(false);
+                }, 2000);
+        }
+        if (expandedLoader && loaderSuccess){
+            timer.current = window.setTimeout(() => {
+                setExpandedLoader(false);
+                setLoaderSuccess(false);
+            }, 4000);
+        }
+    }, [expandedLoader, loaderSuccess]);
+
+    React.useEffect(() => {
+        return () => {
+          clearTimeout(timer.current);
+        };
+    }, []);
+    
+
     function TokenExpandComponent(props:any) {
         const item = props?.item;
         const type = props?.type;
@@ -1021,7 +1051,7 @@ export default function WalletCardView(props:any) {
                 </ListItem>
             </>
         )
-      } 
+    } 
 
     
     return (
@@ -1277,7 +1307,13 @@ export default function WalletCardView(props:any) {
             :
                 <>
                     <ExtensionsMenuView 
-                        governanceNativeWallet={walletAddress}
+                        
+                        governanceNativeWallet={walletAddress} 
+                        expandedLoader={expandedLoader} 
+                        setExpandedLoader={setExpandedLoader}
+                        instructions={instructions}
+                        setInstructions={setInstructions}
+
                     />
                 </>
             }
@@ -1348,6 +1384,37 @@ export default function WalletCardView(props:any) {
                 }
             </Grid>
         </CardActions>
+
+        <Collapse in={expandedLoader} timeout="auto" unmountOnExit>
+            <List sx={{ width: '100%' }} component="div" disablePadding>
+                <Divider light component="li" />
+                <ListItem>
+                    {loaderSuccess ?
+                        <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2,textAlign:'center'}}>
+                            <Grid item xs={12}>
+                                <CheckCircleIcon fontSize="large" color="success" />
+                            </Grid>
+                            <Grid item xs={12}>
+                                <Typography variant="caption" sx={{ color: green[500] }}>Tx Simulated for Proposal</Typography>
+                            </Grid>
+                            <Grid item xs={12}>
+                                <Typography variant="caption">A complete Governance Wallet Experience with ❤️ by Grape #OPOS</Typography>
+                            </Grid>
+                        </Grid>
+                    :
+                        <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2,textAlign:'center'}}>
+                            <Grid item xs={12}>
+                                <CircularProgress color="success" />
+                            </Grid>
+                            <Grid item xs={12}>
+                                <Typography variant="caption" sx={{ color: green[500] }}>Simulating Wallet Proposal Tx</Typography>
+                            </Grid>
+                        </Grid>
+                    }
+                </ListItem>
+            </List>
+        </Collapse>
+
         <Collapse in={expanded} timeout="auto" unmountOnExit>
             {(loading || loadingPrices) ?
                 <Skeleton variant="rounded" width={'100%'} height={50} />

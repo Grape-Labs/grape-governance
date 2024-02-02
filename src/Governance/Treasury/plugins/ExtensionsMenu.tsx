@@ -56,14 +56,22 @@ import DemoExtensionView from './DemoView';
 
 export default function ExtensionsMenuView(props: any) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
+  //const open = Boolean(anchorEl);
+  const [open, setOpen] = React.useState(false);
   const governanceNativeWallet = props?.governanceNativeWallet;
+  const expandedLoader = props?.expandedLoader;
+  const setExpandedLoader = props?.setExpandedLoader;
+  const instructions = props?.instructions;
+  const setInstructions = props?.setInstructions;
+  
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
+    setOpen(true);
   };
   const handleClose = () => {
     setAnchorEl(null);
+    setOpen(false);
   };
   return (
     <React.Fragment>
@@ -114,10 +122,20 @@ export default function ExtensionsMenuView(props: any) {
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
         <ClaimExtensionView
+            handleCloseExtMenu={handleClose}
             governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
         />
         <DemoExtensionView
+            handleCloseExtMenu={handleClose}
             governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
         />
       </Menu>
     </React.Fragment>
