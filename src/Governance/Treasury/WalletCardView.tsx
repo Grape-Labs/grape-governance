@@ -877,7 +877,7 @@ export default function WalletCardView(props:any) {
                             <Collapse in={expanded} timeout="auto" unmountOnExit>
                                 {(type && type === 1) ?
                                     <>
-                                        <Grid item xs={12}>
+                                        <Grid item xs={12} sx={{p:1,m:1}}>
                                             <Typography variant='caption'>
                                                 Description: {item.content.metadata.description}<br/>
                                                 Standard: {item.content.metadata.token_standard}<br/>
@@ -915,10 +915,10 @@ export default function WalletCardView(props:any) {
                                                 <br/>
                                                 </>}
                                                 Ownership Model: {item.ownership.ownership_model}<br/>
-                                                {item.grouping?.collection &&
+                                                {item.grouping?.group_value &&
                                                 <>
                                                 Collection:
-                                                <CopyToClipboard text={item.grouping.collection} onCopy={handleCopy}>
+                                                <CopyToClipboard text={item.grouping.group_value} onCopy={handleCopy}>
                                                         <Button 
                                                             color={'inherit'} 
                                                             variant='text' 
@@ -941,7 +941,7 @@ export default function WalletCardView(props:any) {
                                                             }
                                                             
                                                         >
-                                                    {shortenString(item.grouping.collection,5,5)}
+                                                    {shortenString(item.grouping.group_value,5,5)}
                                                     </Button>
                                                 </CopyToClipboard><br/>
                                                 </>
