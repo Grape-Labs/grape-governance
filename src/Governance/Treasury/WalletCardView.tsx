@@ -861,13 +861,13 @@ export default function WalletCardView(props:any) {
         return (
             <>
                 <ListItem
-                    sx={{m:0,mt:'-20px',p:0}}
+                    sx={{m:0,mt:'-30px',p:0}}
                 >   
                         <Grid container justifyContent={'center'} alignItems={'center'}>
                             <Grid item xs={12}>
                                 <Tooltip title="Show More Info">
                                     <IconButton 
-                                        sx={{m:0,p:0,color:'rgba(255,255,255,0.02)'}}
+                                        sx={{m:0,mt:'-37px',ml:'23px',p:0,color:'rgba(255,255,255,0.02)'}}
                                         onClick={() => setExpanded(!expanded)}
                                     >
                                         <MoreHorizIcon />
@@ -1315,7 +1315,7 @@ export default function WalletCardView(props:any) {
 
             {((nativeNftTokens && nativeNftTokens.length > 0) || (rulesNftTokens && rulesNftTokens.length > 0 )) &&
                 <Tooltip title="Show NFTs">
-                    <Badge color="primary" badgeContent={nativeNftTokens.length + +rulesNftTokens?.length} max={999}>
+                    <Badge color="primary" badgeContent={+nativeNftTokens?.length + +rulesNftTokens?.length} max={999}>
                         <IconButton 
                             //expand={expandedNft}
                             onClick={handleExpandNftClick}
