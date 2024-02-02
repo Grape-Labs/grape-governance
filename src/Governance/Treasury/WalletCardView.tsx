@@ -880,7 +880,10 @@ export default function WalletCardView(props:any) {
                                         <Grid item xs={12} sx={{p:1,m:1}}>
                                             <Typography variant='caption'>
                                                 Description: {item.content.metadata.description}<br/>
+                                                {item.content.metadata?.token_standard && <>
                                                 Standard: {item.content.metadata.token_standard}<br/>
+                                                </>
+                                                }
                                                 Compressed: {item.compression.compressed ? `Yes`:`No`}<br/>
                                                 Royalties: {item.royalty.percent}% {item.compression.royalty_model}<br/>
                                                 {item.ownership?.delegate &&
@@ -915,10 +918,10 @@ export default function WalletCardView(props:any) {
                                                 <br/>
                                                 </>}
                                                 Ownership Model: {item.ownership.ownership_model}<br/>
-                                                {item.grouping?.group_value &&
+                                                {(item?.grouping && item.grouping.length > 0) &&
                                                 <>
                                                 Collection:
-                                                <CopyToClipboard text={item.grouping.group_value} onCopy={handleCopy}>
+                                                <CopyToClipboard text={item.grouping[0].group_value} onCopy={handleCopy}>
                                                         <Button 
                                                             color={'inherit'} 
                                                             variant='text' 
@@ -941,7 +944,7 @@ export default function WalletCardView(props:any) {
                                                             }
                                                             
                                                         >
-                                                    {shortenString(item.grouping.group_value,5,5)}
+                                                    {shortenString(item.grouping[0].group_value,5,5)}
                                                     </Button>
                                                 </CopyToClipboard><br/>
                                                 </>
