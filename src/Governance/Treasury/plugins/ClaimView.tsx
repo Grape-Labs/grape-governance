@@ -361,7 +361,7 @@ export default function ClaimExtensionView(props: any){
                             {loading ?
                                 <>Checking...</>
                             :
-                                <>Check Claim Status</>
+                                <>Check</>
                             }
                             
                         </Button>
@@ -385,7 +385,7 @@ export default function ClaimExtensionView(props: any){
                             </>
                             }
                         >
-                            <>Claim Now</>
+                            <>Claim</>
                         </Button>
                         }
                     </DialogActions>
