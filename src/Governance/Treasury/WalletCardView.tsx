@@ -1395,7 +1395,7 @@ export default function WalletCardView(props:any) {
                                 <CheckCircleIcon fontSize="large" color="success" />
                             </Grid>
                             <Grid item xs={12}>
-                                <Typography variant="caption" sx={{ color: green[500] }}>Tx Simulated for Proposal</Typography>
+                                <Typography variant="caption" sx={{ color: green[500] }}>Proposal Tx Created</Typography>
                             </Grid>
                             <Grid item xs={12}>
                                 <Typography variant="caption">A complete Governance Wallet Experience with ❤️ by Grape #OPOS</Typography>
@@ -1407,7 +1407,7 @@ export default function WalletCardView(props:any) {
                                 <CircularProgress color="success" />
                             </Grid>
                             <Grid item xs={12}>
-                                <Typography variant="caption" sx={{ color: green[500] }}>Simulating Wallet Proposal Tx</Typography>
+                                <Typography variant="caption" sx={{ color: green[500] }}>Generating Proposal Tx</Typography>
                             </Grid>
                         </Grid>
                     }
