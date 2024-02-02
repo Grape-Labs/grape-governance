@@ -43,7 +43,7 @@ import {
 
 import { useSnackbar } from 'notistack';
 
-import DiscordIcon from '../../../components/static/DiscordIcon';
+import GetAppIcon from '@mui/icons-material/GetApp';
 import ParaglidingIcon from '@mui/icons-material/Paragliding';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
@@ -103,8 +103,17 @@ export default function ClaimExtensionView(props: any){
     const governanceAddress = props.governanceAddress;
     const title = props?.title || "Proposal";
     const realm = props?.realm;
+    
+    const handleCloseExtMenu = props?.handleCloseExtMenu;
+    const expandedLoader = props?.expandedLoader;
+    const setExpandedLoader = props?.setExpandedLoader;
+    const instructions = props?.instructions;
+    const setInstructions = props?.setInstructions;
+    
     const governanceNativeWallet = props?.governanceNativeWallet;
     const wallet = useWallet();
+
+
 
     const [claimTokenAddress, setClaimTokenAddress] = React.useState(null);
     const [claimableAmount, setClaimableAmount] = React.useState(null);
@@ -130,6 +139,7 @@ export default function ClaimExtensionView(props: any){
 
     const handleCloseDialog = () => {
         setPropOpen(false);
+        handleCloseExtMenu();
     }
 
     const handleClickOpen = () => {
@@ -138,7 +148,14 @@ export default function ClaimExtensionView(props: any){
 
     const handleClose = () => {
         setPropOpen(false);
+        handleCloseExtMenu();
     };
+
+    const handleProposalIx = async() => {
+        setPropOpen(false);
+        setExpandedLoader(true);
+        handleCloseExtMenu();
+    }
 
     const getMintFromApi = async(tokenAddress: PublicKey) => {
         
@@ -348,6 +365,29 @@ export default function ClaimExtensionView(props: any){
                             }
                             
                         </Button>
+                        {(claimableAmount && claimableAmount > 0) &&
+                        <Button 
+                            disabled={!claimTokenAddress && !loading}
+                            autoFocus 
+                            onClick={handleProposalIx}
+                            sx={{
+                                '&:hover .MuiSvgIcon-root.claimNowIcon': {
+                                    color:'rgba(255,255,255,0.90)'
+                                }
+                            }}
+                            startIcon={
+                            <>
+                                <GetAppIcon 
+                                    className="claimNowIcon"
+                                    sx={{
+                                        color:'rgba(255,255,255,0.25)',
+                                        fontSize:"14px!important"}} />
+                            </>
+                            }
+                        >
+                            <>Claim Now</>
+                        </Button>
+                        }
                     </DialogActions>
                     
                 </DialogContent> 
