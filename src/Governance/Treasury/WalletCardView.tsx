@@ -1219,24 +1219,33 @@ export default function WalletCardView(props:any) {
                                 secondaryAction={
                                     <Box sx={{textAlign:'right'}}>
                                         <Box>
-                                            <IntegratedGovernanceProposalDialogView 
-                                                //governanceAddress={governanceAddress}
-                                                governanceRulesWallet={new PublicKey(rulesWalletAddress)}
-                                                //governingTokenMint={thisitem.account.governingTokenMint}
-                                                //proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                                //payerWallet={publicKey}
-                                                //governanceLookup={governanceLookup}
-                                                //editProposalAddress={thisitem.pubkey}
-                                                //setReload={setReload}
-                                                
-                                                governanceWallets={governanceWallets}
-                                                useButton={2} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
-                                                useButtonText={
-                                                    (nativeSol && rulesSol) ? `${(nativeSol+rulesSol).toFixed(6)}`
-                                                    :`Send`}
-                                                title="Send"
-                                                usePlugin={5}
-                                            />
+                                            {(nativeSol && rulesSol && nativeSol > 0 && rulesSol > 0 ) ?
+                                                <IntegratedGovernanceProposalDialogView 
+                                                    //governanceAddress={governanceAddress}
+                                                    governanceRulesWallet={new PublicKey(rulesWalletAddress)}
+                                                    //governingTokenMint={thisitem.account.governingTokenMint}
+                                                    //proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                    //payerWallet={publicKey}
+                                                    //governanceLookup={governanceLookup}
+                                                    //editProposalAddress={thisitem.pubkey}
+                                                    //setReload={setReload}
+                                                    
+                                                    governanceWallets={governanceWallets}
+                                                    useButton={2} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
+                                                    useButtonText={
+                                                        (nativeSol && rulesSol) ? `${(nativeSol+rulesSol).toFixed(6)}`
+                                                        :`Send`}
+                                                    title="Send"
+                                                    usePlugin={5}
+                                                />
+                                            :
+                                                <>
+                                                    <Typography variant={`h5`} sx={{color:'white'}}>
+                                                        {(nativeSol || rulesSol) ?
+                                                            `${(+nativeSol + +rulesSol).toFixed(6)}`:`-`}
+                                                        </Typography>
+                                                </>
+                                            }
                                         </Box>
                                         <Typography variant="caption" sx={{color:'#919EAB'}}>
                                             {usdcValue ? 
