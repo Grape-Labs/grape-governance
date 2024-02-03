@@ -38,7 +38,7 @@ const BootstrapDialogTitle = (props: DialogTitleProps) => {
     const { children, onClose, ...other } = props;
   
     return (
-      <DialogTitle sx={{ m: 0, p: 2 }} {...other}>
+      <DialogTitle sx={{ m: 0, p: 1 }} {...other}>
         {children}
         {onClose ? (
           <IconButton
@@ -46,8 +46,8 @@ const BootstrapDialogTitle = (props: DialogTitleProps) => {
             onClick={onClose}
             sx={{
               position: 'absolute',
-              right: 8,
-              top: 8,
+              right: 2,
+              top: 2,
               color: (theme) => theme.palette.grey[500],
             }}
           >
