@@ -1351,7 +1351,7 @@ export default function WalletCardView(props:any) {
 
             {((nativeNftTokens && nativeNftTokens.length > 0) || (rulesNftTokens && rulesNftTokens.length > 0 )) &&
                 <Tooltip title="Show NFTs">
-                    <Badge color="primary" badgeContent={+nativeNftTokens?.length + +rulesNftTokens?.length} max={999}>
+                    <Badge color="primary" badgeContent={nativeNftTokens?.length + rulesNftTokens?.length} max={999}>
                         <IconButton 
                             //expand={expandedNft}
                             onClick={handleExpandNftClick}
@@ -1368,7 +1368,7 @@ export default function WalletCardView(props:any) {
                 {((nativeTokens && nativeTokens.length > 0) || (rulesTokens && rulesTokens.length > 0)) &&
                 <>
                     <Tooltip title="Show Tokens">
-                        <Badge color="primary" badgeContent={nativeTokens?.length + +rulesTokens?.length} max={999}>
+                        <Badge color="primary" badgeContent={nativeTokens?.length + rulesTokens?.length} max={999}>
                             <ExpandMore
                                 expand={expanded}
                                 onClick={handleExpandClick}
