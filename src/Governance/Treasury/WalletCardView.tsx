@@ -1115,10 +1115,12 @@ export default function WalletCardView(props:any) {
                 {(loading || loadingPrices) ?
                     <Skeleton variant="rounded" width={150} height={60} sx={{m:1,p:0}} />
                 :
-                    <h1>${
-                        totalWalletValue &&
-                        (totalWalletValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))
-                    }</h1>
+                    <h1>{
+                        totalWalletValue ?
+                        `$${(totalWalletValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}`
+                        :
+                        `-`}
+                    </h1>
 
                     
                 }
