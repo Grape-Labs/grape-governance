@@ -192,7 +192,7 @@ export function GovernanceProposalV2View(props: any){
     const governanceAddress = searchParams.get("governance") || governance || props?.governanceAddress;
     const [thisitem, setThisitem] = React.useState(props?.item);
     const [proposalSignatories, setProposalSignatories] = React.useState(null);
-    const proposalPk = searchParams.get("proposal") || thisitem?.pubkey || proposal;
+    const proposalPk = props?.governanceProposal || thisitem?.pubkey || proposal || searchParams.get("proposal");
     //const [governanceAddress, setGovernanceAddress] = React.useState(props?.governanceAddress);
     const connection = RPC_CONNECTION;
     const [cachedGovernance, setCachedGovernance] = React.useState(props?.cachedGovernance || null);
@@ -1588,7 +1588,7 @@ export function GovernanceProposalV2View(props: any){
             grealm = await getRealmIndexed(governanceAddress);
             //if (!grealm)
             //    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
-
+            //alert("no realm yet")
             realmPk = new PublicKey(grealm.pubkey);
             realmOwner = grealm.owner;
             setRealm(grealm);
