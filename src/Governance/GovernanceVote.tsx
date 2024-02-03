@@ -694,7 +694,7 @@ export function VoteForProposal(props:any){
 
     const loadMemberMap = async() => {
         
-        const programId = new PublicKey(realm.owner);
+        //const programId = new PublicKey(realm.owner);
         //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
         const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null);
         setMemberMap(rawTokenOwnerRecords);

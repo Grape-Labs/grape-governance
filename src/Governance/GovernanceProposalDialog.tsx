@@ -21,6 +21,7 @@ import { useSnackbar } from 'notistack';
  
 import { GovernanceProposalV2View } from './GovernanceProposalV2';
 
+import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
@@ -79,21 +80,22 @@ const GOVERNANCE_STATE = {
 }
 
 export function GovernanceProposalDialog(props: any){
-    const cachedGovernance = props.cachedGovernance;
+    const governanceAddress = props?.governanceAddress;
+    const governanceProposal = props?.governanceProposal;
+    const cachedGovernance = props?.cachedGovernance;
     const isCancelled = props.isCancelled || false;
-    const governanceLookup = props.governanceLookup;
-    const tokenMap = props.tokenMap;
-    const memberMap = props.memberMap;
-    const governanceAddress = props.governanceAddress;
-    const governanceToken = props.governanceToken;
-    const thisitem = props.item;
+    const governanceLookup = props?.governanceLookup;
+    const tokenMap = props?.tokenMap;
+    const memberMap = props?.memberMap;
+    const governanceToken = props?.governanceToken;
+    const thisitem = props?.item;
     const title = props?.title;
     const description = props?.description;
     const state = props?.state;
     const isCouncil = props?.isCouncil;
     const governanceType = props?.governanceType;
     //const [thisitem, setThisItem] = React.useState(props.item);
-    const realm = props.realm;
+    const realm = props?.realm;
     
     const [open, setOpen] = React.useState(false);
     
@@ -159,11 +161,14 @@ export function GovernanceProposalDialog(props: any){
                 </Tooltip>
             :
               <Tooltip title='Get Voting Details for this Proposal'>
-                  <Button 
+                  <IconButton 
                       onClick={handleClickOpen}
-                      sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
-                      <FitScreenIcon />
-                  </Button>
+                      color={'inherit'}
+                      sx={{  }}>
+                      <ZoomOutMapIcon />
+                      {/*
+                      <FitScreenIcon />*/}
+                  </IconButton>
               </Tooltip>
             }
 
@@ -189,6 +194,7 @@ export function GovernanceProposalDialog(props: any){
                         governanceLookup={governanceLookup} 
                         isCancelled={isCancelled} 
                         governanceAddress={governanceAddress} 
+                        governanceProposal={governanceProposal}
                         cachedGovernance={cachedGovernance} 
                         item={thisitem} 
                         realm={realm} 

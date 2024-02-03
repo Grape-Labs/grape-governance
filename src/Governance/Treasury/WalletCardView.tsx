@@ -81,6 +81,7 @@ import {
     getAllTokenOwnerRecordsIndexed,
 } from './../api/queries';
 
+import { GovernanceProposalDialog } from '../GovernanceProposalDialog';
 import ExtensionsMenuView from './plugins/ExtensionsMenu';
 import { IntegratedGovernanceProposalDialogView } from '../IntegratedGovernanceProposal';
 
@@ -1703,6 +1704,10 @@ export default function WalletCardView(props:any) {
                                     secondaryAction={
                                         <Box sx={{textAlign:'right'}}>
                                             <Typography variant="subtitle1" sx={{color:'white'}}>
+                                                
+                                                <GovernanceProposalDialog governanceAddress={governanceAddress} governanceProposal={item?.pubkey.toBase58()} />
+                                                
+                                                {/*
                                                 <Tooltip title="View Proposal">
                                                     <IconButton
                                                         href={item?.pubkey ? `https://governance.so/proposal/${governanceAddress}/${item?.pubkey.toBase58()}` : `#`}
@@ -1712,6 +1717,7 @@ export default function WalletCardView(props:any) {
                                                         <ZoomOutMapIcon />
                                                     </IconButton>
                                                 </Tooltip>
+                                                */}
                                             </Typography>
                                             <Typography variant="caption" sx={{color:'#919EAB'}}>
                                                 {item.account?.signingOffAt ?
