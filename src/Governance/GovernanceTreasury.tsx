@@ -516,7 +516,7 @@ export function GovernanceTreasuryView(props: any) {
 
                         <Box sx={{ p:1}}>
                             <Grid container spacing={0}>
-                                <Grid item xs={12} md={6} lg={3} key={1}>
+                                <Grid item xs={12} md={6} lg={6} key={1}>
                                     <Box
                                         sx={{
                                             borderRadius:'24px',
@@ -528,68 +528,93 @@ export function GovernanceTreasuryView(props: any) {
                                         <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                             <>Treasury</>
                                         </Typography>
-                                        <Tooltip title={<>
-                                                Total Token Value (value does not include NFT floor prices)</>
-                                            }>
-                                            <Button
-                                                color='inherit'
-                                                sx={{
-                                                    borderRadius:'17px'
-                                                }}
-                                            >
-                                                <Grid container
+                                        <Box
+                                            sx={{
+                                                borderRadius: '17px',
+                                                display: 'flex', /* Add this line */
+                                                justifyContent: 'center', /* Add this line */
+                                                alignItems: 'center', /* Add this line */
+                                              }}
+                                        >
+                                            <Tooltip title={<>
+                                                    Total Token Value (value does not include NFT floor prices)</>
+                                                }>
+                                                <Button
+                                                    color='inherit'
                                                     sx={{
-                                                        verticalAlign: 'bottom'}}
-                                                    >
-                                                    <Typography variant="h4">
-                                                        {governanceValue && `$${(Number(governanceValue.reduce((sum, item) => sum + item.totalVal, 0).toFixed(2)).toLocaleString())}`}
-                                                        {/*totalGovernanceValue ? 
-                                                        <>${getFormattedNumberToLocale(totalGovernanceValue.toFixed(2))}</>
-                                                        :
-                                                        <>-</>*/}
-                                                    </Typography>
-                                                </Grid>
-                                            </Button>
-                                        </Tooltip>
+                                                        borderRadius:'17px'
+                                                    }}
+                                                >
+                                                    <Grid container
+                                                        sx={{
+                                                            verticalAlign: 'bottom',
+                                                            textAlign:'center'}}
+                                                        >
+                                                        <Typography variant="h4" sx={{textAlign:'center'}}>
+                                                            {governanceValue && `$${(Number(governanceValue.reduce((sum, item) => sum + item.totalVal, 0).toFixed(2)).toLocaleString())}`}
+                                                            {/*totalGovernanceValue ? 
+                                                            <>${getFormattedNumberToLocale(totalGovernanceValue.toFixed(2))}</>
+                                                            :
+                                                            <>-</>*/}
+                                                        </Typography>
+                                                    </Grid>
+                                                </Button>
+                                            </Tooltip>
+                                        </Box>
                                     </Box>
                                 </Grid>
                                 
-                                <Grid item xs={12} md={6} lg={3} key={1}>
+                                <Grid item xs={12} md={6} lg={6} key={1}>
                                     <Box
                                         sx={{
                                             borderRadius:'24px',
                                             m:2,
                                             p:1,
-                                            background: 'rgba(0, 0, 0, 0.2)'
+                                            background: 'rgba(0, 0, 0, 0.2)',
                                         }}
                                     >
                                         <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                             <>Solana Treasury</>
                                         </Typography>
-                                        <Tooltip title={<>
-                                                Total Value in&nbsp;
-                                                <strong>{governanceValue && `${(Number(governanceValue.reduce((sum, item) => sum + item.totalGovernanceSol, 0).toFixed(2)).toLocaleString())}`}</strong>
-                                                SOL held</>
-                                            }>
-                                            <Button
-                                                color='inherit'
-                                                sx={{
-                                                    borderRadius:'17px'
-                                                }}
-                                            >
-                                                <Grid container
+                                        <Box
+                                            sx={{
+                                                borderRadius: '17px',
+                                                display: 'flex', /* Add this line */
+                                                justifyContent: 'center', /* Add this line */
+                                                alignItems: 'center', /* Add this line */
+                                              }}
+                                        >
+                                            <Tooltip title={<>
+                                                    Total Value in&nbsp;
+                                                    <strong>{governanceValue && `${(Number(governanceValue.reduce((sum, item) => sum + item.totalGovernanceSol, 0).toFixed(2)).toLocaleString())}`}</strong>
+                                                    SOL held</>
+                                                }>
+                                                <Button
+                                                    color='inherit'
                                                     sx={{
-                                                        verticalAlign: 'bottom'}}
-                                                    >
-                                                    <Typography variant="h4">
-                                                        {governanceValue && `$${(Number(governanceValue.reduce((sum, item) => sum + item.solAccountVal, 0).toFixed(2)).toLocaleString())}`}
-                                                    </Typography>
-                                                </Grid>
-                                            </Button>
-                                        </Tooltip>
+                                                        borderRadius: '17px',
+                                                        display: 'flex', /* Add this line */
+                                                        justifyContent: 'center', /* Add this line */
+                                                        alignItems: 'center', /* Add this line */
+                                                    }}
+                                                >
+                                                    <Grid container
+                                                        sx={{
+                                                            verticalAlign: 'bottom'}}
+                                                        >
+                                                            
+                                                            <Typography variant="h4" sx={{textAlign:'center'}}>
+                                                                {governanceValue && `$${(Number(governanceValue.reduce((sum, item) => sum + item.solAccountVal, 0).toFixed(2)).toLocaleString())}`}
+                                                                
+                                                            </Typography>
+                                                        
+                                                    </Grid>
+                                                </Button>
+                                            </Tooltip>
+                                        </Box>
                                     </Box>
                                 </Grid>
-
+                                {/*
                                 <Grid item xs={12} md={6} lg={3} key={1}>
                                     <Box
                                         sx={{
@@ -665,6 +690,7 @@ export function GovernanceTreasuryView(props: any) {
                                         </Tooltip>
                                     </Box>
                                 </Grid>
+                                */}
                             </Grid>
                         </Box>
                             
