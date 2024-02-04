@@ -312,6 +312,13 @@ export function Header(props: any) {
         setFetchType((event.target as HTMLInputElement).value);
       };
 
+    const handleGovernanceSelect = (address:string) => {
+        if (address && address.length >= 40){ // check if publickey){
+            setGovernanceAddress(address);
+            setOpen(false);
+        }
+    }
+
     const navigateToGovernance = () => {
         navigate({pathname: "/"+fetchType+"/"+governanceAddress,},{ replace: true });
     }
@@ -507,7 +514,7 @@ export function Header(props: any) {
                                     sx={{ mt:1,mb:1, backgroundColor:'rgba(255,255,255,0.05)' }}
                                 >
                                     <Autocomplete
-                                        sx={{ minWidth:'25ch',border:'none' }}
+                                        sx={{ minWidth:'25ch',border:'none'}}
                                         disablePortal
                                         size="small"
                                         id="combo-box-demo"
@@ -524,10 +531,11 @@ export function Header(props: any) {
                                             
                                             </Box>
                                         )}
-                                        onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
+                                        onChange={(e, sel) => handleGovernanceSelect(sel?.value)}
                                         renderInput={(params) => 
                                             <TextField 
-                                                {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="" 
+                                                sx={{fontSize:'14px'}}
+                                                {...params} onChange={(e) => handleGovernanceSelect(e.target.value)} label="" 
                                             />
                                         }
                                     />
