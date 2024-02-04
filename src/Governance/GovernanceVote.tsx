@@ -488,6 +488,7 @@ export function VoteForProposal(props:any){
         const programId = new PublicKey(realm.owner);
         
         let rawTokenOwnerRecords = null;
+        
         if (memberMap){
             rawTokenOwnerRecords = memberMap;
         } else{
@@ -501,9 +502,23 @@ export function VoteForProposal(props:any){
         let memberItem = voterRecord || rawTokenOwnerRecords.find(item => 
             (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
             item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
-
-        console.log("memberItem: "+JSON.stringify(memberItem));
         
+            
+        console.log("realm: "+new PublicKey(realm.pubkey).toBase58())
+        console.log("pk: "+publicKey.toBase58() );
+        console.log("realm: "+JSON.stringify(realm));
+        
+        console.log("rawTokenOwnerRecords ("+rawTokenOwnerRecords.length+"): "+JSON.stringify(rawTokenOwnerRecords));
+        console.log("memberItem: "+JSON.stringify(memberItem));
+        console.log("voterRecord: "+JSON.stringify(voterRecord));
+        
+        
+        let memberItemNft = voterRecord || rawTokenOwnerRecords.find(item => 
+            (item.account.governingTokenOwner.toBase58() === publicKey.toBase58()));
+        
+        console.log("memberItemNft: "+JSON.stringify(memberItemNft));
+        
+
         let delegatedItems = delegatedVoterRecord || rawTokenOwnerRecords.filter(item => 
             (item.account?.governanceDelegate?.toBase58() === publicKey.toBase58() && 
             item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));

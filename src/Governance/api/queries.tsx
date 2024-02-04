@@ -472,7 +472,7 @@ function GET_QUERY_MEMBERS(realm:string, realmOwner:string){
 
     return gql `
         query MyQuery {
-            ${programId}_TokenOwnerRecordV2(limit: 5000, where: {realm: {_eq: "${realm}"}}) {
+            ${programId}_TokenOwnerRecordV2(where: {realm: {_eq: "${realm}"}}) {
                 governanceDelegate
                 governingTokenDepositAmount
                 governingTokenMint
@@ -485,7 +485,7 @@ function GET_QUERY_MEMBERS(realm:string, realmOwner:string){
                 version
                 pubkey      
             }
-            ${programId}_TokenOwnerRecordV1(limit:5000, where: {realm: {_eq: "${realm}"}}) {
+            ${programId}_TokenOwnerRecordV1(where: {realm: {_eq: "${realm}"}}) {
                 governanceDelegate
                 governingTokenDepositAmount
                 governingTokenMint
@@ -858,13 +858,45 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
     const programId = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
     if (filterRealm){
-        const allResults = new Array();
+        let allResults = new Array();
 
         try{
-            const { data } = await client.query({ query: GET_QUERY_MEMBERS(filterRealm, programId) });
+            
+            
+            let hasMore = true;
+            // consider how to iterate vs using RPC
+            let finalData = new Array();
+            let x = 0;
+            //while (hasMore){
+                console.log("fetching tokenOwnerRecords: "+x);
+                const { data } = await client.query({ 
+                    query: GET_QUERY_MEMBERS(filterRealm, programId),
+                    variables: { first: 1000, after: x } });
+                
+                if (finalData && finalData.length  > 0){
+                    finalData = [...finalData,...data];
+                }else{
+                    finalData = data;
+                }
+                
+                hasMore = false;
+                if (data[programId+"_TokenOwnerRecordV2"] && data[programId+"_TokenOwnerRecordV2"].length >= 1000){
+                    hasMore = true;
+                    console.log("found more v2");
+                } else if (data[programId+"_TokenOwnerRecordV1"] && data[programId+"_TokenOwnerRecordV1"].length >= 1000) {
+                    hasMore = true;
+                    console.log("found more v1");
+                } else {
+                    hasMore = false;
+                }
+
+                x += 1000;
+            //}
+            
+            //console.log("finalData: "+JSON.stringify(finalData));
             // normalize data
             
-            data[programId+"_TokenOwnerRecordV2"] && data[programId+"_TokenOwnerRecordV2"].map((item) => {
+            finalData[programId+"_TokenOwnerRecordV2"] && finalData[programId+"_TokenOwnerRecordV2"].map((item) => {
                 allResults.push({
                     //owner: new PublicKey(item.owner),
                     pubkey: new PublicKey(item.pubkey),
@@ -884,7 +916,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
                 })
             });
 
-            data[programId+"_TokenOwnerRecordV1"] && data[programId+"_TokenOwnerRecordV1"].map((item) => {
+            finalData[programId+"_TokenOwnerRecordV1"] && finalData[programId+"_TokenOwnerRecordV1"].map((item) => {
                 allResults.push({
                     //owner: new PublicKey(item.owner),
                     pubkey: new PublicKey(item.pubkey),
@@ -903,6 +935,10 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
                     }
                 })
             });
+
+            // remove this once we properly iterate
+            if (allResults.length >= 1000)
+                allResults = null;
         }catch(e){
             console.log("Error fetching token owner records, reverting to RPC");
         }
