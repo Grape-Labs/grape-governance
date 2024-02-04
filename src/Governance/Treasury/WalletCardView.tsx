@@ -1705,7 +1705,9 @@ export default function WalletCardView(props:any) {
                                         <Box sx={{textAlign:'right'}}>
                                             <Typography variant="subtitle1" sx={{color:'white'}}>
                                                 
-                                                <GovernanceProposalDialog governanceAddress={governanceAddress} governanceProposal={item?.pubkey.toBase58()} />
+                                                {item?.pubkey &&
+                                                    <GovernanceProposalDialog governanceAddress={governanceAddress} governanceProposal={item?.pubkey?.toBase58()} />
+                                                }
                                                 
                                                 {/*
                                                 <Tooltip title="View Proposal">
