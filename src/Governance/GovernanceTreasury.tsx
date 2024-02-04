@@ -705,12 +705,7 @@ export function GovernanceTreasuryView(props: any) {
                                 mb:2,
                             }} 
                         > 
-                            {(publicKey &&
-                            (publicKey.toBase58() === "KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT" ||
-                            publicKey.toBase58() === "FDw92PNX4FtibvkDm7nd5XJUAg6ChTcVqMaFmG7kQ9JP" ||
-                            publicKey.toBase58() === "AZpn1dn3VbLdFe2JfbHe9JmUP7NX2roYyzNwKbDZqqvz" ||
-                            publicKey.toBase58() === "F8qopzCYLt5dCf4t9GxtyQkNqSAEKfqiuMcpZbuMfP2x" ||
-                            publicKey.toBase58() === "248r9HpcRbJWNLWAgxzkdvH9a3Sw29mcKsxHAqxo75fA")) ?
+                            {/**/}
 
                             
                             <Grid 
@@ -737,13 +732,14 @@ export function GovernanceTreasuryView(props: any) {
                                     ))
                                 }
                             </Grid>
+                            {/*
                             :<>
                             
                                 <Grid container alignContent={'center'} justifyContent={'center'}>
                                     <h2>Get ready for some GRAPE(ness) very soon!!!</h2>
                                 </Grid>
 
-                            </>}
+                            </>*/}
 
                         </Box>
                         {endTime &&
