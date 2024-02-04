@@ -313,7 +313,7 @@ export function Header(props: any) {
       };
 
     const handleGovernanceSelect = (address:string) => {
-        if (address.length >= 40){ // check if publickey){
+        if (address && address.length >= 40){ // check if publickey){
             setGovernanceAddress(address);
             setOpen(false);
         }
