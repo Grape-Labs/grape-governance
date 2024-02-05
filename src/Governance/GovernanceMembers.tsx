@@ -59,6 +59,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import IconButton from '@mui/material/IconButton';
 
 import { 
+    tryGetRealmConfig,
     getRealm, 
     getAllTokenOwnerRecords } from '@solana/spl-governance';
 import { 
@@ -368,6 +369,7 @@ export function GovernanceMembersView(props: any) {
     const [csvGenerated, setCSVGenerated] = React.useState(null);
     const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
     const [recordCount, setRecordCount] = React.useState(null);
+    const [pluginDao, setPluginDao] = React.useState(null);
 
     const getTokens = async () => {
         const tarray:any[] = [];
@@ -419,13 +421,17 @@ export function GovernanceMembersView(props: any) {
                     grealm = cachedRealm;
                 } else{
                     grealm = await getRealmIndexed(governanceAddress);
-                    if (!grealm)
-                        grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
                 }
                 const realmPk = new PublicKey(grealm.pubkey);
                 setRealm(grealm);
                 setRealmName(grealm.account.name);
                 
+                const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(grealm.owner), new PublicKey(grealm.pubkey));
+
+                if (config?.account?.communityTokenConfig?.voterWeightAddin){
+                    setPluginDao(true);
+                }
+
                 //console.log("realm: "+JSON.stringify(grealm))
 
                 setGoverningTokenMint(new PublicKey(grealm.account.communityMint).toBase58());
@@ -798,7 +804,7 @@ export function GovernanceMembersView(props: any) {
                     }} 
                 > 
                     <Typography variant="caption">Loading Governance Members {governanceAddress}
-                        <><br/>For DAOs with over 2k voters this may take a minutes</>
+                        <><br/>For DAOs with over 2k voters this may take a minute</>
                         {recordCount && 
                             <><br/>Record: {recordCount}</>}
                     </Typography>
@@ -851,7 +857,15 @@ export function GovernanceMembersView(props: any) {
                                 </Grid>
                             </>
                         }
-
+                        {pluginDao ?
+                            <>
+                                <Box sx={{ p:1, textAlign:'center'}}>
+                                    <Typography variant="h5">This DAO is using a Voter Plugin additional voter stake weight information coming soon...</Typography>
+                                </Box>
+                            </>
+                        :
+                            <></>
+                        }
                             {(totalDepositedVotes || totalCouncilVotes) &&
                                 <Box sx={{ p:1}}>
                                     <Grid container spacing={0}>

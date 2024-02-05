@@ -141,7 +141,8 @@ export const createCastVoteTransaction = async (
         console.log("Has MAX Voter Weight Addin!");
         hasMaxVoterWeight = true;
       }
-      if (hasVoterWeight){
+
+      if (hasVoterWeight || config?.account?.communityTokenConfig?.voterWeightAddin){
         //console.log("With realm: "+selectedRealm!.pubkey)
         //if (selectedRealm.pubkey === "DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE") {
           votePlugin = await getVotingPlugin(
