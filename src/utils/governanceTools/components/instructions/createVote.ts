@@ -17,6 +17,8 @@ import { RPC_CONNECTION } from '../../../../utils/grapeTools/constants';
 
 import {
   tryGetRealmConfig,
+  getRealmConfig,
+  getRealmConfigAddress,
   Realm,
   withCastVote,
   Vote,
@@ -24,14 +26,23 @@ import {
   VoteKind,
   getGovernanceProgramVersion,
   GOVERNANCE_CHAT_PROGRAM_ID,
+  SYSTEM_PROGRAM_ID,
 } from "@solana/spl-governance";
+
+import {
+  NftVoterClient,
+} from "@solana/governance-program-library";
+
 // plugin stuff
-import { VsrClient } from "@blockworks-foundation/voter-stake-registry-client/index";
+//import { VsrClient } from "@blockworks-foundation/voter-stake-registry-client/index";
+import { VsrClient } from './client';
+
 import {
   NFT_PLUGINS_PKS,
   getRegistrarPDA,
   getVoterPDA,
   getVoterWeightRecord,
+  getVoterWeightPDA,
   getMaxVoterWeightRecord,
 } from "./account";
 // end plugin stuff
@@ -58,7 +69,7 @@ export const createCastVoteTransaction = async (
     
     //const { wallet } = useWallet(); 
 
-    //console.log("walletPublicKey "+walletPubkey.toBase58())
+    console.log("walletPublicKey "+walletPubkey.toBase58())
 
     //console.log("membersMapItem: "+JSON.stringify(membersMapItem));
 
@@ -104,11 +115,20 @@ export const createCastVoteTransaction = async (
       //}
       
       // PLUGIN STUFF
-      
+      const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(selectedRealm.owner), new PublicKey(selectedRealm.pubkey));
+      //console.log("realm config "+JSON.stringify(config));
+      /*
+      const configPk = await getRealmConfigAddress(selectedRealm.owner, selectedRealm.pubkey)
+      console.log("configPk "+JSON.stringify(configPk));
+      if (configPk){
+        const configRc = await getRealmConfig(RPC_CONNECTION, configPk);
+        console.log("realm configRc "+JSON.stringify(configRc));
+      }*/
+
       let votePlugin = null;
       // // TODO: update this to handle any vsr plugin, rn only runs for mango dao
       
-      console.log("selectedRealm: "+JSON.stringify(selectedRealm))
+      //console.log("selectedRealm: "+JSON.stringify(selectedRealm))
       
       let hasVoterWeight = false;
       if (selectedRealm?.account?.config?.useCommunityVoterWeightAddin){
@@ -118,28 +138,55 @@ export const createCastVoteTransaction = async (
 
       let hasMaxVoterWeight = false;
       if (selectedRealm?.account?.config?.useMaxCommunityVoterWeightAddin){
-        console.log("Has MAX Voter Weight!");
+        console.log("Has MAX Voter Weight Addin!");
         hasMaxVoterWeight = true;
       }
       if (hasVoterWeight){
-        console.log("With realm: "+selectedRealm!.pubkey)
+        //console.log("With realm: "+selectedRealm!.pubkey)
         //if (selectedRealm.pubkey === "DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE") {
           votePlugin = await getVotingPlugin(
             selectedRealm,
             proposal.governingTokenMint,
-            new PublicKey(tokenRecordPublicKey)
+            walletPublicKey,
+            config.account.communityTokenConfig.voterWeightAddin
           );
           
-          return null;
+          //console.log("Vote Plugin: "+JSON.stringify(votePlugin))
+
+          if (votePlugin){
+            const updateVoterWeightRecordIx = await votePlugin.client.program.methods
+              .updateVoterWeightRecord()
+              .accounts({
+                registrar: votePlugin.registrar,
+                voter: votePlugin.voter,
+                voterWeightRecord: votePlugin.voterWeightPk,
+                systemProgram: SYSTEM_PROGRAM_ID,
+              })
+              .instruction()
+
+              instructions.push(updateVoterWeightRecordIx);
+          }else{
+            return null;
+          }
         //}
       }
 
-      const config = await tryGetRealmConfig(RPC_CONNECTION, selectedRealm.owner, selectedRealm.pubkey);
-      console.log("realm config "+JSON.stringify(config));
-      
       const isNftPlugin = config?.account.communityTokenConfig.voterWeightAddin && NFT_PLUGINS_PKS.includes(config?.account.communityTokenConfig.voterWeightAddin?.toBase58())
-      if (isNftPlugin)
+      
+      const createCastNftVoteTicketIxs: TransactionInstruction[] = []
+      const pluginCastVoteIxs: TransactionInstruction[] = []
+
+      let nftPlugin = null;
+      if (isNftPlugin){
+        /*
+        nftPlugin = await votePlugin?.withCastPluginVote(
+          pluginCastVoteIxs,
+          proposal,
+          tokenOwnerRecord,
+          createCastNftVoteTicketIxs
+        )*/
         return false;
+      }
 
       if (new PublicKey(selectedRealm.pubkey).toBase58() === "652CA3GEcZjxVvEjCiMeAxuyFG6GaPHZeN6yh4cNJ1Ns"){
         console.log("hard coded nft com...")
@@ -271,8 +318,8 @@ export const createCastVoteTransaction = async (
         new PublicKey(proposal.governingTokenMint), // proposal governanceMint Authority
         voteDirection, //Vote.fromYesNoVote(action), //  *Vote* class? 1 = no, 0 = yes
         payer,
-        hasVoterWeight? votePlugin?.voterWeightPk : null,
-        hasMaxVoterWeight? votePlugin?.maxVoterWeightRecord : null
+        hasVoterWeight? votePlugin?.voterWeightPk : nftPlugin ? nftPlugin.voterWeightPk : null,
+        hasMaxVoterWeight? votePlugin?.maxVoterWeightRecord : nftPlugin ? nftPlugin.maxVoterWeightRecord : null
       );
 
       //console.log("HERE after withCastVote")
@@ -291,11 +338,12 @@ export const createCastVoteTransaction = async (
     }
 
   };
-  
+
   const getVotingPlugin = async (
     selectedRealm: any,
     communityMint: any,
-    walletPubkey: any
+    walletPubkey: any,
+    voterWeightAddin:any,
   ) => {
     const options = AnchorProvider.defaultOptions();//AnchorProvider.defaultOptions();
     
@@ -304,22 +352,55 @@ export const createCastVoteTransaction = async (
       walletPubkey,
       options
     );
-    const client = await VsrClient.connect(provider, false);
+    
+    /*
+    const pluginPk =
+      votingPop === 'community'
+        ? realmConfig?.account.communityTokenConfig.voterWeightAddin
+        : realmConfig?.account.councilTokenConfig.voterWeightAddin
+    */
+
+    //const client = await VsrClient.connect(provider, false);
+
+    const client = await VsrClient.connect(provider, voterWeightAddin, false);
     const clientProgramId = client!.program.programId;
+
+    //const vwa = selectedRealm?.account?.communityTokenConfig?.voterWeightAddin
+    //const vwa2 = selectedRealm?.account?.councilTokenConfig?.voterWeightAddin
+    
+    //console.log("vwa "+vwa?.toBase58())
+    //console.log("vwa2 "+vwa2?.toBase58())
+
     console.log("clientProgramId "+clientProgramId.toBase58())
+    
+    console.log("realm: "+new PublicKey(selectedRealm.pubkey).toBase58());
+    console.log("mint: "+communityMint.toBase58());
+    
+
     const { registrar } = await getRegistrarPDA(
       new PublicKey(selectedRealm!.pubkey),
       new PublicKey(communityMint),
       clientProgramId
     );
+    //const registrar = new PublicKey("4WQSYg21RrJNYhF4251XFpoy1uYbMHcMfZNLMXA3x5Mp");
+    console.log("registrar: "+registrar.toBase58());
     const { voter } = await getVoterPDA(registrar, walletPubkey, clientProgramId);
+    console.log("voter: "+voter.toBase58());
+
+    /*
     const { voterWeightPk } = await getVoterWeightRecord(
       new PublicKey(selectedRealm!.pubkey),
       communityMint,
       walletPubkey,
       clientProgramId
+    );*/
+    
+    const { voterWeightPk } = await getVoterWeightPDA(
+      registrar,
+      walletPubkey,
+      clientProgramId,
     );
-
+    
     const { maxVoterWeightRecord } = await getMaxVoterWeightRecord(
       registrar,
       communityMint,
@@ -327,6 +408,7 @@ export const createCastVoteTransaction = async (
     );
 
     console.log(walletPubkey.toBase58()+" voterWeightPk: "+voterWeightPk.toBase58());
+    console.log(walletPubkey.toBase58()+" maxVoterWeightRecord: "+maxVoterWeightRecord?.toBase58());
     
     /*
     const updateVoterWeightRecordIx = await client!.program.methods
@@ -339,5 +421,5 @@ export const createCastVoteTransaction = async (
       })
       .instruction();
     */
-    return { voterWeightPk, maxVoterWeightRecord };
+    return { voterWeightPk, maxVoterWeightRecord, client, registrar, voter };
 };
