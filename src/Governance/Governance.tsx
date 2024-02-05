@@ -1171,10 +1171,14 @@ export function GovernanceCachedView(props: any) {
                 }
                 const image = result?.content?.links?.image;
                 
+                
+
                 if (image){
                     setDaoIcon(image);
                 } else { // check token registry if token exists
-
+                    if (governanceAddress === "899YG3yk4F66ZgbNWLHriZHTXSKk9e1kvsKEquW7L6Mo"){
+                        setDaoIcon("https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/MNDEFzGvMt87ueuHvVU9VcTqsAP5b3fTGPsHuuPA5ey/logo.png");
+                    }
                 }
             }
         } catch(e){
