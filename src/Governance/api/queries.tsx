@@ -855,7 +855,8 @@ export const getTokenOwnerRecordsByRealmIndexed = async (filterRealm?:any, realm
 
 export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwner?:any) => {
     //const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programId = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = findGovOwnerByDao(filterRealm)?.owner ? findGovOwnerByDao(filterRealm).owner : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
     if (filterRealm){
         let allResults = new Array();
@@ -870,7 +871,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
             //while (hasMore){
                 console.log("fetching tokenOwnerRecords: "+x);
                 const { data } = await client.query({ 
-                    query: GET_QUERY_MEMBERS(filterRealm, programId),
+                    query: GET_QUERY_MEMBERS(filterRealm, programName),
                     variables: { first: 1000, after: x } });
                 
                 if (finalData && finalData.length  > 0){
@@ -880,10 +881,10 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
                 }
                 
                 hasMore = false;
-                if (data[programId+"_TokenOwnerRecordV2"] && data[programId+"_TokenOwnerRecordV2"].length >= 1000){
+                if (data[programName+"_TokenOwnerRecordV2"] && data[programName+"_TokenOwnerRecordV2"].length >= 1000){
                     hasMore = true;
                     console.log("found more v2");
-                } else if (data[programId+"_TokenOwnerRecordV1"] && data[programId+"_TokenOwnerRecordV1"].length >= 1000) {
+                } else if (data[programName+"_TokenOwnerRecordV1"] && data[programName+"_TokenOwnerRecordV1"].length >= 1000) {
                     hasMore = true;
                     console.log("found more v1");
                 } else {
@@ -896,13 +897,13 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
             //console.log("finalData: "+JSON.stringify(finalData));
             // normalize data
             
-            finalData[programId+"_TokenOwnerRecordV2"] && finalData[programId+"_TokenOwnerRecordV2"].map((item) => {
+            finalData[programName+"_TokenOwnerRecordV2"] && finalData[programName+"_TokenOwnerRecordV2"].map((item) => {
                 allResults.push({
                     //owner: new PublicKey(item.owner),
                     pubkey: new PublicKey(item.pubkey),
                     account: {
                         realm: new PublicKey(item.realm),
-                        accountType: item.accountType,
+                        accountType: item?.accountType,
                         governingTokenMint: new PublicKey(item.governingTokenMint),
                         governingTokenOwner: new PublicKey(item.governingTokenOwner),
                         governanceDelegate: item?.governanceDelegate ? new PublicKey(item.governanceDelegate):null,
@@ -916,13 +917,13 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
                 })
             });
 
-            finalData[programId+"_TokenOwnerRecordV1"] && finalData[programId+"_TokenOwnerRecordV1"].map((item) => {
+            finalData[programName+"_TokenOwnerRecordV1"] && finalData[programName+"_TokenOwnerRecordV1"].map((item) => {
                 allResults.push({
                     //owner: new PublicKey(item.owner),
                     pubkey: new PublicKey(item.pubkey),
                     account: {
                         realm: new PublicKey(item.realm),
-                        accountType: item.accountType,
+                        accountType: item?.accountType,
                         governingTokenMint: new PublicKey(item.governingTokenMint),
                         governingTokenOwner: new PublicKey(item.governingTokenOwner),
                         governanceDelegate: item?.governanceDelegate ? new PublicKey(item.governanceDelegate):null,
@@ -1036,14 +1037,15 @@ export const getAllProposalsFromAllPrograms = async () => {
 export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, uniqueOwners?:string[]) => {
     
     //console.log("realmOwner: " +realmOwner);
-    const programId = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const allProposals = new Array();
 
     try{
 
         //console.log("programId: "+programId);
 
-        const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, programId, uniqueOwners) });
+        const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, programName, uniqueOwners) });
         if (uniqueOwners && data){
             for (var ownerItem of uniqueOwners){
                 data[ownerItem.name+"_ProposalV2"] && data[ownerItem.name+"_ProposalV2"].map((account) => {
@@ -1130,7 +1132,7 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
                 });
             }   
         } else if (data){
-            data[programId+"_ProposalV2"] && data[programId+"_ProposalV2"].map((account) => {
+            data[programName+"_ProposalV2"] && data[programName+"_ProposalV2"].map((account) => {
                 const options = account?.options?.map && account.options.map((option) => {
                     return {
                         label: option.label,
@@ -1177,7 +1179,7 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
                 })
             });
 
-            data[programId+"_ProposalV1"] && data[programId+"_ProposalV1"].map((account) => {
+            data[programName+"_ProposalV1"] && data[programName+"_ProposalV1"].map((account) => {
                 allProposals.push({
                     owner: programId === 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw' ? new PublicKey(programId) : null,
                     pubkey: new PublicKey(account?.pubkey),

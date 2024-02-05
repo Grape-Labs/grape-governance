@@ -811,15 +811,17 @@ export function GovernanceCachedView(props: any) {
                 // setAllGovernances(governanceRules);
                 const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58(), grealm?.owner);
                 const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
-                console.log("all rules indexed: "+JSON.stringify(governanceRulesIndexed))
+                //console.log("all rules indexed: "+JSON.stringify(governanceRulesIndexed))
                 setAllGovernances(governanceRulesIndexed);
-                
                 //console.log("realmPk: "+realmPk)
-                const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), grealm?.owner)
+                const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), new PublicKey(grealm?.owner).toBase58())
                 //console.log("indexTokenOwnerRecords "+JSON.stringify(indexedTokenOwnerRecords));
                 let rawTokenOwnerRecords = indexedTokenOwnerRecords;
+                
                 //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
-                if ((cachedMemberMap)){ // we shoudl consider merging
+                console.log("merging with cache records...")
+                /*
+                if (cachedMemberMap && cachedMemberMap.length > 0){ // we should consider merging
                     console.log("Members from cache");
                     // merge with cachedMemberMap?
                     for (var rRecord of indexedTokenOwnerRecords){
@@ -834,7 +836,9 @@ export function GovernanceCachedView(props: any) {
                     rawTokenOwnerRecords = indexedTokenOwnerRecords;//cachedMemberMap;
                 } else if (!indexedTokenOwnerRecords){
                     rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
-                }
+                }*/
+                
+                //console.log("here?")
                 
                 setMemberMap(rawTokenOwnerRecords);
                 
@@ -854,7 +858,7 @@ export function GovernanceCachedView(props: any) {
                         //setGovernanceType(0);
                         
 
-                        if (tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58())){
+                        if (tokenMap.get(new PublicKey(grealm.account.communityMint).toBase58())){
                             setGovernanceType(0);
                             //gTD = tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58()).decimals;
                             //setGoverningTokenDecimals(gTD);
@@ -882,7 +886,7 @@ export function GovernanceCachedView(props: any) {
                     }
                 }
                 
-
+                
                 if (cached_governance){
                     
                     console.log("Fetching via hybrid cache...")

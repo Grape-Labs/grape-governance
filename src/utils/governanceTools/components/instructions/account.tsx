@@ -18,7 +18,7 @@ export const DEFAULT_NFT_VOTER_PLUGIN =
 
 export const DEFAULT_NFT_VOTER_PLUGIN_V2 =
   'GnftVc21v2BRchsRa9dGdrVmJPLZiRHe9j2offnFTZFg'
-  
+
 export const NFT_PLUGINS_PKS: string[] = [
   DEFAULT_NFT_VOTER_PLUGIN,
   'GnftV5kLjd67tvHpNGyodwWveEKivz3ZWvvE3Z4xi2iw',
@@ -103,11 +103,16 @@ export const getRegistrarPDA = async (
   clientProgramId: PublicKey
 ) => {
   
+  //console.log("realmPk: "+realmPk.toBase58());
+  //console.log("mint: "+mint.toBase58());
+  //console.log("clientProgramId: "+clientProgramId.toBase58());
+
   const [registrar, registrarBump] = PublicKey.findProgramAddressSync(
   //const [registrar, registrarBump] = await PublicKey.findProgramAddress(
-    [Buffer.from("registrar"), realmPk.toBuffer(), mint.toBuffer()],
+    [realmPk.toBuffer(), Buffer.from("registrar"), mint.toBuffer()],
     clientProgramId
   );
+
   return {
     registrar,
     registrarBump
@@ -121,7 +126,8 @@ export const getVoterPDA = async (
 ) => {
 
   const [voter, voterBump] = PublicKey.findProgramAddressSync(
-    [Buffer.from("voter"), registrar.toBuffer(), walletPk.toBuffer()], clientProgramId);
+  //const [voter, voterBump] = await PublicKey.findProgramAddress(
+      [registrar.toBuffer(), Buffer.from("voter"), walletPk.toBuffer()], clientProgramId);
   /*
   const [voter, voterBump] = await PublicKey.findProgramAddress(
     [registrar.toBuffer(), Buffer.from("voter"), walletPk.toBuffer()],
@@ -134,18 +140,39 @@ export const getVoterPDA = async (
   };
 };
 
+export const getVoterWeightPDA = async (
+  registrar: PublicKey,
+  walletPk: PublicKey,
+  clientProgramId: PublicKey
+) => {
+  const [voterWeightPk, voterWeightBump] = PublicKey.findProgramAddressSync(
+  //const [voterWeightPk, voterWeightBump] = await PublicKey.findProgramAddress(
+      [
+      registrar.toBuffer(),
+      Buffer.from('voter-weight-record'),
+      walletPk.toBuffer(),
+    ],
+    clientProgramId
+  )
+
+  return {
+    voterWeightPk,
+    voterWeightBump,
+  }
+}
+
 export const getVoterWeightRecord = async (
   realmPk: PublicKey,
   mint: PublicKey,
   walletPk: PublicKey,
   clientProgramId: PublicKey
 ) => {
-  console.log("realmPk: "+realmPk.toBase58());
+  //console.log("realmPk: "+realmPk.toBase58());
   const [voterWeightPk, voterWeightBump] = PublicKey.findProgramAddressSync(
   //const [voterWeightPk, voterWeightBump] = await PublicKey.findProgramAddress(
       [
-      Buffer.from("voter-weight-record"),
       realmPk.toBuffer(),
+      Buffer.from("voter-weight-record"),
       mint.toBuffer(),
       walletPk.toBuffer(),
     ],
@@ -166,8 +193,8 @@ export const getMaxVoterWeightRecord = async (
   const [maxVoterWeightRecord,maxVoterWeightRecordBump] = PublicKey.findProgramAddressSync(
   //const [maxVoterWeightRecord,maxVoterWeightRecordBump] = await PublicKey.findProgramAddress(
       [
-      Buffer.from('max-voter-weight-record'),
       realmPk.toBuffer(),
+      Buffer.from('max-voter-weight-record'),
       mint.toBuffer(),
     ],
     clientProgramId
