@@ -838,7 +838,7 @@ export function GovernanceCachedView(props: any) {
                     rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
                 }*/
                 
-                console.log("here?")
+                //console.log("here?")
                 
                 setMemberMap(rawTokenOwnerRecords);
                 
