@@ -71,6 +71,7 @@ import {
     withWithdrawGoverningTokens,
     getGovernanceProgramVersion,
     withSetGovernanceDelegate,
+    tryGetRealmConfig,
 } from '@solana/spl-governance';
 
 import { 
@@ -162,6 +163,9 @@ export default function GovernancePower(props: any){
     const [mintLogo, setMintLogo] = React.useState(null);
     const [refresh, setRefresh] = React.useState(false);
     const [currentDelegate, setCurrentDelegate] = React.useState(null);
+    const [isPlugin, setIsPlugin] = React.useState(false);
+    const [realmConfig, setRealmConfig] = React.useState(null);
+
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
 
@@ -240,9 +244,20 @@ export default function GovernancePower(props: any){
             setWalletCommunityMintAddress(communityMint);
             setWalletCouncilMintAddress(councilMint);
 
+            const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(realm?.owner), new PublicKey(realm?.pubkey));
+            let plugin = false;
+            setIsPlugin(false);
+            if (config?.account?.communityTokenConfig?.voterWeightAddin){
+                plugin = true;
+                setIsPlugin(true);
+                setRealmConfig(config);
+            }
+
             //const tokenOwnerRecord = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realm?.owner || SYSTEM_PROGRAM_ID), publicKey);
             //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecordV1));
             const tokenOwnerRecord = await getTokenOwnerRecordsByRealmIndexed(governanceAddress, null, publicKey.toBase58());
+
+
 
             //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecord));
             // find all instances of this governanceAddress:
@@ -521,115 +536,120 @@ export default function GovernancePower(props: any){
         const withMint = new PublicKey(mintAddress);
         const programId = new PublicKey(realm.owner);
         console.log("programId: "+JSON.stringify(programId));
-        const programVersion = await getGovernanceProgramVersion(
-            RPC_CONNECTION,
-            programId,
-          )
-        
-        console.log("programVersion: "+JSON.stringify(programVersion));
 
-        const realmPk = new PublicKey(realm.pubkey);
-        
-        const tokenInfo = await getMint(RPC_CONNECTION, withMint);
-        
-        const userAtaPk = await getAssociatedTokenAddress(
-            withMint,
-            publicKey, // owner
-            true
-          )
+        if (isPlugin){
+            alert("Plugin/VSR/NFT Deposits Coming Soon - use the Realms UI to deposit your tokens to this Governance")
+        } else {
+            const programVersion = await getGovernanceProgramVersion(
+                RPC_CONNECTION,
+                programId,
+            )
+            
+            console.log("programVersion: "+JSON.stringify(programVersion));
 
-        console.log("userATA: "+JSON.stringify(userAtaPk))
-        // Extract the mint authority
-        const mintAuthority = tokenInfo.mintAuthority ? new PublicKey(tokenInfo.mintAuthority) : null;
-        const decimals = tokenInfo.decimals;
+            const realmPk = new PublicKey(realm.pubkey);
+            
+            const tokenInfo = await getMint(RPC_CONNECTION, withMint);
+            
+            const userAtaPk = await getAssociatedTokenAddress(
+                withMint,
+                publicKey, // owner
+                true
+            )
 
-        //const atomicAmount = tokenAmount;
-        
-        const atomicAmount = parseMintNaturalAmountFromDecimalAsBN(
-            tokenAmount,
-            tokenDecimals
-        )
+            console.log("userATA: "+JSON.stringify(userAtaPk))
+            // Extract the mint authority
+            const mintAuthority = tokenInfo.mintAuthority ? new PublicKey(tokenInfo.mintAuthority) : null;
+            const decimals = tokenInfo.decimals;
 
-        const instructions: TransactionInstruction[] = []
-        /*
-        console.log("realm: "+realmPk.toBase58())
-        console.log("governingTokenSource / userAtaPk: "+userAtaPk.toBase58())
-        console.log("governingTokenMint: "+withMint.toBase58())
-        console.log("governingTokenOwner: "+publicKey.toBase58())
-        //console.log("governingTokenSourceAuthority: "+mintAuthority?.toBase58())
-        //console.log("payer: "+fromWallet.toBase58())
-        console.log("amount: "+atomicAmount);
-        */
-        
-        await withDepositGoverningTokens(
-            instructions,
-            programId,
-            programVersion,
-            realmPk,
-            userAtaPk,
-            withMint,
-            publicKey,//new PublicKey("33JTjvdTrmmtQuvTzr9rdCkYU1eAGkErQLdoPkcRvyaC"),//publicKey,
-            publicKey,
-            publicKey,
-            atomicAmount,
-            false
-        )
-        
-        if (instructions.length != 1) {
-            console.log("ERROR: Something went wrong");
-            enqueueSnackbar(`Instructions Error`, { variant: 'error' });
-        } else{
-            if (instructions){
+            //const atomicAmount = tokenAmount;
+            
+            const atomicAmount = parseMintNaturalAmountFromDecimalAsBN(
+                tokenAmount,
+                tokenDecimals
+            )
 
-                const transaction = new Transaction();
-                transaction.add(...instructions);
-                
-                console.log("TX: "+JSON.stringify(transaction))
-
-                /*
-                const meSigner = "IF WE ARE SENDING DIRECTLY TO A DAO WALLET";
-                for (var instruction of transaction.instructions){
-                    for (var key of instruction.keys){
-                        if (key.pubkey.toBase58() === meSigner){
-                            key.isSigner = false;
-                        }
-                    }
-                }*/
-
-                try{
-                    enqueueSnackbar(`Preparing to deposit governance power`,{ variant: 'info' });
-                    const signature = await sendTransaction(transaction, RPC_CONNECTION, {
-                        skipPreflight: true,
-                        preflightCommitment: "confirmed",
-                    });
-                    const snackprogress = (key:any) => (
-                        <CircularProgress sx={{padding:'10px'}} />
-                    );
-                    const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
-                    //await connection.confirmTransaction(signature, 'processed');
-                    const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
-                    await RPC_CONNECTION.confirmTransaction({
-                        blockhash: latestBlockHash.blockhash,
-                        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-                        signature: signature}, 
-                        'finalized'
-                    );
-                    closeSnackbar(cnfrmkey);
-                    const action = (key:any) => (
-                            <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                                Signature: {signature}
-                            </Button>
-                    );
-                    
-                    enqueueSnackbar(`Congratulations, you now have more governance power`,{ variant: 'success', action });
-
-                    // trigger a refresh here...
-                    setRefresh(true);
-                }catch(e:any){
-                    enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
-                } 
+            const instructions: TransactionInstruction[] = []
+            /*
+            console.log("realm: "+realmPk.toBase58())
+            console.log("governingTokenSource / userAtaPk: "+userAtaPk.toBase58())
+            console.log("governingTokenMint: "+withMint.toBase58())
+            console.log("governingTokenOwner: "+publicKey.toBase58())
+            //console.log("governingTokenSourceAuthority: "+mintAuthority?.toBase58())
+            //console.log("payer: "+fromWallet.toBase58())
+            console.log("amount: "+atomicAmount);
+            */
+            
+            await withDepositGoverningTokens(
+                instructions,
+                programId,
+                programVersion,
+                realmPk,
+                userAtaPk,
+                withMint,
+                publicKey,//new PublicKey("33JTjvdTrmmtQuvTzr9rdCkYU1eAGkErQLdoPkcRvyaC"),//publicKey,
+                publicKey,
+                publicKey,
+                atomicAmount,
+                false
+            )
+            
+            if (instructions.length != 1) {
+                console.log("ERROR: Something went wrong");
+                enqueueSnackbar(`Instructions Error`, { variant: 'error' });
             } else{
-                alert("No voter record!")
+                if (instructions){
+
+                    const transaction = new Transaction();
+                    transaction.add(...instructions);
+                    
+                    console.log("TX: "+JSON.stringify(transaction))
+
+                    /*
+                    const meSigner = "IF WE ARE SENDING DIRECTLY TO A DAO WALLET";
+                    for (var instruction of transaction.instructions){
+                        for (var key of instruction.keys){
+                            if (key.pubkey.toBase58() === meSigner){
+                                key.isSigner = false;
+                            }
+                        }
+                    }*/
+
+                    try{
+                        enqueueSnackbar(`Preparing to deposit governance power`,{ variant: 'info' });
+                        const signature = await sendTransaction(transaction, RPC_CONNECTION, {
+                            skipPreflight: true,
+                            preflightCommitment: "confirmed",
+                        });
+                        const snackprogress = (key:any) => (
+                            <CircularProgress sx={{padding:'10px'}} />
+                        );
+                        const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
+                        //await connection.confirmTransaction(signature, 'processed');
+                        const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
+                        await RPC_CONNECTION.confirmTransaction({
+                            blockhash: latestBlockHash.blockhash,
+                            lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+                            signature: signature}, 
+                            'finalized'
+                        );
+                        closeSnackbar(cnfrmkey);
+                        const action = (key:any) => (
+                                <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
+                                    Signature: {signature}
+                                </Button>
+                        );
+                        
+                        enqueueSnackbar(`Congratulations, you now have more governance power`,{ variant: 'success', action });
+
+                        // trigger a refresh here...
+                        setRefresh(true);
+                    }catch(e:any){
+                        enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
+                    } 
+                } else{
+                    alert("No voter record!")
+                }
             }
         }
     }
