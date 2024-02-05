@@ -367,6 +367,7 @@ export function GovernanceMembersView(props: any) {
     const [circulatingSupply, setCirculatingSupply] = React.useState(null);
     const [csvGenerated, setCSVGenerated] = React.useState(null);
     const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
+    const [recordCount, setRecordCount] = React.useState(null);
 
     const getTokens = async () => {
         const tarray:any[] = [];
@@ -465,177 +466,201 @@ export function GovernanceMembersView(props: any) {
                 let trecords = null;
 
                 const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), grealm.owner)
-                //console.log("indexTokenOwnerRecords "+JSON.stringify(indexedTokenOwnerRecords));
                 //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
-                if (cachedMemberMap){
-                    console.log("Members from cache");
-                    // merge with cachedMemberMap?
-                    for (var rRecord of indexedTokenOwnerRecords){
-                        for (var cRecord of cachedMemberMap){
-                            if (rRecord.pubkey.toBase58() === cRecord.pubkey){
-                                rRecord.socialConnections = cRecord.socialConnections;
-                                rRecord.firstTransactionDate = cRecord.firstTransactionDate;
-                                rRecord.multisigs = cRecord.multisigs;
-                            }
-                        }
-                    }
-                    trecords = indexedTokenOwnerRecords;//cachedMemberMap;
-                } else if (!indexedTokenOwnerRecords){
-                    trecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+                trecords = indexedTokenOwnerRecords;
+                
+                //console.log("indexTokenOwnerRecords: ("+indexedTokenOwnerRecords.length+") "+JSON.stringify(indexedTokenOwnerRecords));
+                //console.log("grealm: "+JSON.stringify(grealm))
+                let hasVoterWeight = false;
+                if (grealm?.account?.config?.useCommunityVoterWeightAddin){
+                    console.log("Has Voter Weight Plugin!");
+                    hasVoterWeight = true;
                 }
 
-                //console.log("trecords: "+JSON.stringify(trecords));
+                let hasMaxVoterWeight = false;
+                if (grealm?.account?.config?.useMaxCommunityVoterWeightAddin){
+                    console.log("Has MAX Voter Weight Addin!");
+                    hasMaxVoterWeight = true;
+                }
+                
+                {
 
-                //let sortedResults = trecords.sort((a,b) => (a.account?.outstandingProposalCount < b.account?.outstandingProposalCount) ? 1 : -1);
-                //const sortedResults = trecords.sort((a,b) => (a.account?.totalVotesCount < b.account?.totalVotesCount) ? 1 : -1);
-                
-                //const sortedResults = trecords.sort((a,b) => (a.account?.governingTokenDepositAmount.toNumber() < b.account?.governingTokenDepositAmount.toNumber()) ? 1 : -1);
-                
-                // generate a super array with merged information
-                let participantArray = new Array();
-                let tUnstakedVotes = 0;
-                let tVotes = 0;
-                let tCouncilVotes = 0;
-                let tVotesCasted = 0;
-                let tDepositedCouncilVotesCasted = 0;
-                let tParticipants = 0;
-                let aParticipants = 0;
-                let lParticipants = 0;
-                let csvFile = '';
-                
-
-                for (let record of trecords){
-                    //console.log("record: "+JSON.stringify(record));
-                    let foundParticipant = false;
-                    for (let participant of participantArray){
-                        if (new PublicKey(participant.governingTokenOwner).toBase58() === new PublicKey(record.account.governingTokenOwner).toBase58()){
-                            foundParticipant = true;
-                            participant.governingTokenMint = (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? new PublicKey(record.account.governingTokenMint) : participant.governingTokenMint;
-                            participant.totalVotesCount = (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.totalVotesCount) : participant.totalVotesCount;
-                            participant.councilVotesCount = (new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.totalVotesCount) : participant.councilVotesCount;
-                            participant.governingTokenDepositAmount = (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.governingTokenDepositAmount) : participant.governingTokenDepositAmount;
-                            participant.governingCouncilDepositAmount = (new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.governingTokenDepositAmount) : participant.governingCouncilDepositAmount;
-                            
-                            if (record.account.governingTokenMint === record.walletBalance?.mint){
-                                //tUnstakedVotes += (record.walletBalance?.tokenAmount?.amount ? +(+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : 0);
-                                participant.walletBalanceAmount = (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null);
-                            }
-                            if (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config.councilMint).toBase58()){
-                                tVotes += Number(record.account.governingTokenDepositAmount);//record.account.totalVotesCount;
-                                tVotesCasted += record.account.totalVotesCount;//record.account.governingTokenDepositAmount.toNumber();
-                            } else{
-                                tCouncilVotes += record.account.totalVotesCount;
-                                tDepositedCouncilVotesCasted += Number(record.account.governingTokenDepositAmount);
-                            }
-                        }
-                    }
-                    if (!foundParticipant){
-                            //console.log("record: "+JSON.stringify(record));
-                            
-                            if (grealm.account.config?.councilMint) {
-                                participantArray.push({
-                                    pubkey:new PublicKey(record.pubkey),
-                                    governingTokenMint:(new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? new PublicKey(record.account.governingTokenMint) : null,
-                                    governingTokenOwner:new PublicKey(record.account.governingTokenOwner),
-                                    totalVotesCount:(new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.totalVotesCount) : 0,
-                                    councilVotesCount:(new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.totalVotesCount) : 0,
-                                    governingTokenDepositAmount:(new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account?.config.councilMint).toBase58()) ? Number(record.account.governingTokenDepositAmount) : new BN(0),
-                                    governingCouncilDepositAmount:(new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account?.config.councilMint).toBase58()) ? Number(record.account.governingTokenDepositAmount) : new BN(0),
-                                    walletBalanceAmount: (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null)
-                                });
-                                tUnstakedVotes += (record.walletBalance?.tokenAmount?.amount ? +(+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : 0);
-                                
-                                if (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account?.config.councilMint).toBase58()){
-                                    tVotes += Number(record.account.governingTokenDepositAmount);
-                                    tVotesCasted += Number(record.account.totalVotesCount);
-                                } else{
-                                    tCouncilVotes += Number(record.account.totalVotesCount);
-                                    tDepositedCouncilVotesCasted += Number(record.account.governingTokenDepositAmount);
+                    /*
+                    if (cachedMemberMap){
+                        console.log("Members from cache");
+                        // merge with cachedMemberMap?
+                        for (var rRecord of indexedTokenOwnerRecords){
+                            for (var cRecord of cachedMemberMap){
+                                if (rRecord.pubkey.toBase58() === cRecord.pubkey){
+                                    rRecord.socialConnections = cRecord.socialConnections;
+                                    rRecord.firstTransactionDate = cRecord.firstTransactionDate;
+                                    rRecord.multisigs = cRecord.multisigs;
                                 }
-                            } else{
-
-                                participantArray.push({
-                                    pubkey:new PublicKey(record.pubkey),
-                                    governingTokenMint:new PublicKey(record.account.governingTokenMint),
-                                    governingTokenOwner:new PublicKey(record.account.governingTokenOwner),
-                                    totalVotesCount:Number(record.account.totalVotesCount),
-                                    councilVotesCount:0,
-                                    governingTokenDepositAmount:Number(record.account.governingTokenDepositAmount),
-                                    governingCouncilDepositAmount:new BN(0),
-                                    walletBalanceAmount: (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null)
-                                });
-                                
-                                tUnstakedVotes += (record.walletBalance?.tokenAmount?.amount ? +(+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : 0);
-                                tVotes += Number(record.account.governingTokenDepositAmount);
-                                tVotesCasted += record.account.totalVotesCount;
                             }
-                            if (record.account.totalVotesCount > 0)
-                                aParticipants++;
-                            if ((Number(record.account.governingTokenDepositAmount) > 0) || (Number(record.account.governingTokenDepositAmount) > 0))
-                                lParticipants++;
-                            tParticipants++; // all time
-                    }
-                }
-
-                let pcount = 0;
-                for (let singleParticipant of participantArray){
-                        if (pcount > 0)
-                            csvFile += '\r\n';
-                        else
-                            csvFile = 'Member,VotesDeposited,TokenDecimals,RawVotesDeposited,CouncilVotesDeposited\r\n';
-                        
-                        let formattedDepositedAmount = (+(((singleParticipant.governingTokenDepositAmount))/Math.pow(10, thisTokenDecimals || 0)).toFixed(0));
-                        //csvFile += record.account.governingTokenOwner.toBase58()+','+record.account.governingTokenDepositAmount.toNumber();
-                        csvFile += singleParticipant.governingTokenOwner.toBase58()+','+formattedDepositedAmount+','+thisTokenDecimals+','+Number(singleParticipant.governingTokenDepositAmount)+','+Number(singleParticipant.governingCouncilDepositAmount);
-                    
-                        pcount++;
-                }
-
-                const jsonCSVString = encodeURI(`data:text/csv;chatset=utf-8,${csvFile}`);
-                //console.log("jsonCSVString: "+JSON.stringify(jsonCSVString));
-                
-                setCSVGenerated(jsonCSVString);
-                
-                setTotalUnstakedVotes(tUnstakedVotes > 0 ? tUnstakedVotes : null);
-                setTotalDepositedVotes(tVotes > 0 ? tVotes : null);
-                setTotalVotesCasted(tVotesCasted > 0 ? tVotesCasted : null);
-                setTotalCouncilVotes(tCouncilVotes > 0 ? tCouncilVotes : null);
-                setDepositedTotalCouncilVotes(tDepositedCouncilVotesCasted > 0 ? tDepositedCouncilVotesCasted : null);
-                setTotalParticipants(tParticipants > 0 ? tParticipants : null);
-                setActiveParticipants(lParticipants > 0 ? lParticipants : null);
-                setVotingParticipants(aParticipants > 0 ? aParticipants : null);
-
-                //console.log("participantArray: "+JSON.stringify(participantArray));
-                const presortedResults = participantArray.sort((a,b) => (a.totalVotesCount > b.totalVotesCount) ? 1 : -1);
-                const sortedResults = presortedResults.sort((a,b) => (Number(a.governingTokenDepositAmount) < Number(b.governingTokenDepositAmount)) ? 1 : -1);
-
-                let top10 = null;
-                let count = 0;
-                let totalTopVotes = 0;
-                let totalTopSupply = 0;
-                let totalTopCirculatingSupply = 0;
-                let totalTopGovernanceSupply = 0;
-                for (var member of sortedResults){
-                    if (count < 10){
-                        console.log("member " +JSON.stringify(member))
-                        totalTopVotes += Number(member.governingTokenDepositAmount)/Math.pow(10, thisTokenDecimals || 0);
-                        if (tknSupply && Number(tknSupply.value.amount) > 0){
-                            totalTopCirculatingSupply += (Number(member.governingTokenDepositAmount)/Number(tknSupply.value.amount))*100
-                            totalTopGovernanceSupply += (Number(member.governingTokenDepositAmount)/tVotes)*100
                         }
+                        trecords = indexedTokenOwnerRecords;//cachedMemberMap;
+                    } else if (!indexedTokenOwnerRecords){
+                        trecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
                     }
-                    count++
-                }
+                    */
 
-                top10 = {
-                    votes:totalTopVotes,
-                    percentageOfSupply:totalTopCirculatingSupply,
-                    percentageOfGovernanceSupply:totalTopGovernanceSupply
-                }
+                    //console.log("trecords: "+JSON.stringify(trecords));
 
-                if (top10)
-                    setTop10Participants(top10);
-                setMembers(sortedResults);
+                    //let sortedResults = trecords.sort((a,b) => (a.account?.outstandingProposalCount < b.account?.outstandingProposalCount) ? 1 : -1);
+                    //const sortedResults = trecords.sort((a,b) => (a.account?.totalVotesCount < b.account?.totalVotesCount) ? 1 : -1);
+                    
+                    //const sortedResults = trecords.sort((a,b) => (a.account?.governingTokenDepositAmount.toNumber() < b.account?.governingTokenDepositAmount.toNumber()) ? 1 : -1);
+                    
+                    // generate a super array with merged information
+                    let participantArray = new Array();
+                    let tUnstakedVotes = 0;
+                    let tVotes = 0;
+                    let tCouncilVotes = 0;
+                    let tVotesCasted = 0;
+                    let tDepositedCouncilVotesCasted = 0;
+                    let tParticipants = 0;
+                    let aParticipants = 0;
+                    let lParticipants = 0;
+                    let csvFile = '';
+                    let cntr = 0;
+
+                    for (let record of trecords){
+                        console.log("record ("+(cntr+1)+"): "+JSON.stringify(record));
+                        setRecordCount(cntr+1 + " of " + trecords.length);
+                        let foundParticipant = false;
+                        if (trecords.length < 3000){
+                            for (let participant of participantArray){
+                                if (new PublicKey(participant.governingTokenOwner).toBase58() === new PublicKey(record.account.governingTokenOwner).toBase58()){
+                                    foundParticipant = true;
+                                    participant.governingTokenMint = (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? new PublicKey(record.account.governingTokenMint) : participant.governingTokenMint;
+                                    participant.totalVotesCount = (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.totalVotesCount) : participant.totalVotesCount;
+                                    participant.councilVotesCount = (new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.totalVotesCount) : participant.councilVotesCount;
+                                    participant.governingTokenDepositAmount = (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.governingTokenDepositAmount) : participant.governingTokenDepositAmount;
+                                    participant.governingCouncilDepositAmount = (new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.governingTokenDepositAmount) : participant.governingCouncilDepositAmount;
+                                    
+                                    if (record.account.governingTokenMint === record.walletBalance?.mint){
+                                        //tUnstakedVotes += (record.walletBalance?.tokenAmount?.amount ? +(+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : 0);
+                                        participant.walletBalanceAmount = (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null);
+                                    }
+                                    if (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config.councilMint).toBase58()){
+                                        tVotes += Number(record.account.governingTokenDepositAmount);//record.account.totalVotesCount;
+                                        tVotesCasted += record.account.totalVotesCount;//record.account.governingTokenDepositAmount.toNumber();
+                                    } else{
+                                        tCouncilVotes += record.account.totalVotesCount;
+                                        tDepositedCouncilVotesCasted += Number(record.account.governingTokenDepositAmount);
+                                    }
+                                }
+                            }
+                        }
+                        if (!foundParticipant){
+                                //console.log("record: "+JSON.stringify(record));
+                                
+                                if (grealm.account.config?.councilMint) {
+                                    participantArray.push({
+                                        pubkey:new PublicKey(record.pubkey),
+                                        governingTokenMint:(new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? new PublicKey(record.account.governingTokenMint) : null,
+                                        governingTokenOwner:new PublicKey(record.account.governingTokenOwner),
+                                        totalVotesCount:(new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.totalVotesCount) : 0,
+                                        councilVotesCount:(new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.totalVotesCount) : 0,
+                                        governingTokenDepositAmount:(new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account?.config.councilMint).toBase58()) ? Number(record.account.governingTokenDepositAmount) : new BN(0),
+                                        governingCouncilDepositAmount:(new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account?.config.councilMint).toBase58()) ? Number(record.account.governingTokenDepositAmount) : new BN(0),
+                                        walletBalanceAmount: (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null)
+                                    });
+                                    tUnstakedVotes += (record.walletBalance?.tokenAmount?.amount ? +(+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : 0);
+                                    
+                                    if (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account?.config.councilMint).toBase58()){
+                                        tVotes += Number(record.account.governingTokenDepositAmount);
+                                        tVotesCasted += Number(record.account.totalVotesCount);
+                                    } else{
+                                        tCouncilVotes += Number(record.account.totalVotesCount);
+                                        tDepositedCouncilVotesCasted += Number(record.account.governingTokenDepositAmount);
+                                    }
+                                } else{
+
+                                    participantArray.push({
+                                        pubkey:new PublicKey(record.pubkey),
+                                        governingTokenMint:new PublicKey(record.account.governingTokenMint),
+                                        governingTokenOwner:new PublicKey(record.account.governingTokenOwner),
+                                        totalVotesCount:Number(record.account.totalVotesCount),
+                                        councilVotesCount:0,
+                                        governingTokenDepositAmount:Number(record.account.governingTokenDepositAmount),
+                                        governingCouncilDepositAmount:new BN(0),
+                                        walletBalanceAmount: (record.walletBalance?.tokenAmount?.amount ? (+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : null)
+                                    });
+                                    
+                                    tUnstakedVotes += (record.walletBalance?.tokenAmount?.amount ? +(+record.walletBalance.tokenAmount.amount /Math.pow(10, record.walletBalance.tokenAmount.decimals || 0)).toFixed(0) : 0);
+                                    tVotes += Number(record.account.governingTokenDepositAmount);
+                                    tVotesCasted += record.account.totalVotesCount;
+                                }
+                                if (record.account.totalVotesCount > 0)
+                                    aParticipants++;
+                                if ((Number(record.account.governingTokenDepositAmount) > 0) || (Number(record.account.governingTokenDepositAmount) > 0))
+                                    lParticipants++;
+                                tParticipants++; // all time
+                        }
+                        cntr++;
+                    }
+
+                    let pcount = 0;
+                    for (let singleParticipant of participantArray){
+                            if (pcount > 0)
+                                csvFile += '\r\n';
+                            else
+                                csvFile = 'Member,VotesDeposited,TokenDecimals,RawVotesDeposited,CouncilVotesDeposited\r\n';
+                            
+                            let formattedDepositedAmount = (+(((singleParticipant.governingTokenDepositAmount))/Math.pow(10, thisTokenDecimals || 0)).toFixed(0));
+                            //csvFile += record.account.governingTokenOwner.toBase58()+','+record.account.governingTokenDepositAmount.toNumber();
+                            csvFile += singleParticipant.governingTokenOwner.toBase58()+','+formattedDepositedAmount+','+thisTokenDecimals+','+Number(singleParticipant.governingTokenDepositAmount)+','+Number(singleParticipant.governingCouncilDepositAmount);
+                        
+                            pcount++;
+                    }
+
+                    const jsonCSVString = encodeURI(`data:text/csv;chatset=utf-8,${csvFile}`);
+                    //console.log("jsonCSVString: "+JSON.stringify(jsonCSVString));
+                    
+                    setCSVGenerated(jsonCSVString);
+                    setRecordCount(null);
+                    setTotalUnstakedVotes(tUnstakedVotes > 0 ? tUnstakedVotes : null);
+                    setTotalDepositedVotes(tVotes > 0 ? tVotes : null);
+                    setTotalVotesCasted(tVotesCasted > 0 ? tVotesCasted : null);
+                    setTotalCouncilVotes(tCouncilVotes > 0 ? tCouncilVotes : null);
+                    setDepositedTotalCouncilVotes(tDepositedCouncilVotesCasted > 0 ? tDepositedCouncilVotesCasted : null);
+                    setTotalParticipants(tParticipants > 0 ? tParticipants : null);
+                    setActiveParticipants(lParticipants > 0 ? lParticipants : null);
+                    setVotingParticipants(aParticipants > 0 ? aParticipants : null);
+
+                    //console.log("participantArray: "+JSON.stringify(participantArray));
+                    const presortedResults = participantArray.sort((a,b) => (a.totalVotesCount > b.totalVotesCount) ? 1 : -1);
+                    const sortedResults = presortedResults.sort((a,b) => (Number(a.governingTokenDepositAmount) < Number(b.governingTokenDepositAmount)) ? 1 : -1);
+
+                    let top10 = null;
+                    let count = 0;
+                    let totalTopVotes = 0;
+                    let totalTopSupply = 0;
+                    let totalTopCirculatingSupply = 0;
+                    let totalTopGovernanceSupply = 0;
+                    for (var member of sortedResults){
+                        if (count < 10){
+                            console.log("member " +JSON.stringify(member))
+                            totalTopVotes += Number(member.governingTokenDepositAmount)/Math.pow(10, thisTokenDecimals || 0);
+                            if (tknSupply && Number(tknSupply.value.amount) > 0){
+                                totalTopCirculatingSupply += (Number(member.governingTokenDepositAmount)/Number(tknSupply.value.amount))*100
+                                totalTopGovernanceSupply += (Number(member.governingTokenDepositAmount)/tVotes)*100
+                            }
+                        }
+                        count++
+                    }
+
+                    top10 = {
+                        votes:totalTopVotes,
+                        percentageOfSupply:totalTopCirculatingSupply,
+                        percentageOfGovernanceSupply:totalTopGovernanceSupply
+                    }
+
+                    if (top10)
+                        setTop10Participants(top10);
+                    setMembers(sortedResults);
+                }
             
             }catch(e){console.log("ERR: "+e)}
         }
@@ -772,7 +797,11 @@ export function GovernanceMembersView(props: any) {
                         alignItems: 'center', textAlign: 'center'
                     }} 
                 > 
-                    <Typography variant="caption">Loading Governance Members {governanceAddress}</Typography>
+                    <Typography variant="caption">Loading Governance Members {governanceAddress}
+                        <><br/>For DAOs with over 2k voters this may take a minutes</>
+                        {recordCount && 
+                            <><br/>Record: {recordCount}</>}
+                    </Typography>
                     
                     <LinearProgress color="inherit" />
                 </Box>

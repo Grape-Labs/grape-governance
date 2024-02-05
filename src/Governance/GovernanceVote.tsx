@@ -561,7 +561,7 @@ export function VoteForProposal(props:any){
                         voteTx.add(tmpVote);
                     } else {
                         supportedVote = false;
-                        enqueueSnackbar("Plugin Voting Support Coming Soon (VSR, NFT, Gateway)", { variant: 'error' });
+                        enqueueSnackbar("Additional Plugin Voting Support Coming Soon (NFT, Gateway)", { variant: 'error' });
                     }
                 }
             }
