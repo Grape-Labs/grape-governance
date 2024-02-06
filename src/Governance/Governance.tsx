@@ -1776,7 +1776,7 @@ export function GovernanceCachedView(props: any) {
                                                                         verticalAlign: 'bottom'}}
                                                                     >
                                                                     <Typography variant="h4">
-                                                                        <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{totalPassed}</Badge>/
+                                                                        <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{totalPassed}</Badge>&nbsp;/&nbsp;
                                                                         <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{totalDefeated}</Badge>
                                                                     </Typography>
                                                                 </Grid>

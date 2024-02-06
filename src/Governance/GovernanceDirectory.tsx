@@ -654,12 +654,12 @@ export function GovernanceDirectoryView(props: Props) {
                         mt:6,
                         background: 'rgba(0, 0, 0, 0.5)',
                         borderRadius: '17px',
-                        p:4,
+                        p:2,
                         alignItems: 'center', textAlign: 'center'
                     }} 
                 > 
                     <Grid container sx={{mb:2}} id="back-to-top-anchor">
-                        <Grid item xs={12} sm={6} container justifyContent="flex-start"
+                        <Grid item xs={8} container justifyContent="flex-start"
                             sx={{textAlign:'left',mb:2}}
                         >
                             <Grid container>
@@ -670,12 +670,12 @@ export function GovernanceDirectoryView(props: Props) {
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="caption">
-                                        {governanceLookup && governanceLookup.length} Active Solana DAOs <Typography color='#555' variant="caption">from 2,200 total realms</Typography>
+                                        {governanceLookup && governanceLookup.length} Active Solana DAOs <Typography color='#555' variant="caption">2,500+ DAOs on SPL Governance</Typography>
                                     </Typography>
                                 </Grid>
                             </Grid>
                         </Grid>
-                        <Grid item xs={12} sm={6} container justifyContent="flex-end"
+                        <Grid item xs={4} container justifyContent="flex-end"
                             sx={{textAlign:'right'}}
                         >
                             <Grid container>

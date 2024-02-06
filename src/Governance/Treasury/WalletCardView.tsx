@@ -767,7 +767,7 @@ export default function WalletCardView(props:any) {
             let totalVal = 0;
             let tokenAccountVal = 0;
             let stakeAccountVal = 0;
-            let solAccountVal = usdcValue['So11111111111111111111111111111111111111112'].price*(+nativeSol + +rulesSol)
+            let solAccountVal = usdcValue['So11111111111111111111111111111111111111112']?.price ? usdcValue['So11111111111111111111111111111111111111112']?.price*(+nativeSol + +rulesSol) : 0;
             //alert(usdcValue['So11111111111111111111111111111111111111112'].price + " " +(+nativeSol + +rulesSol));
             totalVal += solAccountVal;
             
@@ -776,7 +776,6 @@ export default function WalletCardView(props:any) {
                     if (usdcValue[item.address]){
                         tokenAccountVal += usdcValue[item.address].price * item.balance;
                     }
-
                 }
             }
             if (rulesTokens){
