@@ -776,7 +776,6 @@ export default function WalletCardView(props:any) {
                     if (usdcValue[item.address]){
                         tokenAccountVal += usdcValue[item.address].price * item.balance;
                     }
-
                 }
             }
             if (rulesTokens){
