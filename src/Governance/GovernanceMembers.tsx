@@ -178,6 +178,7 @@ function RenderGovernanceMembersTable(props:any) {
         { field: 'id', headerName: 'ID', minWidth: 70, hide: true},
         { field: 'address', headerName: 'Address', minWidth: 70, hide: true},
         { field: 'record', headerName: 'Record', minWidth: 70, hide: true},
+        { field: 'delegate', headerName: 'Delegate', minWidth: 200, hide: true},
         { field: 'member', headerName: 'Member', minWidth: 200, flex: 1,
             renderCell: (params) => {
                 return(
@@ -262,6 +263,7 @@ function RenderGovernanceMembersTable(props:any) {
             mmbr.push({
                 id:x+1,
                 address: member.governingTokenOwner.toBase58(),
+                delegate: member?.governanceDelegate ? member.governanceDelegate.toBase58() : null,
                 record: member.pubkey.toBase58(),
                 member:{
                     address: member.governingTokenOwner.toBase58(),
@@ -531,13 +533,14 @@ export function GovernanceMembersView(props: any) {
                     let cntr = 0;
 
                     for (let record of trecords){
-                        console.log("record ("+(cntr+1)+"): "+JSON.stringify(record));
+                        //console.log("record ("+(cntr+1)+"): "+JSON.stringify(record));
                         setRecordCount(cntr+1 + " of " + trecords.length);
                         let foundParticipant = false;
                         if (trecords.length < 3000){
                             for (let participant of participantArray){
                                 if (new PublicKey(participant.governingTokenOwner).toBase58() === new PublicKey(record.account.governingTokenOwner).toBase58()){
                                     foundParticipant = true;
+                                    participant.governanceDelegate = record.account?.governanceDelegate ? new PublicKey(record.account.governanceDelegate) : null,
                                     participant.governingTokenMint = (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? new PublicKey(record.account.governingTokenMint) : participant.governingTokenMint;
                                     participant.totalVotesCount = (new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.totalVotesCount) : participant.totalVotesCount;
                                     participant.councilVotesCount = (new PublicKey(record.account.governingTokenMint).toBase58() === new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.totalVotesCount) : participant.councilVotesCount;
@@ -564,6 +567,7 @@ export function GovernanceMembersView(props: any) {
                                 if (grealm.account.config?.councilMint) {
                                     participantArray.push({
                                         pubkey:new PublicKey(record.pubkey),
+                                        governanceDelegate:record.account?.governanceDelegate ? new PublicKey(record.account.governanceDelegate) : null,
                                         governingTokenMint:(new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? new PublicKey(record.account.governingTokenMint) : null,
                                         governingTokenOwner:new PublicKey(record.account.governingTokenOwner),
                                         totalVotesCount:(new PublicKey(record.account.governingTokenMint).toBase58() !== new PublicKey(grealm.account.config?.councilMint).toBase58()) ? Number(record.account.totalVotesCount) : 0,
@@ -585,6 +589,7 @@ export function GovernanceMembersView(props: any) {
 
                                     participantArray.push({
                                         pubkey:new PublicKey(record.pubkey),
+                                        governanceDelegate:record.account?.governanceDelegate ? new PublicKey(record.account.governanceDelegate) : null,
                                         governingTokenMint:new PublicKey(record.account.governingTokenMint),
                                         governingTokenOwner:new PublicKey(record.account.governingTokenOwner),
                                         totalVotesCount:Number(record.account.totalVotesCount),

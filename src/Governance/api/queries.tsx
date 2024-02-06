@@ -467,12 +467,12 @@ function GET_QUERY_RULES(realm:string, realmOwner:string){
         `
 }
 
-function GET_QUERY_MEMBERS(realm:string, realmOwner:string){
+function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number){
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
     return gql `
         query MyQuery {
-            ${programId}_TokenOwnerRecordV2(where: {realm: {_eq: "${realm}"}}) {
+            ${programId}_TokenOwnerRecordV2(offset:"${pointer}", where: {realm: {_eq: "${realm}"}}) {
                 governanceDelegate
                 governingTokenDepositAmount
                 governingTokenMint
@@ -485,7 +485,7 @@ function GET_QUERY_MEMBERS(realm:string, realmOwner:string){
                 version
                 pubkey      
             }
-            ${programId}_TokenOwnerRecordV1(where: {realm: {_eq: "${realm}"}}) {
+            ${programId}_TokenOwnerRecordV1(offset:"${pointer}",where: {realm: {_eq: "${realm}"}}) {
                 governanceDelegate
                 governingTokenDepositAmount
                 governingTokenMint
@@ -866,19 +866,19 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
             
             let hasMore = true;
             // consider how to iterate vs using RPC
-            let finalData = new Array();
             let x = 0;
-            //while (hasMore){
+            while (hasMore){
                 console.log("fetching tokenOwnerRecords: "+x);
                 const { data } = await client.query({ 
-                    query: GET_QUERY_MEMBERS(filterRealm, programName),
-                    variables: { first: 1000, after: x } });
+                    query: GET_QUERY_MEMBERS(filterRealm, programName, x)});//,
+                    //variables: { first: 1000, after: x } });
                 
+                /*
                 if (finalData && finalData.length  > 0){
                     finalData = [...finalData,...data];
                 }else{
                     finalData = data;
-                }
+                }*/
                 
                 hasMore = false;
                 if (data[programName+"_TokenOwnerRecordV2"] && data[programName+"_TokenOwnerRecordV2"].length >= 1000){
@@ -891,55 +891,54 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
                     hasMore = false;
                 }
 
+                data[programName+"_TokenOwnerRecordV2"] && data[programName+"_TokenOwnerRecordV2"].map((item) => {
+                    allResults.push({
+                        //owner: new PublicKey(item.owner),
+                        pubkey: new PublicKey(item.pubkey),
+                        account: {
+                            realm: new PublicKey(item.realm),
+                            accountType: item?.accountType,
+                            governingTokenMint: new PublicKey(item.governingTokenMint),
+                            governingTokenOwner: new PublicKey(item.governingTokenOwner),
+                            governanceDelegate: item?.governanceDelegate ? new PublicKey(item.governanceDelegate):null,
+                            governingTokenDepositAmount: new BN(item.governingTokenDepositAmount),
+                            unrelinquishedVotesCount: item.unrelinquishedVotesCount,
+                            totalVotesCount: item.totalVotesCount,
+                            outstandingProposalCount: item.outstandingProposalCount,
+                            reserved: item.reserved,
+                            version: item.version
+                        }
+                    })
+                });
+    
+                data[programName+"_TokenOwnerRecordV1"] && data[programName+"_TokenOwnerRecordV1"].map((item) => {
+                    allResults.push({
+                        //owner: new PublicKey(item.owner),
+                        pubkey: new PublicKey(item.pubkey),
+                        account: {
+                            realm: new PublicKey(item.realm),
+                            accountType: item?.accountType,
+                            governingTokenMint: new PublicKey(item.governingTokenMint),
+                            governingTokenOwner: new PublicKey(item.governingTokenOwner),
+                            governanceDelegate: item?.governanceDelegate ? new PublicKey(item.governanceDelegate):null,
+                            governingTokenDepositAmount: new BN(item.governingTokenDepositAmount),
+                            unrelinquishedVotesCount: item.unrelinquishedVotesCount,
+                            totalVotesCount: item.totalVotesCount,
+                            outstandingProposalCount: item.outstandingProposalCount,
+                            reserved: item.reserved,
+                            version: item.version
+                        }
+                    })
+                });
+
                 x += 1000;
-            //}
+            }
             
-            //console.log("finalData: "+JSON.stringify(finalData));
-            // normalize data
-            
-            finalData[programName+"_TokenOwnerRecordV2"] && finalData[programName+"_TokenOwnerRecordV2"].map((item) => {
-                allResults.push({
-                    //owner: new PublicKey(item.owner),
-                    pubkey: new PublicKey(item.pubkey),
-                    account: {
-                        realm: new PublicKey(item.realm),
-                        accountType: item?.accountType,
-                        governingTokenMint: new PublicKey(item.governingTokenMint),
-                        governingTokenOwner: new PublicKey(item.governingTokenOwner),
-                        governanceDelegate: item?.governanceDelegate ? new PublicKey(item.governanceDelegate):null,
-                        governingTokenDepositAmount: new BN(item.governingTokenDepositAmount),
-                        unrelinquishedVotesCount: item.unrelinquishedVotesCount,
-                        totalVotesCount: item.totalVotesCount,
-                        outstandingProposalCount: item.outstandingProposalCount,
-                        reserved: item.reserved,
-                        version: item.version
-                    }
-                })
-            });
 
-            finalData[programName+"_TokenOwnerRecordV1"] && finalData[programName+"_TokenOwnerRecordV1"].map((item) => {
-                allResults.push({
-                    //owner: new PublicKey(item.owner),
-                    pubkey: new PublicKey(item.pubkey),
-                    account: {
-                        realm: new PublicKey(item.realm),
-                        accountType: item?.accountType,
-                        governingTokenMint: new PublicKey(item.governingTokenMint),
-                        governingTokenOwner: new PublicKey(item.governingTokenOwner),
-                        governanceDelegate: item?.governanceDelegate ? new PublicKey(item.governanceDelegate):null,
-                        governingTokenDepositAmount: new BN(item.governingTokenDepositAmount),
-                        unrelinquishedVotesCount: item.unrelinquishedVotesCount,
-                        totalVotesCount: item.totalVotesCount,
-                        outstandingProposalCount: item.outstandingProposalCount,
-                        reserved: item.reserved,
-                        version: item.version
-                    }
-                })
-            });
-
+            //console.log("allResults: "+JSON.stringify(allResults));
             // remove this once we properly iterate
-            if (allResults.length >= 1000)
-                allResults = null;
+            //if (allResults.length >= 1000)
+            //    allResults = null;
         }catch(e){
             console.log("Error fetching token owner records, reverting to RPC");
         }
@@ -951,7 +950,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
             //allResults.push(...results);
         }
 
-        console.log("allResults "+JSON.stringify(allResults))
+        //console.log("allResults "+JSON.stringify(allResults))
         return allResults;
         
     }
