@@ -1508,7 +1508,7 @@ export function GovernanceCachedView(props: any) {
         } else{
             if (proposals && tokenMap && memberMap && realm){
                 return (
-                    <ThemeProvider theme={grapeTheme}>
+                    <>
                         <Box
                             sx={{
                                 width:'100%',
@@ -1524,7 +1524,6 @@ export function GovernanceCachedView(props: any) {
                                 <>
                                     <Grid container
                                         sx={{
-                                            m: showGovernanceNavigation ? 0 : 2,
                                         }}
                                     >
                                         <Grid item xs={6} container justifyContent="flex-start">
@@ -1788,24 +1787,24 @@ export function GovernanceCachedView(props: any) {
                                         </Grid>
                                     </Box>
                                     
-                                    
-                            <RenderGovernanceTable 
-                                governanceLookup={governanceLookup} 
-                                endTimer={endTimer} 
-                                cachedGovernance={cachedGovernance} 
-                                memberMap={memberMap} 
-                                governanceType={governanceType} 
-                                governingTokenDecimals={governingTokenDecimals} 
-                                governingTokenMint={governingTokenMint} 
-                                tokenMap={tokenMap} 
-                                realm={realm} 
-                                thisToken={thisToken} 
-                                proposals={proposals} 
-                                nftBasedGovernance={nftBasedGovernance} 
-                                filterState={filterState}
-                                setFilterState={setFilterState}
-                                governanceAddress={governanceAddress} />
-                            
+                            <ThemeProvider theme={grapeTheme}>       
+                                <RenderGovernanceTable 
+                                    governanceLookup={governanceLookup} 
+                                    endTimer={endTimer} 
+                                    cachedGovernance={cachedGovernance} 
+                                    memberMap={memberMap} 
+                                    governanceType={governanceType} 
+                                    governingTokenDecimals={governingTokenDecimals} 
+                                    governingTokenMint={governingTokenMint} 
+                                    tokenMap={tokenMap} 
+                                    realm={realm} 
+                                    thisToken={thisToken} 
+                                    proposals={proposals} 
+                                    nftBasedGovernance={nftBasedGovernance} 
+                                    filterState={filterState}
+                                    setFilterState={setFilterState}
+                                    governanceAddress={governanceAddress} />
+                            </ThemeProvider>
                             {endTime &&
                                 <Grid
                                     sx={{
@@ -1840,7 +1839,7 @@ export function GovernanceCachedView(props: any) {
                                 </Grid>
                             }
                         </Box>
-                    </ThemeProvider>        
+                    </>        
                 );
             }else{
                 return (

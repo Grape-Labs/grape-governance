@@ -1289,7 +1289,6 @@ export default function WalletCardView(props:any) {
                                                         opacity: 0,
                                                         fontSize:"10px"}} />
                                                 }
-                                                
                                             >
                                                 <Typography variant="subtitle1" sx={{color:'white'}}>Solana</Typography>
                                             </Button>
