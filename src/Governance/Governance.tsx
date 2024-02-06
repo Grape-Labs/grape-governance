@@ -1516,7 +1516,7 @@ export function GovernanceCachedView(props: any) {
                                 background: 'rgba(0, 0, 0, 0.6)',
                                 borderRadius: '17px',
                                 overflow: 'hidden',
-                                p: showGovernanceNavigation ? 4 : 0,
+                                p: showGovernanceNavigation ? 1 : 0,
                                 color: 'white',
                             }} 
                         > 
@@ -1527,7 +1527,7 @@ export function GovernanceCachedView(props: any) {
                                             m: showGovernanceNavigation ? 0 : 2,
                                         }}
                                     >
-                                        <Grid item xs={12} sm={6} container justifyContent="flex-start">
+                                        <Grid item xs={6} container justifyContent="flex-start">
                                             <Grid container>
                                                 <Grid item xs={12}>
                                                     <Typography variant="h4">
@@ -1552,7 +1552,7 @@ export function GovernanceCachedView(props: any) {
                                             </Grid>
                                         </Grid>
                                         {(showGovernanceNavigation && realm) ?
-                                            <Grid item xs={12} sm={6} container justifyContent="flex-end">
+                                            <Grid item xs={6} container justifyContent="flex-end">
                                                 <GovernanceNavigation governanceAddress={governanceAddress} cachedMemberMap={cachedMemberMap} realm={realm} />
                                                 <GovernancePower governanceAddress={governanceAddress} realm={realm} />
                                             </Grid>
@@ -1563,10 +1563,10 @@ export function GovernanceCachedView(props: any) {
                                     <Box 
                                         sx={{
                                             mt:1,
-                                            ml:3,
-                                            mr:3,}}
+                                            ml:1,
+                                            mr:1,}}
                                     >
-                                    <GovernanceRealtimeInfo governanceAddress={governanceAddress} title={'Live'} tokenMap={tokenMap} />
+                                        <GovernanceRealtimeInfo governanceAddress={governanceAddress} title={'Live'} tokenMap={tokenMap} />
                                     </Box>
 
                                     {/*
@@ -1590,13 +1590,13 @@ export function GovernanceCachedView(props: any) {
                             
                                     <Box sx={{ 
                                         p:1}}>
-                                        <Grid container spacing={0}>
+                                        <Grid container spacing={1}>
 
                                         <Grid item xs={12} sm={6} md={6} lg={3} key={1}>
                                                 <Box
                                                     sx={{
                                                         borderRadius:'24px',
-                                                        m:2,
+                                                        m:0,
                                                         p:1,
                                                         background: 'rgba(0, 0, 0, 0.2)',
                                                     }}
@@ -1604,29 +1604,36 @@ export function GovernanceCachedView(props: any) {
                                                     <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                         <>Treasury</>
                                                     </Typography>
-                                                    <Tooltip title={<>
-                                                            Treasury total holdings value
-                                                            </>
-                                                        }>
-                                                            <Button
-                                                                color='inherit'
-                                                                sx={{
-                                                                    borderRadius:'17px'
-                                                                }}
-                                                            >
-                                                                <Grid container
-                                                                sx={{
-                                                                    verticalAlign: 'bottom'}}
+                                                    <Grid
+                                                        container
+                                                        justifyContent='center'
+                                                        alignItems='center'
+                                                        sx={{}}
+                                                    >
+                                                        <Tooltip title={<>
+                                                                Treasury total holdings value
+                                                                </>
+                                                            }>
+                                                                <Button
+                                                                    color='inherit'
+                                                                    sx={{
+                                                                        borderRadius:'17px',
+                                                                    }}
                                                                 >
-                                                                    {totalVaultValue ?
-                                                                        <Typography variant="h4">
-                                                                            ${getFormattedNumberToLocale(totalVaultValue.toFixed(2))} 
-                                                                        </Typography>
-                                                                    :<>-</>
-                                                                    }
-                                                                </Grid>
-                                                            </Button>
-                                                    </Tooltip>
+                                                                    <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                    >
+                                                                        {totalVaultValue ?
+                                                                            <Typography variant="h4">
+                                                                                ${getFormattedNumberToLocale(totalVaultValue.toFixed(2))} 
+                                                                            </Typography>
+                                                                        :<>-</>
+                                                                        }
+                                                                    </Grid>
+                                                                </Button>
+                                                        </Tooltip>
+                                                    </Grid>
                                                 </Box>
                                             </Grid>
 
@@ -1635,7 +1642,7 @@ export function GovernanceCachedView(props: any) {
                                                 <Box
                                                     sx={{
                                                         borderRadius:'24px',
-                                                        m:2,
+                                                        m:0,
                                                         p:1,
                                                         background: 'rgba(0, 0, 0, 0.2)',
                                                     }}
@@ -1643,45 +1650,52 @@ export function GovernanceCachedView(props: any) {
                                                     <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                         <>Total Casted Votes</>
                                                     </Typography>
-                                                    <Tooltip title={<>
-                                                                Total votes casted for this governnace
-                                                                {(totalCouncilVotesCasted && totalVotesCasted) ?
-                                                                    <><br/>Community/Council</>
-                                                                :<></>
-                                                                }
-                                                            </>
-                                                        }>
-                                                            <Button
-                                                                color='inherit'
-                                                                sx={{
-                                                                    borderRadius:'17px'
-                                                                }}
-                                                            >
-                                                                <Grid container
-                                                                sx={{
-                                                                    verticalAlign: 'bottom'}}
-                                                                >
-                                                                    {totalVotesCasted ?
-                                                                        <Typography variant="h4">
-                                                                            {getFormattedNumberToLocale(totalVotesCasted)} 
-                                                                        </Typography>
+                                                    <Grid
+                                                        container
+                                                        justifyContent='center'
+                                                        alignItems='center'
+                                                        sx={{}}
+                                                    >
+                                                        <Tooltip title={<>
+                                                                    Total votes casted for this governnace
+                                                                    {(totalCouncilVotesCasted && totalVotesCasted) ?
+                                                                        <><br/>Community/Council</>
                                                                     :<></>
                                                                     }
+                                                                </>
+                                                            }>
+                                                                <Button
+                                                                    color='inherit'
+                                                                    sx={{
+                                                                        borderRadius:'17px'
+                                                                    }}
+                                                                >
+                                                                    <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                    >
+                                                                        {totalVotesCasted ?
+                                                                            <Typography variant="h4">
+                                                                                {getFormattedNumberToLocale(totalVotesCasted)} 
+                                                                            </Typography>
+                                                                        :<></>
+                                                                        }
 
-                                                                    <Typography variant="h4" color="#999">
-                                                                        {(totalCouncilVotesCasted && totalVotesCasted) ?
-                                                                            <>/</>
-                                                                        :<></>
-                                                                        }
-                                                                        {totalCouncilVotesCasted ?
-                                                                            <>{totalCouncilVotesCasted}</>
-                                                                        :<></>
-                                                                        }
-                                                                    </Typography>
-                                                                    
-                                                                </Grid>
-                                                            </Button>
-                                                    </Tooltip>
+                                                                        <Typography variant="h4" color="#999">
+                                                                            {(totalCouncilVotesCasted && totalVotesCasted) ?
+                                                                                <>/</>
+                                                                            :<></>
+                                                                            }
+                                                                            {totalCouncilVotesCasted ?
+                                                                                <>{totalCouncilVotesCasted}</>
+                                                                            :<></>
+                                                                            }
+                                                                        </Typography>
+                                                                        
+                                                                    </Grid>
+                                                                </Button>
+                                                        </Tooltip>
+                                                    </Grid>
                                                 </Box>
                                             </Grid>
                                             
@@ -1689,7 +1703,7 @@ export function GovernanceCachedView(props: any) {
                                                 <Box
                                                     sx={{
                                                         borderRadius:'24px',
-                                                        m:2,
+                                                        m:0,
                                                         p:1,
                                                         background: 'rgba(0, 0, 0, 0.2)',
                                                     }}
@@ -1697,27 +1711,34 @@ export function GovernanceCachedView(props: any) {
                                                     <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                         <>Proposals/Success Rate</>
                                                     </Typography>
-                                                    <Tooltip title={<>
-                                                                Total proposals voted for in this governance<br/>Success rate is calculated on successfully completed proposals
-                                                            </>
-                                                        }>
-                                                        <Button
-                                                            color='inherit'
-                                                            sx={{
-                                                                borderRadius:'17px',
-                                                            }}
-                                                        >   
-                                                            <Grid container
+                                                    <Grid
+                                                        container
+                                                        justifyContent='center'
+                                                        alignItems='center'
+                                                        sx={{}}
+                                                    >
+                                                        <Tooltip title={<>
+                                                                    Total proposals voted for in this governance<br/>Success rate is calculated on successfully completed proposals
+                                                                </>
+                                                            }>
+                                                            <Button
+                                                                color='inherit'
                                                                 sx={{
-                                                                    verticalAlign: 'bottom'}}
-                                                            >
-                                                                <Typography variant="h4">
-                                                                    {totalActualProposals}
-                                                                </Typography>
-                                                                <Typography variant="h6">/{((totalPassed/totalActualProposals)*100).toFixed(1)}%</Typography>
-                                                            </Grid>
-                                                        </Button>
-                                                    </Tooltip>
+                                                                    borderRadius:'17px',
+                                                                }}
+                                                            >   
+                                                                <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                >
+                                                                    <Typography variant="h4">
+                                                                        {totalActualProposals}
+                                                                    </Typography>
+                                                                    <Typography variant="h6">/{((totalPassed/totalActualProposals)*100).toFixed(1)}%</Typography>
+                                                                </Grid>
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Grid>
                                                 </Box>
                                             </Grid>
                                             
@@ -1725,7 +1746,7 @@ export function GovernanceCachedView(props: any) {
                                                 <Box
                                                     sx={{
                                                         borderRadius:'24px',
-                                                        m:2,
+                                                        m:0,
                                                         p:1,
                                                         background: 'rgba(0, 0, 0, 0.2)',
                                                     }}
@@ -1733,27 +1754,34 @@ export function GovernanceCachedView(props: any) {
                                                     <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                         <>Passing/Defeated</>
                                                     </Typography>
-                                                    <Tooltip title={<>
-                                                                Total proposals passed / Total proposals defeated
-                                                            </>
-                                                        }>
-                                                        <Button
-                                                            color='inherit'
-                                                            sx={{
-                                                                borderRadius:'17px'
-                                                            }}
-                                                        >
-                                                            <Grid container
+                                                    <Grid
+                                                        container
+                                                        justifyContent='center'
+                                                        alignItems='center'
+                                                        sx={{}}
+                                                    >
+                                                        <Tooltip title={<>
+                                                                    Total proposals passed / Total proposals defeated
+                                                                </>
+                                                            }>
+                                                            <Button
+                                                                color='inherit'
                                                                 sx={{
-                                                                    verticalAlign: 'bottom'}}
-                                                                >
-                                                                <Typography variant="h4">
-                                                                    <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{totalPassed}</Badge>/
-                                                                    <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{totalDefeated}</Badge>
-                                                                </Typography>
-                                                            </Grid>
-                                                        </Button>
-                                                    </Tooltip>
+                                                                    borderRadius:'17px'
+                                                                }}
+                                                            >
+                                                                <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                    >
+                                                                    <Typography variant="h4">
+                                                                        <Badge badgeContent={<ThumbUpIcon sx={{ fontSize: 10 }} />} color="success">{totalPassed}</Badge>/
+                                                                        <Badge badgeContent={<ThumbDownIcon sx={{ fontSize: 10 }} />} color="error">{totalDefeated}</Badge>
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Grid>
                                                 </Box>
                                             </Grid>
                                             

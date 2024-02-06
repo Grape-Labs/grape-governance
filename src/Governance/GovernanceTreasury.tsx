@@ -474,16 +474,13 @@ export function GovernanceTreasuryView(props: any) {
                             background: 'rgba(0, 0, 0, 0.6)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            pt:4,
-                            pb:4,
-                            pl:1,
-                            pr:1,
+                            p:1,
                         }} 
                     > 
                         {realmName &&
                             <>
                                 <Grid container>
-                                    <Grid item xs={12} sm={6} container justifyContent="flex-start">
+                                    <Grid item xs={6} container justifyContent="flex-start">
                                         <Grid container>
                                             <Grid item xs={12}>
                                                 <Typography variant="h4">
@@ -507,7 +504,7 @@ export function GovernanceTreasuryView(props: any) {
                                             </Grid>
                                         </Grid>
                                     </Grid>
-                                    <Grid item xs={12} sm={6} container justifyContent="flex-end">
+                                    <Grid item xs={6} container justifyContent="flex-end">
                                         <GovernanceNavigation governanceAddress={governanceAddress} />
                                     </Grid>
                                 </Grid>
@@ -515,12 +512,12 @@ export function GovernanceTreasuryView(props: any) {
                         }
 
                         <Box sx={{ p:1}}>
-                            <Grid container spacing={0}>
+                            <Grid container spacing={1}>
                                 <Grid item xs={12} md={6} lg={6} key={1}>
                                     <Box
                                         sx={{
                                             borderRadius:'24px',
-                                            m:2,
+                                            m:0,
                                             p:1,
                                             background: 'rgba(0, 0, 0, 0.2)'
                                         }}
@@ -568,7 +565,7 @@ export function GovernanceTreasuryView(props: any) {
                                     <Box
                                         sx={{
                                             borderRadius:'24px',
-                                            m:2,
+                                            m:0,
                                             p:1,
                                             background: 'rgba(0, 0, 0, 0.2)',
                                         }}
