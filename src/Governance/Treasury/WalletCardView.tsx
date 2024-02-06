@@ -1295,7 +1295,7 @@ export default function WalletCardView(props:any) {
                                             </Button>
                                         </CopyToClipboard>
                                     } 
-                                    secondary={<Typography variant="caption">{usdcValue && `$${usdcValue['So11111111111111111111111111111111111111112'].price.toFixed(2)}`}</Typography>}
+                                    secondary={<Typography variant="caption">{usdcValue && `$${usdcValue['So11111111111111111111111111111111111111112']?.price && usdcValue['So11111111111111111111111111111111111111112'].price.toFixed(2)}`}</Typography>}
                                     />
                             </ListItem>
                             <Divider component="li" light />

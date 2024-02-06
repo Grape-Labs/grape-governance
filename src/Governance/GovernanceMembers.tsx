@@ -868,12 +868,12 @@ export function GovernanceMembersView(props: any) {
                         }
                             {(totalDepositedVotes || totalCouncilVotes) &&
                                 <Box sx={{ p:1}}>
-                                    <Grid container spacing={0}>
+                                    <Grid container spacing={1}>
                                         <Grid item xs={12} md={6} lg={3} key={1}>
                                             <Box
                                                 sx={{
                                                     borderRadius:'24px',
-                                                    m:2,
+                                                    m:0,
                                                     p:1,
                                                     background: 'rgba(0, 0, 0, 0.2)'
                                                 }}
@@ -881,55 +881,16 @@ export function GovernanceMembersView(props: any) {
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Active/Participating/All Voters</>
                                                 </Typography>
-                                                <Tooltip title={<>
-                                                        <strong>Active:</strong> Currently Active Deposited<br/>
-                                                        <strong>Participating:</strong> All time Participating voters<br/>
-                                                        <strong>All:</strong> Total Lifetime Deposited in Governance</>
-                                                    }>
-                                                    <Button
-                                                        color='inherit'
-                                                        sx={{
-                                                            borderRadius:'17px'
-                                                        }}
-                                                    >
-                                                        <Grid container
-                                                            sx={{
-                                                                verticalAlign: 'bottom'}}
-                                                         >
-                                                            <Typography variant="h4">
-                                                                {activeParticipants}/{votingParticipants}/{totalParticipants}
-                                                            </Typography>
-                                                        </Grid>
-                                                    </Button>
-                                                </Tooltip>
-                                            </Box>
-                                        </Grid>
-                                        
-                                        <Grid item xs={12} md={6} lg={3} key={2}>
-                                            <Box
-                                                sx={{
-                                                    borderRadius:'24px',
-                                                    m:2,
-                                                    p:1,
-                                                    background: 'rgba(0, 0, 0, 0.2)'
-                                                }}
-                                            >
-                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Top 10</>
-                                                </Typography>
-                                                {top10Participants &&
+                                                <Grid
+                                                    container
+                                                    justifyContent='center'
+                                                    alignItems='center'
+                                                    sx={{}}
+                                                >
                                                     <Tooltip title={<>
-                                                                <Typography variant="subtitle2">
-                                                                    <strong>Top 10:</strong>
-                                                                </Typography>
-                                                                <Typography variant="body2">
-                                                                    <ul>
-                                                                        <li>Holders have {getFormattedNumberToLocale(+(top10Participants.votes.toFixed(0)))} votes deposited</li>
-                                                                        <li>Hold {top10Participants.percentageOfGovernanceSupply.toFixed(1)}% of the total deposited in Governance</li>
-                                                                        <li>Comprise {top10Participants.percentageOfSupply.toFixed(1)}% of the total token supply</li>
-                                                                    </ul>
-                                                                </Typography>
-                                                            </>
+                                                            <strong>Active:</strong> Currently Active Deposited<br/>
+                                                            <strong>Participating:</strong> All time Participating voters<br/>
+                                                            <strong>All:</strong> Total Lifetime Deposited in Governance</>
                                                         }>
                                                         <Button
                                                             color='inherit'
@@ -940,13 +901,66 @@ export function GovernanceMembersView(props: any) {
                                                             <Grid container
                                                                 sx={{
                                                                     verticalAlign: 'bottom'}}
-                                                                >
+                                                            >
                                                                 <Typography variant="h4">
-                                                                    {getFormattedNumberToLocale(top10Participants.votes.toFixed(0))}
+                                                                    {activeParticipants}/{votingParticipants}/{totalParticipants}
                                                                 </Typography>
                                                             </Grid>
                                                         </Button>
                                                     </Tooltip>
+                                                </Grid>
+                                            </Box>
+                                        </Grid>
+                                        
+                                        <Grid item xs={12} md={6} lg={3} key={2}>
+                                            <Box
+                                                sx={{
+                                                    borderRadius:'24px',
+                                                    m:0,
+                                                    p:1,
+                                                    background: 'rgba(0, 0, 0, 0.2)'
+                                                }}
+                                            >
+                                                <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                    <>Top 10</>
+                                                </Typography>
+                                                {top10Participants &&
+                                                    <Grid
+                                                        container
+                                                        justifyContent='center'
+                                                        alignItems='center'
+                                                        sx={{}}
+                                                    >
+                                                        <Tooltip title={<>
+                                                                    <Typography variant="subtitle2">
+                                                                        <strong>Top 10:</strong>
+                                                                    </Typography>
+                                                                    <Typography variant="body2">
+                                                                        <ul>
+                                                                            <li>Holders have {getFormattedNumberToLocale(+(top10Participants.votes.toFixed(0)))} votes deposited</li>
+                                                                            <li>Hold {top10Participants.percentageOfGovernanceSupply.toFixed(1)}% of the total deposited in Governance</li>
+                                                                            <li>Comprise {top10Participants.percentageOfSupply.toFixed(1)}% of the total token supply</li>
+                                                                        </ul>
+                                                                    </Typography>
+                                                                </>
+                                                            }>
+                                                            <Button
+                                                                color='inherit'
+                                                                sx={{
+                                                                    borderRadius:'17px'
+                                                                }}
+                                                            >
+                                                                <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                    >
+                                                                    <Typography variant="h4">
+                                                                        {getFormattedNumberToLocale(top10Participants.votes.toFixed(0))}
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Grid>
                                                 }
                                             </Box>
                                         </Grid>
@@ -990,7 +1004,7 @@ export function GovernanceMembersView(props: any) {
                                             <Box
                                                 sx={{
                                                     borderRadius:'24px',
-                                                    m:2,
+                                                    m:0,
                                                     p:1,
                                                     background: 'rgba(0, 0, 0, 0.2)'
                                                 }}
@@ -998,72 +1012,33 @@ export function GovernanceMembersView(props: any) {
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
                                                     <>Total Votes Deposited</>
                                                 </Typography>
-                                                
-                                                <Tooltip title={<>
-                                                    {totalUnstakedVotes ?
-                                                            <>
-                                                                <Typography variant="subtitle2">
-                                                                    <strong>Total Not Staked:</strong>
-                                                                </Typography>
-                                                                <Typography variant="body2">
-                                                                    
-                                                                    <ul>
-                                                                    {/*totalVotesCasted && <>Total Votes Deposited</>}
-                                                                    {(totalVotesCasted && totalDepositedCouncilVotes) &&
-                                                                        <>/</>
-                                                                    }
-                                                                    {totalCouncilVotes && <>Total Council Votes Deposited</>*/}
-                                                                    
-                                                                    <li>{getFormattedNumberToLocale(totalUnstakedVotes)} held in voter wallets</li> : <li>-</li>}
-                                                                    </ul>
-                                                                </Typography>
-                                                            </>:<>Votes Deposited &amp; Eligible to participate in this DAO</>}
-                                                        </>
-                                                    }>
-                                                    <Button
-                                                        color='inherit'
-                                                        sx={{
-                                                            borderRadius:'17px'
-                                                        }}
-                                                    >
-                                                        <Grid container
-                                                            sx={{
-                                                                verticalAlign: 'bottom'}}
-                                                            >
-                                                            <Typography variant="h4">
-                                                                {totalDepositedVotes &&
-                                                                    <>
-                                                                        {getFormattedNumberToLocale(+((totalDepositedVotes)/Math.pow(10, governingTokenDecimals || 0)).toFixed(0))}
-                                                                    </>
-                                                                }
-                                                                {(totalDepositedVotes && totalDepositedCouncilVotes) &&
-                                                                    <>/</>
-                                                                }
-                                                                {totalDepositedCouncilVotes && <>{totalDepositedCouncilVotes}</>}
-                                                            </Typography>
-                                                        </Grid>
-                                                    </Button>
-                                                </Tooltip>
-                                                
-                                            </Box>
-                                        </Grid>
-                                        {circulatingSupply && 
-                                            <Grid item xs={12} md={6} lg={3} key={4}>
-                                                <Box
-                                                    sx={{
-                                                        borderRadius:'24px',
-                                                        m:2,
-                                                        p:1,
-                                                        background: 'rgba(0, 0, 0, 0.2)'
-                                                    }}
+                                                <Grid
+                                                    container
+                                                    justifyContent='center'
+                                                    alignItems='center'
+                                                    sx={{}}
                                                 >
-                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                        <>% Circulating Supply</>
-                                                    </Typography>
                                                     <Tooltip title={<>
-                                                            Calculated from the total token circulating supply
-                                                        </>
-                                                    }>
+                                                        {totalUnstakedVotes ?
+                                                                <>
+                                                                    <Typography variant="subtitle2">
+                                                                        <strong>Total Not Staked:</strong>
+                                                                    </Typography>
+                                                                    <Typography variant="body2">
+                                                                        
+                                                                        <ul>
+                                                                        {/*totalVotesCasted && <>Total Votes Deposited</>}
+                                                                        {(totalVotesCasted && totalDepositedCouncilVotes) &&
+                                                                            <>/</>
+                                                                        }
+                                                                        {totalCouncilVotes && <>Total Council Votes Deposited</>*/}
+                                                                        
+                                                                        <li>{getFormattedNumberToLocale(totalUnstakedVotes)} held in voter wallets</li> : <li>-</li>}
+                                                                        </ul>
+                                                                    </Typography>
+                                                                </>:<>Votes Deposited &amp; Eligible to participate in this DAO</>}
+                                                            </>
+                                                        }>
                                                         <Button
                                                             color='inherit'
                                                             sx={{
@@ -1075,17 +1050,69 @@ export function GovernanceMembersView(props: any) {
                                                                     verticalAlign: 'bottom'}}
                                                                 >
                                                                 <Typography variant="h4">
-                                                                    {circulatingSupply.value.amount > 0 ?
+                                                                    {totalDepositedVotes &&
                                                                         <>
-                                                                            {((totalDepositedVotes/circulatingSupply.value.amount)*100).toFixed(1)}%
+                                                                            {getFormattedNumberToLocale(+((totalDepositedVotes)/Math.pow(10, governingTokenDecimals || 0)).toFixed(0))}
                                                                         </>
-                                                                    :
-                                                                        <>-</>
                                                                     }
+                                                                    {(totalDepositedVotes && totalDepositedCouncilVotes) &&
+                                                                        <>/</>
+                                                                    }
+                                                                    {totalDepositedCouncilVotes && <>{totalDepositedCouncilVotes}</>}
                                                                 </Typography>
                                                             </Grid>
                                                         </Button>
                                                     </Tooltip>
+                                                </Grid>
+                                                
+                                            </Box>
+                                        </Grid>
+                                        {circulatingSupply && 
+                                            <Grid item xs={12} md={6} lg={3} key={4}>
+                                                <Box
+                                                    sx={{
+                                                        borderRadius:'24px',
+                                                        m:0,
+                                                        p:1,
+                                                        background: 'rgba(0, 0, 0, 0.2)'
+                                                    }}
+                                                >
+                                                    <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                                        <>% Circulating Supply</>
+                                                    </Typography>
+                                                    <Grid
+                                                        container
+                                                        justifyContent='center'
+                                                        alignItems='center'
+                                                        sx={{}}
+                                                    >
+                                                        <Tooltip title={<>
+                                                                Calculated from the total token circulating supply
+                                                            </>
+                                                        }>
+                                                            <Button
+                                                                color='inherit'
+                                                                sx={{
+                                                                    borderRadius:'17px'
+                                                                }}
+                                                            >
+                                                                <Grid container
+                                                                    sx={{
+                                                                        verticalAlign: 'bottom'}}
+                                                                    >
+                                                                    <Typography variant="h4">
+                                                                        {circulatingSupply.value.amount > 0 ?
+                                                                            <>
+                                                                                {((totalDepositedVotes/circulatingSupply.value.amount)*100).toFixed(1)}%
+                                                                            </>
+                                                                        :
+                                                                            <>-</>
+                                                                        }
+                                                                    </Typography>
+                                                                </Grid>
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </Grid>
                                                 </Box>
                                             </Grid>
                                         }

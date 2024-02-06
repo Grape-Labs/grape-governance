@@ -512,12 +512,12 @@ export function GovernanceTreasuryView(props: any) {
                         }
 
                         <Box sx={{ p:1}}>
-                            <Grid container spacing={0}>
+                            <Grid container spacing={1}>
                                 <Grid item xs={12} md={6} lg={6} key={1}>
                                     <Box
                                         sx={{
                                             borderRadius:'24px',
-                                            m:2,
+                                            m:0,
                                             p:1,
                                             background: 'rgba(0, 0, 0, 0.2)'
                                         }}
@@ -565,7 +565,7 @@ export function GovernanceTreasuryView(props: any) {
                                     <Box
                                         sx={{
                                             borderRadius:'24px',
-                                            m:2,
+                                            m:0,
                                             p:1,
                                             background: 'rgba(0, 0, 0, 0.2)',
                                         }}
