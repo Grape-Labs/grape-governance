@@ -474,16 +474,13 @@ export function GovernanceTreasuryView(props: any) {
                             background: 'rgba(0, 0, 0, 0.6)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            pt:4,
-                            pb:4,
-                            pl:1,
-                            pr:1,
+                            p:1,
                         }} 
                     > 
                         {realmName &&
                             <>
                                 <Grid container>
-                                    <Grid item xs={12} sm={6} container justifyContent="flex-start">
+                                    <Grid item xs={6} container justifyContent="flex-start">
                                         <Grid container>
                                             <Grid item xs={12}>
                                                 <Typography variant="h4">
@@ -507,7 +504,7 @@ export function GovernanceTreasuryView(props: any) {
                                             </Grid>
                                         </Grid>
                                     </Grid>
-                                    <Grid item xs={12} sm={6} container justifyContent="flex-end">
+                                    <Grid item xs={6} container justifyContent="flex-end">
                                         <GovernanceNavigation governanceAddress={governanceAddress} />
                                     </Grid>
                                 </Grid>

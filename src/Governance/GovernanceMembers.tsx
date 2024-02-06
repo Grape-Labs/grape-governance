@@ -821,13 +821,13 @@ export function GovernanceMembersView(props: any) {
                             background: 'rgba(0, 0, 0, 0.6)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:4
+                            p:1
                         }} 
                     > 
                         {realm &&
                             <>
                                 <Grid container>
-                                    <Grid item xs={12} sm={6} container justifyContent="flex-start">
+                                    <Grid item xs={6} container justifyContent="flex-start">
                                         <Grid container>
                                             <Grid item xs={12}>
                                                 <Typography variant="h4">
@@ -851,7 +851,7 @@ export function GovernanceMembersView(props: any) {
                                             </Grid>
                                         </Grid>
                                     </Grid>
-                                    <Grid item xs={12} sm={6} container justifyContent="flex-end">
+                                    <Grid item xs={6} container justifyContent="flex-end">
                                         <GovernanceNavigation governanceAddress={governanceAddress} />
                                     </Grid>
                                 </Grid>
