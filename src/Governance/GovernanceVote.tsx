@@ -25,7 +25,7 @@ import {
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
-    getTokenOwnerRecordsByOwnerIndexed,
+    getTokenOwnerRecordsByRealmIndexed,
 } from './api/queries';
 import {
     fetchGovernanceLookupFile,
