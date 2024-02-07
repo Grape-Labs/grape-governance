@@ -14,6 +14,15 @@ import {
     tryGetRealmConfig, 
     getRealmConfig
 } from '@solana/spl-governance';
+
+import { 
+    getRealmIndexed,
+    getAllProposalsIndexed,
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
+} from './api/queries';
+
+
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
@@ -1701,7 +1710,8 @@ export function GovernanceMetricsView(props: any) {
                     console.log("Realm from cache")
                     grealm = cachedRealm;
                 } else{
-                    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
+                    //grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
+                    grealm = await getRealmIndexed(governanceAddress);
                 }
                 setRealm(grealm);
                 //setRealmName(grealm?.account?.name);
@@ -1713,7 +1723,8 @@ export function GovernanceMetricsView(props: any) {
                     rawTokenOwnerRecords = cached_member_map;
                 } else{
                     console.log("RPC Member Map");
-                    rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, grealm.owner, realmPk)
+                    //rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(RPC_CONNECTION, grealm.owner, realmPk)
+                    rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), grealm.owner)
                 }
 
                 setMemberMap(rawTokenOwnerRecords);
