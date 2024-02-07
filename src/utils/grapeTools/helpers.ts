@@ -8,6 +8,13 @@ import {
   getAllTokenOwnerRecords, 
   getTokenOwnerRecord, 
   getTokenOwnerRecordsByOwner  } from '@solana/spl-governance';
+  import { 
+    getRealmIndexed,
+    getAllProposalsIndexed,
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
+} from '../../Governance/api/queries';
+
 import { 
   PROXY,
   RPC_CONNECTION
@@ -296,7 +303,8 @@ export async function isGated(address: string, tokenWhitelist: string) {
 export async function findObjectByGoverningTokenOwner(memberMap: any, tokenOwner:string, viaRpc:boolean, minDepositedAmount?: number, realm?: any) {
   if ((!memberMap) && (realm)){
     // attempt to get via RPC
-    const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(realm.owner), new PublicKey(realm.pubkey))
+    //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(realm.owner), new PublicKey(realm.pubkey))
+    const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner)
     //const tokenOwnerRecord = await getTokenOwnerRecord(RPC_CONNECTION, )
     if (rawTokenOwnerRecords){
       //memberMap = JSON.parse(JSON.stringify(rawTokenOwnerRecords));
