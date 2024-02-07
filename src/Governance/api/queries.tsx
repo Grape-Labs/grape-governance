@@ -467,12 +467,16 @@ function GET_QUERY_RULES(realm:string, realmOwner:string){
         `
 }
 
-function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number){
+function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number, tokenOwner:string){
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
     return gql `
         query MyQuery {
-            ${programId}_TokenOwnerRecordV2(offset:"${pointer}", where: {realm: {_eq: "${realm}"}}) {
+            ${programId}_TokenOwnerRecordV2(offset:"${pointer}", 
+            where: {
+                realm: {_eq: "${realm}"}
+                governingTokenOwner: {_eq: "${tokenOwner}"}
+            }) {
                 governanceDelegate
                 governingTokenDepositAmount
                 governingTokenMint
@@ -485,7 +489,11 @@ function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number){
                 version
                 pubkey      
             }
-            ${programId}_TokenOwnerRecordV1(offset:"${pointer}",where: {realm: {_eq: "${realm}"}}) {
+            ${programId}_TokenOwnerRecordV1(offset:"${pointer}",
+            where: {
+                realm: {_eq: "${realm}"}
+                governingTokenOwner: {_eq: "${tokenOwner}"}
+            }) {
                 governanceDelegate
                 governingTokenDepositAmount
                 governingTokenMint
@@ -835,6 +843,7 @@ export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:any, realm
 }
 
 export const getTokenOwnerRecordsByRealmIndexed = async (filterRealm?:any, realmOwner?:any, tokenOwner?:any) => {
+
     const allTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed (filterRealm, realmOwner);
     const ownerRecords = new Array();
     if (allTokenOwnerRecords && allTokenOwnerRecords.length > 0){
@@ -845,7 +854,6 @@ export const getTokenOwnerRecordsByRealmIndexed = async (filterRealm?:any, realm
         }
     }
 
-
     if (!ownerRecords){
         //ownerRecords = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realmOwner), new PublicKey(tokenOwner));
     }
@@ -853,7 +861,7 @@ export const getTokenOwnerRecordsByRealmIndexed = async (filterRealm?:any, realm
     return ownerRecords;
 }
 
-export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwner?:any) => {
+export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwner?:any, tokenOwner?:any) => {
     //const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const programName = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const programId = findGovOwnerByDao(filterRealm)?.owner ? findGovOwnerByDao(filterRealm).owner : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
@@ -870,7 +878,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
             while (hasMore){
                 console.log("fetching tokenOwnerRecords: "+x);
                 const { data } = await client.query({ 
-                    query: GET_QUERY_MEMBERS(filterRealm, programName, x)});//,
+                    query: GET_QUERY_MEMBERS(filterRealm, programName, x, tokenOwner)});//,
                     //variables: { first: 1000, after: x } });
                 
                 /*

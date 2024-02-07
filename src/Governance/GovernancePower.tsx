@@ -257,8 +257,6 @@ export default function GovernancePower(props: any){
             //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecordV1));
             const tokenOwnerRecord = await getTokenOwnerRecordsByRealmIndexed(governanceAddress, null, publicKey.toBase58());
 
-
-
             //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecord));
             // find all instances of this governanceAddress:
             let depCommunityMint = null;

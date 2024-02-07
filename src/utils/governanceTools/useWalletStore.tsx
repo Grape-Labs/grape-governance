@@ -179,7 +179,7 @@ const useWalletStore = create<WalletStore>((set, get) => ({
       const wallet = get().current
       const walletOwner = wallet?.publicKey
       const set = get().set
-
+      
       if (connected && walletOwner) {
         const ownedTokenAccounts = await getOwnedTokenAccounts(
           connection,
