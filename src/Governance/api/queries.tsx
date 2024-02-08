@@ -574,6 +574,8 @@ function GET_QUERY_ALL_TOKEN_OWNER_RECORDS(owner:string, realmOwner?:string){
 }
 
 export const getProposalInstructionsIndexed = async (filterRealm?:any, proposalPk?:any) => {
+    
+    
     const programId = findGovOwnerByDao(filterRealm)?.owner;
 
     const allProposalIx = new Array();
@@ -636,6 +638,7 @@ export const getProposalInstructionsIndexed = async (filterRealm?:any, proposalP
 export const getRealmIndexed = async (filterRealm?:any) => {
     if (filterRealm){
         const programId = findGovOwnerByDao(filterRealm)?.owner;
+        
         const allRealms = new Array();
 
         try{
@@ -725,16 +728,17 @@ export const getGovernanceIndexed = async (filterRealm?:any, realmOwner?:any, go
 
 export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any) => {
     //const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programId = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-
+    const programName = realmOwner ? realmOwner : findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(filterRealm)?.owner ? findGovOwnerByDao(filterRealm).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    
     const allRules = new Array();
 
     if (filterRealm){
         try{
-            const { data } = await client.query({ query: GET_QUERY_RULES(filterRealm, programId) });
+            const { data } = await client.query({ query: GET_QUERY_RULES(filterRealm, programName) });
             // normalize data
             
-            data[programId+"_GovernanceV2"] && data[programId+"_GovernanceV2"].map((item) => {
+            data[programName+"_GovernanceV2"] && data[programName+"_GovernanceV2"].map((item) => {
                 allRules.push({
                     pubkey: new PublicKey(item.pubkey),
                     owner: programId,
@@ -761,7 +765,7 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
                 })
             });
 
-            data[programId+"_GovernanceV1"] && data[programId+"_GovernanceV1"].map((item) => {
+            data[programName+"_GovernanceV1"] && data[programName+"_GovernanceV1"].map((item) => {
                 allRules.push({
                     pubkey: new PublicKey(item.pubkey),
                     owner: programId,
@@ -778,6 +782,7 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
         }
         
         if (!allRules || allRules.length <= 0){ // fallback to RPC call is governance not found in index
+
             const rules = await getAllGovernances(RPC_CONNECTION, new PublicKey(programId), new PublicKey(filterRealm));
             for (let item of rules)
                 allRules.push(item);
@@ -863,9 +868,9 @@ export const getTokenOwnerRecordsByRealmIndexed = async (filterRealm?:any, realm
 
 export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwner?:any, tokenOwner?:any) => {
     //const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programName = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programId = findGovOwnerByDao(filterRealm)?.owner ? findGovOwnerByDao(filterRealm).owner : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-
+    const programName = realmOwner ? realmOwner : findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(filterRealm)?.owner ? findGovOwnerByDao(filterRealm).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    
     if (filterRealm){
         let allResults = new Array();
 
@@ -1044,8 +1049,8 @@ export const getAllProposalsFromAllPrograms = async () => {
 export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, uniqueOwners?:string[]) => {
     
     //console.log("realmOwner: " +realmOwner);
-    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programId = findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const allProposals = new Array();
 
     try{
@@ -1237,14 +1242,16 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
 
 export const getProposalNewIndexed = async (proposalPk?:any, realmOwner?:any, realmPk?:any) => {
 
-    const programId = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    
     const indexedProp = new Array();
 
     try{
 
         const { data } = await client.query({ query: GET_QUERY_PROPOSAL(proposalPk, realmOwner) });
         {
-            data[programId+"_ProposalV2"] && data[programId+"_ProposalV2"].map((account) => {
+            data[programName+"_ProposalV2"] && data[programName+"_ProposalV2"].map((account) => {
                 const options = account?.options?.map && account.options.map((option) => {
                     return {
                         label: option.label,
@@ -1291,7 +1298,7 @@ export const getProposalNewIndexed = async (proposalPk?:any, realmOwner?:any, re
                 })
             });
 
-            data[programId+"_ProposalV1"] && data[programId+"_ProposalV1"].map((account) => {
+            data[programName+"_ProposalV1"] && data[programName+"_ProposalV1"].map((account) => {
                 indexedProp.push({
                     owner: programId,
                     pubkey: new PublicKey(account?.pubkey),
