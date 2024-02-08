@@ -255,9 +255,7 @@ export default function GovernancePower(props: any){
 
             //const tokenOwnerRecord = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realm?.owner || SYSTEM_PROGRAM_ID), publicKey);
             //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecordV1));
-            const tokenOwnerRecord = await getTokenOwnerRecordsByRealmIndexed(governanceAddress, null, publicKey.toBase58());
-
-
+            const tokenOwnerRecord = await getTokenOwnerRecordsByRealmIndexed(governanceAddress, new PublicKey(realm?.owner).toBase58(), publicKey.toBase58());
 
             //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecord));
             // find all instances of this governanceAddress:
