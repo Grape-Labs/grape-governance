@@ -118,7 +118,9 @@ function findGovOwnerByDao(dao:string) {
     const matchingGovOwner = govOwners.find((govOwner) => govOwner.dao === dao);
     if (!matchingGovOwner)
         return {
-            owner: 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw'
+            name: 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw',
+            owner: 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw',
+            dao: dao
         }
     else
         return matchingGovOwner;
@@ -470,44 +472,89 @@ function GET_QUERY_RULES(realm:string, realmOwner:string){
 function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number, tokenOwner:string){
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
-    return gql `
-        query MyQuery {
-            ${programId}_TokenOwnerRecordV2(offset:"${pointer}", 
-            where: {
-                realm: {_eq: "${realm}"}
-                governingTokenOwner: {_eq: "${tokenOwner}"}
-            }) {
-                governanceDelegate
-                governingTokenDepositAmount
-                governingTokenMint
-                governingTokenOwner
-                lamports
-                outstandingProposalCount
-                realm
-                reserved
-                unrelinquishedVotesCount
-                version
-                pubkey      
+    if (tokenOwner){
+        return gql `
+            query MyQuery {
+                ${programId}_TokenOwnerRecordV2(offset:"${pointer}", 
+                where: {
+                    realm: {_eq: "${realm}"}
+                    OR: [
+                        { governingTokenOwner: { _eq: "${tokenOwner}" } },
+                        { governanceDelegate: { _eq: "${tokenOwner}" } }
+                      ]
+                }) {
+                    governanceDelegate
+                    governingTokenDepositAmount
+                    governingTokenMint
+                    governingTokenOwner
+                    lamports
+                    outstandingProposalCount
+                    realm
+                    reserved
+                    unrelinquishedVotesCount
+                    version
+                    pubkey      
+                }
+                ${programId}_TokenOwnerRecordV1(offset:"${pointer}",
+                where: {
+                    realm: {_eq: "${realm}"}
+                    OR: [
+                        { governingTokenOwner: { _eq: "${tokenOwner}" } },
+                        { governanceDelegate: { _eq: "${tokenOwner}" } }
+                      ]
+                }) {
+                    governanceDelegate
+                    governingTokenDepositAmount
+                    governingTokenMint
+                    governingTokenOwner
+                    lamports
+                    outstandingProposalCount
+                    realm
+                    reserved
+                    unrelinquishedVotesCount
+                    version
+                    pubkey            
+                }
             }
-            ${programId}_TokenOwnerRecordV1(offset:"${pointer}",
-            where: {
-                realm: {_eq: "${realm}"}
-                governingTokenOwner: {_eq: "${tokenOwner}"}
-            }) {
-                governanceDelegate
-                governingTokenDepositAmount
-                governingTokenMint
-                governingTokenOwner
-                lamports
-                outstandingProposalCount
-                realm
-                reserved
-                unrelinquishedVotesCount
-                version
-                pubkey            
+            `
+    } else {
+        return gql `
+            query MyQuery {
+                ${programId}_TokenOwnerRecordV2(offset:"${pointer}", 
+                where: {
+                    realm: {_eq: "${realm}"}
+                }) {
+                    governanceDelegate
+                    governingTokenDepositAmount
+                    governingTokenMint
+                    governingTokenOwner
+                    lamports
+                    outstandingProposalCount
+                    realm
+                    reserved
+                    unrelinquishedVotesCount
+                    version
+                    pubkey      
+                }
+                ${programId}_TokenOwnerRecordV1(offset:"${pointer}",
+                where: {
+                    realm: {_eq: "${realm}"}
+                }) {
+                    governanceDelegate
+                    governingTokenDepositAmount
+                    governingTokenMint
+                    governingTokenOwner
+                    lamports
+                    outstandingProposalCount
+                    realm
+                    reserved
+                    unrelinquishedVotesCount
+                    version
+                    pubkey            
+                }
             }
-        }
-        `
+            `
+    }
 }
 
 function GET_QUERY_REALM(realm:string, realmOwner?:string){
@@ -728,9 +775,12 @@ export const getGovernanceIndexed = async (filterRealm?:any, realmOwner?:any, go
 
 export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any) => {
     //const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programName = realmOwner ? realmOwner : findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    //const programName = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const programId = realmOwner ? realmOwner : findGovOwnerByDao(filterRealm)?.owner ? findGovOwnerByDao(filterRealm).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     
+    //console.log("programName: "+programName);
+
     const allRules = new Array();
 
     if (filterRealm){
@@ -868,7 +918,8 @@ export const getTokenOwnerRecordsByRealmIndexed = async (filterRealm?:any, realm
 
 export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwner?:any, tokenOwner?:any) => {
     //const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programName = realmOwner ? realmOwner : findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    //const programName = realmOwner ? realmOwner : findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const programId = realmOwner ? realmOwner : findGovOwnerByDao(filterRealm)?.owner ? findGovOwnerByDao(filterRealm).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     
     if (filterRealm){
@@ -1049,7 +1100,8 @@ export const getAllProposalsFromAllPrograms = async () => {
 export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, uniqueOwners?:string[]) => {
     
     //console.log("realmOwner: " +realmOwner);
-    const programName = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    //const programName = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const allProposals = new Array();
 
@@ -1242,7 +1294,8 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
 
 export const getProposalNewIndexed = async (proposalPk?:any, realmOwner?:any, realmPk?:any) => {
 
-    const programName = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    //const programName = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     
     const indexedProp = new Array();

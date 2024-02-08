@@ -304,7 +304,7 @@ export async function findObjectByGoverningTokenOwner(memberMap: any, tokenOwner
   if ((!memberMap) && (realm)){
     // attempt to get via RPC
     //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(realm.owner), new PublicKey(realm.pubkey))
-    const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner)
+    const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner, tokenOwner)
     //const tokenOwnerRecord = await getTokenOwnerRecord(RPC_CONNECTION, )
     if (rawTokenOwnerRecords){
       //memberMap = JSON.parse(JSON.stringify(rawTokenOwnerRecords));

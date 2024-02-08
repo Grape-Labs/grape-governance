@@ -1722,7 +1722,7 @@ export function GovernanceMetricsView(props: any) {
                     console.log("Using Cached Member Map")
                     rawTokenOwnerRecords = cached_member_map;
                 } else{
-                    console.log("RPC Member Map");
+                    console.log("Indexed Member Map");
                     //rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(RPC_CONNECTION, grealm.owner, realmPk)
                     rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), grealm.owner)
                 }
