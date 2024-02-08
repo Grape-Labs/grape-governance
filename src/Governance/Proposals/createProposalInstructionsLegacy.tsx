@@ -116,7 +116,7 @@ export async function createProposalInstructionsLegacy(
     
     let tokenOwnerRecordPk = null;
     
-    const memberMap = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58());
+    const memberMap = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), null, walletPk.toBase58());
     for (let member of memberMap){
         if (new PublicKey(member.account.governingTokenOwner).toBase58() === walletPk.toBase58() &&
             new PublicKey(member.account.governingTokenMint).toBase58() === governingTokenMint.toBase58()){

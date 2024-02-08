@@ -478,7 +478,10 @@ function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number, toke
                 ${programId}_TokenOwnerRecordV2(offset:"${pointer}", 
                 where: {
                     realm: {_eq: "${realm}"}
-                    governingTokenOwner: {_eq: "${tokenOwner}"}
+                    OR: [
+                        { governingTokenOwner: { _eq: "${tokenOwner}" } },
+                        { governanceDelegate: { _eq: "${tokenOwner}" } }
+                      ]
                 }) {
                     governanceDelegate
                     governingTokenDepositAmount
@@ -495,7 +498,10 @@ function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number, toke
                 ${programId}_TokenOwnerRecordV1(offset:"${pointer}",
                 where: {
                     realm: {_eq: "${realm}"}
-                    governingTokenOwner: {_eq: "${tokenOwner}"}
+                    OR: [
+                        { governingTokenOwner: { _eq: "${tokenOwner}" } },
+                        { governanceDelegate: { _eq: "${tokenOwner}" } }
+                      ]
                 }) {
                     governanceDelegate
                     governingTokenDepositAmount
@@ -773,6 +779,8 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
     const programName = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const programId = realmOwner ? realmOwner : findGovOwnerByDao(filterRealm)?.owner ? findGovOwnerByDao(filterRealm).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     
+    //console.log("programName: "+programName);
+
     const allRules = new Array();
 
     if (filterRealm){
