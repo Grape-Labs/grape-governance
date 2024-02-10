@@ -1461,7 +1461,7 @@ export default function WalletCardView(props:any) {
                                             <Box sx={{textAlign:'right'}}>
                                                 <Box>
                                                     <IntegratedGovernanceProposalDialogView 
-                                                        //governanceAddress={governanceAddress}
+                                                        governanceAddress={governanceAddress}
                                                         governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                                                         //governingTokenMint={thisitem.account.governingTokenMint}
                                                         //proposalAuthor={thisitem.account.tokenOwnerRecord}
@@ -1584,7 +1584,7 @@ export default function WalletCardView(props:any) {
                                         <Box sx={{textAlign:'right'}}>
                                             <Box>
                                                 <IntegratedGovernanceProposalDialogView 
-                                                    //governanceAddress={governanceAddress}
+                                                    governanceAddress={governanceAddress}
                                                     governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                                                     //governingTokenMint={thisitem.account.governingTokenMint}
                                                     //proposalAuthor={thisitem.account.tokenOwnerRecord}
@@ -1863,7 +1863,7 @@ export default function WalletCardView(props:any) {
                                     secondaryAction={
                                         <Box>
                                             <IntegratedGovernanceProposalDialogView 
-                                                //governanceAddress={governanceAddress}
+                                                governanceAddress={governanceAddress}
                                                 governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                                                 //governingTokenMint={thisitem.account.governingTokenMint}
                                                 //proposalAuthor={thisitem.account.tokenOwnerRecord}
@@ -1946,7 +1946,7 @@ export default function WalletCardView(props:any) {
                                     secondaryAction={
                                         <Box>
                                             <IntegratedGovernanceProposalDialogView 
-                                                //governanceAddress={governanceAddress}
+                                                governanceAddress={governanceAddress}
                                                 governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                                                 //governingTokenMint={thisitem.account.governingTokenMint}
                                                 //proposalAuthor={thisitem.account.tokenOwnerRecord}
