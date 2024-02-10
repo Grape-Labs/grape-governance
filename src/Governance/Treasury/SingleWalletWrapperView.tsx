@@ -1,3 +1,18 @@
+
+/*
+<WalletCardView 
+realm={realm}
+rulesWallet={item}
+governanceWallets={governanceWallets}
+governanceAddress={governanceAddress}
+setGovernanceValue={setGovernanceValue}
+governanceValue={governanceValue} 
+communityMintDecimals={communityMintDecimals}
+tokenMap={tokenMap} 
+walletAddress={new PublicKey(item.nativeTreasuryAddress).toBase58()}  />
+*/
+
+// consider using GovernanceTreasury as a reference and display one 1 wallet that is passed in the search params or in the page
 import { getRealm } from '@solana/spl-governance';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
@@ -45,8 +60,7 @@ import {
 import TreeView from '@mui/lab/TreeView';
 import TreeItem, { TreeItemProps, treeItemClasses } from '@mui/lab/TreeItem';
 
-import WalletCardView from './Treasury/WalletCardView';
-import GovernanceNavigation from './GovernanceNavigation'; 
+import WalletCardView from './WalletCardView';
 
 import { 
     getRealmIndexed,
@@ -54,12 +68,12 @@ import {
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
-} from '../Governance/api/queries';
+} from '../../Governance/api/queries';
 import {
     getNativeTreasuryAddress
 } from '@solana/spl-governance';
 
-import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers';
+import { formatAmount, getFormattedNumberToLocale } from '../../utils/grapeTools/helpers';
 
 import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
 import FirstPageIcon from '@mui/icons-material/FirstPage';
@@ -76,7 +90,7 @@ import { SvgIconProps } from '@mui/material/SvgIcon';
 import PropTypes from 'prop-types';
 import { 
     RPC_CONNECTION, 
-    GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
+    GGAPI_STORAGE_POOL } from '../../utils/grapeTools/constants';
 import { InfoItem } from '@dynamic-labs/sdk-react-core/src/lib/components';
 
 const GOVERNANNCE_STATE = {
@@ -92,15 +106,11 @@ const GOVERNANNCE_STATE = {
 }
 
 
-export function GovernanceTreasuryView(props: any) {
-    //const [searchParams, setSearchParams] = useSearchParams();
-    //const {handlekey} = useParams<{ handlekey: string }>();
-    //const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
-    const {address} = useParams<{ address: string }>();
-    const {rules} = useParams<{ rules: string }>();
-    const governanceAddress = address;
-    const filterRulesWallet = rules;
-    //const governanceAddress = urlParams;
+export function GovernanceWalletView(props: any) {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const {handlekey} = useParams<{ handlekey: string }>();
+    const urlParams = searchParams.get("pkey") || searchParams.get("address") || handlekey;
+    const governanceAddress = urlParams;
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
     const [cachedGovernance, setCachedGovernance] = React.useState(null);
@@ -153,7 +163,7 @@ export function GovernanceTreasuryView(props: any) {
 
     const fetchRealm = async() =>{
         const rlm = await getRealmIndexed(governanceAddress);
-        //console.log("rlm: "+JSON.stringify(rlm))
+        //console.log("rlm: "+JSON.stringify(rlm))        
 
         if (rlm){
             if (rlm?.account?.communityMint && rlm.account.communityMint.toBase58()){
@@ -163,7 +173,6 @@ export function GovernanceTreasuryView(props: any) {
             }
 
             setRealm(rlm);
-            setRealmName(rlm.account?.name)
             setCachedRealm(rlm);
         }
     }
@@ -177,28 +186,10 @@ export function GovernanceTreasuryView(props: any) {
     }
 
     const fetchGovernances = async() => {
-        const tmpGovernanceAddresses = await getAllGovernancesIndexed(governanceAddress);
+        const governanceAddresses = await getAllGovernancesIndexed(governanceAddress);
         
-        if (tmpGovernanceAddresses){
-
-            const governanceAddresses = new Array();
-                    
-            for (let item of tmpGovernanceAddresses){
-                if (filterRulesWallet){
-                    
-                    if (filterRulesWallet === item.pubkey.toBase58())
-                        governanceAddresses.push(item);
-                } else {
-                    governanceAddresses.push(item);
-                }
-
-            }
-            
-            let thisrealm = null;
-            if (realm)
-                thisrealm = realm;
-            else
-                thisrealm = await getRealmIndexed(governanceAddress);
+        //if (realm){
+            const thisrealm = await getRealmIndexed(governanceAddress);
             
             const rawNativeSolAddresses = await Promise.all(
                 governanceAddresses.map((x) =>  
@@ -210,18 +201,16 @@ export function GovernanceTreasuryView(props: any) {
                 )
             );
 
-       
-            if (governanceAddresses.length === rawNativeSolAddresses.length){
-                let x = 0;
-                for (let item of governanceAddresses){
-                    item.nativeTreasuryAddress = rawNativeSolAddresses[x];
-                    item.walletValue = 0;
-                    x++;
-                }
+        // push to a single array with rules & native
+        if (governanceAddresses.length === rawNativeSolAddresses.length){
+            let x = 0;
+            for (let item of governanceAddresses){
+                item.nativeTreasuryAddress = rawNativeSolAddresses[x];
+                item.walletValue = 0;
+                x++;
             }
-
-            setGovernanceWallets(governanceAddresses);
         }
+        setGovernanceWallets(governanceAddresses);
 
         endTimer();
         setLoading(false);
@@ -243,72 +232,69 @@ export function GovernanceTreasuryView(props: any) {
         }
     }, []);
 
-    return (
-        <>
-        {(loading && !governanceWallets)?
-            <Box
-                sx={{
-                    mt:6,
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    borderRadius: '17px',
-                    p:4,
-                    alignItems: 'center', textAlign: 'center'
-                }} 
-            > 
-                <Typography variant="caption">Loading Governance Treasury {governanceAddress}</Typography>
-                
-                <LinearProgress color="inherit" />
-            </Box>
-        :
-
-            <Box
+    
+        if(loading){
+            return (
+                <Box
                     sx={{
                         mt:6,
                         background: 'rgba(0, 0, 0, 0.6)',
                         borderRadius: '17px',
-                        overflow: 'hidden',
-                        p:1,
+                        p:4,
+                        alignItems: 'center', textAlign: 'center'
                     }} 
                 > 
-                    {realmName &&
-                        <>
-                            <Grid container>
-                                <Grid item xs={6} container justifyContent="flex-start">
-                                    <Grid container>
-                                        <Grid item xs={12}>
-                                            <Typography variant="h4">
-                                                {realmName}
-                                            </Typography>
-                                        </Grid>
-                                        <Grid item xs={12}>
-                                            <Button 
-                                                aria-label="back"
-                                                variant="outlined" 
-                                                color='inherit'
-                                                href={`https://realms.today/dao/${governanceAddress}`}
-                                                target='blank'
-                                                sx={{
-                                                    borderRadius:'17px',
-                                                    borderColor:'rgba(255,255,255,0.05)',
-                                                    fontSize:'10px'}}
-                                            >
-                                                <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
-                                            </Button>
+                    <Typography variant="caption">Loading Governance Treasury {governanceAddress}</Typography>
+                    
+                    <LinearProgress color="inherit" />
+                </Box>
+            )
+        } else{
+            //if (cachedTreasury){
+                return (
+                    <Box
+                        sx={{
+                            mt:6,
+                            background: 'rgba(0, 0, 0, 0.6)',
+                            borderRadius: '17px',
+                            overflow: 'hidden',
+                            p:1,
+                        }} 
+                    > 
+                        {realmName &&
+                            <>
+                                <Grid container>
+                                    <Grid item xs={6} container justifyContent="flex-start">
+                                        <Grid container>
+                                            <Grid item xs={12}>
+                                                <Typography variant="h4">
+                                                    {realmName}
+                                                </Typography>
+                                            </Grid>
+                                            <Grid item xs={12}>
+                                                <Button 
+                                                    aria-label="back"
+                                                    variant="outlined" 
+                                                    color='inherit'
+                                                    href={`https://realms.today/dao/${governanceAddress}`}
+                                                    target='blank'
+                                                    sx={{
+                                                        borderRadius:'17px',
+                                                        borderColor:'rgba(255,255,255,0.05)',
+                                                        fontSize:'10px'}}
+                                                >
+                                                    <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
+                                                </Button>
+                                            </Grid>
                                         </Grid>
                                     </Grid>
+                                    <Grid item xs={6} container justifyContent="flex-end">
+                                    </Grid>
                                 </Grid>
-                                <Grid item xs={6} container justifyContent="flex-end">
-                                    <GovernanceNavigation governanceAddress={governanceAddress} />
-                                </Grid>
-                            </Grid>
-                        </>
-                    }
+                            </>
+                        }
 
-                    {filterRulesWallet ?
-                    <></>
-                    :
                         <Box sx={{ p:1}}>
-
                             <Grid container spacing={1}>
                                 <Grid item xs={12} md={6} lg={6} key={1}>
                                     <Box
@@ -328,7 +314,7 @@ export function GovernanceTreasuryView(props: any) {
                                                 display: 'flex', /* Add this line */
                                                 justifyContent: 'center', /* Add this line */
                                                 alignItems: 'center', /* Add this line */
-                                            }}
+                                              }}
                                         >
                                             <Tooltip title={<>
                                                     Total Token Value (value does not include NFT floor prices)</>
@@ -376,7 +362,7 @@ export function GovernanceTreasuryView(props: any) {
                                                 display: 'flex', /* Add this line */
                                                 justifyContent: 'center', /* Add this line */
                                                 alignItems: 'center', /* Add this line */
-                                            }}
+                                              }}
                                         >
                                             <Tooltip title={<>
                                                     Total Value in&nbsp;
@@ -487,68 +473,103 @@ export function GovernanceTreasuryView(props: any) {
                                 */}
                             </Grid>
                         </Box>
-                    }
-                        
+                            
 
-                    {/*
-                    <RenderGovernanceTreasuryTable members={members} participating={participating} tokenMap={tokenMap} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />
-                    */}
+                        {/*
+                        <RenderGovernanceTreasuryTable members={members} participating={participating} tokenMap={tokenMap} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />
+                        */}
 
+                        <Box
+                            sx={{
+                                mt:2,
+                                mb:2,
+                            }} 
+                        > 
+                            {/**/}
+
+                            
+                            <Grid 
+                                container 
+                                spacing={4}
+                                direction="row"
+                                justifyContent="center"
+                                alignItems="flex-start">
+                                {governanceWallets && governanceWallets
+                                    //.sort((a:any,b:any) => (b.walletValue - a.walletValue))
+                                    .map((item: any,key:number) => (                                
+                                        <Grid item lg={4} md={6} sm={12} xs={12}>
+                                            <WalletCardView 
+                                                realm={realm}
+                                                rulesWallet={item}
+                                                governanceWallets={governanceWallets}
+                                                governanceAddress={governanceAddress}
+                                                setGovernanceValue={setGovernanceValue}
+                                                governanceValue={governanceValue} 
+                                                communityMintDecimals={communityMintDecimals}
+                                                tokenMap={tokenMap} 
+                                                walletAddress={new PublicKey(item.nativeTreasuryAddress).toBase58()}  />
+                                        </Grid>
+                                    ))
+                                }
+                            </Grid>
+                            {/*
+                            :<>
+                            
+                                <Grid container alignContent={'center'} justifyContent={'center'}>
+                                    <h2>Get ready for some GRAPE(ness) very soon!!!</h2>
+                                </Grid>
+
+                            </>*/}
+
+                        </Box>
+                        {endTime &&
+                            <Typography 
+                                variant="caption"
+                                sx={{textAlign:'center'}}
+                            >
+                                Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime<br/>
+                                Cache Node: {storagePool}
+                            </Typography>
+                        }
+                    </Box>
+                                
+                );
+            //}else{
+                /*
+                if (!participating){
+                    return (
+                        <Box
+                            sx={{
+                                background: 'rgba(0, 0, 0, 0.6)',
+                                borderRadius: '17px',
+                                p:4
+                            }} 
+                        > 
+                            <Typography variant="h4">
+                                You are not participating in this governance
+                            </Typography>
+                        </Box>
+                    );
+                } else {
+                    */
+            /*
+                return (
                     <Box
                         sx={{
-                            mt:2,
-                            mb:2,
+                            mt:6,
+                            background: 'rgba(0, 0, 0, 0.5)',
+                            borderRadius: '17px',
+                            p:4,
+                            alignItems: 'center', textAlign: 'center'
                         }} 
                     > 
-                        {/**/}
-
+                        <Typography variant="caption">Governance Treasury {governanceAddress}</Typography>
                         
-                        <Grid 
-                            container 
-                            spacing={4}
-                            direction="row"
-                            justifyContent="center"
-                            alignItems="flex-start">
-                            {governanceWallets && governanceWallets
-                                //.sort((a:any,b:any) => (b.walletValue - a.walletValue))
-                                .map((item: any,key:number) => (                                
-                                    <Grid item lg={4} md={6} sm={12} xs={12}>
-                                        <WalletCardView 
-                                            realm={realm}
-                                            rulesWallet={item}
-                                            governanceWallets={governanceWallets}
-                                            governanceAddress={governanceAddress}
-                                            setGovernanceValue={setGovernanceValue}
-                                            governanceValue={governanceValue} 
-                                            communityMintDecimals={communityMintDecimals}
-                                            tokenMap={tokenMap} 
-                                            walletAddress={new PublicKey(item.nativeTreasuryAddress).toBase58()}  />
-                                    </Grid>
-                                ))
-                            }
-                        </Grid>
-                        {/*
-                        :<>
-                        
-                            <Grid container alignContent={'center'} justifyContent={'center'}>
-                                <h2>Get ready for some GRAPE(ness) very soon!!!</h2>
-                            </Grid>
-
-                        </>*/}
-
                     </Box>
-                    {endTime &&
-                        <Typography 
-                            variant="caption"
-                            sx={{textAlign:'center'}}
-                        >
-                            Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime<br/>
-                            Cache Node: {storagePool}
-                        </Typography>
-                    }
-                </Box>
-            }
-        </>
-    );
-
+                );
+                
+            }*/
+            
+        }
+    
 }

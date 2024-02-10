@@ -21,6 +21,7 @@ import { GovernanceProposalView } from "./Governance/GovernanceProposal";
 import { GovernanceProposalV2View } from "./Governance/GovernanceProposalV2";
 import { GovernanceProposalWrapper } from "./Governance/GovernanceProposalWrapper";
 import GovernanceCreateProposalView from "./Governance/GovernanceCreateProposal";
+import { GovernanceWalletView } from "./Governance/Treasury/SingleWalletWrapperView";
 
 import TestEmbed from "./Governance/TestEmbed";
 import { ApiView } from "./api/api";
@@ -209,6 +210,10 @@ function DashboardContent() {
 
               <Route path="testembed" element={<TestEmbed />} />
 
+              <Route path="daowallet/*" element={<GovernanceWalletView/>} >
+                  <Route path=":governance/:wallet" element={<GovernanceWalletView />} />
+              </Route>
+
 
               <Route path="/frictionless/*" element={
                 <Suspense fallback={renderLoader()}>
@@ -338,7 +343,8 @@ function DashboardContent() {
                                                   <Route path=":handlekey" element={<GovernanceMembersView />} />
                                               </Route>
                                               <Route path="treasury/*" element={<GovernanceTreasuryView />} >
-                                                  <Route path=":handlekey" element={<GovernanceTreasuryView />} />
+                                                  <Route path=":address" element={<GovernanceTreasuryView />} />
+                                                  <Route path=":address/:rules" element={<GovernanceTreasuryView />} />
                                               </Route>
                                               {/*
                                               <Route path="reputation/*" element={<GovernanceReputationView />} >

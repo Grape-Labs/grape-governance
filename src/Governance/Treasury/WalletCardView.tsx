@@ -1305,7 +1305,7 @@ export default function WalletCardView(props:any) {
             </Typography>
         </CardContent>
         <CardActions disableSpacing>
-            <CopyToClipboard text={`https://governance.so/treasury/${governanceAddress}`} onCopy={handleCopy}>
+            <CopyToClipboard text={`https://governance.so/treasury/${governanceAddress}/${rulesWalletAddress}`} onCopy={handleCopy}>
                 <IconButton aria-label="share" 
                 //    disabled={true}
                 >
