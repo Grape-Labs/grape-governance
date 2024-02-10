@@ -235,7 +235,7 @@ export default function WalletCardView(props:any) {
                 :
                     <>
                         <IntegratedGovernanceProposalDialogView 
-                            //governanceAddress={governanceAddress}
+                            governanceAddress={governanceAddress}
                             governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                             //governingTokenMint={thisitem.account.governingTokenMint}
                             //proposalAuthor={thisitem.account.tokenOwnerRecord}
@@ -243,8 +243,6 @@ export default function WalletCardView(props:any) {
                             //governanceLookup={governanceLookup}
                             //editProposalAddress={thisitem.pubkey}
                             //setReload={setReload}
-                            
-
                             governanceWallets={governanceWallets}
                             useButton={4} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
                             useButtonText={"Create Proposal"}
@@ -1144,7 +1142,7 @@ export default function WalletCardView(props:any) {
                     <Skeleton variant="rounded" width={'90%'} height={60} sx={{m:1,p:0}} />
                 :
                     <IntegratedGovernanceProposalDialogView 
-                        //governanceAddress={governanceAddress}
+                        governanceAddress={governanceAddress}
                         governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                         //governingTokenMint={thisitem.account.governingTokenMint}
                         //proposalAuthor={thisitem.account.tokenOwnerRecord}
@@ -1223,7 +1221,7 @@ export default function WalletCardView(props:any) {
                                         <Box>
                                             {(nativeSol && rulesSol && nativeSol > 0 && rulesSol > 0 ) ?
                                                 <IntegratedGovernanceProposalDialogView 
-                                                    //governanceAddress={governanceAddress}
+                                                    governanceAddress={governanceAddress}
                                                     governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                                                     //governingTokenMint={thisitem.account.governingTokenMint}
                                                     //proposalAuthor={thisitem.account.tokenOwnerRecord}
@@ -1317,7 +1315,6 @@ export default function WalletCardView(props:any) {
             :
                 <>
                     <ExtensionsMenuView 
-                        
                         governanceNativeWallet={walletAddress} 
                         expandedLoader={expandedLoader} 
                         setExpandedLoader={setExpandedLoader}

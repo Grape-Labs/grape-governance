@@ -197,7 +197,6 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                     {title} {editProposalAddress && editProposalAddress.toBase58()}
                 </BootstrapDialogTitle>
                 <DialogContent sx={{m:0,p:0}}>
-                    
                     <GovernanceCreateProposalView 
                         governanceWallets={governanceWallets}
                         governanceAddress={governanceAddress} 
