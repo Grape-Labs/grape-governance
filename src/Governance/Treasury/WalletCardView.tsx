@@ -2031,14 +2031,15 @@ export default function WalletCardView(props:any) {
                 style: {
                     boxShadow: '3',
                     borderRadius: '17px',
+                    padding:2,
                     },
                 }}
         >
             <DialogContentText id="alert-dialog-description">
-                <div style={{ height: "auto", margin: "0 auto", maxWidth: "100%", width: "100%", borderRadius: "10px", padding:10, backgroundColor:'#fff' }}>
+                <div style={{ height: "auto", margin: "0 auto", maxWidth: "256px", marginTop:"10px",borderRadius: "10px",padding:10, backgroundColor:'#fff',border:'2px solid black' }}>
                     <QRCode
                         size={256}
-                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                        style={{ height: "auto", maxWidth: "100%" }}
                         value={walletAddress}
                         viewBox={`0 0 256 256`}
                     />
@@ -2046,15 +2047,35 @@ export default function WalletCardView(props:any) {
 
                 <Grid container>
                     <Grid item xs={12} textAlign={'center'}>
+                        <Typography variant='caption'>Send to this Native Address</Typography>
+                    </Grid>
+                    <Grid item xs={12} textAlign={'center'}>
                         <CopyToClipboard text={walletAddress} onCopy={handleCopy}>
-                            <Button color={'inherit'} variant='text'>
-                                <Typography variant='body2'>{walletAddress}</Typography>
+                        <Button 
+                                color={'inherit'} 
+                                variant='text' 
+                                sx={{m:0,
+                                    p:0,
+                                    mintWidth:'' , 
+                                        '&:hover .MuiSvgIcon-root': {
+                                            opacity: 1,
+                                        },
+                                    }}
+                                endIcon={
+                                    <FileCopyIcon 
+                                        fontSize={'small'} 
+                                        sx={{
+                                            color:'rgba(255,255,255,0.25)',
+                                            pr:1,
+                                            opacity: 0,
+                                            fontSize:"10px"}} />
+                                    }
+                            >
+                                <Typography variant='caption'>{walletAddress}</Typography>
                             </Button>
                         </CopyToClipboard>
                     </Grid>
-                    <Grid item xs={12} textAlign={'center'}>
-                        <Typography variant='caption'>Send to this SOL Address</Typography>
-                    </Grid>
+                    
                 </Grid>
                 
             </DialogContentText>
