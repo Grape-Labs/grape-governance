@@ -236,6 +236,7 @@ export default function WalletCardView(props:any) {
                     <>
                         <IntegratedGovernanceProposalDialogView 
                             governanceAddress={governanceAddress}
+                            intraDao={false}
                             governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                             //governingTokenMint={thisitem.account.governingTokenMint}
                             //proposalAuthor={thisitem.account.tokenOwnerRecord}
@@ -1143,6 +1144,7 @@ export default function WalletCardView(props:any) {
                 :
                     <IntegratedGovernanceProposalDialogView 
                         governanceAddress={governanceAddress}
+                        intraDao={false}
                         governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                         //governingTokenMint={thisitem.account.governingTokenMint}
                         //proposalAuthor={thisitem.account.tokenOwnerRecord}
@@ -1222,6 +1224,7 @@ export default function WalletCardView(props:any) {
                                             {(nativeSol && rulesSol && nativeSol > 0 && rulesSol > 0 ) ?
                                                 <IntegratedGovernanceProposalDialogView 
                                                     governanceAddress={governanceAddress}
+                                                    intraDao={false}
                                                     governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                                                     //governingTokenMint={thisitem.account.governingTokenMint}
                                                     //proposalAuthor={thisitem.account.tokenOwnerRecord}
@@ -1462,6 +1465,7 @@ export default function WalletCardView(props:any) {
                                                 <Box>
                                                     <IntegratedGovernanceProposalDialogView 
                                                         governanceAddress={governanceAddress}
+                                                        intraDao={false}
                                                         governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                                                         //governingTokenMint={thisitem.account.governingTokenMint}
                                                         //proposalAuthor={thisitem.account.tokenOwnerRecord}
@@ -1585,6 +1589,7 @@ export default function WalletCardView(props:any) {
                                             <Box>
                                                 <IntegratedGovernanceProposalDialogView 
                                                     governanceAddress={governanceAddress}
+                                                    intraDao={false}
                                                     governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                                                     //governingTokenMint={thisitem.account.governingTokenMint}
                                                     //proposalAuthor={thisitem.account.tokenOwnerRecord}
@@ -1864,6 +1869,7 @@ export default function WalletCardView(props:any) {
                                         <Box>
                                             <IntegratedGovernanceProposalDialogView 
                                                 governanceAddress={governanceAddress}
+                                                intraDao={false}
                                                 governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                                                 //governingTokenMint={thisitem.account.governingTokenMint}
                                                 //proposalAuthor={thisitem.account.tokenOwnerRecord}
@@ -1947,6 +1953,7 @@ export default function WalletCardView(props:any) {
                                         <Box>
                                             <IntegratedGovernanceProposalDialogView 
                                                 governanceAddress={governanceAddress}
+                                                intraDao={false}
                                                 governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                                                 //governingTokenMint={thisitem.account.governingTokenMint}
                                                 //proposalAuthor={thisitem.account.tokenOwnerRecord}

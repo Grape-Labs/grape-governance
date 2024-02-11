@@ -81,6 +81,7 @@ export function IntegratedGovernanceProposalDialogView(props: any){
     const tokenMap = props.tokenMap;
     const memberMap = props.memberMap;
     const governanceAddress = props.governanceAddress;
+    const intraDao = props?.intraDao;
     const governanceProposal = props?.governanceProposal;
     const title = props?.title || "Proposal";
     const usePlugin = props?.usePlugin;
@@ -200,6 +201,7 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                     <GovernanceCreateProposalView 
                         governanceWallets={governanceWallets}
                         governanceAddress={governanceAddress} 
+                        intraDao={intraDao}
                         governanceProposal={governanceProposal}
                         governanceRulesWallet={governanceRulesWallet} 
                         governingTokenMint={governingTokenMint}
