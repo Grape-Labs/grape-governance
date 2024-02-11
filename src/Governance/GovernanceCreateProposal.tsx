@@ -191,7 +191,7 @@ export default function GovernanceCreateProposalView(props: any){
     const sentGovernanceWallet = props?.governanceWallet;
     const setEditPropOpen = props?.setEditPropOpen;
     const setSentInstructionsObject = props?.setInstructionsObject;
-    const intraDAO = props?.governanceAddress ? true : false;
+    const intraDAO = props?.governanceAddress ? props?.intraDao ? props.intraDao : false : false;
     const usePlugin = props?.usePlugin;
     const fromDialog = props?.fromDialog;
     const showGovernanceTitle = true;
