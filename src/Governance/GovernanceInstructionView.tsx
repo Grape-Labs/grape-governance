@@ -352,7 +352,6 @@ export function InstructionView(props: any) {
                         if (new PublicKey(item).toBase58() === new PublicKey(pubkey).toBase58()){
                             if (instructionOwnerRecord[index]?.data?.parsed?.info){
                                 setOwnerRecord(instructionOwnerRecord[index].data.parsed.info);
-                                console.log("instructionOwnerRecord[index] "+JSON.stringify(instructionOwnerRecord[index]))
                             }
                         }
                         index++;

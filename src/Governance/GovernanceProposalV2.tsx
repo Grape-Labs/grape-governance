@@ -32,6 +32,7 @@ import {
     fetchGovernanceLookupFile,
     getFileFromLookup
 } from './CachedStorageHelpers'; 
+import axios from "axios";
 import BN from 'bn.js'
 import { BorshCoder } from "@coral-xyz/anchor";
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
@@ -134,7 +135,8 @@ import {
     PROXY, 
     RPC_CONNECTION, 
     GGAPI_STORAGE_POOL, 
-    GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
+    GGAPI_STORAGE_URI,
+    SHYFT_KEY } from '../utils/grapeTools/constants';
 import { 
     formatAmount, 
     getFormattedNumberToLocale,
@@ -813,7 +815,6 @@ export function GovernanceProposalV2View(props: any){
                             //console.log("mintArrResults: "+JSON.stringify(mintResults));
                         }
 
-
                         for (var instructionItem of useInstructions){
                             
                             if (instructionItem.account?.instructions && instructionItem.account.instructions.length > 0){
@@ -856,25 +857,50 @@ export function GovernanceProposalV2View(props: any){
                                                 gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
                                             
                                             if (gai){
-                                                //setInstructionRecord(gai.value);
+                                                // get token metadata
                                                 
+                                                const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai.data.parsed.info.mint}`;
+                                                /*
+                                                const meta = axios.get(uri, {
+                                                    headers: {
+                                                        'x-api-key': SHYFT_KEY
+                                                    }
+                                                    })
+                                                    .then(response => {
+                                                        if (response.data?.result){
+                                                            return response.data.result;
+                                                        }
+                                                        //return null
+                                                    })
+                                                    .catch(error => 
+                                                    {   
+                                                        // revert to RPC
+                                                        console.error(error);
+                                                        //return null;
+                                                    });
+                                                */
+
+                                                //setInstructionRecord(gai.value);
+                                                let newObject = null;
                                                 try{
                                                     const amountBN = new BN(accountInstruction?.data?.slice(1), 'le');
-                                                    const decimals = gai.value?.data.parsed.info.tokenAmount?.decimals || 0;
+                                                    const decimals = gai?.data.parsed.info.tokenAmount?.decimals || 0;
                                                     const divisor = new BN(10).pow(new BN(decimals));
 
                                                     const amount = amountBN.div(divisor).toString(); 
-
-                                                    const newObject = {
+                                                    //console.log("accountInstruction: "+JSON.stringify(accountInstruction));
+                                                    newObject = {
                                                         type:"TokenTransfer",
                                                         pubkey: accountInstruction.accounts[0].pubkey,
-                                                        mint: gai.value?.data.parsed.info.mint,
-                                                        name: tokenMap.get(gai.value?.data.parsed.info.mint)?.symbol,
-                                                        logoURI: tokenMap.get(gai.value?.data.parsed.info.mint)?.logoURI,
+                                                        mint: gai?.data.parsed.info.mint,
+                                                        name: tokenMap.get(gai?.data.parsed.info.mint)?.symbol,
+                                                        logoURI: tokenMap.get(gai?.data.parsed.info.mint)?.logoURI,
                                                         amount: amount,
-                                                        data: accountInstruction.data
+                                                        data: accountInstruction.data,
+                                                        destinationAta:accountInstruction.accounts[1].pubkey,
                                                     };
 
+                                                    
                                                     //console.log("newObject "+JSON.stringify(newObject))
                                                     accountInstruction.info = newObject;
                                                 } catch(e){
@@ -882,13 +908,13 @@ export function GovernanceProposalV2View(props: any){
                                                 }
                                                 accountInstruction.gai = gai;
                                                 
-                                                /*
                                                 const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instructionItem.account.instructions[0].accounts[0].pubkey);
-                    
+                                                
                                                 if (!hasInstruction){
+                                                    //console.log("newObject: "+JSON.stringify(newObject))
                                                     setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
                                                 }
-                                                */
+                                                
                                             }
                                         } else if (programId === "DCA265Vj8a9CEuX1eb1LWRnDT7uK6q1xMipnNyatn23M"){
                                             
@@ -2879,9 +2905,10 @@ export function GovernanceProposalV2View(props: any){
 
                                                         {Object.values(
                                                             instructionTransferDetails.reduce((result, item) => {
+                                                                //console.log("item: "+JSON.stringify(item))
                                                                 const { mint, amount, name, logoURI, destinationAta } = item;
                                                                 if (!result[mint]) {
-                                                                result[mint] = { mint, totalAmount: 0, name, logoURI, uniqueDestinationAta: new Set() };
+                                                                    result[mint] = { mint, totalAmount: 0, name, logoURI, uniqueDestinationAta: new Set() };
                                                                 }
                                                                 result[mint].totalAmount += +amount;
                                                                 if (destinationAta)

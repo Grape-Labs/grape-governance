@@ -634,6 +634,7 @@ export default function GovernanceCreateProposalView(props: any){
               >Create Token *Token 2022</MenuItem>*/}
               <MenuItem value={4}>Token Transfer</MenuItem>
               <MenuItem value={5}>SOL Transfer</MenuItem>
+              
               {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2')
                 &&
                   <MenuItem value={104}>Token Transfer v0</MenuItem>
