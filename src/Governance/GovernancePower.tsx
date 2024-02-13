@@ -459,11 +459,11 @@ export default function GovernancePower(props: any){
         const decimals = tokenInfo.decimals;
 
         //const atomicAmount = tokenAmount;
-        
+        /*
         const atomicAmount = parseMintNaturalAmountFromDecimalAsBN(
             tokenAmount,
             tokenDecimals
-        )
+        )*/
 
         const instructions: TransactionInstruction[] = []
        
