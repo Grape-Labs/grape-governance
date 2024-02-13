@@ -80,6 +80,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import ArrowCircleRightIcon from '@mui/icons-material/ArrowCircleRight';
 import ArrowCircleRightOutlinedIcon from '@mui/icons-material/ArrowCircleRightOutlined';
 import { number } from 'prop-types';
+import { createProposalInstructionsV0, InstructionDataWithHoldUpTime } from '../../../Proposals/createProposalInstructionsV0';
+import { UiInstruction } from '../../../../utils/governanceTools/proposalCreationTypes';
 
 const confettiConfig = {
     angle: 90,
@@ -136,6 +138,8 @@ export default function IntraDAOGrantV0View(props: any) {
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
     const [destinationString, setDestinationString] = React.useState(null);
     const [distributionType, setDistributionType] = React.useState(false);
+    const [governanceWalletMinInstructHoldUpTime, setGovernanceWalletMinInstructHoldUpTime] = React.useState(props?.governanceWalletMinInstructHoldUpTime);
+    const setInstructionsDataWithHoldUpTime = props?.setInstructionsDataWithHoldUpTime;
     let maxDestinationWalletLen = 50;
     
     const { publicKey } = useWallet();
@@ -146,6 +150,9 @@ export default function IntraDAOGrantV0View(props: any) {
     async function transferDAOPower() {
         //const payerWallet = new PublicKey(payerAddress);
         //const fromWallet = new PublicKey(fromAddress);
+        const instructionsWithHoldupTime: InstructionDataWithHoldUpTime[] = []
+        const prerequisiteInstructions: TransactionInstruction[] = []
+        const serializedTransferToReceiptIxs: string[] = []
         setLoadingInstructions(true);
         let fromWallet = null;
         console.log("consolidatedGovernanceWallet: "+JSON.stringify(consolidatedGovernanceWallet))
@@ -299,6 +306,11 @@ export default function IntraDAOGrantV0View(props: any) {
                             fromWallet,
                         )
                         transaction.add(...ix);
+                        ix.forEach(instruction => {
+                            const serializedInstruction = serializeInstructionToBase64(instruction);
+                            console.log('serializedInstruction:', serializedInstruction);
+                            serializedTransferToReceiptIxs.push(serializedInstruction);
+                        });
                     }
                 }
 
@@ -332,11 +344,49 @@ export default function IntraDAOGrantV0View(props: any) {
 
                         console.log("Adding IX: "+JSON.stringify(instructions));
                         transaction.add(...instructions);
+                        instructions.forEach(instruction => {
+                            const serializedInstruction = serializeInstructionToBase64(instruction);
+                            console.log('serializedInstruction:', serializedInstruction);
+                            serializedTransferToReceiptIxs.push(serializedInstruction);
+                        });
                     }
                 }
             }
 
+            //console.log('serializedTransferToReceiptIxs[0]:', serializedTransferToReceiptIxs[0]);
+            //console.log('serializedTransferToReceiptIxs.slice(1):', serializedTransferToReceiptIxs.slice(1));
+            const uiInstruction: UiInstruction = {
+                governance: governanceRulesWallet,//treasuryAssetAccount.governance,
+                serializedInstruction: serializedTransferToReceiptIxs[0],
+                additionalSerializedInstructions:
+                    serializedTransferToReceiptIxs.slice(1) || [],
+                prerequisiteInstructions,
+                isValid: true,
+                customHoldUpTime:
+                    governanceWalletMinInstructHoldUpTime,
+            }
+            //console.log('instructionsData: '+JSON.stringify(uiInstruction));
             
+            const uiInstructions: UiInstruction[] = serializedTransferToReceiptIxs.map(
+                (serializedInstruction) => ({
+                  serializedInstruction,
+                  additionalSerializedInstructions: [], // You can set it to an empty array or any other default value
+                  isValid: true, // You can set it to a default value or based on your logic
+                  governance: governanceRulesWallet, // Set it to your default value or logic
+                  customHoldUpTime: governanceWalletMinInstructHoldUpTime, // Set it to your default value or logic
+                  prerequisiteInstructions: prerequisiteInstructions, // Set it to your default value or logic
+                })
+            );
+            
+            const instructionDataArray: InstructionDataWithHoldUpTime[] = uiInstructions.map(
+                (uiInstruction) =>
+                  new InstructionDataWithHoldUpTime({
+                    instruction: uiInstruction,
+                    //governance: governanceRulesWallet,
+                  })
+            );
+            setInstructionsDataWithHoldUpTime(instructionDataArray);
+            //console.log('setInstructionsDataWithHoldUpTime sent:'+JSON.stringify(instructionDataArray));         
 
             setTransactionInstructions(transaction);
             setLoadingInstructions(false);

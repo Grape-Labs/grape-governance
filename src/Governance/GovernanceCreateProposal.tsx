@@ -1942,7 +1942,7 @@ export default function GovernanceCreateProposalView(props: any){
                             }
                             {proposalType === 132 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <IntraDAOGrantV0View governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
+                                <IntraDAOGrantV0View governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} governanceWalletMinInstructHoldUpTime={governanceWalletMinInstructHoldUpTime} setInstructionsDataWithHoldUpTime={setInstructionsDataWithHoldUpTime}/>
                               </FormControl>
                             }
                             

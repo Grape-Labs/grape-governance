@@ -180,6 +180,22 @@ export async function createProposalInstructionsV0(
     
     const proposalIndex = governance?.account?.proposalCount;
 
+    const SECONDS_PER_DAY = 86400
+    function getTimestampFromDays(days: number) {
+      return days * SECONDS_PER_DAY
+    }
+    const getDefaultInstructionProps = (
+      x: UiInstruction,
+      selectedGovernance: ProgramAccount<Governance> | null
+    ) => ({
+      holdUpTime: x.customHoldUpTime
+        ? getTimestampFromDays(x.customHoldUpTime)
+        : selectedGovernance?.account?.config.minInstructionHoldUpTime,
+      prerequisiteInstructions: x.prerequisiteInstructions || [],
+      signers: x.signers,
+      prerequisiteInstructionsSigners: x.prerequisiteInstructionsSigners || [],
+      chunkBy: x.chunkBy || 2,
+    })
     //will run only if plugin is connected with realm
     /*const voterWeight = await withUpdateVoterWeightRecord(
       instructions,
@@ -244,6 +260,8 @@ export async function createProposalInstructionsV0(
         ProposalTransaction,
         [pubkeyFilter(1, new PublicKey(proposalAddress))!]
       );
+      console.log("Editing Proposal");
+      
       if (ix && ix.length > 0) { 
         ixCount = ix.length;
       } 
@@ -264,19 +282,42 @@ export async function createProposalInstructionsV0(
       proposalAddress,
       signatory
     )
-    
+   
+    let UiInstructions: UiInstruction[] = []
+    //console.log('instructionsData: '+JSON.stringify(instructionsData));
+    const additionalInstructions = UiInstructions//instructionsData[0].data.data.
+    .flatMap((instruction) =>
+      instruction.additionalSerializedInstructions
+        ?.filter(
+          (value, index, self) =>
+            index === self.findIndex((t) => t === value)
+        )
+        .map((x) => ({
+          data: x ? getInstructionDataFromBase64(x) : null,
+          ...getDefaultInstructionProps(instruction, governance),
+        }))
+    )
+    .filter((x) => x) as InstructionDataWithHoldUpTime[]
+
     const insertInstructions: TransactionInstruction[] = [];
     //we don't have any prerequisiteInstructions to execute so we will leave this null
     const prerequisiteInstructions: TransactionInstruction[] = [];
     //const authInstructions: TransactionInstruction[] = [];
-
-    const chunkBys = instructionsData
+    const allInstructionsData = [
+      ...additionalInstructions,
+      ...instructionsData,
+    ]
+    
+    //const chunkBys = instructionsData
+    const chunkBys = allInstructionsData
     .filter((x) => x.chunkBy)
     .map((x) => x.chunkBy!)
 
     const lowestChunkBy = chunkBys.length ? Math.min(...chunkBys) : 2
 
-    for (const [index, instruction] of instructionsData
+    //console.log('additionalInstructions: ', additionalInstructions);
+    //console.log('allInstructionData: ', allInstructionsData);
+    for (const [index, instruction] of allInstructionsData//instructionsData
       .filter((x) => x.data)
       .entries()) {
       if (instruction.data) {
@@ -306,6 +347,7 @@ export async function createProposalInstructionsV0(
         )
       }
     }
+    //console.log('insertInstructions: ',insertInstructions);
 
 /*    
     if (authTransaction){
@@ -440,6 +482,7 @@ export async function createProposalInstructionsV0(
         )
         .flat()
         .flat()
+        //start lookup implementation
         const slot = await connection.getSlot()
         const [
           lookupTableInst,
@@ -449,6 +492,7 @@ export async function createProposalInstructionsV0(
           payer: payer,
           recentSlot: slot,
         })
+        //end lookup implementation
         // add addresses to the `lookupTableAddress` table via an `extend` instruction
         // need to split into multiple instructions because of the ~20 address limit
         // https://docs.solana.com/developing/lookup-tables#:~:text=NOTE%3A%20Due%20to,transaction%27s%20memory%20limits.
@@ -458,6 +502,7 @@ export async function createProposalInstructionsV0(
         //   lookupTable: lookupTableAddress,
         //   addresses: keys,
         // })
+        //start lookup implementation
         const extendInstructions = chunks(keys, 15).map((chunk) =>
           AddressLookupTableProgram.extendLookupTable({
             payer: payer,
@@ -466,9 +511,10 @@ export async function createProposalInstructionsV0(
             addresses: chunk,
           })
         )
+        //end lookup implementation
         // Send this `extendInstruction` in a transaction to the cluster
         // to insert the listing of `addresses` into your lookup table with address `lookupTableAddress`
-
+        //start lookup implementation
         console.log('lookup table address:', lookupTableAddress.toBase58())
         let resolve = undefined
         const promise = new Promise((r) => {
@@ -501,6 +547,7 @@ export async function createProposalInstructionsV0(
           .getAddressLookupTable(lookupTableAddress, { commitment: 'singleGossip' })
           .then((res) => res.value)
         if (lookupTableAccount === null) throw new Error()
+        //end lookup implementation
         ////////////////////////////////////////////////////
         //END ADDITIONAL CODE FROM createLUTproposals  
         ///////////////////////////////////////////////////
@@ -512,6 +559,8 @@ export async function createProposalInstructionsV0(
             wallet,
             transactionInstructions: txes,
             lookupTableAccounts: [lookupTableAccount],
+            //if not using lookuptable implementation we wouloud pass the variable as below instead
+            //lookupTableAccounts: [],
           });
           /*const stresponse =  await sendTransactionsV3({
               connection, 

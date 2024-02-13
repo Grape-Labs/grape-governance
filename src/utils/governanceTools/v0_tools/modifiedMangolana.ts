@@ -397,10 +397,10 @@ export const sendSignAndConfirmTransactions = async ({
   callbacks,
   config = {
     maxTxesInBatch: 40,
-    autoRetry: false,
+    autoRetry: true,
     maxRetries: 5,
     retried: 0,
-    logFlowInfo: false,
+    logFlowInfo: true,
   },
   lookupTableAccounts,
 }: sendSignAndConfirmTransactionsProps) => {

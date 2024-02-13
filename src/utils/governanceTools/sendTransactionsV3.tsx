@@ -10,10 +10,15 @@ import {
 
 import { invalidateInstructionAccounts } from './v0_tools/queryClient'
 
-import {
+/*import {
   sendSignAndConfirmTransactionsProps,
   sendSignAndConfirmTransactions,
-} from '@blockworks-foundation/mangolana/lib/transactions'
+} from '@blockworks-foundation/mangolana/lib/transactions'*/
+//use modifieMangolana instead to handle retries and lookuptable 
+import { 
+  sendSignAndConfirmTransactionsProps, 
+  sendSignAndConfirmTransactions 
+} from '../../utils/governanceTools/v0_tools/modifiedMangolana'
 
 export type WalletSigner = Pick<
   SignerWalletAdapter,
@@ -97,7 +102,7 @@ export const sendTransactionsV3 = ({
       ).length > 0
         ? 20
         : 30,
-    autoRetry: false,
+    autoRetry: true,
     maxRetries: 5,
     retried: 0,
     logFlowInfo: true,
@@ -111,7 +116,8 @@ export const sendTransactionsV3 = ({
     callbacks: callbacksWithUiComponent,
     config: cfg,
     confirmLevel: 'confirmed', //TODO base this on connection confirmation level
-    //lookupTableAccounts,
+    //uncommment lookupTableAccounts so to utilize for versionedTransactions
+    lookupTableAccounts,
   })
 }
 
