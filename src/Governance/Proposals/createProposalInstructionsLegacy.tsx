@@ -230,14 +230,16 @@ export async function createProposalInstructionsLegacy(
       
     
       if (ix && ix.length > 0) { 
-        ixCount = ix.length;
+        ixCount = ix.length+1;
+        console.log("1 setting here with ix: "+ixCount);
       } 
       
       if (ix && ix.length > 0 && ix[0]?.account?.instructions && ix[0].account.instructions.length > 0){
-        console.log("ixCount: "+ixCount)
-        if (ixCount <= 1){
+        if (ixCount <= 2){
           ixCount = 0;
-          ixCount = ix[0].account.instructions.length;
+          ixCount = ix[0].account.instructions.length+1;
+          console.log("2 setting here with ix: "+ixCount);
+        
         }
       }
     }
