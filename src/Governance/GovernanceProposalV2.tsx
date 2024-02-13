@@ -762,7 +762,13 @@ export function GovernanceProposalV2View(props: any){
                 let instructions = null;
                 // always load ix
 
-                instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                //instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                instructions = await getGovernanceAccounts(
+                    connection,
+                    new PublicKey(thisitem.owner || realm.owner),
+                    ProposalTransaction,
+                    [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
+                );
                 thisitem.instructions = instructions;
                 /*
                 if (!thisitem?.instructions || thisitem.account.state === 0){

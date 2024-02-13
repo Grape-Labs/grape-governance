@@ -219,15 +219,15 @@ export async function createProposalInstructionsLegacy(
       console.log("Editing Proposal");
 
       // revert to use this when SHYFT properly adjusts the total ix
-      const ix = await getProposalInstructionsIndexed(realmPk.toBase58(), proposalAddress);
-      /*
+      //const ix = await getProposalInstructionsIndexed(realmPk.toBase58(), proposalAddress);
+      
       const ix = await getGovernanceAccounts(
         connection,
         new PublicKey(programId),
         ProposalTransaction,
         [pubkeyFilter(1, new PublicKey(proposalAddress))!]
       );
-      */
+      
     
       if (ix && ix.length > 0) { 
         ixCount = ix.length;
