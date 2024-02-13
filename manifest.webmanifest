@@ -7,7 +7,7 @@
     "lang": "en",
     "orientation": "any",
     "scope": "/",
-    "start_url": "https://www.governance.so",
+    "start_url": "https://www.governance.so/directory",
     "background_color": "#23063C",
     "theme_color": "#23063C",
     "display": "standalone",
