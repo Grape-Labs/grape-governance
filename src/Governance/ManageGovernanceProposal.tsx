@@ -596,7 +596,7 @@ export function ManageGovernanceProposal(props: any){
                             <DialogTitle>Add Signer</DialogTitle>
                             <DialogContent>
                             <DialogContentText>
-                                WARNING: Adding a signatory will require the new PublicKey to also Sign Off this proposal, this is ideal to use if more PublicKeys should validate the proposal before being put to vote (*Add/Remove Transactions of this proposal are supported by proposal author)
+                                WARNING: Adding a signatory will require the new PublicKey to also Sign Off this proposal, this is ideal to use if more PublicKeys should validate the proposal before being put to vote (*Add/Remove Instructions for this proposal are supported only by the proposal author)
                             </DialogContentText>
                             <TextField
                                 autoFocus

@@ -21,6 +21,9 @@ import {
   getGovernance,
   getTokenOwnerRecordAddress,
   createInstructionData,
+  pubkeyFilter, 
+  getGovernanceAccounts,
+  ProposalTransaction,
 } from '@solana/spl-governance';
 import { 
   sendTransactionsV3, 
@@ -249,11 +252,16 @@ export async function createProposalInstructionsV0(
         payer
       )
     } else{
-
       proposalAddress = editAddress;
+      //const ix = await getProposalInstructionsIndexed(realmPk.toBase58(), proposalAddress);
+      const ix = await getGovernanceAccounts(
+        connection,
+        new PublicKey(programId),
+        ProposalTransaction,
+        [pubkeyFilter(1, new PublicKey(proposalAddress))!]
+      );
       console.log("Editing Proposal");
       
-      const ix = await getProposalInstructionsIndexed(realmPk.toBase58(), proposalAddress);
       if (ix && ix.length > 0) { 
         ixCount = ix.length;
       } 

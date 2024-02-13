@@ -227,8 +227,8 @@ export async function createProposalInstructionsLegacy(
         ProposalTransaction,
         [pubkeyFilter(1, new PublicKey(proposalAddress))!]
       );
+      
     
-      //const ix = await getProposalInstructionsIndexed(realmPk.toBase58(), proposalAddress);
       if (ix && ix.length > 0) { 
         ixCount = ix.length;
       } 
