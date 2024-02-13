@@ -826,6 +826,10 @@ export default function IntraDAOGrantView(props: any) {
             setTokenAmount(cleanedValue);
     };
 
+    const handleDistrubtionTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setDistributionType(event.target.checked);
+    };
+
     
     function calculateDestinationsEvenly(destinations:string, destinationAmount: number){
         const destinationsStr = destinations.replace(/['"]/g, '');;

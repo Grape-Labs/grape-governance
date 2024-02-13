@@ -253,24 +253,27 @@ export async function createProposalInstructionsV0(
       )
     } else{
       proposalAddress = editAddress;
-      //const ix = await getProposalInstructionsIndexed(realmPk.toBase58(), proposalAddress);
+      const ix = await getProposalInstructionsIndexed(realmPk.toBase58(), proposalAddress);
+      /*
       const ix = await getGovernanceAccounts(
         connection,
         new PublicKey(programId),
         ProposalTransaction,
         [pubkeyFilter(1, new PublicKey(proposalAddress))!]
       );
+      */
+      
       console.log("Editing Proposal");
       
       if (ix && ix.length > 0) { 
-        ixCount = ix.length;
+        ixCount = ix.length+1;
       } 
       
       if (ix && ix.length > 0 && ix[0]?.account?.instructions && ix[0].account.instructions.length > 0){
         console.log("ixCount: "+ixCount)
-        if (ixCount <= 1){
+        if (ixCount <= 2){
           ixCount = 0;
-          ixCount = ix[0].account.instructions.length;
+          ixCount = ix[0].account.instructions.length+1;
         }
       }
     }
