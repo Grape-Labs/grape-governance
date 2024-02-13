@@ -1210,6 +1210,7 @@ export function GovernanceCachedView(props: any) {
                 dir: "ltr",
                 lang: "en",
                 orientation: "any",
+                scope: `/`,
                 start_url: `https://www.governance.so/dao/${governanceAddress}`,
                 background_color: "#23063C",
                 theme_color: "#23063C",
