@@ -2070,7 +2070,7 @@ export default function GovernanceCreateProposalView(props: any){
                             </>
                           :<></>}
                           
-                          {!intraDAO ?
+                          {(!intraDAO && !editProposalAddress) ?
                             <Grid sx={{textAlign:'right'}}>
                               <ButtonGroup variant="contained" aria-label="outlined button group"
                                 sx={{borderRadius:'17px'}}

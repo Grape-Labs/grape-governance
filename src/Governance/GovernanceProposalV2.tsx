@@ -762,21 +762,26 @@ export function GovernanceProposalV2View(props: any){
                 let instructions = null;
                 // always load ix
 
+                instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                thisitem.instructions = instructions;
+                /*
                 if (!thisitem?.instructions || thisitem.account.state === 0){
                 
-                    //if (!thisitem?.instructions){
-                        //instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                    if (!thisitem?.instructions){
+                        instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                        instructions = await getGovernanceAccounts(
+                            connection,
+                            new PublicKey(thisitem.owner || realm.owner),
+                            ProposalTransaction,
+                            [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
+                        );
                     
-                    instructions = await getGovernanceAccounts(
-                        connection,
-                        new PublicKey(thisitem.owner || realm.owner),
-                        ProposalTransaction,
-                        [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
-                    );
-                    
-                    thisitem.instructions = instructions;
+                        thisitem.instructions = instructions;
+                    }
                 } else {
                     if (!thisitem?.instructions){
+                        instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                        
                         instructions = await getGovernanceAccounts(
                             connection,
                             new PublicKey(thisitem.owner || realm.owner),
@@ -786,6 +791,7 @@ export function GovernanceProposalV2View(props: any){
                         thisitem.instructions = instructions;
                     }
                 }
+                */
                 //console.log("ix: "+JSON.stringify(thisitem.instructions))
                 
                 if (thisitem?.instructions){
