@@ -356,7 +356,6 @@ function DashboardContent() {
                                               </Route>
                                               
                                               <Route path="*" element={<NotFound />} />
-                                              <Route path="directory" element={<NotFound />} />
                                             </Routes>
                                           <Copyright sx={{ mt: 4 }} />
                                       </Container>
