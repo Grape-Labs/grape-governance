@@ -789,7 +789,7 @@ export default function GovernanceCreateProposalView(props: any){
       let minInstructionHoldUpTime = null;
 
       if (governanceWallets){
-        {/*governanceWallets && governanceWallets
+        {governanceWallets && governanceWallets
           .sort((a:any,b:any) => (b.walletValue - a.walletValue))
           .map((item: any, key: number) => {
             if (rulesWallet === item.pubkey.toBase58()){
@@ -802,7 +802,7 @@ export default function GovernanceCreateProposalView(props: any){
               }
             }
           })
-          */
+          
         }
       } 
       {
@@ -848,18 +848,21 @@ export default function GovernanceCreateProposalView(props: any){
         let minInstructionHoldUpTime = null;
         
         if (governanceWallets){
-          {/*governanceWallets && governanceWallets
+          {governanceWallets && governanceWallets
             .sort((a:any,b:any) => (b.walletValue - a.walletValue))
             .map((item: any, key: number) => {
-              
-              rulesWallet = item.pubkey.toBase58();
-              minInstructionHoldUpTime = item.account.config.minInstructionHoldUpTime;
-                if (item.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff'){
-                    setCommunitySupport(true);
-                    setIsCouncilVote(true);
+              if (nativeWallet === item?.nativeTreasuryAddress?.toBase58() ||
+                (nativeWallet?.vault && nativeWallet.vault.pubkey === item?.nativeTreasuryAddress?.toBase58())){
+                //console.log("1. found "+JSON.stringify(item));
+                rulesWallet = item.pubkey.toBase58();
+                minInstructionHoldUpTime = item.account.config.minInstructionHoldUpTime;
+                  if (item.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff'){
+                      setCommunitySupport(true);
+                      setIsCouncilVote(true);
+                  }
                 }
               })
-            */}
+            }
         } 
         
         {

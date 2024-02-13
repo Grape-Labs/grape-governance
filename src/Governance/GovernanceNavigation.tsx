@@ -182,7 +182,7 @@ export default function GovernanceNavigation(props: any){
                         </Tooltip>
                         */}
 
-                        {isParticipatingInDao &&
+                        {/*isParticipatingInDao &&
                             <Tooltip title={
                                 <><strong>Proposal Builder</strong><br/></>
                                 }>
@@ -193,7 +193,7 @@ export default function GovernanceNavigation(props: any){
                                     sx={{borderTopRightRadius:'17px', borderBottomRightRadius:'17px'}}
                                 ><AddCircle /></Button>
                             </Tooltip>
-                        }
+                        */}
 
                     </ButtonGroup>
                     
