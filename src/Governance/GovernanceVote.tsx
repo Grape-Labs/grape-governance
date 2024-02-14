@@ -700,7 +700,7 @@ export function VoteForProposal(props:any){
         //const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null);
         const rawTokenOwnerRecords = await getTokenOwnerRecordsByRealmIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null, publicKey.toBase58());
         setMemberMap(rawTokenOwnerRecords);
-        
+
         let memberItem = rawTokenOwnerRecords.find(item => 
             (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
             item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
