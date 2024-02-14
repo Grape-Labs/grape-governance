@@ -85,7 +85,9 @@ import {
     getTokenOwnerRecordsByRealmIndexed,
 } from './api/queries';
 
-import { parseMintNaturalAmountFromDecimalAsBN } from '../utils/grapeTools/helpers';
+import { 
+    shortenString, 
+    parseMintNaturalAmountFromDecimalAsBN } from '../utils/grapeTools/helpers';
 
 import { 
     RPC_CONNECTION,
@@ -415,7 +417,7 @@ export default function GovernancePower(props: any){
                     closeSnackbar(cnfrmkey);
                     const action = (key:any) => (
                             <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                                Signature: {signature}
+                                Signature: {shortenString(signature,5,5)}
                             </Button>
                     );
                     
@@ -513,7 +515,7 @@ export default function GovernancePower(props: any){
                     closeSnackbar(cnfrmkey);
                     const action = (key:any) => (
                             <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                                Signature: {signature}
+                                Signature: {shortenString(signature,5,5)}
                             </Button>
                     );
                     
@@ -634,7 +636,7 @@ export default function GovernancePower(props: any){
                         closeSnackbar(cnfrmkey);
                         const action = (key:any) => (
                                 <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                                    Signature: {signature}
+                                    Signature: {shortenString(signature,5,5)}
                                 </Button>
                         );
                         
