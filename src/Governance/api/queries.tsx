@@ -904,7 +904,7 @@ export const getTokenOwnerRecordsByRealmIndexed = async (filterRealm?:any, realm
     if (allTokenOwnerRecords && allTokenOwnerRecords.length > 0){
         for (var item of allTokenOwnerRecords){
             if (item.account.governingTokenOwner.toBase58() === tokenOwner ||
-                item.account?.governanceDelegate.toBase58() === tokenOwner){
+                (item.account?.governanceDelegate && item.account?.governanceDelegate?.toBase58() === tokenOwner)){
                 ownerRecords.push(item);
             }
         }
