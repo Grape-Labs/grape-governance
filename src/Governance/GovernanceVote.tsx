@@ -27,6 +27,10 @@ import {
     getAllTokenOwnerRecordsIndexed,
     getTokenOwnerRecordsByRealmIndexed,
 } from './api/queries';
+
+import { 
+    shortenString,
+  } from '../utils/grapeTools/helpers';
 import {
     fetchGovernanceLookupFile,
     getFileFromLookup
@@ -456,7 +460,7 @@ export function VoteForProposal(props:any){
                     closeSnackbar(cnfrmkey);
                     const action = (key:any) => (
                             <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                                Signature: {signature}
+                                Signature: {shortenString(signature,5,5)}
                             </Button>
                     );
                     
@@ -667,7 +671,7 @@ export function VoteForProposal(props:any){
                         closeSnackbar(cnfrmkey);
                         const action = (key:any) => (
                                 <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                                    Signature: {signature}
+                                    Signature: {shortenString(signature,5,5)}
                                 </Button>
                         );
                         
