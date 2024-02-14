@@ -36,6 +36,13 @@ import {
   getAllTokenOwnerRecords
 } from '@solana/spl-governance';
 
+import { 
+  getRealmIndexed,
+  getAllProposalsIndexed,
+  getAllGovernancesIndexed,
+  getAllTokenOwnerRecordsIndexed,
+} from '../../api/queries';
+
 
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
@@ -117,6 +124,7 @@ export function GrapeVerificationDAO(props: any){
   const daoName = props?.title;
   const ownerAddress = props?.address;
   const setVerifiedDAODestinationWalletArray = props?.setVerifiedDAODestinationWalletArray;
+  const setVerifiedDAODestinationWalletObjectArray = props?.setVerifiedDAODestinationWalletObjectArray;
   const governanceLookup = props?.governanceLookup;
   const governanceAddress = props?.governanceAddress;
   
@@ -131,9 +139,10 @@ export function GrapeVerificationDAO(props: any){
   const getAndVerifyFromDAOMembers = async(address: string) => {
     setLoading(true);
     
-    console.log("Fetching DAO Cached Members "+address);
+    console.log("Fetching DAO Members "+address);
 
     const plt = new Array();
+    const plto = new Array();
     if (governanceAddress){
       let cached_members = new Array();
       
@@ -147,11 +156,14 @@ export function GrapeVerificationDAO(props: any){
           //console.log("glitem: "+JSON.stringify(glitem));
         }
       }
-      if (mfile){
+      //if (mfile){
         //cached_members = await getFileFromLookup(mfile, GGAPI_STORAGE_POOL);
         // const members = cached_members;
-        const rpc_members = await getAllTokenOwnerRecords(RPC_CONNECTION, programId,new PublicKey(governanceAddress));
-        const members = JSON.parse(JSON.stringify(rpc_members));
+        //const rpc_members = await getAllTokenOwnerRecords(RPC_CONNECTION, programId,new PublicKey(governanceAddress));
+
+        const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(governanceAddress, programId.toBase58())
+        
+        const members = JSON.parse(JSON.stringify(indexedTokenOwnerRecords));
         
         //if (cached_members){
         if (members){
@@ -163,22 +175,43 @@ export function GrapeVerificationDAO(props: any){
             .map((item: any, key: number) => {
               return item.account.governingTokenOwner;
             });
+
+          // use this object array to show their current holdings
+          const objectArray = members
+            .filter((item: any) => 
+                Number("0x"+item.account.governingTokenDepositAmount) > 0)  
+            .map((item: any, key: number) => {
+              return {
+                governingTokenOwner: item.account.governingTokenOwner,
+                governingTokenDepositAmount: item.account.governingTokenDepositAmount, 
+              }
+                ;
+            });
           
 
           plt.push({
-            pubkey: governanceAddress, //item.account.governingTokenOwner,
+            pubkey: governanceAddress,
             size: simpleArray.length,
             info: simpleArray
+          });
+          plto.push({
+            pubkey: governanceAddress,
+            size: objectArray.length,
+            info: objectArray
           });
           
         }
       }
-    }
+    //}
 
     
     if (setVerifiedDAODestinationWalletArray){
       //console.log("plt: "+JSON.stringify(plt))
       setVerifiedDAODestinationWalletArray(plt);
+    }
+
+    if (setVerifiedDAODestinationWalletObjectArray){
+      setVerifiedDAODestinationWalletObjectArray(plto);
     }
     
     setLoading(false);

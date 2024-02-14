@@ -374,7 +374,7 @@ export function GovernanceProposalView(props: any){
         //if (!governance){ // temporary until we cache all governances for a single realm
             governance = await getGovernance(connection, thisitem.account.governance);    
         //}
-
+        
         setThisGovernance(governance);
         
         //console.log("realm"+JSON.stringify(realm));

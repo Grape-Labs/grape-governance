@@ -789,6 +789,8 @@ export function GovernanceCachedView(props: any) {
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
                 let grealm = null;
 
+                grealm = await getRealmIndexed(governanceAddress);
+                /*
                 if (cachedRealm){
                     console.log("Realm from cache");
                     //console.log("cacheRealm: "+JSON.stringify(cachedRealm))
@@ -799,6 +801,7 @@ export function GovernanceCachedView(props: any) {
                     //if (!grealm)
                     //    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
                 }
+                */
                 //console.log("grealm: "+JSON.stringify(grealm));
                 setRealm(grealm);
                 setRealmName(grealm.account.name);
@@ -819,7 +822,7 @@ export function GovernanceCachedView(props: any) {
                 let rawTokenOwnerRecords = indexedTokenOwnerRecords;
                 
                 //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
-                console.log("merging with cache records...")
+                console.log("rawTokenOwnerRecords "+rawTokenOwnerRecords?.length);
                 /*
                 if (cachedMemberMap && cachedMemberMap.length > 0){ // we should consider merging
                     console.log("Members from cache");
@@ -886,7 +889,7 @@ export function GovernanceCachedView(props: any) {
                     }
                 }
                 
-                
+                const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm?.owner, governanceAddress);
                 if (cached_governance){
                     
                     console.log("Fetching via hybrid cache...")
@@ -902,7 +905,7 @@ export function GovernanceCachedView(props: any) {
 
                     if (hybridCache){
                         //console.log("grealm.owner: "+JSON.stringify(grealm.owner));
-                        const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm?.owner, governanceAddress);
+                        
                         //console.log("Indexed Proposals: "+JSON.stringify(gprops));
                         //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
                         // with the results compare with cached_governance
@@ -1001,7 +1004,7 @@ export function GovernanceCachedView(props: any) {
                     const sortedResults = allprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
                     setAllProposals(allprops);
                     setProposals(sortedResults);
-
+                
                 } else {
                     
                     //console.log("B realm: "+JSON.stringify(grealm));
@@ -1041,7 +1044,7 @@ export function GovernanceCachedView(props: any) {
                     }
                     
                     //const gprops = await getAllProposals(RPC_CONNECTION, grealm.owner, realmPk);
-                    const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm?.owner);
+                    //const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm?.owner);
                     const allprops: any[] = [];
                     let passed = 0;
                     let defeated = 0;
@@ -1359,7 +1362,7 @@ export function GovernanceCachedView(props: any) {
     React.useEffect(() => {
         if (governanceAddress && governanceLookup){
             console.log("Step 2.")
-            getCachedGovernanceFromLookup();
+            //getCachedGovernanceFromLookup();
         }
     }, [governanceLookup, governanceAddress]);
     
@@ -1376,7 +1379,8 @@ export function GovernanceCachedView(props: any) {
         
         if (tokenMap){
             console.log("Step 1.")
-            callGovernanceLookup();
+            //callGovernanceLookup();
+            getGovernanceParameters(cachedGovernance);
         }
     }, [tokenMap]);
 
@@ -1593,7 +1597,7 @@ export function GovernanceCachedView(props: any) {
                                     <Box sx={{ 
                                         p:1}}>
                                         <Grid container spacing={1}>
-
+                                        {/*
                                         <Grid item xs={12} sm={6} md={6} lg={3} key={1}>
                                                 <Box
                                                     sx={{
@@ -1638,9 +1642,9 @@ export function GovernanceCachedView(props: any) {
                                                     </Grid>
                                                 </Box>
                                             </Grid>
+                                        */}
 
-
-                                            <Grid item xs={12} sm={6} md={6} lg={3} key={1}>
+                                            <Grid item xs={12} sm={12} md={4} lg={4} key={1}>
                                                 <Box
                                                     sx={{
                                                         borderRadius:'24px',
@@ -1701,7 +1705,7 @@ export function GovernanceCachedView(props: any) {
                                                 </Box>
                                             </Grid>
                                             
-                                            <Grid item xs={12} sm={6} md={6} lg={3} key={1}>
+                                            <Grid item xs={12} sm={6} md={4} lg={4} key={1}>
                                                 <Box
                                                     sx={{
                                                         borderRadius:'24px',
@@ -1744,7 +1748,7 @@ export function GovernanceCachedView(props: any) {
                                                 </Box>
                                             </Grid>
                                             
-                                            <Grid item xs={12} sm={6} md={6} lg={3} key={1}>
+                                            <Grid item xs={12} sm={6} md={4} lg={4} key={1}>
                                                 <Box
                                                     sx={{
                                                         borderRadius:'24px',

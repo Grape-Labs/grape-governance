@@ -932,7 +932,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
             // consider how to iterate vs using RPC
             let x = 0;
             while (hasMore){
-                console.log("fetching tokenOwnerRecords: "+x);
+                console.log("Fetching tokenOwnerRecords page: "+x);
                 const { data } = await client.query({ 
                     query: GET_QUERY_MEMBERS(filterRealm, programName, x, tokenOwner)});//,
                     //variables: { first: 1000, after: x } });
