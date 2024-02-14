@@ -884,7 +884,7 @@ export function GovernanceMembersView(props: any) {
                                                 }}
                                             >
                                                 <Typography variant="body2" sx={{color:'#2ecc71'}}>
-                                                    <>Active/Participating/All Voters</>
+                                                    <>Active{votingParticipants && `/Participating`}/All Voters</>
                                                 </Typography>
                                                 <Grid
                                                     container
@@ -908,7 +908,7 @@ export function GovernanceMembersView(props: any) {
                                                                     verticalAlign: 'bottom'}}
                                                             >
                                                                 <Typography variant="h4">
-                                                                    {activeParticipants}/{votingParticipants}/{totalParticipants}
+                                                                    {activeParticipants}{votingParticipants && `/${votingParticipants}`}/{totalParticipants}
                                                                 </Typography>
                                                             </Grid>
                                                         </Button>
