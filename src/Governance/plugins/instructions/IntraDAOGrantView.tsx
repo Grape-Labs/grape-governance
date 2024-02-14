@@ -139,6 +139,7 @@ export default function IntraDAOGrantView(props: any) {
     const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const [verifiedDestinationWalletArray, setVerifiedDestinationWalletArray] = React.useState(null);
     const [verifiedDAODestinationWalletArray, setVerifiedDAODestinationWalletArray] = React.useState(null);
+    const [verifiedDAODestinationWalletObjectArray, setVerifiedDAODestinationWalletObjectArray] = React.useState(null);
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
     const [destinationString, setDestinationString] = React.useState(null);
     const [distributionType, setDistributionType] = React.useState(false);
@@ -951,6 +952,23 @@ export default function IntraDAOGrantView(props: any) {
         }catch(e){console.log("ERR: "+e)}
     };
 
+    const findDAOObjectPubkey = (address:string, daoMembers?:any) => {
+        try{
+            if (daoMembers){
+                const entry = daoMembers.find((item) => item.info.includes(address));
+                if (entry) {
+                    return entry.pubkey;
+                }
+            } else{
+                const entry = verifiedDAODestinationWalletObjectArray.find((item) => item.info.includes(address));
+                if (entry) {
+                    return entry.pubkey;
+                }
+            }
+            return null; // Address not found
+        }catch(e){console.log("ERR: "+e)}
+    };
+
     function handleAddMyWallet(){
         if (!destinationString)
             setDestinationString(publicKey.toBase58());
@@ -1274,7 +1292,20 @@ export default function IntraDAOGrantView(props: any) {
                                         p:1
                                     }}
                                 >
-                                    <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} /> {governance && <GrapeVerificationDAO title={governance ? governance.account.name : null} governanceAddress={daoToJoinAddress} governanceLookup={governanceLookup} address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray} />}</Typography>
+                                    <Typography variant="h6">Preview/Summary 
+                                        <GrapeVerificationSpeedDial 
+                                            address={fromAddress} 
+                                            destinationWalletArray={destinationWalletArray} 
+                                            setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray} /> 
+                                        {governance && 
+                                            <GrapeVerificationDAO 
+                                                title={governance ? governance.account.name : null} 
+                                                governanceAddress={daoToJoinAddress} 
+                                                governanceLookup={governanceLookup} 
+                                                address={fromAddress} 
+                                                destinationWalletArray={destinationWalletArray} 
+                                                setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray}
+                                                setVerifiedDAODestinationWalletObjectArray={setVerifiedDAODestinationWalletObjectArray} />}</Typography>
                                     <Typography variant="caption">
                                     DAO to Grant Voting Power <strong>{daoToJoinAddress}</strong><br/>
                                     Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to <strong>{destinationWalletArray[0].address} {verifiedDestinationWalletArray ? 
@@ -1333,7 +1364,19 @@ export default function IntraDAOGrantView(props: any) {
                                         p:4
                                     }}
                                 >   
-                                    <Typography variant="h6">Preview/Summary <GrapeVerificationSpeedDial address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}/> {governance && <GrapeVerificationDAO title={governance ? governance.account.name : null} governanceAddress={daoToJoinAddress} governanceLookup={governanceLookup} address={fromAddress} destinationWalletArray={destinationWalletArray} setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray} />}</Typography>
+                                    <Typography variant="h6">Preview/Summary 
+                                        <GrapeVerificationSpeedDial 
+                                            address={fromAddress} 
+                                            destinationWalletArray={destinationWalletArray} 
+                                            setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}/> 
+                                            {governance && 
+                                            <GrapeVerificationDAO title={governance ? governance.account.name : null} 
+                                                governanceAddress={daoToJoinAddress} 
+                                                governanceLookup={governanceLookup} 
+                                                address={fromAddress} 
+                                                destinationWalletArray={destinationWalletArray}
+                                                setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray}
+                                                setVerifiedDAODestinationWalletObjectArray={setVerifiedDAODestinationWalletObjectArray} />}</Typography>
                                     <Typography variant="caption">
                                         DAO to Grant Voting Power <strong>{daoToJoinAddress} {governance && governance.account.name}</strong> <br/>
                                         Sending <strong>{tokenAmount.toLocaleString()}</strong> {tokenMint} to {destinationWalletArray.length} recipient(s):<br/>

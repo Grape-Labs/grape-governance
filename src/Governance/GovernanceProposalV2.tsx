@@ -686,7 +686,7 @@ export function GovernanceProposalV2View(props: any){
             }
         }
 
-        if (!vresults){
+        //if (!vresults){
             //const gp = await getProposal(RPC_CONNECTION, thisitem.pubkey);
             const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, thisitem?.owner);
             const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
@@ -698,7 +698,7 @@ export function GovernanceProposalV2View(props: any){
             if (gp){
                 vresults = JSON.parse(JSON.stringify(gp));
             }
-        }
+        //}
         
 
         
