@@ -218,7 +218,6 @@ export async function getTokenList(strict:boolean){
       })
       .catch(error => 
           {   
-              // revert to RPC
               console.error(error);
               return null;
           });

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
+import { PublicKey, TokenAmount, Connection, Transaction } from '@solana/web3.js';
 import axios from "axios";
 import moment from 'moment';
 import { styled } from '@mui/material/styles';
@@ -85,6 +85,7 @@ import { GovernanceProposalDialog } from '../GovernanceProposalDialog';
 import ExtensionsMenuView from './plugins/ExtensionsMenu';
 import { IntegratedGovernanceProposalDialogView } from '../IntegratedGovernanceProposal';
 
+import ErrorIcon from '@mui/icons-material/Error';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import InfoIcon from '@mui/icons-material/Info';
 import CompressIcon from '@mui/icons-material/Compress';
@@ -180,9 +181,11 @@ export default function WalletCardView(props:any) {
     const isLoading = React.useRef(false);
     const [loadingPrices, setLoadingPrices] = React.useState(false);
     const [isCopied, setIsCopied] = React.useState(false);
+    const [selectedNativeWallet, setSelectedNativeWallet] = React.useState(null);
 
     const [expandedLoader, setExpandedLoader] = React.useState(false);
-    const [instructions, setInstructions] = React.useState(false);
+    const [instructions, setInstructions] = React.useState(null);
+    const [simulationFailed, setSimulationFailed] = React.useState(false);
     const [openDialog, setOpenDialog] = React.useState(false);
     
     const handleClickOpenDialog = (event:any) => {
@@ -856,15 +859,56 @@ export default function WalletCardView(props:any) {
         setExpandedProps(!expandedProps);
     }
 
+    const handleProposalTxSimulation = async() => {
+        
+        if (instructions && selectedNativeWallet){
+            setLoaderSuccess(false);
+            setSimulationFailed(false);
+            const { blockhash, lastValidBlockHeight } = await RPC_CONNECTION.getLatestBlockhash('confirmed');
+            let transaction = new Transaction({
+                feePayer: new PublicKey(selectedNativeWallet),
+                blockhash,
+                lastValidBlockHeight,
+            }).add(...instructions);// we should simulate when sending back to the wallet...
+            
+            console.log("Getting estimated fees");
+            const latestBlockHash = (await RPC_CONNECTION.getLatestBlockhash()).blockhash;
+            transaction.recentBlockhash = latestBlockHash;
+            transaction.feePayer = new PublicKey(selectedNativeWallet);
+            const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
+            if (simulationResult?.err || simulationResult?.value?.err) {
+                console.error('Transaction simulation failed:', simulationResult);
+                setSimulationFailed(true);
+                //return;
+            }else{
+                console.log('simulationResult: '+JSON.stringify(simulationResult));
+                const computeUnits = simulationResult.value?.unitsConsumed; //simulationResult.value?.transaction?.message.recentBlockhashFeeCalculator.totalFees;
+                //const lamportsPerSol = 1000000000;
+                const sol = computeUnits / 10 ** 9;
+                console.log(`Estimated fee: ${sol}`);
+                //setTransactionEstimatedFee(sol);//feeInLamports/10 ** 9;
+            }
+
+            //transaction = await wallet.signTransaction(transaction);
+            //const rawTransaction = transaction.serialize();
+            //const txid = await connection.sendRawTransaction(rawTransaction, {
+            //skipPreflight: true,
+            //});
+
+
+            console.log("Transaction: "+JSON.stringify(transaction));
+
+            setLoaderSuccess(true);
+        }
+        
+    }
+
     React.useEffect(() => { 
         
-        if (expandedLoader && !loaderSuccess){ // remove to add simulatipon and proposal instruction building here
-                setLoaderSuccess(false);
-                //setLoading(true);
-                timer.current = window.setTimeout(() => {
-                    setLoaderSuccess(true);
-                    //setLoading(false);
-                }, 2000);
+        if (expandedLoader && !loaderSuccess){ // remove to add simulatipon and proposal instruction building here 
+            if (instructions){
+                handleProposalTxSimulation();
+            }
         }
         if (expandedLoader && loaderSuccess){
             timer.current = window.setTimeout(() => {
@@ -872,6 +916,7 @@ export default function WalletCardView(props:any) {
                 setLoaderSuccess(false);
             }, 4000);
         }
+        
     }, [expandedLoader, loaderSuccess]);
 
     React.useEffect(() => {
@@ -1323,6 +1368,7 @@ export default function WalletCardView(props:any) {
                         setExpandedLoader={setExpandedLoader}
                         instructions={instructions}
                         setInstructions={setInstructions}
+                        setSelectedNativeWallet={setSelectedNativeWallet}
 
                     />
                 </>
@@ -1400,17 +1446,34 @@ export default function WalletCardView(props:any) {
                 <Divider light component="li" />
                 <ListItem>
                     {loaderSuccess ?
-                        <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2,textAlign:'center'}}>
-                            <Grid item xs={12}>
-                                <CheckCircleIcon fontSize="large" color="success" />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <Typography variant="caption" sx={{ color: green[500] }}>Proposal Tx Created</Typography>
-                            </Grid>
-                            <Grid item xs={12}>
-                                <Typography variant="caption">A complete Governance Wallet Experience with ❤️ by Grape #OPOS</Typography>
-                            </Grid>
-                        </Grid>
+                        <>
+                            {simulationFailed ? 
+                                <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2,textAlign:'center'}}>
+                                    <Grid item xs={12}>
+                                        <ErrorIcon fontSize="large" color="error" />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Typography variant="caption" sx={{ color: red[500] }}>Proposal Tx Simulation Failed</Typography>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Typography variant="caption">A complete Governance Wallet Experience with ❤️ by Grape #OPOS</Typography>
+                                    </Grid>
+                                </Grid>
+                            :
+                                <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2,textAlign:'center'}}>
+                                    <Grid item xs={12}>
+                                        <CheckCircleIcon fontSize="large" color="success" />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Typography variant="caption" sx={{ color: green[500] }}>Proposal Tx Created</Typography>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Typography variant="caption">A complete Governance Wallet Experience with ❤️ by Grape #OPOS</Typography>
+                                    </Grid>
+                                </Grid>
+
+                            }
+                        </>
                     :
                         <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2,textAlign:'center'}}>
                             <Grid item xs={12}>
