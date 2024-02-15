@@ -3,6 +3,7 @@ import { BN, web3 } from '@project-serum/anchor';
 import { BigNumber } from 'bignumber.js'
 import { Connection, PublicKey, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { PROGRAM_ID as HELIUM_VSR_PROGRAM_ID } from '@helium/voter-stake-registry-sdk'
+import axios from "axios";
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import {
   getAllTokenOwnerRecords, 
@@ -184,13 +185,66 @@ export function getRemainingDays(targetDate?: string): number {
   return time.getDate() > date.getDate() ? time.getDate() - date.getDate() : 0;
 }
 
-export async function getJupiterPrices(tokens:string[], vsToken?:string) {
-  const body = {
-    ids: tokens,
+
+export async function getTokenList(strict:boolean){
+  let uri = `https://token.jup.ag/all`;
+  if (strict)
+    uri = `https://token.jup.ag/strict`;
+  
+  return axios.get(uri, {
+          headers: {
+          //    'x-api-key': SHYFT_KEY
+          }
+          })
+      .then(response => {
+          if (response?.data){
+              const tokenList = response.data;
+              //console.log("tokenList: "+JSON.stringify(tokenList))
+              /*
+              for (var item of tokenList){
+                  // fix to push only what we have not already added
+                  availableTokens.push({
+                      mint:item.address,
+                      name:item.name,
+                      symbol:item.symbol,
+                      decimals:item.decimals,
+                      logo:item.logoURI
+                  });
+              }
+              */
+              return tokenList;
+          }
+          return null
+      })
+      .catch(error => 
+          {   
+              console.error(error);
+              return null;
+          });
+}
+
+export async function getJupiterPrices(tokens:string[], vsToken?:string, strict?:boolean) {
+  
+  // check first if strict token
+  const tokenList = await getTokenList(strict);
+
+  let finalTokenList = new Array();
+  if (tokenList){
+    for(let item of tokenList){
+      for (let titem of tokens){
+        if (titem === item.address){
+          finalTokenList.push(titem);
+        }
+      }
+    }
+  } else{
+    finalTokenList = tokens;
   }
-  let apiUrl = "https://price.jup.ag/v4/price?ids="+tokens;
+
+
+  let apiUrl = "https://price.jup.ag/v4/price?ids="+finalTokenList;
   if (vsToken)
-    apiUrl = "https://price.jup.ag/v4/price?ids="+tokens+"&vsToken="+vsToken;
+    apiUrl = "https://price.jup.ag/v4/price?ids="+finalTokenList+"&vsToken="+vsToken;
   const resp = await window.fetch(apiUrl, {
   })
   const json = await resp.json(); 

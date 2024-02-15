@@ -1120,8 +1120,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
     if (setPrimaryStatus) setPrimaryStatus("Fetching Prices from Jupiter");
 
-    const cgp = await getJupiterPrices(cgMintArray);
-
+    const cgp = await getJupiterPrices(cgMintArray, null, true);
+    
     if (setPrimaryStatus) setPrimaryStatus("Associating Fetched Prices from Jupiter");
     let totalVaultStableCoinValue = 0;
     for (var ia of vaultsInflated){

@@ -1,5 +1,5 @@
 import MerkleDistributor from '@jup-ag/merkle-distributor-sdk';
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, Transaction } from '@solana/web3.js';
 import { AnchorProvider, web3 } from '@coral-xyz/anchor';
 import { Connection } from '@solana/web3.js';
 import axios from "axios";
@@ -104,6 +104,7 @@ export default function ClaimExtensionView(props: any){
     const title = props?.title || "Proposal";
     const realm = props?.realm;
     
+    const setSelectedNativeWallet = props?.setSelectedNativeWallet;
     const handleCloseExtMenu = props?.handleCloseExtMenu;
     const expandedLoader = props?.expandedLoader;
     const setExpandedLoader = props?.setExpandedLoader;
@@ -114,7 +115,7 @@ export default function ClaimExtensionView(props: any){
     const wallet = useWallet();
 
 
-
+    const [distributor, setDistributor] = React.useState(null);
     const [claimTokenAddress, setClaimTokenAddress] = React.useState(null);
     const [claimableAmount, setClaimableAmount] = React.useState(null);
     const [claimMintInfo, setClaimMintInfo] = React.useState(null);
@@ -153,7 +154,15 @@ export default function ClaimExtensionView(props: any){
 
     const handleProposalIx = async() => {
         setPropOpen(false);
-        setExpandedLoader(true);
+
+        setSelectedNativeWallet(governanceNativeWallet);
+        const ixs = await distributor.claimToken(new PublicKey(governanceNativeWallet));
+
+        if (ixs){
+            setInstructions(ixs);
+            setExpandedLoader(true);
+        }
+
         handleCloseExtMenu();
     }
 
@@ -189,6 +198,7 @@ export default function ClaimExtensionView(props: any){
             targetToken: new PublicKey(tokenAddress || claimTokenAddress), // the token to be distributed.
             claimProofEndpoint: 'https://worker.jup.ag/jup-claim-proof',
         });
+        setDistributor(merkleDistributor);
         // WEN WENWENvqqNya429ubCdR81ZmD69brwQaaBYY6p3LCpk
         
         const mintInfo = await getMint(RPC_CONNECTION, new PublicKey(tokenAddress || claimTokenAddress));
