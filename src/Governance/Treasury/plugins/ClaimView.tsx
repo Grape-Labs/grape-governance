@@ -153,6 +153,7 @@ export default function ClaimExtensionView(props: any){
     };
 
     const handleProposalIx = async() => {
+        handleCloseExtMenu();
         setPropOpen(false);
 
         setSelectedNativeWallet(governanceNativeWallet);
@@ -163,7 +164,7 @@ export default function ClaimExtensionView(props: any){
             setExpandedLoader(true);
         }
 
-        handleCloseExtMenu();
+        
     }
 
     const getMintFromApi = async(tokenAddress: PublicKey) => {
