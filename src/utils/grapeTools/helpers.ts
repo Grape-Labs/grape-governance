@@ -187,7 +187,9 @@ export function getRemainingDays(targetDate?: string): number {
 
 
 export async function getTokenList(strict:boolean){
-  const uri = `https://token.jup.ag/strict`;
+  let uri = `https://token.jup.ag/all`;
+  if (strict)
+    uri = `https://token.jup.ag/strict`;
   
   return axios.get(uri, {
           headers: {
@@ -197,7 +199,7 @@ export async function getTokenList(strict:boolean){
       .then(response => {
           if (response?.data){
               const tokenList = response.data;
-              console.log("tokenList: "+JSON.stringify(tokenList))
+              //console.log("tokenList: "+JSON.stringify(tokenList))
               /*
               for (var item of tokenList){
                   // fix to push only what we have not already added
