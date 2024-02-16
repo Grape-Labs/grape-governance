@@ -1812,7 +1812,9 @@ export function GovernanceProposalV2View(props: any){
                                                         aria-label="back"
                                                         variant="outlined" 
                                                         color='inherit'
-                                                        href={`https://governance.so/governance/${governanceAddress}`}
+                                                        //href={`https://governance.so/governance/${governanceAddress}`}
+                                                        component={Link}
+                                                        to={`/governance/${governanceAddress}`}
                                                         sx={{
                                                             borderTopLeftRadius:'17px',
                                                             borderBottomLeftRadius:'17px',
