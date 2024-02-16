@@ -599,8 +599,12 @@ function TablePaginationActions(props) {
                     <>
                         
                             <Button 
+                                component={Link}
+                                to={(governanceInfo && governanceInfo.governanceName) && `/proposal/${governanceInfo.governanceAddress}/${proposal}`}
+                                /*
                                 href={(governanceInfo && governanceInfo.governanceName) && `https://governance.so/proposal/${governanceInfo.governanceAddress}/${proposal}`}
                                 target='_blank'
+                                */
                                 color='inherit'
                                 sx={{
                                     borderRadius:'25px',

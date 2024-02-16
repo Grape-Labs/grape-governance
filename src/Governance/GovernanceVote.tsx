@@ -334,8 +334,8 @@ export function VoteForProposal(props:any){
 
             if (wOwner){ // vote for your own if delegate is not set and value of delegate is not = 1
                 
-                const hasVotedRecord = votingParticipants.some(item => item.governingTokenOwner === publicKey.toBase58());
-                const hasVotedItem = votingParticipants.find(item => item.governingTokenOwner === publicKey.toBase58());
+                const hasVotedRecord = votingParticipants?.some(item => item.governingTokenOwner === publicKey.toBase58());
+                const hasVotedItem = votingParticipants?.find(item => item.governingTokenOwner === publicKey.toBase58());
                 /*
                 console.log("programId: "+programId.toBase58())
                 console.log("programVersion: "+programVersion)
@@ -927,16 +927,16 @@ export function VoteForProposal(props:any){
                                                     disabled={hasVoted}
                                                     onClick={(event) => handleVote(0, null, true)}>Vote only with my Voting Power</MenuItem>
                                                 <Divider />
-                                                {delegatedVoterRecord.map((option, index) => (
+                                                {delegatedVoterRecord && delegatedVoterRecord.map((option, index) => (
                                                     <MenuItem
                                                         key={`yes-${option}`}
-                                                        disabled={votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58())}
+                                                        disabled={votingParticipants && votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58())}
                                                         //selected={index === selectedIndex}
                                                         //onClick={(event) => handleMenuItemClick(event, index)}
                                                         onClick={(event) => handleVote(0,option.account.governingTokenOwner.toBase58())}
                                                     >
                                                         <Typography variant="caption">Vote with {trimAddress(option.account.governingTokenOwner.toBase58(),3)} delegated Voting Power
-                                                        {votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58()) &&
+                                                        {votingParticipants && votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58()) &&
                                                             <CheckCircleIcon fontSize='inherit' sx={{ml:1}} />
                                                         }
                                                         </Typography>
@@ -1033,16 +1033,16 @@ export function VoteForProposal(props:any){
                                                     disabled={hasVoted}
                                                     onClick={(event) => handleVote(1, null, true)}>Vote only with my Voting Power</MenuItem>
                                                 <Divider />
-                                                {delegatedVoterRecord.map((option, index) => (
+                                                {delegatedVoterRecord && delegatedVoterRecord.map((option, index) => (
                                                     <MenuItem
                                                         key={`no-${option}`}
-                                                        disabled={votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58())}
+                                                        disabled={votingParticipants && votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58())}
                                                         //selected={index === selectedIndex}
                                                         //onClick={(event) => handleMenuItemClick(event, index)}
                                                         onClick={(event) => handleVote(1,option.account.governingTokenOwner.toBase58())}
                                                     >
                                                         <Typography variant="caption">Vote with {trimAddress(option.account.governingTokenOwner.toBase58(),3)} delegated Voting Power
-                                                        {votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58()) &&
+                                                        {votingParticipants && votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58()) &&
                                                             <CheckCircleIcon fontSize='inherit' sx={{ml:1}} />
                                                         }
                                                         </Typography>

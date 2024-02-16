@@ -1157,7 +1157,6 @@ export function GovernanceProposalView(props: any){
         //console.log("jsonCSVString: "+JSON.stringify(jsonCSVString));
         
         setCSVGenerated(jsonCSVString); 
-        
         setSolanaVotingResultRows(votingResults)
         //console.log("Vote Record: "+JSON.stringify(voteRecord));
         //console.log("This vote: "+JSON.stringify(thisitem));
@@ -1443,7 +1442,10 @@ export function GovernanceProposalView(props: any){
                                                 aria-label="back"
                                                 variant="outlined" 
                                                 color='inherit'
-                                                href={`https://governance.so/governance/${governanceAddress}`}
+                                                //href={`https://governance.so/governance/${governanceAddress}`}
+                                                component={Link}
+                                                to={`https://governance.so/governance/${governanceAddress}`}
+                                
                                                 sx={{
                                                     borderTopLeftRadius:'17px',
                                                     borderBottomLeftRadius:'17px',
