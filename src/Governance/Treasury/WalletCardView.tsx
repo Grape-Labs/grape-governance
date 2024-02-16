@@ -1032,7 +1032,7 @@ export default function WalletCardView(props:any) {
 
     React.useEffect(() => {     
         
-        if (expandedLoader && !loadingPropCreation && loaderCreationComplete){
+        if (expandedLoader && loaderCreationComplete){
             timer.current = window.setTimeout(() => {
                 setExpandedLoader(false);
                 setLoaderSuccess(false);
