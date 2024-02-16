@@ -104,7 +104,6 @@ export default function ClaimExtensionView(props: any){
     const title = props?.title || "Proposal";
     const realm = props?.realm;
     
-    const setSelectedNativeWallet = props?.setSelectedNativeWallet;
     const handleCloseExtMenu = props?.handleCloseExtMenu;
     const expandedLoader = props?.expandedLoader;
     const setExpandedLoader = props?.setExpandedLoader;
@@ -112,6 +111,7 @@ export default function ClaimExtensionView(props: any){
     const setInstructions = props?.setInstructions;
     
     const governanceNativeWallet = props?.governanceNativeWallet;
+    const { publicKey } = useWallet();
     const wallet = useWallet();
 
 
@@ -156,11 +156,27 @@ export default function ClaimExtensionView(props: any){
         handleCloseExtMenu();
         setPropOpen(false);
 
-        setSelectedNativeWallet(governanceNativeWallet);
         const ixs = await distributor.claimToken(new PublicKey(governanceNativeWallet));
+        /*
+        for (var instruction of ixs){
+            for (var key of instruction.keys){ // force remove realmConfig which is set to writable by default
+                if (key.pubkey.toBase58() === governanceNativeWallet){
+                    key.isWritable = false;
+                }
+            }
+        }*/
 
         if (ixs){
-            setInstructions(ixs);
+
+            const propIx = {
+                title:'QA Claim Ext',
+                //description:`Claim Governance Power ${(claimableAmount/10**claimMintInfo.decimals).toLocaleString()} ${mintInfo && mintInfo.name} via extension on Governance.so`,
+                description:'Claim Governance Power',
+                ix:ixs,
+                nativeWallet:governanceNativeWallet,
+            }
+
+            setInstructions(propIx);
             setExpandedLoader(true);
         }
 
@@ -376,7 +392,7 @@ export default function ClaimExtensionView(props: any){
                             }
                             
                         </Button>
-                        {(claimableAmount && claimableAmount > 0) &&
+                        {(publicKey && claimableAmount && claimableAmount > 0) &&
                         <Button 
                             disabled={!claimTokenAddress && !loading}
                             autoFocus 

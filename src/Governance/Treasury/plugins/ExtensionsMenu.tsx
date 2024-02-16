@@ -63,7 +63,6 @@ export default function ExtensionsMenuView(props: any) {
   const setExpandedLoader = props?.setExpandedLoader;
   const instructions = props?.instructions;
   const setInstructions = props?.setInstructions;
-  const setSelectedNativeWallet = props?.setSelectedNativeWallet;
   
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -129,7 +128,6 @@ export default function ExtensionsMenuView(props: any) {
             setExpandedLoader={setExpandedLoader}
             instructions={instructions}
             setInstructions={setInstructions}
-            setSelectedNativeWallet={setSelectedNativeWallet}
         />
         <DemoExtensionView
             handleCloseExtMenu={handleClose}
@@ -138,7 +136,6 @@ export default function ExtensionsMenuView(props: any) {
             setExpandedLoader={setExpandedLoader}
             instructions={instructions}
             setInstructions={setInstructions}
-            setSelectedNativeWallet={setSelectedNativeWallet}
         />
       </Menu>
     </React.Fragment>

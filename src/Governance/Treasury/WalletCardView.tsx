@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { PublicKey, TokenAmount, Connection, Transaction } from '@solana/web3.js';
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import axios from "axios";
 import moment from 'moment';
 import { styled } from '@mui/material/styles';
@@ -8,6 +9,9 @@ import { red } from '@mui/material/colors';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import QRCode from "react-qr-code";
 import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
+import { useWallet } from '@solana/wallet-adapter-react';
+
+import { createProposalInstructionsLegacy } from '../Proposals/createProposalInstructionsLegacy';
 
 import { 
     RPC_CONNECTION,
@@ -108,6 +112,7 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShareIcon from '@mui/icons-material/Share';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { getNativeTreasuryAddress } from '@solana/spl-governance';
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -144,7 +149,6 @@ export default function WalletCardView(props:any) {
     const [expandedNft, setExpandedNft] = React.useState(false);
     const [expandedStake, setExpandedStake] = React.useState(false);
     const [expandedProps, setExpandedProps] = React.useState(false);
-    const [loaderSuccess, setLoaderSuccess] = React.useState(false);
     const timer = React.useRef<number>();
     // on direct links handle the event that the rules are not being sent over and only the wallet is sent for rules
     const rulesWallet = props?.rulesWallet;
@@ -187,7 +191,15 @@ export default function WalletCardView(props:any) {
     const [instructions, setInstructions] = React.useState(null);
     const [simulationFailed, setSimulationFailed] = React.useState(false);
     const [openDialog, setOpenDialog] = React.useState(false);
+    const [loadingPropCreation, setLoadingPropCreation] = React.useState(false);
+    const [loadingText, setLoadingText] = React.useState(null);
+    const [proposalCreated, setProposalCreated] = React.useState(false);
+    const [loaderSuccess, setLoaderSuccess] = React.useState(false);
+    const [loaderCreationComplete, setLoaderCreationComplete] = React.useState(false);
     
+    const { publicKey } = useWallet();
+    const anchorWallet = useAnchorWallet();
+
     const handleClickOpenDialog = (event:any) => {
         setOpenDialog(true);
     };
@@ -237,6 +249,8 @@ export default function WalletCardView(props:any) {
                 <></>
                 :
                     <>
+                    {publicKey ?
+                        <>
                         <IntegratedGovernanceProposalDialogView 
                             governanceAddress={governanceAddress}
                             intraDao={false}
@@ -254,6 +268,10 @@ export default function WalletCardView(props:any) {
                             //usePlugin={1}
                         />
                         <Divider light />
+                        </>
+                        :
+                        <></>
+                    }
                     </>
                 }
                 <Typography variant="caption" sx={{color:'#919EAB'}}>
@@ -861,20 +879,21 @@ export default function WalletCardView(props:any) {
 
     const handleProposalTxSimulation = async() => {
         
-        if (instructions && selectedNativeWallet){
+        if (instructions){
+            setLoaderCreationComplete(false);
             setLoaderSuccess(false);
             setSimulationFailed(false);
             const { blockhash, lastValidBlockHeight } = await RPC_CONNECTION.getLatestBlockhash('confirmed');
             let transaction = new Transaction({
-                feePayer: new PublicKey(selectedNativeWallet),
+                feePayer: new PublicKey(instructions.nativeWallet),
                 blockhash,
                 lastValidBlockHeight,
-            }).add(...instructions);// we should simulate when sending back to the wallet...
+            }).add(...instructions.ix);// we should simulate when sending back to the wallet...
             
             console.log("Getting estimated fees");
             const latestBlockHash = (await RPC_CONNECTION.getLatestBlockhash()).blockhash;
             transaction.recentBlockhash = latestBlockHash;
-            transaction.feePayer = new PublicKey(selectedNativeWallet);
+            transaction.feePayer = new PublicKey(instructions.nativeWallet);
             const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
             if (simulationResult?.err || simulationResult?.value?.err) {
                 console.error('Transaction simulation failed:', simulationResult);
@@ -888,13 +907,11 @@ export default function WalletCardView(props:any) {
                 console.log(`Estimated fee: ${sol}`);
                 //setTransactionEstimatedFee(sol);//feeInLamports/10 ** 9;
             }
-
             //transaction = await wallet.signTransaction(transaction);
             //const rawTransaction = transaction.serialize();
             //const txid = await connection.sendRawTransaction(rawTransaction, {
             //skipPreflight: true,
             //});
-
 
             console.log("Transaction: "+JSON.stringify(transaction));
 
@@ -903,21 +920,127 @@ export default function WalletCardView(props:any) {
         
     }
 
-    React.useEffect(() => { 
+    const handleProposalTxCreation = async() => {
         
+        if (instructions){
+
+            console.log("programId: " + realm?.owner?.toBase58());
+
+            const programId = realm?.owner?.toBase58();
+
+            // get rules wallet from native wallet
+            let ixRulesWallet = null;
+            let useGoverningMint = instructions?.useMint;
+            let hasChoice = 0;
+
+            for (const item of governanceWallets){
+                if (item.nativeTreasuryAddress.toBase58() === instructions.nativeWallet){
+                    ixRulesWallet = item.pubkey.toBase58();
+                    if (!instructions?.useMint){
+                        console.log("wallet details: "+JSON.stringify(item));
+                        console.log("realm: "+JSON.stringify(realm));
+                        
+                        if (item?.account.config?.communityVoteThreshold?.value){ // has commmunity support
+                            useGoverningMint = realm.account.communityMint;
+                            hasChoice++;
+                        }
+
+                        if (item?.account.config?.councilVoteThreshold?.value){ // has council support
+                            useGoverningMint = realm.account.config.councilMint;
+                            hasChoice++;
+                        }
+
+                    }
+                }
+            }
+
+            // check what mints are available if we have returned no mints from the extension plugin
+            
+            if (ixRulesWallet){
+                console.log("Using Rules: "+ixRulesWallet);
+
+                const isDraft = true;
+                const returnTx = false;
+                
+                const transaction = new Transaction();
+                const authTransaction = new Transaction();
+
+                // check which mint should be used (council or community)
+                // assume council for now but this should be toggled in the previous step or from the claim view
+                console.log("adding tx ix")
+
+                transaction.add(...instructions.ix);
+
+                console.log("with Governing Mint: "+useGoverningMint)
+
+                console.log("sending to createProposalInstructionsLegacy")
+                setLoadingText("Creating Proposal...");
+                setLoadingPropCreation(true);
+
+                /*
+                console.log("programId: "+new PublicKey(programId).toBase58())
+                console.log("governanceAddress: "+new PublicKey(governanceAddress).toBase58())
+                console.log("ixRulesWallet: "+new PublicKey(ixRulesWallet).toBase58())
+                console.log("useGoverningMint: "+new PublicKey(useGoverningMint).toBase58())
+                console.log("publicKey: "+new PublicKey(publicKey).toBase58())
+                console.log("title: "+instructions.title)
+                console.log("description: "+instructions.description)
+                */
+                
+                const propResponse = await createProposalInstructionsLegacy(
+                    new PublicKey(programId),
+                    new PublicKey(governanceAddress),
+                    new PublicKey(ixRulesWallet),
+                    new PublicKey(useGoverningMint),
+                    publicKey,
+                    instructions.title,
+                    instructions.description,
+                    RPC_CONNECTION,
+                    transaction,
+                    authTransaction,
+                    anchorWallet,
+                    null,
+                    isDraft,
+                    returnTx,
+                    publicKey,
+                    null
+                );
+
+                setLoadingPropCreation(false);
+                if (propResponse){
+                    setLoadingText("New Proposal Created!");
+                }
+
+                setLoaderCreationComplete(true);
+                
+            }
+
+
+        }
+    }
+
+    React.useEffect(() => {     
         if (expandedLoader && !loaderSuccess){ // remove to add simulatipon and proposal instruction building here 
             if (instructions){
                 handleProposalTxSimulation();
             }
         }
-        if (expandedLoader && loaderSuccess){
+        if (expandedLoader && loaderSuccess && !simulationFailed){
+            handleProposalTxCreation();
+        }
+    }, [expandedLoader, loaderSuccess]);
+
+    React.useEffect(() => {     
+        
+        if (expandedLoader && !loadingPropCreation && loaderCreationComplete){
             timer.current = window.setTimeout(() => {
                 setExpandedLoader(false);
                 setLoaderSuccess(false);
-            }, 4000);
+            }, 2000);
         }
-        
-    }, [expandedLoader, loaderSuccess]);
+    
+    }, [expandedLoader, loadingPropCreation, loaderCreationComplete]);
+
 
     React.useEffect(() => {
         return () => {
@@ -1460,17 +1583,27 @@ export default function WalletCardView(props:any) {
                                     </Grid>
                                 </Grid>
                             :
-                                <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2,textAlign:'center'}}>
-                                    <Grid item xs={12}>
-                                        <CheckCircleIcon fontSize="large" color="success" />
+                                <>
+                                    
+                                    
+                                    <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2,textAlign:'center'}}>
+                                        <Grid item xs={12}>
+                                            {loadingPropCreation ?
+                                                <CircularProgress color="success" />
+                                            :
+                                                <CheckCircleIcon fontSize="large" color="success" />
+                                            }
+                                        </Grid>
+                                        <Grid item xs={12}>
+                                            <Typography variant="caption" sx={{ color: green[500] }}>{loadingText ? loadingText : `Proposal Tx Created`}</Typography>
+
+                                        </Grid>
+                                        <Grid item xs={12}>
+                                            <Typography variant="caption">A complete Governance Wallet Experience with ❤️ by Grape #OPOS</Typography>
+                                        </Grid>
                                     </Grid>
-                                    <Grid item xs={12}>
-                                        <Typography variant="caption" sx={{ color: green[500] }}>Proposal Tx Created</Typography>
-                                    </Grid>
-                                    <Grid item xs={12}>
-                                        <Typography variant="caption">A complete Governance Wallet Experience with ❤️ by Grape #OPOS</Typography>
-                                    </Grid>
-                                </Grid>
+                                    
+                                </>
 
                             }
                         </>
