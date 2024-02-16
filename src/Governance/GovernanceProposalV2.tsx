@@ -1454,6 +1454,8 @@ export function GovernanceProposalV2View(props: any){
         
         setCSVGenerated(jsonCSVString); 
         
+        //console.log("votingResults: "+JSON.stringify(votingResults));
+        
         setSolanaVotingResultRows(votingResults)
         //console.log("Vote Record: "+JSON.stringify(voteRecord));
         //console.log("This vote: "+JSON.stringify(thisitem));
