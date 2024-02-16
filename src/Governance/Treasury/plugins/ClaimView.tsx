@@ -216,7 +216,6 @@ export default function ClaimExtensionView(props: any){
             claimProofEndpoint: 'https://worker.jup.ag/jup-claim-proof',
         });
         setDistributor(merkleDistributor);
-        // WEN WENWENvqqNya429ubCdR81ZmD69brwQaaBYY6p3LCpk
         
         const mintInfo = await getMint(RPC_CONNECTION, new PublicKey(tokenAddress || claimTokenAddress));
         if (mintInfo){

@@ -898,6 +898,7 @@ export default function WalletCardView(props:any) {
             if (simulationResult?.err || simulationResult?.value?.err) {
                 console.error('Transaction simulation failed:', simulationResult);
                 setSimulationFailed(true);
+                setLoaderCreationComplete(true);
                 //return;
             }else{
                 console.log('simulationResult: '+JSON.stringify(simulationResult));
@@ -976,7 +977,7 @@ export default function WalletCardView(props:any) {
                 console.log("sending to createProposalInstructionsLegacy")
                 setLoadingText("Creating Proposal...");
                 setLoadingPropCreation(true);
-
+                
                 /*
                 console.log("programId: "+new PublicKey(programId).toBase58())
                 console.log("governanceAddress: "+new PublicKey(governanceAddress).toBase58())
@@ -1032,7 +1033,7 @@ export default function WalletCardView(props:any) {
 
     React.useEffect(() => {     
         
-        if (expandedLoader && !loadingPropCreation && loaderCreationComplete){
+        if (expandedLoader && loaderCreationComplete){
             timer.current = window.setTimeout(() => {
                 setExpandedLoader(false);
                 setLoaderSuccess(false);
@@ -1584,8 +1585,6 @@ export default function WalletCardView(props:any) {
                                 </Grid>
                             :
                                 <>
-                                    
-                                    
                                     <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2,textAlign:'center'}}>
                                         <Grid item xs={12}>
                                             {loadingPropCreation ?

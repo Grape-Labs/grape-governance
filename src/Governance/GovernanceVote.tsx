@@ -930,13 +930,13 @@ export function VoteForProposal(props:any){
                                                 {delegatedVoterRecord.map((option, index) => (
                                                     <MenuItem
                                                         key={`yes-${option}`}
-                                                        disabled={votingParticipants.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58())}
+                                                        disabled={votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58())}
                                                         //selected={index === selectedIndex}
                                                         //onClick={(event) => handleMenuItemClick(event, index)}
                                                         onClick={(event) => handleVote(0,option.account.governingTokenOwner.toBase58())}
                                                     >
                                                         <Typography variant="caption">Vote with {trimAddress(option.account.governingTokenOwner.toBase58(),3)} delegated Voting Power
-                                                        {votingParticipants.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58()) &&
+                                                        {votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58()) &&
                                                             <CheckCircleIcon fontSize='inherit' sx={{ml:1}} />
                                                         }
                                                         </Typography>
@@ -1036,13 +1036,13 @@ export function VoteForProposal(props:any){
                                                 {delegatedVoterRecord.map((option, index) => (
                                                     <MenuItem
                                                         key={`no-${option}`}
-                                                        disabled={votingParticipants.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58())}
+                                                        disabled={votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58())}
                                                         //selected={index === selectedIndex}
                                                         //onClick={(event) => handleMenuItemClick(event, index)}
                                                         onClick={(event) => handleVote(1,option.account.governingTokenOwner.toBase58())}
                                                     >
                                                         <Typography variant="caption">Vote with {trimAddress(option.account.governingTokenOwner.toBase58(),3)} delegated Voting Power
-                                                        {votingParticipants.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58()) &&
+                                                        {votingParticipants?.some(item => item.governingTokenOwner === option.account.governingTokenOwner.toBase58()) &&
                                                             <CheckCircleIcon fontSize='inherit' sx={{ml:1}} />
                                                         }
                                                         </Typography>
