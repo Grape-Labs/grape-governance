@@ -582,6 +582,16 @@ export default function WalletCardView(props:any) {
                 });
     }
 
+    const getAllWalletDomains = async() => {
+        // get domains
+        const domains1 = await getWalletDomains(new PublicKey(walletAddress));
+        const domains2 = await getWalletDomains(new PublicKey(rulesWalletAddress));
+        
+        setNativeDomains(domains1);
+        setRulesDomains(domains2);
+        rulesWallet.domains = domains1;
+    }
+
     const getWalletBalances = async() =>{
         setLoading(true);
         isLoading.current = true;
@@ -611,10 +621,7 @@ export default function WalletCardView(props:any) {
             const nft1 = await getWalletNftBalance(new PublicKey(walletAddress));
             const nft2 = await getWalletNftBalance(new PublicKey(rulesWalletAddress));
 
-            // get domains
-            const domains1 = await getWalletDomains(new PublicKey(walletAddress));
-            const domains2 = await getWalletDomains(new PublicKey(rulesWalletAddress));
-
+            
             // get stake accounts
             //const stake1 = await getWalletStakeAccounts(new PublicKey(walletAddress));
             //const stake2 = await getWalletStakeAccounts(new PublicKey(rulesWalletAddress));
@@ -626,16 +633,12 @@ export default function WalletCardView(props:any) {
             // put to unified array
             setNativeSol(sol1);
             setRulesSol(sol2);
-
+                
             setNativeTokens(token1);
             setRulesTokens(token2);
 
             setNativeNftTokens(nft1);
             setRulesNftTokens(nft2);
-
-            setNativeDomains(domains1);
-            setRulesDomains(domains2);
-            rulesWallet.domains = domains1;
 
             //setNativeStakeAccounts(stake1);
             //setRulesStakeAccounts(stake2);
@@ -644,6 +647,8 @@ export default function WalletCardView(props:any) {
             // think of how we can display them unified if needed
             setLoading(false);
             isLoading.current = false;
+            
+            getAllWalletDomains(); // push this after loading
         } catch (error) {
             // Handle errors
         } 
