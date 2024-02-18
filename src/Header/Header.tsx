@@ -12,6 +12,8 @@ import Snackbar, { SnackbarOrigin } from '@mui/material/Snackbar';
 import { PublicKey } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 
+import '@khmyznikov/pwa-install';
+
 import { 
     PROXY,
     HELIUS_API,
@@ -20,7 +22,8 @@ import {
 } from '../utils/grapeTools/constants';
 
 import { 
-    APP_LOGO
+    APP_LOGO,
+    APP_ICON
 } from '../utils/grapeTools/constants';
 
 import {
@@ -89,6 +92,14 @@ import { useTranslation } from 'react-i18next';
 
 export interface State extends SnackbarOrigin {
     open: boolean;
+}
+
+declare global {
+    namespace JSX {
+      interface IntrinsicElements {
+        'pwa-install': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
+      }
+    }
 }
 
 function getParam(param: string) {
@@ -411,6 +422,22 @@ export function Header(props: any) {
                             */}
                         </Box>
                         
+                        
+                        <pwa-install
+                            //manual-apple="true"
+                            //manual-chrome="true"
+                            //disable-chrome="true"
+                          
+                            install-description="Custom call to install text"
+                            disable-install-description="true"
+                            disable-screenshots="true"
+                          
+                            manifest-url="/up_/manifest.webmanifest"
+                            name="Governance"
+                            description="Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS"         
+                            icon={APP_ICON}
+                        ></pwa-install>
+
                         {showInstallAppButton &&
                             <div onClick={() => setShowInstallAppButton(false)}>
                                 <Tooltip title="Install Governance" sx={{mr:1}}>
