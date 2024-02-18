@@ -434,7 +434,7 @@ export function Header(props: any) {
                             manifest-url="./manifest.json"
                             name="Governance"
                             description="Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS"         
-                            icon="/src/public/icon.png"
+                            icon="./src/public/icon.png"
                         ></pwa-install>
 
                         {/*showInstallAppButton &&
