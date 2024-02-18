@@ -171,7 +171,7 @@ export default function ClaimExtensionView(props: any){
             const propIx = {
                 title:'QA Claim Ext',
                 //description:`Claim Governance Power ${(claimableAmount/10**claimMintInfo.decimals).toLocaleString()} ${mintInfo && mintInfo.name} via extension on Governance.so`,
-                description:'Claim Governance Power',
+                description:`Claim ${mintInfo && mintInfo.name} Governance Power`,
                 ix:ixs,
                 nativeWallet:governanceNativeWallet,
             }

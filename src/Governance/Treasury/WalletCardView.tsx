@@ -647,7 +647,7 @@ export default function WalletCardView(props:any) {
             // think of how we can display them unified if needed
             setLoading(false);
             isLoading.current = false;
-            
+
             getAllWalletDomains(); // push this after loading
         } catch (error) {
             // Handle errors
@@ -974,7 +974,7 @@ export default function WalletCardView(props:any) {
                 // check which mint should be used (council or community)
                 // assume council for now but this should be toggled in the previous step or from the claim view
                 console.log("adding tx ix")
-
+                
                 transaction.add(...instructions.ix);
 
                 console.log("with Governing Mint: "+useGoverningMint)

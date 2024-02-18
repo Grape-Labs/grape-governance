@@ -12,6 +12,8 @@ import Snackbar, { SnackbarOrigin } from '@mui/material/Snackbar';
 import { PublicKey } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 
+import '@khmyznikov/pwa-install';
+
 import { 
     PROXY,
     HELIUS_API,
@@ -91,6 +93,14 @@ export interface State extends SnackbarOrigin {
     open: boolean;
 }
 
+declare global {
+    namespace JSX {
+      interface IntrinsicElements {
+        'pwa-install': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
+      }
+    }
+}
+
 function getParam(param: string) {
     //return new URLSearchParams(document.location.search).get(param);
     return new URLSearchParams(window.location.search).get(param);
@@ -101,6 +111,75 @@ interface HeaderProps{
 }
 
 const drawerWidth = 275;
+
+/*
+  manifestUrl = '/manifest.json',
+  icon = '',
+  name = 'React App',
+  description = '',
+  installDescription = '',
+  disableDescription = false,
+  disableScreenshots = false,
+  manualApple = false,
+  manualChrome = false,
+  disableChrome = false,
+*/
+
+const PWAInstallComponent = ({
+    onInstallSuccess,
+    onInstallFail,
+    onUserChoiceResult,
+    onInstallAvailable,
+    onInstallHowTo,
+    onInstallGallery,
+    ...props
+  }) => {
+    const pwaInstallRef = React.useRef(null);
+  
+    // Filter out null or undefined props
+    const nonNullProps = Object.fromEntries(
+      Object.entries(props).filter(([_, value]) => value != null)
+    );
+  
+    React.useEffect(() => {
+      const currentElement = pwaInstallRef.current;
+  
+      const handleInstallSuccess = (event) => onInstallSuccess?.(event);
+      const handleInstallFail = (event) => onInstallFail?.(event);
+      const handleUserChoiceResult = (event) => onUserChoiceResult?.(event);
+      const handleInstallAvailable = (event) => onInstallAvailable?.(event);
+      const handleInstallHowTo = (event) => onInstallHowTo?.(event);
+      const handleInstallGallery = (event) => onInstallGallery?.(event);
+  
+      if (currentElement) {
+        currentElement.addEventListener('pwa-install-success-event', handleInstallSuccess);
+        currentElement.addEventListener('pwa-install-fail-event', handleInstallFail);
+        currentElement.addEventListener('pwa-user-choice-result-event', handleUserChoiceResult);
+        currentElement.addEventListener('pwa-install-available-event', handleInstallAvailable);
+        currentElement.addEventListener('pwa-install-how-to-event', handleInstallHowTo);
+        currentElement.addEventListener('pwa-install-gallery-event', handleInstallGallery);
+  
+        return () => {
+          currentElement.removeEventListener('pwa-install-success-event', handleInstallSuccess);
+          currentElement.removeEventListener('pwa-install-fail-event', handleInstallFail);
+          currentElement.removeEventListener('pwa-user-choice-result-event', handleUserChoiceResult);
+          currentElement.removeEventListener('pwa-install-available-event', handleInstallAvailable);
+          currentElement.removeEventListener('pwa-install-how-to-event', handleInstallHowTo);
+          currentElement.removeEventListener('pwa-install-gallery-event', handleInstallGallery);
+        };
+      }
+    }, [onInstallSuccess, onInstallFail, onUserChoiceResult, onInstallAvailable, onInstallHowTo, onInstallGallery]);
+  
+    return (
+      <>
+        <PWAInstall
+          ref={pwaInstallRef}
+          {...nonNullProps}
+        />
+        <button onClick={() => pwaInstallRef.current.showDialog(true)}>Show Install Prompt</button>
+      </>
+    );
+  };
 
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
   open?: boolean;
@@ -411,6 +490,9 @@ export function Header(props: any) {
                             */}
                         </Box>
                         
+                        
+                        <pwa-install></pwa-install>
+
                         {showInstallAppButton &&
                             <div onClick={() => setShowInstallAppButton(false)}>
                                 <Tooltip title="Install Governance" sx={{mr:1}}>
