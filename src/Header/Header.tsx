@@ -22,7 +22,8 @@ import {
 } from '../utils/grapeTools/constants';
 
 import { 
-    APP_LOGO
+    APP_LOGO,
+    APP_ICON
 } from '../utils/grapeTools/constants';
 
 import {
@@ -431,10 +432,10 @@ export function Header(props: any) {
                             disable-install-description="true"
                             disable-screenshots="true"
                           
-                            manifest-url="/manifest.json"
+                            manifest-url="/up_/manifest.webmanifest"
                             name="Governance"
                             description="Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS"         
-                            icon="/icon.png"
+                            icon={APP_ICON}
                         ></pwa-install>
 
                         {showInstallAppButton &&
