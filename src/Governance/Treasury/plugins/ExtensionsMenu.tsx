@@ -51,6 +51,7 @@ import Settings from '@mui/icons-material/Settings';
 import Logout from '@mui/icons-material/Logout';
 import ExtensionIcon from '@mui/icons-material/Extension';
 
+import DirectoryExtensionView from './DirectoryView';
 import ClaimExtensionView from './ClaimView';
 import DemoExtensionView from './DemoView';
 
@@ -121,6 +122,14 @@ export default function ExtensionsMenuView(props: any) {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
+        <DirectoryExtensionView
+            handleCloseExtMenu={handleClose}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
         <ClaimExtensionView
             handleCloseExtMenu={handleClose}
             governanceNativeWallet={governanceNativeWallet}
@@ -129,6 +138,7 @@ export default function ExtensionsMenuView(props: any) {
             instructions={instructions}
             setInstructions={setInstructions}
         />
+        <Divider />
         <DemoExtensionView
             handleCloseExtMenu={handleClose}
             governanceNativeWallet={governanceNativeWallet}
