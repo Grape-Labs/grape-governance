@@ -422,9 +422,19 @@ export function Header(props: any) {
                         </Box>
                         
                         
-                        <pwa-install></pwa-install>
+                        <pwa-install
+                            manual-apple="true"
+                            manual-chrome="true"
+                            disable-chrome="true"
+                          
+                            install-description="Custom call to install text"
+                            disable-install-description="true"
+                            //disable-screenshots="true"
+                          
+                            manifest-url="/manifest.json"
+                        ></pwa-install>
 
-                        {showInstallAppButton &&
+                        {/*showInstallAppButton &&
                             <div onClick={() => setShowInstallAppButton(false)}>
                                 <Tooltip title="Install Governance" sx={{mr:1}}>
                                     <IconButton
@@ -434,7 +444,7 @@ export function Header(props: any) {
                                     </IconButton>
                                 </Tooltip>
                             </div>
-                        }
+                        */}
                         
 
                         <div className="grape-wallet-adapter">
