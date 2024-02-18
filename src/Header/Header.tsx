@@ -429,9 +429,12 @@ export function Header(props: any) {
                           
                             install-description="Custom call to install text"
                             disable-install-description="true"
-                            //disable-screenshots="true"
+                            disable-screenshots="true"
                           
                             manifest-url="/manifest.json"
+                            name="Governance"
+                            description="Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS"         
+                            icon="/src/public/icon.png"
                         ></pwa-install>
 
                         {/*showInstallAppButton &&
