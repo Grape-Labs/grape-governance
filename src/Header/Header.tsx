@@ -431,13 +431,13 @@ export function Header(props: any) {
                             disable-install-description="true"
                             disable-screenshots="true"
                           
-                            manifest-url="./manifest.json"
+                            manifest-url="/manifest.json"
                             name="Governance"
                             description="Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS"         
-                            icon="./src/public/icon.png"
+                            icon="/icon.png"
                         ></pwa-install>
 
-                        {/*showInstallAppButton &&
+                        {showInstallAppButton &&
                             <div onClick={() => setShowInstallAppButton(false)}>
                                 <Tooltip title="Install Governance" sx={{mr:1}}>
                                     <IconButton
@@ -447,7 +447,7 @@ export function Header(props: any) {
                                     </IconButton>
                                 </Tooltip>
                             </div>
-                        */}
+                        }
                         
 
                         <div className="grape-wallet-adapter">
