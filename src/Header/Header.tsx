@@ -423,15 +423,15 @@ export function Header(props: any) {
                         
                         
                         <pwa-install
-                            manual-apple="true"
-                            manual-chrome="true"
-                            disable-chrome="true"
+                            //manual-apple="true"
+                            //manual-chrome="true"
+                            //disable-chrome="true"
                           
                             install-description="Custom call to install text"
                             disable-install-description="true"
                             disable-screenshots="true"
                           
-                            manifest-url="./manifest.json"
+                            manifest-url="/manifest.json"
                             //name="Governance"
                             //description="Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS"         
                             //icon="/src/public/icon.png"
