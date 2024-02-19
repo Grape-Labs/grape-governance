@@ -388,42 +388,100 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
         let before = "";
         if (lastSignature)
             before = "&before_tx_signature="+lastSignature;
-        const url = "https://api.shyft.to/sol/v1/transaction/history?network=mainnet-beta&tx_num=100&account="+sourceAddress+"&enable_raw=true";
-        const { data } = await axios.get(url)
+        const url = "https://api.shyft.to/sol/v1/transaction/history?network=mainnet-beta&tx_num=100&account="+sourceAddress+"&enable_raw=true"+before;
+        //const { data } = await axios.get(url)
 
+        const { data } =  await axios.get(url, {
+            headers: {
+                'x-api-key': SHYFT_KEY
+            }
+            })
+            .then(response => {
+                if (response.data?.result){
+                    //console.log("balance for "+tokenOwnerRecord.toBase58()+": "+response.data.result?.balance)
+                    return response;
+                }
+                return null
+            })
+            .catch(error => 
+                {   
+                    // revert to RPC
+                    console.error(error);
+                    return null;
+                });
+
+        if (tokenMintAddress){
+            
+            console.log("data: "+JSON.stringify(data));
+        
+            const filteredData = data?.filter(item =>
+                item.tokenTransfers.some(transfer => transfer.mint === tokenMintAddress)
+            );
+            
+            let filteredData2 = filteredData;
+            
+                filteredData2 = excludeAddress ? filteredData.filter(item =>
+                    item.tokenTransfers.some(transfer => !excludeAddress.includes(transfer?.fromUserAccount))
+                ) : filteredData;
+            
+            const finalData = filteredData2.map(item => ({
+                tokenTransfers: item.tokenTransfers,
+                timestamp: item.timestamp,
+                signature: item.signature,
+            }));
+            
+            //console.log("last tx "+sourceAddress+": "+JSON.stringify(finalData[finalData.length-1]));
+
+            if (data.length > 1){
+                hasnext = true;
+                //console.log("data here "+JSON.stringify(data[data.length-1]));
+                lastSignature = data[data.length-1].signature;
+                //console.log("last signature: "+lastSignature);
+            } else{
+                hasnext = false;
+            }
+
+            if (tokenTransfers)
+                tokenTransfers = tokenTransfers.concat(finalData);
+            else
+                tokenTransfers = finalData;
+            
+            //return finalData;
+            
+        }
     }*/
-    /*
-    var myHeaders = new Headers();
-    myHeaders.append("x-api-key", "<API-KEY>");
-
-    var requestOptions = {
-        method: 'GET',
-        headers: myHeaders,
-        redirect: 'follow'
-    };
-
-    fetch(
-        "https://api.shyft.to/sol/v1/transaction/history?network=mainnet-beta&tx_num=2&account=Apeng15Pm8EjpAcaAXpNUxZjS2jMmGqikfs281Fz9hNj&enable_raw=true",
-        requestOptions
-    )
-    .then(response => response.text())
-    .then(result => console.log(result))
-    .catch(error => console.log('error', error));
-    */
-
+    
+    
     // HELIUS:
     hasnext = true;
     tokenTransfers = null;
     lastSignature = null;
+
+    console.log("pre data fetch for token transfers");
     while (hasnext){
         let before = "";
+        
         if (lastSignature)
             before = "&before="+lastSignature;
         const url = "https://api.helius.xyz/v0/addresses/"+sourceAddress+"/transactions?api-key="+HELIUS_API+before;
         const { data } = await axios.get(url)
+        /*
+            .then(response => {
+                if (response){
+                    return response;
+                }
+                return null
+            })
+            .catch(error => 
+                {   
+                    // revert to RPC
+                    console.error(error);
+                    return null;
+                });
+        */
         //console.log("parsed transactions: ", data)
 
-        if (tokenMintAddress){
+        if (tokenMintAddress && data){
             
             const filteredData = data.filter(item =>
                 item.tokenTransfers.some(transfer => transfer.mint === tokenMintAddress)
@@ -900,7 +958,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     const vaultsInflated = new Array();
     let x = 0;
     for (var gv of vaultsInfo){ // reformat to something pretty ;)
-        console.log("vault: "+JSON.stringify(gv));
+        //console.log("vault: "+JSON.stringify(gv));
 
         const domainsForAddress = await getAllDomains(gv.pubkey);
         console.log("SNS: "+JSON.stringify(domainsForAddress));
