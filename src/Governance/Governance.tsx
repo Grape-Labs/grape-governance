@@ -463,7 +463,20 @@ function RenderGovernanceTable(props:any) {
 
                                                 <TableRow key={index} sx={{borderBottom:"none"}}>
                                                     <TableCell>
-                                                        <GovernanceProposalDialog governanceType={governanceType} isCancelled={+item.account.state === 6 ? true : false} isCouncil={new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(item.account?.governingTokenMint).toBase58()} state={item.account?.state} title={item.account?.name} description={item.account?.descriptionLink} governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={(cachedGovernance !== proposals) ? proposals : cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
+                                                        <GovernanceProposalDialog 
+                                                            governanceType={governanceType} 
+                                                            isCancelled={+item.account.state === 6 ? true : false} 
+                                                            isCouncil={realm.account.config?.councilMint ? new PublicKey(realm.account.config.councilMint).toBase58() === new PublicKey(item.account?.governingTokenMint).toBase58() : false} 
+                                                            state={item.account?.state} title={item.account?.name} 
+                                                            description={item.account?.descriptionLink} 
+                                                            governanceLookup={governanceLookup} 
+                                                            governanceAddress={governanceAddress} 
+                                                            cachedGovernance={(cachedGovernance !== proposals) ? proposals : cachedGovernance} 
+                                                            item={item} 
+                                                            realm={realm} 
+                                                            tokenMap={tokenMap} 
+                                                            memberMap={memberMap} 
+                                                            governanceToken={governanceToken} />
                                                     </TableCell>
                                                     <TableCell>
                                                         <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
@@ -819,10 +832,10 @@ export function GovernanceCachedView(props: any) {
                 //console.log("realmPk: "+realmPk)
                 const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), new PublicKey(grealm?.owner).toBase58())
                 //console.log("indexTokenOwnerRecords "+JSON.stringify(indexedTokenOwnerRecords));
-                let rawTokenOwnerRecords = indexedTokenOwnerRecords;
+                //let rawTokenOwnerRecords = indexedTokenOwnerRecords;
                 
                 //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
-                console.log("rawTokenOwnerRecords "+rawTokenOwnerRecords?.length);
+                console.log("indexedTokenOwnerRecords "+indexedTokenOwnerRecords?.length);
                 /*
                 if (cachedMemberMap && cachedMemberMap.length > 0){ // we should consider merging
                     console.log("Members from cache");
@@ -843,7 +856,7 @@ export function GovernanceCachedView(props: any) {
                 
                 //console.log("here?")
                 
-                setMemberMap(rawTokenOwnerRecords);
+                setMemberMap(indexedTokenOwnerRecords);
                 
                 let gTD = 0;
                 
