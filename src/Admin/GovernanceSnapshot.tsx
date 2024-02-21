@@ -382,21 +382,22 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
     let hasnext = true;
     let tokenTransfers = null;
     let lastSignature = null;
-
-    /*
+    
+    
     while (hasnext){
         let before = "";
         if (lastSignature)
             before = "&before_tx_signature="+lastSignature;
         const url = "https://api.shyft.to/sol/v1/transaction/history?network=mainnet-beta&tx_num=100&account="+sourceAddress+"&enable_raw=true"+before;
         //const { data } = await axios.get(url)
-
+        console.log("Testing TT with SHYFT "+url);
         const { data } =  await axios.get(url, {
             headers: {
                 'x-api-key': SHYFT_KEY
             }
             })
             .then(response => {
+                console.log("response... : "+JSON.stringify(response));
                 if (response.data?.result){
                     //console.log("balance for "+tokenOwnerRecord.toBase58()+": "+response.data.result?.balance)
                     return response;
@@ -410,10 +411,12 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
                     return null;
                 });
 
+        console.log("Testing TT with SHYFT DATA: "+JSON.stringify(data));
+
         if (tokenMintAddress){
             
             console.log("data: "+JSON.stringify(data));
-        
+            /*
             const filteredData = data?.filter(item =>
                 item.tokenTransfers.some(transfer => transfer.mint === tokenMintAddress)
             );
@@ -447,12 +450,13 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
                 tokenTransfers = finalData;
             
             //return finalData;
-            
+            */   
         }
-    }*/
+    }
     
-    
+
     // HELIUS:
+    
     hasnext = true;
     tokenTransfers = null;
     lastSignature = null;
@@ -465,21 +469,7 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
             before = "&before="+lastSignature;
         const url = "https://api.helius.xyz/v0/addresses/"+sourceAddress+"/transactions?api-key="+HELIUS_API+before;
         const { data } = await axios.get(url)
-        /*
-            .then(response => {
-                if (response){
-                    return response;
-                }
-                return null
-            })
-            .catch(error => 
-                {   
-                    // revert to RPC
-                    console.error(error);
-                    return null;
-                });
-        */
-        //console.log("parsed transactions: ", data)
+        
 
         if (tokenMintAddress && data){
             
@@ -498,6 +488,8 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
                 timestamp: item.timestamp,
                 signature: item.signature,
             }));
+
+            console.log("finalData: "+JSON.stringify(finalData));
             
             //console.log("last tx "+sourceAddress+": "+JSON.stringify(finalData[finalData.length-1]));
 
@@ -518,8 +510,12 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
             //return finalData;
         }
         //return data;
-        
+
+        // Add the delay, but consider potential performance implications on large datasets
+        //if (hasnext)
+        //    await new Promise(resolve => setTimeout(resolve, 500));
     }
+    
 
     //if (sourceAddress === "6WQ1cjJWPz9Ab72iL1myK19Uza8ESty9STSq4WBXkde9")
     //    console.log("HELIUS token transfers for "+sourceAddress+": "+tokenTransfers.length+" - "+JSON.stringify(tokenTransfers));
@@ -1409,7 +1405,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         const commMint = grealm.account?.communityMint;
         var governanceEmitted = [];
-        let getAwards = false; // adjust if we want to get rewards for the following emitting pubkeys
+        let getAwards = true; // adjust if we want to get rewards for the following emitting pubkeys
         if (!getAwards || hoursDiff > (24*15)){ // refresh every 30 days
             //getAwards = true;
         }

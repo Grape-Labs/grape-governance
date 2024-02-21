@@ -108,6 +108,8 @@ import TimerIcon from '@mui/icons-material/Timer';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import IconButton from '@mui/material/IconButton';
 
+import '@khmyznikov/pwa-install';
+
 import PropTypes from 'prop-types';
 import { 
     PROXY, 
@@ -115,6 +117,7 @@ import {
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI,
     FRICTIONLESS_BG,
+    APP_ICON,
 } from '../../utils/grapeTools/constants';
 
 import { 
@@ -1418,6 +1421,20 @@ export function GovernanceRealtimeView(props: any) {
                         sx={{
                         p: 1}}
                     >
+                        <pwa-install
+                            //manual-apple="true"
+                            //manual-chrome="true"
+                            //disable-chrome="true"
+                          
+                            install-description="Custom call to install text"
+                            disable-install-description="true"
+                            disable-screenshots="true"
+                            manifest-url="/up_/manifest.webmanifest"
+                            name="Governance"
+                            description="Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS"         
+                            icon={APP_ICON}
+                        ></pwa-install>
+
                         <Box
                             sx={{
                                 width:'100%',
