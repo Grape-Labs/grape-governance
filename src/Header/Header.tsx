@@ -431,7 +431,6 @@ export function Header(props: any) {
                             install-description="Custom call to install text"
                             disable-install-description="true"
                             disable-screenshots="true"
-                          
                             manifest-url="/up_/manifest.webmanifest"
                             name="Governance"
                             description="Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS"         
