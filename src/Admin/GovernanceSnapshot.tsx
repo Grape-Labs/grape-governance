@@ -382,8 +382,8 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
     let hasnext = true;
     let tokenTransfers = null;
     let lastSignature = null;
-    
-    
+
+    /*
     while (hasnext){
         let before = "";
         if (lastSignature)
@@ -414,45 +414,10 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
         console.log("Testing TT with SHYFT DATA: "+JSON.stringify(data));
 
         if (tokenMintAddress){
-            
             console.log("data: "+JSON.stringify(data));
-            /*
-            const filteredData = data?.filter(item =>
-                item.tokenTransfers.some(transfer => transfer.mint === tokenMintAddress)
-            );
-            
-            let filteredData2 = filteredData;
-            
-                filteredData2 = excludeAddress ? filteredData.filter(item =>
-                    item.tokenTransfers.some(transfer => !excludeAddress.includes(transfer?.fromUserAccount))
-                ) : filteredData;
-            
-            const finalData = filteredData2.map(item => ({
-                tokenTransfers: item.tokenTransfers,
-                timestamp: item.timestamp,
-                signature: item.signature,
-            }));
-            
-            //console.log("last tx "+sourceAddress+": "+JSON.stringify(finalData[finalData.length-1]));
-
-            if (data.length > 1){
-                hasnext = true;
-                //console.log("data here "+JSON.stringify(data[data.length-1]));
-                lastSignature = data[data.length-1].signature;
-                //console.log("last signature: "+lastSignature);
-            } else{
-                hasnext = false;
-            }
-
-            if (tokenTransfers)
-                tokenTransfers = tokenTransfers.concat(finalData);
-            else
-                tokenTransfers = finalData;
-            
-            //return finalData;
-            */   
         }
     }
+    */
     
 
     // HELIUS:
@@ -1405,7 +1370,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         const commMint = grealm.account?.communityMint;
         var governanceEmitted = [];
-        let getAwards = true; // adjust if we want to get rewards for the following emitting pubkeys
+        let getAwards = false; // adjust if we want to get rewards for the following emitting pubkeys
         if (!getAwards || hoursDiff > (24*15)){ // refresh every 30 days
             //getAwards = true;
         }

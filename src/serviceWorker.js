@@ -17,7 +17,7 @@ workbox.routing.registerRoute(
   })
 );
 
-/*
+
 self.addEventListener('push', (event) => {
     console.log("HERE PUSHED...");
     event.waitUntil(
@@ -26,9 +26,10 @@ self.addEventListener('push', (event) => {
         icon: 'https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governanceicon.png',
       })
     );
-});*/
+});
 
 // Use event.data and extract notification information
+/*
 self.addEventListener('push', (event) => {
     const notificationData = event ? event?.data?.json() : null; // Assuming your server payload is JSON
     const title = notificationData?.title || "Notification";
@@ -43,6 +44,7 @@ self.addEventListener('push', (event) => {
     );
       
 });
+*/
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close(); 

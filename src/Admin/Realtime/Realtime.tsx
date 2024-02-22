@@ -85,6 +85,7 @@ import ArticleIcon from '@mui/icons-material/Article';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import HistoryIcon from '@mui/icons-material/History';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
+import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VerifiedIcon from '@mui/icons-material/Verified';
@@ -884,14 +885,20 @@ function TablePaginationActions(props) {
                                                     
                                                     <Grid sx={{mb:1}}>
                                                         <Chip
+                                                            clickable={false}
                                                             size="small"
-                                                            icon={
-                                                                <HistoryIcon />
+                                                            color='primary'
+                                                            icon={(state === 0 || state === 2) ?
+                                                                <HourglassTopIcon color="inherit" fontSize='small'/>
+                                                                :
+                                                                <HourglassBottomIcon color="inherit" fontSize='small'/>
                                                             }
                                                             label={moment.unix(draftAt).fromNow()}
                                                             sx={{
                                                                 background:'#45404A',
                                                                 borderRadius:'17px',
+                                                                color:(state === 2) ? 'white' : '#888',
+                                                                fontSize:'11px'
                                                             }}
                                                         />
                                                     </Grid>
