@@ -8,3 +8,9 @@ ReactDOM.render(
     </StrictMode>,
     document.getElementById('app')
 );
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/serviceWorker.js')
+      .then(registration => console.log('Service worker registered'))
+      .catch(err => console.error('Service worker registration failed:', err));
+}
