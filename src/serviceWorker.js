@@ -17,17 +17,36 @@ workbox.routing.registerRoute(
   })
 );
 
+/*
 self.addEventListener('push', (event) => {
+    console.log("HERE PUSHED...");
     event.waitUntil(
       self.registration.showNotification('Governance', {
         body: 'Its Freakin Grape!!!',
         icon: 'https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governanceicon.png',
       })
     );
-});
+});*/
+
+// Use event.data and extract notification information
+self.addEventListener('push', (event) => {
+    console.log("HERE PUSHED...");
+    const notificationData = event.data.json(); // Assuming your server payload is JSON
+    const title = notificationData.title || "Notification";
+    const body = notificationData.body || "No message";
+    const icon = notificationData.icon || ""; // Use a default icon if no icon provided
+  
+    event.waitUntil(
+      self.registration.showNotification(title, {
+        body,
+        icon
+      })
+    );
+  });
 
 self.addEventListener('notificationclick', (event) => {
     event.notification.close(); 
+    console.log("HERE CLICKED...");
     var fullPath = self.location.origin + event.notification.data.path; 
     clients.openWindow(fullPath); 
 });
