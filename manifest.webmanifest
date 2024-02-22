@@ -7,7 +7,7 @@
     "lang": "en",
     "orientation": "any",
     "scope": "/",
-    "start_url": "https://www.governance.so/directory",
+    "start_url": "/directory",
     "background_color": "#23063C",
     "theme_color": "#23063C",
     "display": "standalone",
@@ -69,7 +69,7 @@
           "icons": [
             {
               "src": "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/shortcut_feed.png",
-              "sizes": "192x192"
+              "sizes": "512x512"
             }
           ]
         },
@@ -80,7 +80,7 @@
           "icons": [
             {
               "src": "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/shortcut_user.png",
-              "sizes": "192x192"
+              "sizes": "512x512"
             }
           ]
         },
@@ -91,7 +91,7 @@
           "icons": [
             {
               "src": "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/shortcut_grape.png",
-              "sizes": "192x192"
+              "sizes": "512x512"
             }
           ]
         }
@@ -137,7 +137,7 @@
         "sizes": "2796x1290",
         "type": "image/png",
         "platform": "android",
-        "form_factor": "narrow",
+        "form_factor": "wide",
         "label": "DAO Voter Management"
       }
     ]
