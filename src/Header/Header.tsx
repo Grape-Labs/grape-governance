@@ -320,7 +320,7 @@ export function Header(props: any) {
             // Check whether notification permissions have already been granted;
             // if so, create a notification
             console.log("1. In test here");
-            const notification = new Notification("Hi there!");
+            const notification = new Notification("PUSHING!");
             // …
         } else if (Notification.permission !== "denied") {
             // We need to ask the user for permission
