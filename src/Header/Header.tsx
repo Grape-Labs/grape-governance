@@ -314,28 +314,30 @@ export function Header(props: any) {
     const testNotification = () => {
         console.log("Testing notification...");
         if (!("Notification" in window)) {
-            // Check if the browser supports notifications
-            alert("This browser does not support desktop notification");
+          // Check if the browser supports notifications
+          alert("This browser does not support desktop notification");
         } else if (Notification.permission === "granted") {
-            // Check whether notification permissions have already been granted;
-            // if so, create a notification
-            console.log("1. In test here");
-            const notification = new Notification("PUSHING!");
-            // …
+          // Permission granted, create notification with simulated payload
+          console.log("Notification permission granted");
+          const notificationData = {
+            title: "Test Notification",
+            body: "This is a simulated push notification!",
+            icon: "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governanceicon.png", // Replace with your icon URL
+          };
+          const notification = new Notification(notificationData.title, {
+            body: notificationData.body,
+            icon: notificationData.icon,
+          });
         } else if (Notification.permission !== "denied") {
-            // We need to ask the user for permission
-            console.log("ask permissions again???");
-            Notification.requestPermission().then((permission) => {
-              // If the user accepts, let's create a notification
-              if (permission === "granted") {
-                console.log("2. In test here");
-                const notification = new Notification("Hi there!");
-                // …
-                
-              }
-            });
+          // Request permission and create notification if granted
+          Notification.requestPermission().then((permission) => {
+            if (permission === "granted") {
+              console.log("Notification permission granted after request");
+              // Same setup as above for creating the notification with payload
+            }
+          });
         }
-    }
+      };
 
     const handleClickSnackbar = () => {
         enqueueSnackbar(`${t('Copied...')}`,{ variant: 'success' });
@@ -476,7 +478,7 @@ export function Header(props: any) {
                             </div>
                         }
 
-                        {/*(Notification && Notification.permission === "granted") ?
+                        {(Notification && Notification.permission === "granted") ?
                             <Tooltip title="Test Notification" sx={{mr:1}}>
                                 <IconButton
                                     onClick={testNotification}
@@ -484,7 +486,7 @@ export function Header(props: any) {
                                     <NotificationsActiveIcon />
                                 </IconButton>
                             </Tooltip>
-                    :<></>*/}
+                    :<></>}
                         
 
                         <div className="grape-wallet-adapter">
