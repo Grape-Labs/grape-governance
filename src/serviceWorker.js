@@ -30,10 +30,6 @@ self.addEventListener('push', (event) => {
 
 // Use event.data and extract notification information
 self.addEventListener('push', (event) => {
-    
-    console.log("HERE PUSHED...");
-    console.log("HERE PUSHED... "+JSON.stringify(event));
-    /*
     const notificationData = event ? event?.data?.json() : null; // Assuming your server payload is JSON
     const title = notificationData?.title || "Notification";
     const body = notificationData?.body || "No message";
@@ -45,14 +41,6 @@ self.addEventListener('push', (event) => {
         icon
       })
     );
-    */
-
-    event.waitUntil(
-        self.registration.showNotification("test", {
-          body:"body",
-          icon:""
-        })
-      );
       
 });
 

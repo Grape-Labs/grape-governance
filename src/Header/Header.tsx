@@ -476,7 +476,7 @@ export function Header(props: any) {
                             </div>
                         }
 
-                        {(Notification && Notification.permission === "granted") ?
+                        {/*(Notification && Notification.permission === "granted") ?
                             <Tooltip title="Test Notification" sx={{mr:1}}>
                                 <IconButton
                                     onClick={testNotification}
@@ -484,7 +484,7 @@ export function Header(props: any) {
                                     <NotificationsActiveIcon />
                                 </IconButton>
                             </Tooltip>
-                        :<></>}
+                    :<></>*/}
                         
 
                         <div className="grape-wallet-adapter">
