@@ -10,7 +10,8 @@ ReactDOM.render(
 );
 
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/serviceWorker.js')
+    navigator.serviceWorker.register(new URL('./serviceWorker.js', import.meta.url))
+    //navigator.serviceWorker.register('./serviceWorker.js')
       .then(registration => console.log('Service worker registered'))
       .catch(err => console.error('Service worker registration failed:', err));
 }
