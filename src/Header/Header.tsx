@@ -486,8 +486,7 @@ export function Header(props: any) {
                                     <NotificationsActiveIcon />
                                 </IconButton>
                             </Tooltip>
-                    :<></>*/}
-                        
+                    :<></>*/}                        
 
                         <div className="grape-wallet-adapter">
                             <WalletDialogProvider className="grape-wallet-provider">
