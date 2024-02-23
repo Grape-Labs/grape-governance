@@ -1092,7 +1092,7 @@ export default function WalletCardView(props:any) {
                             </Grid>
                             <Collapse in={expanded} timeout="auto" unmountOnExit>
                                 {(type && type === 1) ?
-                                    <Grid container sx={{p:2}}>
+                                    <Grid container sx={{p:2,pl:8,pr:1}}>
                                         
                                         <Grid item xs={6}>
                                             <Typography variant='caption' sx={{color:'#919EAB'}}>Address</Typography>
@@ -1253,7 +1253,7 @@ export default function WalletCardView(props:any) {
 
                                     </Grid>
                                 :
-                                    <Grid container sx={{p:2}}>
+                                    <Grid container sx={{p:2,pl:8,pr:1}}>
                                         <Grid item xs={6}>
                                             <b>{item.info.name}</b> <Typography variant='caption' sx={{color:'#919EAB'}}>{item.info.symbol}</Typography>
                                         </Grid>
