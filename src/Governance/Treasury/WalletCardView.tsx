@@ -89,6 +89,8 @@ import { GovernanceProposalDialog } from '../GovernanceProposalDialog';
 import ExtensionsMenuView from './plugins/ExtensionsMenu';
 import { IntegratedGovernanceProposalDialogView } from '../IntegratedGovernanceProposal';
 
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import ErrorIcon from '@mui/icons-material/Error';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import InfoIcon from '@mui/icons-material/Info';
@@ -1070,153 +1072,263 @@ export default function WalletCardView(props:any) {
                             <Grid item xs={12}>
                                 <Tooltip title="Show More Info">
                                     <IconButton 
-                                        sx={{m:0,mt:'-37px',ml:'23px',p:0,color:'rgba(255,255,255,0.02)'}}
+                                        sx={{
+                                            m:0,mt:'-28px',
+                                            ml:'16px',
+                                            p:0,
+                                            color:'rgba(255,255,255,0.02)',
+                                            '&:hover': {
+                                                color: 'rgba(255,255,255,0.5)',
+                                            },}}
                                         onClick={() => setExpanded(!expanded)}
                                     >
-                                        <MoreHorizIcon />
+                                        {expanded ? 
+                                            <KeyboardArrowUpIcon sx={{ fontSize: 40 }} />
+                                        :
+                                            <KeyboardArrowDownIcon sx={{ fontSize: 40 }} />
+                                        }
                                     </IconButton>
                                 </Tooltip>
                             </Grid>
                             <Collapse in={expanded} timeout="auto" unmountOnExit>
                                 {(type && type === 1) ?
-                                    <>
-                                        <Grid item xs={12} sx={{p:1,m:1}}>
-                                            <Typography variant='caption'>
-                                                Description: {item.content.metadata.description}<br/>
-                                                {item.content.metadata?.token_standard && <>
-                                                Standard: {item.content.metadata.token_standard}<br/>
-                                                </>
-                                                }
-                                                Compressed: {item.compression.compressed ? `Yes`:`No`}<br/>
-                                                Royalties: {item.royalty.percent}% {item.compression.royalty_model}<br/>
-                                                {item.ownership?.delegate &&
-                                                <>
-                                                Delegate:
-                                                <CopyToClipboard text={item.ownership.delegate} onCopy={handleCopy}>
-                                                        <Button 
-                                                            color={'inherit'} 
-                                                            variant='text' 
-                                                            sx={{m:0,
-                                                                ml:1,
-                                                                p:0,
-                                                                mintWidth:'' , 
-                                                                    '&:hover .MuiSvgIcon-root': {
-                                                                        opacity: 1,
-                                                                    },
-                                                                }}
-                                                            endIcon={
-                                                            <FileCopyIcon 
-                                                                fontSize={'small'} 
-                                                                sx={{
-                                                                    color:'rgba(255,255,255,0.25)',
-                                                                    pr:1,
-                                                                    opacity: 0,
-                                                                    fontSize:"10px"}} />
-                                                            }
-                                                            
-                                                        >
-                                                    {shortenString(item.ownership.delegate,5,5)}
-                                                    </Button>
-                                                </CopyToClipboard>
-                                                <br/>
-                                                </>}
-                                                Ownership Model: {item.ownership.ownership_model}<br/>
-                                                {(item?.grouping && item.grouping.length > 0) &&
-                                                <>
-                                                Collection:
-                                                <CopyToClipboard text={item.grouping[0].group_value} onCopy={handleCopy}>
-                                                        <Button 
-                                                            color={'inherit'} 
-                                                            variant='text' 
-                                                            sx={{m:0,
-                                                                ml:1,
-                                                                p:0,
-                                                                mintWidth:'' , 
-                                                                    '&:hover .MuiSvgIcon-root': {
-                                                                        opacity: 1,
-                                                                    },
-                                                                }}
-                                                            endIcon={
-                                                            <FileCopyIcon 
-                                                                fontSize={'small'} 
-                                                                sx={{
-                                                                    color:'rgba(255,255,255,0.25)',
-                                                                    pr:1,
-                                                                    opacity: 0,
-                                                                    fontSize:"10px"}} />
-                                                            }
-                                                            
-                                                        >
-                                                    {shortenString(item.grouping[0].group_value,5,5)}
-                                                    </Button>
-                                                </CopyToClipboard><br/>
-                                                </>
-                                                }
-                                            </Typography>
+                                    <Grid container sx={{p:2}}>
+                                        
+                                        <Grid item xs={6}>
+                                            <Typography variant='caption' sx={{color:'#919EAB'}}>Address</Typography>
                                         </Grid>
-                                    </>
+                                        <Grid item xs={6} sx={{textAlign:'right'}}>
+                                            <CopyToClipboard text={item.id} onCopy={handleCopy}>
+                                                <Button 
+                                                    color={'inherit'} 
+                                                    variant='text' 
+                                                    sx={{m:0,
+                                                        ml:1,
+                                                        p:0,
+                                                        color:'#919EAB',
+                                                        mintWidth:'' , 
+                                                            '&:hover .MuiSvgIcon-root': {
+                                                                opacity: 1,
+                                                            },
+                                                        }}
+                                                    endIcon={
+                                                    <FileCopyIcon 
+                                                        fontSize={'small'} 
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            pr:1,
+                                                            opacity: 0,
+                                                            fontSize:"10px"}} />
+                                                    }
+                                                    
+                                                >
+                                                {shortenString(item.id,5,5)}
+                                                </Button>
+                                            </CopyToClipboard>
+                                        </Grid>
+                                        
+                                        <Grid item xs={6}>
+                                            <Typography variant='caption' sx={{color:'#919EAB'}}>Description</Typography>
+                                        </Grid>
+                                        <Grid item xs={6} sx={{textAlign:'right'}}>
+                                            <Box sx={{pr:4, color:'#919EAB'}}>
+                                            {item.content.metadata.description}
+                                            </Box>
+                                        </Grid>
+
+                                        {item.content.metadata?.token_standard && 
+                                            <>
+                                                <Grid item xs={6}>
+                                                    <Typography variant='caption' sx={{color:'#919EAB'}}>Standard</Typography>
+                                                </Grid>
+                                                <Grid item xs={6} sx={{textAlign:'right'}}>
+                                                    <Box sx={{pr:4, color:'#919EAB'}}>
+                                                    {item.content.metadata.token_standard}
+                                                    </Box>
+                                                </Grid>
+                                            </>
+                                        }
+
+                                        <Grid item xs={6}>
+                                            <Typography variant='caption' sx={{color:'#919EAB'}}>Royalties</Typography>
+                                        </Grid>
+                                        <Grid item xs={6} sx={{textAlign:'right'}}>
+                                            <Box sx={{pr:4, color:'#919EAB'}}>
+                                            {+item.royalty.percent*100}% {item.compression.royalty_model}
+                                            </Box>
+                                        </Grid>
+
+                                        <Grid item xs={6}>
+                                            <Typography variant='caption' sx={{color:'#919EAB'}}>Compressed</Typography>
+                                        </Grid>
+                                        <Grid item xs={6} sx={{textAlign:'right'}}>
+                                            <Box sx={{pr:4, color:'#919EAB'}}>
+                                            {item.compression.compressed ? `Yes`:`No`}
+                                            </Box>
+                                        </Grid>
+
+                                        <Grid item xs={6}>
+                                            <Typography variant='caption' sx={{color:'#919EAB'}}>Ownership Model</Typography>
+                                        </Grid>
+                                        <Grid item xs={6} sx={{textAlign:'right'}}>
+                                            <Box sx={{pr:4, color:'#919EAB'}}>
+                                            {item.ownership.ownership_model}
+                                            </Box>
+                                        </Grid>
+
+
+                                        {(item?.grouping && item.grouping.length > 0) &&
+                                            <>
+                                                <Grid item xs={6}>
+                                                    <Typography variant='caption' sx={{color:'#919EAB'}}>Collection</Typography>
+                                                </Grid>
+                                                <Grid item xs={6} sx={{textAlign:'right'}}>
+                                                    <CopyToClipboard text={item.grouping[0].group_value} onCopy={handleCopy}>
+                                                        <Button 
+                                                            color={'inherit'} 
+                                                            variant='text' 
+                                                            sx={{m:0,
+                                                                ml:1,
+                                                                p:0,
+                                                                color:'#919EAB',
+                                                                mintWidth:'' , 
+                                                                    '&:hover .MuiSvgIcon-root': {
+                                                                        opacity: 1,
+                                                                    },
+                                                                }}
+                                                            endIcon={
+                                                            <FileCopyIcon 
+                                                                fontSize={'small'} 
+                                                                sx={{
+                                                                    color:'rgba(255,255,255,0.25)',
+                                                                    pr:1,
+                                                                    opacity: 0,
+                                                                    fontSize:"10px"}} />
+                                                            }
+                                                            
+                                                        >
+                                                        {shortenString(item.grouping[0].group_value,5,5)}
+                                                        </Button>
+                                                    </CopyToClipboard>
+                                                </Grid>
+                                            </>
+                                        }
+
+                                        {item.ownership?.delegate &&
+                                            <>
+                                                <Grid item xs={6}>
+                                                    <Typography variant='caption' sx={{color:'#919EAB'}}>Delegate</Typography>
+                                                </Grid>
+                                                <Grid item xs={6} sx={{textAlign:'right'}}>
+                                                    <CopyToClipboard text={item.ownership.delegate} onCopy={handleCopy}>
+                                                        <Button 
+                                                            color={'inherit'} 
+                                                            variant='text' 
+                                                            sx={{m:0,
+                                                                ml:1,
+                                                                p:0,
+                                                                color:'#919EAB',
+                                                                mintWidth:'' , 
+                                                                    '&:hover .MuiSvgIcon-root': {
+                                                                        opacity: 1,
+                                                                    },
+                                                                }}
+                                                            endIcon={
+                                                            <FileCopyIcon 
+                                                                fontSize={'small'} 
+                                                                sx={{
+                                                                    color:'rgba(255,255,255,0.25)',
+                                                                    pr:1,
+                                                                    opacity: 0,
+                                                                    fontSize:"10px"}} />
+                                                            }
+                                                            
+                                                        >
+                                                        {shortenString(item.ownership.delegate,5,5)}
+                                                        </Button>
+                                                    </CopyToClipboard>
+                                                </Grid>
+                                            </>
+                                        }
+
+                                    </Grid>
                                 :
-                                    <Grid item xs={12}>
-                                        <Typography variant='caption'>
-                                            Address: 
+                                    <Grid container sx={{p:2}}>
+                                        <Grid item xs={6}>
+                                            <b>{item.info.name}</b> <Typography variant='caption' sx={{color:'#919EAB'}}>{item.info.symbol}</Typography>
+                                        </Grid>
+                                        <Grid item xs={6} sx={{textAlign:'right'}}>
                                             <CopyToClipboard text={item.address} onCopy={handleCopy}>
-                                                    <Button 
-                                                        color={'inherit'} 
-                                                        variant='text' 
-                                                        sx={{m:0,
-                                                            ml:1,
-                                                            p:0,
-                                                            mintWidth:'' , 
-                                                                '&:hover .MuiSvgIcon-root': {
-                                                                    opacity: 1,
-                                                                },
-                                                            }}
-                                                        endIcon={
-                                                        <FileCopyIcon 
-                                                            fontSize={'small'} 
-                                                            sx={{
-                                                                color:'rgba(255,255,255,0.25)',
-                                                                pr:1,
-                                                                opacity: 0,
-                                                                fontSize:"10px"}} />
-                                                        }
-                                                        
-                                                    >
+                                                <Button 
+                                                    color={'inherit'} 
+                                                    variant='text' 
+                                                    sx={{m:0,
+                                                        ml:1,
+                                                        p:0,
+                                                        color:'#919EAB',
+                                                        mintWidth:'' , 
+                                                            '&:hover .MuiSvgIcon-root': {
+                                                                opacity: 1,
+                                                            },
+                                                        }}
+                                                    endIcon={
+                                                    <FileCopyIcon 
+                                                        fontSize={'small'} 
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            pr:1,
+                                                            opacity: 0,
+                                                            fontSize:"10px"}} />
+                                                    }
+                                                    
+                                                >
                                                 {shortenString(item.address,5,5)}
                                                 </Button>
-                                            </CopyToClipboard><br/>
-                                            ATA: 
-                                                <CopyToClipboard text={item.associated_account} onCopy={handleCopy}>
-                                                    <Button 
-                                                        color={'inherit'} 
-                                                        variant='text' 
-                                                        sx={{m:0,
-                                                            ml:1,
-                                                            p:0,
-                                                            mintWidth:'' , 
-                                                                '&:hover .MuiSvgIcon-root': {
-                                                                    opacity: 1,
-                                                                },
-                                                            }}
-                                                        endIcon={
-                                                        <FileCopyIcon 
-                                                            fontSize={'small'} 
-                                                            sx={{
-                                                                color:'rgba(255,255,255,0.25)',
-                                                                pr:1,
-                                                                opacity: 0,
-                                                                fontSize:"10px"}} />
-                                                        }
-                                                        
-                                                    >
+                                            </CopyToClipboard>
+                                        </Grid>
+
+                                        <Grid item xs={6}>
+                                            <Typography variant='caption' sx={{color:'#919EAB'}}>ATA</Typography>
+                                        </Grid>
+                                        <Grid item xs={6} sx={{textAlign:'right'}}>
+                                            <CopyToClipboard text={item.associated_account} onCopy={handleCopy}>
+                                                <Button 
+                                                    color={'inherit'} 
+                                                    variant='text' 
+                                                    sx={{m:0,
+                                                        ml:1,
+                                                        p:0,
+                                                        color:'#919EAB',
+                                                        mintWidth:'' , 
+                                                            '&:hover .MuiSvgIcon-root': {
+                                                                opacity: 1,
+                                                            },
+                                                        }}
+                                                    endIcon={
+                                                    <FileCopyIcon 
+                                                        fontSize={'small'} 
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            pr:1,
+                                                            opacity: 0,
+                                                            fontSize:"10px"}} />
+                                                    }
+                                                    
+                                                >
                                                 {shortenString(item.associated_account,5,5)}
                                                 </Button>
-                                            </CopyToClipboard><br/>
-                                            Name: {item.info.name}<br/>
-                                            Symbol: {item.info.symbol}<br/>
-                                            Decimals: {item.info.decimals}
-                                            
-                                        </Typography>
+                                            </CopyToClipboard>
+                                        </Grid>
+
+                                        <Grid item xs={6}>
+                                            <Typography variant='caption' sx={{color:'#919EAB'}}>Decimals</Typography>
+                                        </Grid>
+                                        <Grid item xs={6} sx={{textAlign:'right'}}>
+                                            <Box sx={{pr:4, color:'#919EAB'}}>
+                                            {item.info.decimals}
+                                            </Box>
+                                        </Grid>
+
                                     </Grid>
                                 }
                         </Collapse>
