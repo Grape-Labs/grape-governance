@@ -1131,7 +1131,7 @@ export default function WalletCardView(props:any) {
                                             <Typography variant='caption' sx={{color:'#919EAB'}}>Description</Typography>
                                         </Grid>
                                         <Grid item xs={6} sx={{textAlign:'right'}}>
-                                            <Box sx={{pr:4, color:'#919EAB'}}>
+                                            <Box sx={{pr:3, color:'#919EAB'}}>
                                             {item.content.metadata.description}
                                             </Box>
                                         </Grid>
@@ -1142,7 +1142,7 @@ export default function WalletCardView(props:any) {
                                                     <Typography variant='caption' sx={{color:'#919EAB'}}>Standard</Typography>
                                                 </Grid>
                                                 <Grid item xs={6} sx={{textAlign:'right'}}>
-                                                    <Box sx={{pr:4, color:'#919EAB'}}>
+                                                    <Box sx={{pr:3, color:'#919EAB'}}>
                                                     {item.content.metadata.token_standard}
                                                     </Box>
                                                 </Grid>
@@ -1153,7 +1153,7 @@ export default function WalletCardView(props:any) {
                                             <Typography variant='caption' sx={{color:'#919EAB'}}>Royalties</Typography>
                                         </Grid>
                                         <Grid item xs={6} sx={{textAlign:'right'}}>
-                                            <Box sx={{pr:4, color:'#919EAB'}}>
+                                            <Box sx={{pr:3, color:'#919EAB'}}>
                                             {+item.royalty.percent*100}% {item.compression.royalty_model}
                                             </Box>
                                         </Grid>
@@ -1162,7 +1162,7 @@ export default function WalletCardView(props:any) {
                                             <Typography variant='caption' sx={{color:'#919EAB'}}>Compressed</Typography>
                                         </Grid>
                                         <Grid item xs={6} sx={{textAlign:'right'}}>
-                                            <Box sx={{pr:4, color:'#919EAB'}}>
+                                            <Box sx={{pr:3, color:'#919EAB'}}>
                                             {item.compression.compressed ? `Yes`:`No`}
                                             </Box>
                                         </Grid>
@@ -1171,7 +1171,7 @@ export default function WalletCardView(props:any) {
                                             <Typography variant='caption' sx={{color:'#919EAB'}}>Ownership Model</Typography>
                                         </Grid>
                                         <Grid item xs={6} sx={{textAlign:'right'}}>
-                                            <Box sx={{pr:4, color:'#919EAB'}}>
+                                            <Box sx={{pr:3, color:'#919EAB'}}>
                                             {item.ownership.ownership_model}
                                             </Box>
                                         </Grid>
@@ -1324,7 +1324,7 @@ export default function WalletCardView(props:any) {
                                             <Typography variant='caption' sx={{color:'#919EAB'}}>Decimals</Typography>
                                         </Grid>
                                         <Grid item xs={6} sx={{textAlign:'right'}}>
-                                            <Box sx={{pr:4, color:'#919EAB'}}>
+                                            <Box sx={{pr:3, color:'#919EAB'}}>
                                             {item.info.decimals}
                                             </Box>
                                         </Grid>
