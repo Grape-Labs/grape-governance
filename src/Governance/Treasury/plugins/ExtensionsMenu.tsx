@@ -52,6 +52,7 @@ import Logout from '@mui/icons-material/Logout';
 import ExtensionIcon from '@mui/icons-material/Extension';
 
 import DirectoryExtensionView from './DirectoryView';
+import DistributorExtensionView from './DistributorView';
 import ClaimExtensionView from './ClaimView';
 import DemoExtensionView from './DemoView';
 
@@ -65,7 +66,6 @@ export default function ExtensionsMenuView(props: any) {
   const instructions = props?.instructions;
   const setInstructions = props?.setInstructions;
   
-
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
     setOpen(true);
@@ -123,6 +123,14 @@ export default function ExtensionsMenuView(props: any) {
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
         <DirectoryExtensionView
+            handleCloseExtMenu={handleClose}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
+        <DistributorExtensionView
             handleCloseExtMenu={handleClose}
             governanceNativeWallet={governanceNativeWallet}
             expandedLoader={expandedLoader} 

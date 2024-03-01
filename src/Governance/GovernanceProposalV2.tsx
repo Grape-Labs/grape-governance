@@ -809,10 +809,11 @@ export function GovernanceProposalV2View(props: any){
                             // do a run through to get all mints and push to an array
                             for (let accountInstruction of instructionItem.account.instructions){
                                 //console.log("pushing: "+new PublicKey(accountInstruction.accounts[0].pubkey).toBase58())
-                                mintArr.push(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                if (accountInstruction.accounts[0]?.pubkey)
+                                    mintArr.push(new PublicKey(accountInstruction.accounts[0].pubkey))
                             }
                         }
-
+                        
                         let mintResults = null;
                         if (mintArr && mintArr.length > 0){
                             const results = await RPC_CONNECTION.getMultipleParsedAccounts(mintArr);

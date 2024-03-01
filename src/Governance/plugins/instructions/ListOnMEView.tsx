@@ -1420,19 +1420,7 @@ export default function ListOnMEView(props: any) {
                 }
 
                 <Grid sx={{textAlign:'right', mb:2}}>
-                    <Button 
-                        disabled={!(
-                            (tokenMint) &&
-                            (tokenAmount && tokenAmount > 0)
-                        )
-                        }
-                        onClick={generateMEListInstructions}
-                        variant="contained"
-                        color="info"
-                        sx={{borderRadius:'17px'}}>
-                        Preview Instructions</Button>
-
-
+                    
                     <Button 
                         disabled={(!(
                             (tokenMint) &&
