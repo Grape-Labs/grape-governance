@@ -1,5 +1,11 @@
-import MerkleDistributor from '@jup-ag/merkle-distributor-sdk';
-import { PublicKey, Transaction } from '@solana/web3.js';
+import {
+    createAllocTreeIx,
+    ValidDepthSizePair,
+    SPL_NOOP_PROGRAM_ID,
+    SPL_ACCOUNT_COMPRESSION_PROGRAM_ID
+} from '@solana/spl-account-compression';
+import { Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { PublicKey, Transaction, Keypair } from '@solana/web3.js';
 import { AnchorProvider, web3 } from '@coral-xyz/anchor';
 import { Connection } from '@solana/web3.js';
 import axios from "axios";
@@ -43,8 +49,8 @@ import {
 
 import { useSnackbar } from 'notistack';
 
+import ShareIcon from '@mui/icons-material/Share';
 import GetAppIcon from '@mui/icons-material/GetApp';
-import ParaglidingIcon from '@mui/icons-material/Paragliding';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import SendIcon from '@mui/icons-material/Send';
@@ -54,6 +60,7 @@ import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
+import { convertSecondsToLegibleFormat } from '../../../utils/grapeTools/helpers';
 
 export interface DialogTitleProps {
     id: string;
@@ -94,7 +101,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     },
 }));
 
-export default function ClaimExtensionView(props: any){
+export default function DistributorExtensionView(props: any){
     const setReload = props?.setReload;
     const governanceLookup = props.governanceLookup;
     const governanceRulesWallet = props.governanceRulesWallet;
@@ -114,15 +121,16 @@ export default function ClaimExtensionView(props: any){
     const { publicKey } = useWallet();
     const wallet = useWallet();
 
-
     const [distributor, setDistributor] = React.useState(null);
-    const [claimTokenAddress, setClaimTokenAddress] = React.useState(null);
-    const [claimableAmount, setClaimableAmount] = React.useState(null);
-    const [claimMintInfo, setClaimMintInfo] = React.useState(null);
     const [mintInfo, setMintInfo] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
     const [open, setPropOpen] = React.useState(false);
-    
+
+    const [selectedToken, setSelectedToken] = React.useState(null);
+    const [tokenRecipient, setTokenRecipient] = React.useState(null);
+    const [tokenAmount, setTokenAmount] = React.useState(null);
+
+
     const [expanded, setExpanded] = React.useState<string | false>(false);
     
     const provider = new AnchorProvider(RPC_CONNECTION, wallet, {
@@ -156,22 +164,35 @@ export default function ClaimExtensionView(props: any){
         handleCloseExtMenu();
         setPropOpen(false);
 
-        const ixs = await distributor.claimToken(new PublicKey(governanceNativeWallet));
-        /*
-        for (var instruction of ixs){
-            for (var key of instruction.keys){ // force remove realmConfig which is set to writable by default
-                if (key.pubkey.toBase58() === governanceNativeWallet){
-                    key.isWritable = false;
-                }
-            }
-        }*/
+        const recipients = new Array();
+        recipients.push(tokenRecipient);
 
+        // Prepare data for Merkle tree
+        const data = recipients.map((recipient) => ({
+            address: recipient,
+            amount: tokenAmount,
+        }));
+
+        const maxDepthSizePair: ValidDepthSizePair = { maxDepth: 16, maxBufferSize: 64 }; // Example depth and size
+        const canopyDepth = 0;
+
+        const treeKeypair = Keypair.generate();
+
+        const ixs = await createAllocTreeIx(
+            RPC_CONNECTION,
+            treeKeypair.publicKey,
+            new PublicKey(governanceNativeWallet),
+            maxDepthSizePair,
+            canopyDepth
+        );
+
+        console.log("ixs: "+JSON.stringify(ixs));
+      
         if (ixs){
 
             const propIx = {
-                title:'Claim Ext',
-                description:`Claim ${(claimableAmount/10**claimMintInfo.decimals).toLocaleString()} ${mintInfo && mintInfo.name} Governance Power`,
-                //description:`Claim ${mintInfo && mintInfo.name} Governance Power`,
+                title:'Distributor Ext',
+                description:`Distributor ${mintInfo ? mintInfo?.name : selectedToken} Governance Power`,
                 ix:ixs,
                 nativeWallet:governanceNativeWallet,
             }
@@ -179,7 +200,6 @@ export default function ClaimExtensionView(props: any){
             setInstructions(propIx);
             setExpandedLoader(true);
         }
-
         
     }
 
@@ -206,7 +226,8 @@ export default function ClaimExtensionView(props: any){
                 });
     }
 
-    const checkClaimStatus = async(tokenAddress?:string) => {
+    const checkMerkleStatus = async(tokenAddress?:string) => {
+        /*
         setLoading(true);
         setClaimMintInfo(null);
         setMintInfo(null);
@@ -215,7 +236,6 @@ export default function ClaimExtensionView(props: any){
             targetToken: new PublicKey(tokenAddress || claimTokenAddress), // the token to be distributed.
             claimProofEndpoint: 'https://worker.jup.ag/jup-claim-proof',
         });
-
         setDistributor(merkleDistributor);
         
         const mintInfo = await getMint(RPC_CONNECTION, new PublicKey(tokenAddress || claimTokenAddress));
@@ -236,27 +256,27 @@ export default function ClaimExtensionView(props: any){
 
         }
         setLoading(false);
-        
+        */
     }
 
     const fetchClaimForToken = (tokenAddress:string) => {
-        setClaimTokenAddress(tokenAddress);
-        checkClaimStatus(tokenAddress);
+        //setClaimTokenAddress(tokenAddress);
+        //checkClaimStatus(tokenAddress);
     }
 
     const handleCheckClaimStatus = () => {
-        checkClaimStatus();
+        //checkClaimStatus();
     }
 
     
     return (
         <>
-            <Tooltip title="Check Claim Status" placement="right">
-                <MenuItem onClick={handleClickOpen}>
+            <Tooltip title="Highly Efficient Merkle Distributor" placement="right">
+                <MenuItem onClick={handleClickOpen} disabled={true}>
                 <ListItemIcon>
-                    <ParaglidingIcon fontSize="small" />
+                    <ShareIcon fontSize="small" />
                 </ListItemIcon>
-                Claim
+                Distributor
                 </MenuItem>
             </Tooltip>
             
@@ -277,12 +297,12 @@ export default function ClaimExtensionView(props: any){
                     id='extensions-dialog'
                     onClose={handleCloseDialog}
                 >
-                    Claim Extension
+                    Distributor
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
                     <DialogContentText>
-                        Welcome to the first Governance Wallet Extension, check any merkle distribution, enter the address of the token
+                        Welcome to the Grape Merkle Distributor
                     </DialogContentText>
                     
                     <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{mt:1,mb:1,textAlign:'center'}}>
@@ -290,129 +310,80 @@ export default function ClaimExtensionView(props: any){
                             <Chip
                                 disabled={loading}
                                 variant="outlined"
-                                label="WEN"
-                                onClick={(e) => fetchClaimForToken("WENWENvqqNya429ubCdR81ZmD69brwQaaBYY6p3LCpk")}
-                                avatar={<Avatar alt="WEN" src="https://shdw-drive.genesysgo.net/GwJapVHVvfM4Mw4sWszkzywncUWuxxPd6s9VuFfXRgie/wen_logo.png" />}
+                                label="USDC"
+                                onClick={(e) => setSelectedToken("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")}
+                                avatar={<Avatar alt="USDC" src="https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png" />}
                                 />
-                            
-                            <Chip
-                                disabled={loading}
-                                variant="outlined"
-                                label="JUP"
-                                onClick={(e) => fetchClaimForToken("JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN")}
-                                avatar={<Avatar alt="WEN" src="https://static.jup.ag/jup/icon.png" />}
-                                />
+                        
                         </Stack>
                     </Box>
 
-                    
+                    {selectedToken ?
+                        <>Selected Token: {selectedToken}</>
+                        :
+                        <></>
+                    }
+
+
                         <TextField
                             autoFocus
                             required
                             margin="dense"
-                            id="claim_token_address"
-                            name="claim_token_address"
-                            label="Token Address"
+                            id="token_amount"
+                            name="token_amount"
+                            label="Amount"
                             type="text"
                             fullWidth
                             variant="outlined"
-                            value={claimTokenAddress}
+                            value={tokenAmount}
                             InputLabelProps={{ shrink: true }}
-                            onChange={(e) => setClaimTokenAddress(e.target.value)}
+                            onChange={(e) => setTokenAmount(e.target.value)}
                             sx={{textAlign:"center"}}
+                            disabled={!selectedToken}
+                            />
+
+                        <TextField
+                            autoFocus
+                            required
+                            margin="dense"
+                            id="recipient_address"
+                            name="recipient_address"
+                            label="Recipient"
+                            type="text"
+                            fullWidth
+                            variant="outlined"
+                            value={tokenRecipient}
+                            InputLabelProps={{ shrink: true }}
+                            onChange={(e) => setTokenRecipient(e.target.value)}
+                            sx={{textAlign:"center"}}
+                            disabled={!selectedToken}
                             />
                     
-
-                    {(claimableAmount && governanceNativeWallet) ?
-                        <Box  alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2,textAlign:'center'}}>
-                            <Typography variant="h6">
-                                This Governance can claim {(claimableAmount/10**claimMintInfo.decimals).toLocaleString()}&nbsp;
-                                {mintInfo &&
-                                <>
-                                    {mintInfo.name}
-                                </>}
-                                {/*
-                                <br/><br/>
-                                
-                                <Typography variant='body1'>Add your plugins now on governance.so - the most powerful Wallet on Solana by Grape - reach out to the Grape DAO on 
-                                    <Button 
-                                        target='_blank' href={`https://discord.gg/grapedao`}
-                                        color='inherit'
-                                        sx={{
-                                        verticalAlign: 'middle',
-                                        display: 'inline-flex',
-                                        borderRadius:'17px',
-                                        m:1,
-                                        textTransform:'none'
-                                    }}>
-                                        <DiscordIcon sx={{mt:1,fontSize:27.5,color:'white'}} /> <strong>Discord</strong>
-                                    </Button> to get started
-                                    </Typography>
-                                */}
-                            </Typography>
-                        </Box>
-                    :<>
-                        {(!claimableAmount && claimMintInfo && !loading) ?
-                            <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2,textAlign:'center'}}>
-                                <Typography variant="h6">
-                                    Nothing to claim
-                                </Typography>
-                            </Box>
-                        :<></>}
-                    </>}
-
                     <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2, textAlign:'center'}}>
-                        <Typography variant="caption">Made with ❤️ by Grape &amp; Jupiter #OPOS</Typography>
+                        <Typography variant="caption">Made with ❤️ by Grape #OPOS</Typography>
                     </Box>
 
                     <DialogActions>
+                        {(publicKey) &&
                         <Button 
-                            disabled={!claimTokenAddress && !loading}
-                            autoFocus 
-                            onClick={handleCheckClaimStatus}
-                            sx={{
-                                '&:hover .MuiSvgIcon-root.claimIcon': {
-                                    color:'rgba(255,255,255,0.90)'
-                                }
-                            }}
-                            startIcon={
-                            <>
-                                <ParaglidingIcon 
-                                    className="claimIcon"
-                                    sx={{
-                                        color:'rgba(255,255,255,0.25)',
-                                        fontSize:"14px!important"}} />
-                            </>
-                            }
-                        >
-                            {loading ?
-                                <>Checking...</>
-                            :
-                                <>Check</>
-                            }
-                            
-                        </Button>
-                        {(publicKey && claimableAmount && claimableAmount > 0) &&
-                        <Button 
-                            disabled={!claimTokenAddress && !loading}
+                            disabled={!selectedToken && !loading && !tokenRecipient && !tokenAmount}
                             autoFocus 
                             onClick={handleProposalIx}
                             sx={{
-                                '&:hover .MuiSvgIcon-root.claimNowIcon': {
+                                '&:hover .MuiSvgIcon-root': {
                                     color:'rgba(255,255,255,0.90)'
                                 }
                             }}
                             startIcon={
                             <>
-                                <GetAppIcon 
-                                    className="claimNowIcon"
+                                <ShareIcon 
                                     sx={{
                                         color:'rgba(255,255,255,0.25)',
                                         fontSize:"14px!important"}} />
                             </>
                             }
                         >
-                            <>Claim</>
+                            <>Distribute</>
                         </Button>
                         }
                     </DialogActions>

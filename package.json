@@ -83,6 +83,7 @@
         "@shadow-drive/sdk": "^4.0.3",
         "@solana/buffer-layout": "^4.0.0",
         "@solana/governance-program-library": "^0.16.7",
+        "@solana/spl-account-compression": "^0.2.0",
         "@solana/spl-governance": "^0.3.28",
         "@solana/spl-token": "^0.3.11",
         "@solana/spl-token-registry": "^0.2.4432",

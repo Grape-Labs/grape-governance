@@ -96,7 +96,7 @@ import {
     RPC_ENDPOINT,
     WS_ENDPOINT,
     TWITTER_PROXY,
-    SHYFT_KEY
+    SHYFT_KEY,
 } from '../utils/grapeTools/constants';
 
 import WarningIcon from '@mui/icons-material/Warning';
@@ -1284,6 +1284,14 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             //const apiUrl = "https://api.solscan.io/account/token/txs";
             const apiUrl = "https://api.solscan.io/v2/account/token/txs";
             
+            // Define the desired requestor URL
+            const requestorUrl = 'https://solscan.io/';
+
+            // Create an Axios instance to handle requests
+            const axiosInstance = axios.create({
+                baseURL: requestorUrl
+            });
+
             const response = await axios.get(
                 apiUrl, {
                 params: {
