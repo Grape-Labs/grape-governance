@@ -60,6 +60,8 @@ export default function ExtensionsMenuView(props: any) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   //const open = Boolean(anchorEl);
   const [open, setOpen] = React.useState(false);
+  const realm = props?.realm;
+  const rulesWallet = props?.rulesWallet;
   const governanceNativeWallet = props?.governanceNativeWallet;
   const expandedLoader = props?.expandedLoader;
   const setExpandedLoader = props?.setExpandedLoader;
@@ -123,7 +125,9 @@ export default function ExtensionsMenuView(props: any) {
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
         <DirectoryExtensionView
+            realm={realm}
             handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
             governanceNativeWallet={governanceNativeWallet}
             expandedLoader={expandedLoader} 
             setExpandedLoader={setExpandedLoader}
@@ -131,7 +135,9 @@ export default function ExtensionsMenuView(props: any) {
             setInstructions={setInstructions}
         />
         <DistributorExtensionView
+            realm={realm}
             handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
             governanceNativeWallet={governanceNativeWallet}
             expandedLoader={expandedLoader} 
             setExpandedLoader={setExpandedLoader}
@@ -139,7 +145,9 @@ export default function ExtensionsMenuView(props: any) {
             setInstructions={setInstructions}
         />
         <ClaimExtensionView
+            realm={realm}
             handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
             governanceNativeWallet={governanceNativeWallet}
             expandedLoader={expandedLoader} 
             setExpandedLoader={setExpandedLoader}
@@ -148,7 +156,9 @@ export default function ExtensionsMenuView(props: any) {
         />
         <Divider />
         <DemoExtensionView
+            realm={realm}
             handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
             governanceNativeWallet={governanceNativeWallet}
             expandedLoader={expandedLoader} 
             setExpandedLoader={setExpandedLoader}

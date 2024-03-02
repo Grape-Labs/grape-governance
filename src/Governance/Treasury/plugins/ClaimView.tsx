@@ -39,10 +39,14 @@ import {
     ListItemIcon,
     TextField,
     Stack,
+    Switch,
+    FormControl,
+    FormControlLabel,
 } from '@mui/material/';
 
 import { useSnackbar } from 'notistack';
 
+import SettingsIcon from '@mui/icons-material/Settings';
 import GetAppIcon from '@mui/icons-material/GetApp';
 import ParaglidingIcon from '@mui/icons-material/Paragliding';
 import ExtensionIcon from '@mui/icons-material/Extension';
@@ -101,9 +105,9 @@ export default function ClaimExtensionView(props: any){
     const editProposalAddress = props?.editProposalAddress;
     const governingTokenMint = props.governingTokenMint;
     const governanceAddress = props.governanceAddress;
-    const title = props?.title || "Proposal";
-    const realm = props?.realm;
     
+    const realm = props?.realm;
+    const rulesWallet = props?.rulesWallet;
     const handleCloseExtMenu = props?.handleCloseExtMenu;
     const expandedLoader = props?.expandedLoader;
     const setExpandedLoader = props?.setExpandedLoader;
@@ -122,7 +126,14 @@ export default function ClaimExtensionView(props: any){
     const [mintInfo, setMintInfo] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
     const [open, setPropOpen] = React.useState(false);
-    
+    const [openAdvanced, setOpenAdvanded] = React.useState(false);
+    const [proposalTitle, setProposalTitle] = React.useState(null);
+    const [proposalDescription, setProposalDescription] = React.useState(null);
+    const [governingMint, setGoverningMint] = React.useState(null);
+    const [isGoverningMintSelectable, setIsGoverningMintSelectable] = React.useState(true);
+    const [isGoverningMintCouncilSelected, setIsGoverningMintCouncilSelected] = React.useState(true);
+    const [isDraft, setIsDraft] = React.useState(false);
+
     const [expanded, setExpanded] = React.useState<string | false>(false);
     
     const provider = new AnchorProvider(RPC_CONNECTION, wallet, {
@@ -137,6 +148,18 @@ export default function ClaimExtensionView(props: any){
         },
         [enqueueSnackbar]
     );
+
+    const toggleGoverningMintSelected = (council: boolean) => {
+        if (council){
+            setGoverningMint(realm?.account.config.councilMint);
+        } else{
+            setGoverningMint(realm?.communityMint);
+        }
+    }
+
+    const handleAdvancedToggle = () => {
+        setOpenAdvanded(!openAdvanced);
+    }
 
     const handleCloseDialog = () => {
         setPropOpen(false);
@@ -157,24 +180,19 @@ export default function ClaimExtensionView(props: any){
         setPropOpen(false);
 
         const ixs = await distributor.claimToken(new PublicKey(governanceNativeWallet));
-        /*
-        for (var instruction of ixs){
-            for (var key of instruction.keys){ // force remove realmConfig which is set to writable by default
-                if (key.pubkey.toBase58() === governanceNativeWallet){
-                    key.isWritable = false;
-                }
-            }
-        }*/
-
+        
         if (ixs){
 
             const propIx = {
-                title:'Claim Ext',
-                description:`Claim ${(claimableAmount/10**claimMintInfo.decimals).toLocaleString()} ${mintInfo && mintInfo.name} Governance Power`,
-                //description:`Claim ${mintInfo && mintInfo.name} Governance Power`,
+                title:proposalTitle,
+                description:proposalDescription,
                 ix:ixs,
                 nativeWallet:governanceNativeWallet,
+                governingMint:governingMint,
+                draft:isDraft,
             }
+
+            //console.log("propIx: "+JSON.stringify(propIx))
 
             setInstructions(propIx);
             setExpandedLoader(true);
@@ -231,6 +249,9 @@ export default function ClaimExtensionView(props: any){
             //const isClaimed = claimStatus?.proof. .isClaimed;
             console.log("claimStatus: "+JSON.stringify(claimStatus));
 
+            setProposalTitle(`Claiming ${mintInfoApi?.name}`);
+            setProposalDescription(`Claim ${(amount/10**mintInfo.decimals).toLocaleString()} ${mintInfoApi?.name} Tokens`)
+            
             setClaimableAmount(amount);
         } else{
 
@@ -247,6 +268,26 @@ export default function ClaimExtensionView(props: any){
     const handleCheckClaimStatus = () => {
         checkClaimStatus();
     }
+
+    React.useEffect(() => { 
+        if (realm && realm?.account.config?.councilMint){
+            setGoverningMint(realm?.account.config.councilMint);
+            setIsGoverningMintCouncilSelected(true);
+            if (realm && realm?.communityMint){
+                if (Number(rulesWallet.account.config.minCommunityTokensToCreateProposal) !== 18446744073709551615){
+                    setGoverningMint(realm?.communityMint);
+                    setIsGoverningMintSelectable(true);
+                    setIsGoverningMintCouncilSelected(false);
+                }
+            }
+        } else {
+            if (realm && realm?.communityMint){
+                setGoverningMint(realm?.communityMint);
+                setIsGoverningMintCouncilSelected(false);
+            }
+        }
+
+    }, []);
 
     
     return (
@@ -306,21 +347,21 @@ export default function ClaimExtensionView(props: any){
                     </Box>
 
                     
-                        <TextField
-                            autoFocus
-                            required
-                            margin="dense"
-                            id="claim_token_address"
-                            name="claim_token_address"
-                            label="Token Address"
-                            type="text"
-                            fullWidth
-                            variant="outlined"
-                            value={claimTokenAddress}
-                            InputLabelProps={{ shrink: true }}
-                            onChange={(e) => setClaimTokenAddress(e.target.value)}
-                            sx={{textAlign:"center"}}
-                            />
+                    <TextField
+                        autoFocus
+                        required
+                        margin="dense"
+                        id="claim_token_address"
+                        name="claim_token_address"
+                        label="Token Address"
+                        type="text"
+                        fullWidth
+                        variant="outlined"
+                        value={claimTokenAddress}
+                        InputLabelProps={{ shrink: true }}
+                        onChange={(e) => setClaimTokenAddress(e.target.value)}
+                        sx={{textAlign:"center"}}
+                        />
                     
 
                     {(claimableAmount && governanceNativeWallet) ?
@@ -361,60 +402,169 @@ export default function ClaimExtensionView(props: any){
                         :<></>}
                     </>}
 
+                    
+                    {openAdvanced ? 
+                        <>
+                            <Box
+                                sx={{
+                                    border:'1px solid #333',
+                                    borderRadius:'17px',
+                                    p:2,
+                                }}
+                            >
+                                <TextField
+                                    autoFocus
+                                    required
+                                    margin="dense"
+                                    id="proposal_title"
+                                    name="proposal_title"
+                                    label="Proposal TItle"
+                                    type="text"
+                                    fullWidth
+                                    variant="outlined"
+                                    value={proposalTitle}
+                                    InputLabelProps={{ shrink: true }}
+                                    onChange={(e) => setProposalTitle(e.target.value)}
+                                    sx={{textAlign:"center"}}
+                                    />
+                                
+                                <TextField
+                                    autoFocus
+                                    required
+                                    margin="dense"
+                                    id="proposal_dsecription"
+                                    name="proposal_description"
+                                    label="Proposal Description"
+                                    type="text"
+                                    fullWidth
+                                    variant="outlined"
+                                    value={proposalDescription}
+                                    InputLabelProps={{ shrink: true }}
+                                    onChange={(e) => setProposalDescription(e.target.value)}
+                                    sx={{textAlign:"center"}}
+                                    />
+
+                                <FormControl fullWidth >
+                                    <FormControlLabel 
+                                    control={
+                                        <Switch 
+                                        checked={isGoverningMintCouncilSelected} //communitySupport ? false : true}
+                                        onChange={
+                                            (e) => {
+                                                toggleGoverningMintSelected(e.target.checked)
+                                            }
+                                        }
+                                        disabled={!isGoverningMintSelectable}
+                                        />
+                                    } 
+                                    label="Council" />
+                                </FormControl>
+
+                                <FormControl fullWidth >
+                                    <FormControlLabel 
+                                    control={
+                                        <Switch 
+                                            checked={isDraft}
+                                            onChange={
+                                                (e) => {
+                                                    setIsDraft(!isDraft)
+                                                }
+                                            }
+                                        />
+                                    } 
+                                    label="Draft" />
+                                </FormControl>
+                            </Box>
+                        </>
+                    :
+                        <></>
+                    }
+
+
                     <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2, textAlign:'center'}}>
                         <Typography variant="caption">Made with ❤️ by Grape &amp; Jupiter #OPOS</Typography>
                     </Box>
 
-                    <DialogActions>
-                        <Button 
-                            disabled={!claimTokenAddress && !loading}
-                            autoFocus 
-                            onClick={handleCheckClaimStatus}
-                            sx={{
-                                '&:hover .MuiSvgIcon-root.claimIcon': {
-                                    color:'rgba(255,255,255,0.90)'
-                                }
-                            }}
-                            startIcon={
-                            <>
-                                <ParaglidingIcon 
-                                    className="claimIcon"
-                                    sx={{
-                                        color:'rgba(255,255,255,0.25)',
-                                        fontSize:"14px!important"}} />
-                            </>
-                            }
-                        >
-                            {loading ?
-                                <>Checking...</>
-                            :
-                                <>Check</>
-                            }
-                            
-                        </Button>
+                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         {(publicKey && claimableAmount && claimableAmount > 0) &&
-                        <Button 
-                            disabled={!claimTokenAddress && !loading}
-                            autoFocus 
-                            onClick={handleProposalIx}
-                            sx={{
-                                '&:hover .MuiSvgIcon-root.claimNowIcon': {
-                                    color:'rgba(255,255,255,0.90)'
-                                }
-                            }}
-                            startIcon={
-                            <>
-                                <GetAppIcon 
-                                    className="claimNowIcon"
+                                <Button
+                                    disabled={!claimTokenAddress && !loading}
+                                    size='small'
+                                    onClick={handleAdvancedToggle}
                                     sx={{
-                                        color:'rgba(255,255,255,0.25)',
-                                        fontSize:"14px!important"}} />
-                            </>
-                            }
-                        >
-                            <>Claim</>
-                        </Button>
+                                        justifyContent: 'flex-start',
+                                        '&:hover .MuiSvgIcon-root.claimIcon': {
+                                            color:'rgba(255,255,255,0.90)'
+                                        }
+                                    }}
+                                    startIcon={
+                                        <>
+                                            <SettingsIcon 
+                                                className="claimIcon"
+                                                sx={{
+                                                    color:'rgba(255,255,255,0.25)',
+                                                    fontSize:"14px!important"}} />
+                                        </>
+                                    }
+                                >
+
+                                    Advanced
+                                </Button>
                         }
+                        </Box>
+
+                        <Box sx={{ display: 'flex' }}>
+                            <Button 
+                                disabled={!claimTokenAddress && !loading}
+                                autoFocus 
+                                onClick={handleCheckClaimStatus}
+                                sx={{
+                                    '&:hover .MuiSvgIcon-root.claimIcon': {
+                                        color:'rgba(255,255,255,0.90)'
+                                    }
+                                }}
+                                startIcon={
+                                <>
+                                    <ParaglidingIcon 
+                                        className="claimIcon"
+                                        sx={{
+                                            color:'rgba(255,255,255,0.25)',
+                                            fontSize:"14px!important"}} />
+                                </>
+                                }
+                            >
+                                {loading ?
+                                    <>Checking...</>
+                                :
+                                    <>Check</>
+                                }
+                                
+                            </Button>
+                            {(publicKey && claimableAmount && claimableAmount > 0) &&
+                            <Button 
+                                disabled={!claimTokenAddress && !loading}
+                                autoFocus 
+                                onClick={handleProposalIx}
+                                sx={{
+                                    '&:hover .MuiSvgIcon-root.claimNowIcon': {
+                                        color:'rgba(255,255,255,0.90)'
+                                    }
+                                }}
+                                startIcon={
+                                <>
+                                    <GetAppIcon 
+                                        className="claimNowIcon"
+                                        sx={{
+                                            color:'rgba(255,255,255,0.25)',
+                                            fontSize:"14px!important"}} />
+                                </>
+                                }
+                            >
+                                <>Claim</>
+                            </Button>
+                            }
+                        </Box>
                     </DialogActions>
                     
                 </DialogContent> 
