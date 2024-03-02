@@ -322,7 +322,7 @@ export default function WalletCardView(props:any) {
                                     </CopyToClipboard><br/>
                                 </>}
                                     Community: 
-                                        <CopyToClipboard text={realm?.communityMint} onCopy={handleCopy}>
+                                        <CopyToClipboard text={realm?.account.communityMint} onCopy={handleCopy}>
                                             <Button 
                                                 color={'inherit'} 
                                                 variant='text'
@@ -948,14 +948,18 @@ export default function WalletCardView(props:any) {
                         console.log("wallet details: "+JSON.stringify(item));
                         console.log("realm: "+JSON.stringify(realm));
                         
-                        if (item?.account.config?.communityVoteThreshold?.value){ // has commmunity support
+                        if (instructions.governingMint){
                             useGoverningMint = realm.account.communityMint;
-                            hasChoice++;
-                        }
+                        } else{
+                            if (item?.account.config?.communityVoteThreshold?.value){ // has commmunity support
+                                useGoverningMint = realm.account.communityMint;
+                                hasChoice++;
+                            }
 
-                        if (item?.account.config?.councilVoteThreshold?.value){ // has council support
-                            useGoverningMint = realm.account.config.councilMint;
-                            hasChoice++;
+                            if (item?.account.config?.councilVoteThreshold?.value){ // has council support
+                                useGoverningMint = realm.account.config.councilMint;
+                                hasChoice++;
+                            }
                         }
 
                     }
@@ -967,7 +971,7 @@ export default function WalletCardView(props:any) {
             if (ixRulesWallet){
                 console.log("Using Rules: "+ixRulesWallet);
 
-                const isDraft = true;
+                const isDraft = instructions.draft ? instructions.draft : true;
                 const returnTx = false;
                 
                 const transaction = new Transaction();
@@ -1604,6 +1608,8 @@ export default function WalletCardView(props:any) {
             :
                 <>
                     <ExtensionsMenuView 
+                        realm={realm}
+                        rulesWallet={rulesWallet}
                         governanceNativeWallet={walletAddress} 
                         expandedLoader={expandedLoader} 
                         setExpandedLoader={setExpandedLoader}
