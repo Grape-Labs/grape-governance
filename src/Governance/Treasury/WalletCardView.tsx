@@ -322,7 +322,7 @@ export default function WalletCardView(props:any) {
                                     </CopyToClipboard><br/>
                                 </>}
                                     Community: 
-                                        <CopyToClipboard text={realm?.communityMint} onCopy={handleCopy}>
+                                        <CopyToClipboard text={realm?.account.communityMint} onCopy={handleCopy}>
                                             <Button 
                                                 color={'inherit'} 
                                                 variant='text'

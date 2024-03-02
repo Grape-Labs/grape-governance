@@ -151,8 +151,10 @@ export default function ClaimExtensionView(props: any){
 
     const toggleGoverningMintSelected = (council: boolean) => {
         if (council){
+            setIsGoverningMintCouncilSelected(true);
             setGoverningMint(realm?.account.config.councilMint);
         } else{
+            setIsGoverningMintCouncilSelected(false);
             setGoverningMint(realm?.communityMint);
         }
     }
@@ -192,7 +194,7 @@ export default function ClaimExtensionView(props: any){
                 draft:isDraft,
             }
 
-            //console.log("propIx: "+JSON.stringify(propIx))
+            console.log("propIx: "+JSON.stringify(propIx))
 
             setInstructions(propIx);
             setExpandedLoader(true);
@@ -273,16 +275,20 @@ export default function ClaimExtensionView(props: any){
         if (realm && realm?.account.config?.councilMint){
             setGoverningMint(realm?.account.config.councilMint);
             setIsGoverningMintCouncilSelected(true);
-            if (realm && realm?.communityMint){
+            //console.log("FOUND 1 ");
+            if (realm && realm?.account?.communityMint){
+                //console.log("FOUND 2 ("+Number(rulesWallet.account.config.minCommunityTokensToCreateProposal)+")");
                 if (Number(rulesWallet.account.config.minCommunityTokensToCreateProposal) !== 18446744073709551615){
-                    setGoverningMint(realm?.communityMint);
+                    setGoverningMint(realm?.account.communityMint);
+                    //console.log("FOUND 3")
                     setIsGoverningMintSelectable(true);
                     setIsGoverningMintCouncilSelected(false);
                 }
             }
         } else {
-            if (realm && realm?.communityMint){
-                setGoverningMint(realm?.communityMint);
+            if (realm && realm?.account?.communityMint){
+                //console.log("FOUND 0")
+                setGoverningMint(realm?.account.communityMint);
                 setIsGoverningMintCouncilSelected(false);
             }
         }
