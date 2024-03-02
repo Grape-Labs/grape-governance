@@ -59,6 +59,9 @@ import FitScreenIcon from '@mui/icons-material/FitScreen';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 
+
+import AdvancedProposalView from './AdvancedProposalView';
+
 export interface DialogTitleProps {
     id: string;
     children?: React.ReactNode;
@@ -272,6 +275,7 @@ export default function ClaimExtensionView(props: any){
     }
 
     React.useEffect(() => { 
+        setIsGoverningMintSelectable(false);
         if (realm && realm?.account.config?.councilMint){
             setGoverningMint(realm?.account.config.councilMint);
             setIsGoverningMintCouncilSelected(true);
@@ -411,76 +415,19 @@ export default function ClaimExtensionView(props: any){
                     
                     {openAdvanced ? 
                         <>
-                            <Box
-                                sx={{
-                                    border:'1px solid #333',
-                                    borderRadius:'17px',
-                                    p:2,
-                                }}
-                            >
-                                <TextField
-                                    autoFocus
-                                    required
-                                    margin="dense"
-                                    id="proposal_title"
-                                    name="proposal_title"
-                                    label="Proposal TItle"
-                                    type="text"
-                                    fullWidth
-                                    variant="outlined"
-                                    value={proposalTitle}
-                                    InputLabelProps={{ shrink: true }}
-                                    onChange={(e) => setProposalTitle(e.target.value)}
-                                    sx={{textAlign:"center"}}
-                                    />
-                                
-                                <TextField
-                                    autoFocus
-                                    required
-                                    margin="dense"
-                                    id="proposal_dsecription"
-                                    name="proposal_description"
-                                    label="Proposal Description"
-                                    type="text"
-                                    fullWidth
-                                    variant="outlined"
-                                    value={proposalDescription}
-                                    InputLabelProps={{ shrink: true }}
-                                    onChange={(e) => setProposalDescription(e.target.value)}
-                                    sx={{textAlign:"center"}}
-                                    />
+                            <AdvancedProposalView 
+                                proposalTitle={proposalTitle}
+                                setProposalTitle={setProposalTitle}
+                                proposalDescription={proposalDescription}
+                                setProposalDescription={setProposalDescription}
+                                toggleGoverningMintSelected={toggleGoverningMintSelected}
+                                isGoverningMintCouncilSelected={isGoverningMintCouncilSelected}
+                                isGoverningMintSelectable={isGoverningMintSelectable}
+                                isDraft={isDraft}
+                                setIsDraft={setIsDraft}
 
-                                <FormControl fullWidth >
-                                    <FormControlLabel 
-                                    control={
-                                        <Switch 
-                                        checked={isGoverningMintCouncilSelected} //communitySupport ? false : true}
-                                        onChange={
-                                            (e) => {
-                                                toggleGoverningMintSelected(e.target.checked)
-                                            }
-                                        }
-                                        disabled={!isGoverningMintSelectable}
-                                        />
-                                    } 
-                                    label="Council" />
-                                </FormControl>
-
-                                <FormControl fullWidth >
-                                    <FormControlLabel 
-                                    control={
-                                        <Switch 
-                                            checked={isDraft}
-                                            onChange={
-                                                (e) => {
-                                                    setIsDraft(!isDraft)
-                                                }
-                                            }
-                                        />
-                                    } 
-                                    label="Draft" />
-                                </FormControl>
-                            </Box>
+                            />
+                            
                         </>
                     :
                         <></>
