@@ -198,6 +198,7 @@ export default function WalletCardView(props:any) {
     const [proposalCreated, setProposalCreated] = React.useState(false);
     const [loaderSuccess, setLoaderSuccess] = React.useState(false);
     const [loaderCreationComplete, setLoaderCreationComplete] = React.useState(false);
+    const [masterWallet, setMasterWallet] = React.useState(null);
     
     const { publicKey } = useWallet();
     const anchorWallet = useAnchorWallet();
@@ -355,8 +356,6 @@ export default function WalletCardView(props:any) {
                                 </Grid>
                             </Grid>
                         </ListItem>
-                        
-                        
                         
                         <ListItem>
                             <Grid container>
@@ -647,6 +646,17 @@ export default function WalletCardView(props:any) {
                     
             // unify tokens?
             // think of how we can display them unified if needed
+
+            const mWallet = {
+                nativeSol: sol1,
+                rulesSol: sol2,
+                nativeTokens: token1,
+                rulesTokens: token2,
+                nativeNftTokens: nft1,
+                rulesNftTokens: nft2,
+            }
+            setMasterWallet(mWallet);
+
             setLoading(false);
             isLoading.current = false;
 
@@ -1616,7 +1626,8 @@ export default function WalletCardView(props:any) {
                         instructions={instructions}
                         setInstructions={setInstructions}
                         setSelectedNativeWallet={setSelectedNativeWallet}
-
+                        masterWallet={masterWallet}
+                        usdcValue={usdcValue}
                     />
                 </>
             }
