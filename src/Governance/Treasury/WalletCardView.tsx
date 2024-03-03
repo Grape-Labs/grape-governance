@@ -820,7 +820,8 @@ export default function WalletCardView(props:any) {
                         item.address === "BQcdHdAQW1hczDbBi9hiegXAR7A98Q9jx3X3iBBBDiq4" ||
                         item.address === "D3KdBta3p53RV5FoahnJM5tP45h6Fd3AyFYgXTJvGCaK" ||
                         item.address === "Ea5SjE2Y6yvCeW5dYTn7PYMuW5ikXkvbGdcmSnXeaLjS"){
-                        tokenStableAccountVal += usdcValue[item.address].price * item.balance;
+                            if (usdcValue[item.address] && usdcValue[item.address]?.price)
+                                tokenStableAccountVal += usdcValue[item.address].price * item.balance;
                     }
                 }
             }
@@ -835,7 +836,8 @@ export default function WalletCardView(props:any) {
                         item.address === "BQcdHdAQW1hczDbBi9hiegXAR7A98Q9jx3X3iBBBDiq4" ||
                         item.address === "D3KdBta3p53RV5FoahnJM5tP45h6Fd3AyFYgXTJvGCaK" ||
                         item.address === "Ea5SjE2Y6yvCeW5dYTn7PYMuW5ikXkvbGdcmSnXeaLjS"){
-                        tokenStableAccountVal += usdcValue[item.address].price * item.balance;
+                            if (usdcValue[item.address] && usdcValue[item.address]?.price)
+                                tokenStableAccountVal += usdcValue[item.address].price * item.balance;
                     }
                 }
             }

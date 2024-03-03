@@ -177,7 +177,7 @@ export default function BuyOnMEView(props: any) {
             //console.log("tokenPDA: "+meListing[0].pdaAddress);
             console.log("price: "+price);
             
-            const apiUrl = "https://api-mainnet.magiceden.dev/v2/instructions/buy_now";
+            const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/buy_now";
             //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/buy_now";
             
             //const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
@@ -249,7 +249,7 @@ export default function BuyOnMEView(props: any) {
         //const fromWallet = new PublicKey(fromAddress);
         
         //const apiUrl = PROXY+"https://hyper.solana.fm/v3/collections/"+collection+"/stats";
-        const apiUrl = "https://api-mainnet.magiceden.dev/v2/tokens/"+address+"/listings";
+        const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/tokens/"+address+"/listings";
 
         const options = {method: 'GET', headers: {accept: 'application/json'}};
         //axios.defaults.headers.common["Origin"] = "https://governance.so";
@@ -275,7 +275,7 @@ export default function BuyOnMEView(props: any) {
         //const fromWallet = new PublicKey(fromAddress);
             
         //const apiUrl = PROXY+"https://hyper.solana.fm/v3/collections/"+collection+"/stats";
-        const apiUrl = "https://api-mainnet.magiceden.dev/v2/collections/"+collection+"/stats";
+        const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/collections/"+collection+"/stats";
 
         const options = {method: 'GET', headers: {accept: 'application/json'}};
         //axios.defaults.headers.common["Origin"] = "https://governance.so";
