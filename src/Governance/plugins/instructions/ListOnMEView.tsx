@@ -144,7 +144,7 @@ export default function ListOnMEView(props: any) {
                 );
             }
             
-            const apiUrl = "https://api-mainnet.magiceden.dev/v2/instructions/sell_change_price";
+            const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell_change_price";
             //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell_change_price";
             const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
             
@@ -201,7 +201,7 @@ export default function ListOnMEView(props: any) {
         //const fromWallet = new PublicKey(fromAddress);
         
         //const apiUrl = PROXY+"https://hyper.solana.fm/v3/collections/"+collection+"/stats";
-        const apiUrl = "https://api-mainnet.magiceden.dev/v2/tokens/"+address+"/listings";
+        const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/tokens/"+address+"/listings";
 
         const options = {method: 'GET', headers: {accept: 'application/json'}};
         //axios.defaults.headers.common["Origin"] = "https://governance.so";
@@ -255,7 +255,7 @@ export default function ListOnMEView(props: any) {
                 );
             }
 
-            const apiUrl = "https://api-mainnet.magiceden.dev/v2/instructions/sell_now";
+            const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell_now";
             //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell_now";
 
             console.log("buyer: "+buyer);
@@ -387,7 +387,7 @@ export default function ListOnMEView(props: any) {
                 );
             }
 
-            const apiUrl = "https://api-mainnet.magiceden.dev/v2/instructions/sell_cancel";
+            const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell_cancel";
             //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell_cancel";
             
             console.log("seller: "+fromWallet.toBase58());
@@ -512,7 +512,7 @@ export default function ListOnMEView(props: any) {
             //const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/buy_now";
             //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell";
             //const apiUrl = PROXY+"https://api.magiceden.dev/v2/instructions/sell"
-            const apiUrl = "https://api-mainnet.magiceden.dev/v2/instructions/sell";
+            const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/instructions/sell";
             //const apiUrl = PROXY+"https://hyper.solana.fm/v3/instructions/sell";
             
             const meAuctionHouseAddress = "E8cU1WiRWjanGxmn96ewBgk9vPTcL6AEZ1t6F6fkgUWe";
@@ -570,7 +570,7 @@ export default function ListOnMEView(props: any) {
     }
 
     async function getMintOffers(address:string){
-        const apiUrl = "https://api-mainnet.magiceden.dev/v2/tokens/"+address+"/offers_received";
+        const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/tokens/"+address+"/offers_received";
 
         const options = {method: 'GET', headers: {accept: 'application/json'}};
         const resp = await window.fetch(apiUrl, options)
@@ -594,7 +594,7 @@ export default function ListOnMEView(props: any) {
         //const fromWallet = new PublicKey(fromAddress);
             
         //const apiUrl = PROXY+"https://hyper.solana.fm/v3/collections/"+collection+"/stats";
-        const apiUrl = "https://api-mainnet.magiceden.dev/v2/collections/"+collection+"/stats";
+        const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/collections/"+collection+"/stats";
 
         const options = {method: 'GET', headers: {accept: 'application/json'}};
         //axios.defaults.headers.common["Origin"] = "https://governance.so";
@@ -623,7 +623,7 @@ export default function ListOnMEView(props: any) {
         const fetchListingsForToken = async() => {
             
             //const apiUrl = PROXY+"https://hyper.solana.fm/v3/wallets/"+fromAddress+"/activities";
-            const apiUrl = "https://api-mainnet.magiceden.dev/v2/wallets/"+fromAddress+"/tokens";
+            const apiUrl = PROXY+"https://api-mainnet.magiceden.dev/v2/wallets/"+fromAddress+"/tokens";
 
             const options = {method: 'GET', headers: {accept: 'application/json'}};
             //axios.defaults.headers.common["Origin"] = "https://governance.so";
