@@ -51,6 +51,7 @@ import Settings from '@mui/icons-material/Settings';
 import Logout from '@mui/icons-material/Logout';
 import ExtensionIcon from '@mui/icons-material/Extension';
 
+import SendExtensionView from './SendView';
 import DirectoryExtensionView from './DirectoryView';
 import DistributorExtensionView from './DistributorView';
 import ClaimExtensionView from './ClaimView';
@@ -67,7 +68,9 @@ export default function ExtensionsMenuView(props: any) {
   const setExpandedLoader = props?.setExpandedLoader;
   const instructions = props?.instructions;
   const setInstructions = props?.setInstructions;
-  
+  const masterWallet = props?.masterWallet;
+  const usdcValue = props?.usdcValue;
+
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
     setOpen(true);
@@ -124,6 +127,18 @@ export default function ExtensionsMenuView(props: any) {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
+        <SendExtensionView
+            realm={realm}
+            handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+            masterWallet={masterWallet}
+            usdcValue={usdcValue}
+        />
         <DirectoryExtensionView
             realm={realm}
             handleCloseExtMenu={handleClose}

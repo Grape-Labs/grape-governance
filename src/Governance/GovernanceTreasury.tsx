@@ -120,13 +120,6 @@ export function GovernanceTreasuryView(props: any) {
 
     const [governanceValue, setGovernanceValue] = React.useState([]);
 
-    const [totalGovernanceValue, setTotalGovernanceValue] = React.useState(null);
-    const [totalGovernanceSolValue, setTotalGovernanceSolValue] = React.useState(null);
-    const [totalGovernanceSol, setTotalGovernanceSol] = React.useState(null);
-    const [totalGovernanceNftFloorValue, setTotalGovernanceNftFloorValue] = React.useState(null);
-    const [totalGovernanceStableCoinValue, setTotalGovernanceStableCoinValue] = React.useState(null);
-    const [totalStakedValue, setTotalStakedValue] = React.useState(null);
-
     const [communityMintDecimals, setCommunityMintDecimals] = React.useState(0);
     const [governanceWallets, setGovernanceWallets] = React.useState(null);
 
@@ -310,7 +303,7 @@ export function GovernanceTreasuryView(props: any) {
                         <Box sx={{ p:1}}>
 
                             <Grid container spacing={1}>
-                                <Grid item xs={12} md={6} lg={6} key={1}>
+                                <Grid item xs={12} md={4} lg={4} key={1}>
                                     <Box
                                         sx={{
                                             borderRadius:'24px',
@@ -358,7 +351,56 @@ export function GovernanceTreasuryView(props: any) {
                                     </Box>
                                 </Grid>
                                 
-                                <Grid item xs={12} md={6} lg={6} key={1}>
+                                <Grid item xs={12} md={4} lg={4} key={1}>
+                                    <Box
+                                        sx={{
+                                            borderRadius:'24px',
+                                            m:0,
+                                            p:1,
+                                            background: 'rgba(0, 0, 0, 0.2)',
+                                        }}
+                                    >
+                                        <Typography variant="body2" sx={{color:'#2ecc71'}}>
+                                            <>Stable Coin Treasury</>
+                                        </Typography>
+                                        <Box
+                                            sx={{
+                                                borderRadius: '17px',
+                                                display: 'flex', /* Add this line */
+                                                justifyContent: 'center', /* Add this line */
+                                                alignItems: 'center', /* Add this line */
+                                            }}
+                                        >
+                                            <Tooltip title={<>
+                                                    Total Value in value in stable coins</>
+                                                }>
+                                                <Button
+                                                    color='inherit'
+                                                    sx={{
+                                                        borderRadius: '17px',
+                                                        display: 'flex', /* Add this line */
+                                                        justifyContent: 'center', /* Add this line */
+                                                        alignItems: 'center', /* Add this line */
+                                                    }}
+                                                >
+                                                    <Grid container
+                                                        sx={{
+                                                            verticalAlign: 'bottom'}}
+                                                        >
+                                                            
+                                                            <Typography variant="h4" sx={{textAlign:'center'}}>
+                                                                {governanceValue && `$${(Number(governanceValue.reduce((sum, item) => sum + item.stableAccountVal, 0).toFixed(2)).toLocaleString())}`}
+                                                                
+                                                            </Typography>
+                                                        
+                                                    </Grid>
+                                                </Button>
+                                            </Tooltip>
+                                        </Box>
+                                    </Box>
+                                </Grid>
+                                
+                                <Grid item xs={12} md={4} lg={4} key={1}>
                                     <Box
                                         sx={{
                                             borderRadius:'24px',
