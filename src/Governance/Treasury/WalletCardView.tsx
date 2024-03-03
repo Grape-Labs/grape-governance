@@ -156,9 +156,8 @@ export default function WalletCardView(props:any) {
     const rulesWallet = props?.rulesWallet;
     
     const walletAddress = props?.walletAddress;
-    
     const rulesWalletAddress = rulesWallet ? new PublicKey(rulesWallet.pubkey).toBase58() : props?.rulesWalletAddress;
-                                                
+
     const tokenMap = props?.tokenMap;
     const communityMintDecimals = props?.communityMintDecimals;
     const governanceAddress = props?.governanceAddress;
@@ -182,6 +181,7 @@ export default function WalletCardView(props:any) {
     const [proposals, setProposals] = React.useState(null);
     const [nativeStakeAccounts, setNativeStakeAccounts] = React.useState(null);
     const [rulesStakeAccounts, setRulesStakeAccounts] = React.useState(null);
+    const [totalStableWalletValue, setTotalStableWalletValue] = React.useState(null);
     const [totalWalletValue, setTotalWalletValue] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
     const isLoading = React.useRef(false);
@@ -802,6 +802,7 @@ export default function WalletCardView(props:any) {
             (nativeSol && nativeSol > 0 || rulesSol && rulesSol > 0) &&
             (nativeTokens && rulesTokens)){
             let totalVal = 0;
+            let tokenStableAccountVal = 0;
             let tokenAccountVal = 0;
             let stakeAccountVal = 0;
             let solAccountVal = usdcValue['So11111111111111111111111111111111111111112']?.price ? usdcValue['So11111111111111111111111111111111111111112']?.price*(+nativeSol + +rulesSol) : 0;
@@ -813,6 +814,14 @@ export default function WalletCardView(props:any) {
                     if (usdcValue[item.address]){
                         tokenAccountVal += usdcValue[item.address].price * item.balance;
                     }
+
+                    if (item.address === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ||
+                        item.address === "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" ||
+                        item.address === "BQcdHdAQW1hczDbBi9hiegXAR7A98Q9jx3X3iBBBDiq4" ||
+                        item.address === "D3KdBta3p53RV5FoahnJM5tP45h6Fd3AyFYgXTJvGCaK" ||
+                        item.address === "Ea5SjE2Y6yvCeW5dYTn7PYMuW5ikXkvbGdcmSnXeaLjS"){
+                        tokenStableAccountVal += usdcValue[item.address].price * item.balance;
+                    }
                 }
             }
             if (rulesTokens){
@@ -821,6 +830,13 @@ export default function WalletCardView(props:any) {
                         tokenAccountVal += usdcValue[item.address].price * item.balance;
                     }
 
+                    if (item.address === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ||
+                        item.address === "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" ||
+                        item.address === "BQcdHdAQW1hczDbBi9hiegXAR7A98Q9jx3X3iBBBDiq4" ||
+                        item.address === "D3KdBta3p53RV5FoahnJM5tP45h6Fd3AyFYgXTJvGCaK" ||
+                        item.address === "Ea5SjE2Y6yvCeW5dYTn7PYMuW5ikXkvbGdcmSnXeaLjS"){
+                        tokenStableAccountVal += usdcValue[item.address].price * item.balance;
+                    }
                 }
             }
             totalVal+=tokenAccountVal;
@@ -835,7 +851,12 @@ export default function WalletCardView(props:any) {
                     stakeAccountVal += item.total_amount * usdcValue['So11111111111111111111111111111111111111112']?.price
                 }
             } 
+
+            /*
+            LOOP THROUGH ALL DAO WALLETS TO GET THE VALUE
+            */
             totalVal+=stakeAccountVal;
+            setTotalStableWalletValue(tokenStableAccountVal);
             setTotalWalletValue(totalVal);
             rulesWallet.walletValue = totalVal;
             rulesWallet.solBalance = +nativeSol + +rulesSol;
@@ -844,6 +865,7 @@ export default function WalletCardView(props:any) {
                 address: walletAddress,
                 totalVal: totalVal,
                 solAccountVal: solAccountVal,
+                stableAccountVal:tokenStableAccountVal,
                 totalGovernanceSol: (+nativeSol + +rulesSol),
               };
               

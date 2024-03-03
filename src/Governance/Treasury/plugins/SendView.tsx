@@ -282,14 +282,19 @@ export default function SendExtensionView(props: any){
 
             <>
                 {tokenSelected ?
-                    <>
-                        <Avatar
-                            src={tokenSelected.info.image}
+                    <ListItem sx={{m:0,p:0}}>
+                        <ListItemAvatar>
+                            <Avatar
+                                src={tokenSelected.info.image}
+                                alt={tokenSelected.info.name}
+                            />
+                        </ListItemAvatar>
+                        <ListItemText 
+                            primary={tokenSelected.info.name}
                         />
-                        {tokenSelected.info.name}
-                    </>
+                    </ListItem>
                 :
-                    <>*** {ata}</>
+                    <>{ata}</>
                 }
                 
             </>
@@ -408,7 +413,7 @@ export default function SendExtensionView(props: any){
     return (
         <>
             <Tooltip title="Send Token" placement="right">
-                <MenuItem onClick={handleClickOpen}>
+                <MenuItem onClick={handleClickOpen} disabled={true}>
                 <ListItemIcon>
                     <SendIcon fontSize="small" />
                 </ListItemIcon>
@@ -446,16 +451,16 @@ export default function SendExtensionView(props: any){
                             //label="With normal TextField"
                             id="outlined-start-adornment"
                             variant="filled"
-                            sx={{ m: 1 }}
+                            sx={{ p: 2, height:'none;' }}
                             InputProps={{
                                 startAdornment: 
-                                <InputAdornment position="start" sx={{ maxWidth:'50%' }}>
+                                <InputAdornment position="start" sx={{ maxWidth:'50%',height:'none' }}>
                                     <FormControl variant="filled">
                                         <WalletTokenSelect />
                                     </FormControl>
                                 </InputAdornment>,
                                 inputProps: {
-                                    style: { textAlign: 'right', fontSize:'16px' }, // Align text input to the right
+                                    style: { textAlign: 'right', fontSize:'16px', height:'none;' }, // Align text input to the right
                                 },
                             }}
                             
