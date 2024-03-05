@@ -393,21 +393,21 @@ export default function SendExtensionView(props: any){
                     <FormControl fullWidth  sx={{mt:2,mb:2}}>
                         
                         {tokenSelected ?
-                            <Grid container direction='row' sx={{pl:2,pr:2}}>
+                            <Grid container direction='row' sx={{pl:2,pr:1}}>
                                 <Grid item xs>
-                                    <Typography variant='caption'>
+                                    <Typography variant='caption' sx={{color:'#919EAB'}}>
                                     You're sending
                                     </Typography>
                                 </Grid>
                                 <Grid item>
-                                    <Typography variant='caption' sx={{color:'rgba(145, 158, 171, 0.2)'}}>
+                                    <Typography variant='caption' sx={{color:'#919EAB'}}>
                                         <>
                                             <Chip size="small" icon={<AccountBalanceWalletIcon color='inherit' />} 
                                                 label={(+tokenSelected.balance).toLocaleString()} 
                                                 variant="outlined" 
-                                                sx={{mr:1,border:'none;',color:'rgba(145, 158, 171, 0.2);'}} />
-                                            <Chip label="Half" variant="outlined" size="small" sx={{mr:1,borderColor:'rgba(145, 158, 171, 0.2);',color:'rgba(145, 158, 171, 0.2);'}} />
-                                            <Chip label="Max" variant="outlined" size="small" sx={{borderColor:'rgba(145, 158, 171, 0.2);',color:'rgba(145, 158, 171, 0.2);'}}/>
+                                                sx={{mr:1,border:'none;',color:'#919EAB'}} />
+                                            <Chip label="Half" variant="outlined" size="small" sx={{mr:1,borderColor:'#919EAB',color:'#919EAB'}} />
+                                            <Chip label="Max" variant="outlined" size="small" sx={{borderColor:'#919EAB',color:'#919EAB'}}/>
                                         </>
                                         
                                     </Typography>
