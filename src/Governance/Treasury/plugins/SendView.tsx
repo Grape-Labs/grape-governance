@@ -51,6 +51,8 @@ import {
 
 import { useSnackbar } from 'notistack';
 
+import ContentPasteIcon from '@mui/icons-material/ContentPaste';
+import PersonIcon from '@mui/icons-material/Person';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import SendIcon from '@mui/icons-material/Send';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -137,6 +139,8 @@ export default function SendExtensionView(props: any){
     const [isGoverningMintCouncilSelected, setIsGoverningMintCouncilSelected] = React.useState(true);
     const [isDraft, setIsDraft] = React.useState(false);
     const [tokenSelected, setTokenSelected] = React.useState(null);
+    const [tokenAmount, setTokenAmount] = React.useState(null);
+    const [tokenRecipient, setTokenRecipient] = React.useState(null);
     
     const [expanded, setExpanded] = React.useState<string | false>(false);
     
@@ -332,6 +336,53 @@ export default function SendExtensionView(props: any){
                 });
     }
 
+    const adjustTokenAmount = (amountFixed?:number,amountPercent?:number) => {
+        if (amountPercent){
+            if (amountPercent > 0){
+                if (tokenSelected.balance > 0){
+                    setTokenAmount(tokenSelected.balance * amountPercent)
+                }
+            }
+        }
+    }
+
+    const handleSetTokenAmount = (amount:string) => {
+        if (amount){
+            setTokenAmount(+amount);
+        } else {
+            setTokenAmount(0);
+        }
+    }
+
+    
+    const handleSetTokenRecipient = (reciever:string) => {
+        if (reciever){
+            setTokenRecipient(reciever);
+        } else {
+            setTokenRecipient(null);
+        }
+    }
+    
+    function handleAddMyWallet(){
+        if (!tokenRecipient)
+            setTokenRecipient(publicKey.toBase58());
+        else if (tokenRecipient.length <= 0)
+            setTokenRecipient(publicKey.toBase58());
+        else if (tokenRecipient.includes(publicKey.toBase58()))
+            return;
+        //else
+            //setDestinationString(tokenRecipient + "\n" + publicKey.toBase58());
+    }
+
+    const handlePasteFromClipboard = (event:any) => {
+        
+        /*event.preventDefault(); // Prevent default paste behavior
+        const pastedText = event.clipboardData?.getData('text');
+        if (pastedText)
+            setTokenRecipient(pastedText);
+        */
+    }
+
     React.useEffect(() => { 
         setIsGoverningMintSelectable(false);
         if (realm && realm?.account.config?.councilMint){
@@ -402,12 +453,16 @@ export default function SendExtensionView(props: any){
                                 <Grid item>
                                     <Typography variant='caption' sx={{color:'#919EAB'}}>
                                         <>
-                                            <Chip size="small" icon={<AccountBalanceWalletIcon color='inherit' />} 
+                                            <Chip size="small" icon={<AccountBalanceWalletIcon sx={{ fontSize: 6 }} color='inherit' />} 
                                                 label={(+tokenSelected.balance).toLocaleString()} 
                                                 variant="outlined" 
                                                 sx={{mr:1,border:'none;',color:'#919EAB'}} />
-                                            <Chip label="Half" variant="outlined" size="small" sx={{mr:1,borderColor:'#919EAB',color:'#919EAB'}} />
-                                            <Chip label="Max" variant="outlined" size="small" sx={{borderColor:'#919EAB',color:'#919EAB'}}/>
+                                            <Chip 
+                                                onClick={() => adjustTokenAmount(null,0.5)}
+                                                label="Half" variant="outlined" size="small" sx={{mr:1,borderColor:'#919EAB',color:'#919EAB'}} />
+                                            <Chip
+                                                onClick={() => adjustTokenAmount(null,1)}
+                                                label="Max" variant="outlined" size="small" sx={{borderColor:'#919EAB',color:'#919EAB'}}/>
                                         </>
                                         
                                     </Typography>
@@ -422,9 +477,11 @@ export default function SendExtensionView(props: any){
                         
                         <TextField
                             //label="With normal TextField"
-                            id="outlined-start-adornment"
+                            id="token-amount"
                             variant="filled"
-                            sx={{ p: 1, height:'none;' }}
+                            sx={{ p: 1, height:'none;', fontSize:'16px' }}
+                            value={tokenAmount}
+                            onChange={(e) => handleSetTokenAmount(e.target.value)}
                             InputProps={{
                                 startAdornment: 
                                 <InputAdornment position="start" sx={{ maxWidth:'50%',height:'none' }}>
@@ -489,15 +546,41 @@ export default function SendExtensionView(props: any){
                     <FormControl fullWidth  sx={{mb:2}}>
                         <TextField
                             label="Recipient"
-                            id="outlined-start-adornment"
+                            id="recipient"
                             variant="filled"
-                            sx={{ m: 0.6 }}
+                            sx={{ m: 0.65 }}
+                            value={tokenRecipient}
+                            onChange={(e) => handleSetTokenRecipient(e.target.value)}
+                            InputLabelProps={{
+                                shrink: !!tokenRecipient, // Set shrink based on value existence
+                            }}
                         />
+                        <Grid sx={{textAlign:'right',}}>
+                            {/*
+                            <Tooltip title='Paste from clipboard'>
+                                <IconButton 
+                                        size="small"
+                                        onClick={handlePasteFromClipboard}
+                                        color='inherit'
+                                        sx={{color:'#919EAB',textTransform:'none',ml:1}}
+                                        onPaste={handlePasteFromClipboard}
+                                        >
+                                    <ContentPasteIcon fontSize='small' />
+                                </IconButton>
+                            </Tooltip>
+                            */}
+                            <Tooltip title='Add my Wallet'>
+                                <IconButton 
+                                        size="small"
+                                        onClick={handleAddMyWallet}
+                                        color='inherit'
+                                        sx={{color:'#919EAB',textTransform:'none',ml:1}}>
+                                    <PersonIcon fontSize='small' />
+                                </IconButton>
+                            </Tooltip>
+                        </Grid>
                     </FormControl>
 
-                    
-
-                    
                     {openAdvanced ? 
                         <>
                             <AdvancedProposalView 
