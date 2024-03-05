@@ -51,6 +51,7 @@ import {
 
 import { useSnackbar } from 'notistack';
 
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import SendIcon from '@mui/icons-material/Send';
 import SettingsIcon from '@mui/icons-material/Settings';
 import GetAppIcon from '@mui/icons-material/GetApp';
@@ -135,7 +136,8 @@ export default function SendExtensionView(props: any){
     const [isGoverningMintSelectable, setIsGoverningMintSelectable] = React.useState(true);
     const [isGoverningMintCouncilSelected, setIsGoverningMintCouncilSelected] = React.useState(true);
     const [isDraft, setIsDraft] = React.useState(false);
-
+    const [tokenSelected, setTokenSelected] = React.useState(null);
+    
     const [expanded, setExpanded] = React.useState<string | false>(false);
     
     const provider = new AnchorProvider(RPC_CONNECTION, wallet, {
@@ -208,7 +210,7 @@ export default function SendExtensionView(props: any){
     const RenderTokenItem = (props: any) => {
         const item = props?.item;
         const key = props?.key;
-
+        
         return (
             <ListItem
                 secondaryAction={
@@ -262,7 +264,7 @@ export default function SendExtensionView(props: any){
 
     const RenderTokenSelected = (props: any) => {
         const ata = props.ata;
-        const [tokenSelected, setTokenSelected] = React.useState(null);
+        const [thisTokenSelected, setThisTokenSelected] = React.useState(null);
         
         React.useEffect(() => { 
             if (ata && masterWallet){
@@ -270,26 +272,31 @@ export default function SendExtensionView(props: any){
                 if (masterWallet?.nativeTokens && masterWallet.nativeTokens.length > 0){
                     for (var item of masterWallet.nativeTokens){
                         if (item.associated_account === ata){
-                            setTokenSelected(item);
+                            setThisTokenSelected(item);
+                            //setTokenSelected(item)
                         }
                     }
                 }
 
+                if (thisTokenSelected)
+                    setTokenSelected(thisTokenSelected)
             }
-        }, [ata, masterWallet]);
+        }, [ata, masterWallet, thisTokenSelected]);
 
+        
         return (
 
             <>
                 {tokenSelected ?
-                    <ListItem sx={{m:0,p:0}}>
-                        <ListItemAvatar>
+                    <ListItem sx={{m:0,mr:1,p:0,pr:1}}>
+                        <ListItemAvatar sx={{m:0,p:0}}>
                             <Avatar
                                 src={tokenSelected.info.image}
                                 alt={tokenSelected.info.name}
+                                sx={{ width: 24, height: 24 }}
                             />
                         </ListItemAvatar>
-                        <ListItemText 
+                        <ListItemText sx={{m:0,p:0,ml:1}}
                             primary={tokenSelected.info.name}
                         />
                     </ListItem>
@@ -298,69 +305,6 @@ export default function SendExtensionView(props: any){
                 }
                 
             </>
-
-        );
-    }
-
-    const WalletTokenSelect = () => {
-
-        return (
-            <>
-            {masterWallet ?
-            
-                <>
-                    <Select
-                        labelId="master-wallet"
-                        id="master-wallet"
-                        size='small'
-                        //value={age}
-                        //label="Token"
-                        //onChange={handleChange}
-                        sx={{mt:-2}}
-                        renderValue={
-                            (value) => <RenderTokenSelected ata={value} />
-                        }
-                        // (value) => `⚠️  - ${value}`
-                    >
-                        {masterWallet?.nativeTokens && masterWallet.nativeTokens
-                            //.sort((a:any,b:any) => (b.balance - a.balance))
-                            .sort((a, b) => {
-                                const priceA = usdcValue[a.address]?.price;
-                                const priceB = usdcValue[b.address]?.price;
-                                
-                                if (priceA !== undefined && priceB !== undefined) {
-                                    return (b.balance * priceB) - (a.balance * priceA);
-                                  } else if (priceA !== undefined) {
-                                    // If only the first token has a price, it should come first
-                                    return -1;
-                                  } else if (priceB !== undefined) {
-                                    // If only the second token has a price, it should come first
-                                    return 1;
-                                  } else {
-                                    // If neither has a price, fall back to sorting by balance
-                                    return b.balance - a.balance;
-                                  }
-                            })
-                            //.sort((a:any,b:any) => ((usdcValue && (usdcValue[b.address] && usdcValue[a.address]) && (b.balance * usdcValue[b.address]?.price)-(a.balance * usdcValue[a.address]?.price))) || (b.balance - a.balance))
-                            //.sort((a:any,b:any) => (b.balance - a.balance))
-                            .map((item: any,key:number) => (   
-                                <MenuItem value={item.associated_account} key={key}>
-                                    
-                                    <RenderTokenItem item={item} key={key} />
-                                    
-                                </MenuItem>
-                                
-                            ))
-
-                        }
-                    </Select> 
-                </>
-                :
-                <></>
-            }
-            
-            </>        
-
 
         );
     }
@@ -413,7 +357,7 @@ export default function SendExtensionView(props: any){
     return (
         <>
             <Tooltip title="Send Token" placement="right">
-                <MenuItem onClick={handleClickOpen} disabled={true}>
+                <MenuItem onClick={handleClickOpen}>
                 <ListItemIcon>
                     <SendIcon fontSize="small" />
                 </ListItemIcon>
@@ -446,17 +390,92 @@ export default function SendExtensionView(props: any){
                         Quickly send tokens to any valid Solana address
                     </DialogContentText>
                     
-                    <FormControl fullWidth  sx={{mb:2}}>
+                    <FormControl fullWidth  sx={{mt:2,mb:2}}>
+                        
+                        {tokenSelected ?
+                            <Grid container direction='row' sx={{pl:2,pr:2}}>
+                                <Grid item xs>
+                                    <Typography variant='caption'>
+                                    You're sending
+                                    </Typography>
+                                </Grid>
+                                <Grid item>
+                                    <Typography variant='caption' sx={{color:'rgba(145, 158, 171, 0.2)'}}>
+                                        <>
+                                            <Chip size="small" icon={<AccountBalanceWalletIcon color='inherit' />} 
+                                                label={(+tokenSelected.balance).toLocaleString()} 
+                                                variant="outlined" 
+                                                sx={{mr:1,border:'none;',color:'rgba(145, 158, 171, 0.2);'}} />
+                                            <Chip label="Half" variant="outlined" size="small" sx={{mr:1,borderColor:'rgba(145, 158, 171, 0.2);',color:'rgba(145, 158, 171, 0.2);'}} />
+                                            <Chip label="Max" variant="outlined" size="small" sx={{borderColor:'rgba(145, 158, 171, 0.2);',color:'rgba(145, 158, 171, 0.2);'}}/>
+                                        </>
+                                        
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        :
+                        <></>
+                        }
+
+
+                        
+                        
                         <TextField
                             //label="With normal TextField"
                             id="outlined-start-adornment"
                             variant="filled"
-                            sx={{ p: 2, height:'none;' }}
+                            sx={{ p: 1, height:'none;' }}
                             InputProps={{
                                 startAdornment: 
                                 <InputAdornment position="start" sx={{ maxWidth:'50%',height:'none' }}>
-                                    <FormControl variant="filled">
-                                        <WalletTokenSelect />
+                                    <FormControl sx={{ m: 1,mt:-1, minWidth: 120 }} size="small">
+                                        
+                                            <Select
+                                                labelId="master-wallet"
+                                                id="master-wallet"
+                                                size='small'
+                                                //value={tokenSelected ? tokenSelected.associated_account : null}
+                                                //label="Token"
+                                                //onChange={handleChange}
+                                                sx={{}}
+                                                renderValue={
+                                                    (value) => <RenderTokenSelected ata={value} />
+                                                }
+                                                // (value) => `⚠️  - ${value}`
+                                            >
+                                                {masterWallet?.nativeTokens && masterWallet.nativeTokens
+                                                    //.sort((a:any,b:any) => (b.balance - a.balance))
+                                                    .sort((a, b) => {
+                                                        const priceA = usdcValue[a.address]?.price;
+                                                        const priceB = usdcValue[b.address]?.price;
+                                                        
+                                                        if (priceA !== undefined && priceB !== undefined) {
+                                                            return (b.balance * priceB) - (a.balance * priceA);
+                                                        } else if (priceA !== undefined) {
+                                                            // If only the first token has a price, it should come first
+                                                            return -1;
+                                                        } else if (priceB !== undefined) {
+                                                            // If only the second token has a price, it should come first
+                                                            return 1;
+                                                        } else {
+                                                            // If neither has a price, fall back to sorting by balance
+                                                            return b.balance - a.balance;
+                                                        }
+                                                    })
+                                                    //.sort((a:any,b:any) => ((usdcValue && (usdcValue[b.address] && usdcValue[a.address]) && (b.balance * usdcValue[b.address]?.price)-(a.balance * usdcValue[a.address]?.price))) || (b.balance - a.balance))
+                                                    //.sort((a:any,b:any) => (b.balance - a.balance))
+                                                    .map((item: any,key:number) => (   
+                                                        <MenuItem value={item.associated_account} key={key}>
+                                                            
+                                                            <RenderTokenItem item={item} key={key} />
+                                                            
+                                                        </MenuItem>
+                                                        
+                                                    ))
+
+                                                }
+                                            </Select> 
+                                        
                                     </FormControl>
                                 </InputAdornment>,
                                 inputProps: {
@@ -467,14 +486,12 @@ export default function SendExtensionView(props: any){
                         />
                     </FormControl>
 
-                    <br/>
-
                     <FormControl fullWidth  sx={{mb:2}}>
                         <TextField
                             label="Recipient"
                             id="outlined-start-adornment"
                             variant="filled"
-                            sx={{ m: 1 }}
+                            sx={{ m: 0.6 }}
                         />
                     </FormControl>
 
