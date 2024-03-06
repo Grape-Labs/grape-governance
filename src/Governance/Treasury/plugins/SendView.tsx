@@ -289,7 +289,6 @@ export default function SendExtensionView(props: any){
                     true
                 )
                 
-
                 const receiverAccount = await RPC_CONNECTION.getAccountInfo(
                     destTokenAccount
                 )
@@ -303,7 +302,7 @@ export default function SendExtensionView(props: any){
                         TOKEN_PROGRAM_ID,
                         ASSOCIATED_TOKEN_PROGRAM_ID
                     );
-                    //transaction.add(transactionInstruction);
+                    
                     if (publicKey)
                         pTransaction.add(transactionInstruction);
                     else
@@ -324,19 +323,22 @@ export default function SendExtensionView(props: any){
 
         const ixs = transaction; //await distributor.claimToken(new PublicKey(governanceNativeWallet));
         const aixs = pTransaction;
+
+        //const ixts: TransactionInstruction[] = [];
         
-        if (ixs){
+        if (ixs || aixs){
 
             const propIx = {
                 title:proposalTitle,
                 description:proposalDescription,
-                ix:ixs,
-                aix:aixs,
+                ix:ixs.instructions,
+                aix:aixs?.instructions,
                 nativeWallet:governanceNativeWallet,
                 governingMint:governingMint,
                 draft:isDraft,
             }
 
+            //console.log("ixs: "+JSON.stringify(ixs))
             console.log("propIx: "+JSON.stringify(propIx))
 
             setInstructions(propIx);
@@ -545,7 +547,7 @@ export default function SendExtensionView(props: any){
             if (tokenAmount && tokenAmount > 0){
                 const title = "Send "+tokenSelected.info.name
                 setProposalTitle(title);
-                const description = "Sending "+tokenAmount+" "+tokenSelected.info.name+" to "+shortenString(tokenRecipient,5,5);
+                const description = "Sending "+tokenAmount.toLocaleString()+" "+tokenSelected.info.name+" to "+shortenString(tokenRecipient,5,5);
                 setProposalDescription(description);
 
 
@@ -775,6 +777,7 @@ export default function SendExtensionView(props: any){
                                     size='small'
                                     onClick={handleAdvancedToggle}
                                     sx={{
+                                        p:1,
                                         borderRadius:'17px',
                                         justifyContent: 'flex-start',
                                         '&:hover .MuiSvgIcon-root.claimIcon': {
@@ -803,6 +806,7 @@ export default function SendExtensionView(props: any){
                                     autoFocus 
                                     onClick={handleProposalIx}
                                     sx={{
+                                        p:1,
                                         borderRadius:'17px',
                                         '&:hover .MuiSvgIcon-root.claimNowIcon': {
                                             color:'rgba(255,255,255,0.90)'
@@ -818,7 +822,7 @@ export default function SendExtensionView(props: any){
                                     </>
                                     }
                                 >
-                                    <>Send</>
+                                    Send
                                 </Button>
                             }
                         </Box>
