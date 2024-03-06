@@ -423,7 +423,6 @@ export default function ClaimExtensionView(props: any){
                                 setIsDraft={setIsDraft}
 
                             />
-                            
                         </>
                     :
                         <></>
@@ -434,14 +433,15 @@ export default function ClaimExtensionView(props: any){
                         <Typography variant="caption">Made with ❤️ by Grape &amp; Jupiter #OPOS</Typography>
                     </Box>
 
-                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p:0, pb:1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', p:0 }}>
                         {(publicKey && claimableAmount && claimableAmount > 0) &&
                                 <Button
                                     disabled={!claimTokenAddress && !loading}
                                     size='small'
                                     onClick={handleAdvancedToggle}
                                     sx={{
+                                        borderRadius:'17px',
                                         justifyContent: 'flex-start',
                                         '&:hover .MuiSvgIcon-root.claimIcon': {
                                             color:'rgba(255,255,255,0.90)'
@@ -463,12 +463,13 @@ export default function ClaimExtensionView(props: any){
                         }
                         </Box>
 
-                        <Box sx={{ display: 'flex' }}>
+                        <Box sx={{ display: 'flex', p:0 }}>
                             <Button 
                                 disabled={!claimTokenAddress && !loading}
                                 autoFocus 
                                 onClick={handleCheckClaimStatus}
                                 sx={{
+                                    borderRadius:'17px',
                                     '&:hover .MuiSvgIcon-root.claimIcon': {
                                         color:'rgba(255,255,255,0.90)'
                                     }
@@ -496,6 +497,7 @@ export default function ClaimExtensionView(props: any){
                                 autoFocus 
                                 onClick={handleProposalIx}
                                 sx={{
+                                    borderRadius:'17px',
                                     '&:hover .MuiSvgIcon-root.claimNowIcon': {
                                         color:'rgba(255,255,255,0.90)'
                                     }

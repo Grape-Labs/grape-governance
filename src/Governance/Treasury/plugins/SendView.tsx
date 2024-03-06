@@ -9,6 +9,10 @@ import {
 } from '../../../utils/grapeTools/constants';
 
 import { 
+    shortenString
+} from '../../../utils/grapeTools/helpers';
+
+import { 
     TOKEN_PROGRAM_ID, 
     getMint,
     getAssociatedTokenAddress
@@ -404,6 +408,33 @@ export default function SendExtensionView(props: any){
 
     }, []);
 
+
+    function generateInstructions(){
+        if (tokenSelected && tokenRecipient){
+            if (tokenAmount && tokenAmount > 0){
+                const title = "Send "+tokenSelected.info.name
+                setProposalTitle(title);
+                const description = "Sending "+tokenAmount+" "+tokenSelected.info.name+" to "+shortenString(tokenRecipient,5,5);
+                setProposalDescription(description);
+
+
+            }
+        }
+    }
+
+    React.useEffect(() => { 
+        if (tokenSelected && tokenRecipient){
+            if (tokenAmount && tokenAmount > 0){
+                
+                generateInstructions();
+                //setOpenAdvanded(true);
+
+            }
+        } else {
+            setOpenAdvanded(false);
+        }
+    }, [tokenSelected, tokenAmount, tokenRecipient]);
+
     
     return (
         <>
@@ -569,7 +600,7 @@ export default function SendExtensionView(props: any){
                                 </IconButton>
                             </Tooltip>
                             */}
-                            <Tooltip title='Add my Wallet'>
+                            <Tooltip title='Send to my Wallet'>
                                 <IconButton 
                                         size="small"
                                         onClick={handleAddMyWallet}
@@ -605,14 +636,15 @@ export default function SendExtensionView(props: any){
                         <Typography variant="caption">Made with ❤️ by Grape</Typography>
                     </Box>
 
-                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        {(publicKey && claimableAmount && claimableAmount > 0) &&
+                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p:0, pb:1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', p:0 }}>
+                        {(publicKey && tokenAmount && tokenAmount > 0 && tokenRecipient && tokenSelected) &&
                                 <Button
-                                    disabled={!claimTokenAddress && !loading}
+                                    disabled={!tokenRecipient && !loading}
                                     size='small'
                                     onClick={handleAdvancedToggle}
                                     sx={{
+                                        borderRadius:'17px',
                                         justifyContent: 'flex-start',
                                         '&:hover .MuiSvgIcon-root.claimIcon': {
                                             color:'rgba(255,255,255,0.90)'
@@ -633,29 +665,30 @@ export default function SendExtensionView(props: any){
                         }
                         </Box>
 
-                        <Box sx={{ display: 'flex' }}>
-                            {(publicKey && claimableAmount && claimableAmount > 0) &&
-                            <Button 
-                                disabled={!claimTokenAddress && !loading}
-                                autoFocus 
-                                onClick={handleProposalIx}
-                                sx={{
-                                    '&:hover .MuiSvgIcon-root.claimNowIcon': {
-                                        color:'rgba(255,255,255,0.90)'
+                        <Box sx={{ display: 'flex', p:0 }}>
+                            {(publicKey && tokenAmount && tokenAmount > 0 && tokenRecipient && tokenSelected) &&
+                                <Button 
+                                    disabled={!tokenRecipient && !loading}
+                                    autoFocus 
+                                    onClick={handleProposalIx}
+                                    sx={{
+                                        borderRadius:'17px',
+                                        '&:hover .MuiSvgIcon-root.claimNowIcon': {
+                                            color:'rgba(255,255,255,0.90)'
+                                        }
+                                    }}
+                                    startIcon={
+                                    <>
+                                        <SendIcon 
+                                            sx={{
+                                                color:'rgba(255,255,255,0.25)',
+                                                fontSize:"14px!important"}}
+                                        />
+                                    </>
                                     }
-                                }}
-                                startIcon={
-                                <>
-                                    <GetAppIcon 
-                                        className="claimNowIcon"
-                                        sx={{
-                                            color:'rgba(255,255,255,0.25)',
-                                            fontSize:"14px!important"}} />
-                                </>
-                                }
-                            >
-                                <>Send</>
-                            </Button>
+                                >
+                                    <>Send</>
+                                </Button>
                             }
                         </Box>
                     </DialogActions>
