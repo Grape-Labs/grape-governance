@@ -273,46 +273,9 @@ export default function TokenTransferView(props: any) {
                     )
                 }
                 
-                /*
-                if (memoText && memoText.length > 0){
-                    transaction.add(
-                        new TransactionInstruction({
-                            keys: [{ pubkey: fromWallet, isSigner: true, isWritable: true }],
-                            data: Buffer.from(JSON.stringify(memoText || ''), 'utf-8'),
-                            programId: new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"),
-                        })
-                    );
-                }
-                */
                 setPayerInstructions(pTransaction);
                 setTransactionInstructions(transaction);
-                // Estimate the transaction fee
                 
-                try{
-                    /*
-                    console.log("Getting estimated fees");
-                    const latestBlockHash = (await connection.getLatestBlockhash()).blockhash;
-                    transaction.recentBlockhash = latestBlockHash;
-                    transaction.feePayer = fromWallet;
-                    const simulationResult = await connection.simulateTransaction(transaction);
-                    if (simulationResult?.err) {
-                        console.error('Transaction simulation failed:', simulationResult);
-                        return;
-                    }else{
-                        console.log('simulationResult: '+JSON.stringify(simulationResult));
-                        const computeUnits = simulationResult.value?.unitsConsumed; //simulationResult.value?.transaction?.message.recentBlockhashFeeCalculator.totalFees;
-                        //const lamportsPerSol = 1000000000;
-                        const sol = computeUnits / 10 ** 9;
-                        console.log(`Estimated fee: ${sol}`);
-                        setTransactionEstimatedFee(sol);//feeInLamports/10 ** 9;
-                    }
-                    */
-                    //const feeInLamports = (await connection.getFeeForMessage(transaction.compileMessage(), 'confirmed')).value;
-                    //console.log("Estimated fee in lamports: ",feeInLamports);
-                    //setTransactionEstimatedFee(feeInLamports/10 ** 9);
-                }catch(e){
-                    console.log("FEE ERR: ",e);
-                }
                 return transaction;
             } catch(err){
                 console.log("GEN ERR: "+JSON.stringify(err));

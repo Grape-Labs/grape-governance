@@ -1,6 +1,6 @@
-import { PublicKey, Transaction } from '@solana/web3.js';
 import { AnchorProvider, web3 } from '@coral-xyz/anchor';
-import { Connection } from '@solana/web3.js';
+import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
+import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, createTransferInstruction } from "@solana/spl-token-v2";
 import axios from "axios";
 
 import { 
@@ -12,11 +12,6 @@ import {
     shortenString
 } from '../../../utils/grapeTools/helpers';
 
-import { 
-    TOKEN_PROGRAM_ID, 
-    getMint,
-    getAssociatedTokenAddress
-} from "@solana/spl-token-v2";
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
@@ -122,17 +117,11 @@ export default function SendExtensionView(props: any){
     const setExpandedLoader = props?.setExpandedLoader;
     const instructions = props?.instructions;
     const setInstructions = props?.setInstructions;
-    
+
     const governanceNativeWallet = props?.governanceNativeWallet;
     const { publicKey } = useWallet();
     const wallet = useWallet();
 
-
-    const [distributor, setDistributor] = React.useState(null);
-    const [claimTokenAddress, setClaimTokenAddress] = React.useState(null);
-    const [claimableAmount, setClaimableAmount] = React.useState(null);
-    const [claimMintInfo, setClaimMintInfo] = React.useState(null);
-    const [mintInfo, setMintInfo] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
     const [open, setPropOpen] = React.useState(false);
     const [openAdvanced, setOpenAdvanded] = React.useState(false);
@@ -193,7 +182,148 @@ export default function SendExtensionView(props: any){
         handleCloseExtMenu();
         setPropOpen(false);
 
-        const ixs = await distributor.claimToken(new PublicKey(governanceNativeWallet));
+        const tokenMint = tokenSelected.address;
+        const tokenAta = tokenSelected.associated_address;
+        const transaction = new Transaction();
+        const pTransaction = new Transaction();
+        const fromWallet = new PublicKey(governanceNativeWallet);
+
+        if (tokenMint === "So11111111111111111111111111111111111111112"){ // Check if SOL
+            
+            const decimals = 9;
+            
+            /* this is to handle multiple recipients 
+            for (let index = 0; index < [recipientAddress].length; index++) {
+                const destinationObject = destinationWalletArray[index];
+                const amount = Math.floor((destinationObject.amount * Math.pow(10, decimals)));
+                transaction.add(
+                    SystemProgram.transfer({
+                        fromPubkey: fromWallet,
+                        toPubkey: new PublicKey(destinationObject.address),
+                        lamports: amount,
+                    })
+                );
+            }
+            */
+
+            // simple transfer
+            const amount = Math.floor((tokenAmount * Math.pow(10, decimals)));
+            transaction.add(
+                SystemProgram.transfer({
+                    fromPubkey: fromWallet,
+                    toPubkey: new PublicKey(tokenRecipient),
+                    lamports: amount,
+                })
+            );
+
+        } else { // token transfer
+            /*
+            for (let index = 0; index < destinationWalletArray.length; index++) {
+                    
+                const destinationObject = destinationWalletArray[index];
+
+                // getOrCreateAssociatedTokenAccount
+                const fromTokenAccount = await getAssociatedTokenAddress(
+                    mintPubkey,
+                    new PublicKey(fromWallet),
+                    true
+                )
+
+                const fromPublicKey = new PublicKey(fromWallet);
+                const destPublicKey = new PublicKey(destinationObject.address);
+                const destTokenAccount = await getAssociatedTokenAddress(
+                    mintPubkey,
+                    destPublicKey,
+                    true
+                )
+                const receiverAccount = await connection.getAccountInfo(
+                    destTokenAccount
+                )
+                
+                if (receiverAccount === null) {
+                    const transactionInstruction = createAssociatedTokenAccountInstruction(
+                        publicKey || fromPublicKey, // or use payerWallet
+                        destTokenAccount,
+                        destPublicKey,
+                        mintPubkey,
+                        TOKEN_PROGRAM_ID,
+                        ASSOCIATED_TOKEN_PROGRAM_ID
+                    );
+                    //transaction.add(transactionInstruction);
+                    if (publicKey)
+                        pTransaction.add(transactionInstruction);
+                    else
+                        transaction.add(transactionInstruction);
+                }
+
+                const amount = Math.floor((destinationObject.amount * Math.pow(10, decimals)));
+
+                transaction.add(
+                    createTransferInstruction(
+                        new PublicKey(tokenAta || fromTokenAccount),
+                        destTokenAccount,
+                        fromPublicKey,
+                        amount
+                    )
+                )
+            }
+            */
+
+            // single simple transfer
+            
+                const decimals = tokenSelected.info.decimals; // fix this to be dynamic!
+
+                // getOrCreateAssociatedTokenAccount
+                const fromTokenAccount = await getAssociatedTokenAddress(
+                    new PublicKey(tokenMint),
+                    new PublicKey(fromWallet),
+                    true
+                )
+
+                const fromPublicKey = new PublicKey(fromWallet);
+                const destPublicKey = new PublicKey(tokenRecipient);
+                
+                const destTokenAccount = await getAssociatedTokenAddress(
+                    new PublicKey(tokenMint),
+                    destPublicKey,
+                    true
+                )
+                
+
+                const receiverAccount = await RPC_CONNECTION.getAccountInfo(
+                    destTokenAccount
+                )
+                
+                if (receiverAccount === null) {
+                    const transactionInstruction = createAssociatedTokenAccountInstruction(
+                        publicKey || fromPublicKey, // or use payerWallet
+                        destTokenAccount,
+                        destPublicKey,
+                        new PublicKey(tokenMint),
+                        TOKEN_PROGRAM_ID,
+                        ASSOCIATED_TOKEN_PROGRAM_ID
+                    );
+                    //transaction.add(transactionInstruction);
+                    if (publicKey)
+                        pTransaction.add(transactionInstruction);
+                    else
+                        transaction.add(transactionInstruction);
+                }
+
+                const amount = Math.floor((tokenAmount * Math.pow(10, decimals)));
+
+                transaction.add(
+                    createTransferInstruction(
+                        new PublicKey(tokenAta || fromTokenAccount),
+                        destTokenAccount,
+                        fromPublicKey,
+                        amount
+                    )
+                )
+        }
+
+        const ixs = transaction; //await distributor.claimToken(new PublicKey(governanceNativeWallet));
+        const aixs = pTransaction;
         
         if (ixs){
 
@@ -201,6 +331,7 @@ export default function SendExtensionView(props: any){
                 title:proposalTitle,
                 description:proposalDescription,
                 ix:ixs,
+                aix:aixs,
                 nativeWallet:governanceNativeWallet,
                 governingMint:governingMint,
                 draft:isDraft,

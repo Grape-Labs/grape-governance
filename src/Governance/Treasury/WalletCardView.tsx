@@ -1017,6 +1017,10 @@ export default function WalletCardView(props:any) {
                 
                 transaction.add(...instructions.ix);
 
+                if (instructions?.aix){
+                    authTransaction.add(... instructions.aix);
+                }
+
                 console.log("with Governing Mint: "+useGoverningMint)
 
                 console.log("sending to createProposalInstructionsLegacy")
