@@ -87,6 +87,7 @@ import {
 
 import { GovernanceProposalDialog } from '../GovernanceProposalDialog';
 import ExtensionsMenuView from './plugins/ExtensionsMenu';
+import SendView from './plugins/SendView';
 import { IntegratedGovernanceProposalDialogView } from '../IntegratedGovernanceProposal';
 
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
@@ -1003,7 +1004,7 @@ export default function WalletCardView(props:any) {
                         console.log("realm: "+JSON.stringify(realm));
                         
                         // THIS NEEDS SOME WORK:
-                        if (instructions.governingMint){ // && threshold 
+                        if (instructions.governingMint && (Number(rulesWallet.account.config.minCommunityTokensToCreateProposal) !== 18446744073709551615)){ // && threshold 
                             useGoverningMint = realm.account.communityMint;
                         } else{
                             if (item?.account.config?.communityVoteThreshold?.value){ // has commmunity support
@@ -1841,6 +1842,29 @@ export default function WalletCardView(props:any) {
                                         secondaryAction={
                                             <Box sx={{textAlign:'right'}}>
                                                 <Box>
+                                                    
+                                                    <SendView 
+                                                        realm={realm}
+                                                        rulesWallet={rulesWallet}
+                                                        governanceNativeWallet={walletAddress} 
+                                                        expandedLoader={expandedLoader} 
+                                                        setExpandedLoader={setExpandedLoader}
+                                                        instructions={instructions}
+                                                        setInstructions={setInstructions}
+                                                        setSelectedNativeWallet={setSelectedNativeWallet}
+                                                        masterWallet={masterWallet}
+                                                        usdcValue={usdcValue}
+                                                        useButtonText={
+                                                            item.balance.toLocaleString()
+                                                        }
+                                                        preSelectedTokenAta={
+                                                            item.associated_account
+                                                        }
+                                                        useButtonType={3}
+                                                    />
+                                                    
+                                                    
+                                                {/* 
                                                     <IntegratedGovernanceProposalDialogView 
                                                         governanceAddress={governanceAddress}
                                                         intraDao={false}
@@ -1860,6 +1884,7 @@ export default function WalletCardView(props:any) {
                                                         title="Send"
                                                         usePlugin={4}
                                                     />
+                                                */}
                                                 </Box>
                                                 <Typography variant="caption" sx={{color:'#919EAB'}}>
                                                 {usdcValue ? 
@@ -1965,6 +1990,28 @@ export default function WalletCardView(props:any) {
                                     secondaryAction={
                                         <Box sx={{textAlign:'right'}}>
                                             <Box>
+
+                                                <SendView 
+                                                    realm={realm}
+                                                    rulesWallet={rulesWallet}
+                                                    governanceNativeWallet={walletAddress} 
+                                                    expandedLoader={expandedLoader} 
+                                                    setExpandedLoader={setExpandedLoader}
+                                                    instructions={instructions}
+                                                    setInstructions={setInstructions}
+                                                    setSelectedNativeWallet={setSelectedNativeWallet}
+                                                    masterWallet={masterWallet}
+                                                    usdcValue={usdcValue}
+                                                    useButtonText={
+                                                        item.balance.toLocaleString()
+                                                    }
+                                                    preSelectedTokenAta={
+                                                        item.associated_account
+                                                    }
+                                                    useButtonType={3}
+                                                />
+
+                                                {/*
                                                 <IntegratedGovernanceProposalDialogView 
                                                     governanceAddress={governanceAddress}
                                                     intraDao={false}
@@ -1984,6 +2031,7 @@ export default function WalletCardView(props:any) {
                                                     title="Send"
                                                     usePlugin={4}
                                                 />
+                                                */}
                                             </Box>
                                             <Typography variant="caption" sx={{color:'#919EAB'}}>
                                             {usdcValue ? 

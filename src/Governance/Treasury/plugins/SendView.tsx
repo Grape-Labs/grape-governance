@@ -108,6 +108,10 @@ export default function SendExtensionView(props: any){
     const governingTokenMint = props.governingTokenMint;
     const governanceAddress = props.governanceAddress;
     
+    const preSelectedTokenAta = props?.preSelectedTokenAta;
+    const useButtonText = props?.useButtonText;
+    const useButtonType = props?.useButtonType;
+
     const masterWallet = props?.masterWallet;
     const usdcValue = props?.usdcValue;
     const realm = props?.realm;
@@ -166,7 +170,8 @@ export default function SendExtensionView(props: any){
 
     const handleCloseDialog = () => {
         setPropOpen(false);
-        handleCloseExtMenu();
+        if (handleCloseExtMenu)
+            handleCloseExtMenu();
     }
 
     const handleClickOpen = () => {
@@ -175,11 +180,13 @@ export default function SendExtensionView(props: any){
 
     const handleClose = () => {
         setPropOpen(false);
-        handleCloseExtMenu();
+        if (handleCloseExtMenu)
+            handleCloseExtMenu();
     };
 
     const handleProposalIx = async() => {
-        handleCloseExtMenu();
+        if (handleCloseExtMenu)
+            handleCloseExtMenu();
         setPropOpen(false);
 
         const tokenMint = tokenSelected.address;
@@ -418,6 +425,14 @@ export default function SendExtensionView(props: any){
                         }
                     }
                 }
+                if (masterWallet?.rulesTokens && masterWallet.rulesTokens.length > 0){
+                    for (var item of masterWallet.rulesTokens){
+                        if (item.associated_account === ata){
+                            setThisTokenSelected(item);
+                            //setTokenSelected(item)
+                        }
+                    }
+                }
 
                 if (thisTokenSelected)
                     setTokenSelected(thisTokenSelected)
@@ -558,7 +573,6 @@ export default function SendExtensionView(props: any){
     React.useEffect(() => { 
         if (tokenSelected && tokenRecipient){
             if (tokenAmount && tokenAmount > 0){
-                
                 generateInstructions();
                 //setOpenAdvanded(true);
 
@@ -568,16 +582,63 @@ export default function SendExtensionView(props: any){
         }
     }, [tokenSelected, tokenAmount, tokenRecipient]);
 
+    React.useEffect(() => { 
+        if (preSelectedTokenAta && masterWallet){
+            if (masterWallet?.nativeTokens && masterWallet.nativeTokens.length > 0){
+                for (var item of masterWallet.nativeTokens){
+                    if (item.associated_account === preSelectedTokenAta){
+                        setTokenSelected(item);
+                    }
+                }
+            }
+            if (masterWallet?.rulesTokens && masterWallet.rulesTokens.length > 0){
+                for (var item of masterWallet.rulesTokens){
+                    if (item.associated_account === preSelectedTokenAta){
+                        setTokenSelected(item);
+                    }
+                }
+            }
+        }
+    }, [preSelectedTokenAta, masterWallet]);
+
     
     return (
         <>
-            <Tooltip title="Send Token" placement="right">
-                <MenuItem onClick={handleClickOpen}>
-                <ListItemIcon>
-                    <SendIcon fontSize="small" />
-                </ListItemIcon>
-                Send
-                </MenuItem>
+            
+            <Tooltip title="Send" placement="right">
+                {useButtonText ? 
+                    <>  
+                        <Button color={'inherit'} variant='text' 
+                            onClick={handleClickOpen} 
+                            sx={{m:0,p:0,
+                                '&:hover .MuiSvgIcon-root': {
+                                    opacity: 1,
+                                },
+                            }}
+                            startIcon={
+                                <SendIcon 
+                                    fontSize={'small'} 
+                                    sx={{
+                                        color:'rgba(255,255,255,0.25)',
+                                        opacity: 0,
+                                        pl:1,
+                                        fontSize:"10px"}} />
+                            }>
+                            <Typography variant={useButtonType === 2 ? `h5`:`subtitle1`} sx={{color:'white'}}>
+                                {useButtonText}
+                            </Typography>
+                         </Button>
+                    </>
+                :
+                    <>
+                        <MenuItem onClick={handleClickOpen}>
+                            <ListItemIcon>
+                                <SendIcon fontSize="small" />
+                            </ListItemIcon>
+                            Send
+                        </MenuItem>
+                    </>
+                }
             </Tooltip>
             
             <BootstrapDialog 
@@ -655,7 +716,7 @@ export default function SendExtensionView(props: any){
                                                 labelId="master-wallet"
                                                 id="master-wallet"
                                                 size='small'
-                                                //value={tokenSelected ? tokenSelected.associated_account : null}
+                                                value={tokenSelected ? tokenSelected.associated_account : null}
                                                 //label="Token"
                                                 //onChange={handleChange}
                                                 sx={{}}
