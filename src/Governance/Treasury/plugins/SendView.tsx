@@ -144,6 +144,18 @@ export default function SendExtensionView(props: any){
     const provider = new AnchorProvider(RPC_CONNECTION, wallet, {
         commitment: 'confirmed',
     });
+
+    const solItem = {
+        address:"So11111111111111111111111111111111111111112",
+        associated_account:"So11111111111111111111111111111111111111112",
+        balance:masterWallet?.nativeSol,
+        info:{
+            decimals:9,
+            symbol:"SOL",
+            name:"Solana",
+            image: `https://solana-cdn.com/cdn-cgi/image/width=100/https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png`
+        },
+    }
     
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
@@ -190,7 +202,7 @@ export default function SendExtensionView(props: any){
         setPropOpen(false);
 
         const tokenMint = tokenSelected.address;
-        const tokenAta = tokenSelected.associated_address;
+        const tokenAta = tokenSelected.associated_account;
         const transaction = new Transaction();
         const pTransaction = new Transaction();
         const fromWallet = new PublicKey(governanceNativeWallet);
@@ -358,13 +370,14 @@ export default function SendExtensionView(props: any){
     const RenderTokenItem = (props: any) => {
         const item = props?.item;
         const key = props?.key;
+        const sol = props?.sol;
         
         return (
             <ListItem
                 secondaryAction={
                     <Box sx={{textAlign:'right'}}>
                         <Box>
-                            {item.balance.toLocaleString()}
+                            {item.balance?.toLocaleString()}
                         </Box>
                         <Typography variant="caption" sx={{color:'#919EAB'}}>
                         {usdcValue ? 
@@ -379,25 +392,26 @@ export default function SendExtensionView(props: any){
             >
                 <ListItemAvatar>
                     <Avatar
-                        src={item.info.image}
+                        src={item?.info?.image}
                     >
                     </Avatar>
                 </ListItemAvatar>
                 <ListItemText 
                     primary={
                         
-                        <Typography variant="subtitle1" sx={{color:'white'}}>{item.info.name}</Typography>
+                        <Typography variant="subtitle1" sx={{color:'white'}}>{sol ? `Solana` : item?.info?.name}</Typography>
                             
                     }
                     secondary={
                         <>
                             <Typography variant="caption">
                                 {usdcValue ? 
-                                    <>{usdcValue[item.address] ? 
-                                        <>${usdcValue[item.address]?.price.toFixed(6)}</>
+                                    <>{usdcValue[item?.address] ? 
+                                        <>${(usdcValue[item?.address]?.price).toFixed(4)}</>
                                         :<></>
                                     }</>
-                                :<></>}</Typography>
+                                :<></>}
+                            </Typography>
                                 
                             {/*
                             <Typography variant="caption">ATA {shortenString(item.associated_account,5,5)}</Typography>
@@ -413,31 +427,53 @@ export default function SendExtensionView(props: any){
     const RenderTokenSelected = (props: any) => {
         const ata = props.ata;
         const [thisTokenSelected, setThisTokenSelected] = React.useState(null);
-        
-        React.useEffect(() => { 
-            if (ata && masterWallet){
+        //const [found, setFound] = React.useState(false);
 
-                if (masterWallet?.nativeTokens && masterWallet.nativeTokens.length > 0){
+        React.useEffect(() => { 
+            
+            if (ata && masterWallet){
+                /*
+                var found = false;
+                // HANDLE SOL Select
+                
+                if (!found && solItem && ata === 'So11111111111111111111111111111111111111112'){
+                    // SOL Selected, we need to handle this
+                    console.log("SOLected: "+JSON.stringify(solItem));
+                    //setTokenSelected(null);
+                    //setThisTokenSelected(solItem);
+                    //setFound(true);
+                    //found = true;
+                }
+                if (!found && masterWallet?.nativeTokens && masterWallet.nativeTokens.length > 0){
                     for (var item of masterWallet.nativeTokens){
                         if (item.associated_account === ata){
+                            //setTokenSelected(null);
+                            console.log("TOselected: "+JSON.stringify(item));
                             setThisTokenSelected(item);
-                            //setTokenSelected(item)
+                            //setFound(true);
+                            found = true;
                         }
                     }
                 }
-                if (masterWallet?.rulesTokens && masterWallet.rulesTokens.length > 0){
+                if (!found && masterWallet?.rulesTokens && masterWallet.rulesTokens.length > 0){
                     for (var item of masterWallet.rulesTokens){
                         if (item.associated_account === ata){
+                            //setTokenSelected(null);
                             setThisTokenSelected(item);
-                            //setTokenSelected(item)
+                            //setFound(true);
+                            found = true;
                         }
                     }
                 }
 
-                if (thisTokenSelected)
+                if (found && thisTokenSelected){
                     setTokenSelected(thisTokenSelected)
+                }
+                */
             }
-        }, [ata, masterWallet, thisTokenSelected]);
+            
+            
+        }, [ata, masterWallet, thisTokenSelected, tokenSelected]);
 
         
         return (
@@ -564,8 +600,6 @@ export default function SendExtensionView(props: any){
                 setProposalTitle(title);
                 const description = "Sending "+tokenAmount.toLocaleString()+" "+tokenSelected.info.name+" to "+shortenString(tokenRecipient,5,5);
                 setProposalDescription(description);
-
-
             }
         }
     }
@@ -581,26 +615,62 @@ export default function SendExtensionView(props: any){
             setOpenAdvanded(false);
         }
     }, [tokenSelected, tokenAmount, tokenRecipient]);
-
+    
     React.useEffect(() => { 
         if (preSelectedTokenAta && masterWallet){
-            if (masterWallet?.nativeTokens && masterWallet.nativeTokens.length > 0){
+            var found = false;
+            
+            if (preSelectedTokenAta === 'So11111111111111111111111111111111111111112'){
+                setTokenSelected(solItem);
+                found = true;
+            }
+            if (!found && masterWallet?.nativeTokens && masterWallet.nativeTokens.length > 0){
                 for (var item of masterWallet.nativeTokens){
                     if (item.associated_account === preSelectedTokenAta){
                         setTokenSelected(item);
+                        found = true;
+                        console.log("FOUND TOKEN and SET")
                     }
                 }
             }
-            if (masterWallet?.rulesTokens && masterWallet.rulesTokens.length > 0){
+            if (!found && masterWallet?.rulesTokens && masterWallet.rulesTokens.length > 0){
                 for (var item of masterWallet.rulesTokens){
                     if (item.associated_account === preSelectedTokenAta){
                         setTokenSelected(item);
                     }
                 }
             }
+
         }
     }, [preSelectedTokenAta, masterWallet]);
 
+    const handleSelectChange = (event) => {
+        const tata = event.target.value;
+        if (masterWallet){
+            var found = false;
+            
+            if (tata === 'So11111111111111111111111111111111111111112'){
+                setTokenSelected(solItem);
+                found = true;
+            }
+            if (!found && masterWallet?.nativeTokens && masterWallet.nativeTokens.length > 0){
+                for (var item of masterWallet.nativeTokens){
+                    if (item.associated_account === tata){
+                        setTokenSelected(item);
+                        found = true;
+                    }
+                }
+            }
+            if (!found && masterWallet?.rulesTokens && masterWallet.rulesTokens.length > 0){
+                for (var item of masterWallet.rulesTokens){
+                    if (item.associated_account === tata){
+                        setTokenSelected(item);
+                    }
+                }
+            }
+
+        }
+    }
     
     return (
         <>
@@ -662,8 +732,8 @@ export default function SendExtensionView(props: any){
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
-                    <DialogContentText>
-                        Quickly send tokens to any valid Solana address
+                    <DialogContentText sx={{textAlign:'center'}}>
+                        Quickly send SOL & Tokens to any valid Solana address
                     </DialogContentText>
                     
                     <FormControl fullWidth  sx={{mt:2,mb:2}}>
@@ -696,9 +766,6 @@ export default function SendExtensionView(props: any){
                         :
                         <></>
                         }
-
-
-                        
                         
                         <TextField
                             //label="With normal TextField"
@@ -711,20 +778,27 @@ export default function SendExtensionView(props: any){
                                 startAdornment: 
                                 <InputAdornment position="start" sx={{ maxWidth:'50%',height:'none' }}>
                                     <FormControl sx={{ m: 1,mt:-1, minWidth: 120 }} size="small">
-                                        
+                                            
                                             <Select
                                                 labelId="master-wallet"
                                                 id="master-wallet"
                                                 size='small'
                                                 value={tokenSelected ? tokenSelected.associated_account : null}
-                                                //label="Token"
-                                                //onChange={handleChange}
                                                 sx={{}}
+                                                onChange={handleSelectChange}
+                                                renderValue={() => <RenderTokenSelected ata={tokenSelected?.associated_account} />}
+                                                /*
                                                 renderValue={
                                                     (value) => <RenderTokenSelected ata={value} />
-                                                }
-                                                // (value) => `⚠️  - ${value}`
+                                                }*/
                                             >
+
+                                                {masterWallet?.nativeSol && masterWallet.nativeSol > 0 &&
+                                                    <MenuItem value={"So11111111111111111111111111111111111111112"} key={0}>
+                                                        <RenderTokenItem item={solItem} sol={true} key={0} />
+                                                    </MenuItem>
+                                                }
+                                                
                                                 {masterWallet?.nativeTokens && masterWallet.nativeTokens
                                                     //.sort((a:any,b:any) => (b.balance - a.balance))
                                                     .sort((a, b) => {
@@ -747,9 +821,9 @@ export default function SendExtensionView(props: any){
                                                     //.sort((a:any,b:any) => ((usdcValue && (usdcValue[b.address] && usdcValue[a.address]) && (b.balance * usdcValue[b.address]?.price)-(a.balance * usdcValue[a.address]?.price))) || (b.balance - a.balance))
                                                     //.sort((a:any,b:any) => (b.balance - a.balance))
                                                     .map((item: any,key:number) => (   
-                                                        <MenuItem value={item.associated_account} key={key}>
-                                                            
-                                                            <RenderTokenItem item={item} key={key} />
+                                                        <MenuItem value={item.associated_account} key={key+1}>
+                                                         
+                                                            <RenderTokenItem item={item} key={key+1} />
                                                             
                                                         </MenuItem>
                                                         
