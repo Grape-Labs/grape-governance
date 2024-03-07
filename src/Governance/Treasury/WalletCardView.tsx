@@ -87,6 +87,7 @@ import {
 
 import { GovernanceProposalDialog } from '../GovernanceProposalDialog';
 import ExtensionsMenuView from './plugins/ExtensionsMenu';
+import SendView from './plugins/SendView';
 import { IntegratedGovernanceProposalDialogView } from '../IntegratedGovernanceProposal';
 
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
@@ -919,45 +920,65 @@ export default function WalletCardView(props:any) {
     }
 
     const handleProposalTxSimulation = async() => {
-        
-        if (instructions){
-            setLoaderCreationComplete(false);
-            setLoaderSuccess(false);
-            setSimulationFailed(false);
-            const { blockhash, lastValidBlockHeight } = await RPC_CONNECTION.getLatestBlockhash('confirmed');
-            let transaction = new Transaction({
-                feePayer: new PublicKey(instructions.nativeWallet),
-                blockhash,
-                lastValidBlockHeight,
-            }).add(...instructions.ix);// we should simulate when sending back to the wallet...
-            
-            console.log("Getting estimated fees");
-            const latestBlockHash = (await RPC_CONNECTION.getLatestBlockhash()).blockhash;
-            transaction.recentBlockhash = latestBlockHash;
-            transaction.feePayer = new PublicKey(instructions.nativeWallet);
-            const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
-            if (simulationResult?.err || simulationResult?.value?.err) {
-                console.error('Transaction simulation failed:', simulationResult);
-                setSimulationFailed(true);
-                setLoaderCreationComplete(true);
-                //return;
-            }else{
-                console.log('simulationResult: '+JSON.stringify(simulationResult));
-                const computeUnits = simulationResult.value?.unitsConsumed; //simulationResult.value?.transaction?.message.recentBlockhashFeeCalculator.totalFees;
-                //const lamportsPerSol = 1000000000;
-                const sol = computeUnits / 10 ** 9;
-                console.log(`Estimated fee: ${sol}`);
-                //setTransactionEstimatedFee(sol);//feeInLamports/10 ** 9;
+        try{
+            if (instructions){
+                console.log("3...");
+                setLoaderCreationComplete(false);
+                setLoaderSuccess(false);
+                setSimulationFailed(false);
+                const { blockhash, lastValidBlockHeight } = await RPC_CONNECTION.getLatestBlockhash('confirmed');
+                
+                let transaction = new Transaction({
+                    feePayer: new PublicKey(instructions.nativeWallet),
+                    blockhash,
+                    lastValidBlockHeight,
+                })
+
+                console.log("ix: "+JSON.stringify(instructions.ix));
+                console.log("aix: "+JSON.stringify(instructions.aix));
+
+                transaction.add(...instructions.ix);// we should simulate when sending back to the wallet...
+                
+                if (instructions?.aix){
+                    //if (instructions?.aix)
+                    //    transaction.add(...instructions.aix)
+                    // run another sim for author
+                    console.log("Has Auth Ix");
+                }
+
+                console.log("Getting estimated fees");
+                const latestBlockHash = (await RPC_CONNECTION.getLatestBlockhash()).blockhash;
+                transaction.recentBlockhash = latestBlockHash;
+                transaction.feePayer = new PublicKey(instructions.nativeWallet);
+                const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
+                //console.log("sim results..."+JSON.stringify(simulationResult));
+                if (simulationResult?.err || simulationResult?.value?.err) {
+                    console.error('Transaction simulation failed:', simulationResult);
+                    setSimulationFailed(true);
+                    setLoaderCreationComplete(true);
+                    //return;
+                } else {
+                    console.log('simulationResult: '+JSON.stringify(simulationResult));
+                    const computeUnits = simulationResult.value?.unitsConsumed; //simulationResult.value?.transaction?.message.recentBlockhashFeeCalculator.totalFees;
+                    //const lamportsPerSol = 1000000000;
+                    const sol = computeUnits / 10 ** 9;
+                    console.log(`Estimated fee: ${sol}`);
+                    //setTransactionEstimatedFee(sol);//feeInLamports/10 ** 9;
+                }
+                //transaction = await wallet.signTransaction(transaction);
+                //const rawTransaction = transaction.serialize();
+                //const txid = await connection.sendRawTransaction(rawTransaction, {
+                //skipPreflight: true,
+                //});
+
+                console.log("Transaction: "+JSON.stringify(transaction));
+
+                setLoaderSuccess(true);
             }
-            //transaction = await wallet.signTransaction(transaction);
-            //const rawTransaction = transaction.serialize();
-            //const txid = await connection.sendRawTransaction(rawTransaction, {
-            //skipPreflight: true,
-            //});
-
-            console.log("Transaction: "+JSON.stringify(transaction));
-
-            setLoaderSuccess(true);
+        } catch(e){
+            console.log("ERR: "+e);
+            setSimulationFailed(true);
+            setLoaderCreationComplete(true);
         }
         
     }
@@ -972,17 +993,18 @@ export default function WalletCardView(props:any) {
 
             // get rules wallet from native wallet
             let ixRulesWallet = null;
-            let useGoverningMint = instructions?.useMint;
+            let useGoverningMint = instructions?.governingMint;
             let hasChoice = 0;
-
+            
             for (const item of governanceWallets){
                 if (item.nativeTreasuryAddress.toBase58() === instructions.nativeWallet){
                     ixRulesWallet = item.pubkey.toBase58();
-                    if (!instructions?.useMint){
+                    if (!instructions?.governingMint){
                         console.log("wallet details: "+JSON.stringify(item));
                         console.log("realm: "+JSON.stringify(realm));
                         
-                        if (instructions.governingMint){
+                        // THIS NEEDS SOME WORK:
+                        if (instructions.governingMint && (Number(rulesWallet.account.config.minCommunityTokensToCreateProposal) !== 18446744073709551615)){ // && threshold 
                             useGoverningMint = realm.account.communityMint;
                         } else{
                             if (item?.account.config?.communityVoteThreshold?.value){ // has commmunity support
@@ -1016,6 +1038,10 @@ export default function WalletCardView(props:any) {
                 console.log("adding tx ix")
                 
                 transaction.add(...instructions.ix);
+
+                if (instructions?.aix && instructions.aix.length > 0){
+                    authTransaction.add(...instructions.aix);
+                }
 
                 console.log("with Governing Mint: "+useGoverningMint)
 
@@ -1816,6 +1842,29 @@ export default function WalletCardView(props:any) {
                                         secondaryAction={
                                             <Box sx={{textAlign:'right'}}>
                                                 <Box>
+                                                    
+                                                    <SendView 
+                                                        realm={realm}
+                                                        rulesWallet={rulesWallet}
+                                                        governanceNativeWallet={walletAddress} 
+                                                        expandedLoader={expandedLoader} 
+                                                        setExpandedLoader={setExpandedLoader}
+                                                        instructions={instructions}
+                                                        setInstructions={setInstructions}
+                                                        setSelectedNativeWallet={setSelectedNativeWallet}
+                                                        masterWallet={masterWallet}
+                                                        usdcValue={usdcValue}
+                                                        useButtonText={
+                                                            item.balance.toLocaleString()
+                                                        }
+                                                        preSelectedTokenAta={
+                                                            item.associated_account
+                                                        }
+                                                        useButtonType={3}
+                                                    />
+                                                    
+                                                    
+                                                {/* 
                                                     <IntegratedGovernanceProposalDialogView 
                                                         governanceAddress={governanceAddress}
                                                         intraDao={false}
@@ -1835,6 +1884,7 @@ export default function WalletCardView(props:any) {
                                                         title="Send"
                                                         usePlugin={4}
                                                     />
+                                                */}
                                                 </Box>
                                                 <Typography variant="caption" sx={{color:'#919EAB'}}>
                                                 {usdcValue ? 
@@ -1940,6 +1990,28 @@ export default function WalletCardView(props:any) {
                                     secondaryAction={
                                         <Box sx={{textAlign:'right'}}>
                                             <Box>
+
+                                                <SendView 
+                                                    realm={realm}
+                                                    rulesWallet={rulesWallet}
+                                                    governanceNativeWallet={walletAddress} 
+                                                    expandedLoader={expandedLoader} 
+                                                    setExpandedLoader={setExpandedLoader}
+                                                    instructions={instructions}
+                                                    setInstructions={setInstructions}
+                                                    setSelectedNativeWallet={setSelectedNativeWallet}
+                                                    masterWallet={masterWallet}
+                                                    usdcValue={usdcValue}
+                                                    useButtonText={
+                                                        item.balance.toLocaleString()
+                                                    }
+                                                    preSelectedTokenAta={
+                                                        item.associated_account
+                                                    }
+                                                    useButtonType={3}
+                                                />
+
+                                                {/*
                                                 <IntegratedGovernanceProposalDialogView 
                                                     governanceAddress={governanceAddress}
                                                     intraDao={false}
@@ -1959,6 +2031,7 @@ export default function WalletCardView(props:any) {
                                                     title="Send"
                                                     usePlugin={4}
                                                 />
+                                                */}
                                             </Box>
                                             <Typography variant="caption" sx={{color:'#919EAB'}}>
                                             {usdcValue ? 

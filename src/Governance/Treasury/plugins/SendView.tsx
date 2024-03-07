@@ -1,6 +1,6 @@
-import { PublicKey, Transaction } from '@solana/web3.js';
 import { AnchorProvider, web3 } from '@coral-xyz/anchor';
-import { Connection } from '@solana/web3.js';
+import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
+import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, createTransferInstruction } from "@solana/spl-token-v2";
 import axios from "axios";
 
 import { 
@@ -9,10 +9,9 @@ import {
 } from '../../../utils/grapeTools/constants';
 
 import { 
-    TOKEN_PROGRAM_ID, 
-    getMint,
-    getAssociatedTokenAddress
-} from "@solana/spl-token-v2";
+    shortenString
+} from '../../../utils/grapeTools/helpers';
+
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
@@ -51,6 +50,9 @@ import {
 
 import { useSnackbar } from 'notistack';
 
+import ContentPasteIcon from '@mui/icons-material/ContentPaste';
+import PersonIcon from '@mui/icons-material/Person';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import SendIcon from '@mui/icons-material/Send';
 import SettingsIcon from '@mui/icons-material/Settings';
 import GetAppIcon from '@mui/icons-material/GetApp';
@@ -106,6 +108,10 @@ export default function SendExtensionView(props: any){
     const governingTokenMint = props.governingTokenMint;
     const governanceAddress = props.governanceAddress;
     
+    const preSelectedTokenAta = props?.preSelectedTokenAta;
+    const useButtonText = props?.useButtonText;
+    const useButtonType = props?.useButtonType;
+
     const masterWallet = props?.masterWallet;
     const usdcValue = props?.usdcValue;
     const realm = props?.realm;
@@ -115,17 +121,11 @@ export default function SendExtensionView(props: any){
     const setExpandedLoader = props?.setExpandedLoader;
     const instructions = props?.instructions;
     const setInstructions = props?.setInstructions;
-    
+
     const governanceNativeWallet = props?.governanceNativeWallet;
     const { publicKey } = useWallet();
     const wallet = useWallet();
 
-
-    const [distributor, setDistributor] = React.useState(null);
-    const [claimTokenAddress, setClaimTokenAddress] = React.useState(null);
-    const [claimableAmount, setClaimableAmount] = React.useState(null);
-    const [claimMintInfo, setClaimMintInfo] = React.useState(null);
-    const [mintInfo, setMintInfo] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
     const [open, setPropOpen] = React.useState(false);
     const [openAdvanced, setOpenAdvanded] = React.useState(false);
@@ -135,7 +135,10 @@ export default function SendExtensionView(props: any){
     const [isGoverningMintSelectable, setIsGoverningMintSelectable] = React.useState(true);
     const [isGoverningMintCouncilSelected, setIsGoverningMintCouncilSelected] = React.useState(true);
     const [isDraft, setIsDraft] = React.useState(false);
-
+    const [tokenSelected, setTokenSelected] = React.useState(null);
+    const [tokenAmount, setTokenAmount] = React.useState(null);
+    const [tokenRecipient, setTokenRecipient] = React.useState(null);
+    
     const [expanded, setExpanded] = React.useState<string | false>(false);
     
     const provider = new AnchorProvider(RPC_CONNECTION, wallet, {
@@ -167,7 +170,8 @@ export default function SendExtensionView(props: any){
 
     const handleCloseDialog = () => {
         setPropOpen(false);
-        handleCloseExtMenu();
+        if (handleCloseExtMenu)
+            handleCloseExtMenu();
     }
 
     const handleClickOpen = () => {
@@ -176,26 +180,172 @@ export default function SendExtensionView(props: any){
 
     const handleClose = () => {
         setPropOpen(false);
-        handleCloseExtMenu();
+        if (handleCloseExtMenu)
+            handleCloseExtMenu();
     };
 
     const handleProposalIx = async() => {
-        handleCloseExtMenu();
+        if (handleCloseExtMenu)
+            handleCloseExtMenu();
         setPropOpen(false);
 
-        const ixs = await distributor.claimToken(new PublicKey(governanceNativeWallet));
+        const tokenMint = tokenSelected.address;
+        const tokenAta = tokenSelected.associated_address;
+        const transaction = new Transaction();
+        const pTransaction = new Transaction();
+        const fromWallet = new PublicKey(governanceNativeWallet);
+
+        if (tokenMint === "So11111111111111111111111111111111111111112"){ // Check if SOL
+            
+            const decimals = 9;
+            
+            /* this is to handle multiple recipients 
+            for (let index = 0; index < [recipientAddress].length; index++) {
+                const destinationObject = destinationWalletArray[index];
+                const amount = Math.floor((destinationObject.amount * Math.pow(10, decimals)));
+                transaction.add(
+                    SystemProgram.transfer({
+                        fromPubkey: fromWallet,
+                        toPubkey: new PublicKey(destinationObject.address),
+                        lamports: amount,
+                    })
+                );
+            }
+            */
+
+            // simple transfer
+            const amount = Math.floor((tokenAmount * Math.pow(10, decimals)));
+            transaction.add(
+                SystemProgram.transfer({
+                    fromPubkey: fromWallet,
+                    toPubkey: new PublicKey(tokenRecipient),
+                    lamports: amount,
+                })
+            );
+
+        } else { // token transfer
+            /*
+            for (let index = 0; index < destinationWalletArray.length; index++) {
+                    
+                const destinationObject = destinationWalletArray[index];
+
+                // getOrCreateAssociatedTokenAccount
+                const fromTokenAccount = await getAssociatedTokenAddress(
+                    mintPubkey,
+                    new PublicKey(fromWallet),
+                    true
+                )
+
+                const fromPublicKey = new PublicKey(fromWallet);
+                const destPublicKey = new PublicKey(destinationObject.address);
+                const destTokenAccount = await getAssociatedTokenAddress(
+                    mintPubkey,
+                    destPublicKey,
+                    true
+                )
+                const receiverAccount = await connection.getAccountInfo(
+                    destTokenAccount
+                )
+                
+                if (receiverAccount === null) {
+                    const transactionInstruction = createAssociatedTokenAccountInstruction(
+                        publicKey || fromPublicKey, // or use payerWallet
+                        destTokenAccount,
+                        destPublicKey,
+                        mintPubkey,
+                        TOKEN_PROGRAM_ID,
+                        ASSOCIATED_TOKEN_PROGRAM_ID
+                    );
+                    //transaction.add(transactionInstruction);
+                    if (publicKey)
+                        pTransaction.add(transactionInstruction);
+                    else
+                        transaction.add(transactionInstruction);
+                }
+
+                const amount = Math.floor((destinationObject.amount * Math.pow(10, decimals)));
+
+                transaction.add(
+                    createTransferInstruction(
+                        new PublicKey(tokenAta || fromTokenAccount),
+                        destTokenAccount,
+                        fromPublicKey,
+                        amount
+                    )
+                )
+            }
+            */
+
+            // single simple transfer
+            
+                const decimals = tokenSelected.info.decimals; // fix this to be dynamic!
+
+                // getOrCreateAssociatedTokenAccount
+                const fromTokenAccount = await getAssociatedTokenAddress(
+                    new PublicKey(tokenMint),
+                    new PublicKey(fromWallet),
+                    true
+                )
+
+                const fromPublicKey = new PublicKey(fromWallet);
+                const destPublicKey = new PublicKey(tokenRecipient);
+                
+                const destTokenAccount = await getAssociatedTokenAddress(
+                    new PublicKey(tokenMint),
+                    destPublicKey,
+                    true
+                )
+                
+                const receiverAccount = await RPC_CONNECTION.getAccountInfo(
+                    destTokenAccount
+                )
+                
+                if (receiverAccount === null) {
+                    const transactionInstruction = createAssociatedTokenAccountInstruction(
+                        publicKey || fromPublicKey, // or use payerWallet
+                        destTokenAccount,
+                        destPublicKey,
+                        new PublicKey(tokenMint),
+                        TOKEN_PROGRAM_ID,
+                        ASSOCIATED_TOKEN_PROGRAM_ID
+                    );
+                    
+                    if (publicKey)
+                        pTransaction.add(transactionInstruction);
+                    else
+                        transaction.add(transactionInstruction);
+                }
+
+                const amount = Math.floor((tokenAmount * Math.pow(10, decimals)));
+
+                transaction.add(
+                    createTransferInstruction(
+                        new PublicKey(tokenAta || fromTokenAccount),
+                        destTokenAccount,
+                        fromPublicKey,
+                        amount
+                    )
+                )
+        }
+
+        const ixs = transaction; //await distributor.claimToken(new PublicKey(governanceNativeWallet));
+        const aixs = pTransaction;
+
+        //const ixts: TransactionInstruction[] = [];
         
-        if (ixs){
+        if (ixs || aixs){
 
             const propIx = {
                 title:proposalTitle,
                 description:proposalDescription,
-                ix:ixs,
+                ix:ixs.instructions,
+                aix:aixs?.instructions,
                 nativeWallet:governanceNativeWallet,
                 governingMint:governingMint,
                 draft:isDraft,
             }
 
+            //console.log("ixs: "+JSON.stringify(ixs))
             console.log("propIx: "+JSON.stringify(propIx))
 
             setInstructions(propIx);
@@ -208,7 +358,7 @@ export default function SendExtensionView(props: any){
     const RenderTokenItem = (props: any) => {
         const item = props?.item;
         const key = props?.key;
-
+        
         return (
             <ListItem
                 secondaryAction={
@@ -262,7 +412,7 @@ export default function SendExtensionView(props: any){
 
     const RenderTokenSelected = (props: any) => {
         const ata = props.ata;
-        const [tokenSelected, setTokenSelected] = React.useState(null);
+        const [thisTokenSelected, setThisTokenSelected] = React.useState(null);
         
         React.useEffect(() => { 
             if (ata && masterWallet){
@@ -270,26 +420,39 @@ export default function SendExtensionView(props: any){
                 if (masterWallet?.nativeTokens && masterWallet.nativeTokens.length > 0){
                     for (var item of masterWallet.nativeTokens){
                         if (item.associated_account === ata){
-                            setTokenSelected(item);
+                            setThisTokenSelected(item);
+                            //setTokenSelected(item)
+                        }
+                    }
+                }
+                if (masterWallet?.rulesTokens && masterWallet.rulesTokens.length > 0){
+                    for (var item of masterWallet.rulesTokens){
+                        if (item.associated_account === ata){
+                            setThisTokenSelected(item);
+                            //setTokenSelected(item)
                         }
                     }
                 }
 
+                if (thisTokenSelected)
+                    setTokenSelected(thisTokenSelected)
             }
-        }, [ata, masterWallet]);
+        }, [ata, masterWallet, thisTokenSelected]);
 
+        
         return (
 
             <>
                 {tokenSelected ?
-                    <ListItem sx={{m:0,p:0}}>
-                        <ListItemAvatar>
+                    <ListItem sx={{m:0,mr:1,p:0,pr:1}}>
+                        <ListItemAvatar sx={{m:0,p:0}}>
                             <Avatar
                                 src={tokenSelected.info.image}
                                 alt={tokenSelected.info.name}
+                                sx={{ width: 24, height: 24 }}
                             />
                         </ListItemAvatar>
-                        <ListItemText 
+                        <ListItemText sx={{m:0,p:0,ml:1}}
                             primary={tokenSelected.info.name}
                         />
                     </ListItem>
@@ -298,69 +461,6 @@ export default function SendExtensionView(props: any){
                 }
                 
             </>
-
-        );
-    }
-
-    const WalletTokenSelect = () => {
-
-        return (
-            <>
-            {masterWallet ?
-            
-                <>
-                    <Select
-                        labelId="master-wallet"
-                        id="master-wallet"
-                        size='small'
-                        //value={age}
-                        //label="Token"
-                        //onChange={handleChange}
-                        sx={{mt:-2}}
-                        renderValue={
-                            (value) => <RenderTokenSelected ata={value} />
-                        }
-                        // (value) => `⚠️  - ${value}`
-                    >
-                        {masterWallet?.nativeTokens && masterWallet.nativeTokens
-                            //.sort((a:any,b:any) => (b.balance - a.balance))
-                            .sort((a, b) => {
-                                const priceA = usdcValue[a.address]?.price;
-                                const priceB = usdcValue[b.address]?.price;
-                                
-                                if (priceA !== undefined && priceB !== undefined) {
-                                    return (b.balance * priceB) - (a.balance * priceA);
-                                  } else if (priceA !== undefined) {
-                                    // If only the first token has a price, it should come first
-                                    return -1;
-                                  } else if (priceB !== undefined) {
-                                    // If only the second token has a price, it should come first
-                                    return 1;
-                                  } else {
-                                    // If neither has a price, fall back to sorting by balance
-                                    return b.balance - a.balance;
-                                  }
-                            })
-                            //.sort((a:any,b:any) => ((usdcValue && (usdcValue[b.address] && usdcValue[a.address]) && (b.balance * usdcValue[b.address]?.price)-(a.balance * usdcValue[a.address]?.price))) || (b.balance - a.balance))
-                            //.sort((a:any,b:any) => (b.balance - a.balance))
-                            .map((item: any,key:number) => (   
-                                <MenuItem value={item.associated_account} key={key}>
-                                    
-                                    <RenderTokenItem item={item} key={key} />
-                                    
-                                </MenuItem>
-                                
-                            ))
-
-                        }
-                    </Select> 
-                </>
-                :
-                <></>
-            }
-            
-            </>        
-
 
         );
     }
@@ -388,6 +488,53 @@ export default function SendExtensionView(props: any){
                 });
     }
 
+    const adjustTokenAmount = (amountFixed?:number,amountPercent?:number) => {
+        if (amountPercent){
+            if (amountPercent > 0){
+                if (tokenSelected.balance > 0){
+                    setTokenAmount(tokenSelected.balance * amountPercent)
+                }
+            }
+        }
+    }
+
+    const handleSetTokenAmount = (amount:string) => {
+        if (amount){
+            setTokenAmount(+amount);
+        } else {
+            setTokenAmount(0);
+        }
+    }
+
+    
+    const handleSetTokenRecipient = (reciever:string) => {
+        if (reciever){
+            setTokenRecipient(reciever);
+        } else {
+            setTokenRecipient(null);
+        }
+    }
+    
+    function handleAddMyWallet(){
+        if (!tokenRecipient)
+            setTokenRecipient(publicKey.toBase58());
+        else if (tokenRecipient.length <= 0)
+            setTokenRecipient(publicKey.toBase58());
+        else if (tokenRecipient.includes(publicKey.toBase58()))
+            return;
+        //else
+            //setDestinationString(tokenRecipient + "\n" + publicKey.toBase58());
+    }
+
+    const handlePasteFromClipboard = (event:any) => {
+        
+        /*event.preventDefault(); // Prevent default paste behavior
+        const pastedText = event.clipboardData?.getData('text');
+        if (pastedText)
+            setTokenRecipient(pastedText);
+        */
+    }
+
     React.useEffect(() => { 
         setIsGoverningMintSelectable(false);
         if (realm && realm?.account.config?.councilMint){
@@ -409,16 +556,89 @@ export default function SendExtensionView(props: any){
 
     }, []);
 
+
+    function generateInstructions(){
+        if (tokenSelected && tokenRecipient){
+            if (tokenAmount && tokenAmount > 0){
+                const title = "Send "+tokenSelected.info.name
+                setProposalTitle(title);
+                const description = "Sending "+tokenAmount.toLocaleString()+" "+tokenSelected.info.name+" to "+shortenString(tokenRecipient,5,5);
+                setProposalDescription(description);
+
+
+            }
+        }
+    }
+
+    React.useEffect(() => { 
+        if (tokenSelected && tokenRecipient){
+            if (tokenAmount && tokenAmount > 0){
+                generateInstructions();
+                //setOpenAdvanded(true);
+
+            }
+        } else {
+            setOpenAdvanded(false);
+        }
+    }, [tokenSelected, tokenAmount, tokenRecipient]);
+
+    React.useEffect(() => { 
+        if (preSelectedTokenAta && masterWallet){
+            if (masterWallet?.nativeTokens && masterWallet.nativeTokens.length > 0){
+                for (var item of masterWallet.nativeTokens){
+                    if (item.associated_account === preSelectedTokenAta){
+                        setTokenSelected(item);
+                    }
+                }
+            }
+            if (masterWallet?.rulesTokens && masterWallet.rulesTokens.length > 0){
+                for (var item of masterWallet.rulesTokens){
+                    if (item.associated_account === preSelectedTokenAta){
+                        setTokenSelected(item);
+                    }
+                }
+            }
+        }
+    }, [preSelectedTokenAta, masterWallet]);
+
     
     return (
         <>
-            <Tooltip title="Send Token" placement="right">
-                <MenuItem onClick={handleClickOpen} disabled={true}>
-                <ListItemIcon>
-                    <SendIcon fontSize="small" />
-                </ListItemIcon>
-                Send
-                </MenuItem>
+            
+            <Tooltip title="Send" placement="right">
+                {useButtonText ? 
+                    <>  
+                        <Button color={'inherit'} variant='text' 
+                            onClick={handleClickOpen} 
+                            sx={{m:0,p:0,
+                                '&:hover .MuiSvgIcon-root': {
+                                    opacity: 1,
+                                },
+                            }}
+                            startIcon={
+                                <SendIcon 
+                                    fontSize={'small'} 
+                                    sx={{
+                                        color:'rgba(255,255,255,0.25)',
+                                        opacity: 0,
+                                        pl:1,
+                                        fontSize:"10px"}} />
+                            }>
+                            <Typography variant={useButtonType === 2 ? `h5`:`subtitle1`} sx={{color:'white'}}>
+                                {useButtonText}
+                            </Typography>
+                         </Button>
+                    </>
+                :
+                    <>
+                        <MenuItem onClick={handleClickOpen}>
+                            <ListItemIcon>
+                                <SendIcon fontSize="small" />
+                            </ListItemIcon>
+                            Send
+                        </MenuItem>
+                    </>
+                }
             </Tooltip>
             
             <BootstrapDialog 
@@ -446,17 +666,98 @@ export default function SendExtensionView(props: any){
                         Quickly send tokens to any valid Solana address
                     </DialogContentText>
                     
-                    <FormControl fullWidth  sx={{mb:2}}>
+                    <FormControl fullWidth  sx={{mt:2,mb:2}}>
+                        
+                        {tokenSelected ?
+                            <Grid container direction='row' sx={{pl:2,pr:1}}>
+                                <Grid item xs>
+                                    <Typography variant='caption' sx={{color:'#919EAB'}}>
+                                    You're sending
+                                    </Typography>
+                                </Grid>
+                                <Grid item>
+                                    <Typography variant='caption' sx={{color:'#919EAB'}}>
+                                        <>
+                                            <Chip size="small" icon={<AccountBalanceWalletIcon sx={{ fontSize: 6 }} color='inherit' />} 
+                                                label={(+tokenSelected.balance).toLocaleString()} 
+                                                variant="outlined" 
+                                                sx={{mr:1,border:'none;',color:'#919EAB'}} />
+                                            <Chip 
+                                                onClick={() => adjustTokenAmount(null,0.5)}
+                                                label="Half" variant="outlined" size="small" sx={{mr:1,borderColor:'#919EAB',color:'#919EAB'}} />
+                                            <Chip
+                                                onClick={() => adjustTokenAmount(null,1)}
+                                                label="Max" variant="outlined" size="small" sx={{borderColor:'#919EAB',color:'#919EAB'}}/>
+                                        </>
+                                        
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        :
+                        <></>
+                        }
+
+
+                        
+                        
                         <TextField
                             //label="With normal TextField"
-                            id="outlined-start-adornment"
+                            id="token-amount"
                             variant="filled"
-                            sx={{ p: 2, height:'none;' }}
+                            sx={{ p: 1, height:'none;', fontSize:'16px' }}
+                            value={tokenAmount}
+                            onChange={(e) => handleSetTokenAmount(e.target.value)}
                             InputProps={{
                                 startAdornment: 
                                 <InputAdornment position="start" sx={{ maxWidth:'50%',height:'none' }}>
-                                    <FormControl variant="filled">
-                                        <WalletTokenSelect />
+                                    <FormControl sx={{ m: 1,mt:-1, minWidth: 120 }} size="small">
+                                        
+                                            <Select
+                                                labelId="master-wallet"
+                                                id="master-wallet"
+                                                size='small'
+                                                value={tokenSelected ? tokenSelected.associated_account : null}
+                                                //label="Token"
+                                                //onChange={handleChange}
+                                                sx={{}}
+                                                renderValue={
+                                                    (value) => <RenderTokenSelected ata={value} />
+                                                }
+                                                // (value) => `⚠️  - ${value}`
+                                            >
+                                                {masterWallet?.nativeTokens && masterWallet.nativeTokens
+                                                    //.sort((a:any,b:any) => (b.balance - a.balance))
+                                                    .sort((a, b) => {
+                                                        const priceA = usdcValue[a.address]?.price;
+                                                        const priceB = usdcValue[b.address]?.price;
+                                                        
+                                                        if (priceA !== undefined && priceB !== undefined) {
+                                                            return (b.balance * priceB) - (a.balance * priceA);
+                                                        } else if (priceA !== undefined) {
+                                                            // If only the first token has a price, it should come first
+                                                            return -1;
+                                                        } else if (priceB !== undefined) {
+                                                            // If only the second token has a price, it should come first
+                                                            return 1;
+                                                        } else {
+                                                            // If neither has a price, fall back to sorting by balance
+                                                            return b.balance - a.balance;
+                                                        }
+                                                    })
+                                                    //.sort((a:any,b:any) => ((usdcValue && (usdcValue[b.address] && usdcValue[a.address]) && (b.balance * usdcValue[b.address]?.price)-(a.balance * usdcValue[a.address]?.price))) || (b.balance - a.balance))
+                                                    //.sort((a:any,b:any) => (b.balance - a.balance))
+                                                    .map((item: any,key:number) => (   
+                                                        <MenuItem value={item.associated_account} key={key}>
+                                                            
+                                                            <RenderTokenItem item={item} key={key} />
+                                                            
+                                                        </MenuItem>
+                                                        
+                                                    ))
+
+                                                }
+                                            </Select> 
+                                        
                                     </FormControl>
                                 </InputAdornment>,
                                 inputProps: {
@@ -467,20 +768,44 @@ export default function SendExtensionView(props: any){
                         />
                     </FormControl>
 
-                    <br/>
-
                     <FormControl fullWidth  sx={{mb:2}}>
                         <TextField
                             label="Recipient"
-                            id="outlined-start-adornment"
+                            id="recipient"
                             variant="filled"
-                            sx={{ m: 1 }}
+                            sx={{ m: 0.65 }}
+                            value={tokenRecipient}
+                            onChange={(e) => handleSetTokenRecipient(e.target.value)}
+                            InputLabelProps={{
+                                shrink: !!tokenRecipient, // Set shrink based on value existence
+                            }}
                         />
+                        <Grid sx={{textAlign:'right',}}>
+                            {/*
+                            <Tooltip title='Paste from clipboard'>
+                                <IconButton 
+                                        size="small"
+                                        onClick={handlePasteFromClipboard}
+                                        color='inherit'
+                                        sx={{color:'#919EAB',textTransform:'none',ml:1}}
+                                        onPaste={handlePasteFromClipboard}
+                                        >
+                                    <ContentPasteIcon fontSize='small' />
+                                </IconButton>
+                            </Tooltip>
+                            */}
+                            <Tooltip title='Send to my Wallet'>
+                                <IconButton 
+                                        size="small"
+                                        onClick={handleAddMyWallet}
+                                        color='inherit'
+                                        sx={{color:'#919EAB',textTransform:'none',ml:1}}>
+                                    <PersonIcon fontSize='small' />
+                                </IconButton>
+                            </Tooltip>
+                        </Grid>
                     </FormControl>
 
-                    
-
-                    
                     {openAdvanced ? 
                         <>
                             <AdvancedProposalView 
@@ -505,14 +830,16 @@ export default function SendExtensionView(props: any){
                         <Typography variant="caption">Made with ❤️ by Grape</Typography>
                     </Box>
 
-                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        {(publicKey && claimableAmount && claimableAmount > 0) &&
+                    <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p:0, pb:1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', p:0 }}>
+                        {(publicKey && tokenAmount && tokenAmount > 0 && tokenRecipient && tokenSelected) &&
                                 <Button
-                                    disabled={!claimTokenAddress && !loading}
+                                    disabled={!tokenRecipient && !loading}
                                     size='small'
                                     onClick={handleAdvancedToggle}
                                     sx={{
+                                        p:1,
+                                        borderRadius:'17px',
                                         justifyContent: 'flex-start',
                                         '&:hover .MuiSvgIcon-root.claimIcon': {
                                             color:'rgba(255,255,255,0.90)'
@@ -533,29 +860,31 @@ export default function SendExtensionView(props: any){
                         }
                         </Box>
 
-                        <Box sx={{ display: 'flex' }}>
-                            {(publicKey && claimableAmount && claimableAmount > 0) &&
-                            <Button 
-                                disabled={!claimTokenAddress && !loading}
-                                autoFocus 
-                                onClick={handleProposalIx}
-                                sx={{
-                                    '&:hover .MuiSvgIcon-root.claimNowIcon': {
-                                        color:'rgba(255,255,255,0.90)'
+                        <Box sx={{ display: 'flex', p:0 }}>
+                            {(publicKey && tokenAmount && tokenAmount > 0 && tokenRecipient && tokenSelected) &&
+                                <Button 
+                                    disabled={!tokenRecipient && !loading}
+                                    autoFocus 
+                                    onClick={handleProposalIx}
+                                    sx={{
+                                        p:1,
+                                        borderRadius:'17px',
+                                        '&:hover .MuiSvgIcon-root.claimNowIcon': {
+                                            color:'rgba(255,255,255,0.90)'
+                                        }
+                                    }}
+                                    startIcon={
+                                    <>
+                                        <SendIcon 
+                                            sx={{
+                                                color:'rgba(255,255,255,0.25)',
+                                                fontSize:"14px!important"}}
+                                        />
+                                    </>
                                     }
-                                }}
-                                startIcon={
-                                <>
-                                    <GetAppIcon 
-                                        className="claimNowIcon"
-                                        sx={{
-                                            color:'rgba(255,255,255,0.25)',
-                                            fontSize:"14px!important"}} />
-                                </>
-                                }
-                            >
-                                <>Send</>
-                            </Button>
+                                >
+                                    Send
+                                </Button>
                             }
                         </Box>
                     </DialogActions>
