@@ -676,39 +676,46 @@ export default function SendExtensionView(props: any){
         <>
             
             <Tooltip title="Send" placement="right">
-                {useButtonText ? 
-                    <>  
-                        <Button color={'inherit'} variant='text' 
-                            onClick={handleClickOpen} 
-                            sx={{m:0,p:0,
-                                '&:hover .MuiSvgIcon-root': {
-                                    opacity: 1,
-                                },
-                            }}
-                            startIcon={
-                                <SendIcon 
-                                    fontSize={'small'} 
-                                    sx={{
-                                        color:'rgba(255,255,255,0.25)',
-                                        opacity: 0,
-                                        pl:1,
-                                        fontSize:"10px"}} />
-                            }>
-                            <Typography variant={useButtonType === 2 ? `h5`:`subtitle1`} sx={{color:'white'}}>
-                                {useButtonText}
-                            </Typography>
-                         </Button>
-                    </>
+                {useButtonText && useButtonType === 1 ?
+                <>
+                    <Button onClick={handleClickOpen} fullWidth color='primary' size="large" variant="contained" sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2,ml:1,mr:1}}>{useButtonText}</Button>
+                </>
                 :
-                    <>
-                        <MenuItem onClick={handleClickOpen}>
-                            <ListItemIcon>
-                                <SendIcon fontSize="small" />
-                            </ListItemIcon>
-                            Send
-                        </MenuItem>
-                    </>
-                }
+                <>
+                    {useButtonText && (useButtonType === 2 || useButtonType === 3) ? 
+                        <>  
+                            <Button color={'inherit'} variant='text' 
+                                onClick={handleClickOpen} 
+                                sx={{m:0,p:0,
+                                    '&:hover .MuiSvgIcon-root': {
+                                        opacity: 1,
+                                    },
+                                }}
+                                startIcon={
+                                    <SendIcon 
+                                        fontSize={'small'} 
+                                        sx={{
+                                            color:'rgba(255,255,255,0.25)',
+                                            opacity: 0,
+                                            pl:1,
+                                            fontSize:"10px"}} />
+                                }>
+                                <Typography variant={useButtonType === 2 ? `h5`:`subtitle1`} sx={{color:'white'}}>
+                                    {useButtonText}
+                                </Typography>
+                            </Button>
+                        </>
+                    :
+                        <>
+                            <MenuItem onClick={handleClickOpen}>
+                                <ListItemIcon>
+                                    <SendIcon fontSize="small" />
+                                </ListItemIcon>
+                                Send
+                            </MenuItem>
+                        </>
+                    }
+                </>}
             </Tooltip>
             
             <BootstrapDialog 
@@ -798,7 +805,7 @@ export default function SendExtensionView(props: any){
                                                         <RenderTokenItem item={solItem} sol={true} key={0} />
                                                     </MenuItem>
                                                 }
-                                                
+
                                                 {masterWallet?.nativeTokens && masterWallet.nativeTokens
                                                     //.sort((a:any,b:any) => (b.balance - a.balance))
                                                     .sort((a, b) => {

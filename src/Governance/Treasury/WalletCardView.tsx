@@ -1492,6 +1492,24 @@ export default function WalletCardView(props:any) {
                 {(loading || loadingPrices) ?
                     <Skeleton variant="rounded" width={'90%'} height={60} sx={{m:1,p:0}} />
                 :
+                    <>
+                    <SendView 
+                            realm={realm}
+                            rulesWallet={rulesWallet}
+                            governanceNativeWallet={walletAddress} 
+                            expandedLoader={expandedLoader} 
+                            setExpandedLoader={setExpandedLoader}
+                            instructions={instructions}
+                            setInstructions={setInstructions}
+                            setSelectedNativeWallet={setSelectedNativeWallet}
+                            masterWallet={masterWallet}
+                            usdcValue={usdcValue}
+                            useButtonText={
+                                `Send`
+                            }
+                            useButtonType={1}
+                    />
+                    {/*
                     <IntegratedGovernanceProposalDialogView 
                         governanceAddress={governanceAddress}
                         intraDao={false}
@@ -1509,6 +1527,9 @@ export default function WalletCardView(props:any) {
                         title="Send"
                         usePlugin={4}
                     />
+                    */}
+                    </>
+
                 }
             </Grid>
 
@@ -1572,6 +1593,27 @@ export default function WalletCardView(props:any) {
                                     <Box sx={{textAlign:'right'}}>
                                         <Box>
                                             {(nativeSol && rulesSol && nativeSol > 0 && rulesSol > 0 ) ?
+                                                <>
+                                                    <SendView 
+                                                            realm={realm}
+                                                            rulesWallet={rulesWallet}
+                                                            governanceNativeWallet={walletAddress} 
+                                                            expandedLoader={expandedLoader} 
+                                                            setExpandedLoader={setExpandedLoader}
+                                                            instructions={instructions}
+                                                            setInstructions={setInstructions}
+                                                            setSelectedNativeWallet={setSelectedNativeWallet}
+                                                            masterWallet={masterWallet}
+                                                            usdcValue={usdcValue}
+                                                            useButtonText={
+                                                                (nativeSol && rulesSol) ? `${(nativeSol+rulesSol).toFixed(6)}`:``
+                                                            }
+                                                            preSelectedTokenAta={
+                                                                "So11111111111111111111111111111111111111112"
+                                                            }
+                                                            useButtonType={2}
+                                                    />
+                                                {/*
                                                 <IntegratedGovernanceProposalDialogView 
                                                     governanceAddress={governanceAddress}
                                                     intraDao={false}
@@ -1591,6 +1633,8 @@ export default function WalletCardView(props:any) {
                                                     title="Send"
                                                     usePlugin={5}
                                                 />
+                                                */}
+                                                </>
                                             :
                                                 <>
                                                     <Typography variant={`h5`} sx={{color:'white'}}>
