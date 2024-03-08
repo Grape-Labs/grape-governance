@@ -485,7 +485,6 @@ export default function WalletCardView(props:any) {
 
         //const solToUsd = cgp['So11111111111111111111111111111111111111112'].price;
         //const solUsdValue = (ia.solBalance > 0 ? cgp['So11111111111111111111111111111111111111112'].price*(ia.solBalance/(10 ** 9)) : 0);
-
         setUsdcValue(cgp);
 
         setLoadingPrices(false);
@@ -594,6 +593,11 @@ export default function WalletCardView(props:any) {
         rulesWallet.domains = domains1;
     }
 
+    const getWalletProposals = async() =>{ 
+        const props = await getAllProposalsIndexed([rulesWalletAddress], null, governanceAddress);
+        setProposals(props);
+    }
+
     const getWalletBalances = async() =>{
         setLoading(true);
         isLoading.current = true;
@@ -628,9 +632,7 @@ export default function WalletCardView(props:any) {
             //const stake1 = await getWalletStakeAccounts(new PublicKey(walletAddress));
             //const stake2 = await getWalletStakeAccounts(new PublicKey(rulesWalletAddress));
             
-            const props = await getAllProposalsIndexed([rulesWalletAddress], null, governanceAddress);
-
-            setProposals(props);
+            getWalletProposals();
 
             // put to unified array
             setNativeSol(sol1);
@@ -983,6 +985,13 @@ export default function WalletCardView(props:any) {
         
     }
 
+    const hideCloseAllExpandedViews = () => {
+        setExpanded(false);
+        setExpandedNft(false);
+        setExpandedStake(false);
+        setExpandedProps(false);
+    }
+
     const handleProposalTxCreation = async() => {
         
         if (instructions){
@@ -1077,10 +1086,17 @@ export default function WalletCardView(props:any) {
                     publicKey,
                     null
                 );
-
+                
                 setLoadingPropCreation(false);
                 if (propResponse){
+                    console.log("Prop Reponse: "+JSON.stringify(propResponse));
                     setLoadingText("New Proposal Created!");
+                    // close any expanded sections
+                    // reload proposals & expand
+                    await getWalletProposals();
+                    
+                    hideCloseAllExpandedViews();
+                    setExpandedProps(true);
                 }
 
                 setLoaderCreationComplete(true);
