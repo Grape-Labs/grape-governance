@@ -1090,6 +1090,7 @@ export default function WalletCardView(props:any) {
                 setLoadingPropCreation(false);
                 if (propResponse){
                     console.log("Prop Reponse: "+JSON.stringify(propResponse));
+                    
                     setLoadingText("New Proposal Created!");
                     // close any expanded sections
                     // reload proposals & expand

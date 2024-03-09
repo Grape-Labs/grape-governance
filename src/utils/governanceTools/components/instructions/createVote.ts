@@ -197,15 +197,15 @@ export const createCastVoteTransaction = async (
       
       //console.log("programId: "+selectedRealm.owner);
       
-      //console.log("programVersion: "+programVersion)
-      //console.log("selectedRealm.owner: "+selectedRealm.owner)
-      //console.log("selectedRealm.pubkey: "+selectedRealm.pubkey)
-      //console.log("proposal.governanceId: "+proposal.governanceId)
-      //console.log("proposal.proposalId: "+proposal.proposalId)
-      //console.log("proposal.tokenOwnerRecord: "+proposal.tokenOwnerRecord)
-      //console.log("proposal.governingTokenMint: "+proposal.governingTokenMint)
-      //console.log("tokenRecordPublicKey: "+JSON.stringify(tokenRecordPublicKey))
-      //console.log("vote type: "+JSON.stringify(Vote.fromYesNoVote(action)));
+      console.log("programVersion: "+programVersion)
+      console.log("selectedRealm.owner: "+selectedRealm.owner)
+      console.log("selectedRealm.pubkey: "+selectedRealm.pubkey)
+      console.log("proposal.governanceId: "+proposal.governanceId)
+      console.log("proposal.proposalId: "+proposal.proposalId)
+      console.log("proposal.tokenOwnerRecord: "+proposal.tokenOwnerRecord)
+      console.log("proposal.governingTokenMint: "+proposal.governingTokenMint)
+      console.log("tokenRecordPublicKey: "+JSON.stringify(tokenRecordPublicKey))
+      console.log("vote type: "+JSON.stringify(Vote.fromYesNoVote(action)));
       
       console.log("multiChoice: " +multiChoice);
 
@@ -306,6 +306,9 @@ export const createCastVoteTransaction = async (
         //createCastNftVoteTicketIxs
       )*/
 
+      console.log("votePlugin?.voterWeightPk: "+JSON.stringify(votePlugin?.voterWeightPk));
+      console.log("votePlugin?.maxVoterWeightRecord: "+JSON.stringify(votePlugin?.maxVoterWeightRecord));
+
       await withCastVote(
         instructions,
         new PublicKey(selectedRealm!.owner), //  realm/governance PublicKey
@@ -319,12 +322,12 @@ export const createCastVoteTransaction = async (
         new PublicKey(proposal.governingTokenMint), // proposal governanceMint Authority
         voteDirection, //Vote.fromYesNoVote(action), //  *Vote* class? 1 = no, 0 = yes
         payer,
-        hasVoterWeight? votePlugin?.voterWeightPk : nftPlugin ? nftPlugin.voterWeightPk : null,
-        hasMaxVoterWeight? votePlugin?.maxVoterWeightRecord : nftPlugin ? nftPlugin.maxVoterWeightRecord : null
+        hasVoterWeight? votePlugin?.voterWeightPk : nftPlugin ? nftPlugin.voterWeightPk : votePlugin.voterWeightPk,
+        null,//hasMaxVoterWeight ? votePlugin?.maxVoterWeightRecord : nftPlugin ? nftPlugin.maxVoterWeightRecord : votePlugin.maxVoterWeightRecord
       );
 
       //console.log("HERE after withCastVote")
-
+      
       const recentBlock = await connection.getLatestBlockhash();
     
       //const transaction = new Transaction({ feePayer: walletPubkey });
@@ -377,7 +380,6 @@ export const createCastVoteTransaction = async (
     console.log("realm: "+new PublicKey(selectedRealm.pubkey).toBase58());
     console.log("mint: "+communityMint.toBase58());
     
-
     const { registrar } = await getRegistrarPDA(
       new PublicKey(selectedRealm!.pubkey),
       new PublicKey(communityMint),
