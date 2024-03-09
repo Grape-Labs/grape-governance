@@ -29,7 +29,7 @@ export class VsrClient {
 
   static async connect(
     provider: Provider,
-    programId: web3.PublicKey = MARINADE_VSR_ID,
+    programId: web3.PublicKey = DEFAULT_VSR_ID,
     devnet?: boolean
   ): Promise<VsrClient> {
     const idl = IDL

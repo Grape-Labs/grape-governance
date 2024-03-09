@@ -143,7 +143,7 @@ export const createCastVoteTransaction = async (
       }
 
       if (hasVoterWeight || config?.account?.communityTokenConfig?.voterWeightAddin){
-        //console.log("With realm: "+selectedRealm!.pubkey)
+        console.log("vwa: "+config.account.communityTokenConfig.voterWeightAddin.toBase58())
         //if (selectedRealm.pubkey === "DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE") {
           votePlugin = await getVotingPlugin(
             selectedRealm,
