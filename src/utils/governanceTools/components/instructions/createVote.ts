@@ -196,7 +196,7 @@ export const createCastVoteTransaction = async (
       // END PLUGIN STUFF
       
       //console.log("programId: "+selectedRealm.owner);
-      
+      /*
       console.log("programVersion: "+programVersion)
       console.log("selectedRealm.owner: "+selectedRealm.owner)
       console.log("selectedRealm.pubkey: "+selectedRealm.pubkey)
@@ -206,9 +206,11 @@ export const createCastVoteTransaction = async (
       console.log("proposal.governingTokenMint: "+proposal.governingTokenMint)
       console.log("tokenRecordPublicKey: "+JSON.stringify(tokenRecordPublicKey))
       console.log("vote type: "+JSON.stringify(Vote.fromYesNoVote(action)));
-      
-      console.log("multiChoice: " +multiChoice);
+      console.log("votePlugin?.voterWeightPk: "+JSON.stringify(votePlugin?.voterWeightPk));
+      console.log("votePlugin?.maxVoterWeightRecord: "+JSON.stringify(votePlugin?.maxVoterWeightRecord));
 
+      console.log("multiChoice: " +multiChoice);
+      */
       let rank = 0;
       let weightPercentage = 100;
       if (multiChoice){
@@ -306,9 +308,6 @@ export const createCastVoteTransaction = async (
         //createCastNftVoteTicketIxs
       )*/
 
-      console.log("votePlugin?.voterWeightPk: "+JSON.stringify(votePlugin?.voterWeightPk));
-      console.log("votePlugin?.maxVoterWeightRecord: "+JSON.stringify(votePlugin?.maxVoterWeightRecord));
-
       await withCastVote(
         instructions,
         new PublicKey(selectedRealm!.owner), //  realm/governance PublicKey
@@ -322,8 +321,8 @@ export const createCastVoteTransaction = async (
         new PublicKey(proposal.governingTokenMint), // proposal governanceMint Authority
         voteDirection, //Vote.fromYesNoVote(action), //  *Vote* class? 1 = no, 0 = yes
         payer,
-        hasVoterWeight? votePlugin?.voterWeightPk : nftPlugin ? nftPlugin.voterWeightPk : votePlugin.voterWeightPk,
-        null,//hasMaxVoterWeight ? votePlugin?.maxVoterWeightRecord : nftPlugin ? nftPlugin.maxVoterWeightRecord : votePlugin.maxVoterWeightRecord
+        hasVoterWeight ? votePlugin?.voterWeightPk : nftPlugin ? nftPlugin?.voterWeightPk : votePlugin?.voterWeightPk,
+        hasMaxVoterWeight ? votePlugin?.maxVoterWeightRecord : nftPlugin ? nftPlugin?.maxVoterWeightRecord : votePlugin?.maxVoterWeightRecord
       );
 
       //console.log("HERE after withCastVote")
