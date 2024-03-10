@@ -1565,13 +1565,13 @@ export default function WalletCardView(props:any) {
                                         <Skeleton
                                             animation="wave"
                                             height={20}
-                                            width="120px"
+                                            width="100px"
                                             style={{ marginBottom: 4, textAlign: 'right' }}
                                             />
                                         <Skeleton
                                             animation="wave"
                                             height={20}
-                                            width="120px"
+                                            width="80px"
                                             style={{ marginBottom: 4, textAlign: 'right' }}
                                             />
                                     </>
@@ -1586,7 +1586,7 @@ export default function WalletCardView(props:any) {
                                             <Skeleton
                                                 animation="wave"
                                                 height={20}
-                                                width="140px"
+                                                width="120px"
                                                 style={{ marginBottom: 4 }}
                                                 />
                                         }
@@ -1594,7 +1594,7 @@ export default function WalletCardView(props:any) {
                                             <Skeleton
                                                 animation="wave"
                                                 height={20}
-                                                width="100px"
+                                                width="120px"
                                                 style={{ marginBottom: 2 }}
                                                 />
                                         }

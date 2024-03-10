@@ -12,6 +12,8 @@ import {
   Keypair,
   VersionedMessage,
   VersionedTransaction,
+  LAMPORTS_PER_SOL,
+  ComputeBudgetProgram,
 } from '@solana/web3.js';
 //import  SignerWalletAdapter  from "@project-serum/sol-wallet-adapter";
 import { AnchorWallet } from "@solana/wallet-adapter-react";
@@ -181,6 +183,14 @@ export async function sendSignedTransaction({
   successMessage?: string
   timeout?: number
 }): Promise<{ txid: string; slot: number }> {
+
+  // Add priority fee
+  const PRIORITY_RATE = 100; // MICRO_LAMPORTS 
+  const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
+  const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
+  console.log("Adding priority fee at the rate of "+PRIORITY_RATE+ " micro lamports")
+  signedTransaction.add(PRIORITY_FEE_IX);
+
   const rawTransaction = signedTransaction.serialize()
   const startTime = getUnixTs()
   let slot = 0
@@ -201,7 +211,7 @@ export async function sendSignedTransaction({
     instructions: transferInstruction, // Instructions included in transaction
   }).compileToV0Message();
   */
- 
+
   const txid: TransactionSignature = await connection.sendRawTransaction(
     rawTransaction,
     {
