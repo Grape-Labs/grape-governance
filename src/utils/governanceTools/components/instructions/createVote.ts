@@ -165,7 +165,7 @@ export const createCastVoteTransaction = async (
         //}
       }
 
-      const isNftPlugin = config?.account.communityTokenConfig.voterWeightAddin && NFT_PLUGINS_PKS.includes(config?.account.communityTokenConfig.voterWeightAddin?.toBase58())
+      const isNftPlugin = realmConfig?.account.communityTokenConfig.voterWeightAddin && NFT_PLUGINS_PKS.includes(config?.account.communityTokenConfig.voterWeightAddin?.toBase58())
       
       const createCastNftVoteTicketIxs: TransactionInstruction[] = []
       const pluginCastVoteIxs: TransactionInstruction[] = []
