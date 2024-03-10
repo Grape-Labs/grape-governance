@@ -341,7 +341,7 @@ export const createCastVoteTransaction = async (
     }
 
   };
-
+    
   const getVotingPlugin = async (
     selectedRealm: any,
     communityMint: any,
@@ -356,12 +356,12 @@ export const createCastVoteTransaction = async (
       options
     );
     
-    /*
-    const pluginPk =
-      votingPop === 'community'
-        ? realmConfig?.account.communityTokenConfig.voterWeightAddin
-        : realmConfig?.account.councilTokenConfig.voterWeightAddin
-    */
+    
+    //const pluginPk =
+    //  votingPop === 'community'
+    //    ? realmConfig?.account.communityTokenConfig.voterWeightAddin
+    //    : realmConfig?.account.councilTokenConfig.voterWeightAddin
+    
 
     //const client = await VsrClient.connect(provider, false);
 
@@ -389,13 +389,12 @@ export const createCastVoteTransaction = async (
     const { voter } = await getVoterPDA(registrar, walletPubkey, clientProgramId);
     console.log("voter: "+voter.toBase58());
 
-    /*
-    const { voterWeightPk } = await getVoterWeightRecord(
-      new PublicKey(selectedRealm!.pubkey),
-      communityMint,
-      walletPubkey,
-      clientProgramId
-    );*/
+    //const { voterWeightPk } = await getVoterWeightRecord(
+    //  new PublicKey(selectedRealm!.pubkey),
+    //  communityMint,
+    //  walletPubkey,
+    //  clientProgramId
+    //);
     
     const { voterWeightPk } = await getVoterWeightPDA(
       registrar,
