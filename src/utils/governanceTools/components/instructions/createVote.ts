@@ -29,13 +29,6 @@ import {
   SYSTEM_PROGRAM_ID,
 } from "@solana/spl-governance";
 
-import {
-  NftVoterClient,
-} from "@solana/governance-program-library";
-
-// plugin stuff
-//import { VsrClient } from "@blockworks-foundation/voter-stake-registry-client/index";
-import { VsrClient } from './client';
 
 import {
   NFT_PLUGINS_PKS,
@@ -47,7 +40,7 @@ import {
 } from "./account";
 // end plugin stuff
 
-//import { VotingClient } from '@utils/uiTypes/VotePlugin'
+import { getVotingPlugin } from './getVotePlugin';
 
 const connection = RPC_CONNECTION;
 
@@ -196,7 +189,7 @@ export const createCastVoteTransaction = async (
       // END PLUGIN STUFF
       
       //console.log("programId: "+selectedRealm.owner);
-      
+      /*
       console.log("programVersion: "+programVersion)
       console.log("selectedRealm.owner: "+selectedRealm.owner)
       console.log("selectedRealm.pubkey: "+selectedRealm.pubkey)
@@ -206,9 +199,11 @@ export const createCastVoteTransaction = async (
       console.log("proposal.governingTokenMint: "+proposal.governingTokenMint)
       console.log("tokenRecordPublicKey: "+JSON.stringify(tokenRecordPublicKey))
       console.log("vote type: "+JSON.stringify(Vote.fromYesNoVote(action)));
-      
+      console.log("votePlugin?.voterWeightPk: "+JSON.stringify(votePlugin?.voterWeightPk));
+      console.log("votePlugin?.maxVoterWeightRecord: "+JSON.stringify(votePlugin?.maxVoterWeightRecord));
       console.log("multiChoice: " +multiChoice);
-
+      */
+    
       let rank = 0;
       let weightPercentage = 100;
       if (multiChoice){
@@ -306,9 +301,6 @@ export const createCastVoteTransaction = async (
         //createCastNftVoteTicketIxs
       )*/
 
-      console.log("votePlugin?.voterWeightPk: "+JSON.stringify(votePlugin?.voterWeightPk));
-      console.log("votePlugin?.maxVoterWeightRecord: "+JSON.stringify(votePlugin?.maxVoterWeightRecord));
-
       await withCastVote(
         instructions,
         new PublicKey(selectedRealm!.owner), //  realm/governance PublicKey
@@ -322,8 +314,8 @@ export const createCastVoteTransaction = async (
         new PublicKey(proposal.governingTokenMint), // proposal governanceMint Authority
         voteDirection, //Vote.fromYesNoVote(action), //  *Vote* class? 1 = no, 0 = yes
         payer,
-        hasVoterWeight? votePlugin?.voterWeightPk : nftPlugin ? nftPlugin.voterWeightPk : votePlugin.voterWeightPk,
-        null,//hasMaxVoterWeight ? votePlugin?.maxVoterWeightRecord : nftPlugin ? nftPlugin.maxVoterWeightRecord : votePlugin.maxVoterWeightRecord
+        hasVoterWeight ? votePlugin?.voterWeightPk : nftPlugin ? nftPlugin?.voterWeightPk : votePlugin?.voterWeightPk,
+        hasMaxVoterWeight ? votePlugin?.maxVoterWeightRecord : nftPlugin ? nftPlugin?.maxVoterWeightRecord : votePlugin?.maxVoterWeightRecord
       );
 
       //console.log("HERE after withCastVote")
@@ -341,88 +333,4 @@ export const createCastVoteTransaction = async (
         return null;
     }
 
-  };
-
-  const getVotingPlugin = async (
-    selectedRealm: any,
-    communityMint: any,
-    walletPubkey: any,
-    voterWeightAddin:any,
-  ) => {
-    const options = AnchorProvider.defaultOptions();//AnchorProvider.defaultOptions();
-    
-    const provider = new AnchorProvider(
-      connection,
-      walletPubkey,
-      options
-    );
-    
-    /*
-    const pluginPk =
-      votingPop === 'community'
-        ? realmConfig?.account.communityTokenConfig.voterWeightAddin
-        : realmConfig?.account.councilTokenConfig.voterWeightAddin
-    */
-
-    //const client = await VsrClient.connect(provider, false);
-
-    const client = await VsrClient.connect(provider, voterWeightAddin, false);
-    const clientProgramId = client!.program.programId;
-
-    //const vwa = selectedRealm?.account?.communityTokenConfig?.voterWeightAddin
-    //const vwa2 = selectedRealm?.account?.councilTokenConfig?.voterWeightAddin
-    
-    //console.log("vwa "+vwa?.toBase58())
-    //console.log("vwa2 "+vwa2?.toBase58())
-
-    console.log("clientProgramId "+clientProgramId.toBase58())
-    
-    console.log("realm: "+new PublicKey(selectedRealm.pubkey).toBase58());
-    console.log("mint: "+communityMint.toBase58());
-    
-    const { registrar } = await getRegistrarPDA(
-      new PublicKey(selectedRealm!.pubkey),
-      new PublicKey(communityMint),
-      clientProgramId
-    );
-    //const registrar = new PublicKey("4WQSYg21RrJNYhF4251XFpoy1uYbMHcMfZNLMXA3x5Mp");
-    console.log("registrar: "+registrar.toBase58());
-    const { voter } = await getVoterPDA(registrar, walletPubkey, clientProgramId);
-    console.log("voter: "+voter.toBase58());
-
-    /*
-    const { voterWeightPk } = await getVoterWeightRecord(
-      new PublicKey(selectedRealm!.pubkey),
-      communityMint,
-      walletPubkey,
-      clientProgramId
-    );*/
-    
-    const { voterWeightPk } = await getVoterWeightPDA(
-      registrar,
-      walletPubkey,
-      clientProgramId,
-    );
-    
-    const { maxVoterWeightRecord } = await getMaxVoterWeightRecord(
-      registrar,
-      communityMint,
-      clientProgramId
-    );
-
-    console.log(walletPubkey.toBase58()+" voterWeightPk: "+voterWeightPk.toBase58());
-    console.log(walletPubkey.toBase58()+" maxVoterWeightRecord: "+maxVoterWeightRecord?.toBase58());
-    
-    /*
-    const updateVoterWeightRecordIx = await client!.program.methods
-      .updateVoterWeightRecord()
-      .accounts({
-        registrar,
-        voter,
-        voterWeightRecord: voterWeightPk,
-        systemProgram: 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw',
-      })
-      .instruction();
-    */
-    return { voterWeightPk, maxVoterWeightRecord, client, registrar, voter };
-};
+}

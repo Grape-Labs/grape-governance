@@ -28,6 +28,7 @@ import {
   getAllProposals,
   MultiChoiceType,
   ProposalTransaction,
+  tryGetRealmConfig,
 } from '@solana/spl-governance';
 
 import { 
@@ -41,6 +42,9 @@ import {
   getTokenOwnerRecordsByRealmIndexed,
   getProposalInstructionsIndexed
 } from '../api/queries';
+
+import { getVotingPlugin } from '../../utils/governanceTools/components/instructions/getVotePlugin';
+import { RPC_CONNECTION } from '../../utils/grapeTools/constants';  
 
 import { chunks } from '../../utils/governanceTools/helpers';
 import { sendTransactions, prepareTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../../utils/governanceTools/sendTransactions';
@@ -179,8 +183,51 @@ export async function createProposalInstructionsLegacy(
     )*/
     let proposalAddress = null;
     let ixCount = 0;
+    
+    console.log("editAddress "+JSON.stringify(editAddress));
 
-    if (!editAddress){
+    if (!editAddress || editAddress === null || editAddress === undefined){
+      console.log("Creating Proposal");
+      let votePlugin = null;
+      let hasVoterWeight = false;
+      
+      /*
+      const selectedRealm = await getRealmIndexed(realmPk.toBase58());
+
+      if (selectedRealm?.account?.config?.useCommunityVoterWeightAddin){
+        console.log("Has Voter Weight Plugin!");
+        hasVoterWeight = true;
+      }
+
+      let hasMaxVoterWeight = false;
+      if (selectedRealm?.account?.config?.useMaxCommunityVoterWeightAddin){
+        console.log("Has MAX Voter Weight Addin!");
+        hasMaxVoterWeight = true;
+      }
+      
+      if (hasVoterWeight || hasMaxVoterWeight){
+        const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(selectedRealm.owner), new PublicKey(selectedRealm.pubkey));
+        // checking plugin
+        
+        if (hasVoterWeight || config?.account?.communityTokenConfig?.voterWeightAddin){
+          console.log("vwa: "+config.account.communityTokenConfig.voterWeightAddin.toBase58())
+            votePlugin = await getVotingPlugin(
+              selectedRealm,
+              governingTokenMint,
+              walletPk,
+              config.account.communityTokenConfig.voterWeightAddin
+            );
+            
+            //console.log("Vote Plugin: "+JSON.stringify(votePlugin))
+  
+            if (votePlugin){
+              console.log("Using Voter Plugin");
+            }
+      } else{
+        console.log("No Voter/Max Voter Weight Set");
+      }
+      */
+      
       proposalAddress = await withCreateProposal(
         instructions,
         programId,
@@ -197,7 +244,7 @@ export async function createProposalInstructionsLegacy(
         options,
         useDenyOption,
         payer,
-        //plugin?.voterWeightPk
+        votePlugin?.voterWeightPk
       );
     
       
@@ -214,10 +261,10 @@ export async function createProposalInstructionsLegacy(
         payer
       )
       
-    } else{
-      proposalAddress = editAddress;
+    } else {
       console.log("Editing Proposal");
-
+      proposalAddress = editAddress;
+      
       // revert to use this when SHYFT properly adjusts the total ix
       //const ix = await getProposalInstructionsIndexed(realmPk.toBase58(), proposalAddress);
       
@@ -315,7 +362,7 @@ export async function createProposalInstructionsLegacy(
 
     console.log("6");
     
-    if (!isDraft){
+    if (!isDraft || isDraft === null || isDraft === undefined){
       withSignOffProposal(
         insertInstructions, // Sign Off proposal needs to be executed after inserting instructions hence we add it to insertInstructions
         programId,
@@ -340,7 +387,7 @@ export async function createProposalInstructionsLegacy(
 
     //return null;
     
-    if (!returnTx){
+    if (!returnTx || returnTx === null || returnTx === undefined){
       
       console.log(`Sending Transactions...`);
       try{
