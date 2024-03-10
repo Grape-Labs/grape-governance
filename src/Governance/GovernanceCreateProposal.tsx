@@ -191,7 +191,7 @@ export default function GovernanceCreateProposalView(props: any){
     const sentGovernanceWallet = props?.governanceWallet;
     const setEditPropOpen = props?.setEditPropOpen;
     const setSentInstructionsObject = props?.setInstructionsObject;
-    const intraDAO = props?.governanceAddress ? props?.intraDao ? props.intraDao : false : false;
+    const intraDAO = (props?.governanceAddress && props?.intraDao) ? props.intraDao : false;
     const usePlugin = props?.usePlugin;
     const fromDialog = props?.fromDialog;
     const showGovernanceTitle = true;
@@ -1526,7 +1526,7 @@ export default function GovernanceCreateProposalView(props: any){
 
     React.useEffect(() => {
       if (cachedGovernance && sentRulesAddress){
-        handleNativeWalletFromRules(sentRulesAddress.toBase58())
+        handleNativeWalletFromRules(new PublicKey(sentRulesAddress).toBase58())
       }
     }, [cachedGovernance])
 
