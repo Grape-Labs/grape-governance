@@ -29,13 +29,6 @@ import {
   SYSTEM_PROGRAM_ID,
 } from "@solana/spl-governance";
 
-import {
-  NftVoterClient,
-} from "@solana/governance-program-library";
-
-// plugin stuff
-//import { VsrClient } from "@blockworks-foundation/voter-stake-registry-client/index";
-import { VsrClient } from './client';
 
 import {
   NFT_PLUGINS_PKS,
@@ -208,9 +201,9 @@ export const createCastVoteTransaction = async (
       console.log("vote type: "+JSON.stringify(Vote.fromYesNoVote(action)));
       console.log("votePlugin?.voterWeightPk: "+JSON.stringify(votePlugin?.voterWeightPk));
       console.log("votePlugin?.maxVoterWeightRecord: "+JSON.stringify(votePlugin?.maxVoterWeightRecord));
-
       console.log("multiChoice: " +multiChoice);
       */
+    
       let rank = 0;
       let weightPercentage = 100;
       if (multiChoice){
