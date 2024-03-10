@@ -204,14 +204,14 @@ export async function createProposalInstructionsLegacy(
         console.log("Has MAX Voter Weight Addin!");
         hasMaxVoterWeight = true;
       }
+
+      const realmConfig = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(selectedRealmIndexed.owner), new PublicKey(selectedRealmIndexed.pubkey));
       
-      
-      if (hasVoterWeight || hasMaxVoterWeight){
+      if (realmConfig){
         
-        const realmConfig = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(selectedRealmIndexed.owner), new PublicKey(selectedRealmIndexed.pubkey));
         // checking plugin
         console.log("realmConfig: "+JSON.stringify(realmConfig));
-        /*
+        
         if (hasVoterWeight || realmConfig?.account?.communityTokenConfig?.voterWeightAddin){
           console.log("vwa: "+realmConfig.account.communityTokenConfig.voterWeightAddin.toBase58())
           
@@ -220,7 +220,7 @@ export async function createProposalInstructionsLegacy(
               governingTokenMint,
               walletPk,
               realmConfig.account.communityTokenConfig.voterWeightAddin
-            );
+          )
           
             //console.log("Vote Plugin: "+JSON.stringify(votePlugin))
             
@@ -229,7 +229,7 @@ export async function createProposalInstructionsLegacy(
             } else {
               console.log("No Voter Plugin");
             }
-        */
+        
       } else{
         console.log("No Voter/Max Voter Weight Set");
       }
