@@ -205,7 +205,6 @@ export async function createProposalInstructionsLegacy(
         hasMaxVoterWeight = true;
       }
 
-      console.log("after voter weight check...")
       const realmConfig = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(selectedRealmIndexed.owner), new PublicKey(selectedRealmIndexed.pubkey));
       
       if (realmConfig){
