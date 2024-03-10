@@ -108,7 +108,7 @@ export const createCastVoteTransaction = async (
       //}
       
       // PLUGIN STUFF
-      const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(selectedRealm.owner), new PublicKey(selectedRealm.pubkey));
+      const realmConfig = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(selectedRealm.owner), new PublicKey(selectedRealm.pubkey));
       //console.log("realm config "+JSON.stringify(config));
       /*
       const configPk = await getRealmConfigAddress(selectedRealm.owner, selectedRealm.pubkey)
@@ -135,14 +135,14 @@ export const createCastVoteTransaction = async (
         hasMaxVoterWeight = true;
       }
 
-      if (hasVoterWeight || config?.account?.communityTokenConfig?.voterWeightAddin){
-        console.log("vwa: "+config.account.communityTokenConfig.voterWeightAddin.toBase58())
+      if (hasVoterWeight || realmConfig?.account?.communityTokenConfig?.voterWeightAddin){
+        console.log("vwa: "+realmConfig.account.communityTokenConfig.voterWeightAddin.toBase58())
         //if (selectedRealm.pubkey === "DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE") {
           votePlugin = await getVotingPlugin(
             selectedRealm,
             proposal.governingTokenMint,
             walletPublicKey,
-            config.account.communityTokenConfig.voterWeightAddin
+            realmConfig.account.communityTokenConfig.voterWeightAddin
           );
           
           //console.log("Vote Plugin: "+JSON.stringify(votePlugin))

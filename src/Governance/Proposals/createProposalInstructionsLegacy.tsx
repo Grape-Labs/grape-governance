@@ -191,42 +191,46 @@ export async function createProposalInstructionsLegacy(
       let votePlugin = null;
       let hasVoterWeight = false;
       
-      /*
-      const selectedRealm = await getRealmIndexed(realmPk.toBase58());
-
-      if (selectedRealm?.account?.config?.useCommunityVoterWeightAddin){
+      
+      const selectedRealmIndexed = await getRealmIndexed(realmPk.toBase58());
+      
+      if (selectedRealmIndexed?.account?.config?.useCommunityVoterWeightAddin){
         console.log("Has Voter Weight Plugin!");
         hasVoterWeight = true;
       }
 
       let hasMaxVoterWeight = false;
-      if (selectedRealm?.account?.config?.useMaxCommunityVoterWeightAddin){
+      if (selectedRealmIndexed?.account?.config?.useMaxCommunityVoterWeightAddin){
         console.log("Has MAX Voter Weight Addin!");
         hasMaxVoterWeight = true;
       }
       
+      
       if (hasVoterWeight || hasMaxVoterWeight){
-        const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(selectedRealm.owner), new PublicKey(selectedRealm.pubkey));
+        const realmConfig = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(selectedRealmIndexed.owner), new PublicKey(selectedRealmIndexed.pubkey));
         // checking plugin
         
-        if (hasVoterWeight || config?.account?.communityTokenConfig?.voterWeightAddin){
-          console.log("vwa: "+config.account.communityTokenConfig.voterWeightAddin.toBase58())
-            votePlugin = await getVotingPlugin(
-              selectedRealm,
+        if (hasVoterWeight || realmConfig?.account?.communityTokenConfig?.voterWeightAddin){
+          console.log("vwa: "+realmConfig.account.communityTokenConfig.voterWeightAddin.toBase58())
+          
+          votePlugin = await getVotingPlugin(
+              selectedRealmIndexed,
               governingTokenMint,
               walletPk,
-              config.account.communityTokenConfig.voterWeightAddin
+              realmConfig.account.communityTokenConfig.voterWeightAddin
             );
             
             //console.log("Vote Plugin: "+JSON.stringify(votePlugin))
-  
+            
             if (votePlugin){
               console.log("Using Voter Plugin");
+            } else {
+              console.log("No Voter Plugin");
             }
       } else{
         console.log("No Voter/Max Voter Weight Set");
       }
-      */
+      
       
       proposalAddress = await withCreateProposal(
         instructions,
