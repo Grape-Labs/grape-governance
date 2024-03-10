@@ -183,16 +183,16 @@ export async function createProposalInstructionsLegacy(
     )*/
     let proposalAddress = null;
     let ixCount = 0;
-
     
-    if (editAddress === null){
+    console.log("editAddress "+JSON.stringify(editAddress));
+
+    if (!editAddress || editAddress === null || editAddress === undefined){
       console.log("Creating Proposal");
-
+      let votePlugin = null;
       let hasVoterWeight = false;
-
+      
       /*
-      const selectedRealm = await getRealmIndexed(realmPk.toBase58())
-
+      const selectedRealm = await getRealmIndexed(realmPk.toBase58());
 
       if (selectedRealm?.account?.config?.useCommunityVoterWeightAddin){
         console.log("Has Voter Weight Plugin!");
@@ -204,16 +204,13 @@ export async function createProposalInstructionsLegacy(
         console.log("Has MAX Voter Weight Addin!");
         hasMaxVoterWeight = true;
       }
-      */
-      let votePlugin = null;
-      /*
+      
       if (hasVoterWeight || hasMaxVoterWeight){
         const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(selectedRealm.owner), new PublicKey(selectedRealm.pubkey));
         // checking plugin
         
         if (hasVoterWeight || config?.account?.communityTokenConfig?.voterWeightAddin){
           console.log("vwa: "+config.account.communityTokenConfig.voterWeightAddin.toBase58())
-          //if (selectedRealm.pubkey === "DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE") {
             votePlugin = await getVotingPlugin(
               selectedRealm,
               governingTokenMint,
@@ -230,7 +227,7 @@ export async function createProposalInstructionsLegacy(
         console.log("No Voter/Max Voter Weight Set");
       }
       */
-
+      
       proposalAddress = await withCreateProposal(
         instructions,
         programId,
@@ -264,7 +261,7 @@ export async function createProposalInstructionsLegacy(
         payer
       )
       
-    } else if (editAddress){
+    } else {
       console.log("Editing Proposal");
       proposalAddress = editAddress;
       
@@ -365,7 +362,7 @@ export async function createProposalInstructionsLegacy(
 
     console.log("6");
     
-    if (isDraft === null){
+    if (!isDraft || isDraft === null || isDraft === undefined){
       withSignOffProposal(
         insertInstructions, // Sign Off proposal needs to be executed after inserting instructions hence we add it to insertInstructions
         programId,
@@ -390,7 +387,7 @@ export async function createProposalInstructionsLegacy(
 
     //return null;
     
-    if (returnTx === null){
+    if (!returnTx || returnTx === null || returnTx === undefined){
       
       console.log(`Sending Transactions...`);
       try{
