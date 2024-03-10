@@ -820,11 +820,11 @@ export default function IntraDAOProposalView(props: any) {
 
 
                                 <FormControl fullWidth  sx={{mb:2}}>
-                                    
                                     <GovernanceCreateProposalView 
-                                        governanceAddress={governance.pubkey.toBase58()} 
+                                        governanceAddress={new PublicKey(daoToParticipateAddress).toBase58()} 
                                         governanceRulesWallet={governanceRulesWallet} 
                                         payerWallet={publicKey} 
+                                        intraDao={true}
                                         governanceWallet={governanceWallet?.vault.pubkey} 
                                         setInstructionsObject={setInstructionsObject} 
                                         governanceLookup={governanceLookup} />
