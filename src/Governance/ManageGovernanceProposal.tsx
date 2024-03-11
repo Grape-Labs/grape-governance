@@ -440,6 +440,22 @@ export function ManageGovernanceProposal(props: any){
         await handleCancelProposalIx();
     }
 
+    const getProposalDepositPk = (
+        proposal: PublicKey,
+        proposalOwnerWallet: PublicKey,
+        programId: PublicKey
+      ) => {
+        const [proposalDeposit] = PublicKey.findProgramAddressSync(
+          [
+            Buffer.from('proposal-deposit'),
+            proposal.toBuffer(),
+            proposalOwnerWallet.toBuffer(),
+          ],
+          programId
+        )
+        return proposalDeposit
+    }
+
     const handleCancelProposalIx = async() => {
 
         console.log("proposal: "+JSON.stringify(proposal));
@@ -510,7 +526,7 @@ export function ManageGovernanceProposal(props: any){
         console.log("signatoryTokenOwnerRecordPk: "+signatoryRecordAddress.toBase58())
         
         let instructions: TransactionInstruction[] = [];
-        withCancelProposal(
+        await withCancelProposal(
             instructions,
             programId,
             programVersion,
@@ -521,16 +537,35 @@ export function ManageGovernanceProposal(props: any){
             governanceAuthority
         );
         
+        let refundAddress = null;
+        const possibleTorDeposit = getProposalDepositPk(
+            proposalAddress,
+            tokenOwnerRecordPk,
+            programId
+        );
+
+        const torDeposit = await RPC_CONNECTION.getBalance(possibleTorDeposit)
+        
+        
+        //if (delegateDeposit && delegateDeposit > 0 && possibleDelegateDeposit) {
+        //    refundAddress = proposalOwner.account.governanceDelegate;
+        //} else if (torDeposit && torDeposit > 0) {
+        //    refundAddress = tokenOwnerRecordPk;
+        //}
+        if (torDeposit && torDeposit > 0)
+            refundAddress = tokenOwnerRecordPk
         
         //let refInstructions: TransactionInstruction[] = [];
-        /*
-        await withRefundProposalDeposit(
-            instructions,
-            programId,
-            programVersion,
-            proposalAddress,
-            governanceAuthority
-        );*/
+        
+        if (refundAddress){
+            await withRefundProposalDeposit(
+                instructions,
+                programId!,
+                programVersion,
+                proposalAddress,
+                governanceAuthority
+            );
+        }
 
        //instructions.push(...refInstructions);
 

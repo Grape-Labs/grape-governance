@@ -169,6 +169,60 @@ export const getUnixTs = () => {
   return new Date().getTime() / 1000
 }
 
+/*
+async function createAndSendV0Tx(RPC_CONNECTION: Connection, wallet: WalletSigner, txInstructions: TransactionInstruction[]) {
+  // Step 1 - Fetch Latest Blockhash
+  let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+  console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
+
+  // Step 2 - Generate Transaction Message
+  const messageV0 = new TransactionMessage({
+      payerKey: wallet.publicKey,
+      recentBlockhash: latestBlockhash.blockhash,
+      instructions: txInstructions
+  }).compileToV0Message();
+  console.log("   ✅ - Compiled transaction message");
+  const transaction = new VersionedTransaction(messageV0);
+
+  // Step 3 - Sign your transaction with the required `Signers`
+  //transaction.addSignature(publicKey);
+  //transaction.sign(wallet);
+  //const signedTransaction = await signTransaction(transaction);
+  //const signedTx = await signTransaction(transaction);
+  console.log("   ✅ - Transaction Signed");
+
+  // Step 4 - Send our v0 transaction to the cluster
+  //const txid = await RPC_CONNECTION.sendTransaction(signedTransaction, { maxRetries: 5 });
+  
+  //const tx = new Transaction();
+  //tx.add(txInstructions[0]);
+
+
+  const txid = await sendTransaction(transaction, RPC_CONNECTION, {
+      skipPreflight: true,
+      preflightCommitment: "confirmed"
+  });
+  
+  console.log("   ✅ - Transaction sent to network with txid: "+txid);
+
+  // Step 5 - Confirm Transaction 
+  //const snackprogress = (key:any) => (<CircularProgress sx={{padding:'10px'}} />);
+  //const cnfrmkey = enqueueSnackbar(`Confirming Speed Dial Creation`,{ variant: 'info', action:snackprogress, persist: true });
+  const confirmation = await RPC_CONNECTION.confirmTransaction({
+      signature: txid,
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+  });
+  //closeSnackbar(cnfrmkey);
+  if (confirmation.value.err) { 
+  //    enqueueSnackbar(`Speed Dial Error`,{ variant: 'error' });
+      throw new Error("   ❌ - Transaction not confirmed.") }
+
+  console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
+  return txid;
+}
+*/
+
 const DEFAULT_TIMEOUT = 30000
 /////////////////////////////////////////////////
 export async function sendSignedTransaction({
@@ -206,6 +260,9 @@ export async function sendSignedTransaction({
   }).compileToV0Message();
   */
 
+
+
+
   const txid: TransactionSignature = await connection.sendRawTransaction(
     rawTransaction,
     {
@@ -220,7 +277,7 @@ export async function sendSignedTransaction({
       connection.sendRawTransaction(rawTransaction, {
         skipPreflight: true,
       })
-      await sleep(500)
+      await sleep(1000)
     }
   })()
   try {
