@@ -185,12 +185,6 @@ export async function sendSignedTransaction({
 }): Promise<{ txid: string; slot: number }> {
 
   // Add priority fee
-  const PRIORITY_RATE = 100; // MICRO_LAMPORTS 
-  const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
-  const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
-  console.log("Adding priority fee at the rate of "+PRIORITY_RATE+ " micro lamports")
-  signedTransaction.add(PRIORITY_FEE_IX);
-
   const rawTransaction = signedTransaction.serialize()
   const startTime = getUnixTs()
   let slot = 0
@@ -306,6 +300,12 @@ export const sendTransactions = async (
     block = await connection.getRecentBlockhash(commitment)
   }
 
+  const PRIORITY_RATE = 100; // MICRO_LAMPORTS 
+  const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
+  const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
+  console.log("Adding priority fee at the rate of "+PRIORITY_RATE+ " micro lamports")
+  
+
   for (let i = 0; i < instructionSet.length; i++) {
     const instructions = instructionSet[i]
     const signers = signersSet[i]
@@ -325,6 +325,7 @@ export const sendTransactions = async (
     
     transaction.recentBlockhash = block.blockhash;
     transaction.feePayer = wallet.publicKey;
+    //transaction.add(PRIORITY_FEE_IX);
     /*
     transaction.setSigners(
       // fee payed by the wallet owner
@@ -339,6 +340,9 @@ export const sendTransactions = async (
     
     unsignedTxns.push(transaction)
   }
+
+  
+
   const signedTxns = await wallet.signAllTransactions(unsignedTxns)
   const pendingTxns: Promise<{ txid: string; slot: number }>[] = []
   const completedTxns: Promise<{ txid: string; slot: number }>[] = []
