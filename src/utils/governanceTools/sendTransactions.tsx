@@ -360,9 +360,8 @@ export const sendTransactions = async (
   const PRIORITY_RATE = 100; // MICRO_LAMPORTS 
   const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
   const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
-  console.log("Adding priority fee at the rate of "+PRIORITY_RATE+ " micro lamports")
+  console.log("Adding priority fee at the rate of "+PRIORITY_RATE+ " micro lamports");
   
-
   for (let i = 0; i < instructionSet.length; i++) {
     const instructions = instructionSet[i]
     const signers = signersSet[i]
