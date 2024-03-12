@@ -214,7 +214,7 @@ export async function createProposalInstructionsLegacy(
         
         if (hasVoterWeight || realmConfig?.account?.communityTokenConfig?.voterWeightAddin){
           console.log("vwa: "+realmConfig.account.communityTokenConfig.voterWeightAddin.toBase58())
-          
+          /*
           votePlugin = await getVotingPlugin(
               selectedRealmIndexed,
               governingTokenMint,
@@ -223,7 +223,7 @@ export async function createProposalInstructionsLegacy(
           )
           
             //console.log("Vote Plugin: "+JSON.stringify(votePlugin))
-            
+            */
             if (votePlugin){
               console.log("Using Voter Plugin");
             } else {
