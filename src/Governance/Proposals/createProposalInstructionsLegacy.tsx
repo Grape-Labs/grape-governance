@@ -169,7 +169,6 @@ export async function createProposalInstructionsLegacy(
 
     console.log("4");
     
-    
     //const signatory = walletPk
     //const payer = walletPk
     
@@ -185,12 +184,11 @@ export async function createProposalInstructionsLegacy(
     let ixCount = 0;
     
     console.log("editAddress "+JSON.stringify(editAddress));
-
-    if (!editAddress || editAddress === null || editAddress === undefined){
+    
+    if (!editAddress){
       console.log("Creating Proposal");
       let votePlugin = null;
       let hasVoterWeight = false;
-      
       
       const selectedRealmIndexed = await getRealmIndexed(realmPk.toBase58());
       
@@ -212,26 +210,27 @@ export async function createProposalInstructionsLegacy(
         // checking plugin
         console.log("realmConfig: "+JSON.stringify(realmConfig));
         
-        if (hasVoterWeight || realmConfig?.account?.communityTokenConfig?.voterWeightAddin){
-          console.log("vwa: "+realmConfig.account.communityTokenConfig.voterWeightAddin.toBase58())
-          /*
-          votePlugin = await getVotingPlugin(
-              selectedRealmIndexed,
-              governingTokenMint,
-              walletPk,
-              realmConfig.account.communityTokenConfig.voterWeightAddin
-          )
+          if (hasVoterWeight || realmConfig?.account?.communityTokenConfig?.voterWeightAddin){
+            console.log("vwa: "+realmConfig.account.communityTokenConfig.voterWeightAddin.toBase58())
+            
+            votePlugin = await getVotingPlugin(
+                selectedRealmIndexed,
+                governingTokenMint,
+                walletPk,
+                realmConfig.account.communityTokenConfig.voterWeightAddin
+            )
+            
+            //console.log("Vote Plugin: "+JSON.stringify(votePlugin))
+            
+            if (votePlugin){
+              console.log("Using Voter Plugin");
+            } else {
+              console.log("No Voter Plugin");
+            }
           
-          //console.log("Vote Plugin: "+JSON.stringify(votePlugin))
-          */
-          if (votePlugin){
-            console.log("Using Voter Plugin");
-          } else {
-            console.log("No Voter Plugin");
-          }
-        
-      } else{
-        console.log("No Voter/Max Voter Weight Set");
+        } else{
+          console.log("No Voter/Max Voter Weight Set");
+        }
       }
       
       
@@ -253,7 +252,6 @@ export async function createProposalInstructionsLegacy(
         payer,
         votePlugin?.voterWeightPk
       );
-    
       
       console.log("Proposal Address: "+JSON.stringify(proposalAddress))
       
@@ -266,7 +264,7 @@ export async function createProposalInstructionsLegacy(
         governanceAuthority,
         signatory,
         payer
-      )
+      );
       
     } else {
       console.log("Editing Proposal");
@@ -297,6 +295,8 @@ export async function createProposalInstructionsLegacy(
         }
       }
     }
+
+    console.log("proposal Address: "+proposalAddress.toBase58())
 
     // TODO: Return signatoryRecordAddress from the SDK call
     const signatoryRecordAddress = await getSignatoryRecordAddress(

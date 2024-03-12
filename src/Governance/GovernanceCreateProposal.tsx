@@ -459,7 +459,7 @@ export default function GovernanceCreateProposalView(props: any){
         const cnfrmkey = enqueueSnackbar('Creating Governance Proposal',{ variant: 'info', action:snackprogress, persist: true });
         
         let propResponse = null;
-
+          
         if (instructionsDataWithHoldUpTime){
           console.log("in v0")
           propResponse = await createProposalInstructionsV0(
