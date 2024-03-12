@@ -222,13 +222,13 @@ export async function createProposalInstructionsLegacy(
               realmConfig.account.communityTokenConfig.voterWeightAddin
           )
           
-            //console.log("Vote Plugin: "+JSON.stringify(votePlugin))
-            */
-            if (votePlugin){
-              console.log("Using Voter Plugin");
-            } else {
-              console.log("No Voter Plugin");
-            }
+          //console.log("Vote Plugin: "+JSON.stringify(votePlugin))
+          */
+          if (votePlugin){
+            console.log("Using Voter Plugin");
+          } else {
+            console.log("No Voter Plugin");
+          }
         
       } else{
         console.log("No Voter/Max Voter Weight Set");
