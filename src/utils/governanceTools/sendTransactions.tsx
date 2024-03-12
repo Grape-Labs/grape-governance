@@ -358,7 +358,7 @@ export const sendTransactions = async (
     block = await connection.getRecentBlockhash(commitment)
   }
 
-  RPC_CONNECTION.getRecentPrioritizationFees();
+  //RPC_CONNECTION.getRecentPrioritizationFees();
 
   const PRIORITY_RATE = 10000; // MICRO_LAMPORTS 
   const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
@@ -374,7 +374,7 @@ export const sendTransactions = async (
     }
 
     const transaction = new Transaction();
-    
+
     instructions.forEach((instruction) => transaction.add(instruction))
 
     //if (authTransaction && authTransaction.instructions.length > 0){
