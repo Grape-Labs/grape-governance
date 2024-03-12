@@ -17,6 +17,7 @@ import {
 } from '@solana/web3.js';
 //import  SignerWalletAdapter  from "@project-serum/sol-wallet-adapter";
 import { AnchorWallet } from "@solana/wallet-adapter-react";
+import { RPC_CONNECTION } from '../grapeTools/constants';
 
 // TODO: sendTransactions() was imported from Oyster as is and needs to be reviewed and updated
 // In particular common primitives should be unified with send.tsx and also ensure the same resiliency mechanism
@@ -357,7 +358,9 @@ export const sendTransactions = async (
     block = await connection.getRecentBlockhash(commitment)
   }
 
-  const PRIORITY_RATE = 100; // MICRO_LAMPORTS 
+  RPC_CONNECTION.getRecentPrioritizationFees();
+
+  const PRIORITY_RATE = 10000; // MICRO_LAMPORTS 
   const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
   const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
   console.log("Adding priority fee at the rate of "+PRIORITY_RATE+ " micro lamports");
@@ -371,17 +374,16 @@ export const sendTransactions = async (
     }
 
     const transaction = new Transaction();
-
+    
     instructions.forEach((instruction) => transaction.add(instruction))
 
     //if (authTransaction && authTransaction.instructions.length > 0){
     //  console.log("Has auth instructions: "+JSON.stringify(authTransaction));
       //transaction.add(authTransaction);
     //}
-    
     transaction.recentBlockhash = block.blockhash;
     transaction.feePayer = wallet.publicKey;
-    //transaction.add(PRIORITY_FEE_IX);
+    transaction.add(PRIORITY_FEE_IX);
     /*
     transaction.setSigners(
       // fee payed by the wallet owner
