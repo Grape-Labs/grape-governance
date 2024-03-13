@@ -380,7 +380,7 @@ export const sendTransactions = async (
     console.log("ERR: "+e);
   }
 
-  const PRIORITY_RATE = average_priority_fee ? average_priority_fee : DEFAULT_PRIORITY_RATE; // 10000; // MICRO_LAMPORTS 
+  const PRIORITY_RATE = DEFAULT_PRIORITY_RATE;// average_priority_fee ? average_priority_fee : DEFAULT_PRIORITY_RATE; // 10000; // MICRO_LAMPORTS 
   const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
   const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
   console.log("Adding priority fee at the rate of "+PRIORITY_RATE+ " micro lamports");
