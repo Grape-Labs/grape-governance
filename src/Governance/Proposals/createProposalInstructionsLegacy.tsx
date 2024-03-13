@@ -44,7 +44,8 @@ import {
 } from '../api/queries';
 
 import { getVotingPlugin } from '../../utils/governanceTools/components/instructions/getVotePlugin';
-import { RPC_CONNECTION } from '../../utils/grapeTools/constants';  
+import { 
+  RPC_CONNECTION } from '../../utils/grapeTools/constants';  
 
 import { chunks } from '../../utils/governanceTools/helpers';
 import { sendTransactions, prepareTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../../utils/governanceTools/sendTransactions';

@@ -7,13 +7,16 @@ import {
     Transaction,
     TransactionInstruction,
     sendAndConfirmTransaction,
+    ComputeBudgetProgram,
   } from "@solana/web3.js";
   import { AnchorProvider, Wallet } from '@coral-xyz/anchor';
   
 import { GatewayClient } from '@solana/governance-program-library/dist'  
 
 //  import { SPL_PUBLIC_KEY, RPC_CONNECTION } from "../constants/Solana";
-import { RPC_CONNECTION } from '../../../../utils/grapeTools/constants';  
+import { 
+  RPC_CONNECTION,
+  DEFAULT_PRIORITY_RATE } from '../../../../utils/grapeTools/constants';  
 
 import {
   tryGetRealmConfig,
@@ -321,13 +324,38 @@ export const createCastVoteTransaction = async (
       //console.log("HERE after withCastVote")
       
       const recentBlock = await connection.getLatestBlockhash();
-    
+      
       //const transaction = new Transaction({ feePayer: walletPubkey });
       const transaction = new Transaction();
       transaction.feePayer = walletPubkey;
       transaction.recentBlockhash = recentBlock.blockhash;
       transaction.add(...instructions);
       
+      let average_priority_fee = null;
+      try{
+        const rpf = await RPC_CONNECTION.getRecentPrioritizationFees();
+        if (rpf){
+          //console.log("rpf: "+JSON.stringify(rpf));
+          
+          const totalPrioritizationFee = rpf.reduce((total, item) => total + item.prioritizationFee, 0);
+          const averagePrioritizationFee = totalPrioritizationFee / rpf.length;
+
+          console.log("Average Prioritization Fee: "+ averagePrioritizationFee);
+          average_priority_fee = Math.floor(averagePrioritizationFee);
+          // lamports = Math.min(lamports, data.prioritizationFee);
+          // const fee =  BN.max(BN.max(globalFeeRate, localFeeRate), new BN(8000));
+          // return BN.min(fee, this.maxFeeMicroLamports);
+        }
+      }catch(e){
+        console.log("ERR: "+e);
+      }
+
+      const PRIORITY_RATE = average_priority_fee ? average_priority_fee : DEFAULT_PRIORITY_RATE; // 10000; // MICRO_LAMPORTS 
+      const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
+      const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
+      console.log("Adding priority fee at the rate of "+PRIORITY_RATE+ " micro lamports");
+      transaction.add(PRIORITY_FEE_IX);
+
       return transaction;
     } else{
         return null;

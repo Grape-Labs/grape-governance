@@ -14,10 +14,13 @@ import {
   VersionedTransaction,
   LAMPORTS_PER_SOL,
   ComputeBudgetProgram,
+  GetRecentPrioritizationFeesConfig,
 } from '@solana/web3.js';
 //import  SignerWalletAdapter  from "@project-serum/sol-wallet-adapter";
 import { AnchorWallet } from "@solana/wallet-adapter-react";
-import { RPC_CONNECTION } from '../grapeTools/constants';
+import { 
+  RPC_CONNECTION,
+  DEFAULT_PRIORITY_RATE } from '../grapeTools/constants';
 
 // TODO: sendTransactions() was imported from Oyster as is and needs to be reviewed and updated
 // In particular common primitives should be unified with send.tsx and also ensure the same resiliency mechanism
@@ -358,9 +361,26 @@ export const sendTransactions = async (
     block = await connection.getRecentBlockhash(commitment)
   }
 
-  //RPC_CONNECTION.getRecentPrioritizationFees();
+  let average_priority_fee = null;
+  try{
+    const rpf = await RPC_CONNECTION.getRecentPrioritizationFees();
+    if (rpf){
+      //console.log("rpf: "+JSON.stringify(rpf));
+      
+      const totalPrioritizationFee = rpf.reduce((total, item) => total + item.prioritizationFee, 0);
+      const averagePrioritizationFee = totalPrioritizationFee / rpf.length;
 
-  const PRIORITY_RATE = 10000; // MICRO_LAMPORTS 
+      console.log("Average Prioritization Fee: "+ averagePrioritizationFee);
+      average_priority_fee = Math.floor(averagePrioritizationFee);
+      // lamports = Math.min(lamports, data.prioritizationFee);
+      // const fee =  BN.max(BN.max(globalFeeRate, localFeeRate), new BN(8000));
+      // return BN.min(fee, this.maxFeeMicroLamports);
+    }
+  }catch(e){
+    console.log("ERR: "+e);
+  }
+
+  const PRIORITY_RATE = average_priority_fee ? average_priority_fee : DEFAULT_PRIORITY_RATE; // 10000; // MICRO_LAMPORTS 
   const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
   const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
   console.log("Adding priority fee at the rate of "+PRIORITY_RATE+ " micro lamports");
