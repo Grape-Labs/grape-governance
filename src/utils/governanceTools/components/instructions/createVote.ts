@@ -335,7 +335,7 @@ export const createCastVoteTransaction = async (
       try{
         const rpf = await RPC_CONNECTION.getRecentPrioritizationFees();
         if (rpf){
-          console.log("rpf: "+JSON.stringify(rpf));
+          //console.log("rpf: "+JSON.stringify(rpf));
           
           const totalPrioritizationFee = rpf.reduce((total, item) => total + item.prioritizationFee, 0);
           const averagePrioritizationFee = totalPrioritizationFee / rpf.length;
