@@ -173,7 +173,27 @@ export const getUnixTs = () => {
   return new Date().getTime() / 1000
 }
 
-/*
+const DEFAULT_TIMEOUT = 30000
+/////////////////////////////////////////////////
+export async function sendSignedTransaction({
+  signedTransaction,
+  connection,
+  timeout = DEFAULT_TIMEOUT,
+}: {
+  signedTransaction: Transaction
+  connection: Connection
+  sendingMessage?: string
+  sentMessage?: string
+  successMessage?: string
+  timeout?: number
+}): Promise<{ txid: string; slot: number }> {
+
+  // Add priority fee
+  const rawTransaction = signedTransaction.serialize()
+  const startTime = getUnixTs()
+  let slot = 0
+
+  /*
 async function createAndSendV0Tx(RPC_CONNECTION: Connection, wallet: WalletSigner, txInstructions: TransactionInstruction[]) {
   // Step 1 - Fetch Latest Blockhash
   let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
@@ -227,59 +247,20 @@ async function createAndSendV0Tx(RPC_CONNECTION: Connection, wallet: WalletSigne
 }
 */
 
-const DEFAULT_TIMEOUT = 30000
-/////////////////////////////////////////////////
-export async function sendSignedTransaction({
-  signedTransaction,
-  connection,
-  timeout = DEFAULT_TIMEOUT,
-}: {
-  signedTransaction: Transaction
-  connection: Connection
-  sendingMessage?: string
-  sentMessage?: string
-  successMessage?: string
-  timeout?: number
-}): Promise<{ txid: string; slot: number }> {
-
-  // Add priority fee
-  const rawTransaction = signedTransaction.serialize()
-  const startTime = getUnixTs()
-  let slot = 0
-
-  /*
-  const serializedTx = rawTransaction;
-  const versionedMessage = VersionedMessage.deserialize(serializedTx);
-  const versionedTransaction = new VersionedTransaction(versionedMessage);
-  const txid = await connection.sendTransaction(versionedTransaction, { maxRetries: 5 });
-  console.log("   ✅ - Transaction sent to network");
-  console.log('Started awaiting confirmation for', txid)
-  */
- // Create the transaction message
-  /*
-  const message = new TransactionMessage({
-    payerKey: payer.publicKey, // Public key of the account that will pay for the transaction
-    recentBlockhash: blockhash, // Latest blockhash
-    instructions: transferInstruction, // Instructions included in transaction
-  }).compileToV0Message();
-  */
-
-
-
-
   const txid: TransactionSignature = await connection.sendRawTransaction(
     rawTransaction,
     {
       skipPreflight: true,
+      maxRetries: 5,
     }
   )
-  
   
   let done = false
   ;(async () => {
     while (!done && getUnixTs() - startTime < timeout) {
-      connection.sendRawTransaction(rawTransaction, {
+      await connection.sendRawTransaction(rawTransaction, {
         skipPreflight: true,
+        maxRetries: 5,
       })
       await sleep(1000)
     }
@@ -365,7 +346,7 @@ export const sendTransactions = async (
   try{
     const rpf = await RPC_CONNECTION.getRecentPrioritizationFees();
     if (rpf){
-      //console.log("rpf: "+JSON.stringify(rpf));
+      console.log("rpf: "+JSON.stringify(rpf));
       
       const totalPrioritizationFee = rpf.reduce((total, item) => total + item.prioritizationFee, 0);
       const averagePrioritizationFee = totalPrioritizationFee / rpf.length;
@@ -380,7 +361,7 @@ export const sendTransactions = async (
     console.log("ERR: "+e);
   }
 
-  const PRIORITY_RATE = DEFAULT_PRIORITY_RATE;// average_priority_fee ? average_priority_fee : DEFAULT_PRIORITY_RATE; // 10000; // MICRO_LAMPORTS 
+  const PRIORITY_RATE = average_priority_fee ? average_priority_fee : DEFAULT_PRIORITY_RATE; // 10000; // MICRO_LAMPORTS 
   const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
   const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
   console.log("Adding priority fee at the rate of "+PRIORITY_RATE+ " micro lamports");
@@ -418,8 +399,6 @@ export const sendTransactions = async (
     
     unsignedTxns.push(transaction)
   }
-
-  
 
   const signedTxns = await wallet.signAllTransactions(unsignedTxns)
   const pendingTxns: Promise<{ txid: string; slot: number }>[] = []
@@ -527,7 +506,6 @@ export const prepareTransactions = async (
       wallet.publicKey,
       ...signers.map((s) => s.publicKey)
     )*/
-
     
     if (signers.length > 0) {
       transaction.partialSign(...signers);
@@ -537,56 +515,4 @@ export const prepareTransactions = async (
     unsignedTxns.push(transaction)
   }
   return bigTx;
-  /*
-  const signedTxns = await wallet.signAllTransactions(unsignedTxns)
-  const pendingTxns: Promise<{ txid: string; slot: number }>[] = []
-  const completedTxns: Promise<{ txid: string; slot: number }>[] = []
-  //const walletPkTest = getWalletPublicKey(wallet);
-  //console.log('Wallet Test:', walletPkTest.toBase58());
-  //console.log('signedTxns' +JSON.stringify(signedTxns));
-  const breakEarlyObject = { breakEarly: false }
-  
-  return signedTxns;
-  /*
-  for (let i = 0; i < signedTxns.length; i++) {
-    console.log('i:',i);
-    const signedTxnPromise = sendSignedTransaction({
-      connection,
-      signedTransaction: signedTxns[i],
-    })
-
-    signedTxnPromise
-      .then(({ txid }) => {
-        successCallback(txid, i)
-      })
-      .catch((_reason) => {
-        // @ts-ignore
-        failCallback(signedTxns[i], i)
-        if (sequenceType == SequenceType.StopOnFailure) {
-          breakEarlyObject.breakEarly = true
-        }
-      })
-
-    if (sequenceType != SequenceType.Parallel) {
-      await signedTxnPromise
-      if (breakEarlyObject.breakEarly) {
-        return i // Return the txn we failed on by index
-      }
-      completedTxns.push(signedTxnPromise);
-    } else {
-      pendingTxns.push(signedTxnPromise)
-    }
-  }
-
-  if (sequenceType != SequenceType.Parallel) {
-    await Promise.all(pendingTxns)
-  }
-
-  const response = {
-    signedTxns: signedTxns.length,
-    completedTxns
-  }
-
-  return response;//signedTxns.length
-  */
 }
