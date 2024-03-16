@@ -970,14 +970,16 @@ export default function IntraDAOGrantView(props: any) {
     };
 
     function handleAddMyWallet(){
-        if (!destinationString)
-            setDestinationString(publicKey.toBase58());
-        else if (destinationString.length <= 0)
-            setDestinationString(publicKey.toBase58());
-        else if (destinationString.includes(publicKey.toBase58()))
-            return;
-        else
-            setDestinationString(destinationString + "\n" + publicKey.toBase58());
+        if (publicKey){
+            if (!destinationString)
+                setDestinationString(publicKey.toBase58());
+            else if (destinationString.length <= 0)
+                setDestinationString(publicKey.toBase58());
+            else if (destinationString.includes(publicKey.toBase58()))
+                return;
+            else
+                setDestinationString(destinationString + "\n" + publicKey.toBase58());
+        }
     }
 
     function handleDestinationWalletChange(destinations:string){

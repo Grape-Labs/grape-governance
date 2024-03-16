@@ -552,14 +552,16 @@ export default function SendExtensionView(props: any){
     }
     
     function handleAddMyWallet(){
-        if (!tokenRecipient)
-            setTokenRecipient(publicKey.toBase58());
-        else if (tokenRecipient.length <= 0)
-            setTokenRecipient(publicKey.toBase58());
-        else if (tokenRecipient.includes(publicKey.toBase58()))
-            return;
-        //else
-            //setDestinationString(tokenRecipient + "\n" + publicKey.toBase58());
+        if (publicKey){
+            if (!tokenRecipient)
+                setTokenRecipient(publicKey.toBase58());
+            else if (tokenRecipient.length <= 0)
+                setTokenRecipient(publicKey.toBase58());
+            else if (tokenRecipient.includes(publicKey.toBase58()))
+                return;
+            //else
+                //setDestinationString(tokenRecipient + "\n" + publicKey.toBase58());
+        }
     }
 
     const handlePasteFromClipboard = (event:any) => {
@@ -678,14 +680,14 @@ export default function SendExtensionView(props: any){
             <Tooltip title="Send" placement="right">
                 {useButtonText && useButtonType === 1 ?
                 <>
-                    <Button onClick={handleClickOpen} fullWidth color='primary' size="large" variant="contained" sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2,ml:1,mr:1}}>{useButtonText}</Button>
+                    <Button onClick={publicKey && handleClickOpen} fullWidth color='primary' size="large" variant="contained" sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2,ml:1,mr:1}}>{useButtonText}</Button>
                 </>
                 :
                 <>
                     {useButtonText && (useButtonType === 2 || useButtonType === 3) ? 
                         <>  
                             <Button color={'inherit'} variant='text' 
-                                onClick={handleClickOpen} 
+                                onClick={publicKey && handleClickOpen} 
                                 sx={{m:0,p:0,
                                     '&:hover .MuiSvgIcon-root': {
                                         opacity: 1,
@@ -707,7 +709,7 @@ export default function SendExtensionView(props: any){
                         </>
                     :
                         <>
-                            <MenuItem onClick={handleClickOpen}>
+                            <MenuItem onClick={publicKey && handleClickOpen}>
                                 <ListItemIcon>
                                     <SendIcon fontSize="small" />
                                 </ListItemIcon>

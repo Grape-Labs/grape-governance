@@ -22,7 +22,7 @@ export const HELLO_MOON_DEVNET_ENDPOINT = HELLO_MOON_BEARER ? `https://rpc-devne
 export const SHYFT_KEY = process.env.REACT_APP_API_SHYFT_KEY;
 export const SHYFT_RPC_ENDPOINT = SHYFT_KEY ? `https://rpc.shyft.to?api_key=${SHYFT_KEY}` : null;
 export const SHYFT_RPC_DEVNET_ENDPOINT = SHYFT_KEY ? `https://devnet-rpc.shyft.to?api_key=${SHYFT_KEY}` : null;
-export const RPC_ENDPOINT = ALCHEMY_RPC_ENDPOINT || QUICKNODE_RPC_ENDPOINT || ALCHEMY_RPC_ENDPOINT || SHYFT_RPC_ENDPOINT || HELLO_MOON_ENDPOINT || HELIUS_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
+export const RPC_ENDPOINT = SHYFT_RPC_ENDPOINT || QUICKNODE_RPC_ENDPOINT || ALCHEMY_RPC_ENDPOINT || QUICKNODE_RPC_ENDPOINT || ALCHEMY_RPC_ENDPOINT || SHYFT_RPC_ENDPOINT || HELLO_MOON_ENDPOINT || HELIUS_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
 export const RPC_DEVNET_ENDPOINT = QUICKNODE_RPC_DEVNET_ENDPOINT || ALCHEMY_RPC_DEVNET_ENDPOINT || QUICKNODE_RPC_DEVNET_ENDPOINT || SHYFT_RPC_DEVNET_ENDPOINT || HELLO_MOON_DEVNET_ENDPOINT || HELIUS_RPC_DEVNET_ENDPOINT || 'https://api.devnet.solana.com';
 export const WS_ENDPOINT = process.env?.REACT_APP_API_QUICKNODE_RPC_ENDPOINT ? process.env.REACT_APP_API_QUICKNODE_RPC_ENDPOINT.replace('https://', 'wss://') : 'wss://api.mainnet-beta.solana.com';
 export const ALCHEMY_ETH_KEY = process.env.REACT_APP_API_ALCHEMY_ETH || null;
@@ -36,7 +36,7 @@ export const RPC_DEVNET_CONNECTION = new Connection(
     RPC_DEVNET_ENDPOINT, 'confirmed'
 );
 
-export const DEFAULT_PRIORITY_RATE = 100082; // Medium Level microLamport Fee Rate
+export const DEFAULT_PRIORITY_RATE = 10082; // Medium Level microLamport Fee Rate
 
 export const MAILGUN_KEY = process.env.REACT_APP_API_MAILGUN_KEY || null;
 export const MAILGUN_DOMAIN = process.env.REACT_APP_API_MAILGUN_DOMAIN || null;
