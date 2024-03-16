@@ -1087,23 +1087,37 @@ export default function WalletCardView(props:any) {
                     null
                 );
                 
+                setLoaderCreationComplete(false);
                 setLoadingPropCreation(false);
+                
                 if (propResponse){
                     console.log("Prop Reponse: "+JSON.stringify(propResponse));
                     
-                    setLoadingText("New Proposal Created!");
-                    // close any expanded sections
-                    // reload proposals & expand
-                    await getWalletProposals();
-                    
+                    // check if this is a valid prop
+                    const accountInfo = await RPC_CONNECTION.getAccountInfo(publicKey);
+                    console.log("accountInfo: "+JSON.stringify(accountInfo));
+                    if (accountInfo){
+                        setLoadingText("New Proposal Created!");
+                        // close any expanded sections
+                        // reload proposals & expand
+                        await getWalletProposals();
+                        
+                        hideCloseAllExpandedViews();
+                        setExpandedProps(true);
+                    } else {
+                        setLoadingText("Proposal "+propResponse?.toBase58()+" Failed!");
+                        setProposalCreated(false);
+                        hideCloseAllExpandedViews();
+                    }
+                } else{
+                    setLoadingText("New Proposal Failed!");
+                    setProposalCreated(false);
                     hideCloseAllExpandedViews();
-                    setExpandedProps(true);
                 }
 
                 setLoaderCreationComplete(true);
                 
             }
-
 
         }
     }
@@ -1125,6 +1139,7 @@ export default function WalletCardView(props:any) {
             timer.current = window.setTimeout(() => {
                 setExpandedLoader(false);
                 setLoaderSuccess(false);
+                setLoaderCreationComplete(false);
             }, 2000);
         }
     
@@ -1816,13 +1831,13 @@ export default function WalletCardView(props:any) {
                 <ListItem>
                     {loaderSuccess ?
                         <>
-                            {simulationFailed ? 
+                            {(simulationFailed) ? 
                                 <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2,textAlign:'center'}}>
                                     <Grid item xs={12}>
                                         <ErrorIcon fontSize="large" color="error" />
                                     </Grid>
                                     <Grid item xs={12}>
-                                        <Typography variant="caption" sx={{ color: red[500] }}>Proposal Tx Simulation Failed</Typography>
+                                        <Typography variant="caption" sx={{ color: red[500] }}>Proposal {proposalCreated ? `Creation` : `Tx Simulation`} Failed</Typography>
                                     </Grid>
                                     <Grid item xs={12}>
                                         <Typography variant="caption">A complete Governance Wallet Experience with ❤️ by Grape #OPOS</Typography>
@@ -1835,11 +1850,17 @@ export default function WalletCardView(props:any) {
                                             {loadingPropCreation ?
                                                 <CircularProgress color="success" />
                                             :
-                                                <CheckCircleIcon fontSize="large" color="success" />
+                                                <>
+                                                    {proposalCreated ?
+                                                        <CheckCircleIcon fontSize="large" color="success" />
+                                                    :
+                                                        <ErrorIcon fontSize="large" color="error" />
+                                                    }
+                                                </>
                                             }
                                         </Grid>
                                         <Grid item xs={12}>
-                                            <Typography variant="caption" sx={{ color: green[500] }}>{loadingText ? loadingText : `Proposal Tx Created`}</Typography>
+                                            <Typography variant="caption" sx={{ color: (!loadingPropCreation && !proposalCreated) ? red[500] : green[500] }}>{loadingText ? loadingText : `Proposal Tx Created`}</Typography>
 
                                         </Grid>
                                         <Grid item xs={12}>
