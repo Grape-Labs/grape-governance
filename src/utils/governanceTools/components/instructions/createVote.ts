@@ -16,7 +16,8 @@ import { GatewayClient } from '@solana/governance-program-library/dist'
 //  import { SPL_PUBLIC_KEY, RPC_CONNECTION } from "../constants/Solana";
 import { 
   RPC_CONNECTION,
-  DEFAULT_PRIORITY_RATE } from '../../../../utils/grapeTools/constants';  
+  DEFAULT_PRIORITY_RATE,
+  DEFAULT_MAX_PRIORITY_RATE } from '../../../../utils/grapeTools/constants';  
 
 import {
   tryGetRealmConfig,
@@ -343,7 +344,7 @@ export const createCastVoteTransaction = async (
           console.log("Average Prioritization Fee: "+ averagePrioritizationFee);
           average_priority_fee = Math.floor(averagePrioritizationFee);
 
-          if (average_priority_fee > 1000000){
+          if (average_priority_fee > DEFAULT_MAX_PRIORITY_RATE){
             average_priority_fee = DEFAULT_PRIORITY_RATE;
           }
 
