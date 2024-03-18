@@ -20,7 +20,8 @@ import {
 import { AnchorWallet } from "@solana/wallet-adapter-react";
 import { 
   RPC_CONNECTION,
-  DEFAULT_PRIORITY_RATE } from '../grapeTools/constants';
+  DEFAULT_PRIORITY_RATE,
+  DEFAULT_MAX_PRIORITY_RATE } from '../grapeTools/constants';
 
 // TODO: sendTransactions() was imported from Oyster as is and needs to be reviewed and updated
 // In particular common primitives should be unified with send.tsx and also ensure the same resiliency mechanism
@@ -353,6 +354,9 @@ export const sendTransactions = async (
 
       console.log("Average Prioritization Fee: "+ averagePrioritizationFee);
       average_priority_fee = Math.floor(averagePrioritizationFee);
+      if (average_priority_fee > DEFAULT_MAX_PRIORITY_RATE){
+        average_priority_fee = DEFAULT_PRIORITY_RATE;
+      }
       // lamports = Math.min(lamports, data.prioritizationFee);
       // const fee =  BN.max(BN.max(globalFeeRate, localFeeRate), new BN(8000));
       // return BN.min(fee, this.maxFeeMicroLamports);
