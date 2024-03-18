@@ -433,12 +433,6 @@ export function VoteForProposal(props:any){
 
                 //console.log("voteTx: " + JSON.stringify(voteTx));
                 try{
-                    /*
-                    const PRIORITY_RATE = 100; // MICRO_LAMPORTS 
-                    const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
-                    const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
-                    voteTx.add(PRIORITY_FEE_IX);
-                    */
                     enqueueSnackbar(`Preparing to withdraw vote`,{ variant: 'info' });
                     const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
                         skipPreflight: true,
@@ -644,12 +638,6 @@ export function VoteForProposal(props:any){
                 if (supportedVote){
                     console.log("voteTx: " + JSON.stringify(voteTx));
                     try{
-                        /*
-                        const PRIORITY_RATE = 100; // MICRO_LAMPORTS 
-                        const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
-                        const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
-                        voteTx.add(PRIORITY_FEE_IX);
-                        */
                         enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
                         const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
                             skipPreflight: true,

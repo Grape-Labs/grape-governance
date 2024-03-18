@@ -353,6 +353,9 @@ export const sendTransactions = async (
 
       console.log("Average Prioritization Fee: "+ averagePrioritizationFee);
       average_priority_fee = Math.floor(averagePrioritizationFee);
+      if (average_priority_fee > 1000000){
+        average_priority_fee = DEFAULT_PRIORITY_RATE;
+      }
       // lamports = Math.min(lamports, data.prioritizationFee);
       // const fee =  BN.max(BN.max(globalFeeRate, localFeeRate), new BN(8000));
       // return BN.min(fee, this.maxFeeMicroLamports);
