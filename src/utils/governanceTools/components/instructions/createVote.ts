@@ -128,13 +128,13 @@ export const createCastVoteTransaction = async (
       //console.log("selectedRealm: "+JSON.stringify(selectedRealm))
       
       let hasVoterWeight = false;
-      if (selectedRealm?.account?.config?.useCommunityVoterWeightAddin){
+      if (isCommunityVote && selectedRealm?.account?.config?.useCommunityVoterWeightAddin){
         console.log("Has Voter Weight Plugin!");
         hasVoterWeight = true;
       }
 
       let hasMaxVoterWeight = false;
-      if (selectedRealm?.account?.config?.useMaxCommunityVoterWeightAddin){
+      if (isCommunityVote && selectedRealm?.account?.config?.useMaxCommunityVoterWeightAddin){
         console.log("Has MAX Voter Weight Addin!");
         hasMaxVoterWeight = true;
       }
@@ -169,7 +169,7 @@ export const createCastVoteTransaction = async (
         //}
       }
 
-      const isNftPlugin = realmConfig?.account.communityTokenConfig.voterWeightAddin && null;//NFT_PLUGINS_PKS.includes(config?.account.communityTokenConfig.voterWeightAddin?.toBase58())
+      const isNftPlugin = realmConfig?.account?.communityTokenConfig?.voterWeightAddin && null;//NFT_PLUGINS_PKS.includes(config?.account.communityTokenConfig.voterWeightAddin?.toBase58())
       
       const createCastNftVoteTicketIxs: TransactionInstruction[] = []
       const pluginCastVoteIxs: TransactionInstruction[] = []
@@ -186,10 +186,12 @@ export const createCastVoteTransaction = async (
         return false;
       }
 
+      /*
       if (new PublicKey(selectedRealm.pubkey).toBase58() === "652CA3GEcZjxVvEjCiMeAxuyFG6GaPHZeN6yh4cNJ1Ns"){
         console.log("hard coded nft com...")
         return null;
-      }
+      }*/
+
       // END PLUGIN STUFF
       
       //console.log("programId: "+selectedRealm.owner);
