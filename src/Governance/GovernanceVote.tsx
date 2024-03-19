@@ -243,8 +243,11 @@ export function VoteForProposal(props:any){
     
     console.log("memberMap Item: "+JSON.stringify(item));
     */
-    const isCommunityVote = propVoteType !== 'Council'; //realm.account.config?.councilMint?.toBase58() !== thisitem?.account.governingTokenMint;// realm?.communityMint === thisitem?.account.governingTokenMint;
-    //console.log("isCommunityVote: "+JSON.stringify(isCommunityVote));
+    
+    const isCommunityVote = realm?.communityMint === thisitem?.account.governingTokenMint ? true : false; // realm.account.config?.councilMint?.toBase58() === thisitem?.account.governingTokenMint ? false : true;// realm?.communityMint === thisitem?.account.governingTokenMint;
+    //console.log("**  isCommunityVote: "+JSON.stringify(isCommunityVote));
+    //console.log(">>>  realm.account.config?.councilMint?.toBase58(): "+JSON.stringify(realm.account.config?.councilMint?.toBase58()));
+    //console.log(">>>  thisitem?.account.governingTokenMint: "+JSON.stringify(thisitem?.account.governingTokenMint));
     
     const handleVoteYes = async () => {
         await handleVote(0, null, true)
@@ -544,6 +547,7 @@ export function VoteForProposal(props:any){
             if (wOwner){ // vote for your own if delegate is not set and value of delegate is not = 1
                 
                 const hasVotedItem = votingParticipants.some(item => item.governingTokenOwner === publicKey.toBase58());
+                console.log("*** isCommunityVote: "+JSON.stringify(isCommunityVote))
                 if (!hasVotedItem){
                     const tmpVote = await createCastVoteTransaction(
                         realm,
