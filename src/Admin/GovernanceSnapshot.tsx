@@ -62,7 +62,10 @@ import {
     Stack,
     Tooltip,
     Autocomplete,
-    Alert
+    Alert,
+    FormControl,
+    FormControlLabel,
+    Switch,
 } from '@mui/material';
 
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
@@ -720,7 +723,7 @@ const getParsedTransaction = async(txn_signature: string) => {
         });
 }
 
-const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, wallet: any, setPrimaryStatus: any, setStatus: any) => {
+const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, wallet: any, setPrimaryStatus: any, setStatus: any, fetchGovernanceRewards:boolean) => {
     //const finalList = new Array();
     //setLoading(true);
     //setProposals(null);
@@ -1378,7 +1381,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         const commMint = grealm.account?.communityMint;
         var governanceEmitted = [];
-        let getAwards = false; // adjust if we want to get rewards for the following emitting pubkeys
+        let getAwards = fetchGovernanceRewards; // adjust if we want to get rewards for the following emitting pubkeys
         if (!getAwards || hoursDiff > (24*15)){ // refresh every 30 days
             //getAwards = true;
         }
@@ -2393,7 +2396,7 @@ const generateMasterVoterRecord = async(connection: Connection, governanceLookup
   
 
 // STEP 1.
-const processGovernance = async(address:string, sent_realm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, currentWallet: any, setPrimaryStatus: any, setStatus: any) => {
+const processGovernance = async(address:string, sent_realm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, currentWallet: any, setPrimaryStatus: any, setStatus: any, fetchGovernanceRewards: boolean) => {
     // Second drive creation (otherwise wallet is not connected when done earlier)
     if (address){
         let fgovernance = null;
@@ -2403,7 +2406,7 @@ const processGovernance = async(address:string, sent_realm:any, tokenMap: any, g
             grealm = await fetchRealm(address);
 
             
-        fgovernance = await fetchGovernance(address, grealm, tokenMap, governanceLookupItem, storagePool, currentWallet, setPrimaryStatus, setStatus);
+        fgovernance = await fetchGovernance(address, grealm, tokenMap, governanceLookupItem, storagePool, currentWallet, setPrimaryStatus, setStatus, fetchGovernanceRewards);
         
         return fgovernance;
     }
@@ -3200,7 +3203,8 @@ const processGovernanceUploadSnapshotAll = async(
     setCronBookmark: any, 
     enqueueSnackbar: any, 
     closeSnackbar: any, 
-    setGovernanceLookup: any) => {
+    setGovernanceLookup: any,
+    fetchGovernenanceRewards:boolean) => {
 
     if (setLoading) setLoading(true);
 
@@ -3250,7 +3254,7 @@ const processGovernanceUploadSnapshotAll = async(
                 if (setProgress) setProgress(0);
                 const grealm = await fetchRealm(item.governanceAddress);
                 if (setSecondaryStatus) setSecondaryStatus("Processing Governance");
-                const governanceData = await processGovernance(item.governanceAddress, grealm, tokenMap, item, storagePool, currentWallet, setPrimaryStatus, setSecondaryStatus);
+                const governanceData = await processGovernance(item.governanceAddress, grealm, tokenMap, item, storagePool, currentWallet, setPrimaryStatus, setSecondaryStatus, fetchGovernenanceRewards);
                 if (setProgress) setProgress(1);
                 if (setSecondaryStatus) setSecondaryStatus("Processing Proposals");
                 const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData, connection, tokenMap, storagePool, governanceLookup, setSecondaryStatus, setProgress);
@@ -3271,7 +3275,7 @@ const processGovernanceUploadSnapshotAll = async(
             if (setBatchStatus) setBatchStatus("Adding Governance: "+address+"");
             
             const grealm = await fetchRealm(address);
-            const governanceData = await processGovernance(address, grealm, tokenMap, null, storagePool, currentWallet, setPrimaryStatus, setSecondaryStatus);
+            const governanceData = await processGovernance(address, grealm, tokenMap, null, storagePool, currentWallet, setPrimaryStatus, setSecondaryStatus, fetchGovernenanceRewards);
             const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData, connection, tokenMap, storagePool, governanceLookup, setSecondaryStatus, setProgress);
 
             //console.log("processedFiles.proposalsString "+JSON.stringify(processedFiles.proposalsString))
@@ -3307,6 +3311,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
     const [governanceAutocomplete, setGovernanceAutocomplete] = React.useState(null);
     const [storageAutocomplete, setStorageAutocomplete] = React.useState(null);
+    const [hasGovernanceRewards, setHasGovernanceRewards] = React.useState(false);
+
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
     const [rpcAutocomplete, setRpcAutocomplete] = React.useState([
         {
@@ -3360,6 +3366,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
         */
     }, []);
 
+    function toggleGovernanceRewards(){
+        setHasGovernanceRewards(!hasGovernanceRewards);
+    }
     
 
     return (
@@ -3471,7 +3480,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                     setCronBookmark, 
                                     enqueueSnackbar, 
                                     closeSnackbar, 
-                                    setGovernanceLookup)} 
+                                    setGovernanceLookup,
+                                    hasGovernanceRewards)} 
                             disabled={(!storagePool && governanceLookup) || (!wallet) || loading || (!tokenMap)}
                             variant='contained'
                             color='error'
@@ -3516,6 +3526,20 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             onChange={(e) => setGovernanceAddress(e.target.value)}/>
                         
                     }
+
+                    {governanceAddress === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip" ?
+                        <FormControl fullWidth >
+                            <FormControlLabel 
+                            control={
+                                <Switch 
+                                checked={hasGovernanceRewards} //communitySupport ? false : true}
+                                onChange={toggleGovernanceRewards}
+                                />
+                            } 
+                            label="Fetch Governance Rewards" />
+                        </FormControl>
+                    :
+                        <></>}
                     
                     <ButtonGroup
                         fullWidth
@@ -3543,7 +3567,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                         setCronBookmark, 
                                         enqueueSnackbar, 
                                         closeSnackbar, 
-                                        setGovernanceLookup)} //processGovernanceUploadSnapshotJobStep1(governanceAddress, false)} 
+                                        setGovernanceLookup,
+                                        hasGovernanceRewards)} //processGovernanceUploadSnapshotJobStep1(governanceAddress, false)} 
                                 disabled={(!governanceAddress) || (!storagePool || loading)}
                                 variant='contained'
                                 color='inherit'
@@ -3574,7 +3599,8 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                         setCronBookmark, 
                                         enqueueSnackbar, 
                                         closeSnackbar, 
-                                        setGovernanceLookup)}
+                                        setGovernanceLookup,
+                                        hasGovernanceRewards)}
                                 disabled={(!governanceAddress) || (!storagePool || loading)}
                                 variant='contained'
                                 color='warning'
