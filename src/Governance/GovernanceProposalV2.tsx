@@ -636,19 +636,25 @@ export function GovernanceProposalV2View(props: any){
 
             //thisitem.account.tokenOwnerRecord;
             console.log("has memberMap: "+`${memberMap ? `true`:`false`}`)
+            //console.log("memberMap "+memberMap.length);
             if (memberMap){
+                let count = 0;
+
                 for (const item of memberMap){
-                    if (item && item.pubkey && item.pubkey.toBase58){
-                        if (item.pubkey.toBase58() === new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()){
+                    //console.log("looping "+count++);
+                    if (item && item.pubkey && item.pubkey?.toBase58()){
+                        //console.log("checking tokenOwnerRecord: "+thisitem.account.tokenOwnerRecord);
+                        //console.log("checking: "+item.pubkey)
+                        if (new PublicKey(item.pubkey).toBase58() === new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()){
                             setProposalAuthor(item.account.governingTokenOwner.toBase58())
                             console.log("member:" + JSON.stringify(item));
                         }
                     } else{
-                        if (item.pubkey === new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()){
-                            setProposalAuthor(item.account.governingTokenOwner)
+                        if (new PublicKey(item.pubkey).toBase58() === new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()){
+                            setProposalAuthor(new PublicKey(item.account.governingTokenOwner).toBase58())
                             console.log("member:" + JSON.stringify(item));
                         }
-                    }
+                    } 
                     
                 }
             }
@@ -1639,7 +1645,7 @@ export function GovernanceProposalV2View(props: any){
             const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, realmOwner);
             const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
             const prop = await getProposalIndexed(governanceRulesStrArr, realmOwner, governanceAddress, proposalPk);
-            
+            //console.log("prop: "+JSON.stringify(prop));
             setThisitem(prop);
         }
         
@@ -1663,15 +1669,15 @@ export function GovernanceProposalV2View(props: any){
                 rawTokenOwnerRecords = indexedTokenOwnerRecords;//cachedMemberMap;
             } else if (!indexedTokenOwnerRecords){
                 console.log("** Members from RPC")
-                rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+                rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
             } else{
                 console.log("** Members from Index")
                 rawTokenOwnerRecords = indexedTokenOwnerRecords;
             }
-            console.log("Setting MemberMap")
+            console.log("Setting MemberMap");
             setMemberMap(rawTokenOwnerRecords);
         }
-
+        
         console.log("Completed Gov Prop setup")
 
         setLoadingValidation(false);

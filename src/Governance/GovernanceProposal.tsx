@@ -565,8 +565,11 @@ export function GovernanceProposalView(props: any){
             setPropVoteType(vType);
 
             //thisitem.account.tokenOwnerRecord;
+            //console.log("Looking for Author");
             for (const item of memberMap){
                 if (item.pubkey === new PublicKey(thisitem.account.tokenOwnerRecord).toBase58()){
+                    //console.log("Author: "+item.account.governingTokenOwner)
+                    //console.log("Item: "+item.pubkey)
                     setProposalAuthor(item.account.governingTokenOwner)
                     //console.log("member:" + JSON.stringify(item));
                 }
