@@ -335,31 +335,51 @@ export const createCastVoteTransaction = async (
       transaction.add(...instructions);
       
       let average_priority_fee = null;
-      try{
-        const rpf = await RPC_CONNECTION.getRecentPrioritizationFees();
-        if (rpf){
-          //console.log("rpf: "+JSON.stringify(rpf));
-          
-          const totalPrioritizationFee = rpf.reduce((total, item) => total + item.prioritizationFee, 0);
-          const averagePrioritizationFee = totalPrioritizationFee / rpf.length;
+  let medianPrioritizationFee = null;
+  try{
 
-          console.log("Average Prioritization Fee: "+ averagePrioritizationFee);
-          average_priority_fee = Math.floor(averagePrioritizationFee);
+    const rpf = await RPC_CONNECTION.getRecentPrioritizationFees();
+    if (rpf){
+      console.log("rpf: "+JSON.stringify(rpf));
+      
+      const totalPrioritizationFee = rpf.reduce((total, item) => total + item.prioritizationFee, 0);
+      const averagePrioritizationFee = totalPrioritizationFee / rpf.length;
 
-          if (average_priority_fee > DEFAULT_MAX_PRIORITY_RATE){
-            average_priority_fee = DEFAULT_PRIORITY_RATE;
-          }
+      average_priority_fee = Math.floor(averagePrioritizationFee);
+      console.log("Average Prioritization Fee: "+ average_priority_fee);
+      
+      const sortedPrioritizationFees = rpf.map(item => item.prioritizationFee).sort((a, b) => a - b);
 
-          // lamports = Math.min(lamports, data.prioritizationFee);
-          // const fee =  BN.max(BN.max(globalFeeRate, localFeeRate), new BN(8000));
-          // return BN.min(fee, this.maxFeeMicroLamports);
-        }
-      }catch(e){
-        console.log("ERR: "+e);
+      // Step 2: Determine the middle element(s)
+      const middleIndex = Math.floor(sortedPrioritizationFees.length / 2);
+
+      // Step 3: Calculate the median
+      if (sortedPrioritizationFees.length % 2 === 0) {
+          // If even number of elements, average the two middle elements
+          medianPrioritizationFee = (sortedPrioritizationFees[middleIndex - 1] + sortedPrioritizationFees[middleIndex]) / 2;
+      } else {
+          // If odd number of elements, take the middle element
+          medianPrioritizationFee = sortedPrioritizationFees[middleIndex];
       }
 
-      const PRIORITY_RATE = average_priority_fee ? average_priority_fee : DEFAULT_PRIORITY_RATE; // 10000; // MICRO_LAMPORTS 
-      const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
+      // If you need the median as an integer, you can use Math.floor or Math.ceil
+      medianPrioritizationFee = Math.floor(medianPrioritizationFee);
+
+      console.log("Median Prioritization Fee: "+ medianPrioritizationFee);
+
+      if (medianPrioritizationFee > DEFAULT_MAX_PRIORITY_RATE){
+        medianPrioritizationFee = DEFAULT_PRIORITY_RATE;
+      }
+      // lamports = Math.min(lamports, data.prioritizationFee);
+      // const fee =  BN.max(BN.max(globalFeeRate, localFeeRate), new BN(8000));
+      // return BN.min(fee, this.maxFeeMicroLamports);
+    }
+  }catch(e){
+    console.log("ERR: "+e);
+  }
+
+  const PRIORITY_RATE = medianPrioritizationFee ? medianPrioritizationFee : DEFAULT_PRIORITY_RATE; // 10000; // MICRO_LAMPORTS 
+  const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
       
       const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
       console.log("Adding priority fee at the rate of "+PRIORITY_RATE+ " micro lamports");
