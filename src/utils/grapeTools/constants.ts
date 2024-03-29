@@ -36,7 +36,7 @@ export const RPC_DEVNET_CONNECTION = new Connection(
     RPC_DEVNET_ENDPOINT, 'confirmed'
 );
 
-export const DEFAULT_PRIORITY_RATE = 10082; // Medium Level microLamport Fee Rate
+export const DEFAULT_PRIORITY_RATE = 100082; // Medium Level microLamport Fee Rate
 export const DEFAULT_MAX_PRIORITY_RATE = 1000082; // Medium Level microLamport Fee Rate
 
 export const MAILGUN_KEY = process.env.REACT_APP_API_MAILGUN_KEY || null;
