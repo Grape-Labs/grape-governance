@@ -283,7 +283,7 @@ export async function createProposalInstructionsLegacy(
       
     
       if (ix && ix.length > 0) { 
-        ixCount = ix.length;
+        ixCount = ix.length + 1;
         console.log("1 setting here with ix: "+ixCount);
       } 
       
