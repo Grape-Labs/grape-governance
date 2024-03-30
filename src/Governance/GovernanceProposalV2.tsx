@@ -1623,7 +1623,7 @@ export function GovernanceProposalV2View(props: any){
         var grealm = null;
         var realmPk = null;
         var realmOwner = null;
-
+        
         if (!realm){
             grealm = await getRealmIndexed(governanceAddress);
             //if (!grealm)
