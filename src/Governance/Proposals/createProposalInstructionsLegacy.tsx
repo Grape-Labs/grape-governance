@@ -281,10 +281,11 @@ export async function createProposalInstructionsLegacy(
         [pubkeyFilter(1, new PublicKey(proposalAddress))!]
       );
 
-      console.log("ix: "+JSON.stringify(ix));
-      
+      //console.log("ix: "+JSON.stringify(ix));
       for (var ixItem of ix){
-        ixCount = ixItem.account.instructionIndex + 1;
+        if (ixCount - 1 < ixItem.account.instructionIndex){
+          ixCount = ixItem.account.instructionIndex + 1;
+        }
       } 
       
       if (ixCount <= 0){
