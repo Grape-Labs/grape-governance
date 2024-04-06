@@ -126,6 +126,7 @@
         "dotenv": "^16.3.1",
         "ethers": "^5.5.4",
         "file_size_url": "^1.0.4",
+        "firebase": "^10.10.0",
         "formidable": "v3",
         "fp-ts": "^2.12.3",
         "graphql": "^16.8.1",

@@ -529,7 +529,7 @@ function TablePaginationActions(props) {
 
         
         function replaceUrls(paragraphText:string) {
-            console.log("checking: "+paragraphText);
+            //console.log("checking: "+paragraphText);
             const regex = /(((https?|ftp):\/\/)(?:[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%"_<>.~#?&//=]*))?)/g;
             const matches = paragraphText.matchAll(regex);
             let replacedText = paragraphText;
@@ -540,7 +540,7 @@ function TablePaginationActions(props) {
             }
             
             //const pattern = /\b.{40,}\b/g;
-            console.log("checking: "+replacedText);
+            //console.log("checking: "+replacedText);
             const shortenedText = shortenString(replacedText);//replacedText.replace(/\b\w{40,}\b/g, (match) => `${match.slice(0, 40)}...`);
             //replacedText.replace(/\b\w{40,}\b/g, (match) => `${match.slice(0, 40)}...`);
 
