@@ -3,6 +3,9 @@
 const CACHE = "governance-offline";
 
 importScripts('https://storage.googleapis.com/workbox-cdn/releases/5.1.2/workbox-sw.js');
+// Scripts for firebase and firebase messaging
+importScripts('https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.10.0/firebase-messaging-compat.js');
 
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
@@ -16,6 +19,27 @@ workbox.routing.registerRoute(
     cacheName: CACHE
   })
 );
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD4fhk-i2FR4lm6EWlz05Bypj8LRq7r_CA",
+  authDomain: "grp-gov-push.firebaseapp.com",
+  projectId: "grp-gov-push",
+  storageBucket: "grp-gov-push.appspot.com",
+  messagingSenderId: "55096092431",
+  appId: "1:55096092431:web:b58de51bbb7c3f3c0cc07a",
+  measurementId: "G-6CNWJLWFQK"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+// Retrieve firebase messaging
+const messaging = firebase.messaging();
+
+// Handle incoming messages while the app is not in focus (i.e in the background, hidden behind other tabs, or completely closed).
+messaging.onBackgroundMessage(function(payload) {
+  console.log('Received background message ', payload);
+
+});
 
 
 self.addEventListener('push', (event) => {
