@@ -5,7 +5,32 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 // import i18n (needs to be bundled) 
 import './i18n';
-//import * as serviceWorker from './serviceWorker';
+import { getMessaging, getToken } from "firebase/messaging";
+//import firebase from 'firebase/app';
+//import 'firebase/messaging';
+//import './firebase-messaging-sw.js';
+
+const messaging = getMessaging();
+//alert("HERE!")
+// Add the public key generated from the console here.
+getToken(messaging, {vapidKey: "BM_s33yFFF-lFBJDsVm_4qp8h4uUM3-ujhCvtJSuzNSWrVZR1WxPs4xcgUZeOujEebUbSOYMLzZfT4GKt_9Rodg"});
+
+/*
+const firebaseConfig = {
+  apiKey: "AIzaSyD4fhk-i2FR4lm6EWlz05Bypj8LRq7r_CA",
+  authDomain: "grp-gov-push.firebaseapp.com",
+  projectId: "grp-gov-push",
+  storageBucket: "grp-gov-push.appspot.com",
+  messagingSenderId: "55096092431",
+  appId: "1:55096092431:web:b58de51bbb7c3f3c0cc07a",
+  measurementId: "G-6CNWJLWFQK"
+};
+
+firebase.initializeApp(firebaseConfig);
+console.log("*** initialized firebase???");
+// Retrieve firebase messaging
+const messaging = firebase.messaging();
+*/
 
 ReactDOM.render(
   <React.StrictMode>
@@ -15,9 +40,16 @@ ReactDOM.render(
 );
 
 if ('serviceWorker' in navigator) {
+  
   navigator.serviceWorker.register('/serviceWorker.js')
     .then(registration => console.log('Service worker registered'))
     .catch(err => console.error('Service worker registration failed:', err));
+  
+    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      .then(registration => console.log('FCM Service worker registered'))
+      .catch(err => console.error('FCM Service worker registration failed:', err));
+  
+  
 }
 
 // If you want to start measuring performance in your app, pass a function

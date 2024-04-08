@@ -161,7 +161,7 @@ function DashboardContent() {
 
   function askNotificationPermission() {
     // function to actually ask the permissions
-    function handlePermission(permission) {
+    function handlePermission(permission:any) {
       // set the button to shown or hidden, depending on what the user answers
       //notificationBtn.style.display =
       const perms =  
