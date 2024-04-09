@@ -142,6 +142,7 @@ function DashboardContent() {
   const [open, setOpen] = React.useState(true);
 
   const [isTokenFound, setTokenFound] = React.useState(false);
+  /*
   fetchToken(setTokenFound);
 
   onMessageListener().then(payload => {
@@ -149,11 +150,12 @@ function DashboardContent() {
     //setShow(true);
     console.log(payload);
   }).catch(err => console.log('failed: ', err));
-  
+
   const onShowNotificationClicked = () => {
     //setNotification({title: "Notification", body: "This is a test notification"})
     //setShow(true);
   }
+  */
 
   const toggleDrawer = () => {
     setOpen(!open);
