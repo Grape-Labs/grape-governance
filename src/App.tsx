@@ -149,12 +149,12 @@ function DashboardContent() {
     //setShow(true);
     console.log(payload);
   }).catch(err => console.log('failed: ', err));
-
+  
   const onShowNotificationClicked = () => {
     //setNotification({title: "Notification", body: "This is a test notification"})
     //setShow(true);
   }
-  
+
   const toggleDrawer = () => {
     setOpen(!open);
   };
