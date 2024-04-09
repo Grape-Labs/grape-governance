@@ -49,7 +49,7 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { Helmet } from 'react-helmet';
 
-//import './firebaseNotifications/firebase.js';
+import { fetchToken, onMessageListener } from './firebaseNotifications/firebase';
 
 import { 
   CREATOR_LOGO,
@@ -140,6 +140,21 @@ function Copyright(props: any): JSX.Element {
 
 function DashboardContent() {
   const [open, setOpen] = React.useState(true);
+
+  const [isTokenFound, setTokenFound] = React.useState(false);
+  fetchToken(setTokenFound);
+
+  onMessageListener().then(payload => {
+    //setNotification({title: payload.notification.title, body: payload.notification.body})
+    //setShow(true);
+    console.log(payload);
+  }).catch(err => console.log('failed: ', err));
+
+  const onShowNotificationClicked = () => {
+    //setNotification({title: "Notification", body: "This is a test notification"})
+    //setShow(true);
+  }
+  
   const toggleDrawer = () => {
     setOpen(!open);
   };
