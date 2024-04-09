@@ -5,15 +5,17 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 // import i18n (needs to be bundled) 
 import './i18n';
-import { getMessaging, getToken } from "firebase/messaging";
+//import { getMessaging, getToken } from "firebase/messaging";
 //import firebase from 'firebase/app';
 //import 'firebase/messaging';
 //import './firebase-messaging-sw.js';
 
+/*
 const messaging = getMessaging();
 //alert("HERE!")
 // Add the public key generated from the console here.
 getToken(messaging, {vapidKey: "BM_s33yFFF-lFBJDsVm_4qp8h4uUM3-ujhCvtJSuzNSWrVZR1WxPs4xcgUZeOujEebUbSOYMLzZfT4GKt_9Rodg"});
+*/
 
 /*
 const firebaseConfig = {
@@ -44,11 +46,11 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/serviceWorker.js')
     .then(registration => console.log('Service worker registered'))
     .catch(err => console.error('Service worker registration failed:', err));
-  
+  /*
     navigator.serviceWorker.register('/firebase-messaging-sw.js')
       .then(registration => console.log('FCM Service worker registered'))
       .catch(err => console.error('FCM Service worker registration failed:', err));
-  
+  */
   
 }
 

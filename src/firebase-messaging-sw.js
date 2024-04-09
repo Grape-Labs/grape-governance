@@ -33,39 +33,30 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-/*
-self.addEventListener('push', (event) => {
-    console.log("HERE PUSHED...");
-    event.waitUntil(
-      self.registration.showNotification('Governance', {
-        body: 'Its Freakin Grape!!!',
-        icon: 'https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governanceicon.png',
+export const requestForToken = () => {
+  // The method getToken(): Promise<string> allows FCM to use the VAPID key credential
+  // when sending message requests to different push services
+  return getToken(messaging, { vapidKey: `BM_s33yFFF-lFBJDsVm_4qp8h4uUM3-ujhCvtJSuzNSWrVZR1WxPs4xcgUZeOujEebUbSOYMLzZfT4GKt_9Rodg` }) //to authorize send requests to supported web push services
+      .then((currentToken) => {
+          if (currentToken) {
+              console.log('current token for client: ', currentToken);
+
+              if(localStorage.getItem('fcmToken') && currentToken !==localStorage.getItem('fcmToken')){
+                  localStorage.setItem('fcmToken', currentToken);
+
+              }
+
+              else if(!localStorage.getItem('fcmToken')){
+                  localStorage.setItem('fcmToken', currentToken);
+
+              }
+
+
+          } else {
+              console.log('No registration token available. Request permission to generate one.');
+          }
       })
-    );
-});
-*/
-// Use event.data and extract notification information
-/*
-self.addEventListener('push', (event) => {
-    const notificationData = event ? event?.data?.json() : null; // Assuming your server payload is JSON
-    const title = notificationData?.title || "Notification";
-    const body = notificationData?.body || "No message";
-    const icon = notificationData?.icon || ""; // Use a default icon if no icon provided
-  
-    event.waitUntil(
-      self.registration.showNotification(title, {
-        body,
-        icon
-      })
-    );
-      
-});
-*/
-/*
-self.addEventListener('notificationclick', (event) => {
-    event.notification.close(); 
-    console.log("HERE CLICKED...");
-    var fullPath = self.location.origin + event.notification.data.path; 
-    clients.openWindow(fullPath); 
-});
-*/
+      .catch((err) => {
+          console.log('An error occurred while retrieving token. ', err);
+      });
+};
