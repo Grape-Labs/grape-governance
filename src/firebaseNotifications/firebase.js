@@ -18,7 +18,7 @@ initializeApp(firebaseConfig);
 
 //const messaging = getMessaging();
 
-initializeApp(firebaseConfig);
+//initializeApp(firebaseConfig);
 
 /*
 // Retrieve firebase messaging
