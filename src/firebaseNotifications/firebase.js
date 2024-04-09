@@ -18,8 +18,9 @@ initializeApp(firebaseConfig);
 
 //const messaging = getMessaging();
 
-firebase.initializeApp(firebaseConfig);
+initializeApp(firebaseConfig);
 
+/*
 // Retrieve firebase messaging
 const messaging = firebase.messaging();
 
@@ -29,6 +30,7 @@ console.log("appId: "+messaging.appId);
 messaging.onBackgroundMessage(function(payload) {
   console.log('Received background message ', payload);
 });
+*/
 
 export const requestForToken = () => {
     // The method getToken(): Promise<string> allows FCM to use the VAPID key credential

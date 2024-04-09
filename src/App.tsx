@@ -49,6 +49,8 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { Helmet } from 'react-helmet';
 
+import './firebaseNotifications/firebase.js';
+
 import { 
   CREATOR_LOGO,
   RPC_ENDPOINT
