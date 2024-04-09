@@ -349,6 +349,14 @@ export default function ClaimExtensionView(props: any){
                                 onClick={(e) => fetchClaimForToken("JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN")}
                                 avatar={<Avatar alt="WEN" src="https://static.jup.ag/jup/icon.png" />}
                                 />
+
+                            <Chip
+                                disabled={loading}
+                                variant="outlined"
+                                label="TNSR"
+                                onClick={(e) => fetchClaimForToken("TNSRxcUxoT9xBG3de7PiJyTDYu7kskLqcpddxnEJAS6")}
+                                avatar={<Avatar alt="TNSR" src="https://arweave.net/beGAyeIzjV_UkyjFtxbkZyi_YqfOBWayiQ0B6wqWygY" />}
+                                />
                         </Stack>
                     </Box>
 
