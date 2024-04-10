@@ -142,6 +142,7 @@ function DashboardContent() {
   const [open, setOpen] = React.useState(true);
 
   const [isTokenFound, setTokenFound] = React.useState(false);
+  /*
   try{
     //fetchToken(setTokenFound);
 
@@ -152,7 +153,7 @@ function DashboardContent() {
     }).catch(err => console.log('failed: ', err));
   }catch(e){
     console.log("ERR: "+e);
-  }
+  }*/
 
   const onShowNotificationClicked = () => {
     //setNotification({title: "Notification", body: "This is a test notification"})
