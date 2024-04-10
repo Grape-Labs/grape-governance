@@ -144,21 +144,21 @@ function DashboardContent() {
   const [isTokenFound, setTokenFound] = React.useState(false);
   try{
     fetchToken(setTokenFound);
+
+    onMessageListener().then(payload => {
+      //setNotification({title: payload.notification.title, body: payload.notification.body})
+      //setShow(true);
+      console.log(payload);
+    }).catch(err => console.log('failed: ', err));
   }catch(e){
     console.log("ERR: "+e);
   }
-  onMessageListener().then(payload => {
-    //setNotification({title: payload.notification.title, body: payload.notification.body})
-    //setShow(true);
-    console.log(payload);
-  }).catch(err => console.log('failed: ', err));
 
   const onShowNotificationClicked = () => {
     //setNotification({title: "Notification", body: "This is a test notification"})
     //setShow(true);
   }
-  */
-
+  
   const toggleDrawer = () => {
     setOpen(!open);
   };
