@@ -142,9 +142,11 @@ function DashboardContent() {
   const [open, setOpen] = React.useState(true);
 
   const [isTokenFound, setTokenFound] = React.useState(false);
-  /*
-  fetchToken(setTokenFound);
-
+  try{
+    fetchToken(setTokenFound);
+  }catch(e){
+    console.log("ERR: "+e);
+  }
   onMessageListener().then(payload => {
     //setNotification({title: payload.notification.title, body: payload.notification.body})
     //setShow(true);
