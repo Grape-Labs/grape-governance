@@ -143,7 +143,7 @@ function DashboardContent() {
 
   const [isTokenFound, setTokenFound] = React.useState(false);
   try{
-    fetchToken(setTokenFound);
+    //fetchToken(setTokenFound);
 
     onMessageListener().then(payload => {
       //setNotification({title: payload.notification.title, body: payload.notification.body})
