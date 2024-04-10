@@ -3,6 +3,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import {VAPID_KEY} from '../utils/grapeTools/constants';
 
 const firebaseConfig = {
     apiKey: "AIzaSyD4fhk-i2FR4lm6EWlz05Bypj8LRq7r_CA",
@@ -18,7 +19,7 @@ const firebaseConfig = {
   const messaging = getMessaging(firebaseApp);
   
   export const fetchToken = (setTokenFound) => {
-    return getToken(messaging, {vapidKey: 'BM_s33yFFF-lFBJDsVm_4qp8h4uUM3-ujhCvtJSuzNSWrVZR1WxPs4xcgUZeOujEebUbSOYMLzZfT4GKt_9Rodg'}).then((currentToken) => {
+    return getToken(messaging, {vapidKey: VAPID_KEY}).then((currentToken) => {
       if (currentToken) {
         console.log('current token for client: ', currentToken);
         setTokenFound(true);

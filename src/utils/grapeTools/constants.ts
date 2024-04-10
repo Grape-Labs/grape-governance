@@ -28,6 +28,7 @@ export const WS_ENDPOINT = process.env?.REACT_APP_API_QUICKNODE_RPC_ENDPOINT ? p
 export const ALCHEMY_ETH_KEY = process.env.REACT_APP_API_ALCHEMY_ETH || null;
 export const WALLET_CONNECT_PROJECT_ID = process.env.REACT_APP_API_WALLET_CONNECT_PROJECT_ID || null;
 export const DYNAMICXYZ_KEY = process.env.REACT_APP_API_DYNAMICXYZ_KEY || null;
+export const VAPID_KEY = 'BM_s33yFFF-lFBJDsVm_4qp8h4uUM3-ujhCvtJSuzNSWrVZR1WxPs4xcgUZeOujEebUbSOYMLzZfT4GKt_9Rodg';
 
 export const RPC_CONNECTION = new Connection(
     RPC_ENDPOINT, 'confirmed'
