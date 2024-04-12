@@ -1152,13 +1152,223 @@ export default function WalletCardView(props:any) {
         };
     }, []);
     
+    function WalletProposalComponent(props:any) {
+        const item = props?.item;
+        const type = props?.type;
+        const key = props?.key;
+        const governanceAddress = props?.governanceAddress;
 
+        const [expanded, setExpanded] = React.useState(false);
+      
+        return (
+            <>
+
+                <ListItem
+                    secondaryAction={
+                        <Box sx={{textAlign:'right'}}>
+                            <Typography variant="subtitle1" sx={{color:'white'}}>
+                                
+                                <Tooltip title="Expand Proposal Details">
+                                    <IconButton 
+                                        sx={{
+                                            m:0,
+                                            p:0,
+                                        }}
+                                        onClick={() => setExpanded(!expanded)}
+                                    >
+                                        {expanded ? 
+                                            <KeyboardArrowUpIcon />
+                                        :
+                                            <KeyboardArrowDownIcon />
+                                        }
+                                    </IconButton>
+                                </Tooltip>
+
+                            </Typography>
+                            <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                {item.account?.signingOffAt ?
+                                    <>{moment.unix(Number((item.account?.signingOffAt))).format("MMMM D, YYYY, h:mm a")}</>
+                                :
+                                    <>{moment.unix(Number((item.account?.draftAt))).format("MMMM D, YYYY, h:mm a")}</>
+                                }
+                            </Typography>
+                        </Box>
+                    }
+                    key={key}
+                >
+                    <ListItemAvatar>
+                        <Avatar>
+                            {/*
+                                0:'Draft',
+                                1:'Signing Off',
+                                2:'Voting',
+                                3:'Succeeded',
+                                4:'Executing',
+                                5:'Completed',
+                                6:'Cancelled',
+                                7:'Defeated',
+                                8:'Executing w/errors!',
+                                9:'Vetoed',
+                            */}
+                            {item.account?.state ?
+                                <>
+                                {item.account.state === 0 ?
+                                    <EditNoteIcon />
+                                :
+                                    <>
+                                    {item.account.state === 2 ?
+                                            <HowToVoteIcon />
+                                        :
+                                        <>
+                                            {item.account.state === 3 ?
+                                                    <ThumbUpIcon color={'success'}  />
+                                                :
+                                                <>
+                                                    {(item.account.state === 7 || item.account.state === 9) ?
+                                                            <ThumbDownIcon color={'error'} />
+                                                        :
+                                                        <>
+                                                            {(item.account.state === 4 || item.account.state === 8) ?
+                                                                    <AccessTimeIcon />
+                                                                :
+                                                                <>
+                                                                    {(item.account.state === 6) ?
+                                                                            <CancelIcon color={'error'}  />
+                                                                        :
+                                                                        <>
+                                                                            {(item.account.state === 5) ?
+                                                                                <CheckCircleIcon color={'success'} />
+                                                                            :
+                                                                                <HowToVoteIcon />
+                                                                            }
+                                                                        </>
+                                                                    }
+                                                                </>
+                                                            }
+                                                        </>
+                                                    }
+                                                </>
+                                            }
+                                        </>
+                                    }
+                                    </>
+                                
+                                }
+                                </>
+                                :<><EditNoteIcon /></>
+                            }
+                        </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText 
+                        primary={
+                            <CopyToClipboard text={item?.pubkey && item.pubkey.toBase58()} onCopy={handleCopy}>
+                                <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
+                                    <Typography variant="subtitle1" sx={{color:'white'}}>{item.account?.name && item.account?.name.substring(0,20)+"..."}</Typography>
+                                </Button>
+                            </CopyToClipboard>
+                        } 
+                        secondary={
+                            <>
+                            {item.account?.state ? GOVERNANCE_STATE[+item.account.state]:``}
+                            </>
+                        }
+                        />
+                </ListItem>
+                
+                {/*
+                    owner: new PublicKey(ownerItem.owner),
+                    pubkey: new PublicKey(account?.pubkey),
+                    account:{
+                        accountType: account.accountType,
+                        governance: new PublicKey(account.governance),
+                        governingTokenMint: new PublicKey(account.governingTokenMint),
+                        state: account.state,
+                        tokenOwnerRecord: new PublicKey(account.tokenOwnerRecord),
+                        signatoriesCount: account.signatoriesCount,
+                        signatoriesSignedOffCount: account.signatoriesSignedOffCount,
+                        descriptionLink: account.descriptionLink,
+                        name: account.name,
+                        voteType: account.voteType,
+                        options,
+                        denyVoteWeight: account?.denyVoteWeight ? parseInt(account.denyVoteWeight) : "00",
+                        reserved1: account.reserved1,
+                        draftAt: account.draftAt,
+                        signingOffAt: account.signingOffAt,
+                        votingAt: account.votingAt,
+                        votingAtSlot: account.votingAtSlot,
+                        executionFlags: account.executionFlags,
+                        vetoVoteWeight: account.vetoVoteWeight,
+                        abstainVoteWeight: account?.abstainVoteWeight,
+                        closedAt: account?.closedAt,
+                        executingAt: account?.executingAt,
+                        maxVoteWeight: account?.maxVoteWeight,
+                        maxVotingTime: account?.maxVotingTime,
+                        startVotingAt: account?.startVotingAt,
+                        voteThreshold: account?.voteThreshold,
+                        votingCompletedAt: account?.votingCompletedAt,
+                    }
+                }
+                */}
+
+
+                <ListItem
+                    sx={{m:0,p:0}}
+                >   
+                        <Grid container justifyContent={'center'} alignItems={'center'}>
+                            <Collapse in={expanded} timeout="auto" unmountOnExit>
+                                
+                                    <Grid container sx={{}}>
+
+                                        <GovernanceProposalDialog governanceAddress={governanceAddress} governanceProposal={item?.pubkey?.toBase58()} />
+                                    {/*
+                                        <Grid item xs={6}>
+                                            <b>proposal</b> <Typography variant='caption' sx={{color:'#919EAB'}}>details</Typography>
+                                        </Grid>
+                                        <Grid item xs={6} sx={{textAlign:'right'}}>
+                                            <CopyToClipboard text={"1"} onCopy={handleCopy}>
+                                                <Button 
+                                                    color={'inherit'} 
+                                                    variant='text' 
+                                                    sx={{m:0,
+                                                        ml:1,
+                                                        p:0,
+                                                        color:'#919EAB',
+                                                        mintWidth:'' , 
+                                                            '&:hover .MuiSvgIcon-root': {
+                                                                opacity: 1,
+                                                            },
+                                                        }}
+                                                    endIcon={
+                                                    <FileCopyIcon 
+                                                        fontSize={'small'} 
+                                                        sx={{
+                                                            color:'rgba(255,255,255,0.25)',
+                                                            pr:1,
+                                                            opacity: 0,
+                                                            fontSize:"10px"}} />
+                                                    }
+                                                    
+                                                >
+                                                COPY?
+                                                </Button>
+                                            </CopyToClipboard>
+                                        </Grid>
+                                    */}
+                                    </Grid>
+                                
+                        </Collapse>
+                    </Grid>
+                </ListItem>
+            </>
+        )
+    } 
+    
     function TokenExpandComponent(props:any) {
         const item = props?.item;
         const type = props?.type;
 
         const [expanded, setExpanded] = React.useState(false);
-      
+        
         return (
             <>
                 <ListItem
@@ -2208,152 +2418,12 @@ export default function WalletCardView(props:any) {
                         .sort((a:any,b:any) => (b.account?.draftAt - a.account?.draftAt))
                         .map((item: any,key:number) => (  
                             <> 
-                                <ListItem
-                                    secondaryAction={
-                                        <Box sx={{textAlign:'right'}}>
-                                            <Typography variant="subtitle1" sx={{color:'white'}}>
-                                                
-                                                {item?.pubkey &&
-                                                    <GovernanceProposalDialog governanceAddress={governanceAddress} governanceProposal={item?.pubkey?.toBase58()} />
-                                                }
-                                                
-                                                {/*
-                                                <Tooltip title="View Proposal">
-                                                    <IconButton
-                                                        href={item?.pubkey ? `https://governance.so/proposal/${governanceAddress}/${item?.pubkey.toBase58()}` : `#`}
-                                                        target='_blank'
-                                                        size='small'
-                                                    >
-                                                        <ZoomOutMapIcon />
-                                                    </IconButton>
-                                                </Tooltip>
-                                                */}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{color:'#919EAB'}}>
-                                                {item.account?.signingOffAt ?
-                                                    <>{moment.unix(Number((item.account?.signingOffAt))).format("MMMM D, YYYY, h:mm a")}</>
-                                                :
-                                                    <>{moment.unix(Number((item.account?.draftAt))).format("MMMM D, YYYY, h:mm a")}</>
-                                                }
-                                            </Typography>
-                                        </Box>
-                                    }
-                                    key={key}
-                                >
-                                    <ListItemAvatar>
-                                        <Avatar>
-                                            {/*
-                                                0:'Draft',
-                                                1:'Signing Off',
-                                                2:'Voting',
-                                                3:'Succeeded',
-                                                4:'Executing',
-                                                5:'Completed',
-                                                6:'Cancelled',
-                                                7:'Defeated',
-                                                8:'Executing w/errors!',
-                                                9:'Vetoed',
-                                            */}
-                                            {item.account?.state ?
-                                                <>
-                                                {item.account.state === 0 ?
-                                                    <EditNoteIcon />
-                                                :
-                                                    <>
-                                                    {item.account.state === 2 ?
-                                                            <HowToVoteIcon />
-                                                        :
-                                                        <>
-                                                            {item.account.state === 3 ?
-                                                                    <ThumbUpIcon color={'success'}  />
-                                                                :
-                                                                <>
-                                                                    {(item.account.state === 7 || item.account.state === 9) ?
-                                                                            <ThumbDownIcon color={'error'} />
-                                                                        :
-                                                                        <>
-                                                                            {(item.account.state === 4 || item.account.state === 8) ?
-                                                                                    <AccessTimeIcon />
-                                                                                :
-                                                                                <>
-                                                                                    {(item.account.state === 6) ?
-                                                                                            <CancelIcon color={'error'}  />
-                                                                                        :
-                                                                                        <>
-                                                                                            {(item.account.state === 5) ?
-                                                                                                <CheckCircleIcon color={'success'} />
-                                                                                            :
-                                                                                                <HowToVoteIcon />
-                                                                                            }
-                                                                                        </>
-                                                                                    }
-                                                                                </>
-                                                                            }
-                                                                        </>
-                                                                    }
-                                                                </>
-                                                            }
-                                                        </>
-                                                    }
-                                                    </>
-                                                
-                                                }
-                                                </>
-                                                :<><EditNoteIcon /></>
-                                            }
-                                        </Avatar>
-                                    </ListItemAvatar>
-                                    <ListItemText 
-                                        primary={
-                                            <CopyToClipboard text={item?.pubkey && item.pubkey.toBase58()} onCopy={handleCopy}>
-                                                <Button color={'inherit'} variant='text' sx={{m:0,p:0}}>
-                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{item.account?.name && item.account?.name.substring(0,20)+"..."}</Typography>
-                                                </Button>
-                                            </CopyToClipboard>
-                                        } 
-                                        secondary={
-                                            <>
-                                            {item.account?.state ? GOVERNANCE_STATE[+item.account.state]:``}
-                                            </>
-                                        }
-                                        />
-                                </ListItem>
-                                
-                                {/*
-                                    owner: new PublicKey(ownerItem.owner),
-                                    pubkey: new PublicKey(account?.pubkey),
-                                    account:{
-                                        accountType: account.accountType,
-                                        governance: new PublicKey(account.governance),
-                                        governingTokenMint: new PublicKey(account.governingTokenMint),
-                                        state: account.state,
-                                        tokenOwnerRecord: new PublicKey(account.tokenOwnerRecord),
-                                        signatoriesCount: account.signatoriesCount,
-                                        signatoriesSignedOffCount: account.signatoriesSignedOffCount,
-                                        descriptionLink: account.descriptionLink,
-                                        name: account.name,
-                                        voteType: account.voteType,
-                                        options,
-                                        denyVoteWeight: account?.denyVoteWeight ? parseInt(account.denyVoteWeight) : "00",
-                                        reserved1: account.reserved1,
-                                        draftAt: account.draftAt,
-                                        signingOffAt: account.signingOffAt,
-                                        votingAt: account.votingAt,
-                                        votingAtSlot: account.votingAtSlot,
-                                        executionFlags: account.executionFlags,
-                                        vetoVoteWeight: account.vetoVoteWeight,
-                                        abstainVoteWeight: account?.abstainVoteWeight,
-                                        closedAt: account?.closedAt,
-                                        executingAt: account?.executingAt,
-                                        maxVoteWeight: account?.maxVoteWeight,
-                                        maxVotingTime: account?.maxVotingTime,
-                                        startVotingAt: account?.startVotingAt,
-                                        voteThreshold: account?.voteThreshold,
-                                        votingCompletedAt: account?.votingCompletedAt,
-                                    }
+
+                                {item?.pubkey &&
+                                    <WalletProposalComponent governanceAddress={governanceAddress} item={item} key={key} />
                                 }
-                                */}
-                            {key+1 < proposals.length && <Divider variant="inset" component="li" light />}
+
+                                {key+1 < proposals.length && <Divider variant="inset" component="li" light />}
                             </>  
                         ))
                         
