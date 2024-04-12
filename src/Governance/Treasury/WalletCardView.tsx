@@ -56,6 +56,7 @@ import {
     Tooltip,
     CircularProgress,
     LinearProgress,
+    LinearProgressProps,
     Menu,
     MenuItem,
     List,
@@ -76,7 +77,9 @@ import {
     StepButton,
     ListItemIcon,
     Stack,
-  } from '@mui/material/';
+} from '@mui/material/';
+
+import { linearProgressClasses } from '@mui/material/LinearProgress';
 
 import { 
     getRealmIndexed,
@@ -90,6 +93,8 @@ import ExtensionsMenuView from './plugins/ExtensionsMenu';
 import SendView from './plugins/SendView';
 import { IntegratedGovernanceProposalDialogView } from '../IntegratedGovernanceProposal';
 
+import HourglassTopIcon from '@mui/icons-material/HourglassTop';
+import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -116,6 +121,26 @@ import ShareIcon from '@mui/icons-material/Share';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { getNativeTreasuryAddress } from '@solana/spl-governance';
+
+type BorderLinearProgressProps = LinearProgressProps & {
+    valueYes?: number;
+    valueNo?: number;
+};
+
+const BorderLinearProgress = styled(LinearProgress)<BorderLinearProgressProps>(({ theme, valueYes, valueNo }) => ({
+    marginTop: 6,
+    marginBottom: 8,
+    height: 15,
+    borderRadius: '17px',
+    [`&.${linearProgressClasses.colorPrimary}`]: {
+      backgroundColor: valueNo ? '#AB4D47' : theme.palette.grey[900],
+    },
+    [`& .${linearProgressClasses.bar}`]: {
+      borderRadius: '0px',
+      backgroundColor: valueYes ? '#5C9F62' : valueNo ? '#AB4D47' : theme.palette.grey[900],
+      width: valueYes ? `${valueYes}%` : '0%',
+    },
+  }));
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -1312,49 +1337,155 @@ export default function WalletCardView(props:any) {
 
 
                 <ListItem
-                    sx={{m:0,p:0}}
+                    sx={{m:0,p:0,backgroundColor:'rgba(0,0,0,0.10)'}}
                 >   
                         <Grid container justifyContent={'center'} alignItems={'center'}>
-                            <Collapse in={expanded} timeout="auto" unmountOnExit>
+                            <Collapse in={expanded} timeout="auto" unmountOnExit sx={{width:'100%'}}>
                                 
-                                    <Grid container sx={{}}>
-
-                                        <GovernanceProposalDialog governanceAddress={governanceAddress} governanceProposal={item?.pubkey?.toBase58()} />
-                                    {/*
-                                        <Grid item xs={6}>
-                                            <b>proposal</b> <Typography variant='caption' sx={{color:'#919EAB'}}>details</Typography>
-                                        </Grid>
-                                        <Grid item xs={6} sx={{textAlign:'right'}}>
-                                            <CopyToClipboard text={"1"} onCopy={handleCopy}>
-                                                <Button 
-                                                    color={'inherit'} 
-                                                    variant='text' 
-                                                    sx={{m:0,
-                                                        ml:1,
-                                                        p:0,
-                                                        color:'#919EAB',
-                                                        mintWidth:'' , 
-                                                            '&:hover .MuiSvgIcon-root': {
-                                                                opacity: 1,
-                                                            },
-                                                        }}
-                                                    endIcon={
-                                                    <FileCopyIcon 
-                                                        fontSize={'small'} 
-                                                        sx={{
-                                                            color:'rgba(255,255,255,0.25)',
-                                                            pr:1,
-                                                            opacity: 0,
-                                                            fontSize:"10px"}} />
+                                <Grid container xs={12}>
+                                    {item.account?.state === 2 ?
+                                        <>
+                                            
+                                            <Grid item xs alignContent={'left'} justifyContent={'left'}>
+                                                <Typography variant="body2" sx={{color:'white',mr:1,textAlign:'left'}}>
+                                                    YES:&nbsp;
+                                                        {Number(item.account?.options[0].voteWeight) > 0 ?
+                                                        <>
+                                                        {`${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
+                                                        </>
+                                                        :
+                                                        <>0%</>
                                                     }
-                                                    
-                                                >
-                                                COPY?
-                                                </Button>
-                                            </CopyToClipboard>
+                                                
+                                                </Typography>
+                                            </Grid>
+                                            <Grid item xs alignContent={'right'} justifyContent={'right'}>
+                                                <Typography variant="body2" sx={{color:'white',mr:1}}>
+                                                    NO:&nbsp;
+                                                    {Number(item.account?.denyVoteWeight) > 0 ?
+                                                    <>
+                                                    {`${(((Number(item.account?.denyVoteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
+                                                    </>:
+                                                    <>0%</>
+                                                    }
+                                                </Typography>
+                                            </Grid>
+                                            <Grid xs={12}>
+                                                
+                                                <BorderLinearProgress variant="determinate" 
+                                                    value={100}
+                                                    valueYes={
+                                                        +(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)
+                                                    }
+                                                    valueNo={
+                                                        +(((Number(item.account?.denyVoteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)
+                                                    } 
+                                                />
+                                            </Grid>
+                                            
+                                        </>
+                                    :
+                                        <>
+                                            <Grid container xs={12} alignContent={'right'} justifyContent={'right'}>
+                                                <Grid item xs alignContent={'right'} justifyContent={'right'} sx={{textAlign:'right'}}>
+                                                    <Typography variant="body2" sx={{color:'white',mr:1}}>
+                                                        YES: 
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item>
+                                                    <Typography variant="body2" sx={{color:"green"}}>
+                                                        {Number(item.account?.options[0].voteWeight) > 0 ?
+                                                        <>
+                                                        {`${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
+                                                        </>
+                                                        :
+                                                        <>0%</>
+                                                        }
+                                                    </Typography>
+                                                </Grid>
+                                            </Grid>
+
+                                            <Grid container sx={{mb:1}} alignContent={'right'} justifyContent={'right'}>
+                                                <Grid item xs alignContent={'right'} justifyContent={'right'} sx={{textAlign:'right'}}>
+                                                    <Typography variant="body2" sx={{color:'white',mr:1}}>
+                                                        No:
+                                                    </Typography>
+                                                </Grid>
+                                                <Grid item>
+                                                    <Typography variant="body2" sx={{color:"#AB4D47"}}>
+                                                        {Number(item.account?.denyVoteWeight) > 0 ?
+                                                        <>
+                                                        {`${(((Number(item.account?.denyVoteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
+                                                        </>:
+                                                        <>0%</>
+                                                        }
+                                                    </Typography>
+                                                </Grid>
+                                            </Grid>
+
+                                        </>
+                                    }
+
+                                    <Grid container alignContent={'right'} justifyContent={'right'}>
+                                        <Grid sx={{mb:1}}>
+                                            <Chip
+                                                clickable={false}
+                                                size="small"
+                                                color='primary'
+                                                icon={(item.account?.state === 0 || item.account?.state === 2) ?
+                                                    <HourglassTopIcon color="inherit" fontSize='small'/>
+                                                    :
+                                                    <HourglassBottomIcon color="inherit" fontSize='small'/>
+                                                }
+                                                label={moment.unix(item.account?.draftAt).fromNow()}
+                                                sx={{
+                                                    background:'#45404A',
+                                                    borderRadius:'17px',
+                                                    color:(item.account?.state === 2) ? 'white' : '#888',
+                                                    fontSize:'11px'
+                                                }}
+                                            />
                                         </Grid>
-                                    */}
+                                    
                                     </Grid>
+                                    <Grid container alignContent={'right'} justifyContent={'right'}>   
+                                        <GovernanceProposalDialog governanceAddress={governanceAddress} governanceProposal={item?.pubkey?.toBase58()} /> 
+                                        {/*
+                                            <Grid item xs={6}>
+                                                <b>proposal</b> <Typography variant='caption' sx={{color:'#919EAB'}}>details</Typography>
+                                            </Grid>
+                                            <Grid item xs={6} sx={{textAlign:'right'}}>
+                                                <CopyToClipboard text={"1"} onCopy={handleCopy}>
+                                                    <Button 
+                                                        color={'inherit'} 
+                                                        variant='text' 
+                                                        sx={{m:0,
+                                                            ml:1,
+                                                            p:0,
+                                                            color:'#919EAB',
+                                                            mintWidth:'' , 
+                                                                '&:hover .MuiSvgIcon-root': {
+                                                                    opacity: 1,
+                                                                },
+                                                            }}
+                                                        endIcon={
+                                                        <FileCopyIcon 
+                                                            fontSize={'small'} 
+                                                            sx={{
+                                                                color:'rgba(255,255,255,0.25)',
+                                                                pr:1,
+                                                                opacity: 0,
+                                                                fontSize:"10px"}} />
+                                                        }
+                                                        
+                                                    >
+                                                    COPY?
+                                                    </Button>
+                                                </CopyToClipboard>
+                                            </Grid>
+                                        */}
+                                    </Grid>
+                            </Grid>
                                 
                         </Collapse>
                     </Grid>
@@ -1396,7 +1527,7 @@ export default function WalletCardView(props:any) {
                                     </IconButton>
                                 </Tooltip>
                             </Grid>
-                            <Collapse in={expanded} timeout="auto" unmountOnExit>
+                            <Collapse in={expanded} timeout="auto" unmountOnExit sx={{backgroundColor:'rgba(0,0,0,0.10)'}}>
                                 {(type && type === 1) ?
                                     <Grid container sx={{p:2,pl:8,pr:1}}>
                                         
