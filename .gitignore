@@ -94,4 +94,3 @@ build
 # IDE files
 .idea
 src/Admin/keypair.json
-firebaseNotification/firebase.js
