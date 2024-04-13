@@ -93,6 +93,8 @@ import ExtensionsMenuView from './plugins/ExtensionsMenu';
 import SendView from './plugins/SendView';
 import { IntegratedGovernanceProposalDialogView } from '../IntegratedGovernanceProposal';
 
+import ArticleIcon from '@mui/icons-material/Article';
+import GitHubIcon from '@mui/icons-material/GitHub';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
@@ -121,6 +123,11 @@ import ShareIcon from '@mui/icons-material/Share';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { getNativeTreasuryAddress } from '@solana/spl-governance';
+
+import { gistApi, resolveProposalDescription } from '../../utils/grapeTools/github';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkImages from 'remark-images';
 
 type BorderLinearProgressProps = LinearProgressProps & {
     valueYes?: number;
@@ -1182,9 +1189,102 @@ export default function WalletCardView(props:any) {
         const type = props?.type;
         const key = props?.key;
         const governanceAddress = props?.governanceAddress;
+        const description = item?.account?.descriptionLink;
 
         const [expanded, setExpanded] = React.useState(false);
-      
+        
+        const [gist, setGist] = React.useState(null);
+        const [gDocs, setGoogleDocs] = React.useState(null);
+        const [gitBook, setGitBook] = React.useState(null);
+        const [descriptionMarkdown, setDescriptionMarkdown] = React.useState(null);
+
+        const transformImageUri = (uri) => {
+            // Add your image resizing logic here
+            // Example: Append the query parameter "w=500" to resize the image to a width of 500px
+            const resizedUri = `${uri}?w=500`;
+            return resizedUri;
+        };
+
+        function isValidURL(urlString:string) {
+            try {
+              const url = new URL(urlString);
+              return true;
+            } catch (error) {
+              return false;
+            }
+        }
+
+        const resolveDescription = async(descriptionStr: string) => {
+            try{
+                const cleanString = descriptionStr.replace(/(\s+)(https?:\/\/[a-zA-Z0-9\.\/]+)/g, '$2');
+                
+                if (cleanString && cleanString.length > 0 && isValidURL(descriptionStr)) {
+
+                        const url = new URL(cleanString);
+
+                        const pathname = url.pathname;
+                        const parts = pathname.split('/');
+                        //console.log("pathname: "+pathname)
+                        //console.log("hostname: "+url.hostname)
+                        
+                        let tGist = null;
+                        if (parts.length > 1)
+                            tGist = parts[2];
+                        
+                        if (url.hostname === "gist.github.com"){
+
+                            setGist(tGist);
+                            
+                            const rpd = await resolveProposalDescription(cleanString);
+                
+                            // Regular expression to match image URLs
+                            const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
+                            const stringWithPreviews = rpd.replace(imageUrlRegex, (match:any, imageUrl:any) => {
+                                return "![Image X]("+imageUrl+")";
+                            });
+                            
+                            setDescriptionMarkdown(rpd);
+                        } else if (url.hostname === "docs.google.com") {
+                            setGoogleDocs(tGist);
+                        } else if (url.hostname.includes("gitbook.io")){
+                            setGitBook(tGist);
+                        }
+
+                        console.log("finished resolving URL")
+                } else{ // check if it contains a partial <text />
+                    
+                }
+            } catch(e){
+                console.log("Invalid URL: "+e)
+            }
+        }
+
+        React.useEffect(() => {
+            if (description && expanded){
+                console.log("here with description: "+description);
+                resolveDescription(description)
+            }
+        }, [expanded]);
+
+        function replaceUrls(paragraphText:string) {
+            //console.log("checking: "+paragraphText);
+            const regex = /(((https?|ftp):\/\/)(?:[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%"_<>.~#?&//=]*))?)/g;
+            const matches = paragraphText.matchAll(regex);
+            let replacedText = paragraphText;
+
+            for (const [, fullUrl] of matches) {
+                const domain = fullUrl.split('/')[2];
+                replacedText = replacedText.replace(fullUrl, `[LINK] - ${domain}`);
+            }
+            
+            //const pattern = /\b.{40,}\b/g;
+            //console.log("checking: "+replacedText);
+            const shortenedText = replacedText;//shortenString(replacedText);//replacedText.replace(/\b\w{40,}\b/g, (match) => `${match.slice(0, 40)}...`);
+            //replacedText.replace(/\b\w{40,}\b/g, (match) => `${match.slice(0, 40)}...`);
+
+            return shortenedText;
+        }
+
         return (
             <>
 
@@ -1349,7 +1449,7 @@ export default function WalletCardView(props:any) {
                                             <Grid item xs alignContent={'left'} justifyContent={'left'}>
                                                 <Typography variant="body2" sx={{color:'white',mr:1,textAlign:'left'}}>
                                                     YES:&nbsp;
-                                                        {Number(item.account?.options[0].voteWeight) > 0 ?
+                                                        {(item.account?.options[0].voteWeight && Number(item.account?.options[0].voteWeight) > 0) ?
                                                         <>
                                                         {`${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
                                                         </>
@@ -1394,7 +1494,7 @@ export default function WalletCardView(props:any) {
                                                 </Grid>
                                                 <Grid item>
                                                     <Typography variant="body2" sx={{color:"green"}}>
-                                                        {Number(item.account?.options[0].voteWeight) > 0 ?
+                                                        {(item.account?.options && item.account?.options.length > 0 && Number(item.account?.options[0].voteWeight) > 0) ?
                                                         <>
                                                         {`${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
                                                         </>
@@ -1485,6 +1585,134 @@ export default function WalletCardView(props:any) {
                                             </Grid>
                                         */}
                                     </Grid>
+
+
+                                    <Grid container sx={{m:0,p:0,borderTop:'1px solid black',backgroundColor:'rgba(0,0,0,0.10)'}}>
+                                        <Grid item xs={12}
+                                            sx={{
+                                                textAlign:'left',
+                                                p:1
+                                            }}
+                                        >
+                                            <Typography 
+                                                variant="h6"
+                                                color={(item.account?.state === 2) ? `white` : `#ddd`} 
+                                                //color="white"
+                                                sx={{ textDecoration: (item.account?.state === 6) ? 'line-through' : 'none' }}
+                                            >
+                                                {item.account?.name}
+                                            </Typography>
+
+                                            <Grid item xs={12}
+                                                sx={{
+                                                    mb:1,
+                                                    '@media (max-width: 600px)': {
+                                                        textOverflow: 'ellipsis', /* Truncates the URL text after a certain length and adds an ellipsis (...) */
+                                                        overflow: 'hidden',
+                                                    }
+                                                }}
+                                            >
+                                                
+                                                    {gist ?
+                                                        <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
+                                                            <Grid
+                                                                style={{
+                                                                    border: 'none',
+                                                                    padding:4,
+                                                                }} 
+                                                            >
+                                                                <>
+                                                                    <ReactMarkdown 
+                                                                        remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
+                                                                        transformImageUri={transformImageUri}
+                                                                        children={descriptionMarkdown}
+                                                                        components={{
+                                                                            // Custom component for overriding the image rendering
+                                                                            img: ({ node, ...props }) => (
+                                                                            <img
+                                                                                {...props}
+                                                                                style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
+                                                                            />
+                                                                            ),
+                                                                        }}
+                                                                    />
+                                                                </>
+                                                            </Grid>
+                                                            <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
+                                                                <Button
+                                                                    color='inherit'
+                                                                    target='_blank'
+                                                                    href={description}
+                                                                    sx={{borderRadius:'17px'}}
+                                                                >
+                                                                    <GitHubIcon sx={{mr:1}} /> GIST
+                                                                </Button>
+                                                            </Box>
+                                                        </Box>
+                                                        :
+                                                        <>
+                                                            {gDocs ?
+                                                            <>
+                                                                <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
+                                                                    <Grid
+                                                                        style={{
+                                                                            border: 'none',
+                                                                            padding:4,
+                                                                        }} 
+                                                                    >
+                                                                        <iframe src={description} width="100%" height="500px" style={{"border": "none"}}></iframe>
+                                                                    </Grid>
+                                                                        <>
+
+                                                                            <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
+                                                                                <Button
+                                                                                    color='inherit'
+                                                                                    target='_blank'
+                                                                                    href={description}
+                                                                                    sx={{borderRadius:'17px'}}
+                                                                                >
+                                                                                    <ArticleIcon sx={{mr:1}} /> Google Docs
+                                                                                </Button>
+                                                                            </Box>
+                                                                        </>
+                                                                </Box>
+                                                            </>
+                                                            :
+                                                                <>
+                                                                    {description &&
+                                                                        <>
+                                                                            <Typography variant="caption" 
+                                                                                color='gray' 
+                                                                                sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                                {replaceUrls(description)}
+                                                                            </Typography>
+                                                                            {gitBook &&
+                                                                                <>
+                                                                                    <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
+                                                                                        <Button
+                                                                                            color='inherit'
+                                                                                            target='_blank'
+                                                                                            href={description}
+                                                                                            sx={{borderRadius:'17px'}}
+                                                                                        >
+                                                                                            <ArticleIcon sx={{mr:1}} /> GitBook
+                                                                                        </Button>
+                                                                                    </Box>
+                                                                                </>
+                                                                            }
+                                                                        </>
+                                                                    }
+                                                                </>
+                                                        
+                                                            }
+                                                        </>
+                                                    }
+                                                
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+
+
                             </Grid>
                                 
                         </Collapse>
