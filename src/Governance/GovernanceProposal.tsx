@@ -1680,7 +1680,7 @@ export function GovernanceProposalView(props: any){
                                         
                                         <Timeline>
                                             {proposalInstructions && (proposalInstructions).map((item: any, index:number) => (
-                                                <InstructionView cachedTokenMeta={cachedTokenMeta} setInstructionTransferDetails={setInstructionTransferDetails} instructionTransferDetails={instructionTransferDetails} memberMap={memberMap} tokenMap={tokenMap} instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
+                                                <InstructionView proposal={thisitem} cachedTokenMeta={cachedTokenMeta} setInstructionTransferDetails={setInstructionTransferDetails} instructionTransferDetails={instructionTransferDetails} memberMap={memberMap} tokenMap={tokenMap} instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
                                             ))}
                                         </Timeline>
                                     </AccordionDetails>
