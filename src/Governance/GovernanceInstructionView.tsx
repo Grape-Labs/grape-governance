@@ -194,6 +194,7 @@ async function getExplorerInspectorUrl(
 
 export function InstructionView(props: any) {
     const index = props.index;
+    const sentProp = props.proposal;
     const proposalAuthor = props?.proposalAuthor;
     const state = props.state; 
     const realm = props.realm;
@@ -284,6 +285,11 @@ export function InstructionView(props: any) {
             if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
                 new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
                 tokenOwnerRecordPk = new PublicKey(member.pubkey);
+        }
+
+        console.log("tokenOwnerRecordPk: "+JSON.stringify(tokenOwnerRecordPk));
+        if (!tokenOwnerRecordPk){
+            tokenOwnerRecordPk = sentProp?.account?.tokenOwnerRecord;
         }
 
         /*

@@ -141,6 +141,11 @@ export async function createProposalInstructionsLegacy(
       );
     }
 
+    if (!tokenOwnerRecordPk){
+      console.log("no token owner record pk...")
+      //tokenOwnerRecordPk = sentProp?.account?.tokenOwnerRecord;
+    }
+
     const governanceAuthority = walletPk
     console.log("programId: "+programId.toBase58());
     console.log("realmPk: "+realmPk.toBase58());
