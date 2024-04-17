@@ -139,16 +139,20 @@ export async function createProposalInstructionsLegacy(
         governingTokenMint,
         walletPk,
       );
+      if (tokenOwnerRecordPk)
+        console.log("Using getTokenOwnerRecordAddress: "+tokenOwnerRecordPk.toBase58());
     }
 
     if (!tokenOwnerRecordPk){
       console.log("no token owner record pk... fetching proposal");
+      /*
       if (editAddress){
         const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58(), programId.toBase58());
         const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
         const gp = await getProposalIndexed(governanceRulesStrArr, null, realmPk.toBase58(), editAddress.toBase58());
         tokenOwnerRecordPk = gp?.account?.tokenOwnerRecord;
       }
+      */
     }
 
     const governanceAuthority = walletPk

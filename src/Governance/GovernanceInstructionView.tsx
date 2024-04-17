@@ -286,19 +286,23 @@ export function InstructionView(props: any) {
                 new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
                 tokenOwnerRecordPk = new PublicKey(member.pubkey);
         }
-
-        console.log("tokenOwnerRecordPk: "+JSON.stringify(tokenOwnerRecordPk));
+        
         if (!tokenOwnerRecordPk){
             tokenOwnerRecordPk = sentProp?.account?.tokenOwnerRecord;
+            console.log("From proposal tokenOwnerRecordPk: "+JSON.stringify(tokenOwnerRecordPk));
         }
 
         /*
-        const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
-            programId,
-            realmPk,
-            governingTokenMint,
-            publicKey,
-        );*/
+        if (!tokenOwnerRecordPk){
+            tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+              programId,
+              realmPk,
+              governingTokenMint,
+              publicKey,
+            );
+            if (tokenOwnerRecordPk)
+              console.log("Using getTokenOwnerRecordAddress: "+tokenOwnerRecordPk.toBase58());
+        }*/
 
         const beneficiary = publicKey;
         const governanceAuthority = publicKey;
