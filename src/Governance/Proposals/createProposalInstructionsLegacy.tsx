@@ -122,6 +122,17 @@ export async function createProposalInstructionsLegacy(
     
     let tokenOwnerRecordPk = null;
     
+
+    if (editAddress){
+      const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58(), programId.toBase58());
+      const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
+      const gp = await getProposalIndexed(governanceRulesStrArr, null, realmPk.toBase58(), editAddress.toBase58());
+      tokenOwnerRecordPk = gp?.account?.tokenOwnerRecord;
+    }
+
+    console.log("Using getTokenOwnerRecordAddress ??? : "+JSON.stringify(tokenOwnerRecordPk));
+
+
     if (!tokenOwnerRecordPk){
       tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
         programId,
@@ -135,7 +146,7 @@ export async function createProposalInstructionsLegacy(
 
     if (!tokenOwnerRecordPk){
       console.log("no token owner record pk... fetching proposal");
-
+      
       const memberMap = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), null, walletPk.toBase58());
       for (let member of memberMap){
           if (new PublicKey(member.account.governingTokenOwner).toBase58() === walletPk.toBase58() &&
