@@ -281,17 +281,20 @@ export function InstructionView(props: any) {
         const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
 
         let tokenOwnerRecordPk = null;
-        for (let member of memberMap){
-            if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
-                new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
-                tokenOwnerRecordPk = new PublicKey(member.pubkey);
-        }
         
         if (!tokenOwnerRecordPk){
             tokenOwnerRecordPk = sentProp?.account?.tokenOwnerRecord;
             console.log("From proposal tokenOwnerRecordPk: "+JSON.stringify(tokenOwnerRecordPk));
         }
 
+        if (!tokenOwnerRecordPk){
+            for (let member of memberMap){
+                if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
+                    new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
+                    tokenOwnerRecordPk = new PublicKey(member.pubkey);
+            }
+        }
+        
         /*
         if (!tokenOwnerRecordPk){
             tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
