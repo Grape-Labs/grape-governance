@@ -157,12 +157,38 @@ export async function createProposalInstructionsV0(
       )
     : VoteType.SINGLE_CHOICE
     
-    const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
-      programId,
-      realmPk,
-      governingTokenMint,
-      walletPk,
-    );
+    let tokenOwnerRecordPk = null;
+    if (editAddress){
+      const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58(), programId.toBase58());
+      const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
+      const gp = await getProposalIndexed(governanceRulesStrArr, null, realmPk.toBase58(), editAddress.toBase58());
+      tokenOwnerRecordPk = gp?.account?.tokenOwnerRecord;
+    }
+
+    if (!tokenOwnerRecordPk){
+      tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+        programId,
+        realmPk,
+        governingTokenMint,
+        walletPk,
+      );
+      if (tokenOwnerRecordPk)
+        console.log("Using getTokenOwnerRecordAddress: "+tokenOwnerRecordPk.toBase58());
+    }
+
+    if (!tokenOwnerRecordPk){
+      console.log("no token owner record pk... fetching proposal");
+
+      const memberMap = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), null, walletPk.toBase58());
+      for (let member of memberMap){
+          if (new PublicKey(member.account.governingTokenOwner).toBase58() === walletPk.toBase58() &&
+              new PublicKey(member.account.governingTokenMint).toBase58() === governingTokenMint.toBase58()){
+            // check if same token owner also
+            //console.log("member found: "+JSON.stringify(member));
+            tokenOwnerRecordPk = new PublicKey(member.pubkey);
+          }
+      }
+    }
 
     const governanceAuthority = walletPk
     console.log("programId: "+programId.toBase58());
