@@ -400,8 +400,11 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
             }
             })
             .then(response => {
-                console.log("response... : "+JSON.stringify(response));
+                //console.log("response... : "+JSON.stringify(response));
                 if (response.data?.result){
+
+                    console.log("info: "+JSON.stringify(response.data?.actions))
+
                     //console.log("balance for "+tokenOwnerRecord.toBase58()+": "+response.data.result?.balance)
                     return response;
                 }
@@ -421,6 +424,7 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
         }
     }
     */
+    
     
 
     // HELIUS:
