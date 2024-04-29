@@ -440,46 +440,51 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
         if (lastSignature)
             before = "&before="+lastSignature;
         const url = "https://api.helius.xyz/v0/addresses/"+sourceAddress+"/transactions?api-key="+HELIUS_API+before;
-        const { data } = await axios.get(url)
         
+        try{
+            const { data } = await axios.get(url)
+            
 
-        if (tokenMintAddress && data){
-            
-            const filteredData = data.filter(item =>
-                item.tokenTransfers.some(transfer => transfer.mint === tokenMintAddress)
-            );
-            
-            let filteredData2 = filteredData;
-            
-                filteredData2 = excludeAddress ? filteredData.filter(item =>
-                    item.tokenTransfers.some(transfer => !excludeAddress.includes(transfer?.fromUserAccount))
-                ) : filteredData;
-            
-            const finalData = filteredData2.map(item => ({
-                tokenTransfers: item.tokenTransfers,
-                timestamp: item.timestamp,
-                signature: item.signature,
-            }));
+            if (tokenMintAddress && data){
+                
+                const filteredData = data.filter(item =>
+                    item.tokenTransfers.some(transfer => transfer.mint === tokenMintAddress)
+                );
+                
+                let filteredData2 = filteredData;
+                
+                    filteredData2 = excludeAddress ? filteredData.filter(item =>
+                        item.tokenTransfers.some(transfer => !excludeAddress.includes(transfer?.fromUserAccount))
+                    ) : filteredData;
+                
+                const finalData = filteredData2.map(item => ({
+                    tokenTransfers: item.tokenTransfers,
+                    timestamp: item.timestamp,
+                    signature: item.signature,
+                }));
 
-            console.log("finalData: "+JSON.stringify(finalData));
-            
-            //console.log("last tx "+sourceAddress+": "+JSON.stringify(finalData[finalData.length-1]));
+                console.log("finalData: "+JSON.stringify(finalData));
+                
+                //console.log("last tx "+sourceAddress+": "+JSON.stringify(finalData[finalData.length-1]));
 
-            if (data.length > 1){
-                hasnext = true;
-                //console.log("data here "+JSON.stringify(data[data.length-1]));
-                lastSignature = data[data.length-1].signature;
-                //console.log("last signature: "+lastSignature);
-            } else{
-                hasnext = false;
+                if (data.length > 1){
+                    hasnext = true;
+                    //console.log("data here "+JSON.stringify(data[data.length-1]));
+                    lastSignature = data[data.length-1].signature;
+                    //console.log("last signature: "+lastSignature);
+                } else{
+                    hasnext = false;
+                }
+
+                if (tokenTransfers)
+                    tokenTransfers = tokenTransfers.concat(finalData);
+                else
+                    tokenTransfers = finalData;
+                
+                //return finalData;
             }
-
-            if (tokenTransfers)
-                tokenTransfers = tokenTransfers.concat(finalData);
-            else
-                tokenTransfers = finalData;
-            
-            //return finalData;
+        }catch(e){
+            console.log("ERR: "+e);
         }
         //return data;
 
