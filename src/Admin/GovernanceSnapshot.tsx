@@ -434,6 +434,9 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
     lastSignature = null;
 
     console.log("pre data fetch for token transfers");
+    // we should prefetch the transactions for the sourceAddress and start before that!
+    
+    
     while (hasnext){
         let before = "";
         

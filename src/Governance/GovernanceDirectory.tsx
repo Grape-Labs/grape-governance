@@ -2,6 +2,8 @@ import React, { useCallback } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import { Link } from "react-router-dom";
 
+import { getRealms } from 'gspl-directory';
+
 import {
     Box,
     Badge,
@@ -502,9 +504,20 @@ export function GovernanceDirectoryView(props: Props) {
         );
     }
     
+
+    const fetchGovernanceDirectory = async() => {
+        //const dir = await getRealms();
+        //return dir;
+        return null;
+    }
+
     const callGovernanceLookup = async() => {
+        
+        const gspldir = await fetchGovernanceDirectory();
         const fglf = await fetchGovernanceLookupFile(storagePool);
         const fgmmf = await fetchGovernanceMasterMembersFile(storagePool);
+
+        //console.log("fglf: "+JSON.stringify(fglf));
 
         // pre sort
         const exportFglf = new Array();
