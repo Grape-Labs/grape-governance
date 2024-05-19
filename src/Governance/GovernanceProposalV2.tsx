@@ -769,10 +769,12 @@ export function GovernanceProposalV2View(props: any){
                 // if this is voting we should fetch via RPC
                 let instructions = null;
                 
+                /*
                 if (!thisitem?.instructions || thisitem.account.state === 0){
                 
                     //if (!thisitem?.instructions){
-                        //instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                        instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                        
                         instructions = await getGovernanceAccounts(
                             connection,
                             new PublicKey(thisitem.owner || realm.owner),
@@ -782,17 +784,9 @@ export function GovernanceProposalV2View(props: any){
                     
                         thisitem.instructions = instructions;
                     //}
-                } else {
+                } else */{
                     if (!thisitem?.instructions){
                         instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
-                        /*
-                        instructions = await getGovernanceAccounts(
-                            connection,
-                            new PublicKey(thisitem.owner || realm.owner),
-                            ProposalTransaction,
-                            [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
-                        );
-                        */
                         thisitem.instructions = instructions;
                     }
                 }
