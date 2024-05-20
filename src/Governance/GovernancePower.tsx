@@ -245,7 +245,6 @@ export default function GovernancePower(props: any){
 
             setWalletCommunityMintAddress(communityMint);
             setWalletCouncilMintAddress(councilMint);
-            alert("HERE!");
             const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(realm?.owner), new PublicKey(realm?.pubkey));
             let plugin = false;
             setIsPlugin(false);
