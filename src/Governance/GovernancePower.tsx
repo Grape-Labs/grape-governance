@@ -242,7 +242,7 @@ export default function GovernancePower(props: any){
             } else {
                 councilMint = realm.account.config.councilMint;
             }
-
+            
             setWalletCommunityMintAddress(communityMint);
             setWalletCouncilMintAddress(councilMint);
             const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(realm?.owner), new PublicKey(realm?.pubkey));
