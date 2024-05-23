@@ -451,6 +451,7 @@ export function Header(props: any) {
                             */}
                         </Box>
                         
+                        {/*
                         <pwa-install
                             //manual-apple="true"
                             //manual-chrome="true"
@@ -464,6 +465,7 @@ export function Header(props: any) {
                             description="Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS"         
                             icon={APP_ICON}
                         ></pwa-install>
+                        */}
                         
                         {showInstallAppButton &&
                             <div onClick={() => setShowInstallAppButton(false)}>
