@@ -4583,10 +4583,10 @@
     bs58 "^5.0.0"
     uuid "^8.3.2"
 
-"@khmyznikov/pwa-install@^0.3.3":
-  version "0.3.3"
-  resolved "https://registry.yarnpkg.com/@khmyznikov/pwa-install/-/pwa-install-0.3.3.tgz#1ac5727b6762fb0890e5aeb56fa15dbbac891cab"
-  integrity sha512-Ttg73jBQUSA3C0gpBrbwLYbTUP8Qw3oFbiq5bSVM+lAM3D90tb32XOVP+CK47ZpUHo6YV+HhVWlLKwHjNjnbog==
+"@khmyznikov/pwa-install@^0.3.9":
+  version "0.3.9"
+  resolved "https://registry.yarnpkg.com/@khmyznikov/pwa-install/-/pwa-install-0.3.9.tgz#9f0c9e5747da511c469075c66631a116b7b3ded8"
+  integrity sha512-pD9smj+Ezk8b/QNN0xW1X6VbeS7VL+aHq98chbhhCWdsXC2L5FwmVcqin+SUofPQPEeb+qHsIU077EG9avAVeg==
   dependencies:
     lit "^3.1.0"
 
