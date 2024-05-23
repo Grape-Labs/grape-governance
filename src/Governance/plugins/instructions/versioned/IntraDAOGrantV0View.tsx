@@ -914,18 +914,32 @@ export default function IntraDAOGrantV0View(props: any) {
     }
     
     function calculateDestinations(destination:string) {
+
+        if (destination.includes('\t') && destination.includes(',')){ // here remove all commas
+            destination = destination.replace(/,/g, '');
+        }
+
         const destinationsStr = destination.replace(/['"]/g, '').replace(/[\t]/g, ',');
         const destinationArray = destinationsStr.split('\n').map(item => item.trim()).filter(item => item !== '');
         
         const uniqueDestinationsMap = new Map();
         let totalAmount = 0;
-
-        for (const destination of destinationArray) {
-          const [address, amountStr] = destination.split(',');
-          //const [address2, amountStr2] = destination.split('\t');
-          //const [address, amountStr] = destination.split('    ');
-          //const [address, amountStr] = destination.split(/[,|\t| {4}| {1}|⟶]/);
         
+        for (const destination of destinationArray) {
+            let address = '';
+            let amountStr = '';
+
+            if (destination.includes('\t')){
+                [address, amountStr] = destination.split('\t');
+            } else{
+                [address, amountStr] = destination.split(',');
+            }
+
+            address = address.trim();
+
+            //const [address2, amountStr2] = destination.split('\t');
+            //const [address, amountStr] = destination.split('    ');
+            //const [address, amountStr] = destination.split(/[,|\t| {4}| {1}|⟶]/);
 
           if (isValidSolanaPublicKey(address)) {
             const amount = parseFloat(amountStr);
@@ -957,7 +971,7 @@ export default function IntraDAOGrantV0View(props: any) {
             setDestinationWalletArray(uniqueDestinations);
         }
     } 
-
+    
     React.useEffect(() => { 
         if (destinationString && tokenAmount && distributionType){
             calculateDestinationsEvenly(destinationString, tokenAmount);
