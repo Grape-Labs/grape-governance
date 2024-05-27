@@ -40,6 +40,7 @@ import {
   Avatar,
   LinearProgress,
   Divider,
+  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle
 } from '@mui/material/';
 
 import TollIcon from '@mui/icons-material/Toll';
@@ -249,6 +250,63 @@ export default function GovernanceCreateProposalView(props: any){
     const [isCopied, setIsCopied] = React.useState(false);
 
     const anchorWallet = useAnchorWallet();
+    
+    const [open, setOpen] = React.useState(false);
+    const [startIndex, setStartIndex] = React.useState(0);
+    const [txLen, setTxLen] = React.useState(0);
+
+    const snackprogress = (key:any) => (
+      <CircularProgress sx={{padding:'10px'}} />
+    );
+
+    function successCallback(txid: string, ind: number, len: number){
+      console.log("* Success at tx: "+ind);
+      let cnfrmkey = null; 
+      if (enqueueSnackbar){
+        cnfrmkey = enqueueSnackbar(`Processing Tx ${ind+1} of ${len}`,{ variant: 'info', action:snackprogress, persist: true });
+        // Close the snackbar after 20 seconds (20000 milliseconds)
+        setTimeout(() => {
+          closeSnackbar(cnfrmkey);
+        }, 20000);
+      }
+    }
+
+    const retryProposalCreation = async() =>{
+      return await createProposal(true,false, startIndex);
+    }
+    
+    const failCallback = (reason:string, ind:number, len:number) => {
+      console.log("** Failed at tx: " + ind);
+      if (enqueueSnackbar){
+        enqueueSnackbar(`Stopped at Tx ${ind} of ${len}`, { variant: 'error' });
+      }
+      // Open the dialog to ask the user if they want to continue
+      setOpen(true);
+      setStartIndex(ind);
+      setTxLen(len);
+      return false;
+    };
+
+    const handleContinue = () => {
+      setOpen(false);
+      enqueueSnackbar(`Picking up where we left off at Tx ${startIndex} of ${txLen}`, { variant: 'error' });
+      
+      const result = retryProposalCreation();
+      if (result) {
+        return false;
+      } else {
+        return true;
+      }
+    };
+  
+    const handleCancel = () => {
+      setOpen(false);
+      // Handle cancel action if needed
+      return false;
+    };
+
+
+
 
     const handleCopy = () => {
       setIsCopied(true);
@@ -362,9 +420,12 @@ export default function GovernanceCreateProposalView(props: any){
             authTransaction,
             anchorWallet,//anchorWallet,
             null,
+            null,
             true,
             null,
             editProposalAddress,
+            successCallback,
+            failCallback,
           );
         }
         //console.log("Simulation: ",propSimulation);
@@ -387,7 +448,7 @@ export default function GovernanceCreateProposalView(props: any){
       calculateProposalFee();
     }
     
-    const createProposal = async(isDraft: boolean, returnTx?: boolean) => {
+    const createProposal = async(isDraft: boolean, returnTx?: boolean, startIx?: number) => {
       
       // get governance settings
       setCreateDisabled(true);
@@ -401,7 +462,8 @@ export default function GovernanceCreateProposalView(props: any){
         for (let instructionItem of instructionsArray){
           if (instructionItem.governanceInstructions){
             transaction.add(instructionItem.governanceInstructions);
-          }if (instructionItem?.authorInstructions)
+          }
+          if (instructionItem?.authorInstructions)
             authTransaction.add(instructionItem.authorInstructions);
         }
       }
@@ -453,13 +515,10 @@ export default function GovernanceCreateProposalView(props: any){
         }
         */
         
-        const snackprogress = (key:any) => (
-          <CircularProgress sx={{padding:'10px'}} />
-        );
         const cnfrmkey = enqueueSnackbar('Creating Governance Proposal',{ variant: 'info', action:snackprogress, persist: true });
         
         let propResponse = null;
-          
+        
         if (instructionsDataWithHoldUpTime){
           console.log("in v0")
           propResponse = await createProposalInstructionsV0(
@@ -499,7 +558,10 @@ export default function GovernanceCreateProposalView(props: any){
             isDraft,
             returnTx,
             intraDAO ? new PublicKey(sentGovernanceWallet || publicKey) : publicKey,
-            editProposalAddress
+            editProposalAddress,
+            successCallback,
+            failCallback,
+            startIndex,
           );
         }
         
@@ -899,6 +961,7 @@ export default function GovernanceCreateProposalView(props: any){
     
       return (
         <>
+
           <Box sx={{ minWidth: 120, ml:1 }}>
           {/*governanceWallets ? 
             <FormControl fullWidth>
@@ -1695,6 +1758,22 @@ export default function GovernanceCreateProposalView(props: any){
                   <>
                     
                     <>
+                    <Dialog open={open} onClose={handleCancel}>
+                      <DialogTitle>Continue from where you left off?</DialogTitle>
+                      <DialogContent>
+                        <DialogContentText>
+                          It seems that the process stopped at transaction {startIndex + 1} of {txLen}. Do you want to continue from where you left off?
+                        </DialogContentText>
+                      </DialogContent>
+                      <DialogActions>
+                        <Button onClick={handleCancel} color="primary">
+                          Cancel
+                        </Button>
+                        <Button onClick={handleContinue} color="primary">
+                          Continue
+                        </Button>
+                      </DialogActions>
+                    </Dialog>
 
                         {showGovernanceTitle && realmName && 
                             <Grid container>
