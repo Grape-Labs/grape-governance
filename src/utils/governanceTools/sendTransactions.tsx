@@ -23,6 +23,7 @@ import {
   DEFAULT_PRIORITY_RATE,
   DEFAULT_MAX_PRIORITY_RATE } from '../grapeTools/constants';
 
+
 // TODO: sendTransactions() was imported from Oyster as is and needs to be reviewed and updated
 // In particular common primitives should be unified with send.tsx and also ensure the same resiliency mechanism
 // is used for monitoring transactions status and timeouts
@@ -259,11 +260,24 @@ async function createAndSendV0Tx(RPC_CONNECTION: Connection, wallet: WalletSigne
   let done = false
   ;(async () => {
     while (!done && getUnixTs() - startTime < timeout) {
-      await connection.sendRawTransaction(rawTransaction, {
-        skipPreflight: true,
-        maxRetries: 5,
-      })
-      await sleep(1000)
+      try{
+        await connection.sendRawTransaction(rawTransaction, {
+          skipPreflight: true,
+          maxRetries: 5,
+        })
+        await sleep(1000)
+      } catch(e){
+        try{
+          await sleep(2000)
+          await connection.sendRawTransaction(rawTransaction, {
+            skipPreflight: true,
+            maxRetries: 20,
+          })
+          await sleep(1000)
+        }catch(e2){
+          console.log("Status: Internal Error");
+        }
+      }
     }
   })()
   try {
@@ -319,6 +333,7 @@ export enum SequenceType {
   Parallel,
   StopOnFailure,
 }
+
 /////////////////////////////////////////
 export const sendTransactions = async (
   connection: Connection,
@@ -328,15 +343,17 @@ export const sendTransactions = async (
   signersSet: Keypair[][],
   sequenceType: SequenceType = SequenceType.Parallel,
   commitment: Commitment = 'singleGossip',
-  successCallback: (txid: string, ind: number) => void = (_txid, _ind) => null,
-  failCallback: (reason: string, ind: number) => boolean = (_txid, _ind) =>
+  successCallback: (txid: string, ind: number, len: number) => void = (_txid, _ind, _len) => null,
+  failCallback: (reason: string, ind: number, len: number) => boolean = (_txid, _ind, _len) =>
     false,
+  startIxIndex?: number,
   block?: {
     blockhash: string
     feeCalculator: FeeCalculator
   }
 ): Promise<any> => {
-  if (!wallet.publicKey) throw new Error('Wallet not connected!')
+  
+  if (!wallet?.publicKey) throw new Error('Wallet not connected!')
   const unsignedTxns: Transaction[] = []
 
   if (!block) {
@@ -432,8 +449,20 @@ export const sendTransactions = async (
   //const walletPkTest = getWalletPublicKey(wallet);
   //console.log('Wallet Test:', walletPkTest.toBase58());
   //console.log('signedTxns' +JSON.stringify(signedTxns));
+  
   const breakEarlyObject = { breakEarly: false }
-  for (let i = 0; i < signedTxns.length; i++) {
+
+  /*
+  const confirmation = await RPC_CONNECTION.confirmTransaction({
+      signature: txid,
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+  });
+  */
+  //closeSnackbar(cnfrmkey);
+  let startIndex = 0;//startIxIndex || 0;
+
+  for (let i = startIndex; i < signedTxns.length; i++) {
     console.log('i:',i);
     const signedTxnPromise = sendSignedTransaction({
       connection,
@@ -441,17 +470,45 @@ export const sendTransactions = async (
     })
 
     signedTxnPromise
-      .then(({ txid }) => {
-        successCallback(txid, i)
-      })
-      .catch((_reason) => {
-        // @ts-ignore
-        failCallback(signedTxns[i], i)
-        if (sequenceType == SequenceType.StopOnFailure) {
-          breakEarlyObject.breakEarly = true
-        }
-      })
+    .then(({ txid }) => {
+      console.log("First Pass (ix: "+i+" of "+signedTxns.length+"): Success!");
+      successCallback(txid, i, signedTxns.length);
+    })
+    .catch((_reason) => {
+      /*
+      // @ts-ignore
+      console.log("First Pass Failed (ix: "+i+"): Attmepting second pass...");
+      // Add a 2-second delay before retrying
+      if (enqueueSnackbar)
+        enqueueSnackbar(`First Attempt Failed: Attempting second attempt at tx ${i+1}`,{ variant: 'info' });
 
+      setTimeout(() => {
+        const signedTxnPromise2 = sendSignedTransaction({
+          connection,
+          signedTransaction: signedTxns[i],
+        });
+        signedTxnPromise2
+          .then(({ txid }) => {
+            console.log("Second Pass (ix: "+i+"): Success!");
+            successCallback(txid, i);
+          })
+          .catch((_reason) => {
+            */
+            // @ts-ignore
+            console.log("Second Pass (ix: "+i+" of "+signedTxns.length+"): Failed, processing has stopped!");
+            failCallback("Failed Tx", i, signedTxns.length);
+            if (sequenceType == SequenceType.StopOnFailure) {
+              breakEarlyObject.breakEarly = true;
+            }
+            /*
+          });
+      }, 2000); // 2-second delay
+      */
+    });
+
+    //if (closeSnackbar)
+    //  closeSnackbar(cnfrmkey);
+    
     if (sequenceType != SequenceType.Parallel) {
       await signedTxnPromise
       if (breakEarlyObject.breakEarly) {

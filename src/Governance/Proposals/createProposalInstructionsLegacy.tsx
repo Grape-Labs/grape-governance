@@ -68,8 +68,12 @@ export async function createProposalInstructionsLegacy(
     isDraft?: boolean,
     returnTx?: boolean,
     payer?: PublicKey,
-    editAddress?: PublicKey): Promise<any>{//Promise<Transaction> {
-    
+    editAddress?: PublicKey,
+    successCallback?: any,
+    failCallback?: any,
+    startIndex?: number,
+  ): Promise<any>{//Promise<Transaction> {
+
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
     //let initialInstructions: TransactionInstruction[] = [];
     let signers: any[] = [];
@@ -300,6 +304,8 @@ export async function createProposalInstructionsLegacy(
           ixCount = ixItem.account.instructionIndex + 1;
         }
       } 
+
+      console.log("Last Ix Index: "+ixCount);
       
       if (ixCount <= 0){
         if (ix && ix.length > 0) { 
@@ -326,7 +332,6 @@ export async function createProposalInstructionsLegacy(
       proposalAddress,
       signatory
     )
-    
     
     const insertInstructions: TransactionInstruction[] = [];
     //we don't have any prerequisiteInstructions to execute so we will leave this null
@@ -363,21 +368,32 @@ export async function createProposalInstructionsLegacy(
       
       //console.log("ixCount: "+ixCount);
       //console.log("j: "+j);
-      console.log("At Ix Index: "+(ixCount+j));
-      await withInsertTransaction(
-        insertInstructions,
-        programId,
-        programVersion,
-        governancePk,
-        proposalAddress,
-        tokenOwnerRecordPk,
-        walletPk,
-        ixCount+j,
-        0,
-        0,
-        [instructionData[j]],
-        walletPk
-      );
+      //console.log("At Ix Index: "+(ixCount+j));
+
+      let startTxIndex = startIndex || 0;
+
+      if (startTxIndex > 0)
+        startTxIndex = startTxIndex-1;
+
+      if (j >= startTxIndex){ // we are adding this in case ix fails and we need to retry with remaining instructions
+        
+        console.log("Inserting tx: "+j);
+
+        await withInsertTransaction(
+          insertInstructions,
+          programId,
+          programVersion,
+          governancePk,
+          proposalAddress,
+          tokenOwnerRecordPk,
+          walletPk,
+          ixCount+j-startTxIndex,
+          0,
+          0,
+          [instructionData[j]],
+          walletPk
+        );
+      }
     }
     console.log("5");
 
@@ -428,7 +444,11 @@ export async function createProposalInstructionsLegacy(
             wallet,
             [prerequisiteInstructions, instructions, ...insertChunks],
             [[], [], ...signerChunks],
-            SequenceType.Sequential
+            SequenceType.Sequential,
+            null,
+            successCallback,
+            failCallback,
+            startIndex,
           );
 
           console.log(`Proposal: ${JSON.stringify(proposalAddress)}`);
@@ -448,6 +468,10 @@ export async function createProposalInstructionsLegacy(
             response:null
           };
         } else{
+
+          // we should attempt to continue here where dropped off?
+          failCallback();
+
           return null;
         }
       }
