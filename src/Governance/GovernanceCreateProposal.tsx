@@ -267,7 +267,7 @@ export default function GovernanceCreateProposalView(props: any){
         // Close the snackbar after 20 seconds (20000 milliseconds)
         setTimeout(() => {
           closeSnackbar(cnfrmkey);
-        }, 20000);
+        }, 30000);
       }
     }
 
@@ -282,7 +282,7 @@ export default function GovernanceCreateProposalView(props: any){
       }
       // Open the dialog to ask the user if they want to continue
       setOpen(true);
-      setStartIndex(ind);
+      setStartIndex(ind-1);
       setTxLen(len);
       return false;
     };
@@ -1762,7 +1762,7 @@ export default function GovernanceCreateProposalView(props: any){
                       <DialogTitle>Continue from where you left off?</DialogTitle>
                       <DialogContent>
                         <DialogContentText>
-                          It seems that the process stopped at transaction {startIndex + 1} of {txLen}. Do you want to continue from where you left off?
+                          It seems that the process stopped at transaction {startIndex} of {txLen}. Do you want to continue from where you left off?
                         </DialogContentText>
                       </DialogContent>
                       <DialogActions>

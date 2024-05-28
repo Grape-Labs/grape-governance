@@ -372,8 +372,12 @@ export async function createProposalInstructionsLegacy(
 
       let startTxIndex = startIndex || 0;
 
-      if (startTxIndex > 0)
-        startTxIndex = startTxIndex-1;
+      if (startTxIndex > 0){
+        if (ixCount+j > startTxIndex-2)
+          startTxIndex = startTxIndex-2;
+        else
+          startTxIndex = startTxIndex-1;
+      }
 
       if (j >= startTxIndex){ // we are adding this in case ix fails and we need to retry with remaining instructions
         
