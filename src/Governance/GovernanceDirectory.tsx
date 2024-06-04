@@ -2,9 +2,9 @@ import React, { useCallback } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import { Link } from "react-router-dom";
 
-import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
+//import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
 import {getRealms, RequestStatus} from "gspl-directory";
-import {publicKey as UmiPK} from "@metaplex-foundation/umi";
+//import {publicKey as UmiPK} from "@metaplex-foundation/umi";
 
 import {
     Box,
@@ -506,7 +506,7 @@ export function GovernanceDirectoryView(props: Props) {
         );
     }
     
-    const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
+    //const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
 
     const initGrapeGovernanceDirectory = async() => {
     //    const umi = createUmi(RPC_ENDPOINT);
