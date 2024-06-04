@@ -57,7 +57,7 @@ import {
     timeAgo
 } from '../utils/grapeTools/WalletAddress'
 
-import { GGAPI_STORAGE_POOL, RPC_CONNECTION } from '../utils/grapeTools/constants';
+import { GGAPI_STORAGE_POOL, RPC_CONNECTION, RPC_ENDPOINT } from '../utils/grapeTools/constants';
 import moment from 'moment';
 
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
@@ -509,9 +509,8 @@ export function GovernanceDirectoryView(props: Props) {
     const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
 
     const initGrapeGovernanceDirectory = async() => {
-    //    const umi = createUmi(RPC_CONNECTION);
+    //    const umi = createUmi(RPC_ENDPOINT);
     //    const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
-
     //    console.log("Entries: "+JSON.stringify(entries));
     }
 
