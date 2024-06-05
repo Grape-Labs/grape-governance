@@ -25,7 +25,7 @@
       "./types"
     ],
     "jsx": "react-jsx",
-    "isolatedModules": true
+    "isolatedModules": true,
   },
   "include": [
     "src"

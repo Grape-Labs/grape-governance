@@ -2,7 +2,9 @@ import React, { useCallback } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import { Link } from "react-router-dom";
 
-import { getRealms } from 'gspl-directory';
+import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
+import {getRealms, RequestStatus} from "gspl-directory";
+import {publicKey as UmiPK} from "@metaplex-foundation/umi";
 
 import {
     Box,
@@ -55,7 +57,7 @@ import {
     timeAgo
 } from '../utils/grapeTools/WalletAddress'
 
-import { GGAPI_STORAGE_POOL } from '../utils/grapeTools/constants';
+import { GGAPI_STORAGE_POOL, RPC_CONNECTION, RPC_ENDPOINT } from '../utils/grapeTools/constants';
 import moment from 'moment';
 
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
@@ -504,16 +506,18 @@ export function GovernanceDirectoryView(props: Props) {
         );
     }
     
+    const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
 
-    const fetchGovernanceDirectory = async() => {
-        //const dir = await getRealms();
-        //return dir;
-        return null;
+    
+    const initGrapeGovernanceDirectory = async() => {
+    //    const umi = createUmi(RPC_ENDPOINT);
+    //    const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
+    //    console.log("Entries: "+JSON.stringify(entries));
     }
 
     const callGovernanceLookup = async() => {
         
-        const gspldir = await fetchGovernanceDirectory();
+        const gspldir = await initGrapeGovernanceDirectory();
         const fglf = await fetchGovernanceLookupFile(storagePool);
         const fgmmf = await fetchGovernanceMasterMembersFile(storagePool);
 
