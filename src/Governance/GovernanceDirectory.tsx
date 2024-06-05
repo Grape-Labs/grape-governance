@@ -508,6 +508,7 @@ export function GovernanceDirectoryView(props: Props) {
     
     const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
 
+    
     const initGrapeGovernanceDirectory = async() => {
     //    const umi = createUmi(RPC_ENDPOINT);
     //    const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
