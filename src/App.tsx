@@ -16,6 +16,7 @@ import { GovernanceMetricsView } from "./Governance/GovernanceMetrics";
 import { GovernanceMembersView } from "./Governance/GovernanceMembers";
 import { GovernanceTreasuryView } from "./Governance/GovernanceTreasury";
 import { GovernanceDirectoryView } from "./Governance/GovernanceDirectory";
+import { GovernanceDirectoryTestView } from "./Governance/GovernanceDirectoryTest";
 import { GovernanceReputationView } from "./Governance/GovernanceReputation";
 import { GovernanceProposalView } from "./Governance/GovernanceProposal";
 import { GovernanceProposalV2View } from "./Governance/GovernanceProposalV2";
@@ -320,6 +321,12 @@ function DashboardContent() {
                                                 <Route path=":handlekey" element={<ApiView />} />
                                             </Route>
                                             */}
+
+
+                                              <Route path="gspl/*" element={<GovernanceDirectoryTestView />} >
+                                                <Route path=":handlekey" element={<GovernanceDirectoryTestView />} />
+                                              </Route>
+
                                               <Route path="profile/*" element={<MyGovernanceView />} >
                                                 <Route path=":handlekey" element={<MyGovernanceView />} />
                                               </Route>
