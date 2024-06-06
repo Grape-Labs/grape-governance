@@ -36,6 +36,9 @@
     "peerDependencies": {
         "react": "^17.0.0 || ^18.0.0"
     },
+    "@parcel/resolver-default": {
+        "packageExports": true
+    },
     "dependencies": {
         "@apollo/client": "3.8.7",
         "@blockworks-foundation/mangolana": "^0.0.1-beta.15",
@@ -193,6 +196,7 @@
         "@parcel/compressor-brotli": "2.8.0",
         "@parcel/compressor-gzip": "2.8.0",
         "@parcel/packager-raw-url": "2.8.0",
+        "@parcel/resolver-default": "2.8.0",
         "@parcel/resolver-glob": "2.8.0",
         "@parcel/transformer-less": "2.8.0",
         "@parcel/transformer-webmanifest": "2.8.0",
