@@ -8627,6 +8627,27 @@
     rpc-websockets "^7.5.0"
     superstruct "^0.14.2"
 
+"@solana/web3.js@1.92.0":
+  version "1.92.0"
+  resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-1.92.0.tgz#cefdb428fd6e1c0341b3fe162a4e31bd1a5c4225"
+  integrity sha512-+v3mvnb2vHka9qHpTSwSRwL0137RQ5NzRZAJXZ8wYBWcj50G+FQVCinVR+DJvzgjWhE06UbqO95BqConzFd49w==
+  dependencies:
+    "@babel/runtime" "^7.24.6"
+    "@noble/curves" "^1.4.0"
+    "@noble/hashes" "^1.4.0"
+    "@solana/buffer-layout" "^4.0.1"
+    agentkeepalive "^4.5.0"
+    bigint-buffer "^1.1.5"
+    bn.js "^5.2.1"
+    borsh "^0.7.0"
+    bs58 "^4.0.1"
+    buffer "6.0.3"
+    fast-stable-stringify "^1.0.0"
+    jayson "^4.1.0"
+    node-fetch "^2.7.0"
+    rpc-websockets "^7.11.1"
+    superstruct "^1.0.4"
+
 "@solana/web3.js@^1.11.0", "@solana/web3.js@^1.17.0", "@solana/web3.js@^1.22.0", "@solana/web3.js@^1.35.1", "@solana/web3.js@^1.43.4", "@solana/web3.js@^1.53.0", "@solana/web3.js@^1.63.1", "@solana/web3.js@^1.9.1":
   version "1.66.2"
   resolved "https://registry.npmjs.org/@solana/web3.js/-/web3.js-1.66.2.tgz"
@@ -8817,27 +8838,6 @@
     node-fetch "^2.7.0"
     rpc-websockets "^7.5.1"
     superstruct "^0.14.2"
-
-"@solana/web3.js@^1.91.8":
-  version "1.92.2"
-  resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-1.92.2.tgz#49760e887b31e309543668e81e1fa60f53a3e34e"
-  integrity sha512-dk26IHhtKyBszzsSzAuh6Lj2Z6guGlmdzkBjsOTvMmU/BiZTs5riNb+3eq56zXNLK3qvaMHAvVQPGwi9Po6qZQ==
-  dependencies:
-    "@babel/runtime" "^7.24.6"
-    "@noble/curves" "^1.4.0"
-    "@noble/hashes" "^1.4.0"
-    "@solana/buffer-layout" "^4.0.1"
-    agentkeepalive "^4.5.0"
-    bigint-buffer "^1.1.5"
-    bn.js "^5.2.1"
-    borsh "^0.7.0"
-    bs58 "^4.0.1"
-    buffer "6.0.3"
-    fast-stable-stringify "^1.0.0"
-    jayson "^4.1.0"
-    node-fetch "^2.7.0"
-    rpc-websockets "^7.11.1"
-    superstruct "^1.0.4"
 
 "@solflare-wallet/metamask-sdk@^1.0.2":
   version "1.0.2"
