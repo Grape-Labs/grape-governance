@@ -29,7 +29,7 @@ export function GovernanceDirectoryTestView() {
     }
 
     React.useEffect(() => {
-            callGovernanceLookup();
+        callGovernanceLookup();
     }, []);
 
     return <p><br/><br/><br/>GSPL: {gsplDir}</p>
