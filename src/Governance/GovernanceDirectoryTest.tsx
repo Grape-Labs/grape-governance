@@ -12,16 +12,17 @@ export function GovernanceDirectoryTestView() {
     
     const initGrapeGovernanceDirectory = async() => {
         try{
-        //    const umi = createUmi(RPC_ENDPOINT);
-        //    const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
-        //    console.log("Entries: "+JSON.stringify(entries));
+            const umi = createUmi(RPC_ENDPOINT);
+            const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
+            console.log("Entries: "+JSON.stringify(entries));
         } catch(e){
-            console.log("Could not load GSPDL");
+            console.log("Could not load GSPL");
         }
     }
 
     const callGovernanceLookup = async() => {
         const gsplret = await initGrapeGovernanceDirectory();
+        console.log("GSPL: "+gsplret);
         setGsplDir(gsplret);
     }
 
@@ -30,5 +31,5 @@ export function GovernanceDirectoryTestView() {
     }, []);
 
 
-    return <>GSPL: {gsplDir}</>
+    return <p><br/><br/><br/>GSPL: {gsplDir}</p>
 }
