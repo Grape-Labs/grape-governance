@@ -15,21 +15,22 @@ export function GovernanceDirectoryTestView() {
             const umi = createUmi(RPC_ENDPOINT);
             const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
             console.log("Entries: "+JSON.stringify(entries));
+            return entries;
         } catch(e){
             console.log("Could not load GSPL");
+            return null;
         }
     }
 
     const callGovernanceLookup = async() => {
         const gsplret = await initGrapeGovernanceDirectory();
-        console.log("GSPL: "+gsplret);
-        setGsplDir(gsplret);
+        //console.log("GSPL: "+gsplret);
+        setGsplDir(JSON.stringify(gsplret));
     }
 
     React.useEffect(() => {
             callGovernanceLookup();
     }, []);
-
 
     return <p><br/><br/><br/>GSPL: {gsplDir}</p>
 }
