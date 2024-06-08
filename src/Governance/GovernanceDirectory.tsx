@@ -2,8 +2,8 @@ import React, { useCallback } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import { Link } from "react-router-dom";
 
-import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
-import {getRealms, RequestStatus} from "gspl-directory";
+//import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
+//import {getRealms, RequestStatus} from "gspl-directory";
 import {publicKey as UmiPK} from "@metaplex-foundation/umi";
 
 import {
