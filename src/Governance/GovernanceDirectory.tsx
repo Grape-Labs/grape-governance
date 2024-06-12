@@ -2,8 +2,8 @@ import React, { useCallback } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import { Link } from "react-router-dom";
 
-//import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
-//import {getRealms, RequestStatus} from "gspl-directory";
+import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
+import {getRealms, RequestStatus} from "gspl-directory";
 import {publicKey as UmiPK} from "@metaplex-foundation/umi";
 
 import {
@@ -281,6 +281,16 @@ function GovernanceCardView(props:any) {
                                         :<></>
                                     }
 
+                                    {item?.gspl?
+                                        <>
+                                            <TableRow>
+                                                <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>Directory</TableCell>
+                                                <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>Grape GSPL Verified</TableCell>
+                                            </TableRow>
+                                        </>
+                                        :<></>
+                                    }
+
                                     {item?.totalProposals?
                                         <>{item.totalProposals > 0 ?
                                             <>
@@ -301,7 +311,6 @@ function GovernanceCardView(props:any) {
                                         </>
                                         :<></>
                                     }
-
                             </TableBody>
                         </Table>
                     </TableContainer>
@@ -510,9 +519,13 @@ export function GovernanceDirectoryView(props: Props) {
     
     const initGrapeGovernanceDirectory = async() => {
         try{
-        //    const umi = createUmi(RPC_ENDPOINT);
-        //    const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
-        //    console.log("Entries: "+JSON.stringify(entries));
+            const umi = createUmi(RPC_ENDPOINT);
+            const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
+
+            // set to verified list
+            // set entry in verified list
+            console.log("Entries: "+JSON.stringify(entries));
+            return entries;
         } catch(e){
             console.log("Could not load GSPDL");
         }
@@ -533,6 +546,17 @@ export function GovernanceDirectoryView(props: Props) {
             const prepresorted = fglf.sort((a:any, b:any) => a?.totalProposals < b?.totalProposals ? 1 : -1); 
             const presorted = prepresorted.sort((a:any, b:any) => (b?.totalProposalsVoting < a?.totalProposalsVoting) ? 1 : -1); 
             const sorted = presorted.sort((a:any, b:any) => (a?.totalVaultValue < b?.totalVaultValue && b?.totalVaultValue > 1) ? 1 : -1); 
+
+            // go through it one more time to merge gspldir data
+            for (var item of sorted){
+                for (var diritem of gspldir){
+                    if (item.governanceName === diritem.name){ // also make sure that diritem.governanceProgram ===item.parent?
+                        item.gspl = diritem;
+                        console.log("GSPL Entry found for "+item.governanceName);
+                    }
+                }
+            }
+
             //const sorted = fglf.sort((a:any, b:any) => (a.totalVaultStableCoinValue != null ? a.totalVaultStableCoinValue : Infinity) - (b.totalVaultStableCoinValue != null ? b.totalVaultStableCoinValue : Infinity)); 
             setGovernanceLookup(sorted);
             
