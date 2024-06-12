@@ -202,7 +202,7 @@ function GovernanceCardView(props:any) {
 
                     {item?.gspl?
                         <Tooltip title={
-                            <>Directory: Grape GSPL Verified<br/>Verified from the Grape Decentralized directory for verified DAO's on Solana GovyJPza6EV6srUcmwA1vS3EmWGdLSkkDafRE54X1Dir</>}>
+                            <>Directory: Grape GSPL Verified<br/>GovyJPza6EV6srUcmwA1vS3EmWGdLSkkDafRE54X1Dir</>}>
                             <IconButton
                                 color='inherit'
                                 sx={{borderRadius:'17px'}}
