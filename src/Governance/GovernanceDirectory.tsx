@@ -202,7 +202,9 @@ function GovernanceCardView(props:any) {
 
                     {item?.gspl?
                         <Tooltip title={
-                            <>Directory: Grape GSPL Verified<br/>GovyJPza6EV6srUcmwA1vS3EmWGdLSkkDafRE54X1Dir</>}>
+                            <>Directory: Grape GSPL Verified<br/>
+                            <Typography sx={{fontSize:'10px'}} gutterBottom>
+                            GovyJPza6EV6srUcmwA1vS3EmWGdLSkkDafRE54X1Dir</Typography></>}>
                             <IconButton
                                 color='inherit'
                                 sx={{borderRadius:'17px'}}
