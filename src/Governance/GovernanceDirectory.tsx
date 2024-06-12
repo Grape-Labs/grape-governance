@@ -13,6 +13,7 @@ import {
     Card,
     CardActions,
     CardContent,
+    IconButton,
     Button,
     ButtonGroup,
     TextField,
@@ -36,6 +37,7 @@ import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -186,17 +188,32 @@ function GovernanceCardView(props:any) {
                     {item.totalProposalsVoting && item.totalProposalsVoting > 0 ?
                         <Tooltip title={
                             <>Voting: {item.totalProposalsVoting} Active Proposal{item.totalProposalsVoting > 1 ? `s`:``}</>}>
-                            <Button
+                            <IconButton
                                 color='inherit'
                                 sx={{borderRadius:'17px'}}
                             >
                                 <Badge badgeContent={item.totalProposalsVoting} color="success"><HowToVoteIcon /></Badge>
                                 
-                            </Button>
+                            </IconButton>
                         </Tooltip>
                     :
                         <></>
                     }
+
+                    {item?.gspl?
+                        <Tooltip title={
+                            <>Directory: Grape GSPL Verified<br/>The GSPL Directory is the decentralized directory for verified DAO's on Solana</>}>
+                            <IconButton
+                                color='inherit'
+                                sx={{borderRadius:'17px'}}
+                            >
+                                <Badge color="success"><CheckCircleOutlineIcon /></Badge>
+                                
+                            </IconButton>
+                        </Tooltip>
+                        :<></>
+                    }
+
                 </Grid>
             </Grid>
                 <Tooltip title={`View ${item.governanceName} Governance`}>
@@ -277,16 +294,6 @@ function GovernanceCardView(props:any) {
                                                 <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>{(Number(item.totalMembers).toLocaleString())}</TableCell>
                                             </TableRow>
                                         :<></>}
-                                        </>
-                                        :<></>
-                                    }
-
-                                    {item?.gspl?
-                                        <>
-                                            <TableRow>
-                                                <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>Directory</TableCell>
-                                                <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>Grape GSPL Verified</TableCell>
-                                            </TableRow>
                                         </>
                                         :<></>
                                     }
