@@ -37,7 +37,7 @@ import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import VerifiedIcon from '@mui/icons-material/Verified';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -202,18 +202,30 @@ function GovernanceCardView(props:any) {
 
                     {item?.gspl?
                         <Tooltip title={
-                            <>Directory: Grape GSPL Verified<br/>
+                            <>Directory: Grape GSPL<br/>
+                            Status: Verified<br/>
                             <Typography sx={{fontSize:'10px'}} gutterBottom>
                             GovyJPza6EV6srUcmwA1vS3EmWGdLSkkDafRE54X1Dir</Typography></>}>
                             <IconButton
                                 color='inherit'
-                                sx={{borderRadius:'17px'}}
                             >
-                                <Badge color="success"><CheckCircleOutlineIcon /></Badge>
+                                <Badge color="success"><VerifiedIcon /></Badge>
                                 
                             </IconButton>
                         </Tooltip>
-                        :<></>
+                        :<>
+                            {/*
+                            <Tooltip title={
+                                <>Directory: Grape GSPL<br/>
+                                Status: Not Listed/Not Claimed<br/>
+                                <Typography sx={{fontSize:'10px'}} gutterBottom>
+                                GovyJPza6EV6srUcmwA1vS3EmWGdLSkkDafRE54X1Dir</Typography></>}>
+                                <IconButton>
+                                    <VerifiedIcon color="disabled"/>
+                                </IconButton>
+                            </Tooltip>
+                            */}
+                        </>
                     }
 
                 </Grid>
