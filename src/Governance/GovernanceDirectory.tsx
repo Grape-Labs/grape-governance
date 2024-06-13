@@ -395,7 +395,7 @@ export function GovernanceDirectoryView(props: Props) {
     const [governanceLastVaultStableCoinValue, setGovernanceLastVaultStableCoinValue] = React.useState(null);
     const [governanceLastMembers, setGovernanceLastMembers] = React.useState(null);
     const [governanceLastProposals, setGovernanceLastProposals] = React.useState(null);
-    
+    const [gspl, setGSPL] = React.useState(null);
     
     const [governanceTotalVaultValue, setGovernanceTotalVaultValue] = React.useState(null);
     const [governanceTotalVaultSolValue, setGovernanceTotalVaultSolValue] = React.useState(null);
@@ -625,6 +625,8 @@ export function GovernanceDirectoryView(props: Props) {
                 
             }
 
+            setGSPL(gspldir);
+
             setGovernanceLastVaultValue(lastVaultValue);
             setGovernanceLastVaultSolValue(lastVaultSolValue);
             setGovernanceLastVaultSol(lastVaultSol);
@@ -735,8 +737,9 @@ export function GovernanceDirectoryView(props: Props) {
                                 </Grid>
                                 <Grid item xs={12}>
                                     <Typography variant="caption">
-                                        {governanceLookup && governanceLookup.length} Active Solana DAOs <Typography color='#555' variant="caption">2,500+ DAOs on SPL Governance</Typography>
+                                        {gspl && gspl.length} Verified DAOs on the Grape GSPL
                                     </Typography>
+                                    <Typography color='#555' fontSize="9px">{governanceLookup && governanceLookup.length} Active Solana DAOs | 2,500+ DAOs on SPL Governance</Typography>
                                 </Grid>
                             </Grid>
                         </Grid>
