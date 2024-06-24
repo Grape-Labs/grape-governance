@@ -862,6 +862,22 @@ export default function GovernanceCreateProposalView(props: any){
                   setCommunitySupport(true);
                   setIsCouncilVote(true);
               }
+
+              setIsCouncilVote(false);
+              if (realm && realm?.account.config?.councilMint){
+                  setIsCouncilVote(true);
+                  if (realm && realm?.account?.communityMint){
+                      if (Number(item.account.config.minCommunityTokensToCreateProposal) !== 18446744073709551615){
+                          setIsCouncilVote(false);
+                      }
+                  }
+              } else {
+                  if (realm && realm?.account?.communityMint){
+                      setIsCouncilVote(false);
+                  }
+              }
+
+              
             }
           })
           
@@ -876,9 +892,24 @@ export default function GovernanceCreateProposalView(props: any){
                 minInstructionHoldUpTime = item.vault.governance.account.config.minInstructionHoldUpTime;
                 setGovernanceWallet(nativeWallet);
         
-                if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff')
+                if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff'){
                   setCommunitySupport(true);
                   setIsCouncilVote(true);
+                }
+
+                setIsCouncilVote(false);
+                if (realm && realm?.account.config?.councilMint){
+                    setIsCouncilVote(true);
+                    if (realm && realm?.account?.communityMint){
+                        if (Number(item.account.config.minCommunityTokensToCreateProposal) !== 18446744073709551615){
+                            setIsCouncilVote(false);
+                        }
+                    }
+                } else {
+                    if (realm && realm?.account?.communityMint){
+                        setIsCouncilVote(false);
+                    }
+                }
               }
             }
           )}
@@ -922,6 +953,20 @@ export default function GovernanceCreateProposalView(props: any){
                       setCommunitySupport(true);
                       setIsCouncilVote(true);
                   }
+
+                  setIsCouncilVote(false);
+                  if (realm && realm?.account.config?.councilMint){
+                      setIsCouncilVote(true);
+                      if (realm && realm?.account?.communityMint){
+                          if (Number(item.account.config.minCommunityTokensToCreateProposal) !== 18446744073709551615){
+                              setIsCouncilVote(false);
+                          }
+                      }
+                  } else {
+                      if (realm && realm?.account?.communityMint){
+                          setIsCouncilVote(false);
+                      }
+                  }
                 }
               })
             }
@@ -938,6 +983,20 @@ export default function GovernanceCreateProposalView(props: any){
                 if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff'){
                   setCommunitySupport(true);
                   setIsCouncilVote(true);
+                }
+
+                setIsCouncilVote(false);
+                if (realm && realm?.account.config?.councilMint){
+                    setIsCouncilVote(true);
+                    if (realm && realm?.account?.communityMint){
+                        if (Number(item.account.config.minCommunityTokensToCreateProposal) !== 18446744073709551615){
+                            setIsCouncilVote(false);
+                        }
+                    }
+                } else {
+                    if (realm && realm?.account?.communityMint){
+                        setIsCouncilVote(false);
+                    }
                 }
               }
             })
@@ -1201,11 +1260,12 @@ export default function GovernanceCreateProposalView(props: any){
                                                   {/*<ExplorerView address={item.vault.pubkey} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='10px' />*/}
                                                 </>
                                               }
-                                              {item.vault.governance?.account?.accountType && (() => {
+                                              {/*item.vault.governance?.account?.accountType && (() => {
                                                 const accountType = item.vault.governance.account.accountType as string;
                                                 //console.log("accountType: "+accountType);
+                                                //const accountTypeNum = Number(accountType);
                                                 const governanceTypeLabel = GovernanceAccountType[accountType];
-
+                                                
                                                 if (governanceTypeLabel) {
                                                   return (
                                                     <><br/>Governance Type: {governanceTypeLabel}</>
@@ -1216,7 +1276,7 @@ export default function GovernanceCreateProposalView(props: any){
                                                   );
                                                 }
                                               
-                                              })()}
+                                              })()*/}
 
                                               {(() => {
                                                 //const stringValue = item?.vault?.governance?.account?.config?.minCommunityTokensToCreateProposal;
