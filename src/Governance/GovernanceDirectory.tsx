@@ -185,7 +185,7 @@ function GovernanceCardView(props:any) {
                 </Grid>
 
                 <Grid item xs={12} sm={4} container justifyContent="flex-end">
-                    {item.totalProposalsVoting && item.totalProposalsVoting > 0 ?
+                    {/*item.totalProposalsVoting && item.totalProposalsVoting > 0 ?
                         <Tooltip title={
                             <>Voting: {item.totalProposalsVoting} Active Proposal{item.totalProposalsVoting > 1 ? `s`:``}</>}>
                             <IconButton
@@ -198,7 +198,7 @@ function GovernanceCardView(props:any) {
                         </Tooltip>
                     :
                         <></>
-                    }
+                    */}
 
                     {item?.gspl?
                         <Tooltip title={
