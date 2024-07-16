@@ -311,7 +311,7 @@ function RenderGovernanceMembersTable(props:any) {
                                     //rows={mapMemberObject(memberVotingResults)}
                                     rows={memberVotingResults}
                                     columns={memberresultscolumns}
-                                    disableColumnFilter
+                                    //disableColumnFilter
                                     pageSize={25}
                                     rowsPerPageOptions={[]}
                                     sx={{
