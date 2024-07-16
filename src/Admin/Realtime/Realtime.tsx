@@ -695,7 +695,7 @@ function TablePaginationActions(props) {
                                                                         <>
                                                                             <ReactMarkdown 
                                                                                 remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
-                                                                                transformImageUri={transformImageUri}
+                                                                                //transformImageUri={transformImageUri}
                                                                                 children={descriptionMarkdown}
                                                                                 components={{
                                                                                     // Custom component for overriding the image rendering
