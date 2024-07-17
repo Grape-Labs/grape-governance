@@ -27,32 +27,48 @@ import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
 
 export interface DialogTitleProps {
     id: string;
     children?: React.ReactNode;
     onClose: () => void;
+    onSetFullScreen: () => void;
 }
   
 const BootstrapDialogTitle = (props: DialogTitleProps) => {
-    const { children, onClose, ...other } = props;
+    const { children, onClose, onSetFullScreen, ...other } = props;
   
     return (
       <DialogTitle sx={{ m: 0, p: 1, pl:2 }} {...other}>
         {children}
+        {onSetFullScreen ? (
+            <IconButton
+                aria-label="fullscreen"
+                onClick={onSetFullScreen}
+                sx={{
+                    position: 'absolute',
+                    right: 50,
+                    top: 2,
+                    color: (theme) => theme.palette.grey[500],
+                }}
+            >
+                <FullscreenIcon />
+            </IconButton>
+        ) : null}
         {onClose ? (
-          <IconButton
-            aria-label="close"
-            onClick={onClose}
-            sx={{
-              position: 'absolute',
-              right: 2,
-              top: 2,
-              color: (theme) => theme.palette.grey[500],
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
+            <IconButton
+                aria-label="close"
+                onClick={onClose}
+                sx={{
+                    position: 'absolute',
+                    right: 2,
+                    top: 2,
+                    color: (theme) => theme.palette.grey[500],
+                }}
+            >
+                <CloseIcon />
+            </IconButton>
         ) : null}
       </DialogTitle>
     );
@@ -96,6 +112,7 @@ export function GovernanceProposalDialog(props: any){
     const governanceType = props?.governanceType;
     //const [thisitem, setThisItem] = React.useState(props.item);
     const realm = props?.realm;
+    const [fullScreen, setFullScreen] = React.useState(false);
     
     const [open, setOpen] = React.useState(false);
     
@@ -121,6 +138,10 @@ export function GovernanceProposalDialog(props: any){
     const handleClickOpen = () => {
         setOpen(true);
         //getVotingParticipants();
+    };
+
+    const handleSetFullScreen = () => {
+        setFullScreen(!fullScreen);
     };
 
     const handleClose = () => {
@@ -175,6 +196,7 @@ export function GovernanceProposalDialog(props: any){
             <BootstrapDialog 
                 maxWidth={"xl"}
                 fullWidth={true}
+                fullScreen={fullScreen}
                 open={open} onClose={handleClose}
                 PaperProps={{
                     style: {
@@ -185,7 +207,7 @@ export function GovernanceProposalDialog(props: any){
                     }
                     }}
                 >
-                <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog}>
+                <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog} onSetFullScreen={handleSetFullScreen}>
                     Proposal Details
                 </BootstrapDialogTitle>
                 <DialogContent>
