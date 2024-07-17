@@ -10,7 +10,7 @@ import BN from 'bn.js';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { styled, useTheme } from '@mui/material/styles';
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
-import Gist from 'react-gist';
+//import Gist from 'react-gist';
 import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 

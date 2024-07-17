@@ -576,8 +576,8 @@ function TablePaginationActions(props) {
                                 return "![Image X]("+imageUrl+")";
                             });
                             
-                
                             setDescriptionMarkdown(rpd);
+                            
                         } else if (url.hostname === "docs.google.com") {
                             setGoogleDocs(tGist);
                         } else if (url.hostname.includes("gitbook.io")){

@@ -36,10 +36,8 @@ async function fetchGistFile(gistUrl: string) {
   }
   const pieces = gistUrl.match(urlRegex)
 
-  
   if (pieces) {
     const justIdWithoutUser = pieces[4]
-
     if (justIdWithoutUser) {
       const apiUrl = 'https://api.github.com/gists/' + justIdWithoutUser
       const apiResponse = await axios.get(apiUrl, {
@@ -49,14 +47,13 @@ async function fetchGistFile(gistUrl: string) {
         const jsonContent = apiResponse.data
         const nextUrlFileName = Object.keys(jsonContent['files'])[0]
         const nextUrl = jsonContent['files'][nextUrlFileName]['raw_url']
-        if (nextUrl.startsWith('https://gist.githubusercontent.com/') ||
-            nextUrl.startsWith('https://gist.github.com/')) {
+        if (nextUrl.startsWith('https://gist.githubusercontent.com/')) {
           const fileResponse = await axios.get(nextUrl, {
             signal: controller.signal,
           })
           //console.log('fetchGistFile file', gistUrl, fileResponse)
           return fileResponse.data
-        } 
+        }
         return undefined
       } else {
         console.warn('could not fetchGistFile', {

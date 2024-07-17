@@ -50,6 +50,7 @@ import { InstructionMapping } from "../utils/grapeTools/InstructionMapping";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
+import parse, { domToReact } from 'html-react-parser';
 
 import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import GovernancePower from './GovernancePower';
@@ -2230,9 +2231,11 @@ export function GovernanceProposalV2View(props: any){
                                                 >
                                                     <Typography variant='body2'>
                                                         <ReactMarkdown 
+                                                            //remarkPlugins={[remarkGfm]}
                                                             remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
                                                             transformImageUri={transformImageUri}
                                                             children={proposalDescription}
+                                                            /*
                                                             components={{
                                                                 // Custom component for overriding the image rendering
                                                                 img: ({ node, ...props }) => (
@@ -2241,7 +2244,7 @@ export function GovernanceProposalV2View(props: any){
                                                                     style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
                                                                 />
                                                                 ),
-                                                            }}
+                                                            }}*/
                                                         />
                                                     </Typography>
                                                 </div>
