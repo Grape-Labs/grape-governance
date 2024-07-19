@@ -28,16 +28,18 @@ import FitScreenIcon from '@mui/icons-material/FitScreen';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 
 export interface DialogTitleProps {
     id: string;
     children?: React.ReactNode;
     onClose: () => void;
     onSetFullScreen: () => void;
+    fullScreen: boolean;
 }
   
 const BootstrapDialogTitle = (props: DialogTitleProps) => {
-    const { children, onClose, onSetFullScreen, ...other } = props;
+    const { children, onClose, onSetFullScreen, fullScreen, ...other } = props;
   
     return (
       <DialogTitle sx={{ m: 0, p: 1, pl:2 }} {...other}>
@@ -53,7 +55,11 @@ const BootstrapDialogTitle = (props: DialogTitleProps) => {
                     color: (theme) => theme.palette.grey[500],
                 }}
             >
-                <FullscreenIcon />
+                {fullScreen ? 
+                    <FullscreenExitIcon />
+                :
+                    <FullscreenIcon />
+                }
             </IconButton>
         ) : null}
         {onClose ? (
@@ -207,7 +213,7 @@ export function GovernanceProposalDialog(props: any){
                     }
                     }}
                 >
-                <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog} onSetFullScreen={handleSetFullScreen}>
+                <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog} onSetFullScreen={handleSetFullScreen} fullScreen={fullScreen}>
                     Proposal Details
                 </BootstrapDialogTitle>
                 <DialogContent>
