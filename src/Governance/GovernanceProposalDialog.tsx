@@ -16,7 +16,6 @@ import {
   DialogContent,
 } from '@mui/material/';
 
-
 import { useSnackbar } from 'notistack';
  
 import { GovernanceProposalV2View } from './GovernanceProposalV2';
