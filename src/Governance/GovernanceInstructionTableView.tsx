@@ -198,6 +198,7 @@ export function InstructionTableView(props: any) {
         { field: 'data', headerName: 'Data', hide: true},
         { field: 'description', headerName: 'Description', minWidth: 500, resizable:true, hide: false},
         { field: 'program', headerName: 'Program', minWidth: 120, resizable:true, hide: false},
+        { field: 'edit', headerName: 'Edit', hide: false},
     ]
 
     function findOwnerRecord(destinationAta:any){
@@ -227,6 +228,7 @@ export function InstructionTableView(props: any) {
                             data:item.account.instructions[0].data,
                             description:"DA "+item?.account?.instructions[0].info.description,
                             program: new PublicKey(item?.account?.instructions[0].programId).toBase58(),
+                            edit:'',
                         })
                 ));
             }
@@ -265,6 +267,7 @@ export function InstructionTableView(props: any) {
                         data:item.account.instructions[0].data,
                         description:description,
                         program: new PublicKey(item?.account?.instructions[0].programId).toBase58(),
+                        edit:'',
                     })
                 })
             }
