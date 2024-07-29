@@ -105,6 +105,7 @@ import { IntegratedGovernanceProposalDialogView } from './IntegratedGovernancePr
 import { getAllProposalSignatoryRecords, getAllProposalSignatories, ManageGovernanceProposal } from './ManageGovernanceProposal';
 import { VoteForProposal } from './GovernanceVote';
 import { InstructionView } from './GovernanceInstructionView';
+import { InstructionTableView } from './GovernanceInstructionTableView';
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
@@ -580,6 +581,21 @@ export function GovernanceProposalV2View(props: any){
         (BigInt(buffer[7]) << BigInt(56));
     }
 
+    const fetchOwnerRecord = (recordpk:any) => {
+        var index = 0;
+        if (instructionOwnerRecordATA){
+            for (var item of instructionOwnerRecordATA){
+                if (new PublicKey(item).toBase58() === new PublicKey(recordpk).toBase58()){
+                    if (instructionOwnerRecord[index]?.data?.parsed?.info){
+                        return instructionOwnerRecord[index].data.parsed.info;
+                        //setOwnerRecord(instructionOwnerRecord[index].data.parsed.info);
+                    }
+                }
+                index++;
+            }
+        }
+    }
+
     const getVotingParticipants = async () => {
         setLoadingParticipants(true);
 
@@ -774,7 +790,7 @@ export function GovernanceProposalV2View(props: any){
                 if (!thisitem?.instructions || thisitem.account.state === 0){
                 
                     //if (!thisitem?.instructions){
-                        //instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                        instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
                         
                         instructions = await getGovernanceAccounts(
                             connection,
@@ -816,7 +832,7 @@ export function GovernanceProposalV2View(props: any){
                         }
                         
                         let mintResults = null;
-                        if (mintArr && mintArr.length > 0){
+                        if (mintArr && mintArr?.length > 0){
                             const results = await RPC_CONNECTION.getMultipleParsedAccounts(mintArr);
                             mintResults = results.value;
                             //console.log("mintArrResults: "+JSON.stringify(mintResults));
@@ -852,7 +868,7 @@ export function GovernanceProposalV2View(props: any){
                                         
                                         //console.log("typeOfInstruction "+JSON.stringify(typeOfInstruction))
                                         
-                                        if (instructionInfo?.name === "Token Transfer"){
+                                        if (programId === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"){//(instructionInfo?.name === "Token Transfer"){
 
                                             // check if we have this in gai
                                             let gai = null;
@@ -905,8 +921,8 @@ export function GovernanceProposalV2View(props: any){
                                                         amount: amount,
                                                         data: accountInstruction.data,
                                                         destinationAta:accountInstruction.accounts[1].pubkey,
+                                                        description:amount+' to '+tokenMap.get(gai?.data.parsed.info.mint)?.symbol+' '+accountInstruction.accounts[1].pubkey,
                                                     };
-
                                                     
                                                     //console.log("newObject "+JSON.stringify(newObject))
                                                     accountInstruction.info = newObject;
@@ -919,6 +935,7 @@ export function GovernanceProposalV2View(props: any){
                                                 
                                                 if (!hasInstruction){
                                                     //console.log("newObject: "+JSON.stringify(newObject))
+
                                                     setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
                                                 }
                                                 
@@ -1094,18 +1111,11 @@ export function GovernanceProposalV2View(props: any){
                             cnt++;
                         }
 
-                        /*
-                        if (ataArray && ataArray.length <= 100 ){ // to fix add support for over 100 records for gma
-
-                            const owners = await connection.getMultipleParsedAccounts(ataArray);
-                            setInstructionOwnerRecord(owners.value);
-                            setInstructionOwnerRecordATA(ataArray);
-                        }*/
 
                         const chunks = [];
                         let chunk = [];
 
-                        for (let i = 0; i < ataArray.length; i++) {
+                        for (let i = 0; i < ataArray?.length; i++) {
                             chunk.push(ataArray[i]);
 
                             if (chunk.length === 100) {
@@ -1122,6 +1132,19 @@ export function GovernanceProposalV2View(props: any){
                         }
                         setInstructionOwnerRecord(chunks);
                         setInstructionOwnerRecordATA(ataArray);
+
+                        // replace newObject if .destinationAta is set
+
+
+                        
+
+                        /*
+                        if (ataArray && ataArray.length <= 100 ){ // to fix add support for over 100 records for gma
+
+                            const owners = await connection.getMultipleParsedAccounts(ataArray);
+                            setInstructionOwnerRecord(owners.value);
+                            setInstructionOwnerRecordATA(ataArray);
+                        }*/
 
                         /* IMPORTANT Move to this for better efficiency
                         const chunkSize = 100;
@@ -2230,22 +2253,15 @@ export function GovernanceProposalV2View(props: any){
                                                     }} 
                                                 >
                                                     <Typography variant='body2'>
+                                                        {/*
                                                         <ReactMarkdown 
                                                             //remarkPlugins={[remarkGfm]}
                                                             remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
+                                                            //urlTransform={transformImageUri}
                                                             transformImageUri={transformImageUri}
                                                             children={proposalDescription}
-                                                            /*
-                                                            components={{
-                                                                // Custom component for overriding the image rendering
-                                                                img: ({ node, ...props }) => (
-                                                                <img
-                                                                    {...props}
-                                                                    style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
-                                                                />
-                                                                ),
-                                                            }}*/
                                                         />
+                                                        */}
                                                     </Typography>
                                                 </div>
                                                 <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
@@ -2953,6 +2969,26 @@ export function GovernanceProposalV2View(props: any){
                                             }
                                         </Box>
                                         
+                                        <InstructionTableView   
+                                            proposalInstructions={proposalInstructions}
+                                            proposal={thisitem} 
+                                            governingTokenMint={thisitem.account.governingTokenMint} 
+                                            setReload={setReload} 
+                                            realm={realm} 
+                                            proposalAuthor={proposalAuthor} 
+                                            state={thisitem.account.state} 
+                                            cachedTokenMeta={cachedTokenMeta} 
+                                            setInstructionTransferDetails={setInstructionTransferDetails} 
+                                            instructionTransferDetails={instructionTransferDetails} 
+                                            memberMap={memberMap} 
+                                            tokenMap={tokenMap} 
+                                            //instruction={item} 
+                                            //index={index} 
+                                            instructionOwnerRecord={instructionOwnerRecord} 
+                                            instructionOwnerRecordATA={instructionOwnerRecordATA}
+                                        />
+
+
                                         <Timeline>
                                             {proposalInstructions[0].account.instructions.length > 1 ?
                                             <>
