@@ -921,7 +921,7 @@ export function GovernanceProposalV2View(props: any){
                                                         amount: amount,
                                                         data: accountInstruction.data,
                                                         destinationAta:accountInstruction.accounts[1].pubkey,
-                                                        description:amount+' to '+tokenMap.get(gai?.data.parsed.info.mint)?.symbol+' '+accountInstruction.accounts[1].pubkey,
+                                                        description:amount+' '+tokenMap.get(gai?.data.parsed.info.mint)?.symbol+' to '+accountInstruction.accounts[1].pubkey,
                                                     };
                                                     
                                                     //console.log("newObject "+JSON.stringify(newObject))
