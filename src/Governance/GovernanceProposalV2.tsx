@@ -105,6 +105,7 @@ import { IntegratedGovernanceProposalDialogView } from './IntegratedGovernancePr
 import { getAllProposalSignatoryRecords, getAllProposalSignatories, ManageGovernanceProposal } from './ManageGovernanceProposal';
 import { VoteForProposal } from './GovernanceVote';
 import { InstructionView } from './GovernanceInstructionView';
+import { InstructionTableView } from './GovernanceInstructionTableView';
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
@@ -580,6 +581,21 @@ export function GovernanceProposalV2View(props: any){
         (BigInt(buffer[7]) << BigInt(56));
     }
 
+    const fetchOwnerRecord = (recordpk:any) => {
+        var index = 0;
+        if (instructionOwnerRecordATA){
+            for (var item of instructionOwnerRecordATA){
+                if (new PublicKey(item).toBase58() === new PublicKey(recordpk).toBase58()){
+                    if (instructionOwnerRecord[index]?.data?.parsed?.info){
+                        return instructionOwnerRecord[index].data.parsed.info;
+                        //setOwnerRecord(instructionOwnerRecord[index].data.parsed.info);
+                    }
+                }
+                index++;
+            }
+        }
+    }
+
     const getVotingParticipants = async () => {
         setLoadingParticipants(true);
 
@@ -774,7 +790,7 @@ export function GovernanceProposalV2View(props: any){
                 if (!thisitem?.instructions || thisitem.account.state === 0){
                 
                     //if (!thisitem?.instructions){
-                        //instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                        instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
                         
                         instructions = await getGovernanceAccounts(
                             connection,
@@ -816,7 +832,7 @@ export function GovernanceProposalV2View(props: any){
                         }
                         
                         let mintResults = null;
-                        if (mintArr && mintArr.length > 0){
+                        if (mintArr && mintArr?.length > 0){
                             const results = await RPC_CONNECTION.getMultipleParsedAccounts(mintArr);
                             mintResults = results.value;
                             //console.log("mintArrResults: "+JSON.stringify(mintResults));
@@ -852,7 +868,7 @@ export function GovernanceProposalV2View(props: any){
                                         
                                         //console.log("typeOfInstruction "+JSON.stringify(typeOfInstruction))
                                         
-                                        if (instructionInfo?.name === "Token Transfer"){
+                                        if (programId === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"){//(instructionInfo?.name === "Token Transfer"){
 
                                             // check if we have this in gai
                                             let gai = null;
@@ -905,8 +921,8 @@ export function GovernanceProposalV2View(props: any){
                                                         amount: amount,
                                                         data: accountInstruction.data,
                                                         destinationAta:accountInstruction.accounts[1].pubkey,
+                                                        description:amount+' '+tokenMap.get(gai?.data.parsed.info.mint)?.symbol+' to '+accountInstruction.accounts[1].pubkey,
                                                     };
-
                                                     
                                                     //console.log("newObject "+JSON.stringify(newObject))
                                                     accountInstruction.info = newObject;
@@ -919,6 +935,7 @@ export function GovernanceProposalV2View(props: any){
                                                 
                                                 if (!hasInstruction){
                                                     //console.log("newObject: "+JSON.stringify(newObject))
+
                                                     setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
                                                 }
                                                 
@@ -991,8 +1008,6 @@ export function GovernanceProposalV2View(props: any){
                                                             u64Number = Number(u64BigInt);
                                                             var u64BigInt2 = BigInt(decodedIx.data.inAmountPerCycle);
                                                             var u64Number2 = Number(u64BigInt2);
-                                                            
-
                                                             description += " - Cycles: "+Math.floor(u64Number/u64Number2)+"";
                                                         }
                                                         if (decodedIx.data?.minPrice){
@@ -1037,21 +1052,54 @@ export function GovernanceProposalV2View(props: any){
                                                 let description = "SPL Governance Interaction";
                                                 let decodedIx = null;
                                                 try {
-                                                    //const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
-                                                    const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
-                                                    const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
-                                                    const instruction = accountInstruction;
 
-                                                    //console.log("instruction.data: "+JSON.stringify(instruction.data))
-                                                    const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
-                                                    //console.log("hexString: "+hexString);
-                                                    decodedIx = borshCoder.instruction.decode(hexString, 'hex');
+                                                    const amountBN = new BN(accountInstruction?.data?.slice(1), 'le');
+                                                    console.log("amount BN: "+amountBN);
 
-                                                    //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
-                                                    console.log("decodedIx: "+JSON.stringify(decodedIx));
-                                                    if (!decodedIx){
-                                                        const buffer = Buffer.from(accountInstruction.data);
-                                                        description = buffer.toString("utf-8");
+                                                    if (Number(amountBN) > 0){
+
+                                                        let gai = null;
+                                                        if (mintResults && mintResults.length > 0){
+                                                            gai = mintResults[cnt];
+                                                        } 
+
+                                                        if (!gai)
+                                                            gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                                        
+                                                        console.log("GAI: "+JSON.stringify(gai));
+                                                        const decimals = gai?.data?.parsed?.info?.tokenAmount?.decimals || 0;
+                                                        const divisor = new BN(10).pow(new BN(decimals));
+
+                                                        const amount = amountBN.div(divisor).toString(); 
+
+                                                        if (accountInstruction.accounts.length > 3){
+                                                            description = "Grant "+amount+" to "+accountInstruction?.accounts[3].pubkey.toBase58();
+                                                        } else{
+                                                            description = "Amount "+amount;
+                                                        }
+                                                    } else {
+
+                                                        //const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
+                                                        const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
+                                                        const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
+                                                        //const borshCoder = new BorshCoder(JSON.parse(jsonData));
+
+                                                        console.log("borshCoder: "+JSON.stringify(borshCoder));
+                                                        
+                                                        const instruction = instructionItem.account.instructions[0];
+
+                                                        console.log("Ix: "+JSON.stringify(instruction));
+                                                        //const instruction = accountInstruction;
+                                                        const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
+                                                        console.log("hexString: "+JSON.stringify(hexString));
+                                                        decodedIx = borshCoder.instruction.decode(hexString, 'hex');
+                                                        
+                                                        //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
+                                                        console.log("decodedIx: "+JSON.stringify(decodedIx));
+                                                        if (!decodedIx){
+                                                            const buffer = Buffer.from(accountInstruction.data);
+                                                            description = buffer.toString("utf-8");
+                                                        }
                                                     }
                                                 } catch (error) {
                                                     console.log('ERR: ', error);
@@ -1094,18 +1142,11 @@ export function GovernanceProposalV2View(props: any){
                             cnt++;
                         }
 
-                        /*
-                        if (ataArray && ataArray.length <= 100 ){ // to fix add support for over 100 records for gma
-
-                            const owners = await connection.getMultipleParsedAccounts(ataArray);
-                            setInstructionOwnerRecord(owners.value);
-                            setInstructionOwnerRecordATA(ataArray);
-                        }*/
 
                         const chunks = [];
                         let chunk = [];
 
-                        for (let i = 0; i < ataArray.length; i++) {
+                        for (let i = 0; i < ataArray?.length; i++) {
                             chunk.push(ataArray[i]);
 
                             if (chunk.length === 100) {
@@ -1122,6 +1163,19 @@ export function GovernanceProposalV2View(props: any){
                         }
                         setInstructionOwnerRecord(chunks);
                         setInstructionOwnerRecordATA(ataArray);
+
+                        // replace newObject if .destinationAta is set
+
+
+                        
+
+                        /*
+                        if (ataArray && ataArray.length <= 100 ){ // to fix add support for over 100 records for gma
+
+                            const owners = await connection.getMultipleParsedAccounts(ataArray);
+                            setInstructionOwnerRecord(owners.value);
+                            setInstructionOwnerRecordATA(ataArray);
+                        }*/
 
                         /* IMPORTANT Move to this for better efficiency
                         const chunkSize = 100;
@@ -2230,22 +2284,15 @@ export function GovernanceProposalV2View(props: any){
                                                     }} 
                                                 >
                                                     <Typography variant='body2'>
+                                                        
                                                         <ReactMarkdown 
                                                             //remarkPlugins={[remarkGfm]}
                                                             remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
+                                                            //urlTransform={transformImageUri}
                                                             transformImageUri={transformImageUri}
                                                             children={proposalDescription}
-                                                            /*
-                                                            components={{
-                                                                // Custom component for overriding the image rendering
-                                                                img: ({ node, ...props }) => (
-                                                                <img
-                                                                    {...props}
-                                                                    style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
-                                                                />
-                                                                ),
-                                                            }}*/
                                                         />
+                                                        
                                                     </Typography>
                                                 </div>
                                                 <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
@@ -2952,7 +2999,28 @@ export function GovernanceProposalV2View(props: any){
                                                 </Box>
                                             }
                                         </Box>
-                                        
+                                        {/*
+                                        <InstructionTableView   
+                                            proposalInstructions={proposalInstructions}
+                                            proposal={thisitem} 
+                                            governingTokenMint={thisitem.account.governingTokenMint} 
+                                            setReload={setReload} 
+                                            realm={realm} 
+                                            proposalAuthor={proposalAuthor} 
+                                            state={thisitem.account.state} 
+                                            cachedTokenMeta={cachedTokenMeta} 
+                                            setInstructionTransferDetails={setInstructionTransferDetails} 
+                                            instructionTransferDetails={instructionTransferDetails} 
+                                            memberMap={memberMap} 
+                                            tokenMap={tokenMap} 
+                                            //instruction={item} 
+                                            //index={index} 
+                                            instructionOwnerRecord={instructionOwnerRecord} 
+                                            instructionOwnerRecordATA={instructionOwnerRecordATA}
+                                        />
+                                        */}
+
+
                                         <Timeline>
                                             {proposalInstructions[0].account.instructions.length > 1 ?
                                             <>

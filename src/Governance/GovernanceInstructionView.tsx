@@ -492,7 +492,6 @@ export function InstructionView(props: any) {
 
         }
 
-
         const InstructionTransferRecord = (props:any) => {
             //const pubkey = props.pubkey;
             const [instructionRecord, setInstructionRecord] = React.useState(null);
@@ -628,14 +627,16 @@ export function InstructionView(props: any) {
             const inspectUrl = await getExplorerInspectorUrl(RPC_CONNECTION, instructionTx)
             window.open(inspectUrl, '_blank')   
         }
-        
+
         React.useEffect(() => { 
             
         }, []);
 
         if (!iVLoading){
             return(
-                <>{index > 0 && <Divider />}
+                <>
+                
+                {index > 0 && <Divider />}
                     
                     <TimelineItem>
                         
