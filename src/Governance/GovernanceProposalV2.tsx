@@ -1008,8 +1008,6 @@ export function GovernanceProposalV2View(props: any){
                                                             u64Number = Number(u64BigInt);
                                                             var u64BigInt2 = BigInt(decodedIx.data.inAmountPerCycle);
                                                             var u64Number2 = Number(u64BigInt2);
-                                                            
-
                                                             description += " - Cycles: "+Math.floor(u64Number/u64Number2)+"";
                                                         }
                                                         if (decodedIx.data?.minPrice){
@@ -1054,21 +1052,54 @@ export function GovernanceProposalV2View(props: any){
                                                 let description = "SPL Governance Interaction";
                                                 let decodedIx = null;
                                                 try {
-                                                    //const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
-                                                    const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
-                                                    const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
-                                                    const instruction = accountInstruction;
 
-                                                    //console.log("instruction.data: "+JSON.stringify(instruction.data))
-                                                    const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
-                                                    //console.log("hexString: "+hexString);
-                                                    decodedIx = borshCoder.instruction.decode(hexString, 'hex');
+                                                    const amountBN = new BN(accountInstruction?.data?.slice(1), 'le');
+                                                    console.log("amount BN: "+amountBN);
 
-                                                    //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
-                                                    console.log("decodedIx: "+JSON.stringify(decodedIx));
-                                                    if (!decodedIx){
-                                                        const buffer = Buffer.from(accountInstruction.data);
-                                                        description = buffer.toString("utf-8");
+                                                    if (Number(amountBN) > 0){
+
+                                                        let gai = null;
+                                                        if (mintResults && mintResults.length > 0){
+                                                            gai = mintResults[cnt];
+                                                        } 
+
+                                                        if (!gai)
+                                                            gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                                        
+                                                        console.log("GAI: "+JSON.stringify(gai));
+                                                        const decimals = gai?.data?.parsed?.info?.tokenAmount?.decimals || 0;
+                                                        const divisor = new BN(10).pow(new BN(decimals));
+
+                                                        const amount = amountBN.div(divisor).toString(); 
+
+                                                        if (accountInstruction.accounts.length > 3){
+                                                            description = "Grant "+amount+" to "+accountInstruction?.accounts[3].pubkey.toBase58();
+                                                        } else{
+                                                            description = "Amount "+amount;
+                                                        }
+                                                    } else {
+
+                                                        //const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
+                                                        const jsonData = await require('./plugins/idl/GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw.json');
+                                                        const borshCoder = new BorshCoder(JSON.parse(JSON.stringify(jsonData)));
+                                                        //const borshCoder = new BorshCoder(JSON.parse(jsonData));
+
+                                                        console.log("borshCoder: "+JSON.stringify(borshCoder));
+                                                        
+                                                        const instruction = instructionItem.account.instructions[0];
+
+                                                        console.log("Ix: "+JSON.stringify(instruction));
+                                                        //const instruction = accountInstruction;
+                                                        const hexString = instruction.data.map(byte => byte.toString(16).padStart(2, '0')).join('');
+                                                        console.log("hexString: "+JSON.stringify(hexString));
+                                                        decodedIx = borshCoder.instruction.decode(hexString, 'hex');
+                                                        
+                                                        //const decodedIx = borshCoder.instruction.decode(instruction.data, 'base58')
+                                                        console.log("decodedIx: "+JSON.stringify(decodedIx));
+                                                        if (!decodedIx){
+                                                            const buffer = Buffer.from(accountInstruction.data);
+                                                            description = buffer.toString("utf-8");
+                                                        }
                                                     }
                                                 } catch (error) {
                                                     console.log('ERR: ', error);
@@ -2968,7 +2999,7 @@ export function GovernanceProposalV2View(props: any){
                                                 </Box>
                                             }
                                         </Box>
-                                        
+                                        {/*
                                         <InstructionTableView   
                                             proposalInstructions={proposalInstructions}
                                             proposal={thisitem} 
@@ -2987,6 +3018,7 @@ export function GovernanceProposalV2View(props: any){
                                             instructionOwnerRecord={instructionOwnerRecord} 
                                             instructionOwnerRecordATA={instructionOwnerRecordATA}
                                         />
+                                        */}
 
 
                                         <Timeline>

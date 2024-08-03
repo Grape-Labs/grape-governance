@@ -192,7 +192,7 @@ export function InstructionTableView(props: any) {
         { field: 'id', headerName: 'ID', hide: true},
         { field: 'index', headerName: 'Index', hide: false},
         { field: 'ix', headerName: 'IX', minWidth: 120, hide: false},
-        { field: 'status', headerName: 'Status', hide: false},
+        { field: 'status', headerName: 'Status', minWidth: 75, hide: false},
         { field: 'accounts', headerName: 'Accounts', minWidth: 70, hide: true},
         { field: 'signers', headerName: 'Signers', minWidth: 70, hide: true},
         { field: 'data', headerName: 'Data', hide: true},
