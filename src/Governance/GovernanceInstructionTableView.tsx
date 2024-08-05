@@ -214,7 +214,7 @@ export function InstructionTableView(props: any) {
         console.log("proposalIx: "+JSON.stringify(proposalIx));
         if (proposalIx[0].account.instructions.length > 1){
             if (proposalIx[0].account.instructions){
-                proposalIx[0].account.instructions.sort((a, b) => a.account.instructionIndex - b.account.instructionIndex);
+                proposalIx[0].account.instructions.sort((a, b) => b.account.instructionIndex - a.account.instructionIndex);
 
                 (proposalIx[0].account.instructions).map((item: any, index:number) => (
                     //for (const member of members){
@@ -237,7 +237,7 @@ export function InstructionTableView(props: any) {
 
                 // Extract signers
                 
-                proposalIx.sort((a: any, b: any) => a.account.instructionIndex - b.account.instructionIndex);
+                proposalIx.sort((a: any, b: any) => b.account.instructionIndex - a.account.instructionIndex);
             
                 (proposalIx).map((item: any, index:number) => {
                     
