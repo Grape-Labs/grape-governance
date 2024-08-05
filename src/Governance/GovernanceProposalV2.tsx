@@ -791,14 +791,14 @@ export function GovernanceProposalV2View(props: any){
                 
                     //if (!thisitem?.instructions){
                         instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
-                        
+                        /*
                         instructions = await getGovernanceAccounts(
                             connection,
                             new PublicKey(thisitem.owner || realm.owner),
                             ProposalTransaction,
                             [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
                         );
-                    
+                        */
                         thisitem.instructions = instructions;
                     //}
                 } else {
@@ -807,13 +807,14 @@ export function GovernanceProposalV2View(props: any){
                         thisitem.instructions = instructions;
                     }
                 }
-                
-                //console.log("ix: "+JSON.stringify(thisitem.instructions))
-                
+
                 if (thisitem?.instructions){
                     let useInstructions = thisitem.instructions;
-                    useInstructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
+                    //console.log("ix index: "+JSON.stringify(useInstructions));
+                    useInstructions = useInstructions.sort((a:any, b:any) => b?.account.instructionIndex < a?.account.instructionIndex ? 1 : -1); 
                     
+                    //useInstructions = useInstructions.reverse();
+
                     setProposalInstructions(useInstructions);
                     
                     var ataArray = new Array();
@@ -1161,6 +1162,7 @@ export function GovernanceProposalV2View(props: any){
                             const owners = await connection.getMultipleParsedAccounts(chunk);
                             chunks.push(...owners.value);
                         }
+
                         setInstructionOwnerRecord(chunks);
                         setInstructionOwnerRecordATA(ataArray);
 
@@ -3026,6 +3028,7 @@ export function GovernanceProposalV2View(props: any){
                                             <>
                                                 {proposalInstructions[0].account.instructions && (proposalInstructions[0].account.instructions).map((item: any, index:number) => (
                                                     <>
+                                                    
                                                         <InstructionView proposal={thisitem} governingTokenMint={thisitem.account.governingTokenMint} setReload={setReload} realm={realm} proposalAuthor={proposalAuthor} state={thisitem.account.state} cachedTokenMeta={cachedTokenMeta} setInstructionTransferDetails={setInstructionTransferDetails} instructionTransferDetails={instructionTransferDetails} memberMap={memberMap} tokenMap={tokenMap} instruction={item} index={index} instructionOwnerRecord={instructionOwnerRecord} instructionOwnerRecordATA={instructionOwnerRecordATA} />
                                                     </>
                                                 ))}

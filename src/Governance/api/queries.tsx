@@ -148,7 +148,7 @@ const client = new ApolloClient({
 function GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk?:string, realmOwner?:string){
 
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
- 
+    
     return gql`
         query MyQuery {
             ${programId}_ProposalTransactio(
@@ -161,7 +161,7 @@ function GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk?:string, realmOwner?:string)
                 lamports
                 optionIndex
                 proposal
-                transactionIndex
+                instructionIndex
                 pubkey
             }
         }
@@ -640,6 +640,7 @@ export const getProposalInstructionsIndexed = async (filterRealm?:any, proposalP
                             proposal: new PublicKey(proposalPk),
                             executedAt: item.executedAt,
                             executionStatus: item.executionStatus,
+                            instructionIndex: item?.instructionIndex,
                             holdUpTime: item.holdUpTime,
                             instructions: item.instructions.map((ixn) => {
                                 return {

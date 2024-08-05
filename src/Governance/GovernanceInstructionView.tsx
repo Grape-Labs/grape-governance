@@ -662,8 +662,6 @@ export function InstructionView(props: any) {
                                 }
                             </Typography>
                             
-
-                            
                         </TimelineOppositeContent>
                     
                         <TimelineSeparator>
