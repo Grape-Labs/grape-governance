@@ -2834,6 +2834,7 @@ export function GovernanceProposalV2View(props: any){
                                                                         governanceRulesWallet={thisitem.account.governance}
                                                                         governingTokenMint={thisitem.account.governingTokenMint}
                                                                         proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                        proposalInstructions={proposalInstructions}
                                                                         payerWallet={publicKey}
                                                                         governanceLookup={governanceLookup}
                                                                         editProposalAddress={thisitem.pubkey}
