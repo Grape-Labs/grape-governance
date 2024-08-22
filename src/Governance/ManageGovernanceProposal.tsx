@@ -173,6 +173,7 @@ export function ManageGovernanceProposal(props: any){
     const governanceRulesWallet = props.governanceRulesWallet;
     const editProposalAddress = props.editProposalAddress;
     const governingTokenMint = props.governingTokenMint;
+    const proposalInstructions = props?.proposalInstructions;
     const tokenMap = props.tokenMap;
     const memberMap = props.memberMap;
     const governanceAddress = props.governanceAddress;
@@ -460,129 +461,143 @@ export function ManageGovernanceProposal(props: any){
 
         console.log("proposal: "+JSON.stringify(proposal));
         
-        const programId = new PublicKey(realm.owner);
-        
-        const proposalAddress = new PublicKey(editProposalAddress);
-        const realmPk = new PublicKey(governanceAddress);
-        const programVersion = await getGovernanceProgramVersion(
-            RPC_CONNECTION,
-            programId,
-        );
-        
-        /*
-        let tokenOwnerRecordPk = null;
-        for (let member of memberMap){
-            if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
-                new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
-                tokenOwnerRecordPk = new PublicKey(member.pubkey);
+        // check if proposal has any active instructions
+        // if active instructions prompt for the user to remove those prior to cancellation to claim back rent
+        let proceed = true;
+        if (proposalInstructions && proposalInstructions.length > 0){
+            console.log("prop ix: "+JSON.stringify(proposalInstructions));
+            if (proposalInstructions[0].account.instructions.length > 0){
+                const userConfirmed = window.confirm("This proposal has "+proposalInstructions[0].account.instructions.length+" instruction(s), did you know that you can claim back this rent?\n\n\nPress OK if you would like cancel this proposal without removing the instruction(s)\n\nPress Cancel to close this dialog, then expand the instructions and proceed to cancel each instructions to claim back rent, then proceed to cancel this proposal");
+                if (!userConfirmed)
+                    proceed = false;
+            }
         }
 
-        
-        let newTokenOwnerRecordPk = null;
-        for (let member of memberMap){
-            if (new PublicKey(member.account.governingTokenOwner).toBase58() === new PublicKey(signer).toBase58() &&
-                new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
-                newTokenOwnerRecordPk = new PublicKey(member.pubkey);
-        }*/
+        if (proceed){
+            const programId = new PublicKey(realm.owner);
+            
+            const proposalAddress = new PublicKey(editProposalAddress);
+            const realmPk = new PublicKey(governanceAddress);
+            const programVersion = await getGovernanceProgramVersion(
+                RPC_CONNECTION,
+                programId,
+            );
+            
+            /*
+            let tokenOwnerRecordPk = null;
+            for (let member of memberMap){
+                if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
+                    new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
+                    tokenOwnerRecordPk = new PublicKey(member.pubkey);
+            }
 
-        console.log("new signatory address: "+signer)
+            
+            let newTokenOwnerRecordPk = null;
+            for (let member of memberMap){
+                if (new PublicKey(member.account.governingTokenOwner).toBase58() === new PublicKey(signer).toBase58() &&
+                    new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
+                    newTokenOwnerRecordPk = new PublicKey(member.pubkey);
+            }*/
 
-        
-        const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
-            programId,
-            realmPk,
-            governingTokenMint,
-            publicKey,
-        );
-        
-        
-        //const filter = pubkeyFilter(1, proposalAddress)
-        
-        const signatories = await getAllProposalSignatories(programId, proposalAddress);
-        console.log("All Signatories "+JSON.stringify(signatories));
-        
-        const signatory = publicKey;
-        
-        const signatoryRecordAddress = await getSignatoryRecordAddress(
-            programId,
-            proposalAddress,
-            signatory
-        )
+            console.log("new signatory address: "+signer)
 
-        const beneficiary = publicKey;
-        const governanceAuthority = publicKey;
-        const payer = publicKey;
-
-        console.log("proposalAddress: "+proposalAddress.toBase58());
-        console.log("programId: "+programId.toBase58());
-        console.log("realmPk: "+realmPk.toBase58());
-        console.log("governingTokenMint: "+governingTokenMint.toBase58());
-        console.log("payer: "+payer.toBase58());
-        console.log("tokenOwnerRecordPk: "+tokenOwnerRecordPk.toBase58())
-        console.log("programVersion: "+programVersion)
-        console.log("governanceAuthority: "+governanceAuthority.toBase58())
-        //console.log("newTokenOwnerRecordPk: "+newTokenOwnerRecordPk.toBase58())
-        //console.log("new signer: "+signer)
-        console.log("signatoryTokenOwnerRecordPk: "+signatoryRecordAddress.toBase58())
-        
-        let instructions: TransactionInstruction[] = [];
-        await withCancelProposal(
-            instructions,
-            programId,
-            programVersion,
-            realmPk,
-            new PublicKey(governanceRulesWallet),
-            proposalAddress,
-            tokenOwnerRecordPk,
-            governanceAuthority
-        );
-        
-        let refundAddress = null;
-        const possibleTorDeposit = getProposalDepositPk(
-            proposalAddress,
-            tokenOwnerRecordPk,
-            programId
-        );
-
-        const torDeposit = await RPC_CONNECTION.getBalance(possibleTorDeposit)
-        
-        
-        //if (delegateDeposit && delegateDeposit > 0 && possibleDelegateDeposit) {
-        //    refundAddress = proposalOwner.account.governanceDelegate;
-        //} else if (torDeposit && torDeposit > 0) {
-        //    refundAddress = tokenOwnerRecordPk;
-        //}
-        if (torDeposit && torDeposit > 0)
-            refundAddress = tokenOwnerRecordPk
-        
-        //let refInstructions: TransactionInstruction[] = [];
-        
-        if (refundAddress){
-            await withRefundProposalDeposit(
-                instructions,
-                programId!,
-                programVersion,
+            
+            const tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+                programId,
+                realmPk,
+                governingTokenMint,
+                publicKey,
+            );
+            
+            
+            //const filter = pubkeyFilter(1, proposalAddress)
+            
+            const signatories = await getAllProposalSignatories(programId, proposalAddress);
+            console.log("All Signatories "+JSON.stringify(signatories));
+            
+            const signatory = publicKey;
+            
+            const signatoryRecordAddress = await getSignatoryRecordAddress(
+                programId,
                 proposalAddress,
+                signatory
+            )
+
+            const beneficiary = publicKey;
+            const governanceAuthority = publicKey;
+            const payer = publicKey;
+
+            console.log("proposalAddress: "+proposalAddress.toBase58());
+            console.log("programId: "+programId.toBase58());
+            console.log("realmPk: "+realmPk.toBase58());
+            console.log("governingTokenMint: "+governingTokenMint.toBase58());
+            console.log("payer: "+payer.toBase58());
+            console.log("tokenOwnerRecordPk: "+tokenOwnerRecordPk.toBase58())
+            console.log("programVersion: "+programVersion)
+            console.log("governanceAuthority: "+governanceAuthority.toBase58())
+            //console.log("newTokenOwnerRecordPk: "+newTokenOwnerRecordPk.toBase58())
+            //console.log("new signer: "+signer)
+            console.log("signatoryTokenOwnerRecordPk: "+signatoryRecordAddress.toBase58())
+            
+            let instructions: TransactionInstruction[] = [];
+            await withCancelProposal(
+                instructions,
+                programId,
+                programVersion,
+                realmPk,
+                new PublicKey(governanceRulesWallet),
+                proposalAddress,
+                tokenOwnerRecordPk,
                 governanceAuthority
             );
-        }
-
-       //instructions.push(...refInstructions);
-
-        // with instructions run a transaction and make it rain!!!
-        if (instructions && instructions.length > 0){
-            const signature = await createAndSendV0TxInline(instructions);
-            if (signature){
-                enqueueSnackbar(`Cancelling Proposal - ${signature}`,{ variant: 'success' });
-                
-                if (setReload) 
-                    setReload(true);
-
-            } else{
-                enqueueSnackbar(`Error`,{ variant: 'error' });
-            }
             
-            return null;
+            let refundAddress = null;
+            const possibleTorDeposit = getProposalDepositPk(
+                proposalAddress,
+                tokenOwnerRecordPk,
+                programId
+            );
+
+            const torDeposit = await RPC_CONNECTION.getBalance(possibleTorDeposit)
+            
+            
+            //if (delegateDeposit && delegateDeposit > 0 && possibleDelegateDeposit) {
+            //    refundAddress = proposalOwner.account.governanceDelegate;
+            //} else if (torDeposit && torDeposit > 0) {
+            //    refundAddress = tokenOwnerRecordPk;
+            //}
+            if (torDeposit && torDeposit > 0)
+                refundAddress = tokenOwnerRecordPk
+            
+            //let refInstructions: TransactionInstruction[] = [];
+            
+            if (refundAddress){
+                await withRefundProposalDeposit(
+                    instructions,
+                    programId!,
+                    programVersion,
+                    proposalAddress,
+                    governanceAuthority
+                );
+            }
+
+        //instructions.push(...refInstructions);
+
+            // with instructions run a transaction and make it rain!!!
+            if (instructions && instructions.length > 0){
+                const signature = await createAndSendV0TxInline(instructions);
+                if (signature){
+                    enqueueSnackbar(`Cancelling Proposal - ${signature}`,{ variant: 'success' });
+                    
+                    if (setReload) 
+                        setReload(true);
+
+                } else{
+                    enqueueSnackbar(`Error`,{ variant: 'error' });
+                }
+                
+                return null;
+            }
         }
     }
 
