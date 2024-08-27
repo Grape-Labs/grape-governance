@@ -790,15 +790,15 @@ export function GovernanceProposalV2View(props: any){
                 if (!thisitem?.instructions || thisitem.account.state === 0){
                 
                     //if (!thisitem?.instructions){
-                        instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
-                        /*
+                        //(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                        
                         instructions = await getGovernanceAccounts(
                             connection,
                             new PublicKey(thisitem.owner || realm.owner),
                             ProposalTransaction,
                             [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
                         );
-                        */
+                        
                         thisitem.instructions = instructions;
                     //}
                 } else {
