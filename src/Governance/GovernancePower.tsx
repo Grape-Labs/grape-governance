@@ -91,15 +91,6 @@ import {
 
 import { 
     RPC_CONNECTION,
-    PROXY,
-    HELIUS_API,
-    HELLO_MOON_BEARER,
-    GGAPI_STORAGE_POOL,
-    GGAPI_STORAGE_URI,
-    PRIMARY_STORAGE_WALLET,
-    RPC_ENDPOINT,
-    WS_ENDPOINT,
-    TWITTER_PROXY
 } from '../utils/grapeTools/constants';
 
 import { 
@@ -194,7 +185,7 @@ export default function GovernancePower(props: any){
         }catch(e){console.log("ERR: "+e)}
 
         if (tokenMetadata?.data?.name)
-            setMintName(tokenMetadata.data.name);
+            setMintName(tokenMetadata.data.name.trim());
         
         if (tokenMetadata?.data?.uri){
             try{
@@ -245,6 +236,7 @@ export default function GovernancePower(props: any){
             
             setWalletCommunityMintAddress(communityMint);
             setWalletCouncilMintAddress(councilMint);
+
             const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(realm?.owner), new PublicKey(realm?.pubkey));
             let plugin = false;
             setIsPlugin(false);
@@ -353,26 +345,35 @@ export default function GovernancePower(props: any){
 
         const realmPk = new PublicKey(realm.pubkey);
         
-        const tokenInfo = await getMint(RPC_CONNECTION, withMint);
-        
+        //const tokenInfo = await getMint(RPC_CONNECTION, withMint);
+        /*
         const userAtaPk = await getAssociatedTokenAddress(
             withMint,
             publicKey, // owner
             true
           )
+        */
 
-        console.log("userATA: "+JSON.stringify(userAtaPk))
+        //console.log("userATA: "+JSON.stringify(userAtaPk))
         // Extract the mint authority
-        const mintAuthority = tokenInfo.mintAuthority ? new PublicKey(tokenInfo.mintAuthority) : null;
-        const decimals = tokenInfo.decimals;
+        //const mintAuthority = tokenInfo.mintAuthority ? new PublicKey(tokenInfo.mintAuthority) : null;
+        //const decimals = tokenInfo.decimals;
 
 
         const instructions: TransactionInstruction[] = []
-       
-
+        
         // also relinquish recursively if needed:
         // withRelinquishVote
         
+        /*
+        console.log("programId: "+programId);
+        console.log("programVersion: "+programVersion);
+        console.log("realmPk: "+realmPk);
+        console.log("withMint: "+withMint);
+        console.log("publicKey: "+publicKey);
+        console.log("delegate: "+delegate);
+        */
+
         await withSetGovernanceDelegate(
             instructions,
             programId,
@@ -384,53 +385,51 @@ export default function GovernancePower(props: any){
             delegate
         );
         
-        if (instructions.length != 1) {
+        
+        if (instructions){
+            const transaction = new Transaction();
+            transaction.add(...instructions);
+            
+            console.log("TX: "+JSON.stringify(transaction))
+
+            try{
+                enqueueSnackbar(`Preparing to set your delegated voting power `,{ variant: 'info' });
+                const signature = await sendTransaction(transaction, RPC_CONNECTION, {
+                    skipPreflight: true,
+                    preflightCommitment: "confirmed",
+                });
+                const snackprogress = (key:any) => (
+                    <CircularProgress sx={{padding:'10px'}} />
+                );
+                const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
+                //await connection.confirmTransaction(signature, 'processed');
+                const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
+                await RPC_CONNECTION.confirmTransaction({
+                    blockhash: latestBlockHash.blockhash,
+                    lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+                    signature: signature}, 
+                    'finalized'
+                );
+                closeSnackbar(cnfrmkey);
+                const action = (key:any) => (
+                        <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
+                            Signature: {shortenString(signature,5,5)}
+                        </Button>
+                );
+                
+                enqueueSnackbar(`Congratulations, you now have adjusted your delegated governance power`,{ variant: 'success', action });
+
+                // trigger a refresh here...
+                setRefresh(true);
+            }catch(e:any){
+                enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
+            } 
+        } else{
+            //alert("No voter record!")
             console.log("ERROR: Something went wrong");
             enqueueSnackbar(`Instructions Error`, { variant: 'error' });
-        } else{
-            if (instructions){
-
-                const transaction = new Transaction();
-                transaction.add(...instructions);
-                
-                console.log("TX: "+JSON.stringify(transaction))
-
-                try{
-                    enqueueSnackbar(`Preparing to set your delegated voting power `,{ variant: 'info' });
-                    const signature = await sendTransaction(transaction, RPC_CONNECTION, {
-                        skipPreflight: true,
-                        preflightCommitment: "confirmed",
-                    });
-                    const snackprogress = (key:any) => (
-                        <CircularProgress sx={{padding:'10px'}} />
-                    );
-                    const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
-                    //await connection.confirmTransaction(signature, 'processed');
-                    const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
-                    await RPC_CONNECTION.confirmTransaction({
-                        blockhash: latestBlockHash.blockhash,
-                        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-                        signature: signature}, 
-                        'finalized'
-                    );
-                    closeSnackbar(cnfrmkey);
-                    const action = (key:any) => (
-                            <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                                Signature: {shortenString(signature,5,5)}
-                            </Button>
-                    );
-                    
-                    enqueueSnackbar(`Congratulations, you now have adjusted your delegated governance power`,{ variant: 'success', action });
-
-                    // trigger a refresh here...
-                    setRefresh(true);
-                }catch(e:any){
-                    enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
-                } 
-            } else{
-                alert("No voter record!")
-            }
         }
+        
     }
 
     const withdrawVotesToGovernance = async(tokenAmount: number, tokenDecimals: number, mintAddress: string) => {
@@ -586,7 +585,7 @@ export default function GovernancePower(props: any){
                 realmPk,
                 userAtaPk,
                 withMint,
-                publicKey,//new PublicKey("33JTjvdTrmmtQuvTzr9rdCkYU1eAGkErQLdoPkcRvyaC"),//publicKey,
+                publicKey,
                 publicKey,
                 publicKey,
                 atomicAmount,
@@ -700,21 +699,21 @@ export default function GovernancePower(props: any){
 
         
         function handleClickRemoveDelegate(){
-            setGovernanceDelegate(walletCommunityMintAddress, null);
+            setGovernanceDelegate(selectedMintAddress, null);
         }
 
         function handleClickSetDelegate(){
             if (delegatedStr){
                 if (delegatedStr !== currentDelegate){
                     // also check if pubkey is valid...
-                    setGovernanceDelegate(walletCommunityMintAddress, delegatedStr);
+                    setGovernanceDelegate(selectedMintAddress, delegatedStr);
                 }
             }
         }
 
         function handleAdvancedDepositVotesToGovernance(){
             if (newDepositAmount && newDepositAmount > 0){
-                depositVotesToGovernance(newDepositAmount, decimals, walletCommunityMintAddress);
+                depositVotesToGovernance(newDepositAmount, decimals, selectedMintAddress);
                 setOpen(false);
             } else {
                 handleDepositCommunityMax();
@@ -1082,7 +1081,12 @@ export default function GovernancePower(props: any){
 
                                     }
                                 </Button>
-                                <AdvancedCommunityVoteDepositPrompt mintVotingPower={depositedCommunityMint} mintAvailableAmount={walletCommunityMintAmount} mintAddress={walletCommunityMintAddress} mintName={mintName} decimals={mintDecimals} />
+                                <AdvancedCommunityVoteDepositPrompt 
+                                    mintVotingPower={depositedCommunityMint} 
+                                    mintAvailableAmount={walletCommunityMintAmount} 
+                                    mintAddress={walletCommunityMintAddress} 
+                                    mintName={mintName} 
+                                    decimals={mintDecimals} />
                             </ButtonGroup>
                         }
 
@@ -1152,7 +1156,13 @@ export default function GovernancePower(props: any){
 
                                         }
                                     
-                                        <AdvancedCommunityVoteDepositPrompt inlineAdvanced={true} mintVotingPower={depositedCommunityMint} mintAvailableAmount={walletCommunityMintAmount} mintAddress={walletCommunityMintAddress} mintName={mintName} decimals={mintDecimals} />
+                                        <AdvancedCommunityVoteDepositPrompt 
+                                            inlineAdvanced={true} 
+                                            mintVotingPower={depositedCommunityMint} 
+                                            mintAvailableAmount={walletCommunityMintAmount} 
+                                            mintAddress={walletCommunityMintAddress} 
+                                            mintName={mintName} 
+                                            decimals={mintDecimals} />
                                     
                                     </>
                                 }
@@ -1160,7 +1170,13 @@ export default function GovernancePower(props: any){
                             {depositedCouncilMint &&
                                 <>
                                 {(depositedCouncilMint).toLocaleString()} Council
-                                <AdvancedCommunityVoteDepositPrompt isCouncil={true} inlineAdvanced={true} mintVotingPower={depositedCouncilMint} mintAvailableAmount={walletCouncilMintAmount} mintAddress={walletCouncilMintAddress} decimals={0} />
+                                <AdvancedCommunityVoteDepositPrompt 
+                                    isCouncil={true} 
+                                    inlineAdvanced={true} 
+                                    mintVotingPower={depositedCouncilMint} 
+                                    mintAvailableAmount={walletCouncilMintAmount} 
+                                    mintAddress={walletCouncilMintAddress} 
+                                    decimals={0} />
                                 
                                 </>
                             }
