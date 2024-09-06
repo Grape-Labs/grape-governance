@@ -259,7 +259,7 @@ export default function GovernancePower(props: any){
             let fetchedTMI = false;
             for (let record of tokenOwnerRecord){
                 if (record.account.realm.toBase58() === governanceAddress){
-                
+                    
                     if (record.account.governingTokenMint.toBase58() === communityMint){
                         const tki = await getTokenMintInfo(communityMint);
                         fetchedTMI = true;
@@ -267,12 +267,16 @@ export default function GovernancePower(props: any){
                         depCommunityMint = Number(record.account.governingTokenDepositAmount);
                         depCommunityDelegate = record.account?.governanceDelegate;
                     }
-                    if (record.account.governingTokenMint.toBase58() === councilMint)
+                    if (record.account.governingTokenMint.toBase58() === councilMint){
                         depCouncilMint = Number(record.account.governingTokenDepositAmount); 
                         depCouncilDelegate = record.account?.governanceDelegate;
-                    
+                    }
+                    //console.log("record "+JSON.stringify(record));
                 }
             }
+
+            //console.log("de com: "+depCommunityDelegate);
+            //console.log("dep con: "+depCouncilDelegate);
             
             if (depCommunityMint && Number(depCommunityMint) > 0){
                 setDepositedCommunityMint(depCommunityMint);
