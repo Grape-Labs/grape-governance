@@ -239,6 +239,8 @@ export default function GovernancePower(props: any){
             setWalletCommunityMintAddress(communityMint);
             setWalletCouncilMintAddress(councilMint);
 
+            //console.log("Start tryGetRealmConfig");
+            
             const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(realm?.owner), new PublicKey(realm?.pubkey));
             let plugin = false;
             setIsPlugin(false);
@@ -247,6 +249,8 @@ export default function GovernancePower(props: any){
                 setIsPlugin(true);
                 setRealmConfig(config);
             }
+
+            //console.log("End tryGetRealmConfig");
 
             //const tokenOwnerRecord = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, new PublicKey(realm?.owner || SYSTEM_PROGRAM_ID), publicKey);
             //console.log("tokenOwnerRecord: "+JSON.stringify(tokenOwnerRecordV1));

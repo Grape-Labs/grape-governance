@@ -733,7 +733,7 @@ export function GovernanceProposalV2View(props: any){
 
                 const signOff = Number(vresults.account.signingOffAt);
                 let cachedFetch = null;
-                let isFresh = false;
+                let isFresh = true;
                 for (let glitem of governanceLookup){
                     if (glitem.governanceAddress === governanceAddress){
                         cachedFetch = Number(glitem.lastTimestamp);
@@ -743,6 +743,7 @@ export function GovernanceProposalV2View(props: any){
                 
                 //console.log("Voting Prop: "+JSON.stringify(vresults))
                 //console.log("FRESH CHECK: "+(moment.unix(signOff).toLocaleString()) + " vs " + (moment.unix(Number(cachedFetch)).toLocaleString()))
+                
                 if (signOff > cachedFetch || vresults.account.state === 2){
                     console.log("RESULTS NOT CACHED YET");
                     isFresh = false;
@@ -763,7 +764,7 @@ export function GovernanceProposalV2View(props: any){
                 //console.log("vresults: "+JSON.stringify(vresults));
                 
                 if (!isFresh){ // voting state we can fetch via rpc
-                    console.log("Fetching voting proposal current results via RPC")
+                    console.log("Start getVoteRecord (RPC)");
                     from_cache = false;
                     const voteRecords = await getVoteRecords({
                         connection: connection,
@@ -773,6 +774,8 @@ export function GovernanceProposalV2View(props: any){
                     if (voteRecords?.value){
                         voteRecord = voteRecords.value;//JSON.parse(JSON.stringify(voteRecord));
                     }
+                    console.log("End getVoteRecords (RPC)");
+                
                     
                 } else{
                     console.log("Fetching proposal results via Cached Storage")
@@ -780,8 +783,8 @@ export function GovernanceProposalV2View(props: any){
                     console.log("vresults "+JSON.stringify(vresults.account.signingOffAt))
                     
                     from_cache = true;
-                    
                 }
+
                 
                 // if this is voting we should fetch via RPC
                 let instructions = null;
