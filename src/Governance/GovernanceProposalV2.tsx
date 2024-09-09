@@ -3026,7 +3026,7 @@ export function GovernanceProposalV2View(props: any){
                                         />
                                         
 
-                                        {/*
+                                        {
                                         <Timeline>
                                             {proposalInstructions[0].account.instructions.length > 1 ?
                                             <>
@@ -3045,7 +3045,7 @@ export function GovernanceProposalV2View(props: any){
                                             </>
                                             }
                                         </Timeline>
-                                        */}
+                                        }
                                     </Collapse>
                                     
                                 </Box>
