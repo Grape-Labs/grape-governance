@@ -186,19 +186,175 @@ export function InstructionTableView(props: any) {
     
     const METAPLEX_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
     
+    async function createAndSendV0TxInline(txInstructions: TransactionInstruction[]) {
+        // Step 1 - Fetch Latest Blockhash
+        let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+        console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
+      
+        // Step 2 - Generate Transaction Message
+        const messageV0 = new TransactionMessage({
+            payerKey: publicKey,
+            recentBlockhash: latestBlockhash.blockhash,
+            instructions: txInstructions
+        }).compileToV0Message();
+        console.log("   ✅ - Compiled transaction message");
+        const transaction = new VersionedTransaction(messageV0);
+        
+        console.log("   ✅ - Transaction Signed");
+      
+        // Step 4 - Send our v0 transaction to the cluster
+        //const txid = await RPC_CONNECTION.sendTransaction(transaction, { maxRetries: 5 });
+        
+        //const tx = new Transaction();
+        //tx.add(txInstructions[0]);
+        
+        const txid = await sendTransaction(transaction, RPC_CONNECTION, {
+            skipPreflight: true,
+            preflightCommitment: "confirmed",
+            maxRetries: 5
+        });
+        
+        console.log("   ✅ - Transaction sent to network with txid: "+txid);
+      
+        // Step 5 - Confirm Transaction 
+        const snackprogress = (key:any) => (
+            <CircularProgress sx={{padding:'10px'}} />
+        );
+        const cnfrmkey = enqueueSnackbar(`Confirming Transaction`,{ variant: 'info', action:snackprogress, persist: true });
+        const confirmation = await RPC_CONNECTION.confirmTransaction({
+            signature: txid,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+        });
+        closeSnackbar(cnfrmkey);
+        if (confirmation.value.err) { 
+            enqueueSnackbar(`Transaction Error`,{ variant: 'error' });
+            throw new Error("   ❌ - Transaction not confirmed.") }
+      
+        console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
+        return txid;
+    }
+      
+
+    const handleRemoveIx = async(instruction:any) => {
+
+        //console.log("instruction "+JSON.stringify(instruction));
+        //console.log("instructionDetails: "+JSON.stringify(instructionDetails))
+
+        const programId = new PublicKey(realm.owner);
+        let instructions: TransactionInstruction[] = [];
+        const proposal = new PublicKey(instruction.account.proposal);
+        const programVersion = await getGovernanceProgramVersion(
+            RPC_CONNECTION,
+            programId,
+        );
+        
+        const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
+
+        let tokenOwnerRecordPk = null;
+        
+        if (!tokenOwnerRecordPk){
+            tokenOwnerRecordPk = sentProp?.account?.tokenOwnerRecord;
+            console.log("From proposal tokenOwnerRecordPk: "+JSON.stringify(tokenOwnerRecordPk));
+        }
+
+        if (!tokenOwnerRecordPk){
+            for (let member of memberMap){
+                if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
+                    new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
+                    tokenOwnerRecordPk = new PublicKey(member.pubkey);
+            }
+        }
+        
+        /*
+        if (!tokenOwnerRecordPk){
+            tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+              programId,
+              realmPk,
+              governingTokenMint,
+              publicKey,
+            );
+            if (tokenOwnerRecordPk)
+              console.log("Using getTokenOwnerRecordAddress: "+tokenOwnerRecordPk.toBase58());
+        }*/
+
+        const beneficiary = publicKey;
+        const governanceAuthority = publicKey;
+        
+        console.log("Preparing Remove Instruction Selected");
+        await withRemoveTransaction(
+            instructions,
+            programId,
+            programVersion,
+            proposal,
+            tokenOwnerRecordPk,
+            governanceAuthority,
+            proposalTransaction,
+            beneficiary,
+        )
+        
+        // with instructions run a transaction and make it rain!!!
+        if (instructions && instructions.length > 0){
+            const signature = await createAndSendV0TxInline(instructions);
+            if (signature){
+                enqueueSnackbar(`Transaction Removed from Proposal - ${signature}`,{ variant: 'success' });
+                //pTransaction.add(lookupTableInst);
+                //pTransaction.feePayer = publicKey;
+                
+                if (setReload) 
+                    setReload(true);
+
+            } else{
+                enqueueSnackbar(`Error`,{ variant: 'error' });
+            }
+            
+            return null;
+        }
+    }
+
+
     const ixDetails = props.ixDetails;
     const [ixRows, setIxRows] = React.useState(null);
     const ixColumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', hide: true},
         { field: 'index', headerName: 'Index', hide: false},
-        { field: 'ix', headerName: 'IX', minWidth: 120, hide: false},
+        { field: 'ix', headerName: 'IX', minWidth: 120, hide: false,
+            
+            renderCell: (params) => {
+                return(
+                    <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={new PublicKey(params.value).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
+                )
+            }
+            
+        },
         { field: 'status', headerName: 'Status', minWidth: 75, hide: false},
         { field: 'accounts', headerName: 'Accounts', minWidth: 70, hide: true},
         { field: 'signers', headerName: 'Signers', minWidth: 70, hide: true},
         { field: 'data', headerName: 'Data', hide: true},
         { field: 'description', headerName: 'Description', minWidth: 500, resizable:true, hide: false},
         { field: 'program', headerName: 'Program', minWidth: 120, resizable:true, hide: false},
-        { field: 'manage', headerName: 'Manage', hide: false}, // allow to delete or execute ix
+        { field: 'manage', headerName: 'Manage', hide: false,
+            
+            renderCell: (params) => {
+                return(
+                    (publicKey && proposalAuthor === publicKey.toBase58() && state === 0) ?
+                        <>
+                            <Tooltip title="Remove Transaction &amp; Claim Rent Back">
+                                <IconButton 
+                                    sx={{ml:1}}
+                                    color='error'
+                                    onClick={e => handleRemoveIx(proposalIx[0].account.instructions.length > 1 ? proposalIx[0].account.instructions[params.value] : proposalIx[params.value])}
+                                >
+                                    <DeleteIcon fontSize='small' />
+                                </IconButton>
+                            </Tooltip>
+                        </>
+                        :
+                        <>-</>
+                    
+                )
+            }
+        }, // allow to delete or execute ix
     ]
 
     function findOwnerRecord(destinationAta:any){
@@ -228,7 +384,7 @@ export function InstructionTableView(props: any) {
                             data:item.account.instructions[0].data,
                             description:"DA "+item?.account?.instructions[0].info.description,
                             program: new PublicKey(item?.account?.instructions[0].programId).toBase58(),
-                            manage:'',
+                            manage:item.account.instructionIndex,
                         })
                 ));
             }
@@ -267,7 +423,7 @@ export function InstructionTableView(props: any) {
                         data:item.account.instructions[0].data,
                         description:description,
                         program: new PublicKey(item?.account?.instructions[0].programId).toBase58(),
-                        manage:'',
+                        manage:item.account.instructionIndex,
                     })
                 })
             }
