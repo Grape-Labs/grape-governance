@@ -3005,7 +3005,7 @@ export function GovernanceProposalV2View(props: any){
                                                 </Box>
                                             }
                                         </Box>
-                                        {/*
+                                        
                                         <InstructionTableView   
                                             proposalInstructions={proposalInstructions}
                                             proposal={thisitem} 
@@ -3024,9 +3024,9 @@ export function GovernanceProposalV2View(props: any){
                                             instructionOwnerRecord={instructionOwnerRecord} 
                                             instructionOwnerRecordATA={instructionOwnerRecordATA}
                                         />
-                                        */}
+                                        
 
-
+                                        {/*
                                         <Timeline>
                                             {proposalInstructions[0].account.instructions.length > 1 ?
                                             <>
@@ -3045,6 +3045,7 @@ export function GovernanceProposalV2View(props: any){
                                             </>
                                             }
                                         </Timeline>
+                                        */}
                                     </Collapse>
                                     
                                 </Box>
