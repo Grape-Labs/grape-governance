@@ -456,8 +456,11 @@ export function InstructionTableView(props: any) {
                                             borderColor:'rgba(255,255,255,0.25)'
                                         }}}
                                     sortingOrder={['asc', 'desc', null]}
-                                    
-                                
+                                    initialState={{
+                                        sorting: {
+                                            sortModel: [{ field: 'index', sort: 'asc' }],
+                                        },
+                                    }}
                                 />
                         </div>
                     </div>
