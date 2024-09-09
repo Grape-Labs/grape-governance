@@ -1003,22 +1003,31 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         if (tokenMetadata?.data?.name)
                             tn = (tokenMetadata.data.name);
                         
-                        if (tokenMetadata?.data?.uri){
-                            try{
-                                const metadata = await window.fetch(tokenMetadata.data.uri)
-                                .then(
-                                    (res: any) => res.json())
+                        if (tokenMetadata?.data?.uri) {
+                            const controller = new AbortController();
+                            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds
+                        
+                            try {
+                                const metadata = await window.fetch(tokenMetadata.data.uri, {
+                                    signal: controller.signal
+                                })
+                                .then((res: any) => res.json())
                                 .catch((error) => {
                                     // Handle any errors that occur during the fetch or parsing JSON
                                     console.error("Error fetching data:", error);
                                 });
-                                
-                                if (metadata && metadata?.image){
-                                    if (metadata.image)
-                                        tl = (metadata.image);
+                        
+                                clearTimeout(timeoutId); // Clear the timeout if the fetch succeeds
+                        
+                                if (metadata?.image) {
+                                    tl = metadata.image;
                                 }
-                            }catch(err){
-                                console.log("ERR 1: ",err);
+                            } catch (err) {
+                                if (err?.name === 'AbortError') {
+                                    console.log("Fetch request timed out.");
+                                } else {
+                                    console.log("ERR 1: ", err);
+                                }
                             }
                         }
                     }catch(e){
@@ -1075,7 +1084,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 console.log("HM: "+thisitem?.helloMoonCollectionId)
                 
                 console.log("URI: "+JSON.stringify(thisitem?.metadataJson?.uri))
-                
+                /*
                 if (thisitem?.metadataJson?.uri){
                     try{
                         const metadata = await window.fetch(thisitem.metadataJson.uri).then(
@@ -1085,7 +1094,29 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     }catch(merr){
                         console.log("ERR: "+merr);
                     }
-                }
+                }*/
+                    if (thisitem?.metadataJson?.uri) {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds
+                    
+                        try {
+                            const metadata = await window.fetch(thisitem.metadataJson.uri, {
+                                signal: controller.signal
+                            }).then((res: any) => res.json());
+                    
+                            clearTimeout(timeoutId); // Clear the timeout if the fetch succeeds
+                    
+                            if (metadata?.image) {
+                                thisitem.metadataImage = metadata.image;
+                            }
+                        } catch (merr) {
+                            if (merr?.name === 'AbortError') {
+                                console.log("Fetch request timed out.");
+                            } else {
+                                console.log("ERR: " + merr);
+                            }
+                        }
+                    }
 
                 if (thisitem?.helloMoonCollectionId){
                     if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury NFT Floor Prices ("+thisitem.nftMint+")");
@@ -1393,7 +1424,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         const commMint = grealm.account?.communityMint;
         var governanceEmitted = [];
-        let getAwards = fetchGovernanceRewards; // adjust if we want to get rewards for the following emitting pubkeys
+        let getAwards = fetchGovernanceRewards; // adjust if we want to get rewards for the following emitting pubkeys\
         if (!getAwards || hoursDiff > (24*15)){ // refresh every 30 days
             //getAwards = true;
         }
@@ -1542,7 +1573,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
                 }
 
-                if (!hasAwards){
+                if (!hasAwards || getAwards){
                     console.log("Checking Award Emitted...")
                     if (grealm.account?.communityMint){
                         // get all emitted to this wallet
