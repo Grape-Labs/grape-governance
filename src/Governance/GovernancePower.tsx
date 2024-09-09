@@ -155,7 +155,9 @@ export default function GovernancePower(props: any){
     const [mintDecimals, setMintDecimals] = React.useState(null);
     const [mintLogo, setMintLogo] = React.useState(null);
     const [refresh, setRefresh] = React.useState(false);
-    const [currentDelegate, setCurrentDelegate] = React.useState(null);
+    const [isCouncilSelected, setIsCouncilSelected] = React.useState(false);
+    const [currentCommunityDelegate, setCurrentCommunityDelegate] = React.useState(null);
+    const [currentCouncilDelegate, setCurrentCouncilDelegate] = React.useState(null);
     const [isPlugin, setIsPlugin] = React.useState(false);
     const [realmConfig, setRealmConfig] = React.useState(null);
 
@@ -277,17 +279,19 @@ export default function GovernancePower(props: any){
 
             //console.log("de com: "+depCommunityDelegate);
             //console.log("dep con: "+depCouncilDelegate);
-            
+            setCurrentCommunityDelegate(null);
+            setCurrentCouncilDelegate(null);
+
             if (depCommunityMint && Number(depCommunityMint) > 0){
                 setDepositedCommunityMint(depCommunityMint);
                 if (depCommunityDelegate)
-                    setCurrentDelegate(depCommunityDelegate.toBase58());
+                    setCurrentCommunityDelegate(depCommunityDelegate.toBase58());
             } 
             // do not change this to an else (we show both council/community)
             if (depCouncilMint && Number(depCouncilMint) > 0){
                 setDepositedCouncilMint(depCouncilMint);
                 if (depCouncilDelegate)
-                    setCurrentDelegate(depCouncilDelegate.toBase58());
+                    setCurrentCouncilDelegate(depCouncilDelegate.toBase58());
             }
 
             //const govOwnerRecord = await getTokenOwnerRecord(RPC_CONNECTION, publicKey);
@@ -708,7 +712,10 @@ export default function GovernancePower(props: any){
 
         function handleClickSetDelegate(){
             if (delegatedStr){
-                if (delegatedStr !== currentDelegate){
+                if (delegatedStr !== currentCommunityDelegate){
+                    // also check if pubkey is valid...
+                    setGovernanceDelegate(selectedMintAddress, delegatedStr);
+                } else if (delegatedStr !== currentCouncilDelegate){
                     // also check if pubkey is valid...
                     setGovernanceDelegate(selectedMintAddress, delegatedStr);
                 }
@@ -903,7 +910,8 @@ export default function GovernancePower(props: any){
                                                             disabled={
                                                                 (!delegatedStr) ||
                                                                 (delegatedStr === publicKey.toBase58()) ||
-                                                                (currentDelegate === delegatedStr)
+                                                                (!isCouncil && currentCommunityDelegate === delegatedStr)||
+                                                                (isCouncil && currentCouncilDelegate === delegatedStr)
                                                             }
                                                         >
                                                             <SaveIcon />
@@ -915,12 +923,13 @@ export default function GovernancePower(props: any){
                                     </Grid>
                                     <Typography color="text.secondary" variant="caption">
                                         
-                                        {currentDelegate ?
+                                        {(isCouncil && currentCouncilDelegate) || (!isCouncil && currentCommunityDelegate) ?
                                             <>
                                                 <Grid container direction='row'>
                                                     <ExplorerView 
-                                                        address={currentDelegate} 
-                                                        title={`Delegated to ${currentDelegate.slice(0, 4)}...${currentDelegate.slice(-4)}`} 
+                                                        address={isCouncil ? currentCouncilDelegate : currentCommunityDelegate} 
+                                                        title={isCouncil ? `Delegated to ${currentCouncilDelegate.slice(0, 4)}...${currentCouncilDelegate.slice(-4)} : ` :
+                                                                `Delegated to ${currentCommunityDelegate.slice(0, 4)}...${currentCommunityDelegate.slice(-4)} : `} 
                                                         type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='10px' /> 
                                                     
                                                     <IconButton
