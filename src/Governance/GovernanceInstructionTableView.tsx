@@ -250,6 +250,7 @@ export function InstructionTableView(props: any) {
         );
         
         const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
+        console.log("Removing "+proposalTransaction.toBase58());
 
         let tokenOwnerRecordPk = null;
         
@@ -343,7 +344,7 @@ export function InstructionTableView(props: any) {
                                 <IconButton 
                                     sx={{ml:1}}
                                     color='error'
-                                    onClick={e => handleRemoveIx(proposalIx[0].account.instructions.length > 1 ? proposalIx[0].account.instructions[params.value] : proposalIx[params.value])}
+                                    onClick={e => handleRemoveIx(params.value)}
                                 >
                                     <DeleteIcon fontSize='small' />
                                 </IconButton>
@@ -423,7 +424,8 @@ export function InstructionTableView(props: any) {
                         data:item.account.instructions[0].data,
                         description:description,
                         program: new PublicKey(item?.account?.instructions[0].programId).toBase58(),
-                        manage:item.account.instructionIndex,
+                        //manage:item.account.instructionIndex,
+                        manage:item,
                     })
                 })
             }
