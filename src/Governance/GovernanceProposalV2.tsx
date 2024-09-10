@@ -596,6 +596,44 @@ export function GovernanceProposalV2View(props: any){
         }
     }
 
+    const fetchTokenName = async(address:string) => {
+        try{
+            if (SHYFT_KEY){
+                const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
+
+                const response = await fetch(uri, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 'rpc-id',
+                        method: 'getAsset',
+                        params: {
+                        id: address
+                        },
+                    }),
+                    });
+                const { result } = await response.json();
+                
+                if (result){
+                    if (result?.content?.metadata?.name){
+                        //setSolanaDomain(result?.content?.metadata?.name);
+                        return result?.content?.metadata?.name;
+                        //setDaoName(result.content.metadata.name);
+                    }
+                    return null;
+                }
+            } else{
+                return null;
+            }
+        } catch(e){
+            console.log("ERR: "+e);
+            return null;
+        }
+    }
+
     const getVotingParticipants = async () => {
         setLoadingParticipants(true);
 
@@ -841,7 +879,13 @@ export function GovernanceProposalV2View(props: any){
                             mintResults = results.value;
                             //console.log("mintArrResults: "+JSON.stringify(mintResults));
                         }
-
+                        
+                        let lastMint = null;
+                        let lastMintName = null;
+                        let lastMintDecimals = null;
+                        let thisMint = null;
+                        let thisMintName = null;
+                        let thisMintDecimals = null;
                         for (var instructionItem of useInstructions){
                             
                             if (instructionItem.account?.instructions && instructionItem.account.instructions.length > 0){
@@ -1073,27 +1117,44 @@ export function GovernanceProposalV2View(props: any){
                                                         //console.log("GAI: "+JSON.stringify(gai));
                                                         const decimals = gai?.data?.parsed?.info?.tokenAmount?.decimals || 0;
                                                         const divisor = new BN(10).pow(new BN(decimals));
-                                                        let amount = amountBN.div(divisor).toString(); 
-
+                                                        let amount = Number(amountBN.div(divisor)).toLocaleString(); 
+                                                        let tname = "";
                                                         // check if this is a Grape Proposal and use the token decimals to format it
                                                         
                                                         if (accountInstruction.accounts.length > 3){
                                                             //console.log("account: "+accountInstruction?.accounts[2].pubkey.toBase58());
                                                             //console.log("accounts: "+JSON.stringify(accountInstruction?.accounts));
                                                             if (decimals <= 0){
-                                                                let tokeMint = accountInstruction?.accounts[2].pubkey;
-                                                                let tai = await connection.getParsedAccountInfo(tokeMint);
+                                                                let tokenMintAccount = accountInstruction?.accounts[2].pubkey;
+                                                                
+                                                                let tai = await connection.getParsedAccountInfo(tokenMintAccount);
                                                                 let tdecimals = 0;
                                                                 
                                                                 if (tai && tai?.value.data?.parsed?.info?.tokenAmount?.decimals){
+                                                                    //console.log("tai "+JSON.stringify(tai?.value.data?.parsed?.info?.mint));
+                                                                    thisMint = tai?.value.data?.parsed?.info?.mint;
+                                                                    //console.log("l v t " + lastMint + " v "+ thisMint);
+                                                                    if ((tai?.value.data?.parsed?.info?.mint) && (lastMint !== thisMint)){
+                                                                        tname = await fetchTokenName(tai?.value.data?.parsed?.info?.mint);
+                                                                        thisMintName = tname;
+                                                                    } else {
+                                                                        tname = lastMintName;
+                                                                        thisMintName = tname;
+                                                                    }
+                                                                    
                                                                     tdecimals = tai?.value.data?.parsed?.info?.tokenAmount?.decimals || 0;
+                                                                    thisMintDecimals = tdecimals;
                                                                     if (tdecimals > 0){
                                                                         let tdivisor = new BN(10).pow(new BN(tdecimals));
-                                                                        amount = amountBN.div(tdivisor).toString(); 
+                                                                        amount = Number(amountBN.div(tdivisor)).toLocaleString(); 
                                                                     }
+                                                                    lastMint = thisMint;
+                                                                    lastMintName = thisMintName;
+                                                                    lastMintDecimals = thisMintDecimals;
                                                                 }
                                                             }
-                                                            description = "Grant "+amount+" to "+accountInstruction?.accounts[3].pubkey.toBase58();
+                                                            console.log("Grant "+amount+" "+tname+" to "+accountInstruction?.accounts[3].pubkey.toBase58());
+                                                            description = "Grant "+amount+" "+tname+" to "+accountInstruction?.accounts[3].pubkey.toBase58();
                                                         } else{
                                                             description = "Amount "+amount;
                                                         }
