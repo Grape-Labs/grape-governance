@@ -958,18 +958,32 @@ export function GovernanceProposalV2View(props: any){
                                                     const decimals = gai?.data.parsed.info.tokenAmount?.decimals || 0;
                                                     const divisor = new BN(10).pow(new BN(decimals));
 
-                                                    const amount = amountBN.div(divisor).toString(); 
+                                                    // To handle decimals, use .toNumber() for both the amount and divisor
+                                                    let adjustedAmount = amountBN.toNumber() / divisor.toNumber(); 
+
+                                                    // Now adjustedAmount will properly reflect decimal values
+                                                    console.log("Adjusted Amount:", adjustedAmount);
+                                                   // Detect if decimals should be displayed (more than 0)
+                                                    let amount = (adjustedAmount % 1 === 0)
+                                                        ? adjustedAmount.toLocaleString() // No decimals, just format as integer
+                                                        : adjustedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                                                    let symbol = "";
+                                                    if (tokenMap.get(gai?.data.parsed.info.mint)?.symbol)
+                                                        symbol = tokenMap.get(gai?.data.parsed.info.mint)?.symbol;
+                                                    else    
+                                                        symbol =`${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
                                                     //console.log("accountInstruction: "+JSON.stringify(accountInstruction));
                                                     newObject = {
                                                         type:"TokenTransfer",
                                                         pubkey: accountInstruction.accounts[0].pubkey,
                                                         mint: gai?.data.parsed.info.mint,
-                                                        name: tokenMap.get(gai?.data.parsed.info.mint)?.symbol,
+                                                        name: symbol,
                                                         logoURI: tokenMap.get(gai?.data.parsed.info.mint)?.logoURI,
                                                         amount: amount,
                                                         data: accountInstruction.data,
                                                         destinationAta:accountInstruction.accounts[1].pubkey,
-                                                        description:amount+' '+tokenMap.get(gai?.data.parsed.info.mint)?.symbol+' to '+accountInstruction.accounts[1].pubkey,
+                                                        description:amount+' '+symbol+' to '+accountInstruction.accounts[1].pubkey,
                                                     };
                                                     
                                                     //console.log("newObject "+JSON.stringify(newObject))
@@ -1100,9 +1114,8 @@ export function GovernanceProposalV2View(props: any){
                                                 let description = "SPL Governance Interaction";
                                                 let decodedIx = null;
                                                 try {
-
                                                     const amountBN = new BN(accountInstruction?.data?.slice(1), 'le');
-                                                    console.log("amount BN: "+amountBN);
+                                                    //console.log("amount BN: "+amountBN);
 
                                                     if (Number(amountBN) > 0){
 
