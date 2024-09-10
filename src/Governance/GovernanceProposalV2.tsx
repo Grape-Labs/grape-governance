@@ -1070,13 +1070,29 @@ export function GovernanceProposalV2View(props: any){
                                                         if (!gai)
                                                             gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
                                                         
-                                                        console.log("GAI: "+JSON.stringify(gai));
+                                                        //console.log("GAI: "+JSON.stringify(gai));
                                                         const decimals = gai?.data?.parsed?.info?.tokenAmount?.decimals || 0;
                                                         const divisor = new BN(10).pow(new BN(decimals));
+                                                        let amount = amountBN.div(divisor).toString(); 
 
-                                                        const amount = amountBN.div(divisor).toString(); 
-
+                                                        // check if this is a Grape Proposal and use the token decimals to format it
+                                                        
                                                         if (accountInstruction.accounts.length > 3){
+                                                            //console.log("account: "+accountInstruction?.accounts[2].pubkey.toBase58());
+                                                            //console.log("accounts: "+JSON.stringify(accountInstruction?.accounts));
+                                                            if (decimals <= 0){
+                                                                let tokeMint = accountInstruction?.accounts[2].pubkey;
+                                                                let tai = await connection.getParsedAccountInfo(tokeMint);
+                                                                let tdecimals = 0;
+                                                                
+                                                                if (tai && tai?.value.data?.parsed?.info?.tokenAmount?.decimals){
+                                                                    tdecimals = tai?.value.data?.parsed?.info?.tokenAmount?.decimals || 0;
+                                                                    if (tdecimals > 0){
+                                                                        let tdivisor = new BN(10).pow(new BN(tdecimals));
+                                                                        amount = amountBN.div(tdivisor).toString(); 
+                                                                    }
+                                                                }
+                                                            }
                                                             description = "Grant "+amount+" to "+accountInstruction?.accounts[3].pubkey.toBase58();
                                                         } else{
                                                             description = "Amount "+amount;
