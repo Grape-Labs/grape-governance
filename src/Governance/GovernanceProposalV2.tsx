@@ -1041,7 +1041,7 @@ export function GovernanceProposalV2View(props: any){
                                                     const solAmount = lamports / 1_000_000_000;
                                                     let amount = (solAmount % 1 === 0)
                                                         ? solAmount.toLocaleString() // No decimals, just format as integer
-                                                        : solAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                        : solAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
                                                     let symbol = "SOL";
                                                     newObject = {
