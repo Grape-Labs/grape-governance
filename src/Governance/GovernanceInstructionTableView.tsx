@@ -362,7 +362,11 @@ export function InstructionTableView(props: any) {
         //console.log("Json: "+JSON.stringify(instructionOwnerRecordATA));
         const index = instructionOwnerRecordATA.findIndex(key => key.equals(destinationAta));
         //return index;
-        return new PublicKey(instructionOwnerRecord[index].data.parsed.info.owner).toBase58();
+        let owner = destinationAta;
+        if (instructionOwnerRecord[index].data?.parsed?.info?.owner){
+            owner = instructionOwnerRecord[index].data?.parsed?.info?.owner
+        }
+        return new PublicKey(owner).toBase58();
 
     }
 

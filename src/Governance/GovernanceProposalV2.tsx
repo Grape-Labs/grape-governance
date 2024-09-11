@@ -50,14 +50,13 @@ import { InstructionMapping } from "../utils/grapeTools/InstructionMapping";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
-import parse, { domToReact } from 'html-react-parser';
 
 import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import GovernancePower from './GovernancePower';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
-import { decodeMetadata } from '../utils/grapeTools/utils';
+//import BufferLayout from 'buffer-layout';
 import grapeTheme from  '../utils/config/theme';
 
 import {
@@ -87,16 +86,6 @@ import {
   TextField,
   TextareaAutosize
 } from '@mui/material/';
-
-import {
-    Timeline,
-    TimelineItem,
-    TimelineSeparator,
-    TimelineConnector,
-    TimelineContent,
-    TimelineOppositeContent,
-    TimelineDot,
-} from '@mui/lab'
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
@@ -1002,6 +991,87 @@ export function GovernanceProposalV2View(props: any){
                                                 }
                                                 
                                             }
+                                        } else if (programId === "11111111111111111111111111111111"){//(instructionInfo?.name === "Token Transfer"){
+
+                                            // check if we have this in gai
+                                            let gai = null;
+                                            if (mintResults && mintResults.length > 0){
+                                                gai = mintResults[cnt];
+                                            } 
+
+                                            if (!gai)
+                                                gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                            
+                                            if (gai){
+                                                // get token metadata
+                                                
+                                                //const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai.data.parsed.info.mint}`;
+                                                /*
+                                                const meta = axios.get(uri, {
+                                                    headers: {
+                                                        'x-api-key': SHYFT_KEY
+                                                    }
+                                                    })
+                                                    .then(response => {
+                                                        if (response.data?.result){
+                                                            return response.data.result;
+                                                        }
+                                                        //return null
+                                                    })
+                                                    .catch(error => 
+                                                    {   
+                                                        // revert to RPC
+                                                        console.error(error);
+                                                        //return null;
+                                                    });
+                                                */
+
+                                                console.log("SOL IX: "+JSON.stringify(accountInstruction));
+
+                                                //setInstructionRecord(gai.value);
+                                                let newObject = null;
+                                                try{
+                                                    
+                                                    const amountBuffer = accountInstruction?.data.slice(4, 12);
+                                                    const amountBN = new BN(amountBuffer, 'le');
+                                                    //const amountBN = new BN(accountInstruction?.data?.slice(1), 'le');
+                                                    const lamports = amountBN.toNumber();
+                                                    console.log("Lamports: ",lamports);
+                                                    // Convert lamports to SOL (1 SOL = 1,000,000,000 lamports)
+                                                    const solAmount = lamports / 1_000_000_000;
+                                                    let amount = (solAmount % 1 === 0)
+                                                        ? solAmount.toLocaleString() // No decimals, just format as integer
+                                                        : solAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                                                    let symbol = "SOL";
+                                                    newObject = {
+                                                        type:"SOL Transfer",
+                                                        pubkey: accountInstruction.accounts[0].pubkey,
+                                                        mint: "So11111111111111111111111111111111111111112",//"SOL",//gai?.data.parsed.info.mint,
+                                                        name: symbol,
+                                                        logoURI: "https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/So11111111111111111111111111111111111111112.png",//tokenMap.get(gai?.data.parsed.info.mint)?.logoURI,
+                                                        amount: amount,
+                                                        data: accountInstruction.data,
+                                                        destinationAta:accountInstruction.accounts[1].pubkey,
+                                                        description:amount+' '+symbol+' to '+accountInstruction.accounts[1].pubkey,
+                                                    };
+                                                    
+                                                    //console.log("newObject "+JSON.stringify(newObject))
+                                                    accountInstruction.info = newObject;
+                                                } catch(e){
+                                                    console.log("ERR: "+e);
+                                                }
+                                                accountInstruction.gai = gai;
+                                                
+                                                const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instructionItem.account.instructions[0].accounts[0].pubkey);
+                                                
+                                                if (!hasInstruction){
+                                                    //console.log("newObject: "+JSON.stringify(newObject))
+
+                                                    setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
+                                                }
+                                                
+                                            }
                                         } else if (programId === "DCA265Vj8a9CEuX1eb1LWRnDT7uK6q1xMipnNyatn23M"){
                                             
                                             console.log("DCA PROGRAM INSTRUCTION: "+JSON.stringify(instructionItem.account))
@@ -1131,6 +1201,7 @@ export function GovernanceProposalV2View(props: any){
                                                         const decimals = gai?.data?.parsed?.info?.tokenAmount?.decimals || 0;
                                                         const divisor = new BN(10).pow(new BN(decimals));
                                                         let amount = Number(amountBN.div(divisor)).toLocaleString(); 
+                                                        
                                                         let tname = "";
                                                         // check if this is a Grape Proposal and use the token decimals to format it
                                                         
