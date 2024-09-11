@@ -969,7 +969,7 @@ export function GovernanceProposalV2View(props: any){
                                                         mint: gai?.data.parsed.info.mint,
                                                         name: symbol,
                                                         logoURI: tokenMap.get(gai?.data.parsed.info.mint)?.logoURI,
-                                                        amount: amount,
+                                                        amount: parseFloat(amount.replace(/,/g, '')), //amount,
                                                         data: accountInstruction.data,
                                                         destinationAta:accountInstruction.accounts[1].pubkey,
                                                         description:amount+' '+symbol+' to '+accountInstruction.accounts[1].pubkey,
@@ -1041,7 +1041,7 @@ export function GovernanceProposalV2View(props: any){
                                                     const solAmount = lamports / 1_000_000_000;
                                                     let amount = (solAmount % 1 === 0)
                                                         ? solAmount.toLocaleString() // No decimals, just format as integer
-                                                        : solAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                        : solAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
                                                     let symbol = "SOL";
                                                     newObject = {
@@ -1050,7 +1050,7 @@ export function GovernanceProposalV2View(props: any){
                                                         mint: "So11111111111111111111111111111111111111112",//"SOL",//gai?.data.parsed.info.mint,
                                                         name: symbol,
                                                         logoURI: "https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/So11111111111111111111111111111111111111112.png",//tokenMap.get(gai?.data.parsed.info.mint)?.logoURI,
-                                                        amount: amount,
+                                                        amount: parseFloat(amount.replace(/,/g, '')), //amount,
                                                         data: accountInstruction.data,
                                                         destinationAta:accountInstruction.accounts[1].pubkey,
                                                         description:amount+' '+symbol+' to '+accountInstruction.accounts[1].pubkey,
@@ -1183,6 +1183,12 @@ export function GovernanceProposalV2View(props: any){
                                                 
                                                 let description = "SPL Governance Interaction";
                                                 let decodedIx = null;
+                                                let amount = null;
+                                                let mint = null;
+                                                let symbol = null;
+                                                let logo = null;
+                                                let destinationAta = null;
+
                                                 try {
                                                     const amountBN = new BN(accountInstruction?.data?.slice(1), 'le');
                                                     //console.log("amount BN: "+amountBN);
@@ -1200,7 +1206,7 @@ export function GovernanceProposalV2View(props: any){
                                                         //console.log("GAI: "+JSON.stringify(gai));
                                                         const decimals = gai?.data?.parsed?.info?.tokenAmount?.decimals || 0;
                                                         const divisor = new BN(10).pow(new BN(decimals));
-                                                        let amount = Number(amountBN.div(divisor)).toLocaleString(); 
+                                                        amount = Number(amountBN.div(divisor)).toLocaleString(); 
                                                         
                                                         let tname = "";
                                                         // check if this is a Grape Proposal and use the token decimals to format it
@@ -1217,13 +1223,16 @@ export function GovernanceProposalV2View(props: any){
                                                                 if (tai && tai?.value.data?.parsed?.info?.tokenAmount?.decimals){
                                                                     //console.log("tai "+JSON.stringify(tai?.value.data?.parsed?.info?.mint));
                                                                     thisMint = tai?.value.data?.parsed?.info?.mint;
+                                                                    mint = thisMint;
                                                                     //console.log("l v t " + lastMint + " v "+ thisMint);
                                                                     if ((tai?.value.data?.parsed?.info?.mint) && (lastMint !== thisMint)){
                                                                         tname = await fetchTokenName(tai?.value.data?.parsed?.info?.mint);
                                                                         thisMintName = tname;
+                                                                        symbol = tname;
                                                                     } else {
                                                                         tname = lastMintName;
                                                                         thisMintName = tname;
+                                                                        symbol = tname;
                                                                     }
                                                                     
                                                                     tdecimals = tai?.value.data?.parsed?.info?.tokenAmount?.decimals || 0;
@@ -1237,6 +1246,7 @@ export function GovernanceProposalV2View(props: any){
                                                                     lastMintDecimals = thisMintDecimals;
                                                                 }
                                                             }
+                                                            destinationAta = accountInstruction?.accounts[3].pubkey;
                                                             console.log("Grant "+amount+" "+tname+" to "+accountInstruction?.accounts[3].pubkey.toBase58());
                                                             description = "Grant "+amount+" "+tname+" to "+accountInstruction?.accounts[3].pubkey.toBase58();
                                                         } else{
@@ -1275,10 +1285,26 @@ export function GovernanceProposalV2View(props: any){
                                                 const newObject = {
                                                     type:"SPL Governance Program by Solana",
                                                     decodedIx:decodedIx,
-                                                    description:description,
+                                                    amount: amount ? parseFloat(amount.replace(/,/g, '')) : null, //amount,
+                                                    pubkey: accountInstruction.accounts[0].pubkey,
+                                                    mint: mint,
+                                                    name: symbol,
+                                                    //logoURI: tokenMap.get(gai?.data.parsed.info.mint)?.logoURI,
+                                                    description: description,
+                                                    destinationAta: destinationAta,
                                                     data:accountInstruction.data
                                                 };
                                                 accountInstruction.info = newObject;
+
+                                                //if (amount > 0){
+                                                    const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instructionItem.account.instructions[0].accounts[0].pubkey);
+                                                    
+                                                    if (!hasInstruction){
+                                                        //console.log("newObject: "+JSON.stringify(newObject))
+
+                                                        setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
+                                                    }
+                                                //}
                                             }
                                         } else if (programId === "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"){
                                             if (accountInstruction?.data){
@@ -3126,7 +3152,7 @@ export function GovernanceProposalV2View(props: any){
                                                         backgroundColor:'rgba(0,0,0,0.2)'}}
                                                 >
                                                     <Typography variant="subtitle1">
-                                                        Token Transfer Summary
+                                                        Instructions Summary
                                                     </Typography>
                                                     <Typography variant="caption">
 
@@ -3148,6 +3174,7 @@ export function GovernanceProposalV2View(props: any){
                                                                         direction="row"
                                                                     >
                                                                         <Grid item>
+                                                                            {item && item?.totalAmount > 0 &&
                                                                             <ExplorerView
                                                                                 address={item.mint} type='address' useLogo={item?.logoURI} 
                                                                                 title={`${item.totalAmount.toLocaleString()} 
@@ -3156,6 +3183,7 @@ export function GovernanceProposalV2View(props: any){
                                                                                 `} 
                                                                                 hideTitle={false} style='text' color='white' fontSize='12px'
                                                                                 showNftData={true} />
+                                                                            }
                                                                         </Grid>
                                                                     </Grid>
                                                                 </>
