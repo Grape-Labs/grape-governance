@@ -955,7 +955,7 @@ export function GovernanceProposalV2View(props: any){
                                                    // Detect if decimals should be displayed (more than 0)
                                                     let amount = (adjustedAmount % 1 === 0)
                                                         ? adjustedAmount.toLocaleString() // No decimals, just format as integer
-                                                        : adjustedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                        : adjustedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
                                                     let symbol = "";
                                                     if (tokenMap.get(gai?.data.parsed.info.mint)?.symbol)

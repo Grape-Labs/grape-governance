@@ -100,6 +100,8 @@ import HowToVoteIcon from '@mui/icons-material/HowToVote';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import EditIcon from '@mui/icons-material/Edit';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CodeIcon from '@mui/icons-material/Code';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -328,12 +330,22 @@ export function InstructionTableView(props: any) {
             }
             
         },
-        { field: 'status', headerName: 'Status', minWidth: 75, hide: false},
         { field: 'accounts', headerName: 'Accounts', minWidth: 70, hide: true},
         { field: 'signers', headerName: 'Signers', minWidth: 70, hide: true},
         { field: 'data', headerName: 'Data', hide: true},
         { field: 'description', headerName: 'Description', minWidth: 500, resizable:true, hide: false},
         { field: 'program', headerName: 'Program', minWidth: 120, resizable:true, hide: false},
+        { field: 'status', headerName: 'Status', minWidth: 75, hide: false,
+            renderCell: (params) => {
+                return(
+                    params.value === 0 ?
+                            <><RadioButtonUncheckedIcon /></>
+                        :
+                            <><CheckCircleOutlineIcon /></>
+                    
+                )
+            }
+        },
         { field: 'manage', headerName: 'Manage', hide: false,
             
             renderCell: (params) => {
@@ -383,12 +395,12 @@ export function InstructionTableView(props: any) {
                             id:index,
                             index:item.account.instructionIndex,
                             ix:item.pubkey,
-                            status:item.account.executionStatus,
                             accounts:'',
                             signers:'',
                             data:item.account.instructions[0].data,
                             description:"DA "+item?.account?.instructions[0].info.description,
                             program: new PublicKey(item?.account?.instructions[0].programId).toBase58(),
+                            status:item.account.executionStatus,
                             manage:item.account.instructionIndex,
                         })
                 ));
@@ -422,13 +434,13 @@ export function InstructionTableView(props: any) {
                         id:index,
                         index:item.account.instructionIndex,
                         ix:item.pubkey,
-                        status:item.account.executionStatus,
                         accounts: JSON.stringify(accounts),
                         signers: signers.join('<br/> '),
                         data:item.account.instructions[0].data,
                         description:description,
                         program: new PublicKey(item?.account?.instructions[0].programId).toBase58(),
                         //manage:item.account.instructionIndex,
+                        status:item.account.executionStatus,
                         manage:item,
                     })
                 })
