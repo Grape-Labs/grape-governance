@@ -627,26 +627,82 @@ function RenderGovernanceTable(props:any) {
                                                         <TableCell>
                                                             {(item.account?.options[0].voteWeight) ?
                                                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                                    <Box sx={{ width: '100%', mr: 1 }}>
-                                                                        <VotesLinearProgress variant="determinate" value={(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100)} />
-                                                                    </Box>
-                                                                    <Box sx={{ minWidth: 35 }}>
-                                                                        <Typography
-                                                                            variant="caption"
-                                                                            sx={{ color: 'text.secondary' }}
-                                                                        >{`${
-                                                                            item.account.yesVotesCount ?
-                                                                                Number(item.account.yesVotesCount) > 0 ?
-                                                                                    `${(((Number(item.account.yesVotesCount))/((Number(item.account.noVotesCount))+(Number(item.account.yesVotesCount))))*100).toFixed(2)}`
+                                                                    <Tooltip title={
+                                                                        <>
+                                                                            {item.account.yesVotesCount ?
+                                                                        
+                                                                            <>
+                                                                            
+                                                                                YES:&nbsp;
+                                                                                {(realm.account.config?.councilMint && new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(item.account?.governingTokenMint).toBase58()) ?
+                                                                                <>{Number(Number(item.account?.options[0].voteWeight)).toLocaleString()}</>
+                                                                                :
+                                                                                <>
+                                                                                    {Number((Number(item.account?.options[0].voteWeight)/Math.pow(10, governingTokenDecimals )).toFixed(0)).toLocaleString()}
+                                                                                </>
+                                                                                }
+                                                                                <br/>
+                                                                                NO:&nbsp;
+                                                                                {item.account?.noVotesCount &&
+                                                                                <>
+                                                                                    {realm.account.config?.councilMint === item.account?.governingTokenMint?.toBase58() ?
+                                                                                        <>{Number(item.account.noVotesCount).toLocaleString()}</>
                                                                                     :
-                                                                                    `0`
+                                                                                    <>
+                                                                                        <>{Number((Number(item.account.noVotesCount)/Math.pow(10, governingTokenDecimals )).toFixed(0)).toLocaleString()}</>
+                                                                                    </>
+                                                                                    }
+                                                                                </>
+                                                                                }
+                                                                            </>
                                                                             :
-                                                                            Number(item.account?.options[0].voteWeight) > 0 ?
-                                                                                `${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}`
-                                                                            :
-                                                                                `0`
-                                                                            }%`}</Typography>
-                                                                    </Box>
+                                                                            <>YES:&nbsp;
+                                                                                {(realm.account.config?.councilMint && new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(item.account?.governingTokenMint).toBase58()) ?
+                                                                                    <>{Number(Number(item.account?.options[0].voteWeight)).toLocaleString()}</>
+                                                                                    :
+                                                                                    <>
+                                                                                        {Number((Number(item.account?.options[0].voteWeight)/Math.pow(10, governingTokenDecimals )).toFixed(0)).toLocaleString()}
+                                                                                    </>
+                                                                                }
+                                                                                <br/>
+                                                                                NO:&nbsp;
+                                                                                {Number(item.account?.denyVoteWeight) <= 1 ?
+                                                                                    <>
+                                                                                        {Number(item.account?.denyVoteWeight).toLocaleString()}
+                                                                                    </>
+                                                                                    :
+                                                                                    <>
+                                                                                        {Number((Number(item.account?.denyVoteWeight)/Math.pow(10, governingTokenDecimals )).toFixed(0)).toLocaleString()}
+                                                                                    </>
+                                                                                }
+                                                                            </>
+                                                                            }
+                                                                        </>
+                                                                    }
+                                                                    >
+                                                                        <Button sx={{width:'100%',color:'#eee',borderRadius:'17px',textTransform:'none'}}>
+                                                                            <Box sx={{ width: '100%', mr: 1 }}>
+                                                                                <VotesLinearProgress variant="determinate" value={(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100)} />
+                                                                            </Box>
+                                                                            <Box sx={{ minWidth: 35 }}>
+                                                                                <Typography
+                                                                                    variant="caption"
+                                                                                    sx={{ color: 'text.secondary' }}
+                                                                                >{`${
+                                                                                    item.account.yesVotesCount ?
+                                                                                        Number(item.account.yesVotesCount) > 0 ?
+                                                                                            `${(((Number(item.account.yesVotesCount))/((Number(item.account.noVotesCount))+(Number(item.account.yesVotesCount))))*100).toFixed(2)}`
+                                                                                            :
+                                                                                            `0`
+                                                                                    :
+                                                                                    Number(item.account?.options[0].voteWeight) > 0 ?
+                                                                                        `${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}`
+                                                                                    :
+                                                                                        `0`
+                                                                                    }%`}</Typography>
+                                                                            </Box>
+                                                                        </Button>
+                                                                    </Tooltip>
                                                                 </Box>
                                                             :<></>}
                                                         </TableCell>

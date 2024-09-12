@@ -43,25 +43,8 @@ import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
  
 import { GovernanceProposalV2View } from "./GovernanceProposalV2";
-import { GovernanceProposalView } from './GovernanceProposal';
 
-import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
-import ExplorerView from '../utils/grapeTools/Explorer';
-import moment from 'moment';
-
-import EditIcon from '@mui/icons-material/Edit';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CodeIcon from '@mui/icons-material/Code';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import FitScreenIcon from '@mui/icons-material/FitScreen';
-import CheckIcon from '@mui/icons-material/Check';
-import GitHubIcon from '@mui/icons-material/GitHub';
-import DownloadIcon from '@mui/icons-material/Download';
-import ThumbUpIcon from '@mui/icons-material/ThumbUp';
-import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import CloseIcon from '@mui/icons-material/Close';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import IconButton from '@mui/material/IconButton';
 
 import { 
