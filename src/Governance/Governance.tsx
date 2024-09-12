@@ -411,13 +411,15 @@ function RenderGovernanceTable(props:any) {
                         <StyledTable sx={{ minWidth: 500 }} size="small" aria-label="Portfolio Table">
                             <TableHead>
                                 <TableRow>
-                                    <TableCell><Typography variant="caption">Name</Typography></TableCell>
+                                    <TableCell><Typography variant="caption" sx={{width:"50%"}}>Name</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"12.5%"}}><Typography variant="caption">Proposed</Typography></TableCell>
+                                    {/*
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Yes</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">No</Typography></TableCell>
+                                    */}
+                                    <TableCell align="center" sx={{width:"10%"}}>Results</TableCell>
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Status</Typography></TableCell>
-                                    <TableCell align="center"><Typography variant="caption">Details</Typography></TableCell>
-                                    
+                                    {/*<TableCell align="center"><Typography variant="caption">Details</Typography></TableCell>*/}
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -451,16 +453,7 @@ function RenderGovernanceTable(props:any) {
                                         {/*console.log("item ("+index+"): "+JSON.stringify(item))*/}
                                         {item?.pubkey && item?.account && item.account?.options && item.account?.options.length > 0 &&
                                             <>
-                                                {(item.account?.options[0].voteWeight && item.account?.state === 2) ?
-                                                    <TableRow sx={{border:'none'}}>
-                                                        <TableCell colSpan={6} sx={{borderBottom:'none!important'}}>
-                                                            <Box sx={{ width: '100%' }}>
-                                                                <VotesLinearProgress variant="determinate" value={(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100)} />
-                                                            </Box>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                :<></>}
-
+                                                
                                                 <TableRow key={index} sx={{borderBottom:"none"}}>
                                                     <TableCell>
                                                         <GovernanceProposalDialog 
@@ -476,7 +469,8 @@ function RenderGovernanceTable(props:any) {
                                                             realm={realm} 
                                                             tokenMap={tokenMap} 
                                                             memberMap={memberMap} 
-                                                            governanceToken={governanceToken} />
+                                                            governanceToken={governanceToken}
+                                                        />
                                                     </TableCell>
                                                     <TableCell>
                                                         <Typography variant="caption" color={(item.account?.state === 2) ? `white` : `gray`}>
@@ -484,8 +478,8 @@ function RenderGovernanceTable(props:any) {
                                                         </Typography>
 
                                                     </TableCell>
-                                                    
-                                                    {item?.account?.voteType?.type === 1 ?
+
+                                                    {/*item?.account?.voteType?.type === 1 ?
                                                         <>
                                                             <TableCell 
                                                                 colSpan={2}
@@ -494,7 +488,7 @@ function RenderGovernanceTable(props:any) {
                                                         </>
                                                     :
                                                         <>
-                                                    
+
                                                         <TableCell>
                                                             {item.account.yesVotesCount ?
                                                                 <Typography variant="h6">
@@ -525,8 +519,6 @@ function RenderGovernanceTable(props:any) {
                                                                 </Typography>
                                                             :
                                                                 <Typography variant="h6">
-                                                                    {/*console.log("governingTokenMint: "+item.account.governingTokenMint.toBase58())*/}
-                                                                    {/*console.log("vote: "+JSON.stringify(item.account))*/}
                                                                     
                                                                     <Tooltip title={(realm.account.config?.councilMint && new PublicKey(realm.account.config?.councilMint).toBase58() === new PublicKey(item.account?.governingTokenMint).toBase58()) ?
                                                                         <>{Number(Number(item.account?.options[0].voteWeight)).toLocaleString()}</>
@@ -551,7 +543,6 @@ function RenderGovernanceTable(props:any) {
                                                             }
                                                             {(item.account?.options && item.account?.options[0]?.voterWeight) &&
                                                                 <Typography variant="h6">
-                                                                    {/*console.log("vote: "+JSON.stringify(item.account))*/}
                                                                     <Tooltip title={tokenMap.get(item.account.governingTokenMint.toBase58()) ?
                                                                         <>
                                                                         {Number((Number(item.account?.options[0].voterWeight)/Math.pow(10, governingTokenDecimals )).toFixed(0)).toLocaleString()}
@@ -599,8 +590,7 @@ function RenderGovernanceTable(props:any) {
                                                                             </Button>
                                                                         </Tooltip>
                                                                     </Typography>
-                                                            }
-
+                                                        
                                                             
                                                             {item.account?.denyVoteWeight && 
                                                                 <Typography variant="h6">
@@ -627,11 +617,46 @@ function RenderGovernanceTable(props:any) {
                                                             }
                                                         </TableCell>
                                                         </>
+                                                    */}
+
+                                                    {item?.account?.voteType?.type === 1 ?
+                                                        <TableCell 
+                                                            sx={{textAlign:'center'}}>Poll
+                                                        </TableCell>
+                                                    :
+                                                        <TableCell>
+                                                            {(item.account?.options[0].voteWeight) ?
+                                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                    <Box sx={{ width: '100%', mr: 1 }}>
+                                                                        <VotesLinearProgress variant="determinate" value={(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100)} />
+                                                                    </Box>
+                                                                    <Box sx={{ minWidth: 35 }}>
+                                                                        <Typography
+                                                                            variant="caption"
+                                                                            sx={{ color: 'text.secondary' }}
+                                                                        >{`${
+                                                                            item.account.yesVotesCount ?
+                                                                                Number(item.account.yesVotesCount) > 0 ?
+                                                                                    `${(((Number(item.account.yesVotesCount))/((Number(item.account.noVotesCount))+(Number(item.account.yesVotesCount))))*100).toFixed(2)}`
+                                                                                    :
+                                                                                    `0`
+                                                                            :
+                                                                            Number(item.account?.options[0].voteWeight) > 0 ?
+                                                                                `${(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100).toFixed(2)}`
+                                                                            :
+                                                                                `0`
+                                                                            }%`}</Typography>
+                                                                    </Box>
+                                                                </Box>
+                                                            :<></>}
+                                                        </TableCell>
                                                     }
                                                     <GetProposalStatus item={item} cachedGovernance={cachedGovernance} />
+                                                    {/*
                                                     <TableCell align="center">
                                                         <GovernanceProposalDialog governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
                                                     </TableCell>
+                                                    */}
                                                 </TableRow>
                                                     
                                             </>
