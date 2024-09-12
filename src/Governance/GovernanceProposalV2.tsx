@@ -1865,7 +1865,10 @@ export function GovernanceProposalV2View(props: any){
         var realmPk = null;
         var realmOwner = null;
         
-        if (!realm){
+        //console.log("realm: "+JSON.stringify(realm));
+
+        //if (!realm){
+        {
             grealm = await getRealmIndexed(governanceAddress);
             //if (!grealm)
             //    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
@@ -1874,11 +1877,12 @@ export function GovernanceProposalV2View(props: any){
             realmOwner = grealm.owner;
             setRealm(grealm);
             setRealmName(grealm?.account?.name);
-        } else{
+            //console.log("grealm: "+JSON.stringify(grealm));
+        }/* else{
             setRealmName(realm.account?.name);
             realmOwner = realm.owner.toBase58();
             realmPk = new PublicKey(realm.pubkey);
-        }
+        }*/
 
         if (!thisitem){
             console.log("Calling Index/RPC");
