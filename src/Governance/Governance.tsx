@@ -411,8 +411,8 @@ function RenderGovernanceTable(props:any) {
                         <StyledTable sx={{ minWidth: 500 }} size="small" aria-label="Portfolio Table">
                             <TableHead>
                                 <TableRow>
-                                    <TableCell><Typography variant="caption" sx={{width:"50%"}}>Name</Typography></TableCell>
-                                    <TableCell align="center" sx={{width:"12.5%"}}><Typography variant="caption">Proposed</Typography></TableCell>
+                                    <TableCell><Typography variant="caption" sx={{width:"50%"}}>Title</Typography></TableCell>
+                                    <TableCell align="center" sx={{width:"15%"}}><Typography variant="caption">Proposed</Typography></TableCell>
                                     {/*
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Yes</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">No</Typography></TableCell>
