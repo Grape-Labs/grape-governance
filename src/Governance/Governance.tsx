@@ -417,7 +417,7 @@ function RenderGovernanceTable(props:any) {
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Yes</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">No</Typography></TableCell>
                                     */}
-                                    <TableCell align="center" sx={{width:"10%"}}>Results</TableCell>
+                                    <TableCell align="center" sx={{width:"10%"}}><Typography variant="caption">Results</Typography></TableCell>
                                     <TableCell align="center" sx={{width:"1%"}}><Typography variant="caption">Status</Typography></TableCell>
                                     {/*<TableCell align="center"><Typography variant="caption">Details</Typography></TableCell>*/}
                                 </TableRow>
