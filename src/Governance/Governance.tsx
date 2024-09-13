@@ -682,12 +682,21 @@ function RenderGovernanceTable(props:any) {
                                                                     >
                                                                         <Button sx={{width:'100%',color:'#eee',borderRadius:'17px',textTransform:'none'}}>
                                                                             <Box sx={{ width: '100%', mr: 1 }}>
-                                                                                <VotesLinearProgress variant="determinate" value={(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100)} />
+                                                                                <VotesLinearProgress 
+                                                                                    variant="determinate" 
+                                                                                    value={(((Number(item.account?.options[0].voteWeight))/((Number(item.account?.denyVoteWeight))+(Number(item.account?.options[0].voteWeight))))*100)} 
+                                                                                    sx={{
+                                                                                        bgcolor: (item.account?.state !== 2) ? 'gray' : 'inherit', // Background color when grayed out
+                                                                                        '& .MuiLinearProgress-bar': {
+                                                                                          backgroundColor: (item.account?.state !== 2) ? 'gray' : '#primary.main', // Foreground color when grayed out
+                                                                                        },
+                                                                                    }}
+                                                                                />
                                                                             </Box>
                                                                             <Box sx={{ minWidth: 35 }}>
                                                                                 <Typography
                                                                                     variant="caption"
-                                                                                    sx={{ color: 'text.secondary' }}
+                                                                                    color={(item.account?.state === 2) ? `white` : `gray`}
                                                                                 >{`${
                                                                                     item.account.yesVotesCount ?
                                                                                         Number(item.account.yesVotesCount) > 0 ?
@@ -884,18 +893,9 @@ export function GovernanceCachedView(props: any) {
                 let grealm = null;
 
                 grealm = await getRealmIndexed(governanceAddress);
-                /*
-                if (cachedRealm){
-                    console.log("Realm from cache");
-                    //console.log("cacheRealm: "+JSON.stringify(cachedRealm))
-                    grealm = cachedRealm;    
-                } else{
-                    console.log("Realm from index");
-                    grealm = await getRealmIndexed(governanceAddress);
-                    //if (!grealm)
-                    //    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
-                }
-                */
+                
+                //if (!grealm)
+                //    grealm = await getRealm(RPC_CONNECTION, new PublicKey(governanceAddress))
                 //console.log("grealm: "+JSON.stringify(grealm));
                 setRealm(grealm);
                 setRealmName(grealm.account.name);
@@ -1106,12 +1106,19 @@ export function GovernanceCachedView(props: any) {
                     //console.log("communityMintMaxVoteWeightSource: " + grealm.account.config.communityMintMaxVoteWeightSource.value.toNumber());
                     
                     if (grealm?.account?.config?.useCommunityVoterWeightAddin){
+                        
+                        console.log("Getting Realm Config Address")
+                        
                         const realmConfigPk = await getRealmConfigAddress(
                             programId,
                             realmPk
                         )
                         //console.log("realmConfigPk: "+JSON.stringify(realmConfigPk));
                         try{ 
+
+
+                            console.log("Getting Realm Config")
+
                             const realmConfig = await getRealmConfig(
                                 connection,
                                 realmConfigPk

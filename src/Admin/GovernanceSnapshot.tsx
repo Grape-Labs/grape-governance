@@ -667,7 +667,8 @@ const getWalletAllTokenBalance = async(tokenOwnerRecord: PublicKey) => {
 
     return axios.get(uri, {
         headers: {
-            'x-api-key': SHYFT_KEY
+            'x-api-key': SHYFT_KEY,
+            'Accept-Encoding': 'gzip, deflate, br'
         }
         })
         .then(response => {
