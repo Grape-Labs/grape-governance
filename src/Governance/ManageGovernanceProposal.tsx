@@ -134,7 +134,11 @@ export const getAllProposalSignatories = async(programId:PublicKey, proposalAddr
 
 export const getAllProposalSignatoryRecords = async(programId:PublicKey, proposalAddress:PublicKey, realmPk:PublicKey) => {
     
+    console.log("Start getAllProposalSignatories");
+
     const signatories = await getAllProposalSignatories(programId, proposalAddress);
+    
+    console.log("End getAllProposalSignatories");
     return signatories;
 
     //const memberMap = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58());
