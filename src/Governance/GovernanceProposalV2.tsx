@@ -21,6 +21,7 @@ import {
 import { 
         getRealmIndexed,
         getProposalIndexed,
+        getVoteRecordsIndexed,
         getProposalNewIndexed,
         getAllProposalsIndexed,
         getGovernanceIndexed,
@@ -623,6 +624,8 @@ export function GovernanceProposalV2View(props: any){
         }
     }
 
+
+
     const getVotingParticipants = async () => {
         setLoadingParticipants(true);
 
@@ -791,18 +794,27 @@ export function GovernanceProposalV2View(props: any){
                 //console.log("vresults: "+JSON.stringify(vresults));
                 
                 if (!isFresh){ // voting state we can fetch via rpc
-                    console.log("Start getVoteRecord (RPC)");
+                    console.log("Start getVoteRecord");
+
+                    // these are the voting participants lets fetch this via graphql now
+
                     from_cache = false;
-                    const voteRecords = await getVoteRecords({
-                        connection: connection,
-                        programId: new PublicKey(thisitem.owner || realm.owner),
-                        proposalPk: new PublicKey(thisitem.pubkey),
-                    });
+
+                    const voteRecords = await getVoteRecordsIndexed(
+                        thisitem.pubkey,
+                        (thisitem.owner || realm.owner),
+                        governanceAddress
+                    );
+
                     if (voteRecords?.value){
                         voteRecord = voteRecords.value;//JSON.parse(JSON.stringify(voteRecord));
+                    } else if (voteRecords){
+                        voteRecord = voteRecords;
                     }
-                    console.log("End getVoteRecords (RPC)");
-                
+
+                    console.log("End getVoteRecords");
+                    
+                    console.log("voteRecord: "+JSON.stringify(voteRecord));
                     
                 } else{
                     console.log("Fetching proposal results via Cached Storage")

@@ -21,6 +21,8 @@ import {
     pubkeyFilter,
     getRealmConfig  } from '@solana/spl-governance';
 
+import { getVoteRecords } from '../../utils/governanceTools/getVoteRecords';
+
 export const govOwners = [
     {
         owner: 'GovMaiHfpVPw8BAM1mbdzgmSZYDw2tdP32J2fapoQoYs',
@@ -166,6 +168,31 @@ function GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk?:string, realmOwner?:string)
             }
         }
         
+    `;
+}
+
+function GET_QUERY_VOTERRECORDS(proposalPk?:string, realmOwner?:string){
+
+    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    
+    return gql`
+        query MyQuery {
+            ${programId}_VoteRecordV2(limit: 100, where: {proposal: {_eq: "${proposalPk}"}}) {
+                pubkey
+                proposal
+                governingTokenOwner
+                isRelinquished,
+                voterWeight,
+                vote
+            }
+            ${programId}_VoteRecordV1(limit: 100, where: {proposal: {_eq: "${proposalPk}"}}) {
+                governingTokenOwner
+                isRelinquished
+                lamports
+                proposal
+                voteWeight
+            }
+        }
     `;
 }
 
@@ -1401,3 +1428,63 @@ export const getProposalNewIndexed = async (proposalPk?:any, realmOwner?:any, re
         return indexedProp[0];
     }
 };
+
+
+export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, realmPk?:any) => {
+    
+    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    
+    const indexedRecord = new Array();
+
+    try{
+        const { data } = await client.query({ query: GET_QUERY_VOTERRECORDS(proposalPk, realmOwner) });
+            {
+                data[programName+"_VoteRecordV2"] && data[programName+"_VoteRecordV2"].map((account) => {
+                    indexedRecord.push({
+                        owner: programId,
+                        pubkey: new PublicKey(account?.pubkey),
+                        account:{
+                            accountType: account?.accountType || 12,
+                            proposal: new PublicKey(account.proposal),
+                            governingTokenOwner: new PublicKey(account.governingTokenOwner),
+                            isRelinquished: account.isRelinquiched,
+                            voterWeight: account.voterWeight,
+                            vote: account.vote,
+                        }
+                    })
+                });
+
+                data[programName+"_VoteRecordV1"] && data[programName+"_VoteRecordV1"].map((account) => {
+                    indexedRecord.push({
+                        owner: programId,
+                        pubkey: new PublicKey(account?.pubkey),
+                        account:{
+                            accountType: account?.accountType || 12,
+                            proposal: new PublicKey(account.proposal),
+                            governingTokenOwner: new PublicKey(account.governingTokenOwner),
+                            isRelinquished: account.isRelinquiched,
+                            voteWeight: account.voteWeight
+                        }
+                    })
+                });
+            }
+        } catch(e){
+            console.log("Vote Record Index Err Reverting to RPC");
+        }
+        
+        if ((!indexedRecord || indexedRecord.length <= 0) && realmPk){ // fallback to RPC call is governance not found in index
+            console.log("using getVoteRecords");
+            const voteRecords = await getVoteRecords({
+                connection: RPC_CONNECTION,
+                programId: new PublicKey(programId),
+                proposalPk: new PublicKey(proposalPk),
+            });
+            //console.log("RPC voteRecord: "+JSON.stringify(voteRecords));
+            return voteRecords;
+        } else{
+
+            console.log("VoteRecords: "+JSON.stringify(indexedRecord));
+            return indexedRecord;
+        }
+}

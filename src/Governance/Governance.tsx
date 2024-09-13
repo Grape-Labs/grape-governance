@@ -941,7 +941,9 @@ export function GovernanceCachedView(props: any) {
                 
                 let gTD = 0;
                 
-                let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account?.communityMint))
+                let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account?.communityMint));
+                // do we need to use DAS for this to make it faster?
+
                 //console.log("tokenDetails: "+JSON.stringify(tokenDetails))
                 gTD = tokenDetails.value.data.parsed.info.decimals;
                 
