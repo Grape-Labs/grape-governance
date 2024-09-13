@@ -486,6 +486,7 @@ export default function WalletCardView(props:any) {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept-Encoding': 'gzip, deflate, br'
                     },
                     body: JSON.stringify({
                         jsonrpc: '2.0',
@@ -528,7 +529,8 @@ export default function WalletCardView(props:any) {
     
         return axios.get(uri, {
             headers: {
-                'x-api-key': SHYFT_KEY
+                'x-api-key': SHYFT_KEY,
+                'Accept-Encoding': 'gzip, deflate, br'
             }
             })
             .then(response => {
@@ -551,7 +553,8 @@ export default function WalletCardView(props:any) {
         
         return axios.get(uri, {
                 headers: {
-                    'x-api-key': SHYFT_KEY
+                    'x-api-key': SHYFT_KEY,
+                    'Accept-Encoding': 'gzip, deflate, br'
                 }
                 })
             .then(response => {
@@ -575,7 +578,8 @@ export default function WalletCardView(props:any) {
         
         return axios.get(uri, {
                 headers: {
-                    'x-api-key': SHYFT_KEY
+                    'x-api-key': SHYFT_KEY,
+                    'Accept-Encoding': 'gzip, deflate, br'
                 }
                 })
             .then(response => {
@@ -598,7 +602,8 @@ export default function WalletCardView(props:any) {
         
         return axios.get(uri, {
                 headers: {
-                    'x-api-key': SHYFT_KEY
+                    'x-api-key': SHYFT_KEY,
+                    'Accept-Encoding': 'gzip, deflate, br'
                 }
                 })
             .then(response => {
