@@ -782,6 +782,7 @@ export function GovernanceProposalV2View(props: any){
                     isFresh = true;
                 }
 
+
                 if (!voteRecord &&
                     (Number("0x"+vresults?.account?.options[0]?.voteWeight) > 0 ||
                         Number("0x"+vresults?.account?.denyVoteWeight) > 0
@@ -793,6 +794,8 @@ export function GovernanceProposalV2View(props: any){
                 // check if there are voters but no voter record!
                 //console.log("vresults: "+JSON.stringify(vresults));
                 
+                isFresh = false; //a always refresh
+
                 if (!isFresh){ // voting state we can fetch via rpc
                     console.log("Start getVoteRecord");
 
@@ -814,7 +817,7 @@ export function GovernanceProposalV2View(props: any){
 
                     console.log("End getVoteRecords");
                     
-                    console.log("voteRecord: "+JSON.stringify(voteRecord));
+                    //console.log("voteRecord: "+JSON.stringify(voteRecord));
                     
                 } else{
                     console.log("Fetching proposal results via Cached Storage")
