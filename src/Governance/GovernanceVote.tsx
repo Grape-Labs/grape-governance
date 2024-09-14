@@ -464,12 +464,12 @@ export function VoteForProposal(props:any){
                     enqueueSnackbar(`You have removed your partipation from this proposal`,{ variant: 'success', action });
 
                     // trigger a refresh here...
-                    /*
+                    
                     const redirectTimer = setTimeout(() => {
+                        setOpen(false);
                         getVotingParticipants();
                     }, 3000); // 3 seconds*/
-                    setOpen(false);
-                    getVotingParticipants();
+                    //getVotingParticipants();
                 }catch(e:any){
                     enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
                 } 
@@ -670,11 +670,11 @@ export function VoteForProposal(props:any){
                         enqueueSnackbar(`Congratulations, you have participated in voting for this Proposal`,{ variant: 'success', action });
 
                         // trigger a refresh here...
-                        /*
+                        
                         const redirectTimer = setTimeout(() => {
                             getVotingParticipants();
                         }, 3000); // 3 seconds*/
-                        getVotingParticipants();
+                        //getVotingParticipants();
                     }catch(e:any){
                         enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
                     } 
