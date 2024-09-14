@@ -654,7 +654,7 @@ export const getProposalInstructionsIndexed = async (filterRealm?:any, proposalP
 
     const allProposalIx = new Array();
     try{
-        const { data } = await client.query({ query: GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk, programId) });
+        const { data } = await client.query({ query: GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk, programId), fetchPolicy: 'no-cache' });
         
         data[programId+"_ProposalTransactio"] && data[programId+"_ProposalTransactio"].map((item) => {
             if (item?.instructions){
@@ -717,7 +717,7 @@ export const getRealmIndexed = async (filterRealm?:any) => {
         const allRealms = new Array();
 
         try{
-            const { data } = await client.query({ query: GET_QUERY_REALM(filterRealm, programId) });
+            const { data } = await client.query({ query: GET_QUERY_REALM(filterRealm, programId), fetchPolicy: 'no-cache' });
             // normalize data
             
             //console.log("data: "+JSON.stringify(data));
@@ -813,7 +813,7 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
 
     if (filterRealm){
         try{
-            const { data } = await client.query({ query: GET_QUERY_RULES(filterRealm, programName) });
+            const { data } = await client.query({ query: GET_QUERY_RULES(filterRealm, programName), fetchPolicy: 'no-cache' });
             // normalize data
             
             data[programName+"_GovernanceV2"] && data[programName+"_GovernanceV2"].map((item) => {
@@ -872,7 +872,7 @@ export const getAllGovernancesIndexed = async (filterRealm?:any, realmOwner?:any
 
 export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:any, realmOwner?:any, tokenOwner?:any) => {
     const programId = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const { data } = await client.query({ query: GET_QUERY_ALL_TOKEN_OWNER_RECORDS(tokenOwner, realmOwner) });
+    const { data } = await client.query({ query: GET_QUERY_ALL_TOKEN_OWNER_RECORDS(tokenOwner, realmOwner), fetchPolicy: 'no-cache' });
 
     const allResults = new Array();
     data[programId+"_TokenOwnerRecordV1"] && data[programId+"_TokenOwnerRecordV1"].map((item) => {
@@ -963,7 +963,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
             while (hasMore){
                 console.log("Fetching tokenOwnerRecords page: "+x);
                 const { data } = await client.query({ 
-                    query: GET_QUERY_MEMBERS(filterRealm, programName, x, tokenOwner)});//,
+                    query: GET_QUERY_MEMBERS(filterRealm, programName, x, tokenOwner), fetchPolicy: 'no-cache'});//,
                     //variables: { first: 1000, after: x } });
                 
                 /*
@@ -1138,7 +1138,7 @@ export const getAllProposalsIndexed = async (filterGovernance?:any, realmOwner?:
 
         //console.log("programId: "+programId);
 
-        const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, programName, uniqueOwners) });
+        const { data } = await client.query({ query: GET_QUERY_PROPOSALS(filterGovernance, programName, uniqueOwners), fetchPolicy: 'no-cache' });
         if (uniqueOwners && data){
             for (var ownerItem of uniqueOwners){
                 data[ownerItem.name+"_ProposalV2"] && data[ownerItem.name+"_ProposalV2"].map((account) => {
@@ -1331,7 +1331,7 @@ export const getProposalNewIndexed = async (proposalPk?:any, realmOwner?:any, re
 
     try{
 
-        const { data } = await client.query({ query: GET_QUERY_PROPOSAL(proposalPk, realmOwner) });
+        const { data } = await client.query({ query: GET_QUERY_PROPOSAL(proposalPk, realmOwner), fetchPolicy: 'no-cache' });
         {
             data[programName+"_ProposalV2"] && data[programName+"_ProposalV2"].map((account) => {
                 const options = account?.options?.map && account.options.map((option) => {
@@ -1438,7 +1438,8 @@ export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, re
     const indexedRecord = new Array();
 
     try{
-        const { data } = await client.query({ query: GET_QUERY_VOTERRECORDS(proposalPk, realmOwner) });
+        
+        const { data } = await client.query({ query: GET_QUERY_VOTERRECORDS(proposalPk, realmOwner), fetchPolicy: 'no-cache' });
             {
                 data[programName+"_VoteRecordV2"] && data[programName+"_VoteRecordV2"].map((account) => {
                     indexedRecord.push({
@@ -1474,7 +1475,7 @@ export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, re
         }
         
         if ((!indexedRecord || indexedRecord.length <= 0) && realmPk){ // fallback to RPC call is governance not found in index
-            console.log("using getVoteRecords");
+            console.log("Using RPC getVoteRecords");
             const voteRecords = await getVoteRecords({
                 connection: RPC_CONNECTION,
                 programId: new PublicKey(programId),
