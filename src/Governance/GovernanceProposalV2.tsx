@@ -794,8 +794,6 @@ export function GovernanceProposalV2View(props: any){
                 // check if there are voters but no voter record!
                 //console.log("vresults: "+JSON.stringify(vresults));
                 
-                isFresh = false; //a always refresh
-
                 if (!isFresh){ // voting state we can fetch via rpc
                     console.log("Start getVoteRecord");
 
