@@ -171,6 +171,32 @@ function GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk?:string, realmOwner?:string)
     `;
 }
 
+// This will show all votes casted by the governingTokenOwner in general
+function GET_QUERY_VOTERRECORDS_BY_TOKENOWNER(proposalPk?:string, realmOwner?:string, tokenOwner?:string){
+
+    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    
+    return gql`
+        query MyQuery {
+            ${programId}_VoteRecordV2(limit: 100, where: {governingTokenOwner: {_eq: "${tokenOwner}"}}) {
+                pubkey
+                proposal
+                governingTokenOwner
+                isRelinquished,
+                voterWeight,
+                vote
+            }
+            ${programId}_VoteRecordV1(limit: 100, where: {governingTokenOwner: {_eq: "${tokenOwner}"}}) {
+                governingTokenOwner
+                isRelinquished
+                lamports
+                proposal
+                voteWeight
+            }
+        }
+    `;
+}
+
 function GET_QUERY_VOTERRECORDS(proposalPk?:string, realmOwner?:string){
 
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
