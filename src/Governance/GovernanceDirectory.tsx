@@ -570,10 +570,12 @@ export function GovernanceDirectoryView(props: Props) {
 
             // go through it one more time to merge gspldir data
             for (var item of sorted){
-                for (var diritem of gspldir){
-                    if (item.governanceName === diritem.name){ // also make sure that diritem.governanceProgram ===item.parent?
-                        item.gspl = diritem;
-                        console.log("GSPL Entry found for "+item.governanceName);
+                if (gspldir){
+                    for (var diritem of gspldir){
+                        if (item.governanceName === diritem.name){ // also make sure that diritem.governanceProgram ===item.parent?
+                            item.gspl = diritem;
+                            console.log("GSPL Entry found for "+item.governanceName);
+                        }
                     }
                 }
             }
