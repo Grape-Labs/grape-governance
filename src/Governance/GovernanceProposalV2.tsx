@@ -2921,7 +2921,8 @@ export function GovernanceProposalV2View(props: any){
                                                         </Typography>
                                                     </Box>
 
-                                                    {(publicKey && proposalSignatories && proposalSignatories.length > 0 && +thisitem.account.state === 0) &&
+                                                    
+                                                   {(publicKey && proposalSignatories && proposalSignatories.length > 0 && (+thisitem.account.state === 0 || +thisitem.account.state === 1)) &&
                                                         <>
                                                             <Box sx={{ my: 3, mx: 2 }}>
                                                                 <Grid container alignItems="center">
