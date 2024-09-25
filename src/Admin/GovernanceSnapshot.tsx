@@ -660,7 +660,6 @@ const getAllDomains = async(address: string) => {
     return null;
 }
 
-
 const getWalletAllTokenBalance = async(tokenOwnerRecord: PublicKey) => {
 
     const uri = `https://api.shyft.to/sol/v1/wallet/all_tokens?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}`;
