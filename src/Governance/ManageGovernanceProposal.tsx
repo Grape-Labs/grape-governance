@@ -416,7 +416,7 @@ export function ManageGovernanceProposal(props: any){
                 programVersion,
                 proposalAddress,
                 tokenOwnerRecordPk,//tokenOwnerRecordPk,//new PublicKey(newAuthor),//tokenOwnerRecordPk,//new PublicKey(newAuthor),
-                new PublicKey(signer),//governanceAuthority,
+                new PublicKey(governanceAuthority),//governanceAuthority,
                 new PublicKey(signer),//signatoryRecordAddress,
                 payer
             );    
@@ -425,7 +425,7 @@ export function ManageGovernanceProposal(props: any){
             if (instructions && instructions.length > 0){
                 const signature = await createAndSendV0TxInline(instructions);
                 if (signature){
-                    enqueueSnackbar(`Signed Off Proposal - ${signature}`,{ variant: 'success' });
+                    enqueueSnackbar(`Added signatory - ${signature}`,{ variant: 'success' });
                     
                     if (setReload) 
                         setReload(true);
