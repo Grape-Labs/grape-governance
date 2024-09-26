@@ -708,8 +708,9 @@ export function GovernanceProposalV2View(props: any){
         }
 
         // get all signatories
+        //if (thisitem.account.state === 0 || thisitem.account.state === 1){
+            //console.log("signatories: "+thisitem.account.signatoriesCount);
 
-        if (thisitem.account.state === 0 || thisitem.account.state === 1){
             if (thisitem.account.signatoriesCount > 1){
                 // how many signed off? check signatoriesSignedOffCount
                 console.log("test "+new PublicKey(thisitem.owner || realm.owner).toBase58());
@@ -717,7 +718,7 @@ export function GovernanceProposalV2View(props: any){
                 console.log("allSignatoryRecords: "+JSON.stringify(allSignatoryRecords));
                 setProposalSignatories(allSignatoryRecords)
             }
-        }
+        //}
 
         //if (thisitem.account?.state === 2){ // if voting state
             const thisQuorum = await getGovernanceProps()
@@ -2922,7 +2923,7 @@ export function GovernanceProposalV2View(props: any){
                                                     </Box>
 
                                                     
-                                                   {(publicKey && proposalSignatories && proposalSignatories.length > 0 && (+thisitem.account.state === 0 || +thisitem.account.state === 1)) &&
+                                                   {(publicKey && proposalSignatories && proposalSignatories.length > 0) &&
                                                         <>
                                                             <Box sx={{ my: 3, mx: 2 }}>
                                                                 <Grid container alignItems="center">
