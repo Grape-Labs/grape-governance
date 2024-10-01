@@ -185,9 +185,16 @@ export function MyGovernanceView(props: any){
             recentBlockhash: latestBlockhash.blockhash,
             instructions: txInstructions
         }).compileToV0Message();
+
+
         console.log("   ✅ - Compiled transaction message");
         const transaction = new VersionedTransaction(messageV0);
-    
+
+        const sim = await RPC_CONNECTION.simulateTransaction(transaction);
+        console.log("Sim: "+JSON.stringify(sim));
+
+
+
         // Step 3 - Sign your transaction with the required `Signers`
         //transaction.addSignature(publicKey);
         //transaction.sign(wallet);
@@ -241,20 +248,79 @@ export function MyGovernanceView(props: any){
         //console.log("tor: "+JSON.stringify(tor))
         
         //console.log("gtor: ",gtor)
+
+        // so we get all unreliquished, now get the daos?
+
+        // lets filter out now the governance proposals first
+
+        
+        const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58(), programId.toBase58());
+        const gaccounts = await getAllGovernancesIndexed(realmPk.toBase58(), programId.toBase58());
+        const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
+        const gprops = await getAllProposalsIndexed(governanceRulesStrArr, programId, realmPk);
+        // loop all items and push to a new array
+        //console.log("props: "+JSON.stringify(gprops));
+        //console.log("gtor: "+JSON.stringify(gtor));
+        
+        
+        // now with gprops & gtor we need to match the two to find the respective proposals that are not relinquished
+        const thisGtor = new Array();
+        if (gtor && gtor.length > 0){
+            let counter = 0;
+            for (var item of gtor){
+                if (gprops && gprops.length > 0){
+                    for (var propitem of gprops){
+                        // get the prop publickey and compare with the gtor publickey
+                        if (propitem.account.state === 5){
+                            if (propitem.pubkey.toBase58() === item.account.proposal.toBase58()){
+                                //console.log("FOUND RELEASABLE: "+propitem.pubkey.toBase58() + " v "+ item.pubkey.toBase58());
+
+                                /*
+                                const GOVERNANCE_STATE = {
+                                    0:'Draft',
+                                    1:'Signing Off',
+                                    2:'Voting',
+                                    3:'Succeeded',
+                                    4:'Executing',
+                                    5:'Completed',
+                                    6:'Cancelled',
+                                    7:'Defeated',
+                                    8:'Executing w/errors!',
+                                    9:'Vetoed',
+                                }*/
+
+                                thisGtor.push(item);
+                            }
+                        }
+
+                    }
+                }
+            }
+            //console.log("Releasable: "+thisGtor.length);
+
+        }
+        
+        
+        
         const txInstructions: TransactionInstruction[] = []
         let props = new Array();
-        if (gtor && gtor.length > 0){
-            //console.log("gtor1: "+JSON.stringify(gtor[0]))
-            for (var item of gtor){
+        if (thisGtor && thisGtor.length > 0){
+            let counter = 0;
+            for (var item of thisGtor){
+
+                //console.log("item: "+JSON.stringify(item))
                 
+                counter++;
+
+                console.log("Verifing relinquishable vote: "+counter+" of "+thisGtor.length);
+                enqueueSnackbar(`Verifing relinquishable vote: ${counter} of ${thisGtor.length}`,{ variant: 'info' });
+
                 //const proposal = await getProposal(RPC_CONNECTION, item.account.proposal);
                 //const gaccounts = await getAllGovernances(RPC_CONNECTION, programId, realmPk);
                 
-                const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58(), programId.toBase58());
-                const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
+                //const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58(), programId.toBase58());
+                //const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
                 const proposal = await getProposalIndexed(governanceRulesIndexed, programId.toBase58(), realmPk.toBase58(), item.account.proposal.toBase58());
-                const gaccounts = await getAllGovernancesIndexed(realmPk.toBase58(), programId.toBase58());
-                
                 
                 //const gaccounts = await getAllGovernancesIndexed(realmPk, )
                 
@@ -276,7 +342,7 @@ export function MyGovernanceView(props: any){
                         
                         console.log("****** "+proposal.account.name+" ******");
                         console.log("proposal.owner "+proposal.owner.toBase58());
-                        console.log("programVersion "+publicKey.toBase58());
+                        console.log("programId "+programId.toBase58());
                         console.log("realmPk "+realmPk.toBase58());
                         console.log("governance "+proposal.account.governance.toBase58());
                         console.log("proposal "+proposal.pubkey.toBase58());
@@ -291,27 +357,29 @@ export function MyGovernanceView(props: any){
                         //const programId = governance.owner;
                         const programVersion = await getGovernanceProgramVersion(
                             RPC_CONNECTION,
-                            proposal.owner,
+                            programId,
                         )
                         
-                        const voteRecordPk = await getVoteRecordAddress(
-                            programId,
-                            proposal.pubkey,
-                            publicKey
-                          )
+                        console.log("programVersion "+programVersion);
+                        
+                        //const voteRecordPk = await getVoteRecordAddress(
+                        //    programId,
+                        //    proposal.pubkey,
+                        //    publicKey
+                        //  )
                         
                         const instructions: TransactionInstruction[] = []
                         
                         await withRelinquishVote(
                             instructions,
-                            proposal.owner,//programId,
+                            programId,
                             programVersion!,
                             realmPk,
                             proposal.account.governance,
                             proposal.pubkey,
-                            new PublicKey("FYsr8MBC4mgcttEuc8sdtsBgbnfMoBwedWXsjyss8tnb"),//proposal.account.tokenOwnerRecord,
+                            proposal.account.tokenOwnerRecord,
                             proposal.account.governingTokenMint,
-                            item.pubkey,
+                            publicKey,//item.pubkey,
                             item.account.governingTokenOwner,
                             publicKey
                         )
@@ -323,11 +391,13 @@ export function MyGovernanceView(props: any){
                 }
                 //}
             }
+            
+            if (txInstructions && txInstructions.length > 0){
+                createAndSendV0Tx(txInstructions);
+            }
+        } else{
+            enqueueSnackbar(`Currently there are proposals that have not been finalized! Please finalize those proposals to relinquish the casted votes`,{ variant: 'warning' });
         }
-        if (txInstructions && txInstructions.length > 0){
-            createAndSendV0Tx(txInstructions);
-        }
-        
     }
 
     const getTokens = async () => {
