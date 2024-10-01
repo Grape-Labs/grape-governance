@@ -711,7 +711,7 @@ export function GovernanceProposalV2View(props: any){
         //if (thisitem.account.state === 0 || thisitem.account.state === 1){
             //console.log("signatories: "+thisitem.account.signatoriesCount);
 
-            if (thisitem.account.signatoriesCount > 1){
+            if (thisitem.account.signatoriesCount > 0){
                 // how many signed off? check signatoriesSignedOffCount
                 console.log("test "+new PublicKey(thisitem.owner || realm.owner).toBase58());
                 const allSignatoryRecords = await getAllProposalSignatoryRecords(new PublicKey(thisitem.owner || realm.owner), new PublicKey(thisitem.pubkey), new PublicKey(governanceAddress))
@@ -2929,7 +2929,7 @@ export function GovernanceProposalV2View(props: any){
                                                                 <Grid container alignItems="center">
                                                                     <Grid item xs>
                                                                         <Typography gutterBottom variant="subtitle1" component="div">
-                                                                            Signers {proposalSignatories.length}
+                                                                            Signers {(proposalSignatories.length && proposalSignatories.length > 1) ? `${proposalSignatories.length}` : ``}
                                                                         </Typography>
                                                                     </Grid>
                                                                     <Grid item>
@@ -2942,8 +2942,30 @@ export function GovernanceProposalV2View(props: any){
                                                                                 <br/>Signer: {filteredItem.account.signatory.toBase58()}
                                                                                 <><br/></>Status: {filteredItem.account.signedOff ? `true` : `false`}
                                                                                 */}
+
+<br/>
+                                                                                    <ButtonGroup>
+                                                                                        <Button
+                                                                                            color='inherit'
+                                                                                            variant='text'
+                                                                                            disabled={true}
+                                                                                        >
+                                                                                        {filteredItem.account.signedOff ? 
+                                                                                            <CheckCircleIcon color='success' />
+                                                                                        : 
+                                                                                            <RadioButtonUncheckedIcon />
+                                                                                        }
+                                                                                        </Button>
+                                                                                        <ExplorerView 
+                                                                                            address={filteredItem.account.signatory.toBase58()} 
+                                                                                            type='address' 
+                                                                                            shorten={4} 
+                                                                                            hideTitle={false} 
+                                                                                            style='text' color='white' fontSize='14px' />
+                                                                                    </ButtonGroup>
+
                                                                                     {(filteredItem.account.signatory.toBase58() === publicKey.toBase58() && filteredItem.account.signedOff === false) ? 
-                                                                                    
+                                                                                        <>
                                                                                         <Grid container alignItems="center">
                                                                                             <ManageGovernanceProposal 
                                                                                                 governanceAddress={governanceAddress}
@@ -2960,28 +2982,10 @@ export function GovernanceProposalV2View(props: any){
                                                                                                 mode={1} // signoff
                                                                                             />
                                                                                         </Grid>
+                                                                                        </>
                                                                                     :
                                                                                         <>
-                                                                                            <br/>
-                                                                                            <ButtonGroup>
-                                                                                                <Button
-                                                                                                    color='inherit'
-                                                                                                    variant='text'
-                                                                                                    disabled={true}
-                                                                                                >
-                                                                                                {filteredItem.account.signedOff ? 
-                                                                                                    <CheckCircleIcon color='success' />
-                                                                                                : 
-                                                                                                    <RadioButtonUncheckedIcon />
-                                                                                                }
-                                                                                                </Button>
-                                                                                                <ExplorerView 
-                                                                                                    address={filteredItem.account.signatory.toBase58()} 
-                                                                                                    type='address' 
-                                                                                                    shorten={4} 
-                                                                                                    hideTitle={false} 
-                                                                                                    style='text' color='white' fontSize='14px' />
-                                                                                            </ButtonGroup>
+                                                                                            
                                                                                         </>
                                                                                     }
                                                                                 </>
