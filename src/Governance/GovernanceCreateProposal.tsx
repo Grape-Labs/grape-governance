@@ -648,7 +648,6 @@ export default function GovernanceCreateProposalView(props: any){
         let tGist = null;
         if (parts.length > 1)
             tGist = parts[2];
-        
         //setGist(tGist);
 
         //const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
@@ -1700,6 +1699,16 @@ export default function GovernanceCreateProposalView(props: any){
       
     }, []);
 
+    /*
+    const nextFieldRef = React.useRef(null); // Reference to the next input field
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault(); // Prevent default tab behavior
+        nextFieldRef.current.focus(); // Focus the next input field
+      }
+    };*/
+
     return (
         <>
         {!publicKey ?
@@ -1921,6 +1930,7 @@ export default function GovernanceCreateProposalView(props: any){
                                         if (!title || title.length < maxTitleLen)
                                             setTitle(e.target.value)
                                         }}
+                                    //onKeyDown={handleKeyDown} // Handle Tab key
                                     sx={{borderRadius:'17px', maxlength:maxTitleLen}} 
                                 />
                                 <Grid sx={{textAlign:'right',}}>
