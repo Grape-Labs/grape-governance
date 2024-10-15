@@ -36,7 +36,7 @@
     "targets": {
         "node": {
             "context": "node",
-            "distDir": "dist-server"
+            "distDir": "dist"
             
             }
     },
