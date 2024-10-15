@@ -37,6 +37,7 @@
         "node": {
             "context": "node",
             "distDir": "dist-server"
+            
             }
     },
     "peerDependencies": {
