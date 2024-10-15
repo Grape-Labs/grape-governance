@@ -33,6 +33,7 @@ import {
   Switch,
 } from '@mui/material/';
 
+import { Helmet } from 'react-helmet';
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
 
@@ -1634,6 +1635,29 @@ export function GovernanceCachedView(props: any) {
                                         sx={{
                                         }}
                                     >
+
+                                        <Helmet>
+                                            <meta name="msapplication-TileImage" content="./public/ms-icon-144x144.png"/>
+                                            <meta name="msapplication-TileColor" content="#180A1E"/>
+                                            <meta name="msapplication-TileImage" content="./public/ms-icon-144x144.png"/>
+                                        
+                                            <meta name="description" content={`${realmName} powered by Governance.so by Grape`} />
+                                            <title>{`${realmName}`}</title>
+                                            
+                                            <meta property="og:url" content="https://governance.so"/>
+                                            <meta property="og:type" content="website"/>
+                                            <meta property="og:title" content={`${realmName}`}/>
+                                            <meta property="og:description" content={`${realmName} powered by Governance.so by Grape`}/>
+                                            <meta property="og:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplash.png"/>  
+                                            
+                                            <meta name="twitter:card" content="summary_large_image"/>
+                                            <meta name="twitter:title" content={`${realmName}`}/>
+                                            <meta name="twitter:site" content="@grapeprotocol"/>
+                                            <meta name="twitter:description" content={`${realmName} powered by Governance.so by Grape`}/>
+                                            <meta name="twitter:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplash.png"/>
+                                            <meta name="twitter:image:alt" content={`${realmName}`}/>
+                                        </Helmet>
+
                                         <Grid item xs={6} container justifyContent="flex-start">
                                             <Grid container>
                                                 <Grid item xs={12}>
