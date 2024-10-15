@@ -3,6 +3,7 @@ const React = require('react');
 const { renderToString } = require('react-dom/server');
 const fs = require('fs');
 const path = require('path');
+const { Helmet } = require('react-helmet');
 const App = require('./src/App').default;
 
 const app = express();
@@ -10,7 +11,11 @@ const app = express();
 app.use(express.static(path.resolve(__dirname, 'dist')));
 
 app.get('*', (req, res) => {
-    const app = renderToString(<App />);
+    // Render the React app to a string
+    const appString = renderToString(<App />);
+
+    // Extract helmet data after rendering
+    const helmet = Helmet.renderStatic();
 
     const indexFile = path.resolve(__dirname, 'dist/index.html');
     fs.readFile(indexFile, 'utf8', (err, data) => {
@@ -19,8 +24,12 @@ app.get('*', (req, res) => {
             return res.status(500).send('Error loading page');
         }
 
+        // Inject the app string and helmet tags into the HTML
         return res.send(
-            data.replace('<div id="root"></div>', `<div id="root">${app}</div>`)
+            data
+              .replace('<div id="root"></div>', `<div id="root">${appString}</div>`)
+              .replace('<title></title>', helmet.title.toString())
+              .replace('<meta name="description" content="">', helmet.meta.toString())
         );
     });
 });

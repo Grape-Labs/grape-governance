@@ -33,13 +33,6 @@
         "xnft-start": "xnft watch",
         "xnft-dev": "xnft dev"
     },
-    "targets": {
-        "node": {
-        "context": "node",
-        "source": "src/server/index.js",
-        "distDir": "dist-server"
-        }
-    },
     "peerDependencies": {
         "react": "^17.0.0 || ^18.0.0"
     },
