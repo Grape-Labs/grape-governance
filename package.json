@@ -33,12 +33,6 @@
         "xnft-start": "xnft watch",
         "xnft-dev": "xnft dev"
     },
-    "targets": {
-        "node": {
-            "context": "node"
-            
-            }
-    },
     "peerDependencies": {
         "react": "^17.0.0 || ^18.0.0"
     },
