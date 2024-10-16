@@ -698,6 +698,7 @@ export default function ExplorerView(props:any){
                             </ListItemIcon>
                             Solana Beach
                     </MenuItem>
+                    {/*
                     <MenuItem 
                         color='inherit'
                         component='a'
@@ -709,6 +710,7 @@ export default function ExplorerView(props:any){
                             </ListItemIcon>
                             XRay
                     </MenuItem>
+                    */}
                     
                     {twitterRegistration &&
                         <>
