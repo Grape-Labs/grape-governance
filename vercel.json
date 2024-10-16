@@ -1,5 +1,22 @@
 {
   "version": 2,
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/dist/static/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist-server/index.js"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron",
