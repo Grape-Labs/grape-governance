@@ -1,5 +1,11 @@
 {
   "version": 2,
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/dist-server/index.js"
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron",
