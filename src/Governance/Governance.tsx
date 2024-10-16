@@ -1635,7 +1635,7 @@ export function GovernanceCachedView(props: any) {
                                         sx={{
                                         }}
                                     >
-
+                                        {/*
                                         <Helmet>
                                             <meta name="msapplication-TileImage" content="./public/ms-icon-144x144.png"/>
                                             <meta name="msapplication-TileColor" content="#180A1E"/>
@@ -1657,6 +1657,7 @@ export function GovernanceCachedView(props: any) {
                                             <meta name="twitter:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplash.png"/>
                                             <meta name="twitter:image:alt" content={`${realmName}`}/>
                                         </Helmet>
+                                        */}
 
                                         <Grid item xs={6} container justifyContent="flex-start">
                                             <Grid container>

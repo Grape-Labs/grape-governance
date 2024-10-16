@@ -1,6 +1,6 @@
 {
     "name": "@omg-labs/grape-governance",
-    "version": "1.1.103",
+    "version": "1.2.00",
     "author": "Solana Governance",
     "repository": "https://github.com/omg-labs/grape-governance",
     "license": "Apache-2.0",
@@ -20,9 +20,11 @@
         "tsconfig.json"
     ],
     "scripts": {
-        "clean": "shx rm -rf dist .parcel-cache",
-        "build:client": "parcel build --public-url ./dist/ src/index.html",
-        "build:server": "parcel build ./dist-server --target node server/index.js",
+        "clean": "shx rm -rf dist dist-server .parcel-cache",
+        "build:client": "yarn clean && parcel build src/index.html --no-source-maps --dist-dir dist",
+        "build:server": "parcel build src/server/index.js --target node --dist-dir dist-server",
+        "buildNew": "yarn build:client && yarn build:server",
+        "startServer": "node dist-server/index.js",
         "build": "yarn clean && parcel build src/index.html --no-source-maps",
         "start": "yarn clean && parcel src/index.html",
         "fmt": "prettier --write '{*,**/*}.{js,ts,jsx,tsx,json}'",
@@ -248,6 +250,8 @@
         "watcherGlob": "**"
     },
     "reactSnap": {
-        "source": "dist"
+        "source": "dist-server",
+        "inlineCss": true,
+        "minifyHtml": true
     }
 }
