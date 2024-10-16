@@ -21,7 +21,7 @@
     ],
     "scripts": {
         "clean": "shx rm -rf dist dist-server .parcel-cache",
-        "build:client": "yarn clean && parcel build src/index.html --no-source-maps",
+        "build:client": "yarn clean && parcel build src/index.html --no-source-maps --dist-dir dist",
         "build:server": "parcel build src/server/index.js --target node --dist-dir dist-server",
         "build": "yarn build:client && yarn build:server",
         "start": "yarn clean && parcel src/index.html",
@@ -34,9 +34,10 @@
         "xnft-dev": "xnft dev"
     },
     "targets": {
+        "client": {
+        },
         "node": {
-            "context": "node",
-            "distDir": "dist"
+            "context": "node"
             
             }
     },

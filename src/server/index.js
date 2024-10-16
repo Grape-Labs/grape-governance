@@ -1,35 +1,39 @@
-import express from 'express';
-import path from 'path';
-import React from 'react';
-import ReactDOMServer from 'react-dom/server';
-import App from '../App'; // Your main App component
+const express = require('express');
+const React = require('react');
+const { renderToString } = require('react-dom/server');
+const fs = require('fs');
+const path = require('path');
+const { Helmet } = require('react-helmet');
+const App = require('../App').default;
 
 const app = express();
 
-// Serve static files from the dist directory
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.resolve(__dirname, 'dist')));
 
-// Handle all requests
 app.get('*', (req, res) => {
-    const appString = ReactDOMServer.renderToString(<App />); // Render your app
-    const indexFile = path.resolve('dist/index.html');
+    // Render the React app to a string
+    const appString = renderToString(<App />);
 
-    // Read the HTML template
+    // Extract helmet data after rendering
+    const helmet = Helmet.renderStatic();
+
+    const indexFile = path.resolve(__dirname, 'dist/index.html');
     fs.readFile(indexFile, 'utf8', (err, data) => {
         if (err) {
-            console.log(err);
-            return res.status(500).send('Error loading index.html');
+            console.error('Error reading index.html', err);
+            return res.status(500).send('Error loading page');
         }
 
-        // Replace the placeholder in the HTML with the rendered app
+        // Inject the app string and helmet tags into the HTML
         return res.send(
-            data.replace('<div id="root"></div>', `<div id="root">${appString}</div>`)
+            data
+              .replace('<div id="root"></div>', `<div id="root">${appString}</div>`)
+              .replace('<title></title>', helmet.title.toString())
+              .replace('<meta name="description" content="">', helmet.meta.toString())
         );
     });
 });
 
-// Start the server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+app.listen(3000, () => {
+    console.log('Server is running on http://localhost:3000');
 });
