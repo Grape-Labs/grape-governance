@@ -1,39 +1,37 @@
-const express = require('express');
-const React = require('react');
-const { renderToString } = require('react-dom/server');
-const fs = require('fs');
-const path = require('path');
-const { Helmet } = require('react-helmet');
-const App = require('../App').default;
+import { renderToString } from 'react-dom/server';
+import fs from 'fs/promises'; // Use fs/promises for async/await support
+import path from 'path';
+import { Helmet } from 'react-helmet';
+import App from '../App'; // Adjust path as necessary
 
-const app = express();
+const server = express();
+const PORT = process.env.PORT || 3000;
 
-app.use(express.static(path.resolve(__dirname, 'dist')));
+server.use(express.static(path.resolve('dist'))); // Serve static files from the dist folder
 
-app.get('*', (req, res) => {
-    // Render the React app to a string
+server.get('*', async (req, res) => {
+  try {
+    // Render the App to a string
     const appString = renderToString(<App />);
-
-    // Extract helmet data after rendering
     const helmet = Helmet.renderStatic();
 
-    const indexFile = path.resolve(__dirname, 'dist/index.html');
-    fs.readFile(indexFile, 'utf8', (err, data) => {
-        if (err) {
-            console.error('Error reading index.html', err);
-            return res.status(500).send('Error loading page');
-        }
+    // Read the index.html file
+    const indexHtml = await fs.readFile(path.resolve('dist/index.html'), 'utf8');
+    // Replace placeholders with rendered app and helmet data
+    const html = indexHtml
+      .replace('<div id="root"></div>', `<div id="root">${appString}</div>`)
+      .replace('<title></title>', helmet.title.toString())
+      .replace('<meta name="description" content="">', helmet.meta.toString());
 
-        // Inject the app string and helmet tags into the HTML
-        return res.send(
-            data
-              .replace('<div id="root"></div>', `<div id="root">${appString}</div>`)
-              .replace('<title></title>', helmet.title.toString())
-              .replace('<meta name="description" content="">', helmet.meta.toString())
-        );
-    });
+    // Send the response
+    res.send(html);
+  } catch (error) {
+    console.error('Error loading page', error);
+    res.status(500).send('Error loading page');
+  }
 });
 
-app.listen(3000, () => {
-    console.log('Server is running on http://localhost:3000');
+// Start the server
+server.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
