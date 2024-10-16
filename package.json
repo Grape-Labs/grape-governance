@@ -34,8 +34,6 @@
         "xnft-dev": "xnft dev"
     },
     "targets": {
-        "client": {
-        },
         "node": {
             "context": "node"
             
