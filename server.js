@@ -8,7 +8,7 @@ const App = require('./src/App').default;
 
 const app = express();
 
-app.use(express.static(path.resolve(__dirname, 'dist-server')));
+app.use(express.static(path.resolve(__dirname, 'dist')));
 
 app.get('*', (req, res) => {
     // Render the React app to a string
@@ -17,7 +17,7 @@ app.get('*', (req, res) => {
     // Extract helmet data after rendering
     const helmet = Helmet.renderStatic();
 
-    const indexFile = path.resolve(__dirname, 'dist-server/index.html');
+    const indexFile = path.resolve(__dirname, 'dist/index.html');
     fs.readFile(indexFile, 'utf8', (err, data) => {
         if (err) {
             console.error('Error reading index.html', err);

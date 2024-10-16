@@ -1,7 +1,29 @@
 {
-  "routes": [{ "src": "/[^.]+", "dest": "/", "status": 200 }],
-  "crons": [{
-    "path": "/api/cron",
-    "schedule": "0 15 * * *"
-  }]
+  "version": 2,
+  "builds": [
+    {
+      "src": "dist-server/index.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "dist/**/*",
+      "use": "@vercel/static-build"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/dist/static/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist-server/index.js"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 15 * * *"
+    }
+  ]
 }

@@ -2041,7 +2041,7 @@ export function GovernanceProposalV2View(props: any){
                             <meta name="msapplication-TileColor" content="#180A1E"/>
                             <meta name="msapplication-TileImage" content="./public/ms-icon-144x144.png"/>
                         
-                            <meta name="description" content={`Proposal ${thisitem.account?.name} | ${realmName} powered by Governance.so by Grape`} />
+                            <meta name="description" content={`Proposal ${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``} powered by Governance.so by Grape`} />
                             <title>{`${thisitem.account?.name} | ${realmName}`}</title>
                             
                             <meta property="og:url" content="https://governance.so"/>
