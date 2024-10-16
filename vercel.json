@@ -1,13 +1,13 @@
 {
   "version": 2,
-  "routes": [
+  "builds": [
     {
-      "src": "/static/(.*)",
-      "dest": "/dist/static/$1"
+      "src": "dist-server/index.js",
+      "use": "@vercel/node"
     },
     {
-      "src": "/(.*)",
-      "dest": "/dist-server/index.js"
+      "src": "dist/static/**/*",
+      "use": "@vercel/static"
     }
   ],
   "crons": [
