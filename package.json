@@ -24,7 +24,7 @@
         "build:client": "yarn clean && parcel build src/index.html --no-source-maps --dist-dir dist",
         "build:server": "parcel build src/server/index.js --target node --dist-dir dist-server",
         "build": "yarn build:client && yarn build:server",
-        "startNode": "node dist-server/index.js",
+        "startServer": "node dist-server/index.js",
         "start": "yarn clean && parcel src/index.html",
         "fmt": "prettier --write '{*,**/*}.{js,ts,jsx,tsx,json}'",
         "lint": "eslint . && prettier --check '{*,**/*}.{js,ts,jsx,tsx,json}'",
@@ -255,7 +255,7 @@
         "watcherGlob": "**"
     },
     "reactSnap": {
-        "source": "dist-server",
+        "source": "dist",
         "inlineCss": true,
         "minifyHtml": true
     }
