@@ -256,7 +256,7 @@
         "watcherGlob": "**"
     },
     "reactSnap": {
-        "source": "dist",
+        "source": "dist-server",
         "inlineCss": true,
         "minifyHtml": true
     }
