@@ -1,8 +1,7 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron",
-      "schedule": "0 15 * * *"
-    }
-  ]
+  "routes": [{ "src": "/[^.]+", "dest": "/", "status": 200 }],
+  "crons": [{
+    "path": "/api/cron",
+    "schedule": "0 15 * * *"
+}]
 }
