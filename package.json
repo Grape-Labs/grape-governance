@@ -38,7 +38,12 @@
     "type": "module",
     "targets": {
         "node": {
-            "context": "node"
+            "context": "node",
+            "distDir": "dist-server"
+        },
+            "client": {
+            "source": "src/index.html",
+            "distDir": "dist"
         }
     },
     "peerDependencies": {
@@ -256,7 +261,7 @@
         "watcherGlob": "**"
     },
     "reactSnap": {
-        "source": "dist-server",
+        "source": "dist",
         "inlineCss": true,
         "minifyHtml": true
     }
