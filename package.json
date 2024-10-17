@@ -1,6 +1,6 @@
 {
     "name": "@omg-labs/grape-governance",
-    "version": "1.2.00",
+    "version": "1.2.01",
     "author": "Solana Governance",
     "repository": "https://github.com/omg-labs/grape-governance",
     "license": "Apache-2.0",
@@ -34,6 +34,12 @@
         "xnft-build": "xnft build",
         "xnft-start": "xnft watch",
         "xnft-dev": "xnft dev"
+    },
+    "type": "module",
+    "targets": {
+        "node": {
+            "context": "node"
+        }
     },
     "peerDependencies": {
         "react": "^17.0.0 || ^18.0.0"
