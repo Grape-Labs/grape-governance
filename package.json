@@ -1,6 +1,6 @@
 {
     "name": "@omg-labs/grape-governance",
-    "version": "1.2.00",
+    "version": "1.2.01",
     "author": "Solana Governance",
     "repository": "https://github.com/omg-labs/grape-governance",
     "license": "Apache-2.0",
@@ -21,11 +21,11 @@
     ],
     "scripts": {
         "clean": "shx rm -rf dist dist-server .parcel-cache",
-        "build:client": "yarn clean && parcel build src/index.html --no-source-maps --dist-dir dist",
-        "build:server": "parcel build src/server/index.js --target node --dist-dir dist-server",
-        "buildNew": "yarn build:client && yarn build:server",
-        "startServer": "node dist-server/index.js",
-        "build": "yarn clean && parcel build src/index.html --no-source-maps",
+        "build:client": "yarn clean && parcel build --target client",
+        "build:server": "parcel build src/server/index.js --target server --dist-dir dist-server",
+        "build": "yarn build:client && yarn build:server",
+        "startServer": "node -r esm dist-server/index.js",
+        "buildOld": "yarn clean && parcel build src/index.html --no-source-maps",
         "start": "yarn clean && parcel src/index.html",
         "fmt": "prettier --write '{*,**/*}.{js,ts,jsx,tsx,json}'",
         "lint": "eslint . && prettier --check '{*,**/*}.{js,ts,jsx,tsx,json}'",
@@ -34,6 +34,18 @@
         "xnft-build": "xnft build",
         "xnft-start": "xnft watch",
         "xnft-dev": "xnft dev"
+    },
+    "type": "module",
+    "targets": {
+        "server": {
+            "context": "node",
+            "distDir": "dist-server",
+            "outputFormat": "esmodule"
+        },
+        "client": {
+            "source": "src/index.html",
+            "distDir": "dist"
+        }
     },
     "peerDependencies": {
         "react": "^17.0.0 || ^18.0.0"
@@ -126,6 +138,7 @@
         "dayjs": "^1.11.7",
         "discord.js": "^14.13.0",
         "dotenv": "^16.3.1",
+        "esm": "^3.2.25",
         "ethers": "^5.5.4",
         "express": "^4.21.1",
         "file_size_url": "^1.0.4",
@@ -250,7 +263,7 @@
         "watcherGlob": "**"
     },
     "reactSnap": {
-        "source": "dist-server",
+        "source": "dist",
         "inlineCss": true,
         "minifyHtml": true
     }
