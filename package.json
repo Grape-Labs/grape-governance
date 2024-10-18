@@ -22,10 +22,10 @@
     "scripts": {
         "clean": "shx rm -rf dist dist-server .parcel-cache",
         "build:client": "yarn clean && parcel build --target client",
-        "build:server": "parcel build src/server/index.js --target server",
-        "buildNew": "yarn build:client && yarn build:server",
-        "startServer": "node dist-server/index.js",
-        "build": "yarn clean && parcel build src/index.html --no-source-maps",
+        "build:server": "parcel build src/server/index.js --target server --dist-dir dist-server",
+        "build": "yarn build:client && yarn build:server",
+        "startServer": "node -r esm dist-server/index.js",
+        "buildOld": "yarn clean && parcel build src/index.html --no-source-maps",
         "start": "yarn clean && parcel src/index.html",
         "fmt": "prettier --write '{*,**/*}.{js,ts,jsx,tsx,json}'",
         "lint": "eslint . && prettier --check '{*,**/*}.{js,ts,jsx,tsx,json}'",
@@ -39,7 +39,8 @@
     "targets": {
         "server": {
             "context": "node",
-            "distDir": "dist-server"
+            "distDir": "dist-server",
+            "outputFormat": "esmodule"
         },
         "client": {
             "source": "src/index.html",
@@ -137,6 +138,7 @@
         "dayjs": "^1.11.7",
         "discord.js": "^14.13.0",
         "dotenv": "^16.3.1",
+        "esm": "^3.2.25",
         "ethers": "^5.5.4",
         "express": "^4.21.1",
         "file_size_url": "^1.0.4",
