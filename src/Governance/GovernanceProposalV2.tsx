@@ -2035,7 +2035,7 @@ export function GovernanceProposalV2View(props: any){
 
                 {!loadingValidation && !loadingParticipants && thisitem ?
                     <>
-
+                        
                         <Helmet>
                             <meta name="msapplication-TileImage" content="./public/ms-icon-144x144.png"/>
                             <meta name="msapplication-TileColor" content="#180A1E"/>
@@ -2057,6 +2057,7 @@ export function GovernanceProposalV2View(props: any){
                             <meta name="twitter:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplash.png"/>
                             <meta name="twitter:image:alt" content={`${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``} `}/>
                         </Helmet>
+                        
 
                         <Grid container>
                             <Grid item xs={12} sm={6}>
