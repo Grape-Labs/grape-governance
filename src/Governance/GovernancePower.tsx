@@ -348,6 +348,7 @@ export default function GovernancePower(props: any){
         const delegate = delegateAddress ? new PublicKey(delegateAddress) : null;
         const programId = new PublicKey(realm.owner);
         console.log("programId: "+JSON.stringify(programId));
+        
         const programVersion = await getGovernanceProgramVersion(
             RPC_CONNECTION,
             programId,

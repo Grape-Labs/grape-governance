@@ -55,6 +55,7 @@ import remarkImages from 'remark-images';
 
 import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import GovernancePower from './GovernancePower';
+import GovernanceDiscussion from './GovernanceDiscussion';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
@@ -715,6 +716,7 @@ export function GovernanceProposalV2View(props: any){
             if (thisitem.account.signatoriesCount > 0){
                 // how many signed off? check signatoriesSignedOffCount
                 console.log("test "+new PublicKey(thisitem.owner || realm.owner).toBase58());
+                //alert("Getting signatories");
                 const allSignatoryRecords = await getAllProposalSignatoryRecords(new PublicKey(thisitem.owner || realm.owner), new PublicKey(thisitem.pubkey), new PublicKey(governanceAddress))
                 console.log("allSignatoryRecords: "+JSON.stringify(allSignatoryRecords));
                 setProposalSignatories(allSignatoryRecords)
@@ -755,7 +757,6 @@ export function GovernanceProposalV2View(props: any){
             }
         //}
         
-
         
 
         {
@@ -783,7 +784,6 @@ export function GovernanceProposalV2View(props: any){
                     console.log("FRESH RESULTS")
                     isFresh = true;
                 }
-
 
                 if (!voteRecord &&
                     (Number("0x"+vresults?.account?.options[0]?.voteWeight) > 0 ||
@@ -1927,10 +1927,10 @@ export function GovernanceProposalV2View(props: any){
                     }
                 }
                 rawTokenOwnerRecords = indexedTokenOwnerRecords;//cachedMemberMap;
-            } else if (!indexedTokenOwnerRecords){
+            }/* else if (!indexedTokenOwnerRecords){
                 console.log("** Members from RPC")
                 rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
-            } else{
+            }*/ else{
                 console.log("** Members from Index")
                 rawTokenOwnerRecords = indexedTokenOwnerRecords;
             }
@@ -2621,21 +2621,21 @@ export function GovernanceProposalV2View(props: any){
                                                 {thisitem.account.governingTokenMint &&
                                                 <Box sx={{ my: 3, mx: 2 }}>
                                                     <Grid container alignItems="center">
-                                                    <Grid item xs>
-                                                        <Typography gutterBottom variant="subtitle1" component="div">
-                                                            Mint
-                                                        </Typography>
-                                                    </Grid>
-                                                    <Grid item>
-                                                        <Typography gutterBottom variant="body1" component="div">
-                                                                <ExplorerView
-                                                                    address={thisitem.account.governingTokenMint?.toBase58()} type='address'
-                                                                    shorten={8}
-                                                                    hideTitle={false} style='text' color='white' fontSize='12px'
-                                                                    showTokenMetadata={true}
-                                                                    tokenMap={tokenMap}/>
-                                                        </Typography>
-                                                    </Grid>
+                                                        <Grid item xs>
+                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                Mint
+                                                            </Typography>
+                                                        </Grid>
+                                                        <Grid item>
+                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                    <ExplorerView
+                                                                        address={thisitem.account.governingTokenMint?.toBase58()} type='address'
+                                                                        shorten={8}
+                                                                        hideTitle={false} style='text' color='white' fontSize='12px'
+                                                                        showTokenMetadata={true}
+                                                                        tokenMap={tokenMap}/>
+                                                            </Typography>
+                                                        </Grid>
                                                     </Grid>
                                                     <Typography color="text.secondary" variant="caption">
                                                         {propVoteType} used to vote for this proposal
@@ -2719,8 +2719,6 @@ export function GovernanceProposalV2View(props: any){
 
                                             {expandInfo &&
                                                 <Box>
-
-                                                    
                                                     {totalQuorum &&
                                                     <Box sx={{ my: 3, mx: 2 }}>
                                                         <Grid container alignItems="center">
@@ -3124,33 +3122,42 @@ export function GovernanceProposalV2View(props: any){
                                             }
 
                                             <Box sx={{ my: 3, mx: 2 }}>
-                                                    <Grid container alignItems="center">
-                                                        <Grid item xs>
-                                                            
-                                                        </Grid>
-                                                        <Grid item>
-                                                            <Typography gutterBottom variant="body1" component="div">
-                                                                <Button
-                                                                    size="small"
-                                                                    color='inherit'
-                                                                    variant="outlined"
-                                                                    onClick={toggleInfoExpand}
-                                                                    sx={{
-                                                                        borderRadius:'17px',
-                                                                        textTransform:'none',
-                                                                    }}
-                                                                >
-                                                                    {expandInfo ? <><ExpandLess sx={{mr:1}}/> Less</> : <><ExpandMoreIcon sx={{mr:1}}/> More Info</>}
-                                                                </Button>
-                                                            </Typography>
-                                                        </Grid>
+                                                <Grid container alignItems="center">
+                                                    <Grid item xs>
+                                                        
                                                     </Grid>
-                                                </Box>
+                                                    <Grid item>
+                                                        <Typography gutterBottom variant="body1" component="div">
+                                                            <Button
+                                                                size="small"
+                                                                color='inherit'
+                                                                variant="outlined"
+                                                                onClick={toggleInfoExpand}
+                                                                sx={{
+                                                                    borderRadius:'17px',
+                                                                    textTransform:'none',
+                                                                }}
+                                                            >
+                                                                {expandInfo ? <><ExpandLess sx={{mr:1}}/> Less</> : <><ExpandMoreIcon sx={{mr:1}}/> More Info</>}
+                                                            </Button>
+                                                        </Typography>
+                                                    </Grid>
+                                                </Grid>
+                                            </Box>
                                         </Grid>
                                         
                                     </Grid>  
                                 </Box>
+
+                                <GovernanceDiscussion 
+                                    governanceAddress={governanceAddress}
+                                    proposalAddress={thisitem?.pubkey}
+                                />
                             </Grid>
+
+
+                            
+
                         </Grid>
 
                         {(proposalInstructions && proposalInstructions.length > 0) &&
