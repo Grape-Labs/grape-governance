@@ -469,8 +469,9 @@ export default function GovernanceDiscussion(props: any){
                             {/* Action Buttons Section: Add Comment on the Left, Show Comments on the Right */}
                                 <Box sx={{ mx: 1, mt: 3 }}>
                                     <Grid container alignItems="center" justifyContent="space-between">
-                                        {publicKey &&
+                                        
                                         <Grid item>
+                                            {publicKey &&
                                             <Button
                                                 size="small"
                                                 color="inherit"
@@ -484,9 +485,9 @@ export default function GovernanceDiscussion(props: any){
                                             >
                                                 {showAddComment ? 'Cancel' : 'Add Comment'}
                                             </Button>
+                                            }
                                         </Grid>
-                                        }
-
+                                        
                                         <Grid item>
                                             <Button
                                                 size="small"
