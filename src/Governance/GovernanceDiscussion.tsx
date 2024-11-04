@@ -198,19 +198,25 @@ export default function GovernanceDiscussion(props: any){
         const snackprogress = (key:any) => (
             <CircularProgress sx={{padding:'10px'}} />
         );
-        const cnfrmkey = enqueueSnackbar(`Confirming Transaction`,{ variant: 'info', action:snackprogress, persist: true });
-        const confirmation = await RPC_CONNECTION.confirmTransaction({
-            signature: txid,
-            blockhash: latestBlockhash.blockhash,
-            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-        });
-        closeSnackbar(cnfrmkey);
-        if (confirmation.value.err) { 
-            enqueueSnackbar(`Transaction Error`,{ variant: 'error' });
-            throw new Error("   ❌ - Transaction not confirmed.") }
-      
-        console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
-        return txid;
+        try{
+            const cnfrmkey = enqueueSnackbar(`Confirming Transaction`,{ variant: 'info', action:snackprogress, persist: true });
+            const confirmation = await RPC_CONNECTION.confirmTransaction({
+                signature: txid,
+                blockhash: latestBlockhash.blockhash,
+                lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+            });
+            closeSnackbar(cnfrmkey);
+            if (confirmation.value.err) { 
+                enqueueSnackbar(`Transaction Error`,{ variant: 'error' });
+                throw new Error("   ❌ - Transaction not confirmed.") }
+            
+            console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
+            return txid;
+        }catch(e){
+            enqueueSnackbar(`Transaction Error Exceeded Blockhash`,{ variant: 'error' });
+            throw new Error("   ❌ - Transaction not confirmed.") 
+        }
+        
     }
 
     const handleSubmitComment = async() => {
