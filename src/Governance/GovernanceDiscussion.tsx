@@ -14,11 +14,37 @@ import {
     getRealmConfig,
     InstructionData,
     getGovernanceChatMessagesByVoter,
+    getTokenOwnerRecordAddress,
     GOVERNANCE_CHAT_PROGRAM_ID,
     getGovernanceChatMessages,
+    withPostChatMessage,
+    ChatMessageBody,
+    ChatMessageBodyType,
 } from '@solana/spl-governance';
+import { 
+    getRealmIndexed,
+    getProposalIndexed,
+    getProposalNewIndexed,
+    getAllProposalsIndexed,
+    getGovernanceIndexed,
+    getAllGovernancesIndexed,
+    getAllTokenOwnerRecordsIndexed,
+    getTokenOwnerRecordsByRealmIndexed,
+    getProposalInstructionsIndexed
+  } from './api/queries';
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
-import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
+import { 
+    ComputeBudgetProgram,
+    PublicKey, 
+    TokenAmount, 
+    Connection,        
+    Keypair,
+    Transaction,
+    TransactionInstruction,
+} from '@solana/web3.js';
+import { 
+    shortenString, 
+    parseMintNaturalAmountFromDecimalAsBN } from '../utils/grapeTools/helpers';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
 import React, { useCallback } from 'react';
@@ -38,6 +64,7 @@ import {
   Box,
   Table,
   Tooltip,
+  TextField,
   LinearProgress,
   DialogTitle,
   Dialog,
@@ -74,6 +101,8 @@ import moment from 'moment';
 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLess from '@mui/icons-material/ExpandLess';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close'; // Import the Close icon
 
 import { 
     PROXY, 
@@ -101,11 +130,188 @@ const StyledTable = styled(Table)(({ theme }) => ({
     },
 }));
 
+const estimateComputeUnits = (instructionsLength: number) => {
+    // Estimate compute units based on the number of instructions. You can adjust this calculation.
+    const baseUnits = 200_000; // Minimum compute units for a simple transaction
+    const perInstructionUnits = 50_000; // Additional units for each instruction
+    return baseUnits + perInstructionUnits * instructionsLength;
+};
+
+const calculatePriorityFee = (computeUnits: number, baseMicroLamportsPerUnit: number) => {
+    // Calculate the total priority fee based on compute units and price per compute unit
+    return computeUnits * baseMicroLamportsPerUnit;
+};
+
+
 export default function GovernanceDiscussion(props: any){
     const [expandInfo, setExpandInfo] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
+    const [comment, setComment] = React.useState('');
+    const [showAddComment, setShowAddComment] = React.useState(false);
+    const [charCount, setCharCount] = React.useState(160);
     const [discussionMessages, setDiscussionMessages] = React.useState(null);
+    const { publicKey, wallet, sendTransaction } = useWallet();
+
     const proposalPk = props?.proposalAddress;
+    const realm = props?.realm;
+    const governanceRulesWallet = props?.governanceRulesWallet;
+    const governingTokenMint = props?.governingTokenMint;
+    const memberMap = props?.memberMap;
+
+    const handleAddCommentToggle = () => {
+        setShowAddComment(!showAddComment);
+    };
+
+    const handleCommentChange = (event) => {
+        const newComment = event.target.value;
+        if (newComment.length <= 160) {
+            setComment(newComment);
+            setCharCount(160 - newComment.length);
+        }
+    };
+
+    const handleSubmitComment = async() => {
+        
+        const body = new ChatMessageBody({
+            type: ChatMessageBodyType.Text,
+            value: comment,
+        });
+
+        const governanceAuthority = publicKey;
+        const payer = publicKey;
+
+        const replyTo = null;
+        const signers: Keypair[] = []
+        const instructions: TransactionInstruction[] = []
+
+        const programId = new PublicKey(realm?.owner);
+
+        let tokenOwnerRecordPk = null;
+    
+        //console.log("governingTokenMint: "+JSON.stringify(governingTokenMint));
+
+        for (let member of memberMap){
+            if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
+                new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
+                tokenOwnerRecordPk = new PublicKey(member.pubkey);
+        }
+
+        if (!tokenOwnerRecordPk){
+            tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+                programId,
+                realm.pubkey,
+                governingTokenMint,
+                publicKey,
+            );
+        }
+          //if (tokenOwnerRecordPk)
+          //  console.log("Using getTokenOwnerRecordAddress: "+tokenOwnerRecordPk.toBase58());
+        
+        /*
+            console.log("programId: "+JSON.stringify(programId));
+            console.log("realm: "+JSON.stringify(realm));
+            console.log("tokenOwnerRecordPk: "+JSON.stringify(tokenOwnerRecordPk));
+            console.log("governanceRulesWallet: "+JSON.stringify(governanceRulesWallet));
+            console.log("proposalPk: "+JSON.stringify(proposalPk));
+            console.log("governanceAuthority: "+JSON.stringify(governanceAuthority));
+            console.log("body: "+JSON.stringify(body));
+        */ 
+        const ix = await withPostChatMessage(
+            instructions,
+            signers,
+            GOVERNANCE_CHAT_PROGRAM_ID,
+            programId,
+            realm.pubkey,
+            governanceRulesWallet,
+            proposalPk,
+            tokenOwnerRecordPk,
+            governanceAuthority,
+            payer,
+            replyTo,
+            body,
+            null,//plugin?.voterWeightPk
+        )
+        
+        // send Ix here
+        if (instructions){
+            const transaction = new Transaction();
+            
+            // Step 1: Estimate compute units based on the number of instructions
+            const estimatedComputeUnits = estimateComputeUnits(instructions.length);
+
+            // Step 2: Set a base fee per compute unit (microLamports)
+            const baseMicroLamportsPerUnit = 5000; // Adjust this value as needed
+
+            // Step 3: Add a validator tip per compute unit
+            const validatorTip = 0;//2000; // Additional tip per compute unit (0.000002 SOL)
+
+            // Step 4: Calculate the total priority fee
+            const totalPriorityFee = calculatePriorityFee(estimatedComputeUnits, baseMicroLamportsPerUnit);
+
+            console.log(`Estimated compute units: ${estimatedComputeUnits}`);
+            console.log(`Total priority fee: ${totalPriorityFee} microLamports`);
+
+            // Add compute budget instructions for priority fees and validator tips
+            const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
+                microLamports: baseMicroLamportsPerUnit + validatorTip, // Total fee including priority and validator tip
+            });
+
+            const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+                units: estimatedComputeUnits, // Use the estimated compute units
+            });
+
+            // Add the priority fee instructions to the transaction
+            transaction.add(priorityFeeInstruction, computeUnitLimitInstruction);
+
+            transaction.add(...instructions);
+
+            //console.log("TX: "+JSON.stringify(transaction))
+
+            try{
+                enqueueSnackbar(`Sending comment to the blockchain `,{ variant: 'info' });
+                const signature = await sendTransaction(transaction, RPC_CONNECTION, {
+                    skipPreflight: true,
+                    preflightCommitment: "confirmed",
+                });
+                const snackprogress = (key:any) => (
+                    <CircularProgress sx={{padding:'10px'}} />
+                );
+                const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
+                //await connection.confirmTransaction(signature, 'processed');
+                const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
+                await RPC_CONNECTION.confirmTransaction({
+                    blockhash: latestBlockHash.blockhash,
+                    lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+                    signature: signature}, 
+                    'finalized'
+                );
+                closeSnackbar(cnfrmkey);
+                const action = (key:any) => (
+                        <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
+                            Signature: {shortenString(signature,5,5)}
+                        </Button>
+                );
+                
+                enqueueSnackbar(`Congratulations, you have participated in the discussion for this proposal`,{ variant: 'success', action });
+
+                // trigger a refresh here...
+                //setRefresh(true);
+                console.log("Comment submitted: ", comment);
+                // Clear the input after submission
+                setComment('');
+                setCharCount(160);
+                setShowAddComment(false); // Close the comment box after submitting
+
+                setExpandInfo(true);
+            }catch(e:any){
+                enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
+            } 
+        } else{
+            console.log("ERROR: Something went wrong");
+            enqueueSnackbar(`Instructions Error`, { variant: 'error' });
+        }
+        
+    };
 
     const toggleInfoExpand = () => {
         setExpandInfo(!expandInfo)
@@ -190,7 +396,7 @@ export default function GovernanceDiscussion(props: any){
                                                     const postedAtDate = moment.unix(Number(message.account.postedAt));//convertHexToDateTime(message.account.postedAt);
                                                     const formattedDate = moment(postedAtDate).format('MMMM Do YYYY, h:mm:ss a');
                                                     const timeFromNow = moment(postedAtDate).fromNow();
-                                                    
+
                                                     return (
                                                         <Box
                                                             key={index}
@@ -229,26 +435,75 @@ export default function GovernanceDiscussion(props: any){
                                 )}
                             </Box>
 
-                            <Box sx={{ mx: 1, mt: 3 }}>
-                                <Grid container alignItems="center">
-                                    <Grid item xs>
-                                    </Grid>
-                                    <Grid item>
+                            {/* Add Comment Section */}
+                            {showAddComment && (
+                                <Box sx={{ mx: 1, mt: 2, p: 2, background: 'rgba(255, 255, 255, 0.1)', borderRadius: '10px' }}>
+                                    <TextField
+                                        fullWidth
+                                        multiline
+                                        rows={3}
+                                        value={comment}
+                                        onChange={handleCommentChange}
+                                        variant="outlined"
+                                        placeholder="Add your comment (max 160 characters)"
+                                    />
+                                    <Typography variant="caption" color="text.secondary">
+                                        {charCount} characters left
+                                    </Typography>
+                                    <Box sx={{ mt: 2 }}>
                                         <Button
-                                            size="small"
-                                            color='inherit'
-                                            variant="outlined"
-                                            onClick={toggleInfoExpand}
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={handleSubmitComment}
+                                            disabled={comment.length === 0}
                                             sx={{
                                                 borderRadius: '17px',
-                                                textTransform: 'none',
                                             }}
                                         >
-                                            {expandInfo ? <><ExpandLess sx={{ mr: 1 }} /> Less</> : <><ExpandMoreIcon sx={{ mr: 1 }} /> Show Comments</>}
+                                            Submit Comment
                                         </Button>
+                                    </Box>
+                                </Box>
+                            )}
+
+                            {/* Action Buttons Section: Add Comment on the Left, Show Comments on the Right */}
+                                <Box sx={{ mx: 1, mt: 3 }}>
+                                    <Grid container alignItems="center" justifyContent="space-between">
+                                        
+                                        <Grid item>
+                                            {publicKey &&
+                                            <Button
+                                                size="small"
+                                                color="inherit"
+                                                variant="outlined"
+                                                onClick={handleAddCommentToggle}
+                                                sx={{
+                                                    borderRadius: '17px',
+                                                    textTransform: 'none',
+                                                }}
+                                                startIcon={showAddComment ? <CloseIcon /> : <AddIcon />}
+                                            >
+                                                {showAddComment ? 'Cancel' : 'Add Comment'}
+                                            </Button>
+                                            }
+                                        </Grid>
+                                        
+                                        <Grid item>
+                                            <Button
+                                                size="small"
+                                                color="inherit"
+                                                variant="outlined"
+                                                onClick={toggleInfoExpand}
+                                                sx={{
+                                                    borderRadius: '17px',
+                                                    textTransform: 'none',
+                                                }}
+                                            >
+                                                {expandInfo ? <><ExpandLess sx={{ mr: 1 }} /> Less</> : <><ExpandMoreIcon sx={{ mr: 1 }} /> Show Comments</>}
+                                            </Button>
+                                        </Grid>
                                     </Grid>
-                                </Grid>
-                            </Box>
+                                </Box>
                         </Grid>
                     </Grid>
                 </Box>

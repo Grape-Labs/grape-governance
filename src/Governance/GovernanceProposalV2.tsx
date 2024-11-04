@@ -3152,6 +3152,15 @@ export function GovernanceProposalV2View(props: any){
                                 <GovernanceDiscussion 
                                     governanceAddress={governanceAddress}
                                     proposalAddress={thisitem?.pubkey}
+                                    governanceRulesWallet={thisitem.account.governance}
+                                    governingTokenMint={thisitem.account.governingTokenMint}
+                                    proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                    proposalInstructions={proposalInstructions}
+                                    payerWallet={publicKey}
+                                    governanceLookup={governanceLookup}
+                                    realm={realm}
+                                    memberMap={memberMap}
+                                    proposalSignatories={proposalSignatories}
                                 />
                             </Grid>
 
