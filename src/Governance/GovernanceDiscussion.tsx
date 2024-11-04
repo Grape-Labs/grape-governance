@@ -364,7 +364,10 @@ export default function GovernanceDiscussion(props: any){
                     setCharCount(160);
                     setShowAddComment(false); // Close the comment box after submitting
 
-                    setExpandInfo(true);
+                    if (!expandInfo)
+                        setExpandInfo(true);
+                    else
+                        getGovernanceDiscussion();
 
                 } else{
                     enqueueSnackbar(`Error`,{ variant: 'error' });
