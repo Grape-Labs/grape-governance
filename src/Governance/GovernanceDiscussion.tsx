@@ -37,8 +37,10 @@ import {
     ComputeBudgetProgram,
     PublicKey, 
     TokenAmount, 
-    Connection,        
+    Connection,  
+    //createSolanaRpc,      
     Keypair,
+    Signer,
     Transaction,
     TransactionInstruction,
     TransactionMessage,
@@ -171,50 +173,114 @@ export default function GovernanceDiscussion(props: any){
         }
     };
 
-    async function createAndSendV0TxInline(txInstructions: TransactionInstruction[]) {
+    async function createAndSendV0TxInline(txInstructions: TransactionInstruction[], signers?: Keypair[]) {
         // Step 1 - Fetch Latest Blockhash
         let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
         console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
-      
+
+        // Step 1: Estimate compute units based on the number of instructions
+        const estimatedComputeUnits = estimateComputeUnits(txInstructions.length);
+
+        // Step 2: Set a base fee per compute unit (microLamports)
+        const baseMicroLamportsPerUnit = 5000; // Adjust this value as needed
+
+        // Step 3: Add a validator tip per compute unit
+        const validatorTip = 0;//2000; // Additional tip per compute unit (0.000002 SOL)
+
+        // Step 4: Calculate the total priority fee
+        const totalPriorityFee = calculatePriorityFee(estimatedComputeUnits, baseMicroLamportsPerUnit);
+
+        console.log(`Estimated compute units: ${estimatedComputeUnits}`);
+        console.log(`Total priority fee: ${totalPriorityFee} microLamports`);
+
+        // Add compute budget instructions for priority fees and validator tips
+        const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: baseMicroLamportsPerUnit + validatorTip, // Total fee including priority and validator tip
+        });
+
+        const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+            units: estimatedComputeUnits, // Use the estimated compute units
+        });
+
+        // Step 3 - Combine Priority Fee Instructions with Other Instructions
+        const allInstructions = [
+            priorityFeeInstruction,
+            computeUnitLimitInstruction,
+            ...txInstructions, // Append your original instructions
+        ];
+        
+        // Add the priority fee instructions to the transaction
+        //transaction.add(priorityFeeInstruction, computeUnitLimitInstruction);
+
+
         // Step 2 - Generate Transaction Message
         const messageV0 = new TransactionMessage({
             payerKey: publicKey,
             recentBlockhash: latestBlockhash.blockhash,
-            instructions: txInstructions
+            instructions: allInstructions
         }).compileToV0Message();
         console.log("   ✅ - Compiled transaction message");
         const transaction = new VersionedTransaction(messageV0);
-        console.log("   ✅ - Transaction Signed");
-      
-        const txid = await sendTransaction(transaction, RPC_CONNECTION, {
-            skipPreflight: true,
-            preflightCommitment: "confirmed",
-            maxRetries: 5
-        });
+        transaction.sign(signers);
+
+        //const transaction = new Transaction();
         
-        console.log("   ✅ - Transaction sent to network with txid: "+txid);
-      
-        // Step 5 - Confirm Transaction 
-        const snackprogress = (key:any) => (
-            <CircularProgress sx={{padding:'10px'}} />
-        );
-        try{
-            const cnfrmkey = enqueueSnackbar(`Confirming Transaction`,{ variant: 'info', action:snackprogress, persist: true });
-            const confirmation = await RPC_CONNECTION.confirmTransaction({
-                signature: txid,
-                blockhash: latestBlockhash.blockhash,
-                lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-            });
-            closeSnackbar(cnfrmkey);
-            if (confirmation.value.err) { 
-                enqueueSnackbar(`Transaction Error`,{ variant: 'error' });
-                throw new Error("   ❌ - Transaction not confirmed.") }
             
-            console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
-            return txid;
-        }catch(e){
-            enqueueSnackbar(`Transaction Error Exceeded Blockhash`,{ variant: 'error' });
-            throw new Error("   ❌ - Transaction not confirmed.") 
+        
+            
+            // Sign the transaction using the signers
+            /*
+            if (signers.length > 0) {
+                const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+                transaction.recentBlockhash = latestBlockhash.blockhash;
+                transaction.feePayer = publicKey;
+                transaction.partialSign(...signers);  // Sign the transaction with the additional signers
+            }
+            */
+            
+            //console.log("TX: "+JSON.stringify(transaction))
+            
+
+
+        console.log("   ✅ - Transaction Signed");
+        
+        const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
+        console.log("🔍 - Simulation result:", simulationResult);
+
+        if (simulationResult.value.err) {
+            console.error("❌ - Simulation failed with error:", simulationResult.value.err);
+            throw new Error(`Simulation error: ${simulationResult.value.err}`);
+        } else{
+            const txid = await sendTransaction(transaction, RPC_CONNECTION, {
+                skipPreflight: true,
+                preflightCommitment: "confirmed",
+                maxRetries: 5
+            });
+            
+            console.log("   ✅ - Transaction sent to network with txid: "+txid);
+        
+            // Step 5 - Confirm Transaction 
+            const snackprogress = (key:any) => (
+                <CircularProgress sx={{padding:'10px'}} />
+            );
+            try{
+                const cnfrmkey = enqueueSnackbar(`Confirming Transaction`,{ variant: 'info', action:snackprogress, persist: true });
+                const confirmation = await RPC_CONNECTION.confirmTransaction({
+                    signature: txid,
+                    blockhash: latestBlockhash.blockhash,
+                    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+                });
+                closeSnackbar(cnfrmkey);
+                if (confirmation.value.err) { 
+                    enqueueSnackbar(`Transaction Error`,{ variant: 'error' });
+                    throw new Error("   ❌ - Transaction not confirmed.") }
+                
+                console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
+                return txid;
+            }catch(e){
+                enqueueSnackbar(`Transaction Error Exceeded Blockhash`,{ variant: 'error' });
+                throw new Error("   ❌ - Transaction not confirmed.") 
+            }
         }
         
     }
@@ -280,45 +346,13 @@ export default function GovernanceDiscussion(props: any){
             body,
             null,//plugin?.voterWeightPk
         )
+
+        console.log("signers:"+JSON.stringify(signers));
         
         // send Ix here
         if (instructions){
-            const transaction = new Transaction();
-            
-            // Step 1: Estimate compute units based on the number of instructions
-            const estimatedComputeUnits = estimateComputeUnits(instructions.length);
-
-            // Step 2: Set a base fee per compute unit (microLamports)
-            const baseMicroLamportsPerUnit = 5000; // Adjust this value as needed
-
-            // Step 3: Add a validator tip per compute unit
-            const validatorTip = 0;//2000; // Additional tip per compute unit (0.000002 SOL)
-
-            // Step 4: Calculate the total priority fee
-            const totalPriorityFee = calculatePriorityFee(estimatedComputeUnits, baseMicroLamportsPerUnit);
-
-            console.log(`Estimated compute units: ${estimatedComputeUnits}`);
-            console.log(`Total priority fee: ${totalPriorityFee} microLamports`);
-
-            // Add compute budget instructions for priority fees and validator tips
-            const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
-                microLamports: baseMicroLamportsPerUnit + validatorTip, // Total fee including priority and validator tip
-            });
-
-            const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
-                units: estimatedComputeUnits, // Use the estimated compute units
-            });
-
-            // Add the priority fee instructions to the transaction
-            transaction.add(priorityFeeInstruction, computeUnitLimitInstruction);
-
-            transaction.add(...instructions);
-
-            //console.log("TX: "+JSON.stringify(transaction))
-
-            // with instructions run a transaction and make it rain!!!
             if (instructions && instructions.length > 0){
-                const signature = await createAndSendV0TxInline(instructions);
+                const signature = await createAndSendV0TxInline(instructions, signers);
                 if (signature){
                     enqueueSnackbar(`Transaction completed - ${signature}`,{ variant: 'success' });
                     //pTransaction.add(lookupTableInst);
