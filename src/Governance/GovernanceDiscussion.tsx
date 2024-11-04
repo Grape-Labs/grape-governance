@@ -41,6 +41,8 @@ import {
     Keypair,
     Transaction,
     TransactionInstruction,
+    TransactionMessage,
+    VersionedTransaction,
 } from '@solana/web3.js';
 import { 
     shortenString, 
@@ -142,7 +144,6 @@ const calculatePriorityFee = (computeUnits: number, baseMicroLamportsPerUnit: nu
     return computeUnits * baseMicroLamportsPerUnit;
 };
 
-
 export default function GovernanceDiscussion(props: any){
     const [expandInfo, setExpandInfo] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
@@ -169,6 +170,48 @@ export default function GovernanceDiscussion(props: any){
             setCharCount(160 - newComment.length);
         }
     };
+
+    async function createAndSendV0TxInline(txInstructions: TransactionInstruction[]) {
+        // Step 1 - Fetch Latest Blockhash
+        let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+        console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
+      
+        // Step 2 - Generate Transaction Message
+        const messageV0 = new TransactionMessage({
+            payerKey: publicKey,
+            recentBlockhash: latestBlockhash.blockhash,
+            instructions: txInstructions
+        }).compileToV0Message();
+        console.log("   ✅ - Compiled transaction message");
+        const transaction = new VersionedTransaction(messageV0);
+        console.log("   ✅ - Transaction Signed");
+      
+        const txid = await sendTransaction(transaction, RPC_CONNECTION, {
+            skipPreflight: true,
+            preflightCommitment: "confirmed",
+            maxRetries: 5
+        });
+        
+        console.log("   ✅ - Transaction sent to network with txid: "+txid);
+      
+        // Step 5 - Confirm Transaction 
+        const snackprogress = (key:any) => (
+            <CircularProgress sx={{padding:'10px'}} />
+        );
+        const cnfrmkey = enqueueSnackbar(`Confirming Transaction`,{ variant: 'info', action:snackprogress, persist: true });
+        const confirmation = await RPC_CONNECTION.confirmTransaction({
+            signature: txid,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+        });
+        closeSnackbar(cnfrmkey);
+        if (confirmation.value.err) { 
+            enqueueSnackbar(`Transaction Error`,{ variant: 'error' });
+            throw new Error("   ❌ - Transaction not confirmed.") }
+      
+        console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
+        return txid;
+    }
 
     const handleSubmitComment = async() => {
         
@@ -207,7 +250,7 @@ export default function GovernanceDiscussion(props: any){
           //if (tokenOwnerRecordPk)
           //  console.log("Using getTokenOwnerRecordAddress: "+tokenOwnerRecordPk.toBase58());
         
-        /*
+          /*
             console.log("programId: "+JSON.stringify(programId));
             console.log("realm: "+JSON.stringify(realm));
             console.log("tokenOwnerRecordPk: "+JSON.stringify(tokenOwnerRecordPk));
@@ -215,7 +258,7 @@ export default function GovernanceDiscussion(props: any){
             console.log("proposalPk: "+JSON.stringify(proposalPk));
             console.log("governanceAuthority: "+JSON.stringify(governanceAuthority));
             console.log("body: "+JSON.stringify(body));
-        */ 
+            */
         const ix = await withPostChatMessage(
             instructions,
             signers,
@@ -267,48 +310,30 @@ export default function GovernanceDiscussion(props: any){
 
             //console.log("TX: "+JSON.stringify(transaction))
 
-            try{
-                enqueueSnackbar(`Sending comment to the blockchain `,{ variant: 'info' });
-                const signature = await sendTransaction(transaction, RPC_CONNECTION, {
-                    skipPreflight: true,
-                    preflightCommitment: "confirmed",
-                });
-                const snackprogress = (key:any) => (
-                    <CircularProgress sx={{padding:'10px'}} />
-                );
-                const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
-                //await connection.confirmTransaction(signature, 'processed');
-                const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
-                await RPC_CONNECTION.confirmTransaction({
-                    blockhash: latestBlockHash.blockhash,
-                    lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-                    signature: signature}, 
-                    'finalized'
-                );
-                closeSnackbar(cnfrmkey);
-                const action = (key:any) => (
-                        <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                            Signature: {shortenString(signature,5,5)}
-                        </Button>
-                );
+            // with instructions run a transaction and make it rain!!!
+            if (instructions && instructions.length > 0){
+                const signature = await createAndSendV0TxInline(instructions);
+                if (signature){
+                    enqueueSnackbar(`Transaction completed - ${signature}`,{ variant: 'success' });
+                    //pTransaction.add(lookupTableInst);
+                    //pTransaction.feePayer = publicKey;
+                    
+                    console.log("Comment submitted: ", comment);
+                    // Clear the input after submission
+                    setComment('');
+                    setCharCount(160);
+                    setShowAddComment(false); // Close the comment box after submitting
+
+                    setExpandInfo(true);
+
+                } else{
+                    enqueueSnackbar(`Error`,{ variant: 'error' });
+                }
                 
-                enqueueSnackbar(`Congratulations, you have participated in the discussion for this proposal`,{ variant: 'success', action });
+                return null;
+            }
 
-                // trigger a refresh here...
-                //setRefresh(true);
-                console.log("Comment submitted: ", comment);
-                // Clear the input after submission
-                setComment('');
-                setCharCount(160);
-                setShowAddComment(false); // Close the comment box after submitting
 
-                setExpandInfo(true);
-            }catch(e:any){
-                enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
-            } 
-        } else{
-            console.log("ERROR: Something went wrong");
-            enqueueSnackbar(`Instructions Error`, { variant: 'error' });
         }
         
     };
@@ -346,7 +371,7 @@ export default function GovernanceDiscussion(props: any){
             proposalPk
         );
 
-        console.log("Messages Loaded: "+JSON.stringify(messages));
+        //console.log("Messages Loaded: "+JSON.stringify(messages));
 
         setDiscussionMessages(messages);
 
