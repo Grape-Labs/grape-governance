@@ -457,7 +457,14 @@ export default function GovernanceDiscussion(props: any){
                                             </Grid>
                                         ) : (
                                             <>
-                                                {discussionMessages && discussionMessages.map((message: any, index: number) => {
+                                                {discussionMessages && discussionMessages
+                                                .sort((a: any, b: any) => {
+                                                    // Convert postedAt to a number and sort in descending order
+                                                    const dateA = Number(a.account.postedAt);
+                                                    const dateB = Number(b.account.postedAt);
+                                                    return dateB - dateA; // Descending order
+                                                })
+                                                .map((message: any, index: number) => {
                                                     const postedAtDate = moment.unix(Number(message.account.postedAt));//convertHexToDateTime(message.account.postedAt);
                                                     const formattedDate = moment(postedAtDate).format('MMMM Do YYYY, h:mm:ss a');
                                                     const timeFromNow = moment(postedAtDate).fromNow();
