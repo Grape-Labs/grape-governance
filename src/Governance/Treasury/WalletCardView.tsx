@@ -2294,8 +2294,15 @@ export default function WalletCardView(props:any) {
                                             </Button>
                                         </CopyToClipboard>
                                     } 
-                                    secondary={<Typography variant="caption">{usdcValue && `$${usdcValue['So11111111111111111111111111111111111111112']?.price && usdcValue['So11111111111111111111111111111111111111112'].price.toFixed(2)}`}</Typography>}
-                                    />
+                                    secondary={
+                                        <Typography variant="caption">
+                                            {
+                                                usdcValue && usdcValue['So11111111111111111111111111111111111111112']?.price 
+                                                ? `$${Number(usdcValue['So11111111111111111111111111111111111111112'].price).toFixed(2)}`
+                                                : 'N/A' // Fallback in case price is undefined or not a number
+                                            }
+                                        </Typography>
+                                    }/>
                             </ListItem>
                             <Divider component="li" light />
                         </>
@@ -2590,13 +2597,12 @@ export default function WalletCardView(props:any) {
                                             secondary={
                                                 <>
                                                     <Typography variant="caption">
-                                                        {usdcValue ? 
-                                                            <>{usdcValue[item.address] ? 
-                                                                <>${usdcValue[item.address]?.price.toFixed(6)}</>
-                                                                :<></>
-                                                            }</>
-                                                        :<></>}</Typography>
-                                                        
+                                                        {usdcValue && usdcValue[item.address]?.price !== undefined && !isNaN(usdcValue[item.address]?.price) ? (
+                                                            <>${Number(usdcValue[item.address]?.price).toFixed(6)}</>
+                                                        ) : (
+                                                            <></>
+                                                        )}
+                                                    </Typography>
                                                     {/*
                                                     <Typography variant="caption">ATA {shortenString(item.associated_account,5,5)}</Typography>
                                                     */}
@@ -2737,12 +2743,12 @@ export default function WalletCardView(props:any) {
                                         secondary={
                                             <>
                                                 <Typography variant="caption">
-                                                    {usdcValue ? 
-                                                        <>{usdcValue[item.address] ? 
-                                                            <>${usdcValue[item.address]?.price.toFixed(6)}</>
-                                                            :<></>
-                                                        }</>
-                                                    :<></>}</Typography>
+                                                    {usdcValue && usdcValue[item.address]?.price !== undefined && !isNaN(usdcValue[item.address]?.price) ? (
+                                                        <>${Number(usdcValue[item.address]?.price).toFixed(6)}</>
+                                                    ) : (
+                                                        <></>
+                                                    )}
+                                                </Typography>
                                                 {/*
                                                 <Typography variant="caption">ATA {shortenString(item.associated_account,5,5)}</Typography>
                                                 */}

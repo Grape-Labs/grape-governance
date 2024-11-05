@@ -1221,6 +1221,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             }
         }
         //ia.solToUsd = cgp['solana'].usd;
+        console.log("cgp['So11111111111111111111111111111111111111112']: "+JSON.stringify(cgp));
         ia.solToUsd = cgp['So11111111111111111111111111111111111111112'].price;
         ia.solUsdValue = (ia.solBalance > 0 ? cgp['So11111111111111111111111111111111111111112'].price*(ia.solBalance/(10 ** 9)) : 0);
         console.log("Total NFT Sol Value: "+(totalVaultNftValueSol/(10 ** 9)))
@@ -1478,7 +1479,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 }
 
                 // how will we handle direct DAO awards?
-
 
                 governanceEmitted = removeDuplicateSignatures(governanceEmitted);
             }
