@@ -241,11 +241,16 @@ export async function getJupiterPrices(tokens:string[], vsToken?:string, strict?
     finalTokenList = tokens;
   }
 
-
-  let apiUrl = "https://price.jup.ag/v4/price?ids="+finalTokenList;
+  // Remove duplicates by converting to a Set and back to an array
+  finalTokenList = [...new Set(finalTokenList)];
+  
+  let apiUrl = "https://api.jup.ag/price/v2?ids=";
+  //let apiUrl = "https://price.jup.ag/v4/price?ids=";
+  
+  let finalUrl = apiUrl + finalTokenList;
   if (vsToken)
-    apiUrl = "https://price.jup.ag/v4/price?ids="+finalTokenList+"&vsToken="+vsToken;
-  const resp = await window.fetch(apiUrl, {
+    finalUrl = apiUrl + finalTokenList+"&vsToken="+vsToken;
+  const resp = await window.fetch(finalUrl, {
   })
   const json = await resp.json(); 
   return json.data;

@@ -15,6 +15,7 @@ import {
     createInstructionData,
     withInsertTransaction,
     withRemoveTransaction,
+    withExecuteTransaction,
     InstructionData,
     AccountMetaData,
     getRealm,
@@ -34,7 +35,7 @@ import { BorshCoder } from "@coral-xyz/anchor";
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token-v2";
-import { Signer, Connection, TransactionMessage, PublicKey, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
+import { Signer, Connection, TransactionMessage, PublicKey, Transaction, VersionedTransaction, TransactionInstruction, ComputeBudgetProgram } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError, TransactionOrVersionedTransaction } from '@solana/wallet-adapter-base';
 import React, { useCallback } from 'react';
@@ -94,6 +95,7 @@ import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
 import DeleteIcon from '@mui/icons-material/Delete';
+import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import DeveloperModeIcon from '@mui/icons-material/DeveloperMode';
 import BallotIcon from '@mui/icons-material/Ballot';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
@@ -162,6 +164,18 @@ function getExplorerUrl(
     return `https://explorer.solana.com/${itemType}/${viewTypeOrItemAddress}${getClusterUrlParam()}`
 }
 
+const estimateComputeUnits = (instructionsLength: number) => {
+    // Estimate compute units based on the number of instructions. You can adjust this calculation.
+    const baseUnits = 200_000; // Minimum compute units for a simple transaction
+    const perInstructionUnits = 50_000; // Additional units for each instruction
+    return baseUnits + perInstructionUnits * instructionsLength;
+};
+
+const calculatePriorityFee = (computeUnits: number, baseMicroLamportsPerUnit: number) => {
+    // Calculate the total priority fee based on compute units and price per compute unit
+    return computeUnits * baseMicroLamportsPerUnit;
+};
+
 export function InstructionTableView(props: any) {
     
     const proposalIx = props.proposalInstructions;
@@ -179,6 +193,7 @@ export function InstructionTableView(props: any) {
     //const instructionDetails = instruction.account?.instructions?.[0] || instruction.account?.instruction || instruction;
     const setInstructionTransferDetails = props.setInstructionTransferDetails;
     const governingTokenMint = props.governingTokenMint;
+    const governanceRulesWallet = props?.governanceRulesWallet;
     const memberMap = props.memberMap;
     const tokenMap = props.tokenMap;
     const cachedTokenMeta = props.cachedTokenMeta;
@@ -193,11 +208,42 @@ export function InstructionTableView(props: any) {
         let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
         console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
       
+        // Step 1: Estimate compute units based on the number of instructions
+        const estimatedComputeUnits = estimateComputeUnits(txInstructions.length);
+
+        // Step 2: Set a base fee per compute unit (microLamports)
+        const baseMicroLamportsPerUnit = 5000; // Adjust this value as needed
+
+        // Step 3: Add a validator tip per compute unit
+        const validatorTip = 0;//2000; // Additional tip per compute unit (0.000002 SOL)
+
+        // Step 4: Calculate the total priority fee
+        const totalPriorityFee = calculatePriorityFee(estimatedComputeUnits, baseMicroLamportsPerUnit);
+
+        console.log(`Estimated compute units: ${estimatedComputeUnits}`);
+        console.log(`Total priority fee: ${totalPriorityFee} microLamports`);
+
+        // Add compute budget instructions for priority fees and validator tips
+        const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: baseMicroLamportsPerUnit + validatorTip, // Total fee including priority and validator tip
+        });
+
+        const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+            units: estimatedComputeUnits, // Use the estimated compute units
+        });
+
+        // Step 3 - Combine Priority Fee Instructions with Other Instructions
+        const allInstructions = [
+            priorityFeeInstruction,
+            computeUnitLimitInstruction,
+            ...txInstructions, // Append your original instructions
+        ];
+
         // Step 2 - Generate Transaction Message
         const messageV0 = new TransactionMessage({
             payerKey: publicKey,
             recentBlockhash: latestBlockhash.blockhash,
-            instructions: txInstructions
+            instructions: allInstructions
         }).compileToV0Message();
         console.log("   ✅ - Compiled transaction message");
         const transaction = new VersionedTransaction(messageV0);
@@ -237,6 +283,82 @@ export function InstructionTableView(props: any) {
         return txid;
     }
       
+    
+    const handleExecuteIx = async(instruction:any) => {
+
+        
+        const programId = new PublicKey(realm.owner);
+        let instructions: TransactionInstruction[] = [];
+        const proposal = new PublicKey(instruction.account.proposal);
+        const programVersion = await getGovernanceProgramVersion(
+            RPC_CONNECTION,
+            programId,
+        );
+        
+        const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
+        console.log("Removing "+proposalTransaction.toBase58());
+
+        let tokenOwnerRecordPk = null;
+        
+        if (!tokenOwnerRecordPk){
+            tokenOwnerRecordPk = sentProp?.account?.tokenOwnerRecord;
+            console.log("From proposal tokenOwnerRecordPk: "+JSON.stringify(tokenOwnerRecordPk));
+        }
+
+        if (!tokenOwnerRecordPk){
+            for (let member of memberMap){
+                if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
+                    new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
+                    tokenOwnerRecordPk = new PublicKey(member.pubkey);
+            }
+        }
+        
+        /*
+        if (!tokenOwnerRecordPk){
+            tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+              programId,
+              realmPk,
+              governingTokenMint,
+              publicKey,
+            );
+            if (tokenOwnerRecordPk)
+              console.log("Using getTokenOwnerRecordAddress: "+tokenOwnerRecordPk.toBase58());
+        }*/
+
+        const beneficiary = publicKey;
+        const governanceAuthority = publicKey;
+        
+        console.log("Preparing Remove Instruction Selected");
+        
+        
+        await withExecuteTransaction(
+            instructions,
+            programId,
+            programVersion,
+            governanceRulesWallet,
+            proposal,
+            proposalTransaction,
+            [...instruction.account.getAllInstructions()]
+        )
+        
+        // with instructions run a transaction and make it rain!!!
+        if (instructions && instructions.length > 0){
+            const signature = await createAndSendV0TxInline(instructions);
+            if (signature){
+                enqueueSnackbar(`Transaction Executed from Proposal - ${signature}`,{ variant: 'success' });
+                //pTransaction.add(lookupTableInst);
+                //pTransaction.feePayer = publicKey;
+                
+                if (setReload) 
+                    setReload(true);
+
+            } else{
+                enqueueSnackbar(`Error`,{ variant: 'error' });
+            }
+            
+            return null;
+        }
+    }
 
     const handleRemoveIx = async(instruction:any) => {
 
@@ -349,7 +471,7 @@ export function InstructionTableView(props: any) {
         { field: 'manage', headerName: 'Manage', hide: false,
             
             renderCell: (params) => {
-                return(
+                return(// if this is still in draft state
                     (publicKey && proposalAuthor === publicKey.toBase58() && state === 0) ?
                         <>
                             <Tooltip title="Remove Transaction &amp; Claim Rent Back">
@@ -363,9 +485,26 @@ export function InstructionTableView(props: any) {
                             </Tooltip>
                         </>
                         :
-                        <>-</>
+                        <>{(publicKey && (state === 3 || state === 4 || state === 8) && (params.row.status === 0)) ?
+
+                            <>
+                                <Tooltip title="Execute Instruction">
+                                    <IconButton 
+                                        sx={{ml:1}}
+                                        color='success'
+                                        onClick={e => handleExecuteIx(params.value)}
+                                    >
+                                        <PlayCircleIcon fontSize='small' />
+                                    </IconButton>
+                                </Tooltip>
+                            </>
+                            :
+                            <></>
+                        }
+                        </>
                     
                 )
+                
             }
         }, // allow to delete or execute ix
     ]

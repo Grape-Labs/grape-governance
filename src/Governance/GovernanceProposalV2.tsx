@@ -3262,6 +3262,7 @@ export function GovernanceProposalV2View(props: any){
                                         <InstructionTableView   
                                             proposalInstructions={proposalInstructions}
                                             proposal={thisitem} 
+                                            governanceRulesWallet={thisitem.account.governance}
                                             governingTokenMint={thisitem.account.governingTokenMint} 
                                             setReload={setReload} 
                                             realm={realm} 
