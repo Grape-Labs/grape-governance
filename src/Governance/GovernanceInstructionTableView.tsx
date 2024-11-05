@@ -472,7 +472,7 @@ export function InstructionTableView(props: any) {
                 )
             }
         },
-        { field: 'manage', headerName: 'Manage', hide: false,
+        { field: 'manage', headerName: 'Manage', hide: !publicKey,
             
             renderCell: (params) => {
                 return(// if this is still in draft state
@@ -605,7 +605,7 @@ export function InstructionTableView(props: any) {
 
     return (
         <>
-            {instructionSet && instructionSet.length > 0 ?
+            {(publicKey && (state === 3 || state === 4 || state === 8) && instructionSet && instructionSet.length > 0) ?
                 <Tooltip title="Execute All Instructions">
                     <Button 
                         sx={{ml:1,borderRadius:'17px'}}
