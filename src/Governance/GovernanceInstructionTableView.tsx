@@ -198,6 +198,7 @@ export function InstructionTableView(props: any) {
     const tokenMap = props.tokenMap;
     const cachedTokenMeta = props.cachedTokenMeta;
     const [iVLoading, setIVLoading] = React.useState(false);
+    const [instructionSet, setInstructionSet] = React.useState(null);
     const { publicKey, sendTransaction, signTransaction } = useWallet();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     
@@ -282,22 +283,21 @@ export function InstructionTableView(props: any) {
         console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
         return txid;
     }
+
+    const handleBatchExecuteIx = async() => {
+        
+    }
       
     
-    const handleExecuteIx = async(instruction:any) => {
+    const handleExecuteIx = async(instructionSets:any[]) => {
 
-        
         const programId = new PublicKey(realm.owner);
         let instructions: TransactionInstruction[] = [];
-        const proposal = new PublicKey(instruction.account.proposal);
         const programVersion = await getGovernanceProgramVersion(
             RPC_CONNECTION,
             programId,
         );
         
-        const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
-        console.log("Removing "+proposalTransaction.toBase58());
-
         let tokenOwnerRecordPk = null;
         
         if (!tokenOwnerRecordPk){
@@ -317,29 +317,32 @@ export function InstructionTableView(props: any) {
         if (!tokenOwnerRecordPk){
             tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
               programId,
-              realmPk,
+              realm.pubkey,
               governingTokenMint,
               publicKey,
             );
             if (tokenOwnerRecordPk)
               console.log("Using getTokenOwnerRecordAddress: "+tokenOwnerRecordPk.toBase58());
         }*/
+        
+        // Iterate over each set of instructions
+        for (const instruction of instructionSets) {
+            const proposal = new PublicKey(instruction.account.proposal);
+            const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
+            console.log("Preparing Execute Instruction Selected");
+            console.log("Handling instruction for transaction: " + proposalTransaction.toBase58());
 
-        const beneficiary = publicKey;
-        const governanceAuthority = publicKey;
-        
-        console.log("Preparing Remove Instruction Selected");
-        
-        
-        await withExecuteTransaction(
-            instructions,
-            programId,
-            programVersion,
-            governanceRulesWallet,
-            proposal,
-            proposalTransaction,
-            [...instruction.account.getAllInstructions()]
-        )
+            // Add the instructions from each set
+            await withExecuteTransaction(
+                instructions,
+                programId,
+                programVersion,
+                governanceRulesWallet,
+                proposal,
+                proposalTransaction,
+                [...instruction.account.getAllInstructions()] // Assuming this returns the instructions for this set
+            );
+        }
         
         // with instructions run a transaction and make it rain!!!
         if (instructions && instructions.length > 0){
@@ -360,22 +363,18 @@ export function InstructionTableView(props: any) {
         }
     }
 
-    const handleRemoveIx = async(instruction:any) => {
+    const handleRemoveIx = async(instructionSets:any[]) => {
 
         //console.log("instruction "+JSON.stringify(instruction));
         //console.log("instructionDetails: "+JSON.stringify(instructionDetails))
-
         const programId = new PublicKey(realm.owner);
         let instructions: TransactionInstruction[] = [];
-        const proposal = new PublicKey(instruction.account.proposal);
+        
         const programVersion = await getGovernanceProgramVersion(
             RPC_CONNECTION,
             programId,
         );
         
-        const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
-        console.log("Removing "+proposalTransaction.toBase58());
-
         let tokenOwnerRecordPk = null;
         
         if (!tokenOwnerRecordPk){
@@ -406,17 +405,22 @@ export function InstructionTableView(props: any) {
         const beneficiary = publicKey;
         const governanceAuthority = publicKey;
         
-        console.log("Preparing Remove Instruction Selected");
-        await withRemoveTransaction(
-            instructions,
-            programId,
-            programVersion,
-            proposal,
-            tokenOwnerRecordPk,
-            governanceAuthority,
-            proposalTransaction,
-            beneficiary,
-        )
+        for (const instruction of instructionSets) {
+            console.log("Preparing Remove Instruction Selected");
+            const proposal = new PublicKey(instruction.account.proposal);
+            const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
+            console.log("Removing "+proposalTransaction.toBase58());
+            await withRemoveTransaction(
+                instructions,
+                programId,
+                programVersion,
+                proposal,
+                tokenOwnerRecordPk,
+                governanceAuthority,
+                proposalTransaction,
+                beneficiary,
+            )
+        }
         
         // with instructions run a transaction and make it rain!!!
         if (instructions && instructions.length > 0){
@@ -478,7 +482,7 @@ export function InstructionTableView(props: any) {
                                 <IconButton 
                                     sx={{ml:1}}
                                     color='error'
-                                    onClick={e => handleRemoveIx(params.value)}
+                                    onClick={e => handleRemoveIx([params.value])}
                                 >
                                     <DeleteIcon fontSize='small' />
                                 </IconButton>
@@ -492,7 +496,7 @@ export function InstructionTableView(props: any) {
                                     <IconButton 
                                         sx={{ml:1}}
                                         color='success'
-                                        onClick={e => handleExecuteIx(params.value)}
+                                        onClick={e => handleExecuteIx([params.value])}
                                     >
                                         <PlayCircleIcon fontSize='small' />
                                     </IconButton>
@@ -523,10 +527,11 @@ export function InstructionTableView(props: any) {
 
     function createIxTable(){
         let ixarr = new Array();
+        let ixarray = new Array();
         console.log("proposalIx: "+JSON.stringify(proposalIx));
         if (proposalIx[0].account.instructions.length > 1){
             if (proposalIx[0].account.instructions){
-                proposalIx[0].account.instructions.sort((a, b) => b.account.instructionIndex - a.account.instructionIndex);
+                proposalIx[0].account.instructions.sort((a: any, b: any) => b.account.instructionIndex - a.account.instructionIndex);
 
                 (proposalIx[0].account.instructions).map((item: any, index:number) => (
                     //for (const member of members){
@@ -540,7 +545,7 @@ export function InstructionTableView(props: any) {
                             description:"DA "+item?.account?.instructions[0].info.description,
                             program: new PublicKey(item?.account?.instructions[0].programId).toBase58(),
                             status:item.account.executionStatus,
-                            manage:item.account.instructionIndex,
+                            manage:item,
                         })
                 ));
             }
@@ -582,10 +587,14 @@ export function InstructionTableView(props: any) {
                         status:item.account.executionStatus,
                         manage:item,
                     })
+
+                    if (item.account.executionStatus === 0)
+                        ixarray.push(item);
                 })
             }
         }
         setIxRows(ixarr);
+        setInstructionSet(ixarray)
     }
 
     React.useEffect(() => { 
@@ -596,7 +605,17 @@ export function InstructionTableView(props: any) {
 
     return (
         <>
-        
+            {instructionSet && instructionSet.length > 0 ?
+                <Tooltip title="Execute All Instructions">
+                    <Button 
+                        sx={{ml:1,borderRadius:'17px'}}
+                        color='success'
+                        onClick={e => handleExecuteIx(instructionSet)}
+                    >
+                        <PlayCircleIcon fontSize='small' /> Execute {instructionSet.length} Instruction{instructionSet.length > 1 ? `s`:``}
+                    </Button>
+                </Tooltip>
+            :<></>}
             {ixRows &&
                 <div style={{ height: 600, width: '100%' }}>
                     <div style={{ display: 'flex', height: '100%' }}>
