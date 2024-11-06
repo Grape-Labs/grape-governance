@@ -195,20 +195,92 @@ export function InstructionTableView(props: any) {
     const governingTokenMint = props.governingTokenMint;
     const governanceRulesWallet = props?.governanceRulesWallet;
     const memberMap = props.memberMap;
-    const tokenMap = props.tokenMap;
-    const cachedTokenMeta = props.cachedTokenMeta;
-    const [iVLoading, setIVLoading] = React.useState(false);
     const [instructionSet, setInstructionSet] = React.useState(null);
     const { publicKey, sendTransaction, signTransaction } = useWallet();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     
-    const METAPLEX_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+    async function createAndSendLargeTransaction(txInstructions: TransactionInstruction[], chunkSize: number = 10) {
+        // Split txInstructions into smaller chunks
+        const instructionChunks = [];
+        for (let i = 0; i < txInstructions.length; i += chunkSize) {
+            instructionChunks.push(txInstructions.slice(i, i + chunkSize));
+        }
     
+        console.log(`Total chunks to send: ${instructionChunks.length}`);
+    
+        let lastTxid = '';
+    
+        for (const [index, chunk] of instructionChunks.entries()) {
+            console.log(`Sending chunk ${index + 1} of ${instructionChunks.length}`);
+            
+            const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+    
+            const estimatedComputeUnits = estimateComputeUnits(chunk.length);
+            const baseMicroLamportsPerUnit = 5000;
+            const validatorTip = 0;
+            const totalPriorityFee = calculatePriorityFee(estimatedComputeUnits, baseMicroLamportsPerUnit);
+    
+            const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
+                microLamports: baseMicroLamportsPerUnit + validatorTip,
+            });
+    
+            const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+                units: estimatedComputeUnits,
+            });
+    
+            const allInstructions = [
+                priorityFeeInstruction,
+                computeUnitLimitInstruction,
+                ...chunk,
+            ];
+    
+            const messageV0 = new TransactionMessage({
+                payerKey: publicKey,
+                recentBlockhash: latestBlockhash.blockhash,
+                instructions: allInstructions,
+            }).compileToV0Message();
+    
+            const transaction = new VersionedTransaction(messageV0);
+    
+            // Send each transaction
+            const txid = await sendTransaction(transaction, RPC_CONNECTION, {
+                skipPreflight: true,
+                preflightCommitment: "confirmed",
+                maxRetries: 5,
+            });
+            
+            console.log(`✅ - Transaction ${index + 1} sent with txid: ${txid}`);
+          
+            const snackprogress = (key: any) => (
+                <CircularProgress sx={{ padding: '10px' }} />
+            );
+            const cnfrmkey = enqueueSnackbar(`Confirming Transaction ${index + 1}`, { variant: 'info', action: snackprogress, persist: true });
+            
+            const confirmation = await RPC_CONNECTION.confirmTransaction({
+                signature: txid,
+                blockhash: latestBlockhash.blockhash,
+                lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+            });
+            
+            closeSnackbar(cnfrmkey);
+    
+            if (confirmation.value.err) {
+                enqueueSnackbar(`Transaction ${index + 1} Error`, { variant: 'error' });
+                throw new Error(`❌ - Transaction ${index + 1} not confirmed.`);
+            }
+    
+            console.log(`🎉 Transaction ${index + 1} successfully confirmed!`, `https://explorer.solana.com/tx/${txid}`);
+            lastTxid = txid;
+        }
+    
+        return lastTxid; // Return the last transaction ID
+    }
+
     async function createAndSendV0TxInline(txInstructions: TransactionInstruction[]) {
         // Step 1 - Fetch Latest Blockhash
         let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
         console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
-      
+        
         // Step 1: Estimate compute units based on the number of instructions
         const estimatedComputeUnits = estimateComputeUnits(txInstructions.length);
 
@@ -284,11 +356,6 @@ export function InstructionTableView(props: any) {
         return txid;
     }
 
-    const handleBatchExecuteIx = async() => {
-        
-    }
-      
-    
     const handleExecuteIx = async(instructionSets:any[]) => {
 
         const programId = new PublicKey(realm.owner);
@@ -346,7 +413,8 @@ export function InstructionTableView(props: any) {
         
         // with instructions run a transaction and make it rain!!!
         if (instructions && instructions.length > 0){
-            const signature = await createAndSendV0TxInline(instructions);
+            console.log("Sending "+instructions.length+" transactions");
+            const signature = await createAndSendLargeTransaction(instructions);
             if (signature){
                 enqueueSnackbar(`Transaction Executed from Proposal - ${signature}`,{ variant: 'success' });
                 //pTransaction.add(lookupTableInst);
