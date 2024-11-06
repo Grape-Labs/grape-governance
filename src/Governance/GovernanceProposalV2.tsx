@@ -3022,6 +3022,32 @@ export function GovernanceProposalV2View(props: any){
                                                         </>
                                                     }
 
+                                                    {(publicKey && proposalAuthor === publicKey.toBase58() && +thisitem.account.state === 3) ?
+                                                        <>
+                                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                                <Grid container alignItems="center">
+                                                                    <ManageGovernanceProposal 
+                                                                        governanceAddress={governanceAddress}
+                                                                        governanceRulesWallet={thisitem.account.governance}
+                                                                        governingTokenMint={thisitem.account.governingTokenMint}
+                                                                        proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                        payerWallet={publicKey}
+                                                                        governanceLookup={governanceLookup}
+                                                                        editProposalAddress={thisitem.pubkey}
+                                                                        realm={realm}
+                                                                        memberMap={memberMap}
+                                                                        setReload={setReload}
+                                                                        proposalSignatories={proposalSignatories}
+                                                                        mode={5} // finalize
+                                                                        state={thisitem.account.state}
+                                                                    />
+                                                                </Grid>
+                                                            </Box>
+                                                        </>:
+                                                        <></>
+                                                            
+                                                    }
+
                                                     {(publicKey && proposalAuthor === publicKey.toBase58() && +thisitem.account.state === 0) ?
                                                         <>
                                                             <Box sx={{ my: 3, mx: 2 }}>
