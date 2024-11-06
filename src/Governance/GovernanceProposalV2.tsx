@@ -2528,6 +2528,7 @@ export function GovernanceProposalV2View(props: any){
                                                             children={proposalDescription}
                                                         />
                                                         
+                                                        
                                                     </Typography>
                                                 </div>
                                                 <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>

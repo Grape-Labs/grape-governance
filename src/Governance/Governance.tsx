@@ -48,7 +48,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import { GovernanceProposalDialog } from './GovernanceProposalDialog';
 import moment from 'moment';
 
-import PlayCircleIcon from '@mui/icons-material/PlayCircle';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EditIcon from '@mui/icons-material/Edit';
 import SearchIcon from '@mui/icons-material/Search';
@@ -350,7 +350,7 @@ function RenderGovernanceTable(props:any) {
                                             :
                                                 <>
                                                 {thisitem.account?.state === 4 ? 
-                                                    <PlayCircleIcon sx={{ fontSize:"small", color:"green",ml:1}} />
+                                                    <PlayCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
                                                 :
                                                     <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
                                                 }
@@ -370,7 +370,7 @@ function RenderGovernanceTable(props:any) {
                                             :
                                             <>
                                                 {thisitem.account?.state === 4 ? 
-                                                    <PlayCircleIcon sx={{ fontSize:"small", color:"green",ml:1}} />
+                                                    <PlayCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
                                                 :
                                                     <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
                                                 }

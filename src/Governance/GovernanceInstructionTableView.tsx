@@ -586,7 +586,7 @@ export function InstructionTableView(props: any) {
         const index = instructionOwnerRecordATA.findIndex(key => key.equals(destinationAta));
         //return index;
         let owner = destinationAta;
-        if (instructionOwnerRecord[index].data?.parsed?.info?.owner){
+        if (instructionOwnerRecord[index]?.data?.parsed?.info?.owner){
             owner = instructionOwnerRecord[index].data?.parsed?.info?.owner
         }
         return new PublicKey(owner).toBase58();
