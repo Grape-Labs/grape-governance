@@ -42,6 +42,7 @@ import {
     withAddSignatory,
     withCancelProposal,
     withRefundProposalDeposit,
+    withFinalizeVote,
     getSignatoryRecordAddress,
     getAllProposals,
     getProposal,
@@ -262,6 +263,70 @@ export function ManageGovernanceProposal(props: any){
     }
 
 
+    const handleFinalizeIx = async() => {
+        
+
+        const programId = new PublicKey(realm.owner);
+        let instructions: TransactionInstruction[] = [];
+        
+        const proposalAddress = new PublicKey(editProposalAddress);
+        const realmPk = new PublicKey(governanceAddress);
+        const programVersion = await getGovernanceProgramVersion(
+            RPC_CONNECTION,
+            programId,
+        );
+        
+        let tokenOwnerRecordPk = null;
+        for (let member of memberMap){
+            if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
+                new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
+                tokenOwnerRecordPk = new PublicKey(member.pubkey);
+        }
+        
+        const signatory = publicKey;
+
+        const signatoryRecordAddress = await getSignatoryRecordAddress(
+            programId,
+            proposalAddress,
+            signatory
+        )
+
+        const beneficiary = publicKey;
+        const governanceAuthority = publicKey;
+        
+        await withFinalizeVote(
+            instructions, // Sign Off proposal needs to be executed after inserting instructions hence we add it to insertInstructions
+            programId,
+            programVersion,
+            realmPk,
+            new PublicKey(governanceRulesWallet),
+            proposalAddress,
+            signatory,
+            signatoryRecordAddress,
+            undefined, // do we need prop author?
+            /*signatoryRecordAddress,
+            undefined,
+            undefined,
+            tokenOwnerRecordPk*/
+        );
+
+        // with instructions run a transaction and make it rain!!!
+        if (instructions && instructions.length > 0){
+            const signature = await createAndSendV0TxInline(instructions);
+            if (signature){
+                enqueueSnackbar(`Finalized Proposal - ${signature}`,{ variant: 'success' });
+                
+                if (setReload) 
+                    setReload(true);
+
+            } else{
+                enqueueSnackbar(`Error`,{ variant: 'error' });
+            }
+            
+            return null;
+        }
+    }
+
     const handleSignOffIx = async() => {
 
         //console.log("instruction "+JSON.stringify(instruction));
@@ -303,7 +368,7 @@ export function ManageGovernanceProposal(props: any){
         const beneficiary = publicKey;
         const governanceAuthority = publicKey;
         
-        withSignOffProposal(
+        await withSignOffProposal(
             instructions, // Sign Off proposal needs to be executed after inserting instructions hence we add it to insertInstructions
             programId,
             programVersion,
@@ -340,6 +405,10 @@ export function ManageGovernanceProposal(props: any){
         await handleSignOffIx();
     }
 
+    const handleFinalize = async() => {
+        await handleFinalizeIx();
+    }
+    
     const handleAddSignatoryIx = async() => {
 
         console.log("proposal: "+JSON.stringify(proposal));
@@ -702,7 +771,22 @@ export function ManageGovernanceProposal(props: any){
                                     </Tooltip>
                                 </>
                                 :<>
-                                    
+                                    {mode === 5 ?
+                                        <>
+                                            <Tooltip title={<>Click to Finalize this Proposal<br/><br/>NOTE: If there are instructions you will be able to execute those in the instructions section</>}>
+                                                <Button 
+                                                    onClick={handleFinalize}
+                                                    variant='outlined'
+                                                    color='inherit'
+                                                    fullWidth={true}
+                                                    sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
+                                                    Finalize Proposal <ApprovalIcon fontSize="small" sx={{ml:1}}/>
+                                                </Button>
+                                            </Tooltip>
+                                        </>
+                                        :
+                                        <></>
+                                    }
                                 </>
                             }
                         </>
