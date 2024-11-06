@@ -2519,7 +2519,7 @@ export function GovernanceProposalV2View(props: any){
                                                     }} 
                                                 >
                                                     <Typography variant='body2'>
-                                                        
+                                                        {/*
                                                         <ReactMarkdown 
                                                             //remarkPlugins={[remarkGfm]}
                                                             remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
@@ -2527,6 +2527,7 @@ export function GovernanceProposalV2View(props: any){
                                                             transformImageUri={transformImageUri}
                                                             children={proposalDescription}
                                                         />
+                                                        */}
                                                         
                                                     </Typography>
                                                 </div>
