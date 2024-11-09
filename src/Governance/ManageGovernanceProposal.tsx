@@ -301,8 +301,10 @@ export function ManageGovernanceProposal(props: any){
             realmPk,
             new PublicKey(governanceRulesWallet),
             proposalAddress,
-            signatory,
-            signatoryRecordAddress,
+            proposalAuthor,
+            governingTokenMint,
+            //signatory,
+            //signatoryRecordAddress,
             undefined, // do we need prop author?
             /*signatoryRecordAddress,
             undefined,

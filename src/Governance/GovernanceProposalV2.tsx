@@ -52,7 +52,9 @@ import { InstructionMapping } from "../utils/grapeTools/InstructionMapping";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
+import removeInvalidImages from './removeInvalidImages';
 
+import ErrorBoundary from './ErrorBoundary';
 import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import GovernancePower from './GovernancePower';
 import GovernanceDiscussion from './GovernanceDiscussion';
@@ -2519,14 +2521,36 @@ export function GovernanceProposalV2View(props: any){
                                                     }} 
                                                 >
                                                     <Typography variant='body2'>
-                                                        
-                                                        <ReactMarkdown 
-                                                            //remarkPlugins={[remarkGfm]}
-                                                            remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
-                                                            //urlTransform={transformImageUri}
-                                                            transformImageUri={transformImageUri}
-                                                            children={proposalDescription}
-                                                        />
+                                                        <ErrorBoundary>
+                                                            
+                                                            <ReactMarkdown 
+                                                                remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
+                                                                //transformImageUri={transformImageUri}
+                                                                children={proposalDescription}
+                                                                components={{
+                                                                    // Custom component for overriding the image rendering
+                                                                    img: ({ node, ...props }) => (
+                                                                    <img
+                                                                        {...props}
+                                                                        style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
+                                                                    />
+                                                                    ),
+                                                                }}
+                                                            />
+                                                            
+                                                        </ErrorBoundary>
+                                                        {/*
+                                                        <ReactMarkdown
+                                                            remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkImages]}
+                                                            components={{
+                                                                img: ({ src, alt }) => (
+                                                                    <img src={transformImageUri(src)} alt={alt} style={{ maxWidth: '100%' }} />
+                                                                ),
+                                                            }}
+                                                        >
+                                                            {proposalDescription}
+                                                        </ReactMarkdown>
+                                                        */}
                                                         
                                                         
                                                     </Typography>
@@ -2660,7 +2684,8 @@ export function GovernanceProposalV2View(props: any){
                                                                         {(+(totalQuorum - (forVotes/10**votingDecimals))
                                                                         .toFixed(0)).toLocaleString()}
                                                                     </>
-                                                                    :<>Passing</>
+                                                                    :
+                                                                    <>Passing</>
                                                                 }
                                                             </Typography>
                                                         </Grid>
@@ -2680,6 +2705,52 @@ export function GovernanceProposalV2View(props: any){
                                                         </Typography>
                                                     </Box>
                                                 :<></>}
+
+
+                                                {
+                                                (publicKey &&
+                                                    +thisitem.account.state === 2 &&
+                                                    (() => {
+                                                    // Inline function to check if the proposal has ended including the cooldown time
+                                                    const signingOffAt = Number(thisitem.account?.signingOffAt || 0);
+                                                    const baseVotingTime = Number(thisGovernance.account?.config?.baseVotingTime || 0);
+                                                    const votingCoolOffTime = Number(thisGovernance.account?.config?.votingCoolOffTime || 0);
+
+                                                    // Calculate end times
+                                                    const votingEndTime = signingOffAt + baseVotingTime;
+                                                    const totalEndTime = votingEndTime + votingCoolOffTime;
+                                                    const currentTime = moment().unix();
+                                                    
+                                                    // Return true if the current time has passed the total end time including cooldown
+                                                    return currentTime >= totalEndTime;
+                                                    })()
+                                                ) ? (
+                                                    <>
+                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                        <Grid container alignItems="center">
+                                                        <ManageGovernanceProposal
+                                                            governanceAddress={governanceAddress}
+                                                            governanceRulesWallet={thisitem.account.governance}
+                                                            governingTokenMint={thisitem.account.governingTokenMint}
+                                                            proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                            payerWallet={publicKey}
+                                                            governanceLookup={governanceLookup}
+                                                            editProposalAddress={thisitem.pubkey}
+                                                            realm={realm}
+                                                            memberMap={memberMap}
+                                                            setReload={setReload}
+                                                            proposalSignatories={proposalSignatories}
+                                                            mode={5} // finalize
+                                                            state={thisitem.account.state}
+                                                        />
+                                                        </Grid>
+                                                    </Box>
+                                                    </>
+                                                ) : (
+                                                    <></>
+                                                )
+                                                }
+                                                        
 
                                                 {(thisitem.account.signingOffAt && +thisitem.account.signingOffAt > 0 && thisitem.account.status !== 0 && thisitem.account.status !== 1) &&
                                                     <Box sx={{ my: 3, mx: 2 }}>
@@ -3021,32 +3092,6 @@ export function GovernanceProposalV2View(props: any){
                                                                 </Typography>
                                                             </Box>
                                                         </>
-                                                    }
-
-                                                    {(publicKey && proposalAuthor === publicKey.toBase58() && +thisitem.account.state === 3) ?
-                                                        <>
-                                                            <Box sx={{ my: 3, mx: 2 }}>
-                                                                <Grid container alignItems="center">
-                                                                    <ManageGovernanceProposal 
-                                                                        governanceAddress={governanceAddress}
-                                                                        governanceRulesWallet={thisitem.account.governance}
-                                                                        governingTokenMint={thisitem.account.governingTokenMint}
-                                                                        proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                                                        payerWallet={publicKey}
-                                                                        governanceLookup={governanceLookup}
-                                                                        editProposalAddress={thisitem.pubkey}
-                                                                        realm={realm}
-                                                                        memberMap={memberMap}
-                                                                        setReload={setReload}
-                                                                        proposalSignatories={proposalSignatories}
-                                                                        mode={5} // finalize
-                                                                        state={thisitem.account.state}
-                                                                    />
-                                                                </Grid>
-                                                            </Box>
-                                                        </>:
-                                                        <></>
-                                                            
                                                     }
 
                                                     {(publicKey && proposalAuthor === publicKey.toBase58() && +thisitem.account.state === 0) ?
