@@ -638,7 +638,7 @@ export function InstructionTableView(props: any) {
                     if (item?.account?.instructions[0].info?.destinationAta){
                         description = item?.account?.instructions[0].info.description.replace(new PublicKey(item?.account?.instructions[0].info?.destinationAta.toBase58()), findOwnerRecord(item?.account?.instructions[0].info?.destinationAta));
                     } else{
-                        description = item?.account?.instructions[0].info.description;
+                        description = item?.account?.instructions[0]?.info?.description;
                     }
                     //description = item?.account?.instructions[0].info.description + ' > ' + (item?.account?.instructions[0].info?.destinationAta ? findOwnerRecord(item?.account?.instructions[0].info?.destinationAta) : '')
                     
