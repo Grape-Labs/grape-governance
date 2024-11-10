@@ -3292,19 +3292,20 @@ export function GovernanceProposalV2View(props: any){
                                                     </Typography>
                                                     <Typography variant="caption">
 
-                                                        {Object.values(
+                                                    {Object.values(
                                                             instructionTransferDetails.reduce((result, item) => {
-                                                                //console.log("item: "+JSON.stringify(item))
-                                                                const { mint, amount, name, logoURI, destinationAta } = item;
-                                                                if (!result[mint]) {
-                                                                    result[mint] = { mint, totalAmount: 0, name, logoURI, uniqueDestinationAta: new Set() };
+                                                                // Ensure item exists and has necessary properties before destructuring
+                                                                if (item && typeof item === 'object') {
+                                                                    const { mint, amount, name, logoURI, destinationAta } = item;
+                                                                    if (!result[mint]) {
+                                                                        result[mint] = { mint, totalAmount: 0, name, logoURI, uniqueDestinationAta: new Set() };
+                                                                    }
+                                                                    result[mint].totalAmount += +amount || 0; // Fallback to 0 if amount is invalid
+                                                                    if (destinationAta) result[mint].uniqueDestinationAta.add(destinationAta);
                                                                 }
-                                                                result[mint].totalAmount += +amount;
-                                                                if (destinationAta)
-                                                                    result[mint].uniqueDestinationAta.add(destinationAta);
                                                                 return result;
                                                             }, {})
-                                                            ).map((item) => (
+                                                        ).map((item) => (
                                                                 <>
                                                                     <Grid container
                                                                         direction="row"
