@@ -55,6 +55,7 @@ import SendExtensionView from './SendView';
 import DirectoryExtensionView from './DirectoryView';
 import DistributorExtensionView from './DistributorView';
 import ClaimExtensionView from './ClaimView';
+import TokenManagerView from './TokenManagerView';
 import DemoExtensionView from './DemoView';
 
 export default function ExtensionsMenuView(props: any) {
@@ -149,6 +150,18 @@ export default function ExtensionsMenuView(props: any) {
             instructions={instructions}
             setInstructions={setInstructions}
         />
+        {/*
+        <TokenManagerView
+            realm={realm}
+            handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
+        */}
         <DistributorExtensionView
             realm={realm}
             handleCloseExtMenu={handleClose}
