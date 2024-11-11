@@ -199,7 +199,7 @@ export function InstructionTableView(props: any) {
     const { publicKey, sendTransaction, signTransaction } = useWallet();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     
-    async function createAndSendLargeTransaction(txInstructions: TransactionInstruction[], chunkSize: number = 10) {
+    async function createAndSendLargeTransaction(txInstructions: TransactionInstruction[], chunkSize: number = 5) {
         // Split txInstructions into smaller chunks
         const instructionChunks = [];
         for (let i = 0; i < txInstructions.length; i += chunkSize) {
