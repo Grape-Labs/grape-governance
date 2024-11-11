@@ -209,7 +209,13 @@ export function InstructionTableView(props: any) {
         console.log(`Total chunks to send: ${instructionChunks.length}`);
     
         let lastTxid = '';
-    
+        
+        const snackprogress = (key: any) => (
+            <CircularProgress sx={{ padding: '10px' }} />
+        );
+        const cnfrmkey2 = enqueueSnackbar(`Sending Transaction Chunks ${instructionChunks.length}`, { variant: 'info', action: snackprogress, persist: true });
+        closeSnackbar(cnfrmkey2);
+        
         for (const [index, chunk] of instructionChunks.entries()) {
             console.log(`Sending chunk ${index + 1} of ${instructionChunks.length}`);
             
@@ -251,9 +257,6 @@ export function InstructionTableView(props: any) {
             
             console.log(`✅ - Transaction ${index + 1} sent with txid: ${txid}`);
           
-            const snackprogress = (key: any) => (
-                <CircularProgress sx={{ padding: '10px' }} />
-            );
             const cnfrmkey = enqueueSnackbar(`Confirming Transaction ${index + 1}`, { variant: 'info', action: snackprogress, persist: true });
             
             const confirmation = await RPC_CONNECTION.confirmTransaction({
