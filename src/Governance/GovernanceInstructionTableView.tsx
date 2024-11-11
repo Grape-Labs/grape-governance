@@ -199,7 +199,7 @@ export function InstructionTableView(props: any) {
     const { publicKey, sendTransaction, signTransaction } = useWallet();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     
-    async function createAndSendLargeTransaction(txInstructions: TransactionInstruction[], chunkSize: number = 5) {
+    async function createAndSendLargeTransaction(txInstructions, chunkSize = 5) {
         // Split txInstructions into smaller chunks
         const instructionChunks = [];
         for (let i = 0; i < txInstructions.length; i += chunkSize) {
@@ -209,11 +209,16 @@ export function InstructionTableView(props: any) {
         console.log(`Total chunks to send: ${instructionChunks.length}`);
     
         let lastTxid = '';
+        let latestBlockhash;
+        let initialSignature;
     
         for (const [index, chunk] of instructionChunks.entries()) {
             console.log(`Sending chunk ${index + 1} of ${instructionChunks.length}`);
-            
-            const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+    
+            if (index === 0) {
+                // For the first chunk, fetch the latest blockhash and sign
+                latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+            }
     
             const estimatedComputeUnits = estimateComputeUnits(chunk.length);
             const baseMicroLamportsPerUnit = 5000;
@@ -242,26 +247,38 @@ export function InstructionTableView(props: any) {
     
             const transaction = new VersionedTransaction(messageV0);
     
+            if (index === 0) {
+                // Sign the first transaction
+                await transaction.sign([payer]); // sign with your wallet or keypair once
+    
+                // Store the first signature for reuse in the next transactions
+                initialSignature = transaction.signatures[0];
+    
+                console.log(`✅ - Initial transaction signed with signature: ${initialSignature.toString()}`);
+            } else {
+                // For subsequent chunks, reuse the initial signature and blockhash
+                transaction.signatures = [initialSignature]; // Apply the stored signature
+            }
+    
             // Send each transaction
-            const txid = await sendTransaction(transaction, RPC_CONNECTION, {
+            const txid = await RPC_CONNECTION.sendRawTransaction(transaction.serialize(), {
                 skipPreflight: true,
-                preflightCommitment: "confirmed",
                 maxRetries: 5,
             });
-            
+    
             console.log(`✅ - Transaction ${index + 1} sent with txid: ${txid}`);
-          
-            const snackprogress = (key: any) => (
+    
+            const snackprogress = (key) => (
                 <CircularProgress sx={{ padding: '10px' }} />
             );
             const cnfrmkey = enqueueSnackbar(`Confirming Transaction ${index + 1}`, { variant: 'info', action: snackprogress, persist: true });
-            
+    
             const confirmation = await RPC_CONNECTION.confirmTransaction({
                 signature: txid,
                 blockhash: latestBlockhash.blockhash,
                 lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
             });
-            
+    
             closeSnackbar(cnfrmkey);
     
             if (confirmation.value.err) {
@@ -275,87 +292,7 @@ export function InstructionTableView(props: any) {
     
         return lastTxid; // Return the last transaction ID
     }
-
-    async function createAndSendV0TxInline(txInstructions: TransactionInstruction[]) {
-        // Step 1 - Fetch Latest Blockhash
-        let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
-        console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
-        
-        // Step 1: Estimate compute units based on the number of instructions
-        const estimatedComputeUnits = estimateComputeUnits(txInstructions.length);
-
-        // Step 2: Set a base fee per compute unit (microLamports)
-        const baseMicroLamportsPerUnit = 5000; // Adjust this value as needed
-
-        // Step 3: Add a validator tip per compute unit
-        const validatorTip = 0;//2000; // Additional tip per compute unit (0.000002 SOL)
-
-        // Step 4: Calculate the total priority fee
-        const totalPriorityFee = calculatePriorityFee(estimatedComputeUnits, baseMicroLamportsPerUnit);
-
-        console.log(`Estimated compute units: ${estimatedComputeUnits}`);
-        console.log(`Total priority fee: ${totalPriorityFee} microLamports`);
-
-        // Add compute budget instructions for priority fees and validator tips
-        const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
-            microLamports: baseMicroLamportsPerUnit + validatorTip, // Total fee including priority and validator tip
-        });
-
-        const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
-            units: estimatedComputeUnits, // Use the estimated compute units
-        });
-
-        // Step 3 - Combine Priority Fee Instructions with Other Instructions
-        const allInstructions = [
-            priorityFeeInstruction,
-            computeUnitLimitInstruction,
-            ...txInstructions, // Append your original instructions
-        ];
-
-        // Step 2 - Generate Transaction Message
-        const messageV0 = new TransactionMessage({
-            payerKey: publicKey,
-            recentBlockhash: latestBlockhash.blockhash,
-            instructions: allInstructions
-        }).compileToV0Message();
-        console.log("   ✅ - Compiled transaction message");
-        const transaction = new VersionedTransaction(messageV0);
-        
-        console.log("   ✅ - Transaction Signed");
-      
-        // Step 4 - Send our v0 transaction to the cluster
-        //const txid = await RPC_CONNECTION.sendTransaction(transaction, { maxRetries: 5 });
-        
-        //const tx = new Transaction();
-        //tx.add(txInstructions[0]);
-        
-        const txid = await sendTransaction(transaction, RPC_CONNECTION, {
-            skipPreflight: true,
-            preflightCommitment: "confirmed",
-            maxRetries: 5
-        });
-        
-        console.log("   ✅ - Transaction sent to network with txid: "+txid);
-      
-        // Step 5 - Confirm Transaction 
-        const snackprogress = (key:any) => (
-            <CircularProgress sx={{padding:'10px'}} />
-        );
-        const cnfrmkey = enqueueSnackbar(`Confirming Transaction`,{ variant: 'info', action:snackprogress, persist: true });
-        const confirmation = await RPC_CONNECTION.confirmTransaction({
-            signature: txid,
-            blockhash: latestBlockhash.blockhash,
-            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-        });
-        closeSnackbar(cnfrmkey);
-        if (confirmation.value.err) { 
-            enqueueSnackbar(`Transaction Error`,{ variant: 'error' });
-            throw new Error("   ❌ - Transaction not confirmed.") }
-      
-        console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
-        return txid;
-    }
-
+    
     const handleExecuteIx = async(instructionSets:any[]) => {
 
         const programId = new PublicKey(realm.owner);
