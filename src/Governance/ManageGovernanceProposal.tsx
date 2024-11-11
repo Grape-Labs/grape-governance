@@ -62,7 +62,7 @@ import {
   } from './api/queries';
 
 import { sendTransactions, prepareTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../utils/governanceTools/sendTransactions';
-import { Signer, Connection, MemcmpFilter, TransactionMessage, PublicKey, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
+import { Signer, Connection, MemcmpFilter, TransactionMessage, PublicKey, Transaction, VersionedTransaction, TransactionInstruction, ComputeBudgetProgram } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError, TransactionOrVersionedTransaction } from '@solana/wallet-adapter-base';
 import { useSnackbar } from 'notistack';
@@ -212,17 +212,60 @@ export function ManageGovernanceProposal(props: any){
         },
         [enqueueSnackbar]
     );
+
+    const estimateComputeUnits = (instructionsLength: number) => {
+        // Estimate compute units based on the number of instructions. You can adjust this calculation.
+        const baseUnits = 200_000; // Minimum compute units for a simple transaction
+        const perInstructionUnits = 50_000; // Additional units for each instruction
+        return baseUnits + perInstructionUnits * instructionsLength;
+    };
+    
+    const calculatePriorityFee = (computeUnits: number, baseMicroLamportsPerUnit: number) => {
+        // Calculate the total priority fee based on compute units and price per compute unit
+        return computeUnits * baseMicroLamportsPerUnit;
+    };
     
     async function createAndSendV0TxInline(txInstructions: TransactionInstruction[]) {
         // Step 1 - Fetch Latest Blockhash
         let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('confirmed');
         console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
-      
+        
+        // Step 1: Estimate compute units based on the number of instructions
+        const estimatedComputeUnits = estimateComputeUnits(txInstructions.length);
+
+        // Step 2: Set a base fee per compute unit (microLamports)
+        const baseMicroLamportsPerUnit = 5000; // Adjust this value as needed
+
+        // Step 3: Add a validator tip per compute unit
+        const validatorTip = 0;//2000; // Additional tip per compute unit (0.000002 SOL)
+
+        // Step 4: Calculate the total priority fee
+        const totalPriorityFee = calculatePriorityFee(estimatedComputeUnits, baseMicroLamportsPerUnit);
+
+        console.log(`Estimated compute units: ${estimatedComputeUnits}`);
+        console.log(`Total priority fee: ${totalPriorityFee} microLamports`);
+
+        // Add compute budget instructions for priority fees and validator tips
+        const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: baseMicroLamportsPerUnit + validatorTip, // Total fee including priority and validator tip
+        });
+
+        const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+            units: estimatedComputeUnits, // Use the estimated compute units
+        });
+
+        // Step 3 - Combine Priority Fee Instructions with Other Instructions
+        const allInstructions = [
+            priorityFeeInstruction,
+            computeUnitLimitInstruction,
+            ...txInstructions, // Append your original instructions
+        ];
+
         // Step 2 - Generate Transaction Message
         const messageV0 = new TransactionMessage({
             payerKey: publicKey,
             recentBlockhash: latestBlockhash.blockhash,
-            instructions: txInstructions
+            instructions: allInstructions
         }).compileToV0Message();
         console.log("   ✅ - Compiled transaction message");
         const transaction = new VersionedTransaction(messageV0);
@@ -264,17 +307,21 @@ export function ManageGovernanceProposal(props: any){
 
 
     const handleFinalizeIx = async() => {
-        
-
         const programId = new PublicKey(realm.owner);
         let instructions: TransactionInstruction[] = [];
         
         const proposalAddress = new PublicKey(editProposalAddress);
         const realmPk = new PublicKey(governanceAddress);
-        const programVersion = await getGovernanceProgramVersion(
-            RPC_CONNECTION,
-            programId,
-        );
+        let programVersion;
+        if (realmPk.toBase58() === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip") {
+            programVersion = 2;
+        } else {
+            // Otherwise, await the result of getGovernanceProgramVersion
+            programVersion = await getGovernanceProgramVersion(
+                RPC_CONNECTION,
+                programId,
+            );
+        }
         
         let tokenOwnerRecordPk = null;
         for (let member of memberMap){
@@ -285,11 +332,12 @@ export function ManageGovernanceProposal(props: any){
         
         const signatory = publicKey;
 
+        /*
         const signatoryRecordAddress = await getSignatoryRecordAddress(
             programId,
             proposalAddress,
             signatory
-        )
+        )*/
 
         const beneficiary = publicKey;
         const governanceAuthority = publicKey;
@@ -301,15 +349,9 @@ export function ManageGovernanceProposal(props: any){
             realmPk,
             new PublicKey(governanceRulesWallet),
             proposalAddress,
-            proposalAuthor,
+            proposalAuthor, //proposalAuthor,
             governingTokenMint,
-            //signatory,
-            //signatoryRecordAddress,
-            undefined, // do we need prop author?
-            /*signatoryRecordAddress,
-            undefined,
-            undefined,
-            tokenOwnerRecordPk*/
+            //undefined, // vsr?
         );
 
         // with instructions run a transaction and make it rain!!!
@@ -339,10 +381,16 @@ export function ManageGovernanceProposal(props: any){
         
         const proposalAddress = new PublicKey(editProposalAddress);
         const realmPk = new PublicKey(governanceAddress);
-        const programVersion = await getGovernanceProgramVersion(
-            RPC_CONNECTION,
-            programId,
-        );
+        let programVersion;
+        if (realmPk.toBase58() === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip") {
+            programVersion = 2;
+        } else {
+            // Otherwise, await the result of getGovernanceProgramVersion
+            programVersion = await getGovernanceProgramVersion(
+                RPC_CONNECTION,
+                programId,
+            );
+        }
         
         let tokenOwnerRecordPk = null;
         for (let member of memberMap){
@@ -420,10 +468,16 @@ export function ManageGovernanceProposal(props: any){
         
         const proposalAddress = new PublicKey(editProposalAddress);
         const realmPk = new PublicKey(governanceAddress);
-        const programVersion = await getGovernanceProgramVersion(
-            RPC_CONNECTION,
-            programId,
-        );
+        let programVersion;
+        if (realmPk.toBase58() === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip") {
+            programVersion = 2;
+        } else {
+            // Otherwise, await the result of getGovernanceProgramVersion
+            programVersion = await getGovernanceProgramVersion(
+                RPC_CONNECTION,
+                programId,
+            );
+        }
         
         let tokenOwnerRecordPk = null;
         for (let member of memberMap){
