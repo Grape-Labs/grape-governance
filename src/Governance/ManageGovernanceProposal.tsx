@@ -381,10 +381,16 @@ export function ManageGovernanceProposal(props: any){
         
         const proposalAddress = new PublicKey(editProposalAddress);
         const realmPk = new PublicKey(governanceAddress);
-        const programVersion = await getGovernanceProgramVersion(
-            RPC_CONNECTION,
-            programId,
-        );
+        let programVersion;
+        if (realmPk.toBase58() === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip") {
+            programVersion = 2;
+        } else {
+            // Otherwise, await the result of getGovernanceProgramVersion
+            programVersion = await getGovernanceProgramVersion(
+                RPC_CONNECTION,
+                programId,
+            );
+        }
         
         let tokenOwnerRecordPk = null;
         for (let member of memberMap){
@@ -462,10 +468,16 @@ export function ManageGovernanceProposal(props: any){
         
         const proposalAddress = new PublicKey(editProposalAddress);
         const realmPk = new PublicKey(governanceAddress);
-        const programVersion = await getGovernanceProgramVersion(
-            RPC_CONNECTION,
-            programId,
-        );
+        let programVersion;
+        if (realmPk.toBase58() === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip") {
+            programVersion = 2;
+        } else {
+            // Otherwise, await the result of getGovernanceProgramVersion
+            programVersion = await getGovernanceProgramVersion(
+                RPC_CONNECTION,
+                programId,
+            );
+        }
         
         let tokenOwnerRecordPk = null;
         for (let member of memberMap){
