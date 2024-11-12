@@ -8,7 +8,9 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import {
   getAllTokenOwnerRecords, 
   getTokenOwnerRecord, 
-  getTokenOwnerRecordsByOwner  } from '@solana/spl-governance';
+  getTokenOwnerRecordsByOwner,
+  getGovernanceProgramVersion
+  } from '@solana/spl-governance';
   import { 
     getRealmIndexed,
     getAllProposalsIndexed,
@@ -113,6 +115,18 @@ export const shortenString = (input: any, startChars = 6, endChars = 6) => {
 
   return `${start}...${end}`;
 };
+
+export async function getGrapeGovernanceProgramVersion(connection: Connection, programId: PublicKey, realmPk: PublicKey){
+  if (realmPk.toBase58() === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip") {
+    return 2;
+  } else{
+    const programVersion = await getGovernanceProgramVersion(
+      RPC_CONNECTION,
+      programId,
+    );
+    return programVersion;
+  }
+}
 
 export const getFormattedNumberToLocale = (value: any, digits = 0) => {
   const converted = parseFloat(value.toString());

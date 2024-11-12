@@ -10,7 +10,6 @@ import {
   TokenOwnerRecord, 
   withCreateProposal,
   VoteType, 
-  getGovernanceProgramVersion,
   serializeInstructionToBase64,
   createInstructionData,
   withInsertTransaction,
@@ -24,7 +23,7 @@ import {
   getAllProposals,
   MultiChoiceType,
 } from '@solana/spl-governance';
-
+import { getGrapeGovernanceProgramVersion } from '../../utils/grapeTools/helpers';
 import { 
   getRealmIndexed,
   getProposalIndexed,
@@ -138,9 +137,11 @@ export async function createProposalInstructionsLegacy(
 
     let instructions: TransactionInstruction[] = [];
     const programId = new PublicKey(token_realm_program_id);
-    const programVersion = await getGovernanceProgramVersion(
+
+    const programVersion = await getGrapeGovernanceProgramVersion(
       connection,
       programId,
+      realmPk
     );
 
     //const realmPk = new PublicKey('DcR6g5EawaEoTRYcnuBjtD26VSVjWNoi1C1hKJWwvcup');

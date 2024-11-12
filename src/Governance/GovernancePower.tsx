@@ -69,10 +69,10 @@ import {
     withRelinquishVote,
     withDepositGoverningTokens,
     withWithdrawGoverningTokens,
-    getGovernanceProgramVersion,
     withSetGovernanceDelegate,
     tryGetRealmConfig,
 } from '@solana/spl-governance';
+import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
 
 import { 
     getRealmIndexed,
@@ -347,17 +347,11 @@ export default function GovernancePower(props: any){
         const withMint = new PublicKey(mintAddress);
         const delegate = delegateAddress ? new PublicKey(delegateAddress) : null;
         const programId = new PublicKey(realm.owner);
-        console.log("programId: "+JSON.stringify(programId));
-        
-        const programVersion = await getGovernanceProgramVersion(
-            RPC_CONNECTION,
-            programId,
-          )
-        
-        console.log("programVersion: "+JSON.stringify(programVersion));
-
+        //console.log("programId: "+JSON.stringify(programId));
         const realmPk = new PublicKey(realm.pubkey);
-        
+        const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
+        //console.log("programVersion: "+JSON.stringify(programVersion));
+
         //const tokenInfo = await getMint(RPC_CONNECTION, withMint);
         /*
         const userAtaPk = await getAssociatedTokenAddress(
@@ -448,16 +442,10 @@ export default function GovernancePower(props: any){
     const withdrawVotesToGovernance = async(tokenAmount: number, tokenDecimals: number, mintAddress: string) => {
         const withMint = new PublicKey(mintAddress);
         const programId = new PublicKey(realm.owner);
-        console.log("programId: "+JSON.stringify(programId));
-        const programVersion = await getGovernanceProgramVersion(
-            RPC_CONNECTION,
-            programId,
-          )
-        
+        const realmPk = new PublicKey(realm.pubkey);
+        const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
         console.log("programVersion: "+JSON.stringify(programVersion));
 
-        const realmPk = new PublicKey(realm.pubkey);
-        
         const tokenInfo = await getMint(RPC_CONNECTION, withMint);
         
         const userAtaPk = await getAssociatedTokenAddress(
@@ -551,14 +539,8 @@ export default function GovernancePower(props: any){
         if (isPlugin){
             alert("Plugin/VSR/NFT Deposits Coming Soon - use the Realms UI to deposit your tokens to this Governance")
         } else {
-            const programVersion = await getGovernanceProgramVersion(
-                RPC_CONNECTION,
-                programId,
-            )
-            
-            console.log("programVersion: "+JSON.stringify(programVersion));
-
             const realmPk = new PublicKey(realm.pubkey);
+            const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
             
             const tokenInfo = await getMint(RPC_CONNECTION, withMint);
             

@@ -8,7 +8,6 @@ import {
     getTokenOwnerRecord, 
     getTokenOwnerRecordsByOwner, 
     getAllTokenOwnerRecords,
-    getGovernanceProgramVersion,
     getVoteRecord,
     getMaxVoterWeightRecord,
     getRealmConfigAddress, 
@@ -21,6 +20,8 @@ import {
     withRelinquishVote,
     getRealmConfig,
     InstructionData  } from '@solana/spl-governance';
+import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
+
 import { 
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
@@ -327,10 +328,10 @@ export function VoteForProposal(props:any){
             const voteTx = new Transaction();
             const beneficiary = publicKey;
             const governanceAuthority = publicKey;
-            const programVersion = await getGovernanceProgramVersion(
-                RPC_CONNECTION,
-                new PublicKey(realm.owner)
-            );
+
+            const realmPk = new PublicKey(realm.pubkey);
+            const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, new PublicKey(realm.owner), new PublicKey(realm.pubkey));
+
             const tokenOwnerRecord = new PublicKey(memberItem.pubkey);
             const instructions: TransactionInstruction[] = [];
             //const prop = await getProposal(RPC_CONNECTION, transactionData.proposal);

@@ -16,7 +16,7 @@ import {
   createBurnInstruction,
   getMint,
 } from "@solana/spl-token-v2";
-
+import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
 import {
   Typography,
   Tooltip,
@@ -38,7 +38,6 @@ import {
   Vote,
   VoteChoice,
   VoteKind,
-  getGovernanceProgramVersion,
   withDepositGoverningTokens,
   getRealm,
   getRealms,
@@ -310,9 +309,10 @@ const handleVote = async(direction:boolean, proposalAddress:PublicKey, proposalG
 
       programId = gRealm.owner;
 
-      const programVersion = await getGovernanceProgramVersion(
+      const programVersion = await getGrapeGovernanceProgramVersion(
         RPC_CONNECTION,
         programId,
+        realmPk
       )
 
       //const rpc_members = await getAllTokenOwnerRecords(RPC_CONNECTION, programId,realmPk);
