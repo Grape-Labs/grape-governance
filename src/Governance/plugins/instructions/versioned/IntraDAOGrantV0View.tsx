@@ -22,13 +22,12 @@ import { styled } from '@mui/material/styles';
 
 import { 
     getAllTokenOwnerRecords,
-    getGovernanceProgramVersion,
     withDepositGoverningTokens,
     withCreateTokenOwnerRecord,
     getRealm,
     serializeInstructionToBase64,
   } from '@solana/spl-governance';
-
+import { getGrapeGovernanceProgramVersion } from '../../../../utils/grapeTools/helpers';
 
 import {
   Dialog,
@@ -202,15 +201,12 @@ export default function IntraDAOGrantV0View(props: any) {
 
             const programId = governance.owner;
             //console.log("programId: "+JSON.stringify(programId));
-            const programVersion = await getGovernanceProgramVersion(
+            const realmPk = new PublicKey(governance.pubkey);
+            const programVersion = await getGrapeGovernanceProgramVersion(
                 connection,
                 programId,
+                realmPk
             )
-            
-            //console.log("programVersion: "+JSON.stringify(programVersion));
-
-            const realmPk = new PublicKey(governance.pubkey);
-            
             const tokenInfo = await getMint(RPC_CONNECTION, mintPubkey);
             
             const userAtaPk = await getAssociatedTokenAddress(

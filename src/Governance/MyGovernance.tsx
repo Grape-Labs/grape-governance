@@ -15,7 +15,6 @@ import {
     getRealms, 
     getTokenOwnerRecordAddress,
     getVoteRecordAddress,
-    getGovernanceProgramVersion,
     getTokenOwnerRecordsByOwner,
     getTokenOwnerRecord,
     getTokenOwnerRecordForRealm,
@@ -25,6 +24,7 @@ import {
     RelinquishVoteArgs,
     VoteRecord,
 } from '@solana/spl-governance';
+import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
 import { 
     getRealmIndexed,
     getProposalIndexed,
@@ -356,9 +356,10 @@ export function MyGovernanceView(props: any){
                         //console.log("tor: "+JSON.stringify(tor))
                         
                         //const programId = governance.owner;
-                        const programVersion = await getGovernanceProgramVersion(
+                        const programVersion = await getGrapeGovernanceProgramVersion(
                             RPC_CONNECTION,
                             programId,
+                            realmPk
                         )
                         
                         console.log("programVersion "+programVersion);

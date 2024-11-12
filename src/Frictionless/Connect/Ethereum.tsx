@@ -52,7 +52,6 @@ import {
   Vote,
   VoteChoice,
   VoteKind,
-  getGovernanceProgramVersion,
   withDepositGoverningTokens,
   getRealm,
   getRealms,

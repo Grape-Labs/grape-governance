@@ -29,7 +29,6 @@ import {
     TokenOwnerRecord, 
     withCreateProposal,
     VoteType, 
-    getGovernanceProgramVersion,
     serializeInstructionToBase64,
     createInstructionData,
     withInsertTransaction,
@@ -60,6 +59,7 @@ import {
     getTokenOwnerRecordsByRealmIndexed,
     getProposalInstructionsIndexed
   } from './api/queries';
+import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
 
 import { sendTransactions, prepareTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../utils/governanceTools/sendTransactions';
 import { Signer, Connection, MemcmpFilter, TransactionMessage, PublicKey, Transaction, VersionedTransaction, TransactionInstruction, ComputeBudgetProgram } from '@solana/web3.js';
@@ -312,16 +312,8 @@ export function ManageGovernanceProposal(props: any){
         
         const proposalAddress = new PublicKey(editProposalAddress);
         const realmPk = new PublicKey(governanceAddress);
-        let programVersion;
-        if (realmPk.toBase58() === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip") {
-            programVersion = 2;
-        } else {
-            // Otherwise, await the result of getGovernanceProgramVersion
-            programVersion = await getGovernanceProgramVersion(
-                RPC_CONNECTION,
-                programId,
-            );
-        }
+        const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
+
         
         let tokenOwnerRecordPk = null;
         for (let member of memberMap){
@@ -381,17 +373,8 @@ export function ManageGovernanceProposal(props: any){
         
         const proposalAddress = new PublicKey(editProposalAddress);
         const realmPk = new PublicKey(governanceAddress);
-        let programVersion;
-        if (realmPk.toBase58() === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip") {
-            programVersion = 2;
-        } else {
-            // Otherwise, await the result of getGovernanceProgramVersion
-            programVersion = await getGovernanceProgramVersion(
-                RPC_CONNECTION,
-                programId,
-            );
-        }
-        
+        const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
+
         let tokenOwnerRecordPk = null;
         for (let member of memberMap){
             if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
@@ -468,17 +451,8 @@ export function ManageGovernanceProposal(props: any){
         
         const proposalAddress = new PublicKey(editProposalAddress);
         const realmPk = new PublicKey(governanceAddress);
-        let programVersion;
-        if (realmPk.toBase58() === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip") {
-            programVersion = 2;
-        } else {
-            // Otherwise, await the result of getGovernanceProgramVersion
-            programVersion = await getGovernanceProgramVersion(
-                RPC_CONNECTION,
-                programId,
-            );
-        }
-        
+        const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
+
         let tokenOwnerRecordPk = null;
         for (let member of memberMap){
             if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
@@ -607,10 +581,7 @@ export function ManageGovernanceProposal(props: any){
             
             const proposalAddress = new PublicKey(editProposalAddress);
             const realmPk = new PublicKey(governanceAddress);
-            const programVersion = await getGovernanceProgramVersion(
-                RPC_CONNECTION,
-                programId,
-            );
+            const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
             
             /*
             let tokenOwnerRecordPk = null;

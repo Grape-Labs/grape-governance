@@ -22,7 +22,6 @@ import { styled } from '@mui/material/styles';
 import { createCastVoteTransaction } from '../../../utils/governanceTools/components/instructions/createVote';
 
 import { 
-    getGovernanceProgramVersion,
     withDepositGoverningTokens,
     getRealm,
     getRealms,
@@ -160,17 +159,6 @@ export default function IntraDAOVoteView(props: any) {
         const transaction = new Transaction();
         
         // we need to fetch the governance details either her or a step before
-        
-        /*
-        const programId = governance.owner;
-        console.log("programId: "+JSON.stringify(programId));
-        const programVersion = await getGovernanceProgramVersion(
-            connection,
-            programId,
-          )
-        console.log("programVersion: "+JSON.stringify(programVersion));
-
-        */
         
         //    setMemberMap(rawTokenOwnerRecords);
        

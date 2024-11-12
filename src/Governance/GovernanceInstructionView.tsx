@@ -10,7 +10,6 @@ import {
     TokenOwnerRecord, 
     withCreateProposal,
     VoteType, 
-    getGovernanceProgramVersion,
     serializeInstructionToBase64,
     createInstructionData,
     withInsertTransaction,
@@ -24,6 +23,7 @@ import {
     getAllProposals,
     MultiChoiceType,
 } from '@solana/spl-governance';
+import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
 import {
     fetchGovernanceLookupFile,
     getFileFromLookup
@@ -273,9 +273,10 @@ export function InstructionView(props: any) {
         const programId = new PublicKey(realm.owner);
         let instructions: TransactionInstruction[] = [];
         const proposal = new PublicKey(instruction.account.proposal);
-        const programVersion = await getGovernanceProgramVersion(
+        const programVersion = await getGrapeGovernanceProgramVersion(
             RPC_CONNECTION,
             programId,
+            new PublicKey(realm.pubkey)
         );
         
         const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);

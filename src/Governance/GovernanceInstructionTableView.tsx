@@ -10,7 +10,6 @@ import {
     TokenOwnerRecord, 
     withCreateProposal,
     VoteType, 
-    getGovernanceProgramVersion,
     serializeInstructionToBase64,
     createInstructionData,
     withInsertTransaction,
@@ -41,14 +40,13 @@ import { WalletError, WalletNotConnectedError, TransactionOrVersionedTransaction
 import React, { useCallback } from 'react';
 import { styled, useTheme, ThemeProvider } from '@mui/material/styles';
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
-import { gistApi, resolveProposalDescription } from '../utils/grapeTools/github';
-import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
-import { InstructionMapping } from "../utils/grapeTools/InstructionMapping";
+
 
 import {CopyToClipboard} from 'react-copy-to-clipboard';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import { decodeMetadata } from '../utils/grapeTools/utils';
+import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
 import grapeTheme from  '../utils/config/theme';
 
 import {
@@ -362,11 +360,8 @@ export function InstructionTableView(props: any) {
 
         const programId = new PublicKey(realm.owner);
         let instructions: TransactionInstruction[] = [];
-        const programVersion = await getGovernanceProgramVersion(
-            RPC_CONNECTION,
-            programId,
-        );
-        
+        const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realm.pubkey);
+
         let tokenOwnerRecordPk = null;
         
         if (!tokenOwnerRecordPk){
@@ -440,10 +435,7 @@ export function InstructionTableView(props: any) {
         const programId = new PublicKey(realm.owner);
         let instructions: TransactionInstruction[] = [];
         
-        const programVersion = await getGovernanceProgramVersion(
-            RPC_CONNECTION,
-            programId,
-        );
+        const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realm.pubkey);
         
         let tokenOwnerRecordPk = null;
         
