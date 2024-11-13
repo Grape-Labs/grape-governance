@@ -1,6 +1,5 @@
 
-import { PublicKey, SystemProgram, TransactionInstruction, Transaction, } from '@solana/web3.js'
-import { BN, web3 } from '@project-serum/anchor';
+import { PublicKey, SystemProgram, TransactionInstruction, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
 
 import { 
   getRealms, 
@@ -12,7 +11,7 @@ import {
   getGovernanceAccounts, 
   pubkeyFilter, 
   TokenOwnerRecord, 
-  withCreateProposal,
+  //withCreateProposal,
   VoteType, 
   serializeInstructionToBase64,
   createInstructionData,
@@ -29,6 +28,9 @@ import {
   ProposalTransaction,
   tryGetRealmConfig,
 } from '@solana/spl-governance';
+import {
+  withCreateProposal,
+} from '@realms-today/spl-governance'
 import { getGrapeGovernanceProgramVersion } from '../../utils/grapeTools/helpers';
 import { 
   getRealmIndexed,
@@ -47,9 +49,48 @@ import {
   RPC_CONNECTION } from '../../utils/grapeTools/constants';  
 
 import { chunks } from '../../utils/governanceTools/helpers';
-import { sendTransactions, prepareTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../../utils/governanceTools/sendTransactions';
+import { sendTransactions, prepareTransactions, WalletSigner, getWalletPublicKey } from '../../utils/governanceTools/sendTransactions';
+import { sendTransactionsV3,
+  SequenceType,
+  txBatchesToInstructionSetWithSigners
+ } from '../../utils/governanceTools/sendTransactionsV3';
+import { sendVersionedTransactions } from '../../utils/governanceTools/sendVersionedTransactions';
+
+
 
 import { AnyMxRecord } from 'dns';
+
+async function simulateInstructions(connection, instructions, payerPublicKey) {
+  try {
+      // Fetch the latest blockhash
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
+
+      // Create a transaction message
+      const messageV0 = new TransactionMessage({
+          payerKey: payerPublicKey,
+          recentBlockhash: blockhash,
+          instructions: instructions,
+      }).compileToV0Message();
+
+      // Create a versioned transaction for simulation
+      const transaction = new VersionedTransaction(messageV0);
+
+      // Simulate the transaction
+      const simulationResult = await connection.simulateTransaction(transaction);
+
+      if (simulationResult.value.err) {
+          console.error("Simulation failed with error:", simulationResult.value.err);
+          return JSON.stringify(simulationResult.value.err);
+          //throw new Error(`Simulation failed: ${JSON.stringify(simulationResult.value.err)}`);
+      }
+
+      console.log("Simulation successful:", simulationResult.value);
+      return simulationResult.value;
+  } catch (error) {
+      console.error("Error simulating transaction:", error);
+      throw error;
+  }
+}
 
 export async function createProposalInstructionsLegacy(
     programId: PublicKey, 
@@ -255,7 +296,7 @@ export async function createProposalInstructionsLegacy(
         instructions,
         programId,
         programVersion,
-        realmPk,
+        realmPk!,
         governancePk,
         tokenOwnerRecordPk,
         name,
@@ -270,7 +311,7 @@ export async function createProposalInstructionsLegacy(
         votePlugin?.voterWeightPk
       );
       
-      console.log("Proposal Address: "+JSON.stringify(proposalAddress))
+      console.log("Proposal Address: "+proposalAddress.toBase58());
       
       await withAddSignatory(
         instructions,
@@ -282,7 +323,13 @@ export async function createProposalInstructionsLegacy(
         signatory,
         payer
       );
+
+      console.log("Signatory added: "+signatory.toBase58());
       
+      // simulate this
+      const simulationResult = await simulateInstructions(RPC_CONNECTION, instructions, payer)
+      console.log("🔍 - Simulation result:", simulationResult);
+
     } else {
       console.log("Editing Proposal");
       proposalAddress = editAddress;
@@ -357,12 +404,10 @@ export async function createProposalInstructionsLegacy(
     for (var instruction of transactionInstr.instructions){
       const cid = createInstructionData(instruction);
       console.log("Pushing: "+JSON.stringify(instruction).length);
-      //const tx = new Transaction();
-      //tx.add(instruction);
-      //console.log("Tx Size: "+tx.serialize().length);
       instructionData.push(cid);
     }
     
+
     for(let j= 0; j < transactionInstr.instructions.length; j++) {
       
       //console.log("ixCount: "+ixCount);
@@ -396,6 +441,7 @@ export async function createProposalInstructionsLegacy(
           [instructionData[j]],
           walletPk
         );
+
       }
     }
     console.log("5");
@@ -441,6 +487,15 @@ export async function createProposalInstructionsLegacy(
       try{
 
         console.log("instructions: "+JSON.stringify(instructions));
+
+        /*
+        const stresponsev3 = await sendTransactionsV3(
+          connection,
+          wallet,
+          instructions,
+        );*/
+
+
 
         const stresponse = await sendTransactions(
             connection,

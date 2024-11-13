@@ -1,7 +1,6 @@
 import {
   Commitment,
   Connection,
-  FeeCalculator,
   RpcResponseAndContext,
   SignatureStatus,
   SimulatedTransactionResponse,
@@ -22,7 +21,7 @@ import {
   RPC_CONNECTION,
   DEFAULT_PRIORITY_RATE,
   DEFAULT_MAX_PRIORITY_RATE } from '../grapeTools/constants';
-
+import { sendVersionedTransactions } from "./sendVersionedTransactions";
 
 // TODO: sendTransactions() was imported from Oyster as is and needs to be reviewed and updated
 // In particular common primitives should be unified with send.tsx and also ensure the same resiliency mechanism
@@ -362,11 +361,12 @@ export const sendTransactions = async (
 
   let average_priority_fee = null;
   let medianPrioritizationFee = null;
-  try{
-
+  
+  try{    
     const rpf = await RPC_CONNECTION.getRecentPrioritizationFees();
     if (rpf){
       console.log("rpf: "+JSON.stringify(rpf));
+      
       
       const totalPrioritizationFee = rpf.reduce((total, item) => total + item.prioritizationFee, 0);
       const averagePrioritizationFee = totalPrioritizationFee / rpf.length;
@@ -403,7 +403,7 @@ export const sendTransactions = async (
   }catch(e){
     console.log("ERR: "+e);
   }
-
+  
   const PRIORITY_RATE = medianPrioritizationFee ? medianPrioritizationFee : DEFAULT_PRIORITY_RATE; // 10000; // MICRO_LAMPORTS 
   const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
   const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
@@ -425,16 +425,10 @@ export const sendTransactions = async (
     //  console.log("Has auth instructions: "+JSON.stringify(authTransaction));
       //transaction.add(authTransaction);
     //}
+    
     transaction.recentBlockhash = block.blockhash;
     transaction.feePayer = wallet.publicKey;
     transaction.add(PRIORITY_FEE_IX);
-    /*
-    transaction.setSigners(
-      // fee payed by the wallet owner
-      wallet.publicKey,
-      ...signers.map((s) => s.publicKey)
-    )*/
-
     
     if (signers.length > 0) {
       transaction.partialSign(...signers)
