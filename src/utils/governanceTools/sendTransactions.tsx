@@ -357,7 +357,7 @@ export const sendTransactions = async (
   const unsignedTxns: Transaction[] = []
 
   if (!block) {
-    block = await connection.getRecentBlockhash(commitment)
+    block = await connection.getLatestBlockhash(commitment)
   }
 
   let average_priority_fee = null;
@@ -545,14 +545,14 @@ export const prepareTransactions = async (
     false,
   block?: {
     blockhash: string
-    feeCalculator: FeeCalculator
+    //feeCalculator: FeeCalculator
   }
 ): Promise<any> => {
   if (!wallet.publicKey) throw new Error('Wallet not connected!')
   const unsignedTxns: Transaction[] = []
 
   if (!block) {
-    block = await connection.getRecentBlockhash(commitment)
+    block = await connection.getLatestBlockhash(commitment)
   }
 
   const bigTx = new Transaction();

@@ -2907,6 +2907,31 @@ export function GovernanceProposalV2View(props: any){
                                                             </Typography>
                                                         </Box>
                                                     }
+
+                                                    {
+}                                                       <Box sx={{ my: 3, mx: 2 }}>
+                                                            <Grid container alignItems="center">
+                                                            <Grid item xs>
+                                                                <Typography gutterBottom variant="subtitle1" component="div">
+                                                                    Wallet
+                                                                </Typography>
+                                                            </Grid>
+                                                            <Grid item>
+                                                                <Typography gutterBottom variant="body1" component="div">
+                                                                    <ExplorerView 
+                                                                        address={thisitem.account.governance}
+                                                                        type='address' 
+                                                                        shorten={4} 
+                                                                        hideTitle={false} 
+                                                                        style='text' color='white' fontSize='14px' />
+                                                                </Typography>
+                                                            </Grid>
+                                                            </Grid>
+                                                            <Typography color="text.secondary" variant="caption">
+                                                                This is the rules wallet used to create the proposal
+                                                            </Typography>
+                                                        </Box>
+                                                    }
                                                     
                                                     {(thisitem.account.signingOffAt && +thisitem.account.signingOffAt > 0 && (thisitem.account.status !== 0 && thisitem.account.status !== 1)) &&
                                                         <Box sx={{ my: 3, mx: 2 }}>
