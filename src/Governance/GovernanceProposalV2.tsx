@@ -2909,7 +2909,7 @@ export function GovernanceProposalV2View(props: any){
                                                     }
 
                                                     {
-}                                                       <Box sx={{ my: 3, mx: 2 }}>
+                                                        <Box sx={{ my: 3, mx: 2 }}>
                                                             <Grid container alignItems="center">
                                                             <Grid item xs>
                                                                 <Typography gutterBottom variant="subtitle1" component="div">
@@ -2919,7 +2919,7 @@ export function GovernanceProposalV2View(props: any){
                                                             <Grid item>
                                                                 <Typography gutterBottom variant="body1" component="div">
                                                                     <ExplorerView 
-                                                                        address={thisitem.account.governance}
+                                                                        address={thisitem.account.governance.toBase58()}
                                                                         type='address' 
                                                                         shorten={4} 
                                                                         hideTitle={false} 

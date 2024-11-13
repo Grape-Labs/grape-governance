@@ -406,7 +406,7 @@ export default function SendExtensionView(props: any){
                         <>
                             <Typography variant="caption">
                                 {usdcValue ? 
-                                    <>{usdcValue[item?.address] ? 
+                                    <>{(usdcValue[item?.address] && usdcValue[item?.address]?.price) ? 
                                         <>${(usdcValue[item?.address]?.price).toFixed(4)}</>
                                         :<></>
                                     }</>

@@ -349,7 +349,7 @@ export const sendTransactions = async (
   startIxIndex?: number,
   block?: {
     blockhash: string
-    feeCalculator: FeeCalculator
+    //feeCalculator: FeeCalculator
   }
 ): Promise<any> => {
   
