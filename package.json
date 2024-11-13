@@ -96,6 +96,7 @@
         "@project-serum/common": "^0.0.1-beta.3",
         "@react-native-async-storage/async-storage": "^1.15.17",
         "@react-spring/web": "^9.7.3",
+        "@realms-today/spl-governance": "^0.3.30",
         "@shadow-drive/sdk": "^4.0.3",
         "@solana/buffer-layout": "^4.0.0",
         "@solana/governance-program-library": "^0.16.7",
