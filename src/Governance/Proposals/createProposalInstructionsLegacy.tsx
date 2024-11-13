@@ -160,13 +160,13 @@ export async function createProposalInstructionsLegacy(
 
     const governanceAuthority = walletPk
     console.log("programId: "+programId.toBase58());
+    console.log("programVersion: "+programVersion);
     console.log("realmPk: "+realmPk.toBase58());
     console.log("governingTokenMint: "+governingTokenMint.toBase58());
     console.log("governancePk: "+governancePk.toBase58());
     console.log("walletPk: "+walletPk.toBase58());
     console.log("payer: "+payer.toBase58());
     console.log("tokenOwnerRecordPk: "+tokenOwnerRecordPk.toBase58())
-    console.log("programVersion: "+programVersion)
     console.log("governanceAuthority: "+governanceAuthority.toBase58())
     
     // we have the following already cached so this should be passed:
@@ -250,7 +250,6 @@ export async function createProposalInstructionsLegacy(
           console.log("No Voter/Max Voter Weight Set");
         }
       }
-      
       
       proposalAddress = await withCreateProposal(
         instructions,

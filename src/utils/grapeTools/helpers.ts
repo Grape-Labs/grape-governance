@@ -117,9 +117,12 @@ export const shortenString = (input: any, startChars = 6, endChars = 6) => {
 };
 
 export async function getGrapeGovernanceProgramVersion(connection: Connection, programId: PublicKey, realmPk: PublicKey){
-
-  if (realmPk.toBase58() === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip") {
-    return Number(2);
+  return 2;
+  /*
+  if ((realmPk.toBase58() === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip") ||
+      (realmPk.toBase58() === "BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2"))
+  {
+    return 2;
   } else{
     const programVersion = await getGovernanceProgramVersion(
       RPC_CONNECTION,
@@ -127,6 +130,7 @@ export async function getGrapeGovernanceProgramVersion(connection: Connection, p
     );
     return programVersion;
   }
+    */
 }
 
 export const getFormattedNumberToLocale = (value: any, digits = 0) => {
