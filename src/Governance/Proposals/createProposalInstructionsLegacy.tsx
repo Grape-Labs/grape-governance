@@ -506,7 +506,7 @@ export async function createProposalInstructionsLegacy(
           failCallback,
           //startIndex,
         );
-        
+
         /*
         const stresponse = await sendTransactions(
             connection,
