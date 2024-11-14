@@ -495,8 +495,19 @@ export async function createProposalInstructionsLegacy(
           instructions,
         );*/
 
-
-
+        const stresponse = await sendVersionedTransactions(
+          connection,
+          wallet,
+          [prerequisiteInstructions, instructions, ...insertChunks],
+          [[], [], ...signerChunks],
+          SequenceType.Sequential,
+          null,
+          successCallback,
+          failCallback,
+          //startIndex,
+        );
+        
+        /*
         const stresponse = await sendTransactions(
             connection,
             wallet,
@@ -508,7 +519,7 @@ export async function createProposalInstructionsLegacy(
             failCallback,
             startIndex,
           );
-
+        */
           console.log(`Proposal: ${JSON.stringify(proposalAddress)}`);
           console.log(`Sending complete: ${JSON.stringify(stresponse)}`);
 
