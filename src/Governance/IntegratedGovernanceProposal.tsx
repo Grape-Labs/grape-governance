@@ -31,6 +31,7 @@ import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
+import AddIcon from '@mui/icons-material/Add';
 
 export interface DialogTitleProps {
     id: string;
@@ -167,11 +168,25 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                                             Create Proposal</MenuItem>
                                     </>
                                 :
-                                    <Button 
-                                        onClick={handleClickOpen}
-                                        sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
-                                        Draft <EditIcon fontSize="small" sx={{ml:1}}/>
-                                    </Button>
+                                    <>
+                                        {useButtonType === 5 ?
+                                            <Button 
+                                                onClick={handleClickOpen}
+                                                variant='outlined'
+                                                color='inherit'
+                                                fullWidth={true}
+                                                sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
+                                                    {title} <AddIcon fontSize="small" sx={{ml:1}}/>
+                                            </Button>
+                                        :
+                                            <Button 
+                                                onClick={handleClickOpen}
+                                                sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
+                                                        Draft <EditIcon fontSize="small" sx={{ml:1}}/>
+                                            </Button>
+                                        }
+                                        
+                                    </>
                                 }
                             </>
                         }
