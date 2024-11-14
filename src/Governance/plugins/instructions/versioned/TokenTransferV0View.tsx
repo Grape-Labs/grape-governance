@@ -896,7 +896,7 @@ export default function TokenTransferV0View(props: any) {
     async function getAndUpdateWalletHoldings(){
         try{
             setLoadingWallet(true);
-            const gwToAdd = await fetchWalletHoldings(governanceWallet.vault.pubkey);
+            const gwToAdd = await fetchWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey?.toBase58() || governanceWallet?.toBase58());
             console.log("fetching rules now " + governanceRulesWallet);
             
             const rwToAdd = await fetchWalletHoldings(governanceRulesWallet);
