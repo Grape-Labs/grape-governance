@@ -3123,6 +3123,24 @@ export function GovernanceProposalV2View(props: any){
                                                         <>
                                                             <Box sx={{ my: 3, mx: 2 }}>
                                                                 <Grid container alignItems="center">
+                                                                        <IntegratedGovernanceProposalDialogView 
+                                                                            governanceAddress={governanceAddress}
+                                                                            governanceRulesWallet={thisitem.account.governance}
+                                                                            governingTokenMint={thisitem.account.governingTokenMint}
+                                                                            proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                            payerWallet={publicKey}
+                                                                            governanceLookup={governanceLookup}
+                                                                            editProposalAddress={thisitem.pubkey}
+                                                                            setReload={setReload}
+                                                                            title="Add Instructions"
+                                                                            useButton={5}
+                                                                        />
+                                                                </Grid>
+                                                            </Box>
+                                                                
+                                                            
+                                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                                <Grid container alignItems="center">
                                                                     <ManageGovernanceProposal 
                                                                         governanceAddress={governanceAddress}
                                                                         governanceRulesWallet={thisitem.account.governance}

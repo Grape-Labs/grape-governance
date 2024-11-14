@@ -236,60 +236,6 @@ export default function SendExtensionView(props: any){
             );
 
         } else { // token transfer
-            /*
-            for (let index = 0; index < destinationWalletArray.length; index++) {
-                    
-                const destinationObject = destinationWalletArray[index];
-
-                // getOrCreateAssociatedTokenAccount
-                const fromTokenAccount = await getAssociatedTokenAddress(
-                    mintPubkey,
-                    new PublicKey(fromWallet),
-                    true
-                )
-
-                const fromPublicKey = new PublicKey(fromWallet);
-                const destPublicKey = new PublicKey(destinationObject.address);
-                const destTokenAccount = await getAssociatedTokenAddress(
-                    mintPubkey,
-                    destPublicKey,
-                    true
-                )
-                const receiverAccount = await connection.getAccountInfo(
-                    destTokenAccount
-                )
-                
-                if (receiverAccount === null) {
-                    const transactionInstruction = createAssociatedTokenAccountInstruction(
-                        publicKey || fromPublicKey, // or use payerWallet
-                        destTokenAccount,
-                        destPublicKey,
-                        mintPubkey,
-                        TOKEN_PROGRAM_ID,
-                        ASSOCIATED_TOKEN_PROGRAM_ID
-                    );
-                    //transaction.add(transactionInstruction);
-                    if (publicKey)
-                        pTransaction.add(transactionInstruction);
-                    else
-                        transaction.add(transactionInstruction);
-                }
-
-                const amount = Math.floor((destinationObject.amount * Math.pow(10, decimals)));
-
-                transaction.add(
-                    createTransferInstruction(
-                        new PublicKey(tokenAta || fromTokenAccount),
-                        destTokenAccount,
-                        fromPublicKey,
-                        amount
-                    )
-                )
-            }
-            */
-
-            // single simple transfer
-            
                 const decimals = tokenSelected.info.decimals; // fix this to be dynamic!
 
                 // getOrCreateAssociatedTokenAccount
@@ -437,44 +383,7 @@ export default function SendExtensionView(props: any){
         React.useEffect(() => { 
             
             if (ata && masterWallet){
-                /*
-                var found = false;
-                // HANDLE SOL Select
                 
-                if (!found && solItem && ata === 'So11111111111111111111111111111111111111112'){
-                    // SOL Selected, we need to handle this
-                    console.log("SOLected: "+JSON.stringify(solItem));
-                    //setTokenSelected(null);
-                    //setThisTokenSelected(solItem);
-                    //setFound(true);
-                    //found = true;
-                }
-                if (!found && masterWallet?.nativeTokens && masterWallet.nativeTokens.length > 0){
-                    for (var item of masterWallet.nativeTokens){
-                        if (item.associated_account === ata){
-                            //setTokenSelected(null);
-                            console.log("TOselected: "+JSON.stringify(item));
-                            setThisTokenSelected(item);
-                            //setFound(true);
-                            found = true;
-                        }
-                    }
-                }
-                if (!found && masterWallet?.rulesTokens && masterWallet.rulesTokens.length > 0){
-                    for (var item of masterWallet.rulesTokens){
-                        if (item.associated_account === ata){
-                            //setTokenSelected(null);
-                            setThisTokenSelected(item);
-                            //setFound(true);
-                            found = true;
-                        }
-                    }
-                }
-
-                if (found && thisTokenSelected){
-                    setTokenSelected(thisTokenSelected)
-                }
-                */
             }
             
             
