@@ -202,7 +202,7 @@ export default function GovernanceCreateProposalView(props: any){
     const maxDescriptionLen = 350;//512;
     const [proposalType, setProposalType] = React.useState(usePlugin || null);
     const sentGoverningTokenMint = props?.governingTokenMint;
-    const [isCouncilVote, setIsCouncilVote] = React.useState(false);
+    const [isCouncilVote, setIsCouncilVote] = React.useState(true);
     const [governanceWallet, setGovernanceWallet] = React.useState(null);
     const [governanceWalletMinInstructHoldUpTime, setGovernanceRulesWalletMinInstructHoldUpTime] = React.useState(null);
     const [instructionsDataWithHoldUpTime, setInstructionsDataWithHoldUpTime] = React.useState(null);
@@ -222,7 +222,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [endTime, setEndTime] = React.useState(null);
     const [proposalMade, setProposalMade] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
-    const [realm, setRealm] = React.useState(null);
+    const [realm, setRealm] = React.useState(props?.realm);
     const [realmName, setRealmName] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(null);
     const [tokenArray, setTokenArray] = React.useState(null);
@@ -230,7 +230,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [createDisabled, setCreateDisabled] = React.useState(false);
     const [instructionsObject, setInstructionsObject] = React.useState(null);
     const [instructionsArray, setInstructionsArray] = React.useState([]);
-    const [communitySupport, setCommunitySupport] = React.useState(false);
+    const [communitySupport, setCommunitySupport] = React.useState(true);
 
     const [governanceRules, setGovernanceRules] = React.useState(null);
     const [totalGovernanceValue, setTotalGovernanceValue] = React.useState(null);
@@ -843,75 +843,46 @@ export default function GovernanceCreateProposalView(props: any){
       
       let nativeWallet = null;
       //console.log("menu item: "+JSON.stringify(nativeWallet))
-      setCommunitySupport(false);
-      setIsCouncilVote(false);
-      //setIsCouncilVote(false);
+      
       // get rules wallet:
       let minInstructionHoldUpTime = null;
-
+      setCommunitySupport(true);
+      setIsCouncilVote(true);
       if (governanceWallets){
         {governanceWallets && governanceWallets
           .sort((a:any,b:any) => (b.walletValue - a.walletValue))
           .map((item: any, key: number) => {
             if (rulesWallet === item.pubkey.toBase58()){
-              nativeWallet = item.nativeTreasuryAddress.toBase58();
-              minInstructionHoldUpTime = item.account.config.minInstructionHoldUpTime;
-              setGovernanceWallet(item);
-              if (item.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff'){
-                  setCommunitySupport(true);
-                  setIsCouncilVote(true);
-              }
-
-              setIsCouncilVote(false);
+              
+              //setCommunitySupport(false);
               if (realm && realm?.account.config?.councilMint){
-                  setIsCouncilVote(true);
+                  //setGoverningMint(realm?.account.config.councilMint);
+                  //setIsCouncilVote(true);
                   if (realm && realm?.account?.communityMint){
                       if (Number(item.account.config.minCommunityTokensToCreateProposal) !== 18446744073709551615){
+                          //setGoverningMint(realm?.account.communityMint);
+                          setCommunitySupport(true);
                           setIsCouncilVote(false);
+                          console.log("communityMint: "+realm?.account?.communityMint);
+                      } else{
+                        //setIsCouncilVote(true);
                       }
                   }
               } else {
                   if (realm && realm?.account?.communityMint){
-                      setIsCouncilVote(false);
+                      //setGoverningMint(realm?.account.communityMint);
+                      //setIsCouncilVote(false);
+                  } else{
+                    //setCommunitySupport(false);
+                    //setIsCouncilVote(true);
                   }
               }
-
               
             }
           })
           
         }
-      } 
-      {
-          {cachedTreasury && cachedTreasury
-            .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
-            .map((item: any, key: number) => {
-              if (rulesWallet === item.vault.pubkey){
-                nativeWallet = item.vault?.nativeTreasury
-                minInstructionHoldUpTime = item.vault.governance.account.config.minInstructionHoldUpTime;
-                setGovernanceWallet(nativeWallet);
-        
-                if (item.vault.governance.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff'){
-                  setCommunitySupport(true);
-                  setIsCouncilVote(true);
-                }
-
-                setIsCouncilVote(false);
-                if (realm && realm?.account.config?.councilMint){
-                    setIsCouncilVote(true);
-                    if (realm && realm?.account?.communityMint){
-                        if (Number(item.account.config.minCommunityTokensToCreateProposal) !== 18446744073709551615){
-                            setIsCouncilVote(false);
-                        }
-                    }
-                } else {
-                    if (realm && realm?.account?.communityMint){
-                        setIsCouncilVote(false);
-                    }
-                }
-              }
-            }
-          )}
+      
       }
       
       // use RPC here to get the rules wallet details

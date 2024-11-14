@@ -335,7 +335,7 @@ function GovernanceCardView(props:any) {
                             </TableBody>
                         </Table>
                     </TableContainer>
-
+                    {/*
                     <Typography variant="caption">
                         {item?.lastProposalDate &&
                             <Tooltip title={
@@ -350,6 +350,7 @@ function GovernanceCardView(props:any) {
                             </Tooltip>
                         }
                     </Typography>
+                    */}
                 </Box>
         </CardContent>
         <CardActions>
