@@ -854,7 +854,7 @@ export default function GovernanceCreateProposalView(props: any){
           .map((item: any, key: number) => {
             if (rulesWallet === item.pubkey.toBase58()){
               
-              //setCommunitySupport(false);
+              setCommunitySupport(false);
               if (realm && realm?.account.config?.councilMint){
                   //setGoverningMint(realm?.account.config.councilMint);
                   //setIsCouncilVote(true);
@@ -871,7 +871,7 @@ export default function GovernanceCreateProposalView(props: any){
               } else {
                   if (realm && realm?.account?.communityMint){
                       //setGoverningMint(realm?.account.communityMint);
-                      //setIsCouncilVote(false);
+                      setIsCouncilVote(false);
                   } else{
                     //setCommunitySupport(false);
                     //setIsCouncilVote(true);
