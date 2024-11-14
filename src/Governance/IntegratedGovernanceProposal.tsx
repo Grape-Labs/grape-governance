@@ -207,6 +207,7 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                         governingTokenMint={governingTokenMint}
                         proposalAuthor={proposalAuthor}
                         usePlugin={usePlugin}
+                        realm={realm}
                         //payerWallet={publicKey} 
                         //governanceWallet={governanceWallet?.vault.pubkey} 
                         //setInstructionsObject={setInstructionsObject} 

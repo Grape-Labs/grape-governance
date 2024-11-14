@@ -291,6 +291,7 @@ export default function WalletCardView(props:any) {
                             governanceAddress={governanceAddress}
                             intraDao={false}
                             governanceRulesWallet={new PublicKey(rulesWalletAddress)}
+                            realm={realm}
                             //governingTokenMint={thisitem.account.governingTokenMint}
                             //proposalAuthor={thisitem.account.tokenOwnerRecord}
                             //payerWallet={publicKey}
@@ -2818,6 +2819,7 @@ export default function WalletCardView(props:any) {
                                             <IntegratedGovernanceProposalDialogView 
                                                 governanceAddress={governanceAddress}
                                                 intraDao={false}
+                                                realm={realm}
                                                 governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                                                 //governingTokenMint={thisitem.account.governingTokenMint}
                                                 //proposalAuthor={thisitem.account.tokenOwnerRecord}
@@ -2902,6 +2904,7 @@ export default function WalletCardView(props:any) {
                                             <IntegratedGovernanceProposalDialogView 
                                                 governanceAddress={governanceAddress}
                                                 intraDao={false}
+                                                realm={realm}
                                                 governanceRulesWallet={new PublicKey(rulesWalletAddress)}
                                                 //governingTokenMint={thisitem.account.governingTokenMint}
                                                 //proposalAuthor={thisitem.account.tokenOwnerRecord}

@@ -11,7 +11,7 @@ import {
   getGovernanceAccounts, 
   pubkeyFilter, 
   TokenOwnerRecord, 
-  //withCreateProposal,
+  withCreateProposal,
   VoteType, 
   serializeInstructionToBase64,
   createInstructionData,
@@ -28,9 +28,9 @@ import {
   ProposalTransaction,
   tryGetRealmConfig,
 } from '@solana/spl-governance';
-import {
-  withCreateProposal,
-} from '@realms-today/spl-governance'
+//import {
+//  withCreateProposal,
+//} from '@realms-today/spl-governance'
 import { getGrapeGovernanceProgramVersion } from '../../utils/grapeTools/helpers';
 import { 
   getRealmIndexed,

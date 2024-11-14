@@ -73,7 +73,7 @@ import {
   GGAPI_STORAGE_POOL, 
   GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 
-import GovernanceCreateProposalView from './GovernanceCreateProposal';
+//import GovernanceCreateProposalView from './GovernanceCreateProposal';
 
 import CancelIcon from '@mui/icons-material/Cancel';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
