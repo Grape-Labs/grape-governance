@@ -98,12 +98,7 @@ import {
 } from '../utils/grapeTools/helpers';
 
 import { 
-  getRealm, 
-  createInstructionData, 
-  getRealmConfig,
-  getVoterWeightRecord,
-  getVoterWeightRecordAddress,
-  getMaxVoterWeightRecord,
+  getNativeTreasuryAddress
 } from '@solana/spl-governance';
 import { 
   getRealmIndexed,
@@ -187,7 +182,7 @@ export default function GovernanceCreateProposalView(props: any){
     const setReload = props?.setReload;
     const editProposalAddress = props?.editProposalAddress;
     const governanceAddress = props?.governanceAddress || urlParams;
-    const governanceWallets = props?.governanceWallets;
+    const [governanceWallets, setGovernanceWallets] = React.useState(props?.governanceWallets);
     const sentRulesAddress = props?.governanceRulesWallet;
     const sentGovernanceWallet = props?.governanceWallet;
     const setEditPropOpen = props?.setEditPropOpen;
@@ -848,13 +843,16 @@ export default function GovernanceCreateProposalView(props: any){
       let minInstructionHoldUpTime = null;
       setCommunitySupport(true);
       setIsCouncilVote(true);
+
       if (governanceWallets){
         {governanceWallets && governanceWallets
           .sort((a:any,b:any) => (b.walletValue - a.walletValue))
           .map((item: any, key: number) => {
             if (rulesWallet === item.pubkey.toBase58()){
               
-              setCommunitySupport(false);
+              nativeWallet = item.nativeTreasuryAddress;
+              setGovernanceWallet(nativeWallet);
+              console.log("found "+JSON.stringify(item));
               if (realm && realm?.account.config?.councilMint){
                   //setGoverningMint(realm?.account.config.councilMint);
                   //setIsCouncilVote(true);
@@ -871,7 +869,7 @@ export default function GovernanceCreateProposalView(props: any){
               } else {
                   if (realm && realm?.account?.communityMint){
                       //setGoverningMint(realm?.account.communityMint);
-                      setIsCouncilVote(false);
+                      //setIsCouncilVote(false);
                   } else{
                     //setCommunitySupport(false);
                     //setIsCouncilVote(true);
@@ -942,10 +940,11 @@ export default function GovernanceCreateProposalView(props: any){
             }
         } 
         
-        {
-          {cachedTreasury && cachedTreasury
+        {/*
+          {cachedTreasury && cachedTreasury.length > 0 && cachedTreasury
             .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
             .map((item: any, key: number) => {
+              console.log("using cached treasury...")
               if (nativeWallet === item.vault?.nativeTreasury){
                 rulesWallet = item.vault.pubkey;
                 minInstructionHoldUpTime = item.vault.governance.account.config.minInstructionHoldUpTime;
@@ -971,7 +970,7 @@ export default function GovernanceCreateProposalView(props: any){
               }
             })
           }
-        }
+        */}
 
         // use RPC here to get the rules wallet details
         
@@ -1589,6 +1588,38 @@ export default function GovernanceCreateProposalView(props: any){
       setLoading(false);
     }
 
+    const fetchGovernances = async() => {
+      const governanceAddresses = await getAllGovernancesIndexed(governanceAddress);
+      
+      //if (realm){
+          const thisrealm = await getRealmIndexed(governanceAddress);
+          
+          const rawNativeSolAddresses = await Promise.all(
+              governanceAddresses.map((x) =>  
+                  getNativeTreasuryAddress(
+                      //@ts-ignore
+                      new PublicKey(thisrealm.owner),
+                      x!.pubkey
+                  )
+              )
+          );
+
+      // push to a single array with rules & native
+      if (governanceAddresses.length === rawNativeSolAddresses.length){
+          let x = 0;
+          for (let item of governanceAddresses){
+              item.nativeTreasuryAddress = rawNativeSolAddresses[x];
+              item.walletValue = 0;
+              x++;
+          }
+      }
+      setGovernanceWallets(governanceAddresses);
+
+      //endTimer();
+      //setLoading(false);
+      //isLoading.current = false;
+  }
+
     React.useEffect(() => {
       
       if (instructionsObject){
@@ -1618,10 +1649,10 @@ export default function GovernanceCreateProposalView(props: any){
     }, [instructionsObject]);
 
     React.useEffect(() => {
-      if (cachedGovernance && sentRulesAddress){
+      if (cachedGovernance && sentRulesAddress && governanceWallets){
         handleNativeWalletFromRules(new PublicKey(sentRulesAddress).toBase58())
       }
-    }, [cachedGovernance])
+    }, [cachedGovernance, governanceWallets])
 
     React.useEffect(() => {
       if (cachedRealm && publicKey){
@@ -1646,16 +1677,14 @@ export default function GovernanceCreateProposalView(props: any){
         if (tokenMap){  
             startTimer();
             callGovernanceLookup();
-            if (governanceWallets){
-              // fetch all wallets (with balances) and show a dropdown list accordingly
-
-            }
         }
     }, [tokenMap]);
 
     React.useEffect(() => { 
       if (verified){
           getTokens();
+          if (!governanceWallets)
+            fetchGovernances();
       }
       
     }, [verified]);
