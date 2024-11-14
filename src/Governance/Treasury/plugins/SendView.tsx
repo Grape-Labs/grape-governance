@@ -405,12 +405,17 @@ export default function SendExtensionView(props: any){
                     secondary={
                         <>
                             <Typography variant="caption">
-                                {usdcValue ? 
-                                    <>{(usdcValue[item?.address] && usdcValue[item?.address]?.price) ? 
-                                        <>${(usdcValue[item?.address]?.price).toFixed(4)}</>
-                                        :<></>
-                                    }</>
-                                :<></>}
+                                {usdcValue ? (
+                                    <>
+                                    {usdcValue[item?.address] && typeof usdcValue[item?.address]?.price === 'number' ? (
+                                        <>${usdcValue[item?.address]?.price.toFixed(4)}</>
+                                    ) : (
+                                        <>Price not available</> // Handle undefined or invalid price gracefully
+                                    )}
+                                    </>
+                                ) : (
+                                    <>Loading...</> // Handle case where `usdcValue` is not available
+                                )}
                             </Typography>
                                 
                             {/*
