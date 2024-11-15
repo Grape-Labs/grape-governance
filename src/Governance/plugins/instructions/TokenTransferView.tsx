@@ -815,7 +815,8 @@ export default function TokenTransferView(props: any) {
             //governanceWallet.tokens.value = gwToAdd;//[...governanceWallet.tokens.value, ...itemsToAdd];
             //governanceRulesWallet. = rwToAdd;
 
-            //console.log("Rules Wallet: " +JSON.stringify(rwToAdd));
+            console.log("Rules Wallet: " +JSON.stringify(rwToAdd));
+            console.log("Wallet: " +JSON.stringify(gwToAdd));
 
             const walletObjects = [gwToAdd, rwToAdd];
 
