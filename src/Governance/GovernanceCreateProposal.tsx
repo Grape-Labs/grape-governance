@@ -1649,7 +1649,7 @@ export default function GovernanceCreateProposalView(props: any){
     }, [verified]);
 
     React.useEffect(() => {
-      if (!governanceWallet && governanceWallets.length > 0) {
+      if (!governanceWallet && governanceWallets && governanceWallets.length > 0) {
         setGovernanceWallet(new PublicKey(governanceWallets[0].nativeTreasuryAddress).toBase58()); // Default to the first wallet
       }
     }, [governanceWallets]);
