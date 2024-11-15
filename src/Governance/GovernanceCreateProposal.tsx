@@ -994,7 +994,7 @@ export default function GovernanceCreateProposalView(props: any){
           <Box sx={{ minWidth: 120, ml:1 }}>
             
 
-            {governanceWallets ?
+            {/*governanceWallets ?
               <FormControl fullWidth>
                   <InputLabel id="governance-wallet-select-label">Governance Wallet</InputLabel>
                   <Select
@@ -1078,7 +1078,7 @@ export default function GovernanceCreateProposalView(props: any){
                     })}
                   </Select>
                 </FormControl>
-              :
+              :*/}
                 <FormControl fullWidth>
                   <InputLabel id="governance-wallet-select-label">Governance Wallet</InputLabel>
                   <Select
@@ -1279,7 +1279,7 @@ export default function GovernanceCreateProposalView(props: any){
                       })}
                   </Select>
                 </FormControl>
-              }
+              {/*}*/}
             
 
             {/*governanceRules &&
