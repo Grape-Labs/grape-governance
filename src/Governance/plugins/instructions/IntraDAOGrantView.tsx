@@ -477,7 +477,6 @@ export default function IntraDAOGrantView(props: any) {
         return walletObject;
     }
 
-
     async function getAndUpdateWalletHoldings(){
         try{
             setLoadingWallet(true);
