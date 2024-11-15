@@ -110,7 +110,7 @@ export default function SNSView(props: any) {
     const setInstructionsObject = props?.setInstructionsObject;
     const [governanceWallet, setGovernanceWallet] = React.useState(props?.governanceWallet);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey || governanceWallet?.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [transactionInstructions, setTransactionInstructions] = React.useState(null);

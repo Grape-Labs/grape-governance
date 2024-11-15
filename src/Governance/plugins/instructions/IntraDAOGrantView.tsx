@@ -121,7 +121,7 @@ export default function IntraDAOGrantView(props: any) {
     const [governance, setGovernance] = React.useState(null);
     const [governanceWallet, setGovernanceWallet] = React.useState(props?.governanceWallet);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [tokenMap, setTokenMap] = React.useState(null);
@@ -433,7 +433,7 @@ export default function IntraDAOGrantView(props: any) {
 
         let solBalance = 0;
         solBalance = await connection.getBalance(new PublicKey(wallet));
-        if (wallet === governanceWallet.vault.pubkey){
+        if (wallet === governanceWallet?.vault?.pubkey || wallet === governanceWallet?.pubkey){
             governanceWallet.solBalance = solBalance;
         }
 

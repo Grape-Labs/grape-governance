@@ -113,7 +113,7 @@ export default function IntraDAOProposalView(props: any) {
     const governanceRulesWallet = props?.governanceRulesWallet;
     const [governanceWallet, setGovernanceWallet] = React.useState(props?.governanceWallet);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [tokenAmountStr, setTokenAmountStr] = React.useState(null);
@@ -813,7 +813,7 @@ export default function IntraDAOProposalView(props: any) {
                                         governanceRulesWallet={governanceRulesWallet} 
                                         payerWallet={publicKey} 
                                         intraDao={true}
-                                        governanceWallet={governanceWallet?.vault.pubkey} 
+                                        governanceWallet={governanceWallet?.vault?.pubkey || governanceWallet?.pubkey} 
                                         setInstructionsObject={setInstructionsObject} 
                                         governanceLookup={governanceLookup} />
                                 

@@ -112,7 +112,7 @@ export default function StreamflowPaymentsView(props: any) {
     const setInstructionsObject = props?.setInstructionsObject;
     const governanceWallet = props?.governanceWallet;
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey || governanceWallet?.pubkey);
     const [toMintAddress, setToMintAddress] = React.useState(null);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenDecimals, setTokenDecimals] = React.useState(null);
