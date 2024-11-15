@@ -115,7 +115,7 @@ export default function TokenTransferV0View(props: any) {
     const [governanceWalletMinInstructHoldUpTime, setGovernanceWalletMinInstructHoldUpTime] = React.useState(props?.governanceWalletMinInstructHoldUpTime);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
     const [hasBeenCalled, setHasBeenCalled] = React.useState(false);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.pubkey?.toBase58() || governanceWallet?.vault?.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [tokenMap, setTokenMap] = React.useState(null);
@@ -896,7 +896,7 @@ export default function TokenTransferV0View(props: any) {
     async function getAndUpdateWalletHoldings(){
         try{
             setLoadingWallet(true);
-            const gwToAdd = await fetchWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey?.toBase58() || governanceWallet?.toBase58());
+            const gwToAdd = await fetchWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.nativeTreasuryAddress?.toBase58());
             console.log("fetching rules now " + governanceRulesWallet);
             
             const rwToAdd = await fetchWalletHoldings(governanceRulesWallet);

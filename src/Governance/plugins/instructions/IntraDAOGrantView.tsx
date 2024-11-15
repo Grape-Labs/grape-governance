@@ -121,7 +121,7 @@ export default function IntraDAOGrantView(props: any) {
     const [governance, setGovernance] = React.useState(null);
     const [governanceWallet, setGovernanceWallet] = React.useState(props?.governanceWallet);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.pubkey?.toBase58() || governanceWallet?.vault?.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [tokenMap, setTokenMap] = React.useState(null);
@@ -480,7 +480,7 @@ export default function IntraDAOGrantView(props: any) {
     async function getAndUpdateWalletHoldings(){
         try{
             setLoadingWallet(true);
-            const gwToAdd = await fetchWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey?.toBase58() || governanceWallet?.toBase58());
+            const gwToAdd = await fetchWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.nativeTreasuryAddress?.toBase58());
             console.log("fetching rules now");
             const rwToAdd = await fetchWalletHoldings(governanceRulesWallet);
 

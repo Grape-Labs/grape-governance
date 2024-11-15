@@ -65,14 +65,14 @@ import { GovernanceGistDialog } from './GovernanceGistDialog';
 //import StreamflowPaymentsView from './plugins/instructions/StreamflowPaymentsView';
 import IntraDAOProposalView from './plugins/instructions/IntraDAOProposalView';
 import IntraDAOGrantView from './plugins/instructions/IntraDAOGrantView';
-import IntraDAOGrantV0View from './plugins/instructions/versioned/IntraDAOGrantV0View';
+//import IntraDAOGrantV0View from './plugins/instructions/versioned/IntraDAOGrantV0View';
 import IntraDAOJoinView from './plugins/instructions/IntraDAOJoinView';
 import IntraDAOVoteView from './plugins/instructions/IntraDAOVoteView';
 import LookupTableView from './plugins/instructions/LookupTableView';
 import SNSView from './plugins/instructions/SNSView';
 import CloseTokenView from './plugins/instructions/CloseTokenView';
 import TokenTransferView from './plugins/instructions/TokenTransferView';
-import TokenTransferV0View from './plugins/instructions/versioned/TokenTransferV0View';
+//import TokenTransferV0View from './plugins/instructions/versioned/TokenTransferV0View';
 import JupiterDCAView from './plugins/instructions/JupiterDCAView';
 //import JupiterSwapView from './plugins/instructions/JupiterSwapView';
 import JupiterSwapView from './plugins/instructions/versioned/JupiterSwapV6View';
@@ -691,14 +691,14 @@ export default function GovernanceCreateProposalView(props: any){
               <MenuItem value={4}>Token Transfer</MenuItem>
               <MenuItem value={5}>SOL Transfer</MenuItem>
               
-              {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2')
+              {/*(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2')
                 &&
                   <MenuItem value={104}>Token Transfer v0</MenuItem>
               }
               {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2')
                 &&
                   <MenuItem value={105}>SOL Transfer v0</MenuItem>
-              }
+              */}
               <MenuItem value={10}>Close Token Account</MenuItem>
               <MenuItem value={11}>SNS Transfer</MenuItem>
               <Divider/>
@@ -739,10 +739,10 @@ export default function GovernanceCreateProposalView(props: any){
                 ) ? true : false}
                 */
               >Intra DAO: Grant DAO Voting Power</MenuItem>
-              {(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2')
+              {/*(governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2')
                 &&
                   <MenuItem value={132}>Intra DAO: Grant DAO Voting Power v0</MenuItem>
-              }
+              */}
 
               <Divider />
 
@@ -914,8 +914,9 @@ export default function GovernanceCreateProposalView(props: any){
             .map((item: any, key: number) => {
               if (nativeWallet === item?.nativeTreasuryAddress?.toBase58() ||
                 (nativeWallet?.vault && nativeWallet.vault.pubkey === item?.nativeTreasuryAddress?.toBase58())){
+                
                 setGovernanceWallet(item);
-                //console.log("1. found "+JSON.stringify(item));
+                console.log("1. found "+JSON.stringify(item));
                 rulesWallet = item.pubkey.toBase58();
                 minInstructionHoldUpTime = item.account.config.minInstructionHoldUpTime;
                   if (item.account.config.minCommunityTokensToCreateProposal !== 'ffffffffffffffff'){
@@ -1000,7 +1001,7 @@ export default function GovernanceCreateProposalView(props: any){
                   <Select
                     labelId="governance-wallet-select-label"
                     id="governance-wallet-select"
-                    value={new PublicKey(governanceWallet.nativeTreasuryAddress).toBase58()}
+                    value={governanceWallet?.nativeTreasuryAddress && new PublicKey(governanceWallet.nativeTreasuryAddress).toBase58()}
                     label="Governance Wallet"
                     onChange={handleGovernanceWalletChange}
                   > 
@@ -1009,8 +1010,6 @@ export default function GovernanceCreateProposalView(props: any){
                       .map((item: any, key: number) => {
                         
                         if (item.nativeTreasuryAddress) {
-                          // rules wallet:
-                          // item.vault.pubkey
                           return (
                             <MenuItem key={key} value={item.nativeTreasuryAddress.toBase58()}>
                                 <Grid container>
@@ -1599,7 +1598,8 @@ export default function GovernanceCreateProposalView(props: any){
       }
 
       console.log("sentRulesAddress: "+(sentRulesAddress));
-      console.log("governanceWallet: "+(governanceWallet));
+      //console.log("governanceWallet: "+(JSON.stringify(governanceWallet)));
+
       if (governanceWallets && !governanceWallet && sentRulesAddress){
         {governanceWallets && governanceWallets
           .sort((a:any,b:any) => (b.walletValue - a.walletValue))
@@ -1651,7 +1651,7 @@ export default function GovernanceCreateProposalView(props: any){
 
     React.useEffect(() => {
       if (!governanceWallet && governanceWallets && governanceWallets.length > 0) {
-        setGovernanceWallet(governanceWallets[0]); // Default to the first wallet
+        //setGovernanceWallet(governanceWallets[0]); // Default to the first wallet
       }
     }, [governanceWallets]);
 
@@ -1941,7 +1941,7 @@ export default function GovernanceCreateProposalView(props: any){
                             </FormControl>
                             
                             <FormControl fullWidth  sx={{mb:2}}>
-                                <GovernanceSelect />
+                                <GovernanceSelect  />
                             </FormControl>
                           </>
                           :<></>}
@@ -1962,7 +1962,7 @@ export default function GovernanceCreateProposalView(props: any){
                                 <TokenTransferView governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
-
+                            {/*
                             {proposalType === 104 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <TokenTransferV0View governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} governanceWalletMinInstructHoldUpTime={governanceWalletMinInstructHoldUpTime} setInstructionsObject={setInstructionsObject} setInstructionsDataWithHoldUpTime={setInstructionsDataWithHoldUpTime}/>
@@ -1973,6 +1973,7 @@ export default function GovernanceCreateProposalView(props: any){
                                 <TokenTransferV0View governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} governanceWalletMinInstructHoldUpTime={governanceWalletMinInstructHoldUpTime} setInstructionsObject={setInstructionsObject} setInstructionsDataWithHoldUpTime={setInstructionsDataWithHoldUpTime}/>
                               </FormControl>
                             }
+                            */}
                             
                             {proposalType === 8 &&
                               <FormControl fullWidth sx={{mb:2}}>
@@ -2001,8 +2002,6 @@ export default function GovernanceCreateProposalView(props: any){
                                 <StreamflowPaymentsView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             */}
-
-
 
                             {proposalType === 10 &&
                               <FormControl fullWidth sx={{mb:2}}>
@@ -2057,11 +2056,13 @@ export default function GovernanceCreateProposalView(props: any){
                                 <IntraDAOGrantView governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
                               </FormControl>
                             }
+                            {/*
                             {proposalType === 132 &&
                               <FormControl fullWidth sx={{mb:2}}>
                                 <IntraDAOGrantV0View governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} governanceWalletMinInstructHoldUpTime={governanceWalletMinInstructHoldUpTime} setInstructionsDataWithHoldUpTime={setInstructionsDataWithHoldUpTime}/>
                               </FormControl>
                             }
+                            */}
                             
                             {proposalType === 33 &&
                               <FormControl fullWidth sx={{mb:2}}>

@@ -117,7 +117,7 @@ export default function JupiterSwapView(props: any) {
     const [governanceRulesWallet, setGovernanceRulesWallet] = React.useState(props?.governanceRulesWallet);
     const [governanceWalletMinInstructHoldUpTime, setGovernanceWalletMinInstructHoldUpTime] = React.useState(props?.governanceWalletMinInstructHoldUpTime);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.pubkey?.toBase58() || governanceWallet?.vault?.pubkey);
     const [toMintAddress, setToMintAddress] = React.useState(null);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenDecimals, setTokenDecimals] = React.useState(null);
@@ -839,7 +839,7 @@ export default function JupiterSwapView(props: any) {
 
     React.useState(() => {
         if (governanceWallet && !consolidatedGovernanceWallet) 
-            getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
+            getAndUpdateWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey);
     }, [governanceWallet, consolidatedGovernanceWallet]);
 
     React.useEffect(() => { 

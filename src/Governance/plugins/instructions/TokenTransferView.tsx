@@ -405,6 +405,7 @@ export default function TokenTransferView(props: any) {
       
         return (
           <>
+
             <Box sx={{ minWidth: 120, ml:1 }}>
               <FormControl fullWidth sx={{mb:2}}>
                 <InputLabel id="governance-token-select-label">{pluginType === 4 ? 'Token' : 'Select'}</InputLabel>
@@ -423,86 +424,61 @@ export default function TokenTransferView(props: any) {
                     },
                   }}
                 >
-                    {(pluginType === 4 && consolidatedGovernanceWallet) && 
-                        
-                        consolidatedGovernanceWallet.map((governanceItem: any, key: number) => {
-                            
-                            return (
+                    {pluginType === 4 && consolidatedGovernanceWallet && 
+                        consolidatedGovernanceWallet.map((governanceItem: any, govKey: number) => (
                             governanceItem.tokens
-                                    .filter((item: any) => 
-                                        item.account.data?.parsed?.info?.tokenAmount?.amount > 0
-                                    )
-                                    .sort((a: any, b: any) => 
-                                        b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount
-                                    )
-                                    .map((item: any, key: number) => {
-                                        
-                                        //if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
-                                        //    item.account.data.parsed.info.tokenAmount.amount > 0) {
-
-                                            return (
-                                                <MenuItem key={key} value={item.pubkey}>
-                                                    
-                                                    <Grid container
-                                                        alignItems="center"
-                                                    >
-                                                        <Grid item xs={12}>
-                                                        <Grid container>
-                                                            <Grid item sm={8}>
-                                                            <Grid
-                                                                container
-                                                                direction="row"
-                                                                justifyContent="left"
-                                                                alignItems="left"
-                                                            >
-
-                                                                {item.account?.tokenMap?.tokenName ?
-                                                                    <Grid 
-                                                                        container
-                                                                        direction="row"
-                                                                        alignItems="center"
-                                                                    >
-                                                                        <Grid item>
-                                                                            <Avatar alt={item.account.tokenMap.tokenName} src={item.account.tokenMap.tokenLogo} />
-                                                                        </Grid>
-                                                                        <Grid item sx={{ml:1}}>
-                                                                            <Typography variant="h6">
-                                                                            {item.account.tokenMap.tokenName}
-                                                                            </Typography>
-                                                                        </Grid>
-                                                                    </Grid>
-                                                                :
-                                                                    <>
-                                                                        <ShowTokenMintInfo mintAddress={item.account.data.parsed.info.mint} />
-                                                                    </>
-                                                                }
-                                                            </Grid>
-                                                            </Grid>
-                                                            <Grid item xs sx={{textAlign:'right'}}>
-                                                            <Typography variant="h6">
-
-                                                                {(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals).toLocaleString()}
-                                                            </Typography>
-                                                            </Grid>
-                                                        </Grid>  
-
-                                                        <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
-                                                            <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
-                                                                {shortenString(item.account.data.parsed.info.mint,5,5)}
-                                                            </Typography>
-                                                        </Grid>
-                                                        </Grid>
-                                                    </Grid>
-                                                </MenuItem>
-                                            );
-                                        //} else {
-                                        //    return null; // Don't render anything for items without nativeTreasuryAddress
-                                        //}
-                                    })
+                            .filter((item: any) => 
+                                // Adjust filter logic if you want to show tokens with zero balance
+                                Number(item.account.data?.parsed?.info?.tokenAmount?.amount) > 0
                             )
-                            })
-                            
-                        }
+                            .sort((a: any, b: any) => 
+                                Number(b.account.data?.parsed?.info?.tokenAmount?.amount) - 
+                                Number(a.account.data?.parsed?.info?.tokenAmount?.amount)
+                            )
+                            .map((item: any) => (
+                                <MenuItem key={`${govKey}-${item.pubkey}`} value={item.pubkey}>
+                                    <Grid container alignItems="center">
+                                        <Grid item xs={12}>
+                                        <Grid container>
+                                            <Grid item sm={8}>
+                                            <Grid container direction="row" justifyContent="left" alignItems="left">
+                                                {item.account?.tokenMap?.tokenName ? (
+                                                <Grid container direction="row" alignItems="center">
+                                                    <Grid item>
+                                                    <Avatar 
+                                                        alt={item.account.tokenMap.tokenName} 
+                                                        src={item.account.tokenMap.tokenLogo} 
+                                                    />
+                                                    </Grid>
+                                                    <Grid item sx={{ ml: 1 }}>
+                                                    <Typography variant="h6">
+                                                        {item.account.tokenMap.tokenName}
+                                                    </Typography>
+                                                    </Grid>
+                                                </Grid>
+                                                ) : (
+                                                <ShowTokenMintInfo mintAddress={item.account.data.parsed.info.mint} />
+                                                )}
+                                            </Grid>
+                                            </Grid>
+                                            <Grid item xs sx={{ textAlign: 'right' }}>
+                                            <Typography variant="h6">
+                                                {(Number(item.account.data.parsed.info.tokenAmount.amount) / 
+                                                10 ** item.account.data.parsed.info.tokenAmount.decimals
+                                                ).toLocaleString()}
+                                            </Typography>
+                                            </Grid>
+                                        </Grid>
+                                        <Grid item xs={12} sx={{ textAlign: 'center', mt: -1 }}>
+                                            <Typography variant="caption" sx={{ borderTop: '1px solid rgba(255,255,255,0.05)', pt: 1 }}>
+                                            {shortenString(item.account.data.parsed.info.mint, 5, 5)}
+                                            </Typography>
+                                        </Grid>
+                                        </Grid>
+                                    </Grid>
+                                </MenuItem>
+                            ))
+                        ))}
                         
                     {pluginType === 5 &&
                         
@@ -748,16 +724,27 @@ export default function TokenTransferView(props: any) {
         const tmap = await getTokens(setTokenMap);
 
         let solBalance = 0;
-        solBalance = await connection.getBalance(new PublicKey(wallet));
 
         if (wallet === governanceWallet?.vault?.pubkey || wallet === governanceWallet?.nativeTreasuryAddress?.toBase58() || wallet === governanceWallet?.pubkey?.toBase58()){
-            if (governanceWallet?.vault?.pubkey){
-                governanceWallet.solBalance = solBalance;
-                setTokenMaxAmount(governanceWallet.solBalance/10 ** 9)
+            
+            
+            console.log("wallet: "+wallet);
+            if (governanceWallet?.vault?.pubkey)
+                solBalance = await connection.getBalance(new PublicKey(governanceWallet.vault.pubkey));
+            else
+                solBalance = await connection.getBalance(new PublicKey(governanceWallet?.nativeTreasuryAddress));
+            //if (governanceWallet?.vault?.pubkey ){
+            governanceWallet.solBalance = solBalance;
+            setTokenMaxAmount(governanceWallet.solBalance/10 ** 9)
+            /*
             } else{
-                console.log("max: "+governanceWallet.solBalance)
-                setTokenMaxAmount(governanceWallet.solBalance)
-            }
+                if (!governanceWallet.solBalance && consolidatedGovernanceWallet?.solBalance){
+                    setTokenMaxAmount(consolidatedGovernanceWallet.solBalance)
+                } else{
+                    console.log("max: "+governanceWallet.solBalance)
+                    setTokenMaxAmount(governanceWallet.solBalance)
+                }
+            }*/
         }
         if (pluginType === 5)
             setTokenMint("So11111111111111111111111111111111111111112");
@@ -806,9 +793,9 @@ export default function TokenTransferView(props: any) {
     async function getAndUpdateWalletHoldings(){
         try{
             setLoadingWallet(true);
-            //console.log("fetching rules now rules: "+governanceRulesWallet);
+            //console.log("1. governanceWallet: "+JSON.stringify(governanceWallet));
             //console.log("fetching governanceWallet: "+(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey.toBase58()));
-            const gwToAdd = await fetchWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey?.toBase58() || governanceWallet?.toBase58());
+            const gwToAdd = await fetchWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.nativeTreasuryAddress?.toBase58());
             //console.log("fetching rules now rules: "+governanceRulesWallet);
             const rwToAdd = await fetchWalletHoldings(governanceRulesWallet);
 
@@ -878,7 +865,6 @@ export default function TokenTransferView(props: any) {
     React.useEffect(() => {
         if (governanceWallet && !consolidatedGovernanceWallet && !loadingWallet) {
             getAndUpdateWalletHoldings();
-            //setConsolidatedGovernanceWallet(gWallet);
         }
     }, [governanceWallet, consolidatedGovernanceWallet]);
 
