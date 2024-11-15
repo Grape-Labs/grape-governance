@@ -113,7 +113,7 @@ export default function JupiterDCAView(props: any) {
     const setInstructionsObject = props?.setInstructionsObject;
     const governanceWallet = props?.governanceWallet;
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey || governanceWallet?.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.pubkey?.toBase58() || governanceWallet?.vault?.pubkey);
     const [toMintAddress, setToMintAddress] = React.useState(null);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenDecimals, setTokenDecimals] = React.useState(null);
@@ -860,7 +860,7 @@ export default function JupiterDCAView(props: any) {
     React.useEffect(() => {
         if (governanceWallet && !consolidatedGovernanceWallet){
 
-            getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
+            getAndUpdateWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey);
             getTokenList();
         }
     }, [governanceWallet, consolidatedGovernanceWallet]);

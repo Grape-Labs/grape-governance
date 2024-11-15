@@ -653,7 +653,7 @@ export default function StreamflowPaymentsView(props: any) {
 
     React.useEffect(() => {
         if (governanceWallet && !consolidatedGovernanceWallet) 
-            getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
+            getAndUpdateWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey);
     }, [governanceWallet, consolidatedGovernanceWallet]);
 
     React.useEffect(() => { 
