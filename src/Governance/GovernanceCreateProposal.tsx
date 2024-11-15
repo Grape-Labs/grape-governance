@@ -900,7 +900,7 @@ export default function GovernanceCreateProposalView(props: any){
       const handleGovernanceWalletChange = (event: SelectChangeEvent) => {//(nativeWallet: string, rulesWallet: string) => {
         const nativeWallet = event.target.value as string;
         //console.log("menu item: "+JSON.stringify(nativeWallet))
-        setGovernanceWallet(nativeWallet);
+        
         setCommunitySupport(false);
         setIsCouncilVote(false);
         //setIsCouncilVote(false);
@@ -914,6 +914,7 @@ export default function GovernanceCreateProposalView(props: any){
             .map((item: any, key: number) => {
               if (nativeWallet === item?.nativeTreasuryAddress?.toBase58() ||
                 (nativeWallet?.vault && nativeWallet.vault.pubkey === item?.nativeTreasuryAddress?.toBase58())){
+                setGovernanceWallet(item);
                 //console.log("1. found "+JSON.stringify(item));
                 rulesWallet = item.pubkey.toBase58();
                 minInstructionHoldUpTime = item.account.config.minInstructionHoldUpTime;
@@ -999,7 +1000,7 @@ export default function GovernanceCreateProposalView(props: any){
                   <Select
                     labelId="governance-wallet-select-label"
                     id="governance-wallet-select"
-                    value={new PublicKey(governanceWallet).toBase58()}
+                    value={new PublicKey(governanceWallet.nativeTreasuryAddress).toBase58()}
                     label="Governance Wallet"
                     onChange={handleGovernanceWalletChange}
                   > 
@@ -1083,7 +1084,7 @@ export default function GovernanceCreateProposalView(props: any){
                   <Select
                     labelId="governance-wallet-select-label"
                     id="governance-wallet-select"
-                    value={new PublicKey(governanceWallet).toBase58()}
+                    value={new PublicKey(governanceWallet.nativeTreasuryAddress).toBase58()}
                     label="Governance Wallet"
                     onChange={handleGovernanceWalletChange}
                   > 
@@ -1604,7 +1605,7 @@ export default function GovernanceCreateProposalView(props: any){
           .sort((a:any,b:any) => (b.walletValue - a.walletValue))
           .map((item: any, key: number) => {
             if (new PublicKey(sentRulesAddress).toBase58() === item.pubkey.toBase58()){
-              setGovernanceWallet(item.nativeTreasuryAddress.toBase58());
+              setGovernanceWallet(item);
               console.log("Setting selected wallet to "+item.nativeTreasuryAddress.toBase58())
             }
           })
@@ -1649,8 +1650,8 @@ export default function GovernanceCreateProposalView(props: any){
     }, [verified]);
 
     React.useEffect(() => {
-      if (!governanceWallet && governanceWallets.length > 0) {
-        setGovernanceWallet(new PublicKey(governanceWallets[0].nativeTreasuryAddress).toBase58()); // Default to the first wallet
+      if (!governanceWallet && governanceWallets && governanceWallets.length > 0) {
+        setGovernanceWallet(governanceWallets[0]); // Default to the first wallet
       }
     }, [governanceWallets]);
 
