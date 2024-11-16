@@ -4,6 +4,7 @@ import {
     getAllProposals, 
     getGovernance, 
     getGovernanceAccounts, 
+    getNativeTreasuryAddress,
     getGovernanceChatMessages, 
     getTokenOwnerRecord, 
     getTokenOwnerRecordsByOwner, 
@@ -249,7 +250,9 @@ export function GovernanceProposalV2View(props: any){
     const [openInstructions, setOpenInstructions] = React.useState(false);
     const [expandInfo, setExpandInfo] = React.useState(false);
     const [reload, setReload] = React.useState(false);
-    
+    const [governanceRules, setGovernanceRules] = React.useState(null);
+    const [governanceNativeWallet, setGovernanceNativeWallet] = React.useState(null);
+
     const toggleInfoExpand = () => {
         setExpandInfo(!expandInfo)
     };
@@ -1901,16 +1904,20 @@ export function GovernanceProposalV2View(props: any){
             realmPk = new PublicKey(realm.pubkey);
         }*/
 
+        const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, realmOwner);
+        setGovernanceRules(governanceRulesIndexed);
+
         if (!thisitem){
             console.log("Calling Index/RPC");
             //const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
-            const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, realmOwner);
+            
             const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
+
             const prop = await getProposalIndexed(governanceRulesStrArr, realmOwner, governanceAddress, proposalPk);
             //console.log("prop: "+JSON.stringify(prop));
             setThisitem(prop);
         }
-        
+
         if (!memberMap){
             let rawTokenOwnerRecords = null;
             let indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realmPk).toBase58(), grealm.owner || realm.owner.toBase58());
@@ -1939,11 +1946,28 @@ export function GovernanceProposalV2View(props: any){
             console.log("Setting MemberMap");
             setMemberMap(rawTokenOwnerRecords);
         }
-        
+    
         console.log("Completed Gov Prop setup")
 
         setLoadingValidation(false);
     } 
+
+    const fetchNativeTreasuryAddress = async() => {
+        
+        const nta = await getNativeTreasuryAddress(
+            //@ts-ignore
+            new PublicKey(realm.owner),
+            new PublicKey(thisitem.account.governance)
+        )
+
+        setGovernanceNativeWallet(nta);
+    }
+
+    React.useEffect(() => { 
+        if (thisitem && governanceRules && !governanceNativeWallet){
+            fetchNativeTreasuryAddress();
+        }
+    }, [thisitem, governanceRules]);
 
     React.useEffect(() => { 
 
@@ -2919,7 +2943,7 @@ export function GovernanceProposalV2View(props: any){
                                                             <Grid item>
                                                                 <Typography gutterBottom variant="body1" component="div">
                                                                     <ExplorerView 
-                                                                        address={thisitem.account.governance.toBase58()}
+                                                                        address={governanceNativeWallet && governanceNativeWallet.toBase58()}
                                                                         type='address' 
                                                                         shorten={4} 
                                                                         hideTitle={false} 
@@ -2928,7 +2952,7 @@ export function GovernanceProposalV2View(props: any){
                                                             </Grid>
                                                             </Grid>
                                                             <Typography color="text.secondary" variant="caption">
-                                                                This is the rules wallet used to create the proposal
+                                                                Rules {thisitem.account.governance.toBase58()}
                                                             </Typography>
                                                         </Box>
                                                     }

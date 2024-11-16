@@ -3,7 +3,9 @@ import {
     Connection, 
     Keypair, 
     SystemProgram,
-    Transaction } from '@solana/web3.js';
+    Transaction,
+    TransactionMessage,
+    VersionedTransaction } from '@solana/web3.js';
 import axios from "axios";
 import { 
     TOKEN_PROGRAM_ID, 
@@ -284,6 +286,38 @@ export default function TokenManagerView(props) {
 
     }, []);
 
+    const simulateCreateTokenIx = async (createTokenIx) => {
+        try {
+            // Fetch the latest blockhash
+            const { blockhash } = await connection.getLatestBlockhash();
+    
+            // Create a VersionedTransaction using the prepared instructions
+            const message = new TransactionMessage({
+                payerKey: wallet.publicKey,
+                recentBlockhash: blockhash,
+                instructions: createTokenIx.instructions,
+            }).compileToV0Message();
+            
+            const transaction = new VersionedTransaction(message);
+    
+            // Simulate the transaction
+            const simulationResult = await connection.simulateTransaction(transaction);
+    
+            // Analyze the result
+            if (simulationResult.value.err) {
+                console.error("Simulation failed with error:", simulationResult.value.err);
+                console.log("Logs:", simulationResult.value.logs);
+                throw new Error(`Simulation failed: ${simulationResult.value.err}`);
+            }
+    
+            console.log("Simulation successful. Logs:", simulationResult.value.logs);
+            return simulationResult.value;
+        } catch (error) {
+            console.error("Error simulating transaction:", error);
+        }
+    };
+    
+
     const createTokenIx = async () => {
         setLoading(true);
 
@@ -388,22 +422,20 @@ export default function TokenManagerView(props) {
             const createTokenIx = {
                 title: `Create New Token with Metadata`,
                 description: `Create a new token with mint authority & metadata`,
-                instructions: transaction.instructions,
-                mintAddress: mintPublicKey.toBase58(),
+                ix: transaction.instructions,
+                //mintAddress: mintPublicKey.toBase58(),
                 nativeWallet:governanceNativeWallet,
                 governingMint:governingMint,
-                draft:isDraft,
+                draft: isDraft,
             };
-
-            console.log("propTx: "+JSON.stringify(createTokenIx))
-
+            
             handleCloseDialog();
             setInstructions(createTokenIx);
             setExpandedLoader(true);
 
             enqueueSnackbar("Create token instructions prepared", { variant: 'success' });
         } catch (error) {
-            enqueueSnackbar(`Error preparing create token instructions: ${error.message}`, { variant: 'error' });
+            enqueueSnackbar(`Error preparing create token instructions: ${error?.message}`, { variant: 'error' });
         } finally {
             setLoading(false);
         }

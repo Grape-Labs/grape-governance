@@ -2161,7 +2161,7 @@ export default function WalletCardView(props:any) {
                                         <Skeleton
                                             animation="wave"
                                             height={20}
-                                            width="80px"
+                                            width="100px"
                                             style={{ marginBottom: 4, textAlign: 'right' }}
                                             />
                                     </>
