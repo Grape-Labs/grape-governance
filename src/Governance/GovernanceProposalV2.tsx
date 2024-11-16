@@ -1910,9 +1910,7 @@ export function GovernanceProposalV2View(props: any){
         if (!thisitem){
             console.log("Calling Index/RPC");
             //const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
-            
             const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
-
             const prop = await getProposalIndexed(governanceRulesStrArr, realmOwner, governanceAddress, proposalPk);
             //console.log("prop: "+JSON.stringify(prop));
             setThisitem(prop);
@@ -1952,22 +1950,22 @@ export function GovernanceProposalV2View(props: any){
         setLoadingValidation(false);
     } 
 
-    const fetchNativeTreasuryAddress = async() => {
+    const fetchNativeTreasuryAddress = async(governance:any) => {
         
         const nta = await getNativeTreasuryAddress(
             //@ts-ignore
             new PublicKey(realm.owner),
-            new PublicKey(thisitem.account.governance)
+            new PublicKey(governance)
         )
 
         setGovernanceNativeWallet(nta);
     }
 
     React.useEffect(() => { 
-        if (thisitem && governanceRules && !governanceNativeWallet){
-            fetchNativeTreasuryAddress();
+        if (thisitem && !governanceNativeWallet){
+            fetchNativeTreasuryAddress(thisitem.account.governance);
         }
-    }, [thisitem, governanceRules]);
+    }, [thisitem]);
 
     React.useEffect(() => { 
 
@@ -1985,7 +1983,7 @@ export function GovernanceProposalV2View(props: any){
                 validateGovernanceSetup();
             }
         }
-    }, [governanceLookup, cachedGovernance, loadingValidation]);
+    }, [governanceLookup, loadingValidation]);
 
     React.useEffect(() => { 
 
@@ -2022,7 +2020,7 @@ export function GovernanceProposalV2View(props: any){
                     //getGovernanceProps()
                 }
             }*/
-    }, [loadingValidation, cachedGovernance, thisitem, !thisGovernance, governanceLookup, tokenMap, memberMap, realm, reload]);
+    }, [loadingValidation, thisitem, !thisGovernance, governanceLookup, tokenMap, memberMap, realm, reload]);
 
     React.useEffect(() => { 
         // check again if this voter has voted:
