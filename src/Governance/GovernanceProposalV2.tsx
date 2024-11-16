@@ -1965,7 +1965,6 @@ export function GovernanceProposalV2View(props: any){
 
     React.useEffect(() => { 
         if (thisitem && governanceRules && !governanceNativeWallet){
-            //console.log("thisitem: "+JSON.stringify(thisitem));
             fetchNativeTreasuryAddress();
         }
     }, [thisitem, governanceRules]);
