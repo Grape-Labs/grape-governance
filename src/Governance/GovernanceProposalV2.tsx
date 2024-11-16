@@ -2935,21 +2935,23 @@ export function GovernanceProposalV2View(props: any){
                                                     {
                                                         <Box sx={{ my: 3, mx: 2 }}>
                                                             <Grid container alignItems="center">
-                                                            <Grid item xs>
-                                                                <Typography gutterBottom variant="subtitle1" component="div">
-                                                                    Wallet
-                                                                </Typography>
-                                                            </Grid>
-                                                            <Grid item>
-                                                                <Typography gutterBottom variant="body1" component="div">
-                                                                    <ExplorerView 
-                                                                        address={governanceNativeWallet && governanceNativeWallet.toBase58()}
-                                                                        type='address' 
-                                                                        shorten={4} 
-                                                                        hideTitle={false} 
-                                                                        style='text' color='white' fontSize='14px' />
-                                                                </Typography>
-                                                            </Grid>
+                                                                <Grid item xs>
+                                                                    <Typography gutterBottom variant="subtitle1" component="div">
+                                                                        Wallet
+                                                                    </Typography>
+                                                                </Grid>
+                                                                <Grid item>
+                                                                    {governanceNativeWallet &&
+                                                                    <Typography gutterBottom variant="body1" component="div">
+                                                                        <ExplorerView 
+                                                                            address={governanceNativeWallet && governanceNativeWallet.toBase58()}
+                                                                            type='address' 
+                                                                            shorten={4} 
+                                                                            hideTitle={false} 
+                                                                            style='text' color='white' fontSize='14px' />
+                                                                    </Typography>
+                                                                    }
+                                                                </Grid>
                                                             </Grid>
                                                             <Typography color="text.secondary" variant="caption">
                                                                 Rules {thisitem.account.governance.toBase58()}
