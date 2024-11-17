@@ -335,7 +335,8 @@ export default function TokenManagerView(props) {
         
                 // Calculate the rent-exempt balance needed
                 const lamports = await getMinimumBalanceForRentExemptMint(connection);
-        
+
+                const pTransaction = new Transaction();
                 // Create a transaction
                 const transaction = new Transaction();
         
@@ -422,11 +423,13 @@ export default function TokenManagerView(props) {
             
             console.log("mintPublicKey: "+mintPublicKey.toBase58());
             
+            const aixs = pTransaction;
+
             const createTokenIx = {
                 title: `Create New Token with Metadata`,
                 description: `Create a new token with mint authority & metadata`,
                 ix: transaction.instructions,
-                aix:null,
+                aix:aixs?.instructions,
                 nativeWallet:governanceNativeWallet,
                 governingMint:governingMint,
                 draft: isDraft,
