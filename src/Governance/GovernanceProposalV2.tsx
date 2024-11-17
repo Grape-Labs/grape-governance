@@ -105,6 +105,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import ShareIcon from '@mui/icons-material/Share';
 import ArticleIcon from '@mui/icons-material/Article';
 import InfoIcon from '@mui/icons-material/Info';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -2159,7 +2160,31 @@ export function GovernanceProposalV2View(props: any){
                                                         </Button>
                                                     </Tooltip>
                                             </CopyToClipboard>
-                                            
+                                                <Tooltip title={`Share ${realmName ? realmName : ''} Governance Proposal`}>
+                                                    <Button
+                                                        aria-label="share"
+                                                        variant="outlined"
+                                                        color="inherit"
+                                                        onClick={() => {
+                                                            if (navigator.share) {
+                                                                navigator.share({
+                                                                    title: `${realmName} Governance Proposal`,
+                                                                    text: `Check out this governance proposal on ${realmName}:`,
+                                                                    url: `https://governance.so/proposal/${governanceAddress}/${proposalPk}`
+                                                                }).catch((error) => console.error('Error sharing:', error));
+                                                            } else {
+                                                                alert("Your browser doesn't support the Share API.");
+                                                            }
+                                                        }}
+                                                        sx={{
+                                                            borderTopRightRadius:'17px',
+                                                            borderBottomRightRadius:'17px',
+                                                            borderColor:'rgba(255,255,255,0.05)',
+                                                            fontSize:'10px'}}
+                                                    >
+                                                        <ShareIcon fontSize='inherit' sx={{mr:1}} /> Share
+                                                    </Button>
+                                                </Tooltip>
                                             </ButtonGroup>
                                             <Tooltip title={`Visit ${realmName ? realmName : 'DAO'} on the Realms UI`}>
                                                 <Button 
@@ -2206,7 +2231,31 @@ export function GovernanceProposalV2View(props: any){
                                                             </Button>
                                                         </Tooltip>
                                                 </CopyToClipboard>
-
+                                                <Tooltip title={`Share ${realmName ? realmName : ''} Governance Proposal`}>
+                                                    <Button
+                                                        aria-label="share"
+                                                        variant="outlined"
+                                                        color="inherit"
+                                                        onClick={() => {
+                                                            if (navigator.share) {
+                                                                navigator.share({
+                                                                    title: `${realmName} Governance Proposal`,
+                                                                    text: `Check out this governance proposal on ${realmName}:`,
+                                                                    url: `https://governance.so/proposal/${governanceAddress}/${proposalPk}`
+                                                                }).catch((error) => console.error('Error sharing:', error));
+                                                            } else {
+                                                                alert("Your browser doesn't support the Share API.");
+                                                            }
+                                                        }}
+                                                        sx={{
+                                                            borderTopRightRadius:'17px',
+                                                            borderBottomRightRadius:'17px',
+                                                            borderColor:'rgba(255,255,255,0.05)',
+                                                            fontSize:'10px'}}
+                                                    >
+                                                        <ShareIcon fontSize='inherit' sx={{mr:1}} /> Share
+                                                    </Button>
+                                                </Tooltip>
                                                 <Tooltip title={`Visit  ${realmName ? realmName : 'DAO'} on the Realms UI`}>
                                                     <Button 
                                                         aria-label="back"

@@ -160,7 +160,7 @@ export default function TokenManagerView(props) {
                     // revert to RPC
                     console.error(error);
                     return null;
-                });
+            });
     }
 
     const fetchCreatedTokensIx = async () => {
@@ -286,14 +286,16 @@ export default function TokenManagerView(props) {
 
     }, []);
 
-    const simulateCreateTokenIx = async (createTokenIx) => {
+    const simulateCreateTokenIx = async (createTokenIx: Transaction) => {
         try {
             // Fetch the latest blockhash
             const { blockhash } = await connection.getLatestBlockhash();
     
+            //console.log("1 "+new PublicKey(governanceNativeWallet).toBase58());
+
             // Create a VersionedTransaction using the prepared instructions
             const message = new TransactionMessage({
-                payerKey: wallet.publicKey,
+                payerKey: new PublicKey(governanceNativeWallet),
                 recentBlockhash: blockhash,
                 instructions: createTokenIx.instructions,
             }).compileToV0Message();
@@ -340,7 +342,7 @@ export default function TokenManagerView(props) {
                 // Instruction to create an account for the mint
                 transaction.add(
                     SystemProgram.createAccount({
-                        fromPubkey: governanceNativeWallet, // Multi-sig wallet as the payer
+                        fromPubkey: new PublicKey(governanceNativeWallet), // Multi-sig wallet as the payer
                         newAccountPubkey: mintPublicKey,
                         space: MintLayout.span,
                         lamports: lamports,
@@ -358,6 +360,7 @@ export default function TokenManagerView(props) {
                         TOKEN_PROGRAM_ID // Program ID for the SPL Token program
                     )
                 );
+                
 
                 // Set up metadata
                 const metadataProgramId = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"); // Token Metadata Program ID
@@ -379,7 +382,7 @@ export default function TokenManagerView(props) {
                         metadata: metadataPDA,
                         mint: mintPublicKey,
                         mintAuthority: mintAuthority,
-                        payer: governanceNativeWallet,
+                        payer: new PublicKey(governanceNativeWallet),
                         updateAuthority: mintAuthority,
                     },
                     {
@@ -405,7 +408,7 @@ export default function TokenManagerView(props) {
                 );
 
                 // Add metadata instruction to the transaction
-                transaction.add(metadataInstruction);
+                //transaction.add(metadataInstruction);
 
                 /*
                 const mint = await createMint(
@@ -423,11 +426,13 @@ export default function TokenManagerView(props) {
                 title: `Create New Token with Metadata`,
                 description: `Create a new token with mint authority & metadata`,
                 ix: transaction.instructions,
-                //mintAddress: mintPublicKey.toBase58(),
+                aix:null,
                 nativeWallet:governanceNativeWallet,
                 governingMint:governingMint,
                 draft: isDraft,
             };
+            
+            await simulateCreateTokenIx(transaction);
             
             handleCloseDialog();
             setInstructions(createTokenIx);

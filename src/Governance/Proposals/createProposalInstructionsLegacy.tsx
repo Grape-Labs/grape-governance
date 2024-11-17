@@ -151,7 +151,7 @@ export async function createProposalInstructionsLegacy(
     
     // V2 Approve/Deny configuration
     const options = ['Approve'];
-    const isMulti = options.length > 1
+    const isMulti = options && options.length > 1
     const useDenyOption = !isMulti
     
     const voteType = isMulti

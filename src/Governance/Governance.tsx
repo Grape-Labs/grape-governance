@@ -31,6 +31,7 @@ import {
   FormGroup,
   FormControlLabel,
   Switch,
+  ButtonGroup
 } from '@mui/material/';
 
 import { Helmet } from 'react-helmet';
@@ -48,6 +49,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import { GovernanceProposalDialog } from './GovernanceProposalDialog';
 import moment from 'moment';
 
+import ShareIcon from '@mui/icons-material/Share';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EditIcon from '@mui/icons-material/Edit';
@@ -1678,19 +1680,46 @@ export function GovernanceCachedView(props: any) {
                                                     </Typography>
                                                 </Grid>
                                                 <Grid item xs={12}>    
-                                                    <Button 
-                                                        aria-label="back"
-                                                        variant="outlined" 
-                                                        color='inherit'
-                                                        href={`https://realms.today/dao/${governanceAddress}`}
-                                                        target='blank'
-                                                        sx={{
-                                                            borderRadius:'17px',
-                                                            borderColor:'rgba(255,255,255,0.05)',
-                                                            fontSize:'10px'}}
-                                                    >
-                                                        <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
-                                                    </Button>
+                                                    <ButtonGroup>
+                                                        <Tooltip title={`Share ${realmName ? realmName : ''} Governance`}>
+                                                            <Button
+                                                                aria-label="share"
+                                                                variant="outlined"
+                                                                color="inherit"
+                                                                onClick={() => {
+                                                                    if (navigator.share) {
+                                                                        navigator.share({
+                                                                            title: `${realmName} Governance`,
+                                                                            text: `Visit the ${realmName} DAO:`,
+                                                                            url: `https://governance.so/dao/${governanceAddress}`
+                                                                        }).catch((error) => console.error('Error sharing:', error));
+                                                                    } else {
+                                                                        alert("Your browser doesn't support the Share API.");
+                                                                    }
+                                                                }}
+                                                                sx={{
+                                                                    borderTopRightRadius:'17px',
+                                                                    borderBottomRightRadius:'17px',
+                                                                    borderColor:'rgba(255,255,255,0.05)',
+                                                                    fontSize:'10px'}}
+                                                            >
+                                                                <ShareIcon fontSize='inherit' sx={{mr:1}} /> Share
+                                                            </Button>
+                                                        </Tooltip>
+                                                        <Button 
+                                                            aria-label="back"
+                                                            variant="outlined" 
+                                                            color='inherit'
+                                                            href={`https://realms.today/dao/${governanceAddress}`}
+                                                            target='blank'
+                                                            sx={{
+                                                                borderRadius:'17px',
+                                                                borderColor:'rgba(255,255,255,0.05)',
+                                                                fontSize:'10px'}}
+                                                        >
+                                                            <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
+                                                        </Button>
+                                                    </ButtonGroup>
                                                 </Grid>
                                             </Grid>
                                         </Grid>
