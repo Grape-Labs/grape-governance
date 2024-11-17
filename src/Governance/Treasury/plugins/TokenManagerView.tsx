@@ -286,13 +286,11 @@ export default function TokenManagerView(props) {
 
     }, []);
 
-    const simulateCreateTokenIx = async (createTokenIx: Transaction) => {
+    const simulateCreateTokenIx = async (createTokenIx: Transaction): Promise<boolean> => {
         try {
             // Fetch the latest blockhash
             const { blockhash } = await connection.getLatestBlockhash();
     
-            //console.log("1 "+new PublicKey(governanceNativeWallet).toBase58());
-
             // Create a VersionedTransaction using the prepared instructions
             const message = new TransactionMessage({
                 payerKey: new PublicKey(governanceNativeWallet),
@@ -309,13 +307,14 @@ export default function TokenManagerView(props) {
             if (simulationResult.value.err) {
                 console.error("Simulation failed with error:", simulationResult.value.err);
                 console.log("Logs:", simulationResult.value.logs);
-                throw new Error(`Simulation failed: ${simulationResult.value.err}`);
+                return false; // Indicate failure
             }
     
             console.log("Simulation successful. Logs:", simulationResult.value.logs);
-            return simulationResult.value;
+            return true; // Indicate success
         } catch (error) {
             console.error("Error simulating transaction:", error);
+            return false; // Indicate failure due to error
         }
     };
     
@@ -325,6 +324,7 @@ export default function TokenManagerView(props) {
 
         try {
 
+            const withPublicKey = new PublicKey(governanceNativeWallet);
             const mintAuthority = new PublicKey(governanceNativeWallet); //publicKey;
             const freezeAuthority = new PublicKey(governanceNativeWallet); //publicKey;
             const decimals = 6;
@@ -342,7 +342,7 @@ export default function TokenManagerView(props) {
                 // Instruction to create an account for the mint
                 transaction.add(
                     SystemProgram.createAccount({
-                        fromPubkey: new PublicKey(governanceNativeWallet), // Multi-sig wallet as the payer
+                        fromPubkey: withPublicKey, // Multi-sig wallet as the payer
                         newAccountPubkey: mintPublicKey,
                         space: MintLayout.span,
                         lamports: lamports,
@@ -382,7 +382,7 @@ export default function TokenManagerView(props) {
                         metadata: metadataPDA,
                         mint: mintPublicKey,
                         mintAuthority: mintAuthority,
-                        payer: new PublicKey(governanceNativeWallet),
+                        payer: withPublicKey,
                         updateAuthority: mintAuthority,
                     },
                     {
@@ -431,8 +431,16 @@ export default function TokenManagerView(props) {
                 governingMint:governingMint,
                 draft: isDraft,
             };
-            
-            await simulateCreateTokenIx(transaction);
+
+            const isSimulationSuccessful = await simulateCreateTokenIx(transaction);
+
+            if (!isSimulationSuccessful) {
+                enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
+                handleCloseDialog();
+                return; // Exit the function as simulation failed
+            }
+
+            console.log("Simulation was successful. Proceeding with the transaction.");
             
             handleCloseDialog();
             setInstructions(createTokenIx);
@@ -449,7 +457,7 @@ export default function TokenManagerView(props) {
     return (
         <>
             <Tooltip title="Token Manager (Create, Manage Tokens)" placement="right">
-                <MenuItem onClick={handleClickOpen}>
+                <MenuItem onClick={publicKey && handleClickOpen}>
                 <ListItemIcon>
                     <TollIcon fontSize="small" />
                 </ListItemIcon>
