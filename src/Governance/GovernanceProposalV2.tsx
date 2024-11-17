@@ -940,7 +940,7 @@ export function GovernanceProposalV2View(props: any){
                                             if (gai){
                                                 // get token metadata
                                                 
-                                                const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai.data.parsed.info.mint}`;
+                                                //const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai?.data?.parsed?.info?.mint}`;
                                                 /*
                                                 const meta = axios.get(uri, {
                                                     headers: {
