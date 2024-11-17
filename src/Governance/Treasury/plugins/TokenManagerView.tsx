@@ -444,7 +444,7 @@ export default function TokenManagerView(props) {
                     handleCloseDialog();
                     return; // Exit the function as simulation failed
                 }
-
+                
                 console.log("Simulation was successful. Proceeding with the transaction.");
                 
                 handleCloseDialog();
