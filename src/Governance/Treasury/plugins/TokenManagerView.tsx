@@ -423,33 +423,38 @@ export default function TokenManagerView(props) {
             
             console.log("mintPublicKey: "+mintPublicKey.toBase58());
             
+            const ixs = transaction;
             const aixs = pTransaction;
-
-            const createTokenIx = {
-                title: `Create New Token with Metadata`,
-                description: `Create a new token with mint authority & metadata`,
-                ix: transaction.instructions,
-                aix:aixs?.instructions,
-                nativeWallet:governanceNativeWallet,
-                governingMint:governingMint,
-                draft: isDraft,
-            };
-
-            const isSimulationSuccessful = await simulateCreateTokenIx(transaction);
-
-            if (!isSimulationSuccessful) {
-                enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
-                handleCloseDialog();
-                return; // Exit the function as simulation failed
-            }
-
-            console.log("Simulation was successful. Proceeding with the transaction.");
             
-            handleCloseDialog();
-            setInstructions(createTokenIx);
-            setExpandedLoader(true);
+            if (ixs || aixs){
+                const createTokenIx = {
+                    title: `Create New Token with Metadata`,
+                    description: `Create a new token with mint authority & metadata`,
+                    ix: ixs.instructions,
+                    aix:aixs?.instructions,
+                    nativeWallet:governanceNativeWallet,
+                    governingMint:governingMint,
+                    draft: isDraft,
+                };
 
-            enqueueSnackbar("Create token instructions prepared", { variant: 'success' });
+                const isSimulationSuccessful = await simulateCreateTokenIx(transaction);
+
+                if (!isSimulationSuccessful) {
+                    enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
+                    handleCloseDialog();
+                    return; // Exit the function as simulation failed
+                }
+                
+                console.log("Simulation was successful. Proceeding with the transaction.");
+                
+                handleCloseDialog();
+                setInstructions(createTokenIx);
+                setExpandedLoader(true);
+
+                enqueueSnackbar("Create token instructions prepared", { variant: 'success' });
+            } else{
+                enqueueSnackbar(`Error no transaction instructions`, { variant: 'error' });
+            }
         } catch (error) {
             enqueueSnackbar(`Error preparing create token instructions: ${error?.message}`, { variant: 'error' });
         } finally {

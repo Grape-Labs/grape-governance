@@ -174,11 +174,6 @@ export async function createProposalInstructionsLegacy(
       tokenOwnerRecordPk = gp?.account?.tokenOwnerRecord;
     }
 
-    console.log("2.5 programId "+programId.toBase58());
-    console.log("2.5 realmPk "+realmPk.toBase58());
-    console.log("2.5 governingTokenMint "+governingTokenMint.toBase58());
-    console.log("2.5 walletPk "+walletPk?.toBase58());
-
     if (!tokenOwnerRecordPk){
       tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
         programId,
@@ -189,9 +184,6 @@ export async function createProposalInstructionsLegacy(
       if (tokenOwnerRecordPk)
         console.log("Using getTokenOwnerRecordAddress: "+tokenOwnerRecordPk.toBase58());
     }
-
-
-    console.log("2.6");
 
     if (!tokenOwnerRecordPk){
       console.log("no token owner record pk... fetching proposal");
@@ -206,9 +198,6 @@ export async function createProposalInstructionsLegacy(
           }
       }
     }
-
-
-    console.log("2.7");
 
     const governanceAuthority = walletPk
     console.log("programId: "+programId.toBase58());
@@ -437,6 +426,7 @@ export async function createProposalInstructionsLegacy(
       if (j >= startTxIndex){ // we are adding this in case ix fails and we need to retry with remaining instructions
         
         console.log("Inserting tx: "+j);
+        console.log("Inserting ix: "+JSON.stringify(instructionData[j]));
 
         await withInsertTransaction(
           insertInstructions,
@@ -456,6 +446,8 @@ export async function createProposalInstructionsLegacy(
       }
     }
     console.log("5");
+
+    console.log("IX to push: "+JSON.stringify(insertInstructions));
 
     if (authTransaction && authTransaction.instructions.length > 0){
       for (var instruction of authTransaction.instructions){ 
@@ -506,6 +498,7 @@ export async function createProposalInstructionsLegacy(
           instructions,
         );*/
 
+        /*
         const stresponse = await sendVersionedTransactions(
           connection,
           wallet,
@@ -517,8 +510,8 @@ export async function createProposalInstructionsLegacy(
           failCallback,
           //startIndex,
         );
-
-        /*
+        */
+        
         const stresponse = await sendTransactions(
             connection,
             wallet,
@@ -530,7 +523,7 @@ export async function createProposalInstructionsLegacy(
             failCallback,
             startIndex,
           );
-        */
+        
           console.log(`Proposal: ${JSON.stringify(proposalAddress)}`);
           console.log(`Sending complete: ${JSON.stringify(stresponse)}`);
 
