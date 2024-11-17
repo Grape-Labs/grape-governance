@@ -52,7 +52,7 @@ import { chunks } from '../../utils/governanceTools/helpers';
 import { sendTransactions, prepareTransactions, WalletSigner, getWalletPublicKey } from '../../utils/governanceTools/sendTransactions';
 import { sendTransactionsV3,
   SequenceType,
-  txBatchesToInstructionSetWithSigners
+  txBatchesToInstructionSetWithSigners,
  } from '../../utils/governanceTools/sendTransactionsV3';
 import { sendVersionedTransactions } from '../../utils/governanceTools/sendVersionedTransactions';
 
@@ -174,6 +174,11 @@ export async function createProposalInstructionsLegacy(
       tokenOwnerRecordPk = gp?.account?.tokenOwnerRecord;
     }
 
+    console.log("2.5 programId "+programId.toBase58());
+    console.log("2.5 realmPk "+realmPk.toBase58());
+    console.log("2.5 governingTokenMint "+governingTokenMint.toBase58());
+    console.log("2.5 walletPk "+walletPk?.toBase58());
+
     if (!tokenOwnerRecordPk){
       tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
         programId,
@@ -184,6 +189,9 @@ export async function createProposalInstructionsLegacy(
       if (tokenOwnerRecordPk)
         console.log("Using getTokenOwnerRecordAddress: "+tokenOwnerRecordPk.toBase58());
     }
+
+
+    console.log("2.6");
 
     if (!tokenOwnerRecordPk){
       console.log("no token owner record pk... fetching proposal");
@@ -198,6 +206,9 @@ export async function createProposalInstructionsLegacy(
           }
       }
     }
+
+
+    console.log("2.7");
 
     const governanceAuthority = walletPk
     console.log("programId: "+programId.toBase58());
