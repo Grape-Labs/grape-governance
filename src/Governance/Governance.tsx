@@ -1698,27 +1698,13 @@ export function GovernanceCachedView(props: any) {
                                                                     }
                                                                 }}
                                                                 sx={{
-                                                                    borderTopRightRadius:'17px',
-                                                                    borderBottomRightRadius:'17px',
+                                                                    borderRadius:'17px',
                                                                     borderColor:'rgba(255,255,255,0.05)',
                                                                     fontSize:'10px'}}
                                                             >
                                                                 <ShareIcon fontSize='inherit' sx={{mr:1}} /> Share
                                                             </Button>
                                                         </Tooltip>
-                                                        <Button 
-                                                            aria-label="back"
-                                                            variant="outlined" 
-                                                            color='inherit'
-                                                            href={`https://realms.today/dao/${governanceAddress}`}
-                                                            target='blank'
-                                                            sx={{
-                                                                borderRadius:'17px',
-                                                                borderColor:'rgba(255,255,255,0.05)',
-                                                                fontSize:'10px'}}
-                                                        >
-                                                            <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
-                                                        </Button>
                                                     </ButtonGroup>
                                                 </Grid>
                                             </Grid>
@@ -1992,6 +1978,20 @@ export function GovernanceCachedView(props: any) {
                                             textAlign:'center'
                                         }}
                                     >
+                                        Alternative UI: 
+                                        <Button 
+                                            aria-label="back"
+                                            variant="text" 
+                                            color='inherit'
+                                            href={`https://realms.today/dao/${governanceAddress}`}
+                                            target='blank'
+                                            sx={{
+                                                borderColor:'rgba(255,255,255,0.05)',
+                                                fontSize:'10px'}}
+                                        >
+                                            <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Visit the Realms UI
+                                        </Button>
+                                        <br/>
                                         Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime Hybrid Caching<br/>
                                         {cachedTimestamp &&
                                             <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>

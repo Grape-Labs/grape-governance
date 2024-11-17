@@ -2186,7 +2186,7 @@ export function GovernanceProposalV2View(props: any){
                                                     </Button>
                                                 </Tooltip>
                                             </ButtonGroup>
-                                            <Tooltip title={`Visit ${realmName ? realmName : 'DAO'} on the Realms UI`}>
+                                            <Tooltip title={`Visit ${realmName ? realmName : 'DAO'} proposal on the Realms UI`}>
                                                 <Button 
                                                     aria-label="back"
                                                     variant="outlined" 
