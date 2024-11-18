@@ -2101,19 +2101,7 @@ export function GovernanceMetricsView(props: any) {
                                                     </Typography>
                                                 </Grid>
                                                 <Grid item xs={12}>
-                                                    <Button 
-                                                        aria-label="back"
-                                                        variant="outlined" 
-                                                        color='inherit'
-                                                        href={`https://realms.today/dao/${governanceAddress}`}
-                                                        target='blank'
-                                                        sx={{
-                                                            borderRadius:'17px',
-                                                            borderColor:'rgba(255,255,255,0.05)',
-                                                            fontSize:'10px'}}
-                                                    >
-                                                        <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
-                                                    </Button>
+                                                    
                                                 </Grid>
                                             </Grid>
                                         </Grid>

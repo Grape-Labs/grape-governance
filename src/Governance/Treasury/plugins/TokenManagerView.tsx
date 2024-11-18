@@ -5,19 +5,32 @@ import {
     SystemProgram,
     Transaction,
     TransactionMessage,
+    TransactionInstruction,
     VersionedTransaction } from '@solana/web3.js';
 import axios from "axios";
 import { 
+    createMint,
     TOKEN_PROGRAM_ID, 
-    getMint, 
-    createMint, 
     mintTo, 
     getOrCreateAssociatedTokenAccount,
     MintLayout,
     getMinimumBalanceForRentExemptMint,
     createInitializeMintInstruction,
+    createMintToCheckedInstruction,
+    mintToChecked,
 } from "@solana/spl-token-v2";
-import { Metadata, createCreateMetadataAccountV2Instruction } from '@metaplex-foundation/mpl-token-metadata';
+import {
+    //createInitializeMetadataPointerInstruction
+} from "@solana/spl-token";
+import {
+    TokenMetadata,
+    createInitializeInstruction,
+    createUpdateFieldInstruction,
+  } from "@solana/spl-token-metadata";
+import { generateSigner, percentAmount } from '@metaplex-foundation/umi'
+import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
+import { Metadata, createV1, createMetadataAccountV3, mintV1, TokenStandard, MPL_TOKEN_METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
+import { Metaplex, TransactionBuilder } from '@metaplex-foundation/js';
 import { Buffer } from 'buffer';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { 
@@ -27,25 +40,27 @@ import {
 import React, { useCallback, useState, useEffect } from 'react';
 import {
     Button,
+    IconButton,
     DialogTitle,
     Dialog,
     DialogContent,
     DialogContentText,
     DialogActions,
     TextField,
+    Tooltip,
     Box,
     Typography,
     Stack,
     MenuItem,
     ListItemIcon,
-    Tooltip,
 } from '@mui/material/';
 import { useSnackbar } from 'notistack';
 import { styled } from '@mui/material/styles';
 
+import RefreshIcon from '@mui/icons-material/Refresh';
 import TollIcon from '@mui/icons-material/Toll';
 import CloseIcon from '@mui/icons-material/Close';
-import IconButton from '@mui/material/IconButton';
+import { TOKEN_METADATA_PROGRAM_ID } from '@onsol/tldparser';
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     '& .MuiDialogContent-root': {
@@ -122,6 +137,11 @@ export default function TokenManagerView(props) {
     const [proposalDescription, setProposalDescription] = useState('');
     const [loading, setLoading] = useState(false);
     const [open, setPropOpen] = React.useState(false);
+
+    const [name, setName] = useState("CollabX Test Token");
+    const [symbol, setSymbol] = useState("MCXT");
+    const [uri, setUri] = useState("https://arweave.net/lyeMvAF6kpccNhJ0XXPkrplbcT6A5UtgBiZI_fKff6I");
+    const [decimals, setDecimals] = useState(8);
 
     const connection = RPC_CONNECTION; // Change to your desired network
 
@@ -228,6 +248,25 @@ export default function TokenManagerView(props) {
 
         try {
             const mintPubKey = new PublicKey(mintAddress);
+            const withPublicKey = new PublicKey(governanceNativeWallet);
+            const mintAuthority = new PublicKey(governanceNativeWallet); //publicKey;
+            const freezeAuthority = new PublicKey(governanceNativeWallet); //publicKey;
+            
+            const amountToMint = 1_000_000 * Math.pow(10, decimals);
+            
+            const transaction = new Transaction();
+            transaction.add(
+                createMintToCheckedInstruction(
+                    mintPubKey, // mint
+                    mintAuthority, // receiver (should be a token account)
+                    mintAuthority, // mint authority
+                    amountToMint, // amount. if your decimals is 8, you mint 10^8 for 1 token.
+                    decimals, // decimals
+                    // [signer1, signer2 ...], // only multisig account will use
+                ),
+            );
+                
+            /*
             const associatedTokenAccount = await getOrCreateAssociatedTokenAccount(
                 connection,
                 new PublicKey(governanceNativeWallet),
@@ -243,16 +282,17 @@ export default function TokenManagerView(props) {
                 publicKey,
                 amount * 10 ** TOKEN_DECIMALS
             );
+            */
 
             const mintTokenIx = {
                 title: `Mint More Tokens`,
-                description: `Mint ${amount} tokens to the associated account`,
-                instructions: [mintIx],
-                mint: mintPubKey,
-                amount: amount,
-                destination: associatedTokenAccount.address,
+                description: `Mint ${amount} ${mintPubKey.toBase58()} to the associated account`,
+                ix: transaction.instructions,
+                nativeWallet:governanceNativeWallet,
+                governingMint:governingMint,
+                draft: isDraft,
             };
-
+            
             setInstructions(mintTokenIx);
             setExpandedLoader(true);
 
@@ -327,12 +367,32 @@ export default function TokenManagerView(props) {
             const withPublicKey = new PublicKey(governanceNativeWallet);
             const mintAuthority = new PublicKey(governanceNativeWallet); //publicKey;
             const freezeAuthority = new PublicKey(governanceNativeWallet); //publicKey;
-            const decimals = 6;
+            
+            // Define metadata fields
+            
+            // Create an empty account for the mint
+            const mintKeypair = Keypair.generate();
+            const mintPublicKey = mintKeypair.publicKey;
 
-                // Create an empty account for the mint
-                const mintKeypair = Keypair.generate();
-                const mintPublicKey = mintKeypair.publicKey;
-        
+            // Set up metadata
+            const metadataProgramId = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"); // Token Metadata Program ID
+            const metadataSeeds = [
+                Buffer.from("metadata"),
+                metadataProgramId.toBuffer(),
+                mintPublicKey.toBuffer(),
+            ];
+            const [metadataPDA] = await PublicKey.findProgramAddress(metadataSeeds, metadataProgramId);
+
+            // Metadata to store in Mint Account
+            const metaData: TokenMetadata = {
+                updateAuthority: withPublicKey,
+                mint: mintKeypair.publicKey,
+                name: name,
+                symbol: symbol,
+                uri: uri,
+                additionalMetadata: [["description", "The Vine Token by the Grape DAO"]],
+            };
+
                 // Calculate the rent-exempt balance needed
                 const lamports = await getMinimumBalanceForRentExemptMint(connection);
 
@@ -341,6 +401,20 @@ export default function TokenManagerView(props) {
                 const transaction = new Transaction();
         
                 // Instruction to create an account for the mint
+                
+                // we are using the keypair above
+                /*
+                const mint = await createMint(
+                    connection,
+                    withPublicKey,
+                    mintAuthority,
+                    freezeAuthority,
+                    TOKEN_DECIMALS
+                );
+                */
+            
+
+                console.log("1. Create Sys Account");
                 transaction.add(
                     SystemProgram.createAccount({
                         fromPubkey: withPublicKey, // Multi-sig wallet as the payer
@@ -350,7 +424,81 @@ export default function TokenManagerView(props) {
                         programId: TOKEN_PROGRAM_ID,
                     })
                 );
+                
+                // Create metadata instruction
+                /*
+                const metadataBuilder = createMetadataAccountV3(
+                    {
+                    eddsa: null,
+                    identity: {
+                        publicKey: (withPublicKey.toBase58()),
+                        signTransaction: async () => {
+                        throw new Error("Direct signing is not supported in this example.");
+                        },
+                        signAllTransactions: async () => {
+                        throw new Error("Direct signing is not supported in this example.");
+                        },
+                        signMessage: async () => {
+                        throw new Error("Direct signing is not supported in this example.");
+                        },
+                    },
+                    payer: {
+                        publicKey: withPublicKey.toBase58(),
+                        signTransaction: async () => {
+                        throw new Error("Direct signing is not supported in this example.");
+                        },
+                        signAllTransactions: async () => {
+                        throw new Error("Direct signing is not supported in this example.");
+                        },
+                        signMessage: async () => {
+                        throw new Error("Direct signing is not supported in this example.");
+                        },
+                    },
+                    },
+                    {
+                    metadata: metadataPDA.toBase58(),
+                    mint: mintKeypair.publicKey.toBase58(),
+                    mintAuthority: withPublicKey.toBase58(),
+                    payer: withPublicKey.toBase58(),
+                    updateAuthority: withPublicKey.toBase58(),
+                    data: {
+                        name: name,
+                        symbol: symbol,
+                        uri: uri,
+                        sellerFeeBasisPoints: 500, // 5% royalties
+                        creators: [
+                        {
+                            address: withPublicKey.toBase58(),
+                            verified: true,
+                            share: 100,
+                        },
+                        ],
+                    },
+                    }
+                );
+                // Convert Metaplex Instructions to Solana TransactionInstructions
+                const metadataInstructions = metadataBuilder.getInstructions().map((ix) => {
+                    return new TransactionInstruction({
+                    keys: ix.keys.map((key) => ({
+                        pubkey: new PublicKey(key.pubkey),
+                        isSigner: key.isSigner,
+                        isWritable: key.isWritable,
+                    })),
+                    programId: new PublicKey(ix.programId),
+                    data: Buffer.from(ix.data),
+                    });
+                });
 
+                // Add each converted instruction to the transaction
+                metadataInstructions.forEach((instruction) => transaction.add(instruction));
+
+
+                //metadataInstructions.forEach((instruction) => transaction.add(instruction));
+
+                //transaction.add(metadataInstruction);
+                */
+
+                console.log("2. Init Mint");
                 // Instruction to initialize the mint
                 transaction.add(
                     createInitializeMintInstruction(
@@ -362,65 +510,52 @@ export default function TokenManagerView(props) {
                     )
                 );
                 
-
-                // Set up metadata
-                const metadataProgramId = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"); // Token Metadata Program ID
-                const metadataSeeds = [
-                    Buffer.from("metadata"),
-                    metadataProgramId.toBuffer(),
-                    mintPublicKey.toBuffer(),
-                ];
-                const [metadataPDA] = await PublicKey.findProgramAddress(metadataSeeds, metadataProgramId);
-
-                // Define metadata fields
-                const name = "My CollabX Token";
-                const symbol = "MCXT";
-                const uri = "https://arweave.net/lyeMvAF6kpccNhJ0XXPkrplbcT6A5UtgBiZI_fKff6I"; // Vine URI for now
-
-                // Create the metadata instruction
-                const metadataInstruction = createCreateMetadataAccountV2Instruction(
-                    {
-                        metadata: metadataPDA,
-                        mint: mintPublicKey,
-                        mintAuthority: mintAuthority,
-                        payer: withPublicKey,
-                        updateAuthority: mintAuthority,
-                    },
-                    {
-                        createMetadataAccountArgsV2: {
-                            data: {
-                                name: name,
-                                symbol: symbol,
-                                uri: uri,
-                                sellerFeeBasisPoints: 0, // Example: 5% royalty (500 basis points)
-                                creators: [
-                                    {
-                                        address: mintAuthority,
-                                        verified: true,
-                                        share: 100,
-                                    },
-                                ],
-                                collection: null, // Optional collection field
-                                uses: null, // Optional uses field
-                            },
-                            isMutable: true,
-                        },
-                    }
+                console.log("3. Mint Tokens Ix")
+                
+                /*
+                const amountToMint = 1_000_000 * Math.pow(10, decimals);
+                transaction.add(
+                    createMintToCheckedInstruction(
+                        mintPublicKey, // mint
+                        mintAuthority, // receiver (should be a token account)
+                        mintAuthority, // mint authority
+                        amountToMint, // amount. if your decimals is 8, you mint 10^8 for 1 token.
+                        decimals, // decimals
+                        // [signer1, signer2 ...], // only multisig account will use
+                    ),
                 );
+                */
 
+                /*
+                transaction.add(
+                    createInitializeInstruction({
+                        programId: TOKEN_PROGRAM_ID, // Token Extension Program as Metadata Program
+                        metadata: mintKeypair.publicKey, // Account address that holds the metadata
+                        updateAuthority: mintAuthority, // Authority that can update the metadata
+                        mint: mintKeypair.publicKey, // Mint Account address
+                        mintAuthority: mintAuthority, // Designated Mint Authority
+                        name: name,
+                        symbol: symbol,
+                        uri: uri,
+                    })
+                );
+                */
+
+                /*
+                const updateFieldInstruction = createUpdateFieldInstruction({
+                    programId: TOKEN_2022_PROGRAM_ID, // Token Extension Program as Metadata Program
+                    metadata: mint, // Account address that holds the metadata
+                    updateAuthority: updateAuthority, // Authority that can update the metadata
+                    field: metaData.additionalMetadata[0][0], // key
+                    value: metaData.additionalMetadata[0][1], // value
+                  });
+                */
+
+                
+                
                 // Add metadata instruction to the transaction
                 //transaction.add(metadataInstruction);
 
-                /*
-                const mint = await createMint(
-                    connection,
-                    new PublicKey(governanceNativeWallet),
-                    mintAuthority,
-                    freezeAuthority,
-                    TOKEN_DECIMALS
-                );
-                */
-            
             console.log("mintPublicKey: "+mintPublicKey.toBase58());
             
             const ixs = transaction;
@@ -429,7 +564,7 @@ export default function TokenManagerView(props) {
             if (ixs || aixs){
                 const createTokenIx = {
                     title: `Create New Token with Metadata`,
-                    description: `Create a new token with mint authority & metadata`,
+                    description: `Create a new token with mint authority & metadata ${mintPublicKey.toBase58()}`,
                     ix: ixs.instructions,
                     aix:aixs?.instructions,
                     nativeWallet:governanceNativeWallet,
@@ -444,7 +579,7 @@ export default function TokenManagerView(props) {
                     handleCloseDialog();
                     return; // Exit the function as simulation failed
                 }
-                
+
                 console.log("Simulation was successful. Proceeding with the transaction.");
                 
                 handleCloseDialog();
@@ -466,17 +601,17 @@ export default function TokenManagerView(props) {
         <>
             <Tooltip title="Token Manager (Create, Manage Tokens)" placement="right">
                 <MenuItem onClick={publicKey && handleClickOpen}>
-                <ListItemIcon>
-                    <TollIcon fontSize="small" />
-                </ListItemIcon>
-                Token
+                    <ListItemIcon>
+                        <TollIcon fontSize="small" />
+                    </ListItemIcon>
+                    Token
                 </MenuItem>
             </Tooltip>
 
             <BootstrapDialog 
-                //maxWidth={"xl"}
                 fullWidth={true}
-                open={open} onClose={handleClose}
+                open={open} 
+                onClose={handleClose}
                 PaperProps={{
                     style: {
                         background: '#13151C',
@@ -484,26 +619,66 @@ export default function TokenManagerView(props) {
                         borderTop: '1px solid rgba(255,255,255,0.1)',
                         borderRadius: '20px'
                     }
-                    }}
-                >
-                <BootstrapDialogTitle 
-                    id='extensions-dialog'
-                    onClose={handleCloseDialog}
-                >Token Manager</BootstrapDialogTitle>
+                }}
+            >
+                <BootstrapDialogTitle id="extensions-dialog" onClose={handleCloseDialog}>
+                    Token Manager
+                </BootstrapDialogTitle>
                 <DialogContent>
-                    <DialogContentText>
-                        Manage DAO tokens - fetch created tokens, mint more, and create new tokens.
-                    </DialogContentText>
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                        <Typography variant="h6">Manage DAO Tokens</Typography>
+                        <Tooltip title="Fetch Tokens for this DAO">
+                            <IconButton onClick={fetchCreatedTokensIx} disabled={loading}>
+                                <RefreshIcon />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
                     
                     <Stack spacing={2} sx={{ mt: 2 }}>
+                        <Typography variant="h6">Create New Token:</Typography>
+                        
+                        <TextField
+                            label="Token Name"
+                            fullWidth
+                            variant="outlined"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Enter token name"
+                        />
+                        <TextField
+                            label="Token Symbol"
+                            fullWidth
+                            variant="outlined"
+                            value={symbol}
+                            onChange={(e) => setSymbol(e.target.value)}
+                            placeholder="Enter token symbol"
+                        />
+                        <TextField
+                            label="Metadata URI"
+                            fullWidth
+                            variant="outlined"
+                            value={uri}
+                            onChange={(e) => setUri(e.target.value)}
+                            placeholder="Enter metadata URI"
+                        />
+                        <TextField
+                            label="Decimals"
+                            fullWidth
+                            type="number"
+                            variant="outlined"
+                            value={decimals}
+                            onChange={(e) => setDecimals(Number(e.target.value))}
+                            placeholder="Enter token decimals"
+                        />
+                        
                         <Button
                             variant="contained"
-                            onClick={fetchCreatedTokensIx}
+                            onClick={createTokenIx}
                             disabled={loading}
                         >
-                            Fetch Tokens for this DAO
+                            Prepare Create Token Instructions
                         </Button>
-                        
+
                         <TextField
                             label="Mint Address"
                             fullWidth
@@ -518,7 +693,7 @@ export default function TokenManagerView(props) {
                             type="number"
                             variant="outlined"
                             value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
+                            onChange={(e) => setAmount(Number(e.target.value))}
                         />
                         <Button
                             variant="contained"
@@ -527,30 +702,21 @@ export default function TokenManagerView(props) {
                         >
                             Prepare Mint Tokens Instructions
                         </Button>
-
-                        <Button
-                            variant="contained"
-                            onClick={createTokenIx}
-                            disabled={loading}
-                        >
-                            Prepare Create Token Instructions
-                        </Button>
                     </Stack>
 
                     <Box sx={{ mt: 3 }}>
                         <Typography variant="h6">Created Tokens:</Typography>
-                        {tokens && tokens.map((token, index) => (
-                            <Box key={index} sx={{ mt: 1 }}>
-                                <Typography variant="body1">Mint Address: {token.address}</Typography>
-                                <Typography variant="body2">Decimals: {Number(token.decimals)}</Typography>
-                                <Typography variant="body2">Supply: {Number(token.supply)}</Typography>
-                            </Box>
-                        ))}
-                        {tokens && tokens.length <= 0 && 
-                            <Box sx={{ mt: 1 }}>
-                                <Typography variant="body1">no tokens found</Typography>
-                            </Box>
-                        }
+                        {tokens.length > 0 ? (
+                            tokens.map((token, index) => (
+                                <Box key={index} sx={{ mt: 1 }}>
+                                    <Typography variant="body1">Mint Address: {token.address}</Typography>
+                                    <Typography variant="body2">Decimals: {Number(token.decimals)}</Typography>
+                                    <Typography variant="body2">Supply: {Number(token.supply)}</Typography>
+                                </Box>
+                            ))
+                        ) : (
+                            <Typography variant="body1">No tokens found</Typography>
+                        )}
                     </Box>
                 </DialogContent>
             </BootstrapDialog>
