@@ -39,19 +39,20 @@ import {
 } from '../../../utils/grapeTools/constants';
 import React, { useCallback, useState, useEffect } from 'react';
 import {
+    AppBar,
+    Box,
     Button,
-    IconButton,
-    DialogTitle,
     Dialog,
     DialogContent,
-    DialogContentText,
-    DialogActions,
+    DialogTitle,
+    IconButton,
+    MenuItem,
+    Stack,
+    Tab,
+    Tabs,
     TextField,
     Tooltip,
-    Box,
     Typography,
-    Stack,
-    MenuItem,
     ListItemIcon,
 } from '@mui/material/';
 import { useSnackbar } from 'notistack';
@@ -143,7 +144,12 @@ export default function TokenManagerView(props) {
     const [uri, setUri] = useState("https://arweave.net/lyeMvAF6kpccNhJ0XXPkrplbcT6A5UtgBiZI_fKff6I");
     const [decimals, setDecimals] = useState(8);
 
+    const [tabIndex, setTabIndex] = useState(0); // Tab index to toggle between Create and Manage tabs
+
     const connection = RPC_CONNECTION; // Change to your desired network
+
+    const handleTabChange = (_event, newIndex) => setTabIndex(newIndex);
+
 
     const handleCloseDialog = () => {
         setPropOpen(false);
@@ -607,119 +613,143 @@ export default function TokenManagerView(props) {
                     Token
                 </MenuItem>
             </Tooltip>
-
-            <BootstrapDialog 
-                fullWidth={true}
-                open={open} 
+    
+            <Dialog
+                fullWidth
+                open={open}
                 onClose={handleClose}
                 PaperProps={{
                     style: {
                         background: '#13151C',
                         border: '1px solid rgba(255,255,255,0.05)',
                         borderTop: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: '20px'
-                    }
+                        borderRadius: '20px',
+                    },
                 }}
             >
-                <BootstrapDialogTitle id="extensions-dialog" onClose={handleCloseDialog}>
-                    Token Manager
-                </BootstrapDialogTitle>
+                <AppBar position="static" color="default">
+                    <Tabs
+                        value={tabIndex}
+                        onChange={handleTabChange}
+                        indicatorColor="primary"
+                        textColor="primary"
+                        variant="fullWidth"
+                    >
+                        <Tab label="Create New Token" />
+                        <Tab label="Manage/Mint Tokens" />
+                    </Tabs>
+                </AppBar>
+    
                 <DialogContent>
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                        <Typography variant="h6">Manage DAO Tokens</Typography>
-                        <Tooltip title="Fetch Tokens for this DAO">
-                            <IconButton onClick={fetchCreatedTokensIx} disabled={loading}>
-                                <RefreshIcon />
-                            </IconButton>
-                        </Tooltip>
-                    </Box>
-                    
-                    <Stack spacing={2} sx={{ mt: 2 }}>
-                        <Typography variant="h6">Create New Token:</Typography>
-                        
-                        <TextField
-                            label="Token Name"
-                            fullWidth
-                            variant="outlined"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Enter token name"
-                        />
-                        <TextField
-                            label="Token Symbol"
-                            fullWidth
-                            variant="outlined"
-                            value={symbol}
-                            onChange={(e) => setSymbol(e.target.value)}
-                            placeholder="Enter token symbol"
-                        />
-                        <TextField
-                            label="Metadata URI"
-                            fullWidth
-                            variant="outlined"
-                            value={uri}
-                            onChange={(e) => setUri(e.target.value)}
-                            placeholder="Enter metadata URI"
-                        />
-                        <TextField
-                            label="Decimals"
-                            fullWidth
-                            type="number"
-                            variant="outlined"
-                            value={decimals}
-                            onChange={(e) => setDecimals(Number(e.target.value))}
-                            placeholder="Enter token decimals"
-                        />
-                        
-                        <Button
-                            variant="contained"
-                            onClick={createTokenIx}
-                            disabled={loading}
-                        >
-                            Prepare Create Token Instructions
-                        </Button>
-
-                        <TextField
-                            label="Mint Address"
-                            fullWidth
-                            variant="outlined"
-                            value={mintAddress}
-                            onChange={(e) => setMintAddress(e.target.value)}
-                            placeholder="Enter mint address to mint more tokens"
-                        />
-                        <TextField
-                            label="Amount to Mint"
-                            fullWidth
-                            type="number"
-                            variant="outlined"
-                            value={amount}
-                            onChange={(e) => setAmount(Number(e.target.value))}
-                        />
-                        <Button
-                            variant="contained"
-                            onClick={mintMoreTokensIx}
-                            disabled={loading || !mintAddress || !amount}
-                        >
-                            Prepare Mint Tokens Instructions
-                        </Button>
-                    </Stack>
-
-                    <Box sx={{ mt: 3 }}>
-                        <Typography variant="h6">Created Tokens:</Typography>
-                        {tokens.length > 0 ? (
-                            tokens.map((token, index) => (
-                                <Box key={index} sx={{ mt: 1 }}>
-                                    <Typography variant="body1">Mint Address: {token.address}</Typography>
-                                    <Typography variant="body2">Decimals: {Number(token.decimals)}</Typography>
-                                    <Typography variant="body2">Supply: {Number(token.supply)}</Typography>
-                                </Box>
-                            ))
-                        ) : (
-                            <Typography variant="body1">No tokens found</Typography>
-                        )}
-                    </Box>
+                    {tabIndex === 0 && (
+                        <Stack spacing={2} sx={{ pt: 2, pb: 2 }}>
+                            <Typography variant="h6">Create a New Token</Typography>
+    
+                            <TextField
+                                label="Token Name"
+                                fullWidth
+                                variant="outlined"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Enter token name"
+                            />
+                            <TextField
+                                label="Token Symbol"
+                                fullWidth
+                                variant="outlined"
+                                value={symbol}
+                                onChange={(e) => setSymbol(e.target.value)}
+                                placeholder="Enter token symbol"
+                            />
+                            <TextField
+                                label="Metadata URI"
+                                fullWidth
+                                variant="outlined"
+                                value={uri}
+                                onChange={(e) => setUri(e.target.value)}
+                                placeholder="Enter metadata URI"
+                            />
+                            <TextField
+                                label="Decimals"
+                                fullWidth
+                                type="number"
+                                variant="outlined"
+                                value={decimals}
+                                onChange={(e) => setDecimals(Number(e.target.value))}
+                                placeholder="Enter token decimals"
+                            />
+    
+                            <Button
+                                variant="contained"
+                                onClick={() => createTokenIx({ name, symbol, uri, decimals })}
+                                disabled={loading}
+                            >
+                                Prepare Create Token Instructions
+                            </Button>
+                        </Stack>
+                    )}
+    
+                    {tabIndex === 1 && (
+                        <Stack spacing={2} sx={{ pt: 2, pb: 2 }}>
+                            <Box display="flex" justifyContent="space-between" alignItems="center">
+                                <Typography variant="h6">Manage/Mint Tokens</Typography>
+                                <Tooltip title="Fetch Tokens for this DAO">
+                                    <IconButton onClick={fetchCreatedTokensIx} disabled={loading}>
+                                        <RefreshIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            </Box>
+    
+                            <TextField
+                                label="Mint Address"
+                                fullWidth
+                                variant="outlined"
+                                value={mintAddress}
+                                onChange={(e) => setMintAddress(e.target.value)}
+                                placeholder="Enter mint address to mint more tokens"
+                            />
+                            <TextField
+                                label="Amount to Mint"
+                                fullWidth
+                                type="number"
+                                variant="outlined"
+                                value={amount}
+                                onChange={(e) => setAmount(Number(e.target.value))}
+                                placeholder="Enter amount to mint"
+                            />
+                            <Button
+                                variant="contained"
+                                onClick={() => mintMoreTokensIx()}
+                                disabled={loading || !mintAddress || !amount}
+                            >
+                                Prepare Mint Tokens Instructions
+                            </Button>
+    
+                            <Box>
+                                <Typography variant="h6">Created Tokens:</Typography>
+                                {tokens.length > 0 ? (
+                                    tokens.map((token, index) => (
+                                        <Box key={index} sx={{ mt: 1 }}>
+                                            <Typography variant="body1">
+                                                Mint Address: {token.address}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                                Decimals: {Number(token.decimals)}
+                                            </Typography>
+                                            <Typography variant="body2">
+                                                Supply: {Number(token.supply)}
+                                            </Typography>
+                                        </Box>
+                                    ))
+                                ) : (
+                                    <Typography variant="body2">No tokens found</Typography>
+                                )}
+                            </Box>
+                        </Stack>
+                    )}
                 </DialogContent>
-            </BootstrapDialog>
+            </Dialog>
         </>
     );
+    
 }
