@@ -1,5 +1,5 @@
 
-import { PublicKey, SystemProgram, TransactionInstruction, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
+import { PublicKey, SystemProgram, TransactionInstruction, Transaction, Signer, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
 
 import { 
   getRealms, 
@@ -101,7 +101,8 @@ export async function createProposalInstructionsLegacy(
     name:string,
     description:string, 
     connection: any, 
-    transactionInstr: Transaction, //: InstructionsAndSignersSet, 
+    //transactionInstr: { transaction: Transaction; signers: Signer[] },
+    transactionInstr: Transaction,
     authTransaction: Transaction,
     wallet: WalletSigner,
     sendTransaction: any,
@@ -116,7 +117,7 @@ export async function createProposalInstructionsLegacy(
 
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
     //let initialInstructions: TransactionInstruction[] = [];
-    let signers: any[] = [];
+    //let signers: any[] = [];
 
     let instructions: TransactionInstruction[] = [];
     
@@ -405,6 +406,7 @@ export async function createProposalInstructionsLegacy(
       const cid = createInstructionData(instruction);
       console.log("Pushing: "+JSON.stringify(instruction).length);
       instructionData.push(cid);
+      
     }
     
 

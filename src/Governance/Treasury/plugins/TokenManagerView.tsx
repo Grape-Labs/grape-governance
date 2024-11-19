@@ -63,6 +63,8 @@ import TollIcon from '@mui/icons-material/Toll';
 import CloseIcon from '@mui/icons-material/Close';
 import { TOKEN_METADATA_PROGRAM_ID } from '@onsol/tldparser';
 
+import AdvancedProposalView from './AdvancedProposalView';
+
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     '& .MuiDialogContent-root': {
       padding: theme.spacing(2),
@@ -128,7 +130,7 @@ export default function TokenManagerView(props) {
     const [isGoverningMintSelectable, setIsGoverningMintSelectable] = React.useState(true);
     const [isGoverningMintCouncilSelected, setIsGoverningMintCouncilSelected] = React.useState(true);
     const [isDraft, setIsDraft] = React.useState(false);
-
+    const [openAdvanced, setOpenAdvanced] = React.useState(false);
 
     const { enqueueSnackbar } = useSnackbar();
     const [tokens, setTokens] = useState([]);
@@ -299,6 +301,18 @@ export default function TokenManagerView(props) {
                 draft: isDraft,
             };
             
+
+            const isSimulationSuccessful = await simulateCreateTokenIx(transaction);
+
+            if (!isSimulationSuccessful) {
+                enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
+                handleCloseDialog();
+                return; // Exit the function as simulation failed
+            }
+
+            console.log("Simulation was successful. Proceeding with the transaction.");
+            
+            handleCloseDialog();
             setInstructions(mintTokenIx);
             setExpandedLoader(true);
 
@@ -309,6 +323,21 @@ export default function TokenManagerView(props) {
             setLoading(false);
         }
     };
+
+    const toggleGoverningMintSelected = (council: boolean) => {
+        if (council){
+            setIsGoverningMintCouncilSelected(true);
+            setGoverningMint(realm?.account.config.councilMint);
+        } else{
+            setIsGoverningMintCouncilSelected(false);
+            setGoverningMint(realm?.communityMint);
+        }
+    }
+
+    const handleAdvancedToggle = () => {
+        setOpenAdvanced(!openAdvanced);
+    }
+
 
 
     React.useEffect(() => { 
@@ -405,7 +434,7 @@ export default function TokenManagerView(props) {
                 const pTransaction = new Transaction();
                 // Create a transaction
                 const transaction = new Transaction();
-        
+
                 // Instruction to create an account for the mint
                 
                 // we are using the keypair above
@@ -564,6 +593,16 @@ export default function TokenManagerView(props) {
 
             console.log("mintPublicKey: "+mintPublicKey.toBase58());
             
+            // Sign and simulate
+            const latestBlockhash = await connection.getLatestBlockhash();
+            transaction.recentBlockhash = latestBlockhash.blockhash;
+            transaction.feePayer = withPublicKey;
+
+            // Add the mint keypair as a signer
+            transaction.sign(mintKeypair);
+            
+            const signedTransaction = transaction.serialize();
+
             const ixs = transaction;
             const aixs = pTransaction;
             
@@ -571,8 +610,9 @@ export default function TokenManagerView(props) {
                 const createTokenIx = {
                     title: `Create New Token with Metadata`,
                     description: `Create a new token with mint authority & metadata ${mintPublicKey.toBase58()}`,
-                    ix: ixs.instructions,
+                    ix: signedTransaction,
                     aix:aixs?.instructions,
+                    signers: [mintKeypair],
                     nativeWallet:governanceNativeWallet,
                     governingMint:governingMint,
                     draft: isDraft,
@@ -747,6 +787,25 @@ export default function TokenManagerView(props) {
                             </Box>
                         </Stack>
                     )}
+
+                    {openAdvanced ? 
+                        <>
+                            <AdvancedProposalView 
+                                proposalTitle={proposalTitle}
+                                setProposalTitle={setProposalTitle}
+                                proposalDescription={proposalDescription}
+                                setProposalDescription={setProposalDescription}
+                                toggleGoverningMintSelected={toggleGoverningMintSelected}
+                                isGoverningMintCouncilSelected={isGoverningMintCouncilSelected}
+                                isGoverningMintSelectable={isGoverningMintSelectable}
+                                isDraft={isDraft}
+                                setIsDraft={setIsDraft}
+                            />
+                            
+                        </>
+                    :
+                        <></>
+                    }
                 </DialogContent>
             </Dialog>
         </>

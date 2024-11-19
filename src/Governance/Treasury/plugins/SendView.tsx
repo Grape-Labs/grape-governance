@@ -128,7 +128,7 @@ export default function SendExtensionView(props: any){
 
     const [loading, setLoading] = React.useState(false);
     const [open, setPropOpen] = React.useState(false);
-    const [openAdvanced, setOpenAdvanded] = React.useState(false);
+    const [openAdvanced, setOpenAdvanced] = React.useState(false);
     const [proposalTitle, setProposalTitle] = React.useState(null);
     const [proposalDescription, setProposalDescription] = React.useState(null);
     const [governingMint, setGoverningMint] = React.useState(null);
@@ -177,7 +177,7 @@ export default function SendExtensionView(props: any){
     }
 
     const handleAdvancedToggle = () => {
-        setOpenAdvanded(!openAdvanced);
+        setOpenAdvanced(!openAdvanced);
     }
 
     const handleCloseDialog = () => {
@@ -524,11 +524,11 @@ export default function SendExtensionView(props: any){
         if (tokenSelected && tokenRecipient){
             if (tokenAmount && tokenAmount > 0){
                 generateInstructions();
-                //setOpenAdvanded(true);
+                //setOpenAdvanced(true);
 
             }
         } else {
-            setOpenAdvanded(false);
+            setOpenAdvanced(false);
         }
     }, [tokenSelected, tokenAmount, tokenRecipient]);
     

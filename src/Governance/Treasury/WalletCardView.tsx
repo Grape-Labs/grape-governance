@@ -1090,6 +1090,12 @@ export default function WalletCardView(props:any) {
                     authTransaction.add(...instructions.aix);
                 }
 
+                let signers = null;
+                if (instructions?.signers && instructions.signers.length > 0){
+                    //signers = instructions.signers;
+                    //transaction.addSignature(instruction.signers.)
+                }
+
                 console.log("with Governing Mint: "+useGoverningMint)
 
                 console.log("sending to createProposalInstructionsLegacy")
@@ -1117,6 +1123,7 @@ export default function WalletCardView(props:any) {
                     instructions.description,
                     RPC_CONNECTION,
                     transaction,
+                    //{transaction:transactions,signers:signers},
                     authTransaction,
                     anchorWallet,
                     null,
@@ -2811,9 +2818,11 @@ export default function WalletCardView(props:any) {
                         <Chip label={`Collectibles ${nativeNftTokens && nativeNftTokens.length}`} size="small" />
                     </Divider>
                     {nativeNftTokens && nativeNftTokens
+                        .filter((item: any) => !item.compression.compressed)
                         .sort((a:any,b:any) => (a.compression.compressed - b.compression.compressed))
                         .map((item: any,key:number) => (   
                             <>
+                                
                                 <ListItem
                                     secondaryAction={
                                         <Box>
