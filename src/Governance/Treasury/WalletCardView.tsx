@@ -232,7 +232,7 @@ export default function WalletCardView(props:any) {
     const [loaderSuccess, setLoaderSuccess] = React.useState(false);
     const [loaderCreationComplete, setLoaderCreationComplete] = React.useState(false);
     const [masterWallet, setMasterWallet] = React.useState(null);
-    const [showCompressed, setShowCompressed] = React.useState(true);
+    const [showCompressed, setShowCompressed] = React.useState(false);
 
     const { publicKey } = useWallet();
     const anchorWallet = useAnchorWallet();
@@ -2817,7 +2817,7 @@ export default function WalletCardView(props:any) {
                 <List sx={{ width: '100%' }}>
                 <Divider light>
                     <Chip
-                    label={`Collectibles (${nativeNftTokens ? nativeNftTokens.length : 0}) - ${showCompressed ? 'Show All' : 'Hide Compressed'}`}
+                    label={`Collectibles (${nativeNftTokens ? nativeNftTokens.length : 0}) - ${!showCompressed ? `Show All` : `Hide Compressed`}`}
                     size="small"
                     clickable
                     onClick={() => setShowCompressed((prev) => !prev)}
@@ -2825,7 +2825,7 @@ export default function WalletCardView(props:any) {
                 </Divider>
                 {nativeNftTokens &&
                     nativeNftTokens
-                    .filter((item: any) => showCompressed || !item.compression.compressed)
+                    .filter((item: any) => (showCompressed || !item.compression.compressed))
                     .sort((a: any, b: any) => a.compression.compressed - b.compression.compressed)
                     .map((item: any, key: number) => (
                         <>
@@ -2905,7 +2905,7 @@ export default function WalletCardView(props:any) {
 
                 {rulesNftTokens &&
                     rulesNftTokens
-                    .filter((item: any) => showCompressed || !item.compression.compressed)
+                    .filter((item: any) => (showCompressed || !item.compression.compressed))
                     .sort((a: any, b: any) => a.compression.compressed - b.compression.compressed)
                     .map((item: any, key: number) => (
                         <>
