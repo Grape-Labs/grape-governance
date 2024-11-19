@@ -232,7 +232,8 @@ export default function WalletCardView(props:any) {
     const [loaderSuccess, setLoaderSuccess] = React.useState(false);
     const [loaderCreationComplete, setLoaderCreationComplete] = React.useState(false);
     const [masterWallet, setMasterWallet] = React.useState(null);
-    
+    const [showCompressed, setShowCompressed] = React.useState(true);
+
     const { publicKey } = useWallet();
     const anchorWallet = useAnchorWallet();
 
@@ -2812,180 +2813,165 @@ export default function WalletCardView(props:any) {
         </Collapse>
         
         <Collapse in={expandedNft} timeout="auto" unmountOnExit>
-            <CardContent sx={{ p:0 }}>
+            <CardContent sx={{ p: 0 }}>
                 <List sx={{ width: '100%' }}>
+                <Divider light>
+                    <Chip
+                    label={`Collectibles (${nativeNftTokens ? nativeNftTokens.length : 0}) - ${showCompressed ? 'Show All' : 'Hide Compressed'}`}
+                    size="small"
+                    clickable
+                    onClick={() => setShowCompressed((prev) => !prev)}
+                    />
+                </Divider>
+                {nativeNftTokens &&
+                    nativeNftTokens
+                    .filter((item: any) => showCompressed || !item.compression.compressed)
+                    .sort((a: any, b: any) => a.compression.compressed - b.compression.compressed)
+                    .map((item: any, key: number) => (
+                        <>
+                        <ListItem
+                            secondaryAction={
+                            <Box>
+                                <IntegratedGovernanceProposalDialogView
+                                governanceAddress={governanceAddress}
+                                intraDao={false}
+                                realm={realm}
+                                governanceRulesWallet={new PublicKey(rulesWalletAddress)}
+                                governanceWallets={governanceWallets}
+                                useButton={3}
+                                useButtonText={1}
+                                title="Send"
+                                usePlugin={4}
+                                />
+                            </Box>
+                            }
+                            key={key}
+                        >
+                            <ListItemAvatar>
+                            <Avatar src={item.content.links.image} />
+                            </ListItemAvatar>
+                            <ListItemText
+                            primary={
+                                <CopyToClipboard text={item.id} onCopy={handleCopy}>
+                                <Button
+                                    color={'inherit'}
+                                    variant="text"
+                                    sx={{
+                                    m: 0,
+                                    p: 0,
+                                    '&:hover .MuiSvgIcon-root': { opacity: 1 },
+                                    }}
+                                    endIcon={
+                                    <FileCopyIcon
+                                        fontSize={'small'}
+                                        sx={{
+                                        color: 'rgba(255,255,255,0.25)',
+                                        pr: 1,
+                                        opacity: 0,
+                                        }}
+                                    />
+                                    }
+                                >
+                                    <Typography variant="subtitle1" sx={{ color: 'white' }}>
+                                    {item.content.metadata.name}
+                                    </Typography>
+                                </Button>
+                                </CopyToClipboard>
+                            }
+                            secondary={
+                                <>
+                                {item.content.metadata.symbol}
+                                {item.compression.compressed && <CompressIcon sx={{ fontSize: '11px', ml: 1 }} />}
+                                </>
+                            }
+                            />
+                        </ListItem>
+                        <TokenExpandComponent item={item} type={1} />
+
+                        {key + 1 < nativeNftTokens.length && <Divider variant="inset" component="li" light />}
+                        </>
+                    ))}
+
+                {rulesNftTokens && rulesNftTokens.length > 0 && (
                     <Divider light>
-                        <Chip label={`Collectibles ${nativeNftTokens && nativeNftTokens.length}`} size="small" />
+                    <Chip
+                        label={`Rules Wallet Collectibles (${rulesNftTokens ? rulesNftTokens.length : 0})`}
+                        size="small"
+                        clickable
+                        onClick={() => setShowCompressed((prev) => !prev)}
+                    />
                     </Divider>
-                    {nativeNftTokens && nativeNftTokens
-                        .filter((item: any) => !item.compression.compressed)
-                        .sort((a:any,b:any) => (a.compression.compressed - b.compression.compressed))
-                        .map((item: any,key:number) => (   
-                            <>
-                                
-                                <ListItem
-                                    secondaryAction={
-                                        <Box>
-                                            <IntegratedGovernanceProposalDialogView 
-                                                governanceAddress={governanceAddress}
-                                                intraDao={false}
-                                                realm={realm}
-                                                governanceRulesWallet={new PublicKey(rulesWalletAddress)}
-                                                //governingTokenMint={thisitem.account.governingTokenMint}
-                                                //proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                                //payerWallet={publicKey}
-                                                //governanceLookup={governanceLookup}
-                                                //editProposalAddress={thisitem.pubkey}
-                                                //setReload={setReload}
+                )}
 
-                                                governanceWallets={governanceWallets}
-                                                useButton={3} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
-                                                useButtonText={
-                                                    1
-                                                }
-                                                title="Send"
-                                                usePlugin={4}
-                                            />
-                                        </Box>
+                {rulesNftTokens &&
+                    rulesNftTokens
+                    .filter((item: any) => showCompressed || !item.compression.compressed)
+                    .sort((a: any, b: any) => a.compression.compressed - b.compression.compressed)
+                    .map((item: any, key: number) => (
+                        <>
+                        <ListItem
+                            secondaryAction={
+                            <Box>
+                                <IntegratedGovernanceProposalDialogView
+                                governanceAddress={governanceAddress}
+                                intraDao={false}
+                                realm={realm}
+                                governanceRulesWallet={new PublicKey(rulesWalletAddress)}
+                                governanceWallets={governanceWallets}
+                                useButton={3}
+                                useButtonText={1}
+                                title="Send"
+                                usePlugin={4}
+                                />
+                            </Box>
+                            }
+                            key={key}
+                        >
+                            <ListItemAvatar>
+                            <Avatar src={item.content.links.image} />
+                            </ListItemAvatar>
+                            <ListItemText
+                            primary={
+                                <CopyToClipboard text={item.id} onCopy={handleCopy}>
+                                <Button
+                                    color={'inherit'}
+                                    variant="text"
+                                    sx={{
+                                    m: 0,
+                                    p: 0,
+                                    '&:hover .MuiSvgIcon-root': { opacity: 1 },
+                                    }}
+                                    endIcon={
+                                    <FileCopyIcon
+                                        fontSize={'small'}
+                                        sx={{
+                                        color: 'rgba(255,255,255,0.25)',
+                                        pr: 1,
+                                        opacity: 0,
+                                        }}
+                                    />
                                     }
-                                    key={key}
                                 >
-                                    <ListItemAvatar>
-                                        <Avatar
-                                            src={item.content.links.image}
-                                        >
-                                        </Avatar>
-                                    </ListItemAvatar>
-                                    <ListItemText 
-                                        primary={
-                                            <CopyToClipboard text={item.id} onCopy={handleCopy}>
-                                                <Button 
-                                                    color={'inherit'} 
-                                                    variant='text' 
-                                                    sx={{m:0,
-                                                        p:0,
-                                                        mintWidth:'' , 
-                                                            '&:hover .MuiSvgIcon-root': {
-                                                                opacity: 1,
-                                                            },
-                                                        }}
-                                                    endIcon={
-                                                    <FileCopyIcon 
-                                                        fontSize={'small'} 
-                                                        sx={{
-                                                            color:'rgba(255,255,255,0.25)',
-                                                            pr:1,
-                                                            opacity: 0,
-                                                            fontSize:"10px"}} />
-                                                    }
-                                                    
-                                                >
-                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>
-                                                </Button>
-                                            </CopyToClipboard>
-                                        } 
-                                        secondary={
-                                            <>
-                                            {item.content.metadata.symbol}
-                                            {item.compression.compressed ? <><CompressIcon sx={{fontSize:'11px',ml:1}}/></>:<></>}</>
-                                        }
-                                        />
-                                </ListItem>
-                                <TokenExpandComponent item={item} type={1} />
+                                    <Typography variant="subtitle1" sx={{ color: 'white' }}>
+                                    {item.content.metadata.name}
+                                    </Typography>
+                                </Button>
+                                </CopyToClipboard>
+                            }
+                            secondary={
+                                <>
+                                {item.content.metadata.symbol}
+                                {item.compression.compressed && <CompressIcon sx={{ fontSize: '11px', ml: 1 }} />}
+                                </>
+                            }
+                            />
+                        </ListItem>
+                        <TokenExpandComponent item={item} type={1} />
 
-                                {key+1 < nativeNftTokens.length && <Divider variant="inset" component="li" light/>}
-                            </>
-                        ))
-                    }
-
-                    {(rulesNftTokens && rulesNftTokens.length > 0) &&
-                        <Divider light>
-                            <Chip label={`Rules Wallet Collectibles ${rulesNftTokens && rulesNftTokens.length}`} size="small" />
-                        </Divider>
-                    }
-
-                    {rulesNftTokens && rulesNftTokens
-                        .filter((item: any) => !item.compression.compressed)
-                        .sort((a:any,b:any) => (a.compression.compressed - b.compression.compressed))
-                        .map((item: any,key:number) => (   
-                            <>
-                                <ListItem
-                                    secondaryAction={
-                                        <Box>
-                                            <IntegratedGovernanceProposalDialogView 
-                                                governanceAddress={governanceAddress}
-                                                intraDao={false}
-                                                realm={realm}
-                                                governanceRulesWallet={new PublicKey(rulesWalletAddress)}
-                                                //governingTokenMint={thisitem.account.governingTokenMint}
-                                                //proposalAuthor={thisitem.account.tokenOwnerRecord}
-                                                //payerWallet={publicKey}
-                                                //governanceLookup={governanceLookup}
-                                                //editProposalAddress={thisitem.pubkey}
-                                                //setReload={setReload}
-
-                                                governanceWallets={governanceWallets}
-                                                useButton={3} // null edit draft // 1 main Send // 2 SOL Transfer // 3 Token Transfer 
-                                                useButtonText={
-                                                    1
-                                                }
-                                                title="Send"
-                                                usePlugin={4}
-                                            />
-                                        </Box>
-                                    }
-                                    key={key}
-                                >
-                                    <ListItemAvatar>
-                                        <Avatar
-                                            src={item.content.links.image}
-                                        >
-                                        </Avatar>
-                                    </ListItemAvatar>
-                                    <ListItemText 
-                                        primary={
-                                            <CopyToClipboard text={item.id} onCopy={handleCopy}>
-                                                <Button 
-                                                    color={'inherit'} 
-                                                    variant='text' 
-                                                    sx={{m:0,
-                                                        p:0,
-                                                        mintWidth:'' , 
-                                                            '&:hover .MuiSvgIcon-root': {
-                                                                opacity: 1,
-                                                            },
-                                                        }}
-                                                    endIcon={
-                                                    <FileCopyIcon 
-                                                        fontSize={'small'} 
-                                                        sx={{
-                                                            color:'rgba(255,255,255,0.25)',
-                                                            pr:1,
-                                                            opacity: 0,
-                                                            fontSize:"10px"}} />
-                                                    }
-                                                    
-                                                >
-                                                    <Typography variant="subtitle1" sx={{color:'white'}}>{item.content.metadata.name}</Typography>
-                                                </Button>
-                                            </CopyToClipboard>
-                                        } 
-                                        secondary={
-                                            <>
-                                            {item.content.metadata.symbol}
-                                            {item.compression.compressed ? <><CompressIcon sx={{fontSize:'11px',ml:1}}/></>:<></>}</>
-                                        }
-                                        />
-                                </ListItem>
-                                <TokenExpandComponent item={item} type={1} />
-
-                                {key+1 < rulesNftTokens.length && <Divider variant="inset" component="li" light />}
-                            </>
-                            
-                        ))
-                    }
+                        {key + 1 < rulesNftTokens.length && <Divider variant="inset" component="li" light />}
+                        </>
+                    ))}
                 </List>
-
             </CardContent>
         </Collapse>
         
