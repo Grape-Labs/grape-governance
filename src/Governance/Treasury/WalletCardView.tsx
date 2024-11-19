@@ -2905,6 +2905,7 @@ export default function WalletCardView(props:any) {
                     }
 
                     {rulesNftTokens && rulesNftTokens
+                        .filter((item: any) => !item.compression.compressed)
                         .sort((a:any,b:any) => (a.compression.compressed - b.compression.compressed))
                         .map((item: any,key:number) => (   
                             <>
