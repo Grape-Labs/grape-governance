@@ -430,7 +430,15 @@ export const sendTransactions = async (
     transaction.feePayer = wallet.publicKey;
     transaction.add(PRIORITY_FEE_IX);
     
+    transaction.instructions.forEach((instruction, index) => {
+      console.log(`Instruction ${index}:`, instruction.keys.map(key => ({
+          pubkey: key.pubkey.toBase58(),
+          isSigner: key.isSigner,
+      })));
+  });
+
     if (signers.length > 0) {
+      console.log("signers: "+JSON.stringify(signers));
       transaction.partialSign(...signers)
     }
     
