@@ -500,7 +500,7 @@ export default function TokenManagerView(props) {
                           //TOKEN_PROGRAM_ID // Program ID for the SPL Token program
                       )
                   );
-                  ixSigners.push(null);
+                  ixSigners.push([]);
                 
                 
                 // Create metadata instruction
@@ -628,11 +628,11 @@ export default function TokenManagerView(props) {
             //const latestBlockhash = await connection.getLatestBlockhash();
             //transaction.recentBlockhash = latestBlockhash.blockhash;
             //transaction.feePayer = withPublicKey;
-
+            
 
             //console.log("4: To Sign");
             // Add the mint keypair as a signer
-            //transaction.partialSign(mintKeypair);
+            //transaction.sign(mintKeypair);
             
             //console.log("5: serializing");
 

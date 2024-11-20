@@ -59,6 +59,7 @@ import { sendVersionedTransactions } from '../../utils/governanceTools/sendVersi
 
 
 import { AnyMxRecord } from 'dns';
+import { Keypair } from '@solana/web3.js';
 
 async function simulateInstructions(connection, instructions, payerPublicKey) {
   try {
@@ -101,7 +102,6 @@ export async function createProposalInstructionsLegacy(
     name:string,
     description:string, 
     connection: any, 
-    //transactionInstr: { transaction: Transaction; signers: Signer[] },
     transactionInstr: Transaction,
     authTransaction: Transaction,
     wallet: WalletSigner,
@@ -113,7 +113,7 @@ export async function createProposalInstructionsLegacy(
     successCallback?: any,
     failCallback?: any,
     startIndex?: number,
-    signers?: any,
+    signers?: Keypair[][],
   ): Promise<any>{//Promise<Transaction> {
 
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
@@ -481,7 +481,8 @@ export async function createProposalInstructionsLegacy(
     }
     
     const insertChunks = chunks(insertInstructions, 1);
-    const signerChunks = Array(insertChunks.length).fill([]);
+
+    const signerChunks = signers ? signers : Array(insertChunks.length).fill([]);
     //console.log('connection publicKey:', connection)
     console.log(`Creating proposal using ${insertChunks.length} chunks`);
 
@@ -514,12 +515,12 @@ export async function createProposalInstructionsLegacy(
           //startIndex,
         );
         */
-        
+        console.log("signers in create prop: "+JSON.stringify(signers))
         const stresponse = await sendTransactions(
             connection,
             wallet,
             [prerequisiteInstructions, instructions, ...insertChunks],
-            [[], signers ? signers : [], ...signerChunks],
+            [[], [], ...signerChunks],
             SequenceType.Sequential,
             null,
             successCallback,
