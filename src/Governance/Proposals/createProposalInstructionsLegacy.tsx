@@ -113,6 +113,7 @@ export async function createProposalInstructionsLegacy(
     successCallback?: any,
     failCallback?: any,
     startIndex?: number,
+    signers?: any,
   ): Promise<any>{//Promise<Transaction> {
 
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
@@ -518,7 +519,7 @@ export async function createProposalInstructionsLegacy(
             connection,
             wallet,
             [prerequisiteInstructions, instructions, ...insertChunks],
-            [[], [], ...signerChunks],
+            [[], signers ? signers : [], ...signerChunks],
             SequenceType.Sequential,
             null,
             successCallback,
