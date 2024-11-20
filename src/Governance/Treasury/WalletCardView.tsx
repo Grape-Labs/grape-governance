@@ -1132,6 +1132,7 @@ export default function WalletCardView(props:any) {
                     returnTx,
                     publicKey,
                     null,
+                    instructions?.signers
                 );
                 
                 setLoaderCreationComplete(false);

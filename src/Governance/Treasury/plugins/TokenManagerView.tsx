@@ -58,6 +58,7 @@ import {
 import { useSnackbar } from 'notistack';
 import { styled } from '@mui/material/styles';
 
+import SettingsIcon from '@mui/icons-material/Settings';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import TollIcon from '@mui/icons-material/Toll';
 import CloseIcon from '@mui/icons-material/Close';
@@ -136,8 +137,8 @@ export default function TokenManagerView(props) {
     const [tokens, setTokens] = useState([]);
     const [mintAddress, setMintAddress] = useState('');
     const [amount, setAmount] = useState(0);
-    const [proposalTitle, setProposalTitle] = useState('');
-    const [proposalDescription, setProposalDescription] = useState('');
+    const [proposalTitle, setProposalTitle] = useState(`Create New Token with Metadata`);
+    const [proposalDescription, setProposalDescription] = useState(`Create a new token with mint authority & metadata`);
     const [loading, setLoading] = useState(false);
     const [open, setPropOpen] = React.useState(false);
 
@@ -260,6 +261,9 @@ export default function TokenManagerView(props) {
             const mintAuthority = new PublicKey(governanceNativeWallet); //publicKey;
             const freezeAuthority = new PublicKey(governanceNativeWallet); //publicKey;
             
+            setProposalTitle(`Mint More Tokens`);
+            setProposalDescription(`Mint ${amount} ${mintPubKey.toBase58()} to the associated account`);
+
             const amountToMint = 1_000_000 * Math.pow(10, decimals);
             
             const transaction = new Transaction();
@@ -293,8 +297,8 @@ export default function TokenManagerView(props) {
             */
 
             const mintTokenIx = {
-                title: `Mint More Tokens`,
-                description: `Mint ${amount} ${mintPubKey.toBase58()} to the associated account`,
+                title: proposalTitle,
+                description: proposalDescription,
                 ix: transaction.instructions,
                 nativeWallet:governanceNativeWallet,
                 governingMint:governingMint,
@@ -365,7 +369,7 @@ export default function TokenManagerView(props) {
         try {
             // Fetch the latest blockhash
             const { blockhash } = await connection.getLatestBlockhash();
-    
+            
             // Create a VersionedTransaction using the prepared instructions
             const message = new TransactionMessage({
                 payerKey: new PublicKey(governanceNativeWallet),
@@ -409,6 +413,8 @@ export default function TokenManagerView(props) {
             const mintKeypair = Keypair.generate();
             const mintPublicKey = mintKeypair.publicKey;
 
+            setProposalDescription(`Create a new token ${mintPublicKey.toBase58()} with DAO mint authority & metadata`);            
+
             // Set up metadata
             const metadataProgramId = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"); // Token Metadata Program ID
             const metadataSeeds = [
@@ -417,7 +423,7 @@ export default function TokenManagerView(props) {
                 mintPublicKey.toBuffer(),
             ];
             const [metadataPDA] = await PublicKey.findProgramAddress(metadataSeeds, metadataProgramId);
-
+            const ixSigners = new Array();
             // Metadata to store in Mint Account
             const metaData: TokenMetadata = {
                 updateAuthority: withPublicKey,
@@ -447,8 +453,7 @@ export default function TokenManagerView(props) {
                     TOKEN_DECIMALS
                 );
                 */
-            
-
+                
                 console.log("1. Create Sys Account");
                 transaction.add(
                     SystemProgram.createAccount({
@@ -459,6 +464,44 @@ export default function TokenManagerView(props) {
                         programId: TOKEN_PROGRAM_ID,
                     })
                 );
+                ixSigners.push(mintKeypair);
+
+                /*
+                const meSigner = mintPublicKey.toBase58();
+                for (var instruction of transaction.instructions){
+                    for (var key of instruction.keys){
+                        if (key.pubkey.toBase58() === meSigner){
+                            key.isSigner = false;
+                        }
+                    }
+                }*/
+
+                console.log("1. Create Token Mint Ix Account");
+                /*
+                const amountToMint = 1 * Math.pow(10, decimals);
+                transaction.add(
+                    createMintToCheckedInstruction(
+                        mintPublicKey,
+                        withPublicKey,
+                        withPublicKey,
+                        amountToMint,
+                        decimals
+                    )
+                  );
+                */
+                  console.log("2. Init Mint");
+                  // Instruction to initialize the mint
+                  transaction.add(
+                      createInitializeMintInstruction(
+                          mintPublicKey,   // Address of the new mint
+                          decimals,        // Number of decimals for the token
+                          mintAuthority,   // Mint authority
+                          null//freezeAuthority, // Freeze authority (optional)
+                          //TOKEN_PROGRAM_ID // Program ID for the SPL Token program
+                      )
+                  );
+                  ixSigners.push(null);
+                
                 
                 // Create metadata instruction
                 /*
@@ -532,23 +575,11 @@ export default function TokenManagerView(props) {
 
                 //transaction.add(metadataInstruction);
                 */
-
-                console.log("2. Init Mint");
-                // Instruction to initialize the mint
-                transaction.add(
-                    createInitializeMintInstruction(
-                        mintPublicKey,   // Address of the new mint
-                        decimals,        // Number of decimals for the token
-                        mintAuthority,   // Mint authority
-                        freezeAuthority, // Freeze authority (optional)
-                        TOKEN_PROGRAM_ID // Program ID for the SPL Token program
-                    )
-                );
                 
                 console.log("3. Mint Tokens Ix")
                 
                 /*
-                const amountToMint = 1_000_000 * Math.pow(10, decimals);
+                
                 transaction.add(
                     createMintToCheckedInstruction(
                         mintPublicKey, // mint
@@ -594,25 +625,31 @@ export default function TokenManagerView(props) {
             console.log("mintPublicKey: "+mintPublicKey.toBase58());
             
             // Sign and simulate
-            const latestBlockhash = await connection.getLatestBlockhash();
-            transaction.recentBlockhash = latestBlockhash.blockhash;
-            transaction.feePayer = withPublicKey;
+            //const latestBlockhash = await connection.getLatestBlockhash();
+            //transaction.recentBlockhash = latestBlockhash.blockhash;
+            //transaction.feePayer = withPublicKey;
 
+
+            //console.log("4: To Sign");
             // Add the mint keypair as a signer
-            transaction.sign(mintKeypair);
+            //transaction.partialSign(mintKeypair);
             
-            const signedTransaction = transaction.serialize();
+            //console.log("5: serializing");
+
+            //const signedTransaction = transaction.serialize();
+
+            //console.log("6: serialized");
 
             const ixs = transaction;
             const aixs = pTransaction;
             
             if (ixs || aixs){
                 const createTokenIx = {
-                    title: `Create New Token with Metadata`,
-                    description: `Create a new token with mint authority & metadata ${mintPublicKey.toBase58()}`,
-                    ix: signedTransaction,
+                    title: proposalTitle,
+                    description: proposalDescription,
+                    ix: ixs?.instructions,
                     aix:aixs?.instructions,
-                    signers: [mintKeypair],
+                    signers: ixSigners,
                     nativeWallet:governanceNativeWallet,
                     governingMint:governingMint,
                     draft: isDraft,
@@ -664,6 +701,8 @@ export default function TokenManagerView(props) {
                         border: '1px solid rgba(255,255,255,0.05)',
                         borderTop: '1px solid rgba(255,255,255,0.1)',
                         borderRadius: '20px',
+                        paddingBottom: 1,
+                        marginBottom: 1,
                     },
                 }}
             >
@@ -721,7 +760,7 @@ export default function TokenManagerView(props) {
     
                             <Button
                                 variant="contained"
-                                onClick={() => createTokenIx({ name, symbol, uri, decimals })}
+                                onClick={() => createTokenIx()}
                                 disabled={loading}
                             >
                                 Prepare Create Token Instructions
@@ -788,24 +827,57 @@ export default function TokenManagerView(props) {
                         </Stack>
                     )}
 
-                    {openAdvanced ? 
-                        <>
-                            <AdvancedProposalView 
-                                proposalTitle={proposalTitle}
-                                setProposalTitle={setProposalTitle}
-                                proposalDescription={proposalDescription}
-                                setProposalDescription={setProposalDescription}
-                                toggleGoverningMintSelected={toggleGoverningMintSelected}
-                                isGoverningMintCouncilSelected={isGoverningMintCouncilSelected}
-                                isGoverningMintSelectable={isGoverningMintSelectable}
-                                isDraft={isDraft}
-                                setIsDraft={setIsDraft}
-                            />
-                            
-                        </>
-                    :
-                        <></>
-                    }
+                    <Box sx={{ display: 'flex', alignItems: 'center', p:0 }}>
+                        {(publicKey) &&
+                                <Button
+                                    //disabled={name && symbol}
+                                    size='small'
+                                    onClick={handleAdvancedToggle}
+                                    sx={{
+                                        p:1,
+                                        borderRadius:'17px',
+                                        justifyContent: 'flex-start',
+                                        '&:hover .MuiSvgIcon-root.claimIcon': {
+                                            color:'rgba(255,255,255,0.90)'
+                                        }
+                                    }}
+                                    startIcon={
+                                        <>
+                                            <SettingsIcon 
+                                                className="claimIcon"
+                                                sx={{
+                                                    color:'rgba(255,255,255,0.25)',
+                                                    fontSize:"14px!important"}} />
+                                        </>
+                                    }
+                                >
+                                    Advanced
+                                </Button>
+                        }
+
+                        </Box>
+
+                        
+                        {openAdvanced ? 
+                            <>
+                                <AdvancedProposalView 
+                                    proposalTitle={proposalTitle}
+                                    setProposalTitle={setProposalTitle}
+                                    proposalDescription={proposalDescription}
+                                    setProposalDescription={setProposalDescription}
+                                    toggleGoverningMintSelected={toggleGoverningMintSelected}
+                                    isGoverningMintCouncilSelected={isGoverningMintCouncilSelected}
+                                    isGoverningMintSelectable={isGoverningMintSelectable}
+                                    isDraft={isDraft}
+                                    setIsDraft={setIsDraft}
+                                />
+                            </>
+                        :
+                            <></>
+                        }
+                    
+
+                    
                 </DialogContent>
             </Dialog>
         </>
