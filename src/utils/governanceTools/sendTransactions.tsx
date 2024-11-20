@@ -437,8 +437,14 @@ export const sendTransactions = async (
       })));
   });
 
+  console.log("chunky partial sign: "+JSON.stringify(signers))
+    
     if (signers.length > 0) {
-      console.log("signers: "+JSON.stringify(signers));
+      for (var signer of signers){
+    
+        if (signer)
+          console.log("Signer: "+signer?.publicKey?.toBase58())
+      }
       transaction.partialSign(...signers)
     }
     

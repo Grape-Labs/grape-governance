@@ -448,6 +448,7 @@ export async function createProposalInstructionsLegacy(
 
       }
     }
+
     console.log("5");
 
     console.log("IX to push: "+JSON.stringify(insertInstructions));
@@ -481,8 +482,9 @@ export async function createProposalInstructionsLegacy(
     }
     
     const insertChunks = chunks(insertInstructions, 1);
+    
 
-    const signerChunks = signers ? signers : Array(insertChunks.length).fill([]);
+    const signerChunks = signers ? [signers] : Array(insertChunks.length).fill([]);
     //console.log('connection publicKey:', connection)
     console.log(`Creating proposal using ${insertChunks.length} chunks`);
 
@@ -515,7 +517,8 @@ export async function createProposalInstructionsLegacy(
           //startIndex,
         );
         */
-        console.log("signers in create prop: "+JSON.stringify(signers))
+        //console.log("signers in create prop: "+JSON.stringify(signers))
+        //console.log("signerChunks in create prop: "+JSON.stringify(signerChunks))
         const stresponse = await sendTransactions(
             connection,
             wallet,
