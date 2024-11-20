@@ -1114,7 +1114,7 @@ export default function WalletCardView(props:any) {
                 */
                 console.log("with "+publicKey.toBase58());
                 
-                console.log("ix signers: "+JSON.stringify(instructions?.signers))
+                //console.log("ix signers: "+JSON.stringify(instructions?.signers))
 
                 const propResponse = await createProposalInstructionsLegacy(
                     new PublicKey(programId),
