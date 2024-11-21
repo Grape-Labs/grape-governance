@@ -333,6 +333,42 @@ export enum SequenceType {
   StopOnFailure,
 }
 
+const addSignerToInstructions = (transaction, signer) => {
+  transaction.instructions.forEach((instruction) => {
+      // Check if the signer is already part of the instruction
+      const isSignerIncluded = instruction.keys.some(
+          (key) => key.pubkey.equals(signer.publicKey) && key.isSigner
+      );
+
+      if (!isSignerIncluded) {
+          // Clone the keys array and add the signer
+          const newKeys = [
+              ...instruction.keys,
+              {
+                  pubkey: signer.publicKey,
+                  isSigner: true,
+                  isWritable: false, // Adjust based on your requirements
+              },
+          ];
+
+          // Create a new instruction with the updated keys
+          const newInstruction = new TransactionInstruction({
+              programId: instruction.programId,
+              keys: newKeys,
+              data: instruction.data,
+          });
+
+          // Replace the old instruction with the new one
+          const index = transaction.instructions.indexOf(instruction);
+          if (index !== -1) {
+              transaction.instructions[index] = newInstruction;
+          }
+      }
+  });
+
+  return transaction;
+};
+
 /////////////////////////////////////////
 export const sendTransactions = async (
   connection: Connection,
@@ -366,7 +402,6 @@ export const sendTransactions = async (
     const rpf = await RPC_CONNECTION.getRecentPrioritizationFees();
     if (rpf){
       console.log("rpf: "+JSON.stringify(rpf));
-      
       
       const totalPrioritizationFee = rpf.reduce((total, item) => total + item.prioritizationFee, 0);
       const averagePrioritizationFee = totalPrioritizationFee / rpf.length;
@@ -409,7 +444,10 @@ export const sendTransactions = async (
   const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
   console.log("Adding priority fee at the rate of "+PRIORITY_RATE+ " micro lamports");
   
+  //console.log("sendTx Signers: "+JSON.stringify(signersSet));
+
   for (let i = 0; i < instructionSet.length; i++) {
+    console.log("Checking Ix set "+i);
     const instructions = instructionSet[i]
     const signers = signersSet[i]
 
@@ -417,7 +455,7 @@ export const sendTransactions = async (
       continue
     }
 
-    const transaction = new Transaction();
+    let transaction = new Transaction();
 
     instructions.forEach((instruction) => transaction.add(instruction))
 
@@ -437,16 +475,54 @@ export const sendTransactions = async (
       })));
   });
 
-  console.log("chunky partial sign: "+JSON.stringify(signers))
-    
-    if (signers.length > 0) {
+    console.log("signers: "+JSON.stringify(signers));
+    if (signers && signers.length > 0) {
       for (var signer of signers){
-    
-        if (signer)
-          console.log("Signer: "+signer?.publicKey?.toBase58())
+        
+        if (signer && signer?.publicKey){
+          //console.log("Signer: "+signer.publicKey?.toBase58())
+          // check if this is a signer
+
+          let foundSigner = false;
+          transaction.instructions.forEach((ix) => {
+            if (ix.keys.some((key) => key.pubkey.equals(signer.publicKey))) {
+                foundSigner = true;
+            }
+          });
+        
+          if (!foundSigner){
+            /*
+            const serializedTransaction = transaction.serialize({
+              requireAllSignatures: false,
+              verifySignatures: false,
+            });
+            console.log("serializedTx");
+            const deserializedTransaction = Transaction.from(serializedTransaction);
+            console.log("deserialized tx");
+            
+            const signature = deserializedTransaction.signatures.find(sig =>
+              sig.publicKey.equals(signer.publicKey)
+            )?.signature;
+            transaction.addSignature(signer.publicKey, signature);  
+            */
+            console.log("Adding Signer: "+signer.publicKey.toBase58())
+            transaction = addSignerToInstructions(transaction, signer);
+            //transaction.setSigners(signer.publicKey); //.addSignature() .setSigners(wallet!.publicKey!, ...signers.map((s) => s.publicKey))
+            console.log("Signer not found added signer");
+          }
+          transaction.partialSign(signer);
+          
+          
+        }
+        
       }
-      transaction.partialSign(...signers)
+
+      console.log("Transaction after adding signer: "+JSON.stringify(transaction));
+
+      //transaction.partialSign(...signers);
     }
+
+    console.log("Signed...")
     
     unsignedTxns.push(transaction)
   }
