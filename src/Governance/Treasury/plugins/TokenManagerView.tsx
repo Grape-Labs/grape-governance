@@ -500,7 +500,7 @@ export default function TokenManagerView(props) {
                           //TOKEN_PROGRAM_ID // Program ID for the SPL Token program
                       )
                   );
-                  ixSigners.push([]);
+                  //ixSigners.push([]);
                 
                 
                 // Create metadata instruction

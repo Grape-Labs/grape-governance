@@ -71,8 +71,7 @@ Storage Pools:
 - GenesysGo Shadow Drive (https://github.com/GenesysGo/shadow-drive)
 
 Identity:
-- Cardinal (https://github.com/cardinal-labs)
-- Bonfida (https://github.com/Bonfida)
+- SNS (https://github.com/Bonfida)
 
 UI:
 - Interface: MUI 5 https://mui.com

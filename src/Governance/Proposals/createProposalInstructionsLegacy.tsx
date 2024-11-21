@@ -446,6 +446,8 @@ export async function createProposalInstructionsLegacy(
           walletPk
         );
 
+        console.log("Inserting insertInstructions: "+JSON.stringify(insertInstructions));
+
       }
     }
 
@@ -483,10 +485,12 @@ export async function createProposalInstructionsLegacy(
     
     const insertChunks = chunks(insertInstructions, 1);
     
-
-    const signerChunks = signers ? [signers] : Array(insertChunks.length).fill([]);
+    const signerChunks = signers && signers.length > 0
+        ? Array.from({ length: insertChunks.length }, (v, i) => i === 0 ? signers : [])
+        : Array.from({ length: insertChunks.length }, () => []);
     //console.log('connection publicKey:', connection)
     console.log(`Creating proposal using ${insertChunks.length} chunks`);
+    console.log(`Creating proposal using signers ${JSON.stringify(signerChunks)}`);
 
     //return null;
     
