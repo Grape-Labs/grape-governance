@@ -178,7 +178,7 @@ function GET_QUERY_VOTERRECORDS_BY_TOKENOWNER(realmOwner?:string, realmPk?:strin
     
     return gql`
         query MyQuery {
-            ${programId}_VoteRecordV2(limit: 1000, where: {governingTokenOwner: {_eq: "${tokenOwner}"}}) {
+            ${programId}_VoteRecordV2(limit: 5000, where: {governingTokenOwner: {_eq: "${tokenOwner}"}}) {
                 pubkey
                 proposal
                 governingTokenOwner
@@ -186,7 +186,7 @@ function GET_QUERY_VOTERRECORDS_BY_TOKENOWNER(realmOwner?:string, realmPk?:strin
                 voterWeight,
                 vote
             }
-            ${programId}_VoteRecordV1(limit: 1000, where: {governingTokenOwner: {_eq: "${tokenOwner}"}}) {
+            ${programId}_VoteRecordV1(limit: 5000, where: {governingTokenOwner: {_eq: "${tokenOwner}"}}) {
                 governingTokenOwner
                 isRelinquished
                 lamports
