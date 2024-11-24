@@ -93,6 +93,7 @@ import {
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
+    getVoteRecordsByVoterIndexed,
 } from './api/queries';
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
@@ -261,6 +262,7 @@ function RenderGovernanceTable(props:any) {
     const governanceType = props.governanceType;
     const governanceLookup = props.governanceLookup;
     const cachedGovernance = props.cachedGovernance;
+    const votesForWallet = props?.votesForWallet;
     const [loading, setLoading] = React.useState(false);
     //const [proposals, setProposals] = React.useState(props.proposals);
     const governanceToken = props.governanceToken;
@@ -278,6 +280,8 @@ function RenderGovernanceTable(props:any) {
     // Avoid a layout jump when reaching the last page with empty rows.
     const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - proposals.length) : 0;
     
+    const [hasVoted, setHasVoted] = React.useState(null);
+    
     const handleChangePage = (event:any, newPage:number) => {
         setPage(newPage);
     };
@@ -294,6 +298,8 @@ function RenderGovernanceTable(props:any) {
     function GetProposalStatus(props: any){
         const thisitem = props.item;
         const [thisGovernance, setThisGovernance] = React.useState(props.cachedGovernnace);
+
+        setHasVoted(findProposalVote(thisitem.pubkey.toBase58(), publicKey.toBase58(), votesForWallet));
 
         React.useEffect(() => { 
             if (thisitem.account?.state === 2){ // if voting state
@@ -345,42 +351,48 @@ function RenderGovernanceTable(props:any) {
                             <Button sx={{borderRadius:'17px',color:'inherit',textTransform:'none'}}>
                                 {GOVERNANCE_STATE[thisitem.account?.state]}
                                     <>
-                                    {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
-                                        <>
-                                            { (thisitem.account?.state === 3 || thisitem.account?.state === 5) ?
-                                                <CheckCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
+                                    {hasVoted ?
+                                            <CheckCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
+                                        :
+                                            <>
+                                                {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
+                                                <>
+                                                    { (thisitem.account?.state === 3 || thisitem.account?.state === 5) ?
+                                                        <></>
+                                                    :
+                                                        <>
+                                                        {thisitem.account?.state === 4 ? 
+                                                            <PlayCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
+                                                        :
+                                                            <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
+                                                        }
+                                                        </>
+                                                    }
+                                                </>
                                             :
                                                 <>
-                                                {thisitem.account?.state === 4 ? 
-                                                    <PlayCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
-                                                :
-                                                    <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
+                                                { thisitem.account?.state === 2 ?
+                                                    <TimerIcon sx={{ fontSize:"small",ml:1}} />
+                                                
+                                                : 
+                                                    <>
+                                                    { thisitem.account?.state === 0 ? 
+                                                    
+                                                    <AccessTimeIcon sx={{ fontSize:"small", color:"gray",ml:1}} />
+                                                    :
+                                                    <>
+                                                        {thisitem.account?.state === 4 ? 
+                                                            <PlayCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
+                                                        :
+                                                            <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
+                                                        }
+                                                    </>
+                                                    }
+                                                    </>
                                                 }
                                                 </>
                                             }
-                                        </>
-                                    :
-                                        <>
-                                        { thisitem.account?.state === 2 ?
-                                            <TimerIcon sx={{ fontSize:"small",ml:1}} />
-                                        
-                                        : 
-                                            <>
-                                            { thisitem.account?.state === 0 ? 
-                                            
-                                            <AccessTimeIcon sx={{ fontSize:"small", color:"gray",ml:1}} />
-                                            :
-                                            <>
-                                                {thisitem.account?.state === 4 ? 
-                                                    <PlayCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
-                                                :
-                                                    <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
-                                                }
                                             </>
-                                            }
-                                            </>
-                                        }
-                                        </>
                                     }
                                     </>
                             </Button>
@@ -390,6 +402,25 @@ function RenderGovernanceTable(props:any) {
             </>
         )
     }
+
+    const findProposalVote = (proposalId: string, voterPublicKey: string, voteRecords: any) => {
+        // Find the record matching the proposal and voter, and check if voterWeight > 0
+
+        const record = voteRecords.find(
+            item =>
+                item.account.proposal.toBase58() === proposalId &&
+                item.account.governingTokenOwner.toBase58() === voterPublicKey &&
+                item.account.voterWeight > 0
+        );
+    
+        if (record) {
+            console.log("User has voted on the proposal ("+proposalId+"):", record);
+            return true;
+        } else {
+            console.log("User has not voted on this proposal ("+proposalId+" - "+voterPublicKey+").");
+            return false;
+        }
+    };
 
     React.useEffect(() => { 
         if (realm)
@@ -730,7 +761,7 @@ function RenderGovernanceTable(props:any) {
                                                             :<></>}
                                                         </TableCell>
                                                     }
-                                                    <GetProposalStatus item={item} cachedGovernance={cachedGovernance} />
+                                                    <GetProposalStatus item={item} cachedGovernance={cachedGovernance} castedVotesForWallet={votesForWallet} />
                                                     {/*
                                                     <TableCell align="center">
                                                         <GovernanceProposalDialog governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
@@ -842,6 +873,7 @@ export function GovernanceCachedView(props: any) {
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
     const [daoName, setDaoName] = React.useState(null);
     const [daoIcon, setDaoIcon] = React.useState(null);
+    const [votesForWallet, setVotesForWallet] = React.useState(null);
 
     const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
@@ -982,7 +1014,7 @@ export function GovernanceCachedView(props: any) {
                                 //gTD = btkn.decimals;
                                 //setGoverningTokenDecimals(gTD)
                             } else{ // NFT
-                                const token = await connection.getParsedAccountInfo(new PublicKey(thisitem.account.governingTokenMint)) //await getMint(connection, new PublicKey(thisitem.account.governingTokenMint));
+                                const token = await connection.getParsedAccountInfo(new PublicKey(grealm.account.governingTokenMint)) //await getMint(connection, new PublicKey(thisitem.account.governingTokenMint));
                                 console.log("found: "+JSON.stringify(token.value.data.parsed.info.decimals))
                                 if (token.value.data.parsed.info.decimals > 0)
                                     setGovernanceType(0);
@@ -1488,6 +1520,19 @@ export function GovernanceCachedView(props: any) {
         setGovernanceLookup(fglf);
     }
 
+    const getVotesForWallet = async() => {
+        const votes = await getVoteRecordsByVoterIndexed(realm?.owner?.toBase58(),governanceAddress,publicKey.toBase58());
+        // here lets cache this so we can display it nice
+        setVotesForWallet(votes);
+    }
+
+    React.useEffect(() => {
+        if (publicKey && governanceAddress){
+            getVotesForWallet();
+        }
+
+    }, [publicKey, governanceAddress]);
+
     React.useEffect(() => {
         if (background)
             document.body.style.backgroundColor = background;
@@ -1964,7 +2009,8 @@ export function GovernanceCachedView(props: any) {
                                     nftBasedGovernance={nftBasedGovernance} 
                                     filterState={filterState}
                                     setFilterState={setFilterState}
-                                    governanceAddress={governanceAddress} />
+                                    governanceAddress={governanceAddress}
+                                    votesForWallet={votesForWallet} />
                             </ThemeProvider>
                             {endTime &&
                                 <Grid

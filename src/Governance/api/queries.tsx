@@ -172,13 +172,13 @@ function GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk?:string, realmOwner?:string)
 }
 
 // This will show all votes casted by the governingTokenOwner in general
-function GET_QUERY_VOTERRECORDS_BY_TOKENOWNER(proposalPk?:string, realmOwner?:string, tokenOwner?:string){
+function GET_QUERY_VOTERRECORDS_BY_TOKENOWNER(realmOwner?:string, realmPk?:string, tokenOwner?:string){
 
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     
     return gql`
         query MyQuery {
-            ${programId}_VoteRecordV2(limit: 100, where: {governingTokenOwner: {_eq: "${tokenOwner}"}}) {
+            ${programId}_VoteRecordV2(limit: 1000, where: {governingTokenOwner: {_eq: "${tokenOwner}"}}) {
                 pubkey
                 proposal
                 governingTokenOwner
@@ -186,7 +186,7 @@ function GET_QUERY_VOTERRECORDS_BY_TOKENOWNER(proposalPk?:string, realmOwner?:st
                 voterWeight,
                 vote
             }
-            ${programId}_VoteRecordV1(limit: 100, where: {governingTokenOwner: {_eq: "${tokenOwner}"}}) {
+            ${programId}_VoteRecordV1(limit: 1000, where: {governingTokenOwner: {_eq: "${tokenOwner}"}}) {
                 governingTokenOwner
                 isRelinquished
                 lamports
@@ -1075,6 +1075,8 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
     }
 };
 
+
+
 export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, filterProposal?:any) => {
 
     let proposal = null;
@@ -1455,6 +1457,52 @@ export const getProposalNewIndexed = async (proposalPk?:any, realmOwner?:any, re
     }
 };
 
+export const getVoteRecordsByVoterIndexed = async (realmOwner?:any, realmPk?:any, tokenOwner?:any) => {
+    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    
+    const indexedRecord = new Array();
+
+    try{
+       // const { data } = await client.query({ query: GET_QUERY_VOTERRECORDS(proposalPk, realmOwner), fetchPolicy: 'no-cache' });
+        const { data } = await client.query({ query: GET_QUERY_VOTERRECORDS_BY_TOKENOWNER(programId, realmPk, tokenOwner), fetchPolicy: 'no-cache' });
+        {
+            data[programName+"_VoteRecordV2"] && data[programName+"_VoteRecordV2"].map((account) => {
+                indexedRecord.push({
+                    owner: programId,
+                    pubkey: new PublicKey(account?.pubkey),
+                    account:{
+                        accountType: account?.accountType || 12,
+                        proposal: new PublicKey(account.proposal),
+                        governingTokenOwner: new PublicKey(account.governingTokenOwner),
+                        isRelinquished: account.isRelinquiched,
+                        voterWeight: account.voterWeight,
+                        vote: account.vote,
+                    }
+                })
+            });
+
+            data[programName+"_VoteRecordV1"] && data[programName+"_VoteRecordV1"].map((account) => {
+                indexedRecord.push({
+                    owner: programId,
+                    pubkey: new PublicKey(account?.pubkey),
+                    account:{
+                        accountType: account?.accountType || 12,
+                        proposal: new PublicKey(account.proposal),
+                        governingTokenOwner: new PublicKey(account.governingTokenOwner),
+                        isRelinquished: account.isRelinquiched,
+                        voteWeight: account.voteWeight
+                    }
+                })
+            });
+        }
+
+        console.log("VoteRecords: "+JSON.stringify(indexedRecord));
+        return indexedRecord;
+    } catch(e){
+        console.log("Vote Record Index Err Cannot revert to RPC (no avail call atm)");
+    }
+}
 
 export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, realmPk?:any) => {
     

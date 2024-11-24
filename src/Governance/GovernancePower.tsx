@@ -3,14 +3,17 @@ import { PublicKey, TokenAmount, Connection, TransactionInstruction, Transaction
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { useWallet } from '@solana/wallet-adapter-react';
 import React, { useCallback } from 'react';
+import bs58 from 'bs58';
 
 import { 
     TOKEN_PROGRAM_ID, 
     getMint,
     getAssociatedTokenAddress
 } from "@solana/spl-token-v2";
-import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
-
+import { publicKey as umiPublicKey  } from '@metaplex-foundation/umi'
+import { Metadata, TokenRecord, fetchDigitalAsset, MPL_TOKEN_METADATA_PROGRAM_ID, getCreateMetadataAccountV3InstructionDataSerializer } from "@metaplex-foundation/mpl-token-metadata";
+import {createUmi} from "@metaplex-foundation/umi-bundle-defaults"
+            
 import { RegexTextField } from '../utils/grapeTools/RegexTextField';
 import ExplorerView from '../utils/grapeTools/Explorer';
 
@@ -136,7 +139,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
       padding: theme.spacing(1),
     },
 }));
-
+  
 export default function GovernancePower(props: any){
     const governanceAddress = props.governanceAddress;
     const [realm, setRealm] = React.useState(props?.realm || null);
@@ -176,40 +179,36 @@ export default function GovernancePower(props: any){
         setMintDecimals(decimals);
         
         const mint_address = new PublicKey(mintAddress)
-        const [pda, bump] = await PublicKey.findProgramAddress([
-            Buffer.from("metadata"),
-            PROGRAM_ID.toBuffer(),
-            new PublicKey(mint_address).toBuffer(),
-        ], PROGRAM_ID)
-        let tokenMetadata = null;
-        try{
-            tokenMetadata = await Metadata.fromAccountAddress(RPC_CONNECTION, pda)
-        }catch(e){console.log("ERR: "+e)}
-
-        if (tokenMetadata?.data?.name)
-            setMintName(tokenMetadata.data.name.trim());
         
-        if (tokenMetadata?.data?.uri){
-            try{
-                const metadata = await window.fetch(tokenMetadata.data.uri)
-                .then(
-                    (res: any) => res.json())
-                .catch((error) => {
-                    // Handle any errors that occur during the fetch or parsing JSON
-                    console.error("Error fetching data:", error);
-                });
-                
-                if (metadata && metadata?.image){
-                    if (metadata.image)
-                        setMintLogo(metadata.image);
+        const umi = createUmi(RPC_CONNECTION);
+        const asset = await fetchDigitalAsset(umi, umiPublicKey(mint_address.toBase58()));
+
+        console.log("Asset: ",(asset))
+
+        if (asset){
+            if (asset?.metadata?.name)
+                setMintName(asset.metadata.name.trim());
+            if (asset?.metadata?.uri){
+                try{
+                    const metadata = await window.fetch(asset.metadata.uri)
+                    .then(
+                        (res: any) => res.json())
+                    .catch((error) => {
+                        // Handle any errors that occur during the fetch or parsing JSON
+                        console.error("Error fetching data:", error);
+                    });
+                    
+                    if (metadata && metadata?.image){
+                        if (metadata.image)
+                            setMintLogo(metadata.image);
+                    }
+                }catch(err){
+                    console.log("ERR: ",err);
                 }
-            }catch(err){
-                console.log("ERR: ",err);
             }
         }
 
-        return tokenMetadata?.data;
-        
+        return asset?.metadata;
     }
 
     async function getWalletAndGovernanceOwner(){
