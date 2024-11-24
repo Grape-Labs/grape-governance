@@ -299,7 +299,7 @@ function RenderGovernanceTable(props:any) {
         const thisitem = props.item;
         const [thisGovernance, setThisGovernance] = React.useState(props.cachedGovernnace);
 
-        if (publicKey && thisitem?.pubkey)
+        if (publicKey && thisitem?.pubkey && votesForWallet)
             setHasVoted(findProposalVote(thisitem?.pubkey?.toBase58(), publicKey?.toBase58(), votesForWallet));
 
         React.useEffect(() => { 
@@ -415,20 +415,21 @@ function RenderGovernanceTable(props:any) {
 
     const findProposalVote = (proposalId: string, voterPublicKey: string, voteRecords: any) => {
         // Find the record matching the proposal and voter, and check if voterWeight > 0
-
-        const record = voteRecords.find(
-            item =>
-                item.account.proposal.toBase58() === proposalId &&
-                item.account.governingTokenOwner.toBase58() === voterPublicKey &&
-                item.account.voterWeight > 0
-        );
-    
-        if (record) {
-            console.log("User has voted on the proposal ("+proposalId+"):", record);
-            return true;
-        } else {
-            console.log("User has not voted on this proposal ("+proposalId+" - "+voterPublicKey+").");
-            return false;
+        if (voteRecords && voteRecords.length > 0){
+            const record = voteRecords.find(
+                item =>
+                    item.account.proposal.toBase58() === proposalId &&
+                    item.account.governingTokenOwner.toBase58() === voterPublicKey &&
+                    item.account.voterWeight > 0
+            );
+        
+            if (record) {
+                console.log("User has voted on the proposal ("+proposalId+"):", record);
+                return true;
+            } else {
+                console.log("User has not voted on this proposal ("+proposalId+" - "+voterPublicKey+").");
+                return false;
+            }
         }
     };
 
