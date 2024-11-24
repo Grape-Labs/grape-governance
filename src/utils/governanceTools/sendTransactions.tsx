@@ -507,14 +507,16 @@ export const sendTransactions = async (
             */
             console.log("Adding Signer: "+signer.publicKey.toBase58())
             transaction = addSignerToInstructions(transaction, signer);
-            //transaction.setSigners(signer.publicKey); //.addSignature() .setSigners(wallet!.publicKey!, ...signers.map((s) => s.publicKey))
-            console.log("Signer not found added signer");
+            transaction.setSigners(signer.publicKey); //.addSignature() .setSigners(wallet!.publicKey!, ...signers.map((s) => s.publicKey))
+            transaction.partialSign(signer);
+            console.log("Added signer");
           }
-          transaction.partialSign(signer);
-          
           
         }
         
+      }
+      if (signers.length > 0) {
+        console.log("tx: "+JSON.stringify(transaction));
       }
 
       console.log("Transaction after adding signer: "+JSON.stringify(transaction));

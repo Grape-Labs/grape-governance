@@ -172,7 +172,7 @@ function GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk?:string, realmOwner?:string)
 }
 
 // This will show all votes casted by the governingTokenOwner in general
-function GET_QUERY_VOTERRECORDS_BY_TOKENOWNER(proposalPk?:string, realmOwner?:string, tokenOwner?:string){
+function GET_QUERY_VOTERRECORDS_BY_TOKENOWNER(realmOwner?:string, realmPk?:string, tokenOwner?:string){
 
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     
@@ -1075,6 +1075,8 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:any, realmOwne
     }
 };
 
+
+
 export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:any, realmPk?:any, filterProposal?:any) => {
 
     let proposal = null;
@@ -1455,6 +1457,21 @@ export const getProposalNewIndexed = async (proposalPk?:any, realmOwner?:any, re
     }
 };
 
+export const getVoteRecordsByVoterIndexed = async (realmOwner?:any, realmPk?:any, tokenOwner?:any) => {
+    const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    
+    const indexedRecord = new Array();
+
+    try{
+       // const { data } = await client.query({ query: GET_QUERY_VOTERRECORDS(proposalPk, realmOwner), fetchPolicy: 'no-cache' });
+        const { data } = await client.query({ query: GET_QUERY_VOTERRECORDS_BY_TOKENOWNER(programId, realmPk, tokenOwner), fetchPolicy: 'no-cache' }){
+            
+        }
+    } catch(e){
+        console.log("Vote Record Index Err Cannot revert to RPC (no avail call atm)");
+    }
+}
 
 export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, realmPk?:any) => {
     

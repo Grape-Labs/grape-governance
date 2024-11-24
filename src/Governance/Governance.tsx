@@ -93,6 +93,7 @@ import {
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
+    getVoteRecordsByVoterIndexed,
 } from './api/queries';
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
@@ -1487,6 +1488,18 @@ export function GovernanceCachedView(props: any) {
         const fglf = await fetchGovernanceLookupFile(storagePool);
         setGovernanceLookup(fglf);
     }
+
+    const getVotesForWallet = async() => {
+        const votes = await getVoteRecordsByVoterIndexed(realm?.owner?.toBase58(),governanceAddress,publicKey.toBase58());
+        console.log("getVoteRecordsByVoterIndexed: "+JSON.stringify(votes));
+    }
+
+    React.useEffect(() => {
+        if (publicKey){
+            getVotesForWallet();
+        }
+
+    }, [publicKey]);
 
     React.useEffect(() => {
         if (background)

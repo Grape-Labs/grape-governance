@@ -15,7 +15,8 @@ import { createProposalInstructionsLegacy } from '../Proposals/createProposalIns
 
 import { 
     RPC_CONNECTION,
-    SHYFT_KEY
+    SHYFT_KEY,
+    HELIUS_API
 } from '../../utils/grapeTools/constants';
 
 import { 
@@ -500,13 +501,36 @@ export default function WalletCardView(props:any) {
                             limit: 1000
                         },
                     }),
-                    });
+                });
                 const { result } = await response.json();
                 //dasMeta = result.items;
                 return result?.items;
                 /*
                 console.log("Assets owned by a wallet: ", result.items);
                 */
+            } catch(err){
+                console.log("DAS: Err");
+                return null;
+            }
+        } else if (HELIUS_API) {
+            try{
+                const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
+                const response = await fetch(uri, {
+                    method: 'POST',
+                    headers: {
+                    "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                    "jsonrpc": "2.0",
+                    "id": "text",
+                    "method": "getAssetsByOwner",
+                    "params": {
+                        ownerAddress: tokenOwnerRecord.toBase58(),
+                    }
+                    }),
+                });
+                const { result } = await response.json();
+                return result?.items;
             } catch(err){
                 console.log("DAS: Err");
                 return null;
