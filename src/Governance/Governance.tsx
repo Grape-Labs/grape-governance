@@ -280,7 +280,7 @@ function RenderGovernanceTable(props:any) {
     // Avoid a layout jump when reaching the last page with empty rows.
     const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - proposals.length) : 0;
     
-    const [hasVoted, setHasVoted] = React.useState(null);
+    const [hasVoted, setHasVoted] = React.useState(false);
     
     const handleChangePage = (event:any, newPage:number) => {
         setPage(newPage);
@@ -299,7 +299,8 @@ function RenderGovernanceTable(props:any) {
         const thisitem = props.item;
         const [thisGovernance, setThisGovernance] = React.useState(props.cachedGovernnace);
 
-        setHasVoted(findProposalVote(thisitem.pubkey.toBase58(), publicKey.toBase58(), votesForWallet));
+        if (publicKey)
+            setHasVoted(findProposalVote(thisitem.pubkey.toBase58(), publicKey?.toBase58(), votesForWallet));
 
         React.useEffect(() => { 
             if (thisitem.account?.state === 2){ // if voting state
@@ -343,7 +344,16 @@ function RenderGovernanceTable(props:any) {
                                         </>
                                     }
                                     </>
-                                } 
+                                }
+                                    {publicKey &&
+                                    <> 
+                                    {hasVoted ?
+                                        <><br/>You voted</>
+                                    :
+                                        <><br/>You have not voted for this proposal</>
+                                    }
+                                    </>
+                                    }
                                 </>
                             </>
                             }>
@@ -351,7 +361,8 @@ function RenderGovernanceTable(props:any) {
                             <Button sx={{borderRadius:'17px',color:'inherit',textTransform:'none'}}>
                                 {GOVERNANCE_STATE[thisitem.account?.state]}
                                     <>
-                                    {hasVoted ?
+
+                                    {(publicKey && hasVoted) ?
                                             <CheckCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
                                         :
                                             <>
