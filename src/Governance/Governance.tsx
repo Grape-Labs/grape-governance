@@ -299,8 +299,8 @@ function RenderGovernanceTable(props:any) {
         const thisitem = props.item;
         const [thisGovernance, setThisGovernance] = React.useState(props.cachedGovernnace);
 
-        if (publicKey)
-            setHasVoted(findProposalVote(thisitem.pubkey.toBase58(), publicKey?.toBase58(), votesForWallet));
+        if (publicKey && thisitem?.pubkey)
+            setHasVoted(findProposalVote(thisitem?.pubkey?.toBase58(), publicKey?.toBase58(), votesForWallet));
 
         React.useEffect(() => { 
             if (thisitem.account?.state === 2){ // if voting state
