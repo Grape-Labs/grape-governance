@@ -388,8 +388,7 @@ function RenderGovernanceTable(props:any) {
                                                 : 
                                                     <>
                                                     { thisitem.account?.state === 0 ? 
-                                                    
-                                                    <AccessTimeIcon sx={{ fontSize:"small", color:"gray",ml:1}} />
+                                                        <AccessTimeIcon sx={{ fontSize:"small", color:"gray",ml:1}} />
                                                     :
                                                     <>
                                                         {thisitem.account?.state === 4 ? 
