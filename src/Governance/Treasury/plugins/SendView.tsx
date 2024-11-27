@@ -560,7 +560,7 @@ export default function SendExtensionView(props: any){
         }
     }, [preSelectedTokenAta, masterWallet]);
 
-    const handleSelectChange = (event) => {
+    const handleSelectChange = (event: any) => {
         const tata = event.target.value;
         if (masterWallet){
             var found = false;
@@ -701,12 +701,14 @@ export default function SendExtensionView(props: any){
                                 startAdornment: 
                                 <InputAdornment position="start" sx={{ maxWidth:'50%',height:'none' }}>
                                     <FormControl sx={{ m: 1,mt:-1, minWidth: 120 }} size="small">
+                                            {console.log("tokenSelected: "+JSON.stringify(tokenSelected))}
+                                            {console.log("masterWallet: "+JSON.stringify(masterWallet))}
                                             
                                             <Select
                                                 labelId="master-wallet"
                                                 id="master-wallet"
                                                 size='small'
-                                                value={tokenSelected ? tokenSelected.associated_account : null}
+                                                value={tokenSelected ? tokenSelected?.associated_account : ""}
                                                 sx={{}}
                                                 onChange={handleSelectChange}
                                                 renderValue={() => <RenderTokenSelected ata={tokenSelected?.associated_account} />}
