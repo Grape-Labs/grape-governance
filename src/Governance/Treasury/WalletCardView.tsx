@@ -480,11 +480,11 @@ export default function WalletCardView(props:any) {
       }
 
       const getWalletNftBalance = async(tokenOwnerRecord: PublicKey) => {
-
+        
         if (SHYFT_KEY) {
             try{
                 const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
-    
+                
                 const response = await fetch(uri, {
                     method: 'POST',
                     headers: {
@@ -505,9 +505,6 @@ export default function WalletCardView(props:any) {
                 const { result } = await response.json();
                 //dasMeta = result.items;
                 return result?.items;
-                /*
-                console.log("Assets owned by a wallet: ", result.items);
-                */
             } catch(err){
                 console.log("DAS: Err");
                 return null;

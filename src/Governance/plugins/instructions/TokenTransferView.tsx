@@ -1,9 +1,12 @@
 import React, { useCallback } from 'react';
 import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
-import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, createTransferInstruction } from "@solana/spl-token-v2";
+import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, 
+    createTransferInstruction,
+    getMint } from "@solana/spl-token-v2";
 //import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
 //import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
-import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
+import { Metadata, TokenRecord, fetchDigitalAsset, MPL_TOKEN_METADATA_PROGRAM_ID, getCreateMetadataAccountV3InstructionDataSerializer } from "@metaplex-foundation/mpl-token-metadata";
+import {createUmi} from "@metaplex-foundation/umi-bundle-defaults"
 import { useWallet } from '@solana/wallet-adapter-react';
 
 import { 
@@ -323,27 +326,30 @@ export default function TokenTransferView(props: any) {
             const [mintName, setMintName] = React.useState(null);
             const [mintLogo, setMintLogo] = React.useState(null);
 
-            const getTokenMintInfo = async() => {
-                    const mint_address = new PublicKey(mintAddress)
-                    const [pda, bump] = await PublicKey.findProgramAddress([
-                        Buffer.from("metadata"),
-                        PROGRAM_ID.toBuffer(),
-                        new PublicKey(mint_address).toBuffer(),
-                    ], PROGRAM_ID)
-                    let tokenMetadata = null;
-                    try{
-                        tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
-                    }catch(e){console.log("ERR: "+e)}
-                    
-                    //console.log("tokenMetadata: "+JSON.stringify(tokenMetadata));
-
-                    if (tokenMetadata?.data?.name)
-                        setMintName(tokenMetadata.data.name);
-                    
-                    let foundImage = false;
-                    if (tokenMetadata?.data?.uri){
+            const getTokenMintInfo = async(mintAddress:string) => {
+        
+                const mintInfo = await getMint(RPC_CONNECTION, new PublicKey(mintAddress));
+        
+                //const tokenName = mintInfo.name;
+                
+                //JSON.stringify(mintInfo);
+        
+                const decimals = mintInfo.decimals;
+                //setMintDecimals(decimals);
+                
+                const mint_address = new PublicKey(mintAddress)
+                
+                const umi = createUmi(RPC_CONNECTION);
+                const asset = await fetchDigitalAsset(umi, umiPublicKey(mint_address.toBase58()));
+        
+                //console.log("Asset: ",(asset))
+        
+                if (asset){
+                    if (asset?.metadata?.name)
+                        setMintName(asset.metadata.name.trim());
+                    if (asset?.metadata?.uri){
                         try{
-                            const metadata = await window.fetch(tokenMetadata.data.uri)
+                            const metadata = await window.fetch(asset.metadata.uri)
                             .then(
                                 (res: any) => res.json())
                             .catch((error) => {
@@ -352,28 +358,22 @@ export default function TokenTransferView(props: any) {
                             });
                             
                             if (metadata && metadata?.image){
-                                if (metadata.image){
-                                    foundImage = true;
+                                if (metadata.image)
                                     setMintLogo(metadata.image);
-                                }
                             }
                         }catch(err){
                             console.log("ERR: ",err);
                         }
-                    } 
-
-                    if (!foundImage){
-                        //let tn = tokenMap.get(mintAddress)?.name;
-                        let tl = tokenMap.get(mintAddress)?.logoURI;
-                        if (tl)
-                            setMintLogo(tl);
                     }
+                }
+        
+                return asset?.metadata;
             }
 
             React.useEffect(() => { 
                 if (mintAddress && !mintName){
 
-                    getTokenMintInfo();
+                    getTokenMintInfo(mintAddress);
                 }
             }, [mintAddress]);
 

@@ -11,7 +11,10 @@ import {
 import { Buffer } from "buffer";
 import BN from "bn.js";
 import * as anchor from '@project-serum/anchor';
-import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
+import { publicKey as umiPublicKey  } from '@metaplex-foundation/umi'
+import { Metadata, TokenRecord, fetchDigitalAsset, MPL_TOKEN_METADATA_PROGRAM_ID, getCreateMetadataAccountV3InstructionDataSerializer } from "@metaplex-foundation/mpl-token-metadata";
+import {createUmi} from "@metaplex-foundation/umi-bundle-defaults"
+
 import { useWallet } from '@solana/wallet-adapter-react';
 
 import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
@@ -385,25 +388,30 @@ export default function IntraDAOProposalView(props: any) {
         const [mintName, setMintName] = React.useState(null);
         const [mintLogo, setMintLogo] = React.useState(null);
 
-        const getTokenMintInfo = async() => {
+        const getTokenMintInfo = async(mintAddress:string) => {
+        
+            const mintInfo = await getMint(RPC_CONNECTION, new PublicKey(mintAddress));
+    
+            //const tokenName = mintInfo.name;
             
-                const mint_address = new PublicKey(mintAddress)
-                const [pda, bump] = await PublicKey.findProgramAddress([
-                    Buffer.from("metadata"),
-                    PROGRAM_ID.toBuffer(),
-                    new PublicKey(mint_address).toBuffer(),
-                ], PROGRAM_ID)
-                let tokenMetadata = null;
+            //JSON.stringify(mintInfo);
+    
+            const decimals = mintInfo.decimals;
+            //setMintDecimals(decimals);
+            
+            const mint_address = new PublicKey(mintAddress)
+            
+            const umi = createUmi(RPC_CONNECTION);
+            const asset = await fetchDigitalAsset(umi, umiPublicKey(mint_address.toBase58()));
+    
+            //console.log("Asset: ",(asset))
+    
+            if (asset){
+                if (asset?.metadata?.name)
+                    setMintName(asset.metadata.name.trim());
+                if (asset?.metadata?.uri){
                     try{
-                        tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
-                    }catch(e){console.log("ERR: "+e)}
-                
-                if (tokenMetadata?.data?.name)
-                    setMintName(tokenMetadata.data.name);
-                
-                if (tokenMetadata?.data?.uri){
-                    try{
-                        const metadata = await window.fetch(tokenMetadata.data.uri)
+                        const metadata = await window.fetch(asset.metadata.uri)
                         .then(
                             (res: any) => res.json())
                         .catch((error) => {
@@ -419,11 +427,14 @@ export default function IntraDAOProposalView(props: any) {
                         console.log("ERR: ",err);
                     }
                 }
+            }
+    
+            return asset?.metadata;
         }
 
         React.useEffect(() => { 
             if (mintAddress && !mintName){
-                getTokenMintInfo();
+                getTokenMintInfo(mintAddress);
             }
         }, [mintAddress]);
 
