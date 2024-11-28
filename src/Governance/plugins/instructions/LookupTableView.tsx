@@ -108,7 +108,7 @@ export default function LookupTableView(props: any) {
     const setInstructionsObject = props?.setInstructionsObject;
     const [governanceWallet, setGovernanceWallet] = React.useState(props?.governanceWallet);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.pubkey?.toBase58() || governanceWallet?.vault?.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.nativeTreasuryAddress?.toBase58() || governanceWallet?.vault?.pubkey);
     const [entryAddress, setEntryAddress] = React.useState(null);
     const [entryAddresses, setEntryAddresses] = React.useState(null);
     const [walletLookupTables, setWalletLookupTables] = React.useState(null);
