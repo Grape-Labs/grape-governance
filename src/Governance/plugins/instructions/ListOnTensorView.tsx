@@ -102,7 +102,7 @@ export default function ListOnMEView(props: any) {
     const [governanceWallet, setGovernanceWallet] = React.useState(props?.governanceWallet);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
     const [hasBeenCalled, setHasBeenCalled] = React.useState(false);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.pubkey?.toBase58() || governanceWallet?.vault?.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.nativeTreasuryAddress?.toBase58() || governanceWallet?.vault?.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [transactionInstructions, setTransactionInstructions] = React.useState(null);

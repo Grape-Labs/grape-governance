@@ -123,7 +123,7 @@ export default function IntraDAOVoteView(props: any) {
     const [governance, setGovernance] = React.useState(null);
     const [governanceWallet, setGovernanceWallet] = React.useState(props?.governanceWallet);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.pubkey?.toBase58() || governanceWallet?.vault?.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.nativeTreasuryAddress?.toBase58() || governanceWallet?.vault?.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [tokenAmountStr, setTokenAmountStr] = React.useState(null);
@@ -350,6 +350,12 @@ export default function IntraDAOVoteView(props: any) {
             console.log("governanceWallet "+JSON.stringify(governanceWallet));
             if (tokenBalance?.value){
                 for (let titem of tokenBalance?.value){
+                    if (!governanceWallet.tokens) {
+                        governanceWallet.tokens = {}; // Initialize tokens as an empty object
+                    }
+                    if (!governanceWallet.tokens.value) {
+                        governanceWallet.tokens.value = []; // Initialize as an array or your desired type
+                    }
                     if (governanceWallet.tokens.value){
                         let foundCached = false;
                         for (let gitem of governanceWallet.tokens.value){
@@ -570,7 +576,7 @@ export default function IntraDAOVoteView(props: any) {
         }*/
 
         try{
-            //console.log("fetching realms ");
+            
             const rlms = await getRealms(RPC_CONNECTION, [programId]);
             //const rlms = await getRealmIndexed(programId.toBase58())
             //console.log("rlms "+JSON.stringify(rlms));
@@ -578,9 +584,10 @@ export default function IntraDAOVoteView(props: any) {
             const uTable = rlms.reduce((acc, it) => (acc[it.pubkey.toBase58()] = it, acc), {})
             //setRealms(uTable);
             
+            //console.log("From address: "+fromAddress);
             const thisOwnerRecordsbyOwner = await getTokenOwnerRecordsByOwner(RPC_CONNECTION, programId, new PublicKey(fromAddress));
             //const thisOwnerRecordsbyOwner = await getTokenOwnerRecordsByRealmIndexed(programId.toBase58(),null,new PublicKey(fromAddress).toBase58())
-            //console.log("ownerRecordsbyOwner "+JSON.stringify(ownerRecordsbyOwner))
+            //console.log("ownerRecordsbyOwner "+JSON.stringify(thisOwnerRecordsbyOwner))
             const selectedDao: any[] = [];
             
             let cnt = 0;
@@ -588,7 +595,7 @@ export default function IntraDAOVoteView(props: any) {
             let decimals = 0;
             for (const item of thisOwnerRecordsbyOwner){
                 const realm = uTable[item.account.realm.toBase58()];
-                //console.log("realm: "+JSON.stringify(realm))
+                console.log("realm: "+JSON.stringify(realm))
                 const name = realm.account.name;
                 let voteCount = 0;
                 let tokenType = false;

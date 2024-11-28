@@ -116,7 +116,7 @@ export default function IntraDAOProposalView(props: any) {
     const governanceRulesWallet = props?.governanceRulesWallet;
     const [governanceWallet, setGovernanceWallet] = React.useState(props?.governanceWallet);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.pubkey?.toBase58() || governanceWallet?.vault?.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.nativeTreasuryAddress?.toBase58() || governanceWallet?.vault?.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [tokenAmountStr, setTokenAmountStr] = React.useState(null);
@@ -338,9 +338,14 @@ export default function IntraDAOProposalView(props: any) {
             governanceWallet.solBalance = solBalance;
             const itemsToAdd = [];
 
-            console.log("governanceWallet "+JSON.stringify(governanceWallet));
             if (tokenBalance?.value){
                 for (let titem of tokenBalance?.value){
+                    if (!governanceWallet.tokens) {
+                        governanceWallet.tokens = {}; // Initialize tokens as an empty object
+                    }
+                    if (!governanceWallet.tokens.value) {
+                        governanceWallet.tokens.value = []; // Initialize as an array or your desired type
+                    }
                     if (governanceWallet.tokens.value){
                         let foundCached = false;
                         for (let gitem of governanceWallet.tokens.value){
@@ -358,6 +363,8 @@ export default function IntraDAOProposalView(props: any) {
                 }
             }
 
+            console.log("governanceWallet here... "+JSON.stringify(governanceWallet));
+            
             governanceWallet.tokens.value = itemsToAdd;//[...governanceWallet.tokens.value, ...itemsToAdd];
             setConsolidatedGovernanceWallet(governanceWallet);
             setLoadingWallet(false);
