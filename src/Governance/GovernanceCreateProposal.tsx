@@ -851,7 +851,7 @@ export default function GovernanceCreateProposalView(props: any){
             if (rulesWallet === item.pubkey.toBase58()){
               
               nativeWallet = item.nativeTreasuryAddress;
-              setGovernanceWallet(nativeWallet);
+              setGovernanceWallet(item);
               console.log("found "+JSON.stringify(item));
               if (realm && realm?.account.config?.councilMint){
                   //setGoverningMint(realm?.account.config.councilMint);
@@ -993,8 +993,7 @@ export default function GovernanceCreateProposalView(props: any){
         <>
 
           <Box sx={{ minWidth: 120, ml:1 }}>
-            
-
+          
             {governanceWallets ?
               <FormControl fullWidth>
                   <InputLabel id="governance-wallet-select-label">Governance Wallet</InputLabel>

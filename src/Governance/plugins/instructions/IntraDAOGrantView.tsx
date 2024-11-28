@@ -640,7 +640,6 @@ export default function IntraDAOGrantView(props: any) {
                   }}
                 >
 
-
                     {(consolidatedGovernanceWallet) && 
                         
                         consolidatedGovernanceWallet.map((governanceItem: any, key: number) => {
