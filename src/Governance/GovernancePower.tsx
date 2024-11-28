@@ -183,7 +183,7 @@ export default function GovernancePower(props: any){
         const umi = createUmi(RPC_CONNECTION);
         const asset = await fetchDigitalAsset(umi, umiPublicKey(mint_address.toBase58()));
 
-        console.log("Asset: ",(asset))
+        //console.log("Asset: ",(asset))
 
         if (asset){
             if (asset?.metadata?.name)
