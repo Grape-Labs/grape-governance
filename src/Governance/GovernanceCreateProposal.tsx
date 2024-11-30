@@ -219,7 +219,7 @@ export default function GovernanceCreateProposalView(props: any){
     const [loading, setLoading] = React.useState(false);
     const [realm, setRealm] = React.useState(props?.realm);
     const [realmName, setRealmName] = React.useState(null);
-    const [tokenMap, setTokenMap] = React.useState(null);
+    const [tokenMap, setTokenMap] = React.useState(props?.tokenMap);
     const [tokenArray, setTokenArray] = React.useState(null);
     const [cachedTimestamp, setCachedTimestamp] = React.useState(null);
     const [createDisabled, setCreateDisabled] = React.useState(false);
@@ -1953,12 +1953,12 @@ export default function GovernanceCreateProposalView(props: any){
 
                             {proposalType === 4 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <TokenTransferView governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} setInstructionsObject={setInstructionsObject} />
+                                <TokenTransferView tokenMap={tokenMap} governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
                             {proposalType === 5 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <TokenTransferView governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} setInstructionsObject={setInstructionsObject} />
+                                <TokenTransferView tokenMap={tokenMap} governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
                             {/*
@@ -2052,7 +2052,7 @@ export default function GovernanceCreateProposalView(props: any){
 
                             {proposalType === 32 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <IntraDAOGrantView governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
+                                <IntraDAOGrantView tokenMap={tokenMap} governanceAddress={governanceAddress} governanceRulesWallet={governanceRulesWallet} payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} governanceLookup={governanceLookup} />
                               </FormControl>
                             }
                             {/*
