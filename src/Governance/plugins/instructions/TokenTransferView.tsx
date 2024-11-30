@@ -5,7 +5,12 @@ import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddres
     getMint } from "@solana/spl-token-v2";
 //import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
 //import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token } from "@solana/spl-token";
-import { Metadata, TokenRecord, fetchDigitalAsset, MPL_TOKEN_METADATA_PROGRAM_ID, getCreateMetadataAccountV3InstructionDataSerializer } from "@metaplex-foundation/mpl-token-metadata";
+import { publicKey as umiPublicKey  } from '@metaplex-foundation/umi'
+import { Metadata, 
+    TokenRecord, 
+    fetchDigitalAsset, 
+    MPL_TOKEN_METADATA_PROGRAM_ID, 
+    getCreateMetadataAccountV3InstructionDataSerializer } from "@metaplex-foundation/mpl-token-metadata";
 import {createUmi} from "@metaplex-foundation/umi-bundle-defaults"
 import { useWallet } from '@solana/wallet-adapter-react';
 
@@ -343,7 +348,7 @@ export default function TokenTransferView(props: any) {
                 const asset = await fetchDigitalAsset(umi, umiPublicKey(mint_address.toBase58()));
         
                 //console.log("Asset: ",(asset))
-        
+                
                 if (asset){
                     if (asset?.metadata?.name)
                         setMintName(asset.metadata.name.trim());
