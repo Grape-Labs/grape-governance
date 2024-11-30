@@ -154,6 +154,60 @@ export default function IntraDAOVoteView(props: any) {
     
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
+    const [availableTokens, setAvailableTokens] = React.useState([
+        {
+            mint:"So11111111111111111111111111111111111111112",
+            name:"SOL",
+            symbol:"SOL",
+            decimals:9,
+            logo:"https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/So11111111111111111111111111111111111111112.png"
+        },{
+            mint:"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            name:"USDC",
+            symbol:"USDC",
+            decimals:6,
+            logo:"https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v.png"
+        },{
+            mint:"Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+            name:"USDT",
+            symbol:"USDT",
+            decimals:6,
+            logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.svg"
+        },{
+            mint:"mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+            name:"mSol",
+            symbol:"mSol",
+            decimals:9,
+            logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So/logo.png"
+        },{
+            mint:"8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA",
+            name:"GRAPE",
+            symbol:"GRAPE",
+            decimals:6,
+            logo:"https://lh3.googleusercontent.com/y7Wsemw9UVBc9dtjtRfVilnS1cgpDt356PPAjne5NvMXIwWz9_x7WKMPH99teyv8vXDmpZinsJdgiFQ16_OAda1dNcsUxlpw9DyMkUk=s0"
+        },{
+            mint:"AZsHEMXd36Bj1EMNXhowJajpUXzrKcK57wW4ZGXVa7yR",
+            name:"GUAC",
+            symbol:"GUAC",
+            decimals:5,
+            logo:"https://shdw-drive.genesysgo.net/36JhGq9Aa1hBK6aDYM4NyFjR5Waiu9oHrb44j1j8edUt/image.png"
+        },{
+            mint:"BaoawH9p2J8yUK9r5YXQs3hQwmUJgscACjmTkh8rMwYL",
+            name:"ALL",
+            symbol:"ALL",
+            decimals:6,
+            logo:"https://arweave.net/FY7yQGrLCAvKAup_SYEsHDoTRZXsttuYyQjvHTnOrYk"
+        },{
+            mint:"DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+            name:"BONK",
+            symbol:"BONK",
+            decimals:5,
+            logo:"https://arweave.net/hQiPZOsRZXGXBJd_82PhVdlM_hACsT_q6wqwf5cSY7I"
+        }]);
+    const objectToken = {};
+    availableTokens.forEach(token => {
+        objectToken[token.mint] = token;
+    }); 
     
 
     async function participateInDAOProposal() {
@@ -417,6 +471,16 @@ export default function IntraDAOVoteView(props: any) {
             
             const mint_address = new PublicKey(mintAddress)
             
+            let foundLogo = false;
+                {
+                    
+                    if (objectToken[mint_address.toBase58()]){
+                        setMintLogo(objectToken[mint_address.toBase58()].logo);
+                        foundLogo = true;
+                    }
+                }
+
+
             const umi = createUmi(RPC_CONNECTION);
             const asset = await fetchDigitalAsset(umi, umiPublicKey(mint_address.toBase58()));
     
@@ -425,7 +489,7 @@ export default function IntraDAOVoteView(props: any) {
             if (asset){
                 if (asset?.metadata?.name)
                     setMintName(asset.metadata.name.trim());
-                if (asset?.metadata?.uri){
+                if (!foundLogo && asset?.metadata?.uri){
                     try{
                         const metadata = await window.fetch(asset.metadata.uri)
                         .then(
