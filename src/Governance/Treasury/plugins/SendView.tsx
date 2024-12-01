@@ -520,9 +520,12 @@ export default function SendExtensionView(props: any){
     function generateInstructions(){
         if (tokenSelected && tokenRecipient){
             if (tokenAmount && tokenAmount > 0){
-                const title = "Send "+tokenSelected.info.name
+                const tokenName = tokenSelected.info.name === "Unknown Token" 
+                                    ? `${tokenSelected.address?.slice(0, 3)}...${tokenSelected.address?.slice(-3)}`
+                                    : tokenSelected.info.name
+                const title = "Send "+tokenName
                 setProposalTitle(title);
-                const description = "Sending "+tokenAmount.toLocaleString()+" "+tokenSelected.info.name+" to "+shortenString(tokenRecipient,5,5);
+                const description = "Sending "+tokenAmount.toLocaleString()+" "+tokenName+" to "+shortenString(tokenRecipient,5,5);
                 setProposalDescription(description);
             }
         }
