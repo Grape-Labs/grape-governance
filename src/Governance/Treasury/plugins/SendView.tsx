@@ -344,9 +344,13 @@ export default function SendExtensionView(props: any){
                 </ListItemAvatar>
                 <ListItemText 
                     primary={
-                        
-                        <Typography variant="subtitle1" sx={{color:'white'}}>{sol ? `Solana` : item?.info?.name}</Typography>
-                            
+                        <Typography variant="subtitle1" sx={{ color: 'white' }}>
+                            {sol 
+                                ? `Solana` 
+                                : item?.info?.name === "Unknown Token" 
+                                    ? `${item?.address?.slice(0, 3)}...${item?.address?.slice(-3)}`
+                                    : item?.info?.name}
+                        </Typography>    
                     }
                     secondary={
                         <>
@@ -402,8 +406,12 @@ export default function SendExtensionView(props: any){
                                 sx={{ width: 24, height: 24 }}
                             />
                         </ListItemAvatar>
-                        <ListItemText sx={{m:0,p:0,ml:1}}
-                            primary={tokenSelected.info.name}
+                        <ListItemText sx={{ m: 0, p: 0, ml: 1 }}
+                            primary={
+                                tokenSelected.info.name === "Unknown Token" 
+                                    ? `${tokenSelected.address?.slice(0, 3)}...${tokenSelected.address?.slice(-3)}`
+                                    : tokenSelected.info.name
+                            }
                         />
                     </ListItem>
                 :
