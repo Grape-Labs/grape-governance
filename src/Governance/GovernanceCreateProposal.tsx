@@ -631,29 +631,35 @@ export default function GovernanceCreateProposalView(props: any){
       }
 
     }
+
+    const handleKeyPress = (event) => {
+        if (event.key === 'G' || event.key === 'g') {
+            // Handle the G key press specifically
+        //    console.log('G key pressed');
+        //    event.preventDefault(); // Avoid unintended side effects
+        }
+    };
       
-    function handleDescriptionChange(text:string){
+    function handleDescriptionChange(text: string): void {
+      console.log("Text:", text);
       setDescription(text);
       setIsGistDescription(false);
-      try{
-        const url = new URL(text);
-        const pathname = url.pathname;
-        const parts = pathname.split('/');
-        //console.log("pathname: "+pathname)
-        let tGist = null;
-        if (parts.length > 1)
-            tGist = parts[2];
-        //setGist(tGist);
-
-        //const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
-        //setProposalDescription(rpd);
-        setIsGistDescription(true);
+  
+      // Attempt to parse URL and check for a valid Gist
+      try {
+          const url = new URL(text); // Will throw if the text is not a valid URL
+          const parts = url.pathname.split('/');
           
-      } catch(e){
-          console.log("ERR: "+e)
+          if (parts.length > 2) {
+              // Assuming a valid Gist structure: "https://gist.github.com/<username>/<gist-id>"
+              const gistId = parts[2];
+              console.log("Detected Gist ID:", gistId);
+              setIsGistDescription(true);
+          }
+      } catch (error) {
+          console.warn("Invalid URL:", error);
       }
-      
-    }
+  }
 
     function ProposalSelect() {
       
@@ -1889,7 +1895,17 @@ export default function GovernanceCreateProposalView(props: any){
                                     fullWidth 
                                     label="Title" 
                                     id="fullWidth"
-                                    //value={title}
+                                    value={title || ""}
+                                    onFocus={() => console.log("Title Field focused")}
+                                    onBlur={() => console.log("Title Field blurred")}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'G' || e.key === 'g') {
+                                          console.log("Refocusing field on 'G'");
+                                          if (e.target instanceof HTMLInputElement) {
+                                            e.target.focus(); // Safely access focus
+                                          }
+                                      }
+                                  }}
                                     onChange={(e) => {
                                         if (!title || title.length < maxTitleLen)
                                             setTitle(e.target.value)
@@ -1908,12 +1924,27 @@ export default function GovernanceCreateProposalView(props: any){
                                     label="Description"
                                     multiline
                                     rows={4}
-                                    maxRows={4}
-                                    //value={description}
+                                    //maxRows={4}
+                                    value={description || ""}
+                                    onFocus={() => console.log("Description Field focused")}
+                                    onBlur={() => console.log("Description Field blurred")}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'G' || e.key === 'g') {
+                                          console.log("Refocusing field on 'G'");
+                                          if (e.target instanceof HTMLInputElement) {
+                                            e.target.focus(); // Safely access focus
+                                          }
+                                      }
+                                  }}
                                     onChange={(e) => {
-                                        if (!description || description.length < maxDescriptionLen)
-                                            handleDescriptionChange(e.target.value)
-                                        }}
+                                      const newValue = e.target.value;
+                                      //console.log("newValue "+newValue);
+                                        if (newValue.length <= maxDescriptionLen) {
+                                          if (!description || description.length < maxDescriptionLen)
+                                              handleDescriptionChange(e.target.value)
+                                          }  
+                                        }
+                                      }
                                     
                                     sx={{maxlength:maxDescriptionLen}}
                                     />
