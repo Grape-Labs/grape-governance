@@ -513,7 +513,7 @@ export function InstructionTableView(props: any) {
             
             renderCell: (params) => {
                 return(
-                    <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={new PublicKey(params.value).toBase58()} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' />
+                    <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={new PublicKey(params.value).toBase58()} type='address' shorten={3} hideTitle={false} style='text' color='white' fontSize='14px' />
                 )
             }
             
