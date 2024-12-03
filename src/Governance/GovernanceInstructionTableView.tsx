@@ -113,6 +113,7 @@ import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import CloseIcon from '@mui/icons-material/Close';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import SearchIcon from '@mui/icons-material/Search';
 
 import { 
     PROXY, 
@@ -121,6 +122,7 @@ import {
     GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 import NavItem from '../components/nav-section/vertical/nav-item';
+import { generateKeyPairSync } from 'crypto';
 
 const CustomTextarea = styled(TextareaAutosize)(({ theme }) => ({
     width: '100%', // Make it full width
@@ -236,7 +238,6 @@ export function InstructionTableView(props: any) {
                 computeUnitLimitInstruction,
                 ...chunk,
             ];
-    
             const messageV0 = new TransactionMessage({
                 payerKey: publicKey,
                 recentBlockhash: latestBlockhash.blockhash,
@@ -506,6 +507,14 @@ export function InstructionTableView(props: any) {
 
     const ixDetails = props.ixDetails;
     const [ixRows, setIxRows] = React.useState(null);
+
+    const handleRedirect = (redirect:string) => {
+        if (redirect) {
+            window.open(redirect, "_blank"); // Open the URL in a new tab // Redirect to the saved URL
+        } else {
+            console.error("URL is not defined");
+        }
+    };
     const ixColumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', hide: true},
         { field: 'index', headerName: 'Index', hide: false},
@@ -573,7 +582,83 @@ export function InstructionTableView(props: any) {
                 
             }
         }, // allow to delete or execute ix
+        { field: 'inspector', headerName: 'Inspector', hide: !publicKey,
+            renderCell: (params) => {
+                return(
+                <>{params.value ?
+                    <Tooltip title="Inspect Instruction (coming soon)">
+                        <IconButton 
+                            sx={{ml:1}}
+                            color='success'
+                            //onClick={e => handleRedirect(params.value)}
+                        >
+                            <SearchIcon fontSize='small' />
+                        </IconButton>
+                    </Tooltip>
+                    :<></>}
+                </>
+                );
+            }
+        },
     ]
+
+    const generateSolanaInspectorUrl = async(instructionSets:any[]) => {
+        /*
+        const { programId, accounts, data } = transactionData;
+    
+        // Create the raw transaction message
+        const message = {
+            programId,
+            accounts: accounts.map(({ pubkey, isSigner, isWritable }) => ({
+                pubkey,
+                isSigner,
+                isWritable,
+            })),
+            data,
+        };
+    
+        // Serialize and encode the message to Base64
+        const base64EncodedMessage = Buffer.from(JSON.stringify(message)).toString('base64');
+        */
+
+        try{
+            
+            console.log("Instruction Sets:", instructionSets);
+            for (const instruction of instructionSets) {
+                console.log("Instruction:", instruction);
+                const transaction = instruction.account.getAllInstructions();
+                
+                const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+                const messageV0 = new TransactionMessage({
+                    payerKey: publicKey,
+                    recentBlockhash: latestBlockhash.blockhash,
+                    instructions: transaction,
+                }).compileToV0Message();
+                
+                console.log("Transaction Instruction:", transaction);
+                //console.log("Serialized Message:", transaction.serializeMessage().toString("base64"));
+                const message =
+                    messageV0 instanceof Transaction
+                    ? messageV0?.serializeMessage()?.toString('base64')
+                    : Buffer.from(messageV0?.message?.serialize()).toString('base64')
+                console.log("Serialized Message:", message);
+
+                if (message){
+                    const inspectorUrl = `https://explorer.solana.com/tx/inspector?signatures=[]&message=${encodeURIComponent(message)}`;
+
+                    return inspectorUrl;
+                } else{
+                    return null;
+                }
+            }
+            // Construct the Solana Explorer URL
+            return null;
+        }catch(e){
+            console.log("ERR: "+e);
+            return null;
+        }
+        
+    };
 
     function findOwnerRecord(destinationAta:any){
         //console.log("Json: "+JSON.stringify(instructionOwnerRecordATA));
@@ -608,6 +693,7 @@ export function InstructionTableView(props: any) {
                             program: new PublicKey(item?.account?.instructions[0].programId).toBase58(),
                             status:item.account.executionStatus,
                             manage:item,
+                            inspector:generateSolanaInspectorUrl([item])
                         })
                 ));
             }
@@ -636,6 +722,10 @@ export function InstructionTableView(props: any) {
                     }
                     //description = item?.account?.instructions[0].info.description + ' > ' + (item?.account?.instructions[0].info?.destinationAta ? findOwnerRecord(item?.account?.instructions[0].info?.destinationAta) : '')
                     
+                    if (index === 0){
+                        console.log('first ix: '+JSON.stringify(item.account.instructions[0]))
+                    }
+
                     ixarr.push({
                         id:index,
                         index:item.account.instructionIndex,
@@ -648,6 +738,7 @@ export function InstructionTableView(props: any) {
                         //manage:item.account.instructionIndex,
                         status:item.account.executionStatus,
                         manage:item,
+                        inspector:generateSolanaInspectorUrl([item]),
                     })
 
                     if (item.account.executionStatus === 0)
