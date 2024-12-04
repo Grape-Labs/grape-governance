@@ -194,6 +194,7 @@ export function InstructionTableView(props: any) {
     const setInstructionTransferDetails = props.setInstructionTransferDetails;
     const governingTokenMint = props.governingTokenMint;
     const governanceRulesWallet = props?.governanceRulesWallet;
+    const governanceNativeWallet = props?.governanceNativeWallet;
     const memberMap = props.memberMap;
     const [instructionSet, setInstructionSet] = React.useState(null);
     const { publicKey, sendTransaction, signTransaction } = useWallet();
@@ -518,7 +519,7 @@ export function InstructionTableView(props: any) {
             console.log("Transaction txi:", txi);
 
             const transactionInstruction = new TransactionInstruction({
-                keys: txi[0].accounts.map((key) => ({
+                keys: txi[0].accounts.map((key:any) => ({
                     pubkey: new PublicKey(key.pubkey), // Ensure pubkey is a PublicKey instance
                     isSigner: key.isSigner,
                     isWritable: key.isWritable,
@@ -531,7 +532,7 @@ export function InstructionTableView(props: any) {
 
         const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('confirmed');
         const messageV0 = new TransactionMessage({
-            payerKey: publicKey,
+            payerKey: new PublicKey(governanceNativeWallet || governanceRulesWallet), //publicKey, // consider using the governance native wallet here
             recentBlockhash: latestBlockhash.blockhash,
             instructions: tx,//[new TransactionInstruction(txi)], // instructions
         }).compileToV0Message();
