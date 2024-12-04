@@ -978,18 +978,31 @@ export function GovernanceProposalV2View(props: any){
                                                         ? adjustedAmount.toLocaleString() // No decimals, just format as integer
                                                         : adjustedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
-                                                    let symbol = "";
-                                                    if (tokenMap.get(gai?.data.parsed.info.mint)?.symbol)
-                                                        symbol = tokenMap.get(gai?.data.parsed.info.mint)?.symbol;
-                                                    else    
-                                                        symbol =`${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
-                                                    //console.log("accountInstruction: "+JSON.stringify(accountInstruction));
+                                                    let symbol = null;
+                                                    let tname = null;
+                                                    let logo = null;    
+                                                    
+                                                    if (tokenMap){
+                                                        const tmap = tokenMap.get(gai?.data.parsed.info.mint);
+                                                        if (tmap){
+                                                            if (!tname)
+                                                                tname = tmap?.name;
+                                                            if (!symbol)
+                                                                symbol = tmap?.symbol;
+                                                            else
+                                                                symbol =`${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
+                                                            if (!logo)
+                                                                logo = tmap?.logoURI;
+                                                        }
+                                                    }
+                                                    
+                                                        //console.log("accountInstruction: "+JSON.stringify(accountInstruction));
                                                     newObject = {
                                                         type:"TokenTransfer",
                                                         pubkey: accountInstruction.accounts[0].pubkey,
                                                         mint: gai?.data.parsed.info.mint,
-                                                        name: symbol,
-                                                        logoURI: tokenMap.get(gai?.data.parsed.info.mint)?.logoURI,
+                                                        name: tname,
+                                                        logoURI: logo,
                                                         amount: parseFloat(amount.replace(/,/g, '')), //amount,
                                                         data: accountInstruction.data,
                                                         destinationAta:accountInstruction.accounts[1].pubkey,
@@ -1063,6 +1076,7 @@ export function GovernanceProposalV2View(props: any){
                                                     let amount = (solAmount % 1 === 0)
                                                         ? solAmount.toLocaleString() // No decimals, just format as integer
                                                         : solAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+
 
                                                     let symbol = "SOL";
                                                     newObject = {
@@ -1229,7 +1243,7 @@ export function GovernanceProposalV2View(props: any){
                                                         const divisor = new BN(10).pow(new BN(decimals));
                                                         amount = Number(amountBN.div(divisor)).toLocaleString(); 
                                                         
-                                                        let tname = "";
+                                                        let tname = null;
                                                         // check if this is a Grape Proposal and use the token decimals to format it
                                                         
                                                         if (accountInstruction.accounts.length > 3){
@@ -1267,6 +1281,20 @@ export function GovernanceProposalV2View(props: any){
                                                                     lastMintDecimals = thisMintDecimals;
                                                                 }
                                                             }
+
+                                                            if (tokenMap){
+                                                                const tmap = tokenMap.get(thisMint);
+                                                                if (tmap){
+                                                                    if (!tname)
+                                                                        tname = tmap?.name;
+                                                                        lastMintName = thisMintName = tname;
+                                                                    if (!symbol)
+                                                                        symbol = tmap?.symbol;
+                                                                    if (!logo)
+                                                                        logo = tmap?.logoURI;
+                                                                }
+                                                            }
+
                                                             destinationAta = accountInstruction?.accounts[3].pubkey;
                                                             console.log("Grant "+amount+" "+tname+" to "+accountInstruction?.accounts[3].pubkey.toBase58());
                                                             description = "Grant "+amount+" "+tname+" to "+accountInstruction?.accounts[3].pubkey.toBase58();
@@ -2593,7 +2621,7 @@ export function GovernanceProposalV2View(props: any){
                                                 >
                                                     <Typography variant='body2'>
                                                         <ErrorBoundary>
-                                                            
+                                                            {/*
                                                             <ReactMarkdown 
                                                                 remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
                                                                 //transformImageUri={transformImageUri}
@@ -2608,7 +2636,7 @@ export function GovernanceProposalV2View(props: any){
                                                                     ),
                                                                 }}
                                                             />
-                                                            
+                                                            */}
                                                         </ErrorBoundary>
                                                         {/*
                                                         <ReactMarkdown
@@ -3435,7 +3463,8 @@ export function GovernanceProposalV2View(props: any){
                                                                                     to ${item.uniqueDestinationAta.size} unique wallet${(item.uniqueDestinationAta.size > 1) ? `s`:``}
                                                                                 `} 
                                                                                 hideTitle={false} style='text' color='white' fontSize='12px'
-                                                                                showNftData={true} />
+                                                                                showNftData={true} 
+                                                                            />
                                                                             }
                                                                         </Grid>
                                                                     </Grid>
