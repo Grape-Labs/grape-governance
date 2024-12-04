@@ -508,13 +508,55 @@ export function InstructionTableView(props: any) {
     const ixDetails = props.ixDetails;
     const [ixRows, setIxRows] = React.useState(null);
 
-    const handleRedirect = (redirect:string) => {
-        if (redirect) {
-            window.open(redirect, "_blank"); // Open the URL in a new tab // Redirect to the saved URL
-        } else {
-            console.error("URL is not defined");
+    const handleRedirectIx = async(instructionSets:any[]) => {
+        
+
+        const tx = [];
+        // now lets get all tx items
+        for (const instruction of instructionSets) {
+            const txi = instruction.account.getAllInstructions();
+            console.log("Transaction txi:", txi);
+
+            const transactionInstruction = new TransactionInstruction({
+                keys: txi[0].accounts.map((key) => ({
+                    pubkey: new PublicKey(key.pubkey), // Ensure pubkey is a PublicKey instance
+                    isSigner: key.isSigner,
+                    isWritable: key.isWritable,
+                })),
+                programId: new PublicKey(txi[0].programId), // Ensure programId is a PublicKey instance
+                data: Buffer.from(txi[0].data), // Convert data to Buffer
+            });
+            tx.push(transactionInstruction);
         }
+
+        const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('confirmed');
+        const messageV0 = new TransactionMessage({
+            payerKey: publicKey,
+            recentBlockhash: latestBlockhash.blockhash,
+            instructions: tx,//[new TransactionInstruction(txi)], // instructions
+        }).compileToV0Message();
+        
+        console.log("Transaction:", tx);
+        //console.log("Serialized Message:", transaction.serializeMessage().toString("base64"));
+        const serializedMessage = Buffer.from(messageV0.serialize()).toString('base64'); // Use Buffer for Base64 conversion
+        //const message = messageV0.serialize?.toString('base64');
+            //messageV0 instanceof Transaction
+            //? messageV0?.serializeMessage()?.toString('base64')
+            //: null//Buffer.from(messageV0?.message?.serialize()).toString('base64')
+        console.log("Serialized Message:", serializedMessage);
+
+            if (serializedMessage){
+                const inspectorUrl = `https://explorer.solana.com/tx/inspector?signatures=[]&message=${encodeURIComponent(serializedMessage)}`;
+
+                if (inspectorUrl) {
+                    window.open(inspectorUrl, "_blank"); // Open the URL in a new tab // Redirect to the saved URL
+                    return inspectorUrl;
+                }
+            }
+
+        return null;
     };
+
     const ixColumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', hide: true},
         { field: 'index', headerName: 'Index', hide: false},
@@ -582,15 +624,15 @@ export function InstructionTableView(props: any) {
                 
             }
         }, // allow to delete or execute ix
-        { field: 'inspector', headerName: 'Inspector', hide: !publicKey,
+        { field: 'inspector', headerName: 'Inspect', hide: !publicKey,
             renderCell: (params) => {
                 return(
-                <>{params.value ?
-                    <Tooltip title="Inspect Instruction (coming soon)">
+                <>{publicKey && params.value ?
+                    <Tooltip title="Inspect Instruction">
                         <IconButton 
                             sx={{ml:1}}
                             color='success'
-                            //onClick={e => handleRedirect(params.value)}
+                            onClick={e => handleRedirectIx([params.value])}
                         >
                             <SearchIcon fontSize='small' />
                         </IconButton>
@@ -601,64 +643,6 @@ export function InstructionTableView(props: any) {
             }
         },
     ]
-
-    const generateSolanaInspectorUrl = async(instructionSets:any[]) => {
-        /*
-        const { programId, accounts, data } = transactionData;
-    
-        // Create the raw transaction message
-        const message = {
-            programId,
-            accounts: accounts.map(({ pubkey, isSigner, isWritable }) => ({
-                pubkey,
-                isSigner,
-                isWritable,
-            })),
-            data,
-        };
-    
-        // Serialize and encode the message to Base64
-        const base64EncodedMessage = Buffer.from(JSON.stringify(message)).toString('base64');
-        */
-
-        try{
-            
-            console.log("Instruction Sets:", instructionSets);
-            for (const instruction of instructionSets) {
-                console.log("Instruction:", instruction);
-                const transaction = instruction.account.getAllInstructions();
-                
-                const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
-                const messageV0 = new TransactionMessage({
-                    payerKey: publicKey,
-                    recentBlockhash: latestBlockhash.blockhash,
-                    instructions: transaction,
-                }).compileToV0Message();
-                
-                console.log("Transaction Instruction:", transaction);
-                //console.log("Serialized Message:", transaction.serializeMessage().toString("base64"));
-                const message =
-                    messageV0 instanceof Transaction
-                    ? messageV0?.serializeMessage()?.toString('base64')
-                    : Buffer.from(messageV0?.message?.serialize()).toString('base64')
-                console.log("Serialized Message:", message);
-
-                if (message){
-                    const inspectorUrl = `https://explorer.solana.com/tx/inspector?signatures=[]&message=${encodeURIComponent(message)}`;
-
-                    return inspectorUrl;
-                } else{
-                    return null;
-                }
-            }
-            // Construct the Solana Explorer URL
-            return null;
-        }catch(e){
-            console.log("ERR: "+e);
-            return null;
-        }
-        
-    };
 
     function findOwnerRecord(destinationAta:any){
         //console.log("Json: "+JSON.stringify(instructionOwnerRecordATA));
@@ -693,7 +677,7 @@ export function InstructionTableView(props: any) {
                             program: new PublicKey(item?.account?.instructions[0].programId).toBase58(),
                             status:item.account.executionStatus,
                             manage:item,
-                            inspector:generateSolanaInspectorUrl([item])
+                            inspector:item
                         })
                 ));
             }
@@ -738,7 +722,7 @@ export function InstructionTableView(props: any) {
                         //manage:item.account.instructionIndex,
                         status:item.account.executionStatus,
                         manage:item,
-                        inspector:generateSolanaInspectorUrl([item]),
+                        inspector:item,
                     })
 
                     if (item.account.executionStatus === 0)
