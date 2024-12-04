@@ -2621,7 +2621,7 @@ export function GovernanceProposalV2View(props: any){
                                                 >
                                                     <Typography variant='body2'>
                                                         <ErrorBoundary>
-                                                            {/*
+                                                            
                                                             <ReactMarkdown 
                                                                 remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
                                                                 //transformImageUri={transformImageUri}
@@ -2636,7 +2636,7 @@ export function GovernanceProposalV2View(props: any){
                                                                     ),
                                                                 }}
                                                             />
-                                                            */}
+                                                            
                                                         </ErrorBoundary>
                                                         {/*
                                                         <ReactMarkdown
