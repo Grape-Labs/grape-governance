@@ -16,7 +16,8 @@ import { createProposalInstructionsLegacy } from '../Proposals/createProposalIns
 import { 
     RPC_CONNECTION,
     SHYFT_KEY,
-    HELIUS_API
+    HELIUS_API,
+    QUICKNODE_RPC_ENDPOINT,
 } from '../../utils/grapeTools/constants';
 
 import { 
@@ -482,7 +483,35 @@ export default function WalletCardView(props:any) {
 
       const getWalletNftBalance = async(tokenOwnerRecord: PublicKey) => {
         
-        if (HELIUS_API) {
+        if (QUICKNODE_RPC_ENDPOINT) {
+            try{
+                const uri = QUICKNODE_RPC_ENDPOINT;
+                
+                const response = await fetch(uri, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept-Encoding': 'gzip, deflate, br'
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: '1',
+                        method: 'getAssetsByOwner',
+                        params: {
+                            ownerAddress: tokenOwnerRecord.toBase58(),
+                            page: 1, // Starts at 1
+                            limit: 1000
+                        },
+                    }),
+                });
+                const { result } = await response.json();
+                //dasMeta = result.items;
+                return result?.items;
+            } catch(err){
+                console.log("DAS: Err");
+                return null;
+            }
+        } else if (HELIUS_API) {
             try{
                 const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
                 const response = await fetch(uri, {
@@ -533,7 +562,7 @@ export default function WalletCardView(props:any) {
                 console.log("DAS: Err");
                 return null;
             }
-        } 
+        }
     }
 
     const getWalletValue = async() => {
