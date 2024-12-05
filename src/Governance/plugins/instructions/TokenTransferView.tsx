@@ -219,7 +219,7 @@ export default function TokenTransferView(props: any) {
                         if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
                             item.account.data.parsed.info.tokenAmount.amount > 0) {
                                 //if (item.account.data.parsed.info.mint === selectedTokenMint){
-                                if (item.pubkey === tokenAta){
+                                if (new PublicKey(item.pubkey).toBase58() === tokenAta){
                                     console.log("Found Token: "+JSON.stringify(item)) // item.account.data.parsed.info.owner?
                                     console.log("Found Owner: "+JSON.stringify(item.account.data.parsed.info.owner)) // item.account.data.parsed.info.owner?
                                     fromWallet = new PublicKey(item.account.data.parsed.info.owner);
@@ -366,12 +366,13 @@ export default function TokenTransferView(props: any) {
                     .map((governanceItem: any, key: number) => {
                         governanceItem.tokens
                             .map((item: any, key: number) => {
-                        
+                                
                                 if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
                                     item.account.data.parsed.info.tokenAmount.amount > 0) {
                                         //if (item.account.data.parsed.info.mint === selectedTokenMint){
-                                        if (item.pubkey === selectedTokenAta){
-                                            console.log("Found Token: "+item.account.data.parsed.info.mint)
+                                        //console.log("Item: "+JSON.stringify(item))
+                                        if (new PublicKey(item.pubkey).toBase58() === selectedTokenAta){
+                                            //console.log("Found Token: "+item.account.data.parsed.info.mint)
                                             setTokenMaxAmount(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals);
                                             setTokenMint(item.account.data.parsed.info.mint);
                                         }
