@@ -1345,7 +1345,34 @@ export default function IntraDAOGrantView(props: any) {
             {(daoToJoinAddress && governance) &&
                 <>
 
-                    <TokenSelect filter={[governance.account.communityMint.toBase58(), governance.account.config.councilMint ? governance.account.config.councilMint.toBase58() : '']} /> 
+                    {loadingWallet ? 
+                        <>
+                            <FormControl fullWidth sx={{ mb: 2 }}>
+                                <Grid 
+                                    container 
+                                    alignItems="center" 
+                                    justifyContent="center" 
+                                    spacing={1}
+                                    sx={{ textAlign: 'center' }}
+                                >
+                                    <Grid item>
+                                    <CircularProgress size="20px" />
+                                    </Grid>
+                                    <Grid item>
+                                    <Typography variant="body1">Loading Tokens...</Typography>
+                                    </Grid>
+                                </Grid>
+                            </FormControl>
+                        </>
+                    :
+                    <>
+                        <TokenSelect filter={[governance.account.communityMint.toBase58(), governance.account.config.councilMint ? governance.account.config.councilMint.toBase58() : '']} /> 
+                    </>
+                    
+                    }
+
+
+                    
                     {/*
                     [{governance.account.communityMint.toBase58()}, governance.account.config.councilMint ? governance.account.config.councilMint : ''] }/>
                     */}

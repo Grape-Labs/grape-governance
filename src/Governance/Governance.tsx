@@ -1314,7 +1314,7 @@ export function GovernanceCachedView(props: any) {
     const fetchTokenData = async(address:string) => {
         try{
             const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
-
+            
             const response = await fetch(uri, {
                 method: 'POST',
                 headers: {

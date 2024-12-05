@@ -55,7 +55,8 @@ import {
   Typography,
   Box,
   Alert,
-  Checkbox
+  Checkbox,
+  LinearProgress
 } from '@mui/material';
 
 import { 
@@ -144,6 +145,7 @@ export default function TokenTransferView(props: any) {
     const [loadingWallet, setLoadingWallet] = React.useState(false);
     const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const [tokenAmountStr, setTokenAmountStr] = React.useState(null);
+    
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     const tokenMetadataCache = new Map<string, { name: string; logo: string }>();
@@ -351,7 +353,7 @@ export default function TokenTransferView(props: any) {
     }
 
     function TokenSelect() {
-
+        
         const handleMintSelected = (event: SelectChangeEvent) => {
             //const selectedTokenMint = event.target.value as string;
             // use the ATA not the mint:
@@ -491,126 +493,129 @@ export default function TokenTransferView(props: any) {
       
         return (
           <>
-
             <Box sx={{ minWidth: 120, ml:1 }}>
-              <FormControl fullWidth sx={{mb:2}}>
-                <InputLabel id="governance-token-select-label">{pluginType === 4 ? 'Token' : 'Select'}</InputLabel>
-                <Select
-                  labelId="governance-token-select-label"
-                  id="governance-token-select"
-                  value={tokenAta}
-                  label="Token"
-                  onChange={handleMintSelected}
-                  MenuProps={{
-                    PaperProps: {
-                      style: {
-                        maxHeight: 200, // Adjust this value as needed
-                        overflowY: 'auto', // Add vertical scrollbar if content overflows maxHeight
-                      },
-                    },
-                  }}
-                >
-                    {pluginType === 4 && consolidatedGovernanceWallet && 
-                        consolidatedGovernanceWallet.map((governanceItem: any, govKey: number) => (
-                            governanceItem.tokens
-                            .filter((item: any) => 
-                                // Adjust filter logic if you want to show tokens with zero balance
-                                item?.pubkey && 
-                                item?.account?.data?.parsed?.info?.mint && 
-                                Number(item.account.data?.parsed?.info?.tokenAmount?.amount) > 0
-                            )
-                            .sort((a: any, b: any) => 
-                                Number(b.account.data?.parsed?.info?.tokenAmount?.amount) - 
-                                Number(a.account.data?.parsed?.info?.tokenAmount?.amount)
-                            )
-                            .map((item: any) => (
-                                <MenuItem key={`${govKey}-${item.pubkey}`} value={new PublicKey(item.pubkey).toBase58()}>
-                                    <Grid container alignItems="center">
-                                        <Grid item xs={12}>
-                                            <Grid container>
-                                                <Grid item sm={8}>
-                                                <Grid container direction="row" justifyContent="left" alignItems="left">
-                                                    {item.account?.tokenMap?.tokenName ? (
-                                                    <Grid container direction="row" alignItems="center">
-                                                        <Grid item>
-                                                        <Avatar 
-                                                            alt={item.account?.tokenMap?.tokenName || "Token"} 
-                                                            src={item.account?.tokenMap?.tokenLogo && item.account.tokenMap.tokenLogo} 
-                                                        />
+                {loadingWallet ?
+                <>Loading Tokens...</>
+                :
+                <FormControl fullWidth sx={{mb:2}}>
+                    <InputLabel id="governance-token-select-label">{pluginType === 4 ? 'Token' : 'Select'}</InputLabel>
+                    <Select
+                    labelId="governance-token-select-label"
+                    id="governance-token-select"
+                    value={tokenAta}
+                    label="Token"
+                    onChange={handleMintSelected}
+                    MenuProps={{
+                        PaperProps: {
+                        style: {
+                            maxHeight: 200, // Adjust this value as needed
+                            overflowY: 'auto', // Add vertical scrollbar if content overflows maxHeight
+                        },
+                        },
+                    }}
+                    >
+                        {pluginType === 4 && consolidatedGovernanceWallet && 
+                            consolidatedGovernanceWallet.map((governanceItem: any, govKey: number) => (
+                                governanceItem.tokens
+                                .filter((item: any) => 
+                                    // Adjust filter logic if you want to show tokens with zero balance
+                                    item?.pubkey && 
+                                    item?.account?.data?.parsed?.info?.mint && 
+                                    Number(item.account.data?.parsed?.info?.tokenAmount?.amount) > 0
+                                )
+                                .sort((a: any, b: any) => 
+                                    Number(b.account.data?.parsed?.info?.tokenAmount?.amount) - 
+                                    Number(a.account.data?.parsed?.info?.tokenAmount?.amount)
+                                )
+                                .map((item: any) => (
+                                    <MenuItem key={`${govKey}-${item.pubkey}`} value={new PublicKey(item.pubkey).toBase58()}>
+                                        <Grid container alignItems="center">
+                                            <Grid item xs={12}>
+                                                <Grid container>
+                                                    <Grid item sm={8}>
+                                                    <Grid container direction="row" justifyContent="left" alignItems="left">
+                                                        {item.account?.tokenMap?.tokenName ? (
+                                                        <Grid container direction="row" alignItems="center">
+                                                            <Grid item>
+                                                            <Avatar 
+                                                                alt={item.account?.tokenMap?.tokenName || "Token"} 
+                                                                src={item.account?.tokenMap?.tokenLogo && item.account.tokenMap.tokenLogo} 
+                                                            />
+                                                            </Grid>
+                                                            <Grid item sx={{ ml: 1 }}>
+                                                            <Typography variant="h6">
+                                                                {item.account?.tokenMap?.tokenName || "Token"}
+                                                            </Typography>
+                                                            </Grid>
                                                         </Grid>
-                                                        <Grid item sx={{ ml: 1 }}>
-                                                        <Typography variant="h6">
-                                                            {item.account?.tokenMap?.tokenName || "Token"}
-                                                        </Typography>
-                                                        </Grid>
+                                                        ) : (
+                                                            <>-</>
+                                                        )}
                                                     </Grid>
-                                                    ) : (
-                                                        <>-</>
-                                                    )}
+                                                    </Grid>
+                                                    <Grid item xs sx={{ textAlign: 'right' }}>
+                                                    <Typography variant="h6">
+                                                        {(Number(item.account.data.parsed.info.tokenAmount.amount) / 
+                                                        10 ** item.account.data.parsed.info.tokenAmount.decimals
+                                                        ).toLocaleString()}
+                                                    </Typography>
+                                                    </Grid>
                                                 </Grid>
+                                                <Grid item xs={12} sx={{ textAlign: 'center', mt: -1 }}>
+                                                    <Typography variant="caption" sx={{ borderTop: '1px solid rgba(255,255,255,0.05)', pt: 1 }}>
+                                                    {shortenString(item.account.data.parsed.info.mint, 5, 5)}
+                                                    </Typography>
                                                 </Grid>
-                                                <Grid item xs sx={{ textAlign: 'right' }}>
-                                                <Typography variant="h6">
-                                                    {(Number(item.account.data.parsed.info.tokenAmount.amount) / 
-                                                    10 ** item.account.data.parsed.info.tokenAmount.decimals
-                                                    ).toLocaleString()}
-                                                </Typography>
-                                                </Grid>
-                                            </Grid>
-                                            <Grid item xs={12} sx={{ textAlign: 'center', mt: -1 }}>
-                                                <Typography variant="caption" sx={{ borderTop: '1px solid rgba(255,255,255,0.05)', pt: 1 }}>
-                                                {shortenString(item.account.data.parsed.info.mint, 5, 5)}
-                                                </Typography>
                                             </Grid>
                                         </Grid>
-                                    </Grid>
-                                </MenuItem>
-                            ))
-                        ))}
-                        
-                    {pluginType === 5 &&
-                        
-                        <MenuItem key={1} value={'So11111111111111111111111111111111111111112'} selected>
-                            <Grid container
-                                alignItems="center"
-                            >
-                                <Grid item sm={8}>
-                                    <Grid
-                                        container
-                                        direction="row"
-                                        justifyContent="left"
-                                        alignItems="left"
-                                    >
-
-                                        <Grid 
+                                    </MenuItem>
+                                ))
+                            ))}
+                            
+                        {pluginType === 5 &&
+                            
+                            <MenuItem key={1} value={'So11111111111111111111111111111111111111112'} selected>
+                                <Grid container
+                                    alignItems="center"
+                                >
+                                    <Grid item sm={8}>
+                                        <Grid
                                             container
-                                            alignItems="center"
+                                            direction="row"
+                                            justifyContent="left"
+                                            alignItems="left"
                                         >
-                                           <Grid item>
-                                                <Avatar alt='SOL' src='https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/So11111111111111111111111111111111111111112.png' />
-                                            </Grid>
-                                            <Grid item sx={{ml:1}}>
-                                                <Typography variant="h6">
-                                                SOL
-                                                </Typography>
+
+                                            <Grid 
+                                                container
+                                                alignItems="center"
+                                            >
+                                            <Grid item>
+                                                    <Avatar alt='SOL' src='https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/So11111111111111111111111111111111111111112.png' />
+                                                </Grid>
+                                                <Grid item sx={{ml:1}}>
+                                                    <Typography variant="h6">
+                                                    SOL
+                                                    </Typography>
+                                                </Grid>
                                             </Grid>
                                         </Grid>
                                     </Grid>
-                                </Grid>
-                                <Grid item xs sx={{textAlign:'right'}}>
-                                    <Typography variant="h6">
-                                        {/*item.vault?.nativeTreasury?.solBalance/(10 ** 9)*/}
+                                    <Grid item xs sx={{textAlign:'right'}}>
+                                        <Typography variant="h6">
+                                            {/*item.vault?.nativeTreasury?.solBalance/(10 ** 9)*/}
 
-                                        {(governanceWallet.solBalance/10 ** 9).toLocaleString()}
-                                    </Typography>
+                                            {(governanceWallet.solBalance/10 ** 9).toLocaleString()}
+                                        </Typography>
+                                    </Grid>
                                 </Grid>
-                            </Grid>
-                                    
-                        </MenuItem>
-                    }
-                    
-                </Select>
-              </FormControl>
+                                        
+                            </MenuItem>
+                        }
+                        
+                    </Select>
+                </FormControl>
+                }
             </Box>
           </>
         );
@@ -808,13 +813,15 @@ export default function TokenTransferView(props: any) {
     }
 
     async function fetchWalletHoldings(wallet:string){
-
-        const tmap = await getTokens(setTokenMap);
+        
+        if (!tokenMap){
+            const tmap = await getTokens(setTokenMap);
+            setTokenMap(tmap);
+        }
 
         let solBalance = 0;
 
         if (wallet === governanceWallet?.vault?.pubkey || wallet === governanceWallet?.nativeTreasuryAddress?.toBase58() || wallet === governanceWallet?.pubkey?.toBase58()){
-            
             
             console.log("wallet: "+wallet);
             if (governanceWallet?.vault?.pubkey)
@@ -874,7 +881,6 @@ export default function TokenTransferView(props: any) {
             solBalance: solBalance,
             tokens: itemsToAdd,
         }
-
         return walletObject;
     }
 
@@ -1079,8 +1085,34 @@ export default function TokenTransferView(props: any) {
             </FormControl>
             */}
             
-            {consolidatedGovernanceWallet &&
-                <TokenSelect />
+            {loadingWallet ? 
+                <>
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                        <Grid 
+                            container 
+                            alignItems="center" 
+                            justifyContent="center" 
+                            spacing={1}
+                            sx={{ textAlign: 'center' }}
+                        >
+                            <Grid item>
+                            <CircularProgress size="20px" />
+                            </Grid>
+                            <Grid item>
+                            <Typography variant="body1">Loading Tokens...</Typography>
+                            </Grid>
+                        </Grid>
+                    </FormControl>
+                </>
+            :
+            <>
+                {consolidatedGovernanceWallet ?
+                    <TokenSelect />
+                :
+                <>-</>
+                }
+                </>
+            
             }
             
             <FormControl fullWidth  sx={{mb:2}}>
