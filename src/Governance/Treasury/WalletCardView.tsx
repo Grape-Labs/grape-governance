@@ -482,7 +482,30 @@ export default function WalletCardView(props:any) {
 
       const getWalletNftBalance = async(tokenOwnerRecord: PublicKey) => {
         
-        if (SHYFT_KEY) {
+        if (HELIUS_API) {
+            try{
+                const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
+                const response = await fetch(uri, {
+                    method: 'POST',
+                    headers: {
+                    "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                    "jsonrpc": "2.0",
+                    "id": "text",
+                    "method": "getAssetsByOwner",
+                    "params": {
+                        ownerAddress: tokenOwnerRecord.toBase58(),
+                    }
+                    }),
+                });
+                const { result } = await response.json();
+                return result?.items;
+            } catch(err){
+                console.log("DAS: Err");
+                return null;
+            }
+        } else if (SHYFT_KEY) {
             try{
                 const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
                 
@@ -510,30 +533,7 @@ export default function WalletCardView(props:any) {
                 console.log("DAS: Err");
                 return null;
             }
-        } else if (HELIUS_API) {
-            try{
-                const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
-                const response = await fetch(uri, {
-                    method: 'POST',
-                    headers: {
-                    "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                    "jsonrpc": "2.0",
-                    "id": "text",
-                    "method": "getAssetsByOwner",
-                    "params": {
-                        ownerAddress: tokenOwnerRecord.toBase58(),
-                    }
-                    }),
-                });
-                const { result } = await response.json();
-                return result?.items;
-            } catch(err){
-                console.log("DAS: Err");
-                return null;
-            }
-        }
+        } 
     }
 
     const getWalletValue = async() => {
