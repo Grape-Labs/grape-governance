@@ -119,11 +119,17 @@ import {
 } from './CachedStorageHelpers'; 
 
 const CustomTextarea = styled(TextareaAutosize)(({ theme }) => ({
-  width: '100%', // Make it full width
-  backgroundColor: '#333', // Change the background color to dark
-  color: '#fff', // Change the text color to white or another suitable color
-  border: 'none', // Remove the border (optional)
-  padding: theme.spacing(1), // Add padding (optional)
+  width: '100%', // Keep full width
+  backgroundColor: '#333', // Dark background color
+  color: '#fff', // White text for contrast
+  border: '1px solid rgba(255, 255, 255, 0.2)', // Add a subtle border for clarity
+  padding: theme.spacing(0.5), // Reduce padding for a smaller appearance
+  fontSize: '12px', // Smaller font size for compactness
+  lineHeight: '1.4', // Adjust line height for tighter spacing
+  borderRadius: theme.shape.borderRadius, // Keep consistent border radius
+  resize: 'none', // Prevent manual resizing for consistency
+  outline: 'none', // Remove focus outline
+  boxSizing: 'border-box', // Ensure padding does not affect total width
 }));
 
 const enum GoverningTokenType {
