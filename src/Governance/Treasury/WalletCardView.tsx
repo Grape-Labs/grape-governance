@@ -184,6 +184,7 @@ export interface DialogTitleProps {
 export default function WalletCardView(props:any) {
     const [expanded, setExpanded] = React.useState(false);
     const [expandedNft, setExpandedNft] = React.useState(false);
+    const [expandedNFTs, setExpandedNFTs] = React.useState(false);
     const [expandedStake, setExpandedStake] = React.useState(false);
     const [expandedProps, setExpandedProps] = React.useState(false);
     const timer = React.useRef<number>();
@@ -482,8 +483,9 @@ export default function WalletCardView(props:any) {
       }
 
       const getWalletNftBalance = async(tokenOwnerRecord: PublicKey) => {
-        
-        if (QUICKNODE_RPC_ENDPOINT) {
+        let das_success = false;
+
+        if (!das_success && QUICKNODE_RPC_ENDPOINT) {
             try{
                 const uri = QUICKNODE_RPC_ENDPOINT;
                 
@@ -506,12 +508,14 @@ export default function WalletCardView(props:any) {
                 });
                 const { result } = await response.json();
                 //dasMeta = result.items;
+                das_success = true;
                 return result?.items;
             } catch(err){
                 console.log("DAS: Err");
-                return null;
+                das_success = false;
+                //return null;
             }
-        } else if (HELIUS_API) {
+        } else if (!das_success && HELIUS_API) {
             try{
                 const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
                 const response = await fetch(uri, {
@@ -529,12 +533,14 @@ export default function WalletCardView(props:any) {
                     }),
                 });
                 const { result } = await response.json();
+                das_success = true;
                 return result?.items;
             } catch(err){
                 console.log("DAS: Err");
-                return null;
+                das_success = false;
+                //return null;
             }
-        } else if (SHYFT_KEY) {
+        } else if (!das_success && SHYFT_KEY) {
             try{
                 const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
                 
@@ -557,12 +563,16 @@ export default function WalletCardView(props:any) {
                 });
                 const { result } = await response.json();
                 //dasMeta = result.items;
+                das_success = true;
                 return result?.items;
             } catch(err){
                 console.log("DAS: Err");
-                return null;
+                das_success = false;
+                //return null;
             }
         }
+        return null;
+        
     }
 
     const getWalletValue = async() => {
@@ -688,85 +698,302 @@ export default function WalletCardView(props:any) {
         setProposals(props);
     }
 
-    const getWalletBalances = async() =>{
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const getWalletBalances = async () => {
         setLoading(true);
         isLoading.current = true;
-        try{
-            // get total sol
+        try {
+            // Get total SOL balances
             const sol1 = await getWalletBalance(new PublicKey(walletAddress));
             const sol2 = await getWalletBalance(new PublicKey(rulesWalletAddress));
-            
-            // get total tokens
+
+            // Get total tokens
             const token1 = await getWalletAllTokenBalance(new PublicKey(walletAddress));
             const token2 = await getWalletAllTokenBalance(new PublicKey(rulesWalletAddress));
-            // consolidate tokens?
+            
+            // Consolidate tokens
             const tArray = ["So11111111111111111111111111111111111111112"];
-            
-            token1 && token1
-                .map((item: any,key:number) => ( 
-                    tArray.push(item.address)
-            ));
-            token2 && token2
-                .map((item: any,key:number) => ( 
-                    tArray.push(item.address)
-            ));
+            token1 &&
+                token1.map((item) => {
+                    tArray.push(item.address);
+                });
+            token2 &&
+                token2.map((item) => {
+                    tArray.push(item.address);
+                });
             setTokenMintArray(tArray);
-            
-            
-            // get nft balance
-            const nft1 = await getWalletNftBalance(new PublicKey(walletAddress));
-            const nft2 = await getWalletNftBalance(new PublicKey(rulesWalletAddress));
 
-            
-            // get stake accounts
-            //const stake1 = await getWalletStakeAccounts(new PublicKey(walletAddress));
-            //const stake2 = await getWalletStakeAccounts(new PublicKey(rulesWalletAddress));
-            
+            // Get NFT balances
+            //await sleep(1000); // Delay of 2 seconds
+            //const nft1 = await getWalletNftBalance(new PublicKey(walletAddress));
+            //await sleep(2000); // Delay of 2 seconds
+            //const nft2 = await getWalletNftBalance(new PublicKey(rulesWalletAddress));
+            //await sleep(2000); // Delay of 2 seconds
+            // Get stake accounts (if needed in the future)
+            // const stake1 = await getWalletStakeAccounts(new PublicKey(walletAddress));
+            // await sleep(2000); // Delay of 2 seconds
+            // const stake2 = await getWalletStakeAccounts(new PublicKey(rulesWalletAddress));
+
             getWalletProposals();
 
-            // put to unified array
+            // Populate unified arrays
             setNativeSol(sol1);
             setRulesSol(sol2);
-                
+
             setNativeTokens(token1);
             setRulesTokens(token2);
 
-            setNativeNftTokens(nft1);
-            setRulesNftTokens(nft2);
+            //setNativeNftTokens(nft1);
+            //setRulesNftTokens(nft2);
 
-            //setNativeStakeAccounts(stake1);
-            //setRulesStakeAccounts(stake2);
-                    
-            // unify tokens?
-            // think of how we can display them unified if needed
+            // setNativeStakeAccounts(stake1);
+            // setRulesStakeAccounts(stake2);
 
             const mWallet = {
                 nativeSol: sol1,
                 rulesSol: sol2,
                 nativeTokens: token1,
                 rulesTokens: token2,
-                nativeNftTokens: nft1,
-                rulesNftTokens: nft2,
-            }
+                nativeNftTokens: null,//nft1,
+                rulesNftTokens: null,//nft2,
+            };
             setMasterWallet(mWallet);
 
             setLoading(false);
             isLoading.current = false;
 
-            getAllWalletDomains(); // push this after loading
+            getAllWalletDomains(); // Push this after loading
         } catch (error) {
             // Handle errors
-        } 
-        finally {
+            console.error(error);
+        } finally {
             setLoading(false); // Ensure this is called in the finally block
             isLoading.current = false;
         }
-    }
+    };
 
     const fetchRealm = async() =>{
         const rlm = await getRealmIndexed(governanceAddress);
         if (rlm)
             setRealm(rlm);
+    }
+
+    const NFTAccountsView = () => {
+        const [loadingNFTs, setLoadingNFTs] = React.useState(false);
+        //const [nativeNFTs, setNativeStake] = React.useState(null);
+        const [viewNativeNftTokens, setViewNativeNftTokens] = React.useState(null);
+        const [viewRulesNftTokens, setViewRulesNftTokens] = React.useState(null);
+
+        const fetchNFTAccounts = async() =>{
+            setLoadingNFTs(true);
+            //isLoading.current = true;
+            try{
+               
+                // get stake accounts
+                const nft1 = await getWalletNftBalance(new PublicKey(walletAddress));
+                const nft2 = await getWalletNftBalance(new PublicKey(rulesWalletAddress));
+
+                //setNativeNftTokens(nft1);
+                //setRulesNftTokens(nft2);
+                setViewNativeNftTokens(nft1);
+                setViewRulesNftTokens(nft2);
+                setLoadingNFTs(false);
+            }catch(e){
+                setLoadingNFTs(false);
+            }
+        }
+
+        React.useEffect(() => { 
+            if (!loadingNFTs && !nativeNftTokens){
+                fetchNFTAccounts();
+            }
+        }, []);
+
+
+        return (
+            <>
+                {loadingNFTs ?
+                    <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2}}>
+                        <CircularProgress />        
+                    </Grid>
+                :
+                    <>
+                    {viewNativeNftTokens ?
+                        
+                        <List sx={{ width: '100%' }}>
+                            <Divider light>
+                                <Chip
+                                label={`Collectibles (${viewNativeNftTokens ? viewNativeNftTokens.length : 0}) - ${!showCompressed ? `Show All` : `Hide Compressed`}`}
+                                size="small"
+                                clickable
+                                onClick={() => setShowCompressed((prev) => !prev)}
+                                />
+                            </Divider>
+                            {viewNativeNftTokens &&
+                                viewNativeNftTokens
+                                .filter((item: any) => (showCompressed || !item.compression.compressed))
+                                .sort((a: any, b: any) => a.compression.compressed - b.compression.compressed)
+                                .map((item: any, key: number) => (
+                                    <>
+                                    <ListItem
+                                        secondaryAction={
+                                        <Box>
+                                            <IntegratedGovernanceProposalDialogView
+                                            governanceAddress={governanceAddress}
+                                            tokenMap={tokenMap}
+                                            intraDao={false}
+                                            realm={realm}
+                                            governanceRulesWallet={new PublicKey(rulesWalletAddress)}
+                                            governanceWallets={governanceWallets}
+                                            useButton={3}
+                                            useButtonText={1}
+                                            title="Send"
+                                            usePlugin={4}
+                                            />
+                                        </Box>
+                                        }
+                                        key={key}
+                                    >
+                                        <ListItemAvatar>
+                                        <Avatar src={item.content.links.image} />
+                                        </ListItemAvatar>
+                                        <ListItemText
+                                        primary={
+                                            <CopyToClipboard text={item.id} onCopy={handleCopy}>
+                                            <Button
+                                                color={'inherit'}
+                                                variant="text"
+                                                sx={{
+                                                m: 0,
+                                                p: 0,
+                                                '&:hover .MuiSvgIcon-root': { opacity: 1 },
+                                                }}
+                                                endIcon={
+                                                <FileCopyIcon
+                                                    fontSize={'small'}
+                                                    sx={{
+                                                    color: 'rgba(255,255,255,0.25)',
+                                                    pr: 1,
+                                                    opacity: 0,
+                                                    }}
+                                                />
+                                                }
+                                            >
+                                                <Typography variant="subtitle1" sx={{ color: 'white' }}>
+                                                {item.content.metadata.name}
+                                                </Typography>
+                                            </Button>
+                                            </CopyToClipboard>
+                                        }
+                                        secondary={
+                                            <>
+                                            {item.content.metadata.symbol}
+                                            {item.compression.compressed && <CompressIcon sx={{ fontSize: '11px', ml: 1 }} />}
+                                            </>
+                                        }
+                                        />
+                                    </ListItem>
+                                    <TokenExpandComponent item={item} type={1} />
+
+                                    {key + 1 < viewNativeNftTokens.length && <Divider variant="inset" component="li" light />}
+                                    </>
+                                ))}
+
+                            {viewRulesNftTokens && viewRulesNftTokens.length > 0 && (
+                                <Divider light>
+                                <Chip
+                                    label={`Rules Wallet Collectibles (${viewRulesNftTokens ? viewRulesNftTokens.length : 0})`}
+                                    size="small"
+                                    clickable
+                                    onClick={() => setShowCompressed((prev) => !prev)}
+                                />
+                                </Divider>
+                            )}
+
+                            {viewRulesNftTokens &&
+                                viewRulesNftTokens
+                                .filter((item: any) => (showCompressed || !item.compression.compressed))
+                                .sort((a: any, b: any) => a.compression.compressed - b.compression.compressed)
+                                .map((item: any, key: number) => (
+                                    <>
+                                    <ListItem
+                                        secondaryAction={
+                                        <Box>
+                                            <IntegratedGovernanceProposalDialogView
+                                            governanceAddress={governanceAddress}
+                                            tokenMap={tokenMap}
+                                            intraDao={false}
+                                            realm={realm}
+                                            governanceRulesWallet={new PublicKey(rulesWalletAddress)}
+                                            governanceWallets={governanceWallets}
+                                            useButton={3}
+                                            useButtonText={1}
+                                            title="Send"
+                                            usePlugin={4}
+                                            />
+                                        </Box>
+                                        }
+                                        key={key}
+                                    >
+                                        <ListItemAvatar>
+                                        <Avatar src={item.content.links.image} />
+                                        </ListItemAvatar>
+                                        <ListItemText
+                                        primary={
+                                            <CopyToClipboard text={item.id} onCopy={handleCopy}>
+                                            <Button
+                                                color={'inherit'}
+                                                variant="text"
+                                                sx={{
+                                                m: 0,
+                                                p: 0,
+                                                '&:hover .MuiSvgIcon-root': { opacity: 1 },
+                                                }}
+                                                endIcon={
+                                                <FileCopyIcon
+                                                    fontSize={'small'}
+                                                    sx={{
+                                                    color: 'rgba(255,255,255,0.25)',
+                                                    pr: 1,
+                                                    opacity: 0,
+                                                    }}
+                                                />
+                                                }
+                                            >
+                                                <Typography variant="subtitle1" sx={{ color: 'white' }}>
+                                                {item.content.metadata.name}
+                                                </Typography>
+                                            </Button>
+                                            </CopyToClipboard>
+                                        }
+                                        secondary={
+                                            <>
+                                            {item.content.metadata.symbol}
+                                            {item.compression.compressed && <CompressIcon sx={{ fontSize: '11px', ml: 1 }} />}
+                                            </>
+                                        }
+                                        />
+                                    </ListItem>
+                                    <TokenExpandComponent item={item} type={1} />
+
+                                    {key + 1 < viewRulesNftTokens.length && <Divider variant="inset" component="li" light />}
+                                    </>
+                                ))}
+                        </List>
+                            
+                    :<>
+                        <Grid container justifyContent={'center'} alignContent={'center'} sx={{mt:2}}>
+                            <Typography variant="caption" sx={{color:'#919EAB'}}>
+                                No NFT accounts for this address
+                            </Typography>
+                        </Grid>
+                    </>
+                    }
+                </>
+                }
+            </>
+        )
     }
 
     const StakeAccountsView = () => {
@@ -1002,6 +1229,9 @@ export default function WalletCardView(props:any) {
 
     const handleExpandNftClick = () => {
         setExpandedNft(!expandedNft);
+    }
+    const handleExpandNFTsClick = () => {
+        setExpandedNFTs(!expandedNFTs);
     }
 
     const handleExpandStakeClick = () => {
@@ -2437,7 +2667,22 @@ export default function WalletCardView(props:any) {
                 </Tooltip>
             }
 
-            {((nativeNftTokens && nativeNftTokens.length > 0) || (rulesNftTokens && rulesNftTokens.length > 0 )) &&
+            {!isLoading.current &&
+                <Tooltip title="Show NFT Accounts">
+                    <Badge color="primary" max={999}>
+                        <IconButton 
+                            onClick={handleExpandNFTsClick}
+                            aria-expanded={expandedNFTs}
+                            aria-label="Stake Accounts"
+                            color={expandedNFTs ? 'inherit' : 'rgba(145, 158, 171, 0.8)'}
+                        >
+                            <GridViewIcon />
+                        </IconButton>
+                    </Badge>
+                </Tooltip>
+            }
+
+            {/*((nativeNftTokens && nativeNftTokens.length > 0) || (rulesNftTokens && rulesNftTokens.length > 0 )) &&
                 <Tooltip title="Show NFTs">
                     <Badge color="primary" badgeContent={nativeNftTokens?.length + rulesNftTokens?.length} max={999}>
                         <IconButton 
@@ -2451,7 +2696,7 @@ export default function WalletCardView(props:any) {
                         </IconButton>
                     </Badge>
                 </Tooltip>
-            }
+            */}
             <Grid container justifyContent={'right'} sx={{mr:1}}>
                 {((nativeTokens && nativeTokens.length > 0) || (rulesTokens && rulesTokens.length > 0)) &&
                 <>
@@ -2845,6 +3090,17 @@ export default function WalletCardView(props:any) {
             </CardContent>
         </Collapse>
 
+        <Collapse in={expandedNFTs} timeout="auto" unmountOnExit>
+            <CardContent sx={{ p:0 }}>
+                <List sx={{ width: '100%' }}>
+                    <Divider light>
+                        <Chip label="NFTs" size="small" />
+                    </Divider>
+                    <NFTAccountsView />
+                </List>
+            </CardContent>
+        </Collapse>
+
         <Collapse in={expandedProps} timeout="auto" unmountOnExit>
             <CardContent sx={{ p:0 }}>
                 <List sx={{ width: '100%' }}>
@@ -2868,7 +3124,7 @@ export default function WalletCardView(props:any) {
                 </List>
             </CardContent>
         </Collapse>
-        
+        {/*
         <Collapse in={expandedNft} timeout="auto" unmountOnExit>
             <CardContent sx={{ p: 0 }}>
                 <List sx={{ width: '100%' }}>
@@ -3033,6 +3289,7 @@ export default function WalletCardView(props:any) {
                 </List>
             </CardContent>
         </Collapse>
+        */}
         
         <BootstrapDialog
             onClose={handleCloseDialog}
