@@ -2035,7 +2035,7 @@ export default function GovernanceCreateProposalView(props: any){
 
                             {proposalType === 10 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <CloseTokenView payerWallet={publicKey} governanceWallet={governanceWallet} setInstructionsObject={setInstructionsObject} />
+                                <CloseTokenView tokenMap={tokenMap} payerWallet={publicKey} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
 

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
+import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionMessage, TransactionInstruction } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, 
     createTransferInstruction,
     getMint } from "@solana/spl-token-v2";
@@ -110,11 +110,17 @@ const confettiConfig = {
 };
 
 const CustomTextarea = styled(TextareaAutosize)(({ theme }) => ({
-    width: '100%', // Make it full width
-    backgroundColor: '#333', // Change the background color to dark
-    color: '#fff', // Change the text color to white or another suitable color
-    border: 'none', // Remove the border (optional)
-    padding: theme.spacing(1), // Add padding (optional)
+    width: '100%', // Keep full width
+    backgroundColor: '#333', // Dark background color
+    color: '#fff', // White text for contrast
+    border: '1px solid rgba(255, 255, 255, 0.2)', // Add a subtle border for clarity
+    padding: theme.spacing(0.5), // Reduce padding for a smaller appearance
+    fontSize: '12px', // Smaller font size for compactness
+    lineHeight: '1.4', // Adjust line height for tighter spacing
+    borderRadius: theme.shape.borderRadius, // Keep consistent border radius
+    resize: 'none', // Prevent manual resizing for consistency
+    outline: 'none', // Remove focus outline
+    boxSizing: 'border-box', // Ensure padding does not affect total width
 }));
 
 export default function TokenTransferView(props: any) {
@@ -145,6 +151,7 @@ export default function TokenTransferView(props: any) {
     const [loadingWallet, setLoadingWallet] = React.useState(false);
     const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const [tokenAmountStr, setTokenAmountStr] = React.useState(null);
+    const [simulationResults, setSimulationResults] = React.useState(null);
     
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
@@ -208,6 +215,40 @@ export default function TokenTransferView(props: any) {
         objectToken[token.mint] = token;
     }); 
 
+    const simulateIx = async (transactionIx: Transaction): Promise<boolean> => {
+        try {
+            // Fetch the latest blockhash
+            const { blockhash } = await connection.getLatestBlockhash();
+            
+            // Create a VersionedTransaction using the prepared instructions
+            const message = new TransactionMessage({
+                payerKey: new PublicKey(fromAddress),
+                recentBlockhash: blockhash,
+                instructions: transactionIx.instructions,
+            }).compileToV0Message();
+            
+            const transaction = new VersionedTransaction(message);
+    
+            // Simulate the transaction
+            const simulationResult = await connection.simulateTransaction(transaction);
+            setSimulationResults(simulationResult.value.logs);
+            // Analyze the result
+            if (simulationResult.value.err) {
+                console.error("Simulation failed with error:", simulationResult.value.err);
+                console.log("Logs:", simulationResult.value.logs);
+                return false; // Indicate failure
+            }
+
+            console.log("Simulation successful. Logs:", simulationResult.value.logs);
+            return true; // Indicate success
+        } catch (error) {
+            setSimulationResults(error);
+            console.error("Error simulating transaction:", error);
+            return false; // Indicate failure due to error
+        }
+    };
+
+
     async function transferTokens() {
         //const payerWallet = new PublicKey(payerAddress);
         //const fromWallet = new PublicKey(fromAddress);
@@ -259,7 +300,7 @@ export default function TokenTransferView(props: any) {
             }
 
             setTransactionInstructions(transaction);
-            
+            const status =  await simulateIx(transaction);
             // Estimate the transaction fee
             try{
                 /*
@@ -342,7 +383,7 @@ export default function TokenTransferView(props: any) {
                 
                 setPayerInstructions(pTransaction);
                 setTransactionInstructions(transaction);
-                
+                const status =  await simulateIx(transaction);
                 return transaction;
             } catch(err){
                 console.log("GEN ERR: "+JSON.stringify(err));
@@ -1444,6 +1485,24 @@ export default function TokenTransferView(props: any) {
                     </Box>
 
                 }
+            {simulationResults && 
+                <Box
+                    sx={{ m:2,
+                        background: 'rgba(0, 0, 0, 0.2)',
+                        borderRadius: '17px',
+                        overflow: 'hidden',
+                        p:4
+                    }}
+                >
+                    <Typography variant="h6">Simulation</Typography>
+                
+                    <CustomTextarea
+                        minRows={6}
+                        value={JSON.stringify(simulationResults)}
+                        readOnly
+                    />
+                </Box>
+            }
 
             <Grid sx={{textAlign:'right'}}>
             <Button 
