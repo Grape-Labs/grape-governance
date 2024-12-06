@@ -215,37 +215,46 @@ export default function TokenTransferView(props: any) {
         objectToken[token.mint] = token;
     }); 
 
-    const simulateIx = async (transactionIx: Transaction): Promise<boolean> => {
+    const simulateIx = async (transactionIxs: TransactionInstruction[]): Promise<boolean> => {
         try {
-            // Fetch the latest blockhash
             const { blockhash } = await connection.getLatestBlockhash();
-            
-            // Create a VersionedTransaction using the prepared instructions
-            const message = new TransactionMessage({
-                payerKey: new PublicKey(fromAddress),
-                recentBlockhash: blockhash,
-                instructions: transactionIx.instructions,
-            }).compileToV0Message();
-            
-            const transaction = new VersionedTransaction(message);
+            const payerKey = new PublicKey(fromAddress);
     
-            // Simulate the transaction
-            const simulationResult = await connection.simulateTransaction(transaction);
-            setSimulationResults(simulationResult.value.logs);
-            // Analyze the result
-            if (simulationResult.value.err) {
-                console.error("Simulation failed with error:", simulationResult.value.err);
-                console.log("Logs:", simulationResult.value.logs);
-                return false; // Indicate failure
+            for (const instructionChunk of chunkInstructions(transactionIxs, 10)) { // Adjust chunk size as needed
+                const message = new TransactionMessage({
+                    payerKey,
+                    recentBlockhash: blockhash,
+                    instructions: instructionChunk,
+                }).compileToV0Message();
+    
+                const transaction = new VersionedTransaction(message);
+    
+                // Simulate the chunk
+                const simulationResult = await connection.simulateTransaction(transaction);
+                setSimulationResults(simulationResult.value.logs);
+    
+                if (simulationResult.value.err) {
+                    console.error("Chunk simulation failed with error:", simulationResult.value.err);
+                    return false;
+                }
+    
+                console.log("Chunk simulation successful.");
             }
-
-            console.log("Simulation successful. Logs:", simulationResult.value.logs);
-            return true; // Indicate success
+    
+            return true;
         } catch (error) {
-            setSimulationResults(error);
-            console.error("Error simulating transaction:", error);
-            return false; // Indicate failure due to error
+            console.error("Error simulating large transaction:", error);
+            return false;
         }
+    };
+    
+    // Helper function to split instructions into chunks
+    const chunkInstructions = (instructions: TransactionInstruction[], chunkSize: number) => {
+        const chunks = [];
+        for (let i = 0; i < instructions.length; i += chunkSize) {
+            chunks.push(instructions.slice(i, i + chunkSize));
+        }
+        return chunks;
     };
 
 
@@ -1450,18 +1459,18 @@ export default function TokenTransferView(props: any) {
                 
                 {transactionInstructions && 
                     <Box
-                        sx={{ m:2,
+                        sx={{ m:1,
                             background: 'rgba(0, 0, 0, 0.2)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:4
+                            p:2
                         }}
                     >
                         <Typography variant="h6">Transaction Instructions</Typography>
                     
                         <CustomTextarea
                             minRows={6}
-                            value={JSON.stringify(transactionInstructions)}
+                            value={JSON.stringify(transactionInstructions, null, 2)}
                             readOnly
                         /><br/>
                         {/*
@@ -1487,18 +1496,18 @@ export default function TokenTransferView(props: any) {
                 }
             {simulationResults && 
                 <Box
-                    sx={{ m:2,
+                    sx={{ m:1,
                         background: 'rgba(0, 0, 0, 0.2)',
                         borderRadius: '17px',
                         overflow: 'hidden',
-                        p:4
+                        p:2
                     }}
                 >
                     <Typography variant="h6">Simulation</Typography>
                 
                     <CustomTextarea
                         minRows={6}
-                        value={JSON.stringify(simulationResults)}
+                        value={JSON.stringify(simulationResults, null, 2)}
                         readOnly
                     />
                 </Box>

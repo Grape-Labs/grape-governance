@@ -932,18 +932,18 @@ export default function TokenTransferView(props: any) {
                 
                 {transactionInstructions && 
                     <Box
-                        sx={{ m:2,
+                        sx={{ m:1,
                             background: 'rgba(0, 0, 0, 0.2)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:4
+                            p:2
                         }}
                     >
                         <Typography variant="h6">Transaction Instructions</Typography>
                     
                         <CustomTextarea
                             minRows={6}
-                            value={JSON.stringify(transactionInstructions)}
+                            value={JSON.stringify(transactionInstructions, null, 2)}
                             readOnly
                         /><br/>
                         {/*
@@ -970,18 +970,18 @@ export default function TokenTransferView(props: any) {
 
                 {simulationResults && 
                     <Box
-                        sx={{ m:2,
+                        sx={{ m:1,
                             background: 'rgba(0, 0, 0, 0.2)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:4
+                            p:2
                         }}
                     >
                         <Typography variant="h6">Simulation</Typography>
                     
                         <CustomTextarea
                             minRows={6}
-                            value={JSON.stringify(simulationResults)}
+                            value={JSON.stringify(simulationResults, null, 2)}
                             readOnly
                         />
                     </Box>
