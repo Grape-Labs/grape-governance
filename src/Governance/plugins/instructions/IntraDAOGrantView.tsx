@@ -1738,11 +1738,11 @@ export default function IntraDAOGrantView(props: any) {
                 
                 {transactionInstructions && 
                     <Box
-                        sx={{ m:1,
+                        sx={{ m:2,
                             background: 'rgba(0, 0, 0, 0.2)',
                             borderRadius: '17px',
                             overflow: 'hidden',
-                            p:1
+                            p:4
                         }}
                     >
                         <Typography variant="h6">Transaction Instructions</Typography>
