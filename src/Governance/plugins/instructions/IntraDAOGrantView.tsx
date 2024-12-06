@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction, TransactionMessage } from '@solana/web3.js';
+import { ComputeBudgetProgram, Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction, TransactionMessage } from '@solana/web3.js';
 import { 
     TOKEN_PROGRAM_ID, 
     ASSOCIATED_TOKEN_PROGRAM_ID, 
@@ -119,6 +119,10 @@ const CustomTextarea = styled(TextareaAutosize)(({ theme }) => ({
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
     'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
 );
+
+const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
+    units: 1_000_000, // Adjust based on your needs
+});
 
 export default function IntraDAOGrantView(props: any) {
     const governanceAddress = props?.governanceAddress;
@@ -449,7 +453,7 @@ export default function IntraDAOGrantView(props: any) {
             }
 
             
-
+            transaction.instructions.unshift(computeBudgetIx); // Add it at the beginning
             setTransactionInstructions(transaction);
             const status =  await simulateIx(transaction);
             setLoadingInstructions(false);

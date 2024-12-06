@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionMessage, TransactionInstruction } from '@solana/web3.js';
+import { ComputeBudgetProgram, Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionMessage, TransactionInstruction } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, 
     createTransferInstruction,
     getMint } from "@solana/spl-token-v2";
@@ -123,6 +123,10 @@ const CustomTextarea = styled(TextareaAutosize)(({ theme }) => ({
     boxSizing: 'border-box', // Ensure padding does not affect total width
 }));
 
+const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
+    units: 1_000_000, // Adjust based on your needs
+});
+
 export default function TokenTransferView(props: any) {
     const governanceAddress = props?.governanceAddress;
     const governanceLookup = props?.governanceLookup;
@@ -220,7 +224,7 @@ export default function TokenTransferView(props: any) {
             const { blockhash } = await connection.getLatestBlockhash();
             const payerKey = new PublicKey(fromAddress);
             const transactionIxs: TransactionInstruction[] = transaction.instructions;
-            
+
             for (const instructionChunk of chunkInstructions(transactionIxs, 10)) { // Adjust chunk size as needed
                 const message = new TransactionMessage({
                     payerKey,
@@ -308,7 +312,7 @@ export default function TokenTransferView(props: any) {
                     })
                 );
             }
-
+            
             setTransactionInstructions(transaction);
             const status =  await simulateIx(transaction);
             // Estimate the transaction fee
@@ -392,6 +396,7 @@ export default function TokenTransferView(props: any) {
                 }
                 
                 setPayerInstructions(pTransaction);
+                transaction.instructions.unshift(computeBudgetIx); // Add it at the beginning
                 setTransactionInstructions(transaction);
                 const status =  await simulateIx(transaction);
                 return transaction;
