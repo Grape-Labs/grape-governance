@@ -213,11 +213,11 @@ export default function IntraDAOGrantView(props: any) {
 
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
-    const simulateIx = async (transactionIxs: TransactionInstruction[]): Promise<boolean> => {
+    const simulateIx = async (transaction: Transaction): Promise<boolean> => {
         try {
             const { blockhash } = await connection.getLatestBlockhash();
             const payerKey = new PublicKey(fromAddress);
-    
+            const transactionIxs: TransactionInstruction[] = transaction.instructions;
             for (const instructionChunk of chunkInstructions(transactionIxs, 10)) { // Adjust chunk size as needed
                 const message = new TransactionMessage({
                     payerKey,
