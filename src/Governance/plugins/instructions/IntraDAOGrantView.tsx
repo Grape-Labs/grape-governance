@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction, TransactionMessage } from '@solana/web3.js';
+import { ComputeBudgetProgram, Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction, TransactionMessage } from '@solana/web3.js';
 import { 
     TOKEN_PROGRAM_ID, 
     ASSOCIATED_TOKEN_PROGRAM_ID, 
@@ -120,6 +120,10 @@ const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
     'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
 );
 
+const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
+    units: 1_000_000, // Adjust based on your needs
+});
+
 export default function IntraDAOGrantView(props: any) {
     const governanceAddress = props?.governanceAddress;
     const [governanceRulesWallet, setGovernanceRulesWallet] = React.useState(props?.governanceRulesWallet);
@@ -213,11 +217,11 @@ export default function IntraDAOGrantView(props: any) {
 
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
-    const simulateIx = async (transactionIxs: TransactionInstruction[]): Promise<boolean> => {
+    const simulateIx = async (transaction: Transaction): Promise<boolean> => {
         try {
             const { blockhash } = await connection.getLatestBlockhash();
             const payerKey = new PublicKey(fromAddress);
-    
+            const transactionIxs: TransactionInstruction[] = transaction.instructions;
             for (const instructionChunk of chunkInstructions(transactionIxs, 10)) { // Adjust chunk size as needed
                 const message = new TransactionMessage({
                     payerKey,
@@ -449,7 +453,7 @@ export default function IntraDAOGrantView(props: any) {
             }
 
             
-
+            transaction.instructions.unshift(computeBudgetIx); // Add it at the beginning
             setTransactionInstructions(transaction);
             const status =  await simulateIx(transaction);
             setLoadingInstructions(false);
