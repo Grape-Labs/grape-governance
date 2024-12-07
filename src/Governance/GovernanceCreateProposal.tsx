@@ -1123,7 +1123,7 @@ export default function GovernanceCreateProposalView(props: any){
                                       </Grid>
                                       <Grid item xs sx={{textAlign:'right'}}>
                                         <Typography variant="caption">
-                                          {(item.vault?.nativeTreasury?.solBalance/(10 ** 9)).toFixed(2)} SOL 
+                                          {(item.vault?.nativeTreasury?.solBalance/(10 ** 9)).toFixed(2)} SOL
                                           {item.vault?.nativeTreasury?.tokens?.value.map((item:any, index:number) => (
                                             <>
                                             {(item.account.data.parsed.info.mint === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" &&

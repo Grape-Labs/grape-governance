@@ -3020,6 +3020,8 @@ export function GovernanceProposalV2View(props: any){
                                                                     <Typography gutterBottom variant="body1" component="div">
                                                                         <ExplorerView 
                                                                             address={governanceNativeWallet && governanceNativeWallet.toBase58()}
+                                                                            governance={thisitem.account.governance && thisitem.account.governance.toBase58()}
+                                                                            dao={governanceAddress && new PublicKey(governanceAddress).toBase58()}
                                                                             type='address' 
                                                                             shorten={4} 
                                                                             hideTitle={false} 
