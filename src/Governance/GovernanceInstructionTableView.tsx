@@ -529,7 +529,7 @@ export function InstructionTableView(props: any) {
             });
             tx.push(transactionInstruction);
         }
-
+        
         const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('confirmed');
         const messageV0 = new TransactionMessage({
             payerKey: new PublicKey(governanceNativeWallet || governanceRulesWallet), //publicKey, // consider using the governance native wallet here
