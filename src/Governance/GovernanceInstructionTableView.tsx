@@ -215,7 +215,7 @@ export function InstructionTableView(props: any) {
             <CircularProgress sx={{ padding: '10px' }} />
         );
         enqueueSnackbar(`Sending Transaction Chunks ${instructionChunks.length}`, { variant: 'info', action: snackprogress });
-    
+        
         for (const [index, chunk] of instructionChunks.entries()) {
             console.log(`Sending chunk ${index + 1} of ${instructionChunks.length}`);
             
@@ -225,7 +225,7 @@ export function InstructionTableView(props: any) {
             const baseMicroLamportsPerUnit = 5000;
             const validatorTip = 0;
             const totalPriorityFee = calculatePriorityFee(estimatedComputeUnits, baseMicroLamportsPerUnit);
-    
+            
             const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
                 microLamports: baseMicroLamportsPerUnit + validatorTip,
             });
@@ -233,7 +233,7 @@ export function InstructionTableView(props: any) {
             const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
                 units: estimatedComputeUnits,
             });
-    
+            
             const allInstructions = [
                 priorityFeeInstruction,
                 computeUnitLimitInstruction,
@@ -246,7 +246,7 @@ export function InstructionTableView(props: any) {
             }).compileToV0Message();
     
             const transaction = new VersionedTransaction(messageV0);
-    
+
             // Send each transaction
             const txid = await sendTransaction(transaction, RPC_CONNECTION, {
                 skipPreflight: true,
@@ -529,7 +529,7 @@ export function InstructionTableView(props: any) {
             });
             tx.push(transactionInstruction);
         }
-        
+
         const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('confirmed');
         const messageV0 = new TransactionMessage({
             payerKey: new PublicKey(governanceNativeWallet || governanceRulesWallet), //publicKey, // consider using the governance native wallet here

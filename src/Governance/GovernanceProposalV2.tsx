@@ -938,12 +938,10 @@ export function GovernanceProposalV2View(props: any){
                                             
                                             if (gai){
                                                 // get token metadata
-                                                
-
                                                 console.log("gai: "+JSON.stringify(gai))
 
-                                                //const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai?.data?.parsed?.info?.mint}`;
-                                                /*
+                                                const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai?.data?.parsed?.info?.mint}`;
+                                                
                                                 const meta = axios.get(uri, {
                                                     headers: {
                                                         'x-api-key': SHYFT_KEY
@@ -961,7 +959,6 @@ export function GovernanceProposalV2View(props: any){
                                                         console.error(error);
                                                         //return null;
                                                     });
-                                                */
 
                                                 //setInstructionRecord(gai.value);
                                                 let newObject = null;
@@ -980,14 +977,14 @@ export function GovernanceProposalV2View(props: any){
                                                         ? adjustedAmount.toLocaleString() // No decimals, just format as integer
                                                         : adjustedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
-                                                    let symbol = `${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
-                                                ;
+                                                    let symbol = null;//`${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
                                                     let tname = null;
                                                     let logo = null;    
                                                     
                                                     if (tokenMap){
-                                                        const tmap = tokenMap.get(gai?.data.parsed.info.mint);
+                                                        const tmap = tokenMap.get(new PublicKey(gai?.data.parsed.info.mint).toBase58());
                                                         if (tmap){
+                                                            console.log("tmap: "+JSON.stringify(tmap))
                                                             if (!tname)
                                                                 tname = tmap?.name;
                                                             if (!symbol)
@@ -996,8 +993,10 @@ export function GovernanceProposalV2View(props: any){
                                                                 logo = tmap?.logoURI;
                                                         }
                                                     }
-                                                    
-                                                        //console.log("accountInstruction: "+JSON.stringify(accountInstruction));
+
+                                                    if (!symbol)
+                                                        symbol = `${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
+
                                                     newObject = {
                                                         type:"TokenTransfer",
                                                         pubkey: accountInstruction.accounts[0].pubkey,
@@ -1272,6 +1271,9 @@ export function GovernanceProposalV2View(props: any){
                                                                 }
                                                             }
 
+                                                            if (!symbol)
+                                                                symbol = `${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
+                                                            
                                                             destinationAta = accountInstruction?.accounts[3].pubkey;
                                                             console.log("Grant "+amount+" "+tname+" to "+accountInstruction?.accounts[3].pubkey.toBase58());
                                                             description = "Grant "+amount+" "+tname+" to "+accountInstruction?.accounts[3].pubkey.toBase58();
