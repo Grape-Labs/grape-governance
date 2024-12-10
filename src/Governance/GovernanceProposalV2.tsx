@@ -917,14 +917,13 @@ export function GovernanceProposalV2View(props: any){
                                     }
                                 }
 
+
                                 for (var accountInstruction of instructionItem.account.instructions){
                                     //if (instructionItem?.account?.instructions[0].data && instructionItem.account.instructions[0].data.length > 0){
                                         const typeOfInstruction = accountInstruction.data[0];
                                         //console.log("instructionDetails "+JSON.stringify(instructionDetails))
                                         const programId = new PublicKey(instructionItem?.account?.instructions[0].programId).toBase58();
                                         const instructionInfo = InstructionMapping?.[programId]?.[typeOfInstruction];
-                                        
-                                        //console.log("typeOfInstruction "+JSON.stringify(typeOfInstruction))
                                         
                                         if (programId === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"){//(instructionInfo?.name === "Token Transfer"){
 
@@ -940,6 +939,9 @@ export function GovernanceProposalV2View(props: any){
                                             if (gai){
                                                 // get token metadata
                                                 
+
+                                                console.log("gai: "+JSON.stringify(gai))
+
                                                 //const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai?.data?.parsed?.info?.mint}`;
                                                 /*
                                                 const meta = axios.get(uri, {
@@ -978,7 +980,8 @@ export function GovernanceProposalV2View(props: any){
                                                         ? adjustedAmount.toLocaleString() // No decimals, just format as integer
                                                         : adjustedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
-                                                    let symbol = null;
+                                                    let symbol = `${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
+                                                ;
                                                     let tname = null;
                                                     let logo = null;    
                                                     
@@ -989,8 +992,6 @@ export function GovernanceProposalV2View(props: any){
                                                                 tname = tmap?.name;
                                                             if (!symbol)
                                                                 symbol = tmap?.symbol;
-                                                            else
-                                                                symbol =`${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
                                                             if (!logo)
                                                                 logo = tmap?.logoURI;
                                                         }
@@ -1025,7 +1026,7 @@ export function GovernanceProposalV2View(props: any){
                                                 }
                                                 
                                             }
-                                        } else if (programId === "11111111111111111111111111111111"){//(instructionInfo?.name === "Token Transfer"){
+                                        } else if (programId === "11111111111111111111111111111111"){// SOL Transfer
 
                                             // check if we have this in gai
                                             let gai = null;
@@ -1037,29 +1038,7 @@ export function GovernanceProposalV2View(props: any){
                                                 gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
                                             
                                             if (gai){
-                                                // get token metadata
                                                 
-                                                //const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai.data.parsed.info.mint}`;
-                                                /*
-                                                const meta = axios.get(uri, {
-                                                    headers: {
-                                                        'x-api-key': SHYFT_KEY
-                                                    }
-                                                    })
-                                                    .then(response => {
-                                                        if (response.data?.result){
-                                                            return response.data.result;
-                                                        }
-                                                        //return null
-                                                    })
-                                                    .catch(error => 
-                                                    {   
-                                                        // revert to RPC
-                                                        console.error(error);
-                                                        //return null;
-                                                    });
-                                                */
-
                                                 console.log("SOL IX: "+JSON.stringify(accountInstruction));
 
                                                 //setInstructionRecord(gai.value);
@@ -1068,7 +1047,6 @@ export function GovernanceProposalV2View(props: any){
                                                     
                                                     const amountBuffer = accountInstruction?.data.slice(4, 12);
                                                     const amountBN = new BN(amountBuffer, 'le');
-                                                    //const amountBN = new BN(accountInstruction?.data?.slice(1), 'le');
                                                     const lamports = amountBN.toNumber();
                                                     console.log("Lamports: ",lamports);
                                                     // Convert lamports to SOL (1 SOL = 1,000,000,000 lamports)
@@ -1076,7 +1054,6 @@ export function GovernanceProposalV2View(props: any){
                                                     let amount = (solAmount % 1 === 0)
                                                         ? solAmount.toLocaleString() // No decimals, just format as integer
                                                         : solAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
-
 
                                                     let symbol = "SOL";
                                                     newObject = {

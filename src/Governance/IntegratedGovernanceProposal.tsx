@@ -198,13 +198,22 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                 open={open} onClose={handleClose}
                 PaperProps={{
                     style: {
-                        p:0,
+                        //p:0,
                         background: '#13151C',
                         border: '1px solid rgba(255,255,255,0.05)',
                         borderTop: '1px solid rgba(255,255,255,0.1)',
                         borderRadius: '20px'
                     }
                     }}
+                disableEscapeKeyDown
+                disableAutoFocus
+                disableEnforceFocus
+                disableRestoreFocus
+                onKeyDown={(e) => {
+                    if (e.key === 'Tab') {
+                        e.preventDefault(); // Prevent dialog from closing
+                    }
+                }}
                 >
                 <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog}>
                     {title} {editProposalAddress && editProposalAddress.toBase58()}
