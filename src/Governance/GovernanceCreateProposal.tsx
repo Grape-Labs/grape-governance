@@ -1708,7 +1708,7 @@ export default function GovernanceCreateProposalView(props: any){
                   </WalletDialogProvider>
                 }
               <p>
-              <Typography variant='h5'>Connect your wallet to use the Governance Proposal Builder</Typography>
+                <Typography variant='h5'>Connect your wallet to use the Governance Proposal Builder</Typography>
               </p>
             </Box>
           </>
@@ -1743,6 +1743,12 @@ export default function GovernanceCreateProposalView(props: any){
                       overflow: 'hidden',
                       p:{ sm: fromDialog ? 1 : 4 }
                   }} 
+                  tabIndex={0} // Ensure Box is focusable
+                  onKeyDown={(e) => {
+                      if (e.key === 'Tab') {
+                          e.preventDefault(); // Prevent dialog from closing
+                      }
+                  }}
                 > 
 
               {(!verified) ?
@@ -1902,6 +1908,7 @@ export default function GovernanceCreateProposalView(props: any){
                                     label="Title" 
                                     id="fullWidth"
                                     value={title || ""}
+                                    tabIndex={1} // Ensure Box is focusable
                                     onFocus={() => console.log("Title Field focused")}
                                     onBlur={() => console.log("Title Field blurred")}
                                     onKeyDown={(e) => {
@@ -1932,6 +1939,7 @@ export default function GovernanceCreateProposalView(props: any){
                                     rows={4}
                                     //maxRows={4}
                                     value={description || ""}
+                                    tabIndex={2} // Ensure Box is focusable
                                     onFocus={() => console.log("Description Field focused")}
                                     onBlur={() => console.log("Description Field blurred")}
                                     onKeyDown={(e) => {
