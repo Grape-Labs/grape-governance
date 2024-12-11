@@ -712,8 +712,6 @@ export default function SendExtensionView(props: any){
                                 startAdornment: 
                                 <InputAdornment position="start" sx={{ maxWidth:'50%',height:'none' }}>
                                     <FormControl sx={{ m: 1,mt:-1, minWidth: 120 }} size="small">
-                                            {console.log("tokenSelected: "+JSON.stringify(tokenSelected))}
-                                            {console.log("masterWallet: "+JSON.stringify(masterWallet))}
                                             
                                             <Select
                                                 labelId="master-wallet"

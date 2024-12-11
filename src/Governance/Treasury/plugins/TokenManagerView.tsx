@@ -466,15 +466,6 @@ export default function TokenManagerView(props) {
                 );
                 ixSigners.push(mintKeypair);
 
-                /*
-                const meSigner = mintPublicKey.toBase58();
-                for (var instruction of transaction.instructions){
-                    for (var key of instruction.keys){
-                        if (key.pubkey.toBase58() === meSigner){
-                            key.isSigner = false;
-                        }
-                    }
-                }*/
 
                 console.log("1. Create Token Mint Ix Account");
                 /*
@@ -654,6 +645,8 @@ export default function TokenManagerView(props) {
                     governingMint:governingMint,
                     draft: isDraft,
                 };
+
+                console.log("passing siogner: "+JSON.stringify(ixSigners));
 
                 const isSimulationSuccessful = await simulateCreateTokenIx(transaction);
 
