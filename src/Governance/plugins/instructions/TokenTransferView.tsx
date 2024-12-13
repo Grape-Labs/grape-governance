@@ -397,8 +397,11 @@ export default function TokenTransferView(props: any) {
                 
                 setPayerInstructions(pTransaction);
                 setTransactionInstructions(transaction);
-                transaction.instructions.unshift(computeBudgetIx); // Add it at the beginning
-                const status =  await simulateIx(transaction);
+                
+                const newTx = new Transaction();
+                newTx.add(transaction);
+                newTx.instructions.unshift(computeBudgetIx); // Add it at the beginning
+                const status =  await simulateIx(newTx);
                 return transaction;
             } catch(err){
                 console.log("GEN ERR: "+JSON.stringify(err));
