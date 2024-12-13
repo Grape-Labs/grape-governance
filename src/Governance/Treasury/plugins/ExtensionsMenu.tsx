@@ -141,6 +141,7 @@ export default function ExtensionsMenuView(props: any) {
             masterWallet={masterWallet}
             usdcValue={usdcValue}
         />
+        {governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' &&
         <TokenManagerView
             realm={realm}
             handleCloseExtMenu={handleClose}
@@ -151,6 +152,7 @@ export default function ExtensionsMenuView(props: any) {
             instructions={instructions}
             setInstructions={setInstructions}
         />
+        }
         {governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' &&
           <JupDcaExtensionView
               realm={realm}

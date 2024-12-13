@@ -939,7 +939,7 @@ export function GovernanceProposalV2View(props: any){
                                             if (gai){
                                                 // get token metadata
                                                 console.log("gai: "+JSON.stringify(gai))
-
+                                                /*
                                                 const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai?.data?.parsed?.info?.mint}`;
                                                 
                                                 const meta = axios.get(uri, {
@@ -959,7 +959,8 @@ export function GovernanceProposalV2View(props: any){
                                                         console.error(error);
                                                         //return null;
                                                     });
-
+                                                */
+                                               
                                                 //setInstructionRecord(gai.value);
                                                 let newObject = null;
                                                 try{
@@ -999,6 +1000,86 @@ export function GovernanceProposalV2View(props: any){
 
                                                     newObject = {
                                                         type:"TokenTransfer",
+                                                        pubkey: accountInstruction.accounts[0].pubkey,
+                                                        mint: gai?.data.parsed.info.mint,
+                                                        name: tname,
+                                                        logoURI: logo,
+                                                        amount: parseFloat(amount.replace(/,/g, '')), //amount,
+                                                        data: accountInstruction.data,
+                                                        destinationAta:accountInstruction.accounts[1].pubkey,
+                                                        description:amount+' '+symbol+' to '+accountInstruction.accounts[1].pubkey,
+                                                    };
+                                                    
+                                                    //console.log("newObject "+JSON.stringify(newObject))
+                                                    accountInstruction.info = newObject;
+                                                } catch(e){
+                                                    console.log("ERR: "+e);
+                                                }
+                                                accountInstruction.gai = gai;
+                                                
+                                                const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instructionItem.account.instructions[0].accounts[0].pubkey);
+                                                
+                                                if (!hasInstruction){
+                                                    //console.log("newObject: "+JSON.stringify(newObject))
+
+                                                    setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
+                                                }
+                                                
+                                            }
+                                        } else if (programId === "TbpjRtCg2Z2n2Xx7pFm5HVwsjx9GPJ5MsrfBvCoQRNL"){//(instructionInfo?.name === "Batch Token Transfer"){
+
+                                            // check if we have this in gai
+                                            let gai = null;
+                                            if (mintResults && mintResults.length > 0){
+                                                gai = mintResults[cnt];
+                                            } 
+
+                                            if (!gai)
+                                                gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                            
+                                            if (gai){
+                                                // get token metadata
+                                                console.log("gai: "+JSON.stringify(gai))
+
+                                                //setInstructionRecord(gai.value);
+                                                let newObject = null;
+                                                try{
+                                                    const amountBN = new BN(accountInstruction?.data?.slice(1), 'le');
+                                                    const decimals = gai?.data.parsed.info.tokenAmount?.decimals || 0;
+                                                    const divisor = new BN(10).pow(new BN(decimals));
+
+                                                    // To handle decimals, use .toNumber() for both the amount and divisor
+                                                    let adjustedAmount = amountBN.toNumber() / divisor.toNumber(); 
+
+                                                    // Now adjustedAmount will properly reflect decimal values
+                                                    console.log("Adjusted Amount:", adjustedAmount);
+                                                   // Detect if decimals should be displayed (more than 0)
+                                                    let amount = (adjustedAmount % 1 === 0)
+                                                        ? adjustedAmount.toLocaleString() // No decimals, just format as integer
+                                                        : adjustedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+
+                                                    let symbol = null;//`${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
+                                                    let tname = null;
+                                                    let logo = null;    
+                                                    
+                                                    if (tokenMap){
+                                                        const tmap = tokenMap.get(new PublicKey(gai?.data.parsed.info.mint).toBase58());
+                                                        if (tmap){
+                                                            console.log("tmap: "+JSON.stringify(tmap))
+                                                            if (!tname)
+                                                                tname = tmap?.name;
+                                                            if (!symbol)
+                                                                symbol = tmap?.symbol;
+                                                            if (!logo)
+                                                                logo = tmap?.logoURI;
+                                                        }
+                                                    }
+
+                                                    if (!symbol)
+                                                        symbol = `${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
+
+                                                    newObject = {
+                                                        type:"BatchTokenTransfer",
                                                         pubkey: accountInstruction.accounts[0].pubkey,
                                                         mint: gai?.data.parsed.info.mint,
                                                         name: tname,

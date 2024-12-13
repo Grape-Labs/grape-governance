@@ -476,19 +476,37 @@ export const sendTransactions = async (
   });
 
     console.log("signers: "+JSON.stringify(signers));
-    if (signers && signers.length > 0) {
-      for (var signer of signers){
+
+    const flattenedSigners = signers.flat();
+    if (flattenedSigners && flattenedSigners.length > 0) {
+      for (var signer of flattenedSigners){
         
         if (signer && signer?.publicKey){
-          //console.log("Signer: "+signer.publicKey?.toBase58())
+          console.log("Signer: "+signer.publicKey?.toBase58())
           // check if this is a signer
 
           let foundSigner = false;
+          
+          // Check if the signer is required in the transaction
+            const requiresSigner = transaction.instructions.some((ix) =>
+              ix.keys.some((key) => key.pubkey.equals(signer.publicKey) && key.isSigner)
+          );
+
+          if (requiresSigner) {
+              console.log("Partially signing the transaction...");
+              transaction.partialSign(signer);  // Correct way to partially sign
+          } else {
+              console.warn("Signer not required in the transaction.");
+          }
+          /*
           transaction.instructions.forEach((ix) => {
             if (ix.keys.some((key) => key.pubkey.equals(signer.publicKey))) {
                 foundSigner = true;
+                console.log("partially signing...");
+                transaction.partialSign(signer);
             }
           });
+          */
         
           if (!foundSigner){
             /*
@@ -519,7 +537,7 @@ export const sendTransactions = async (
         console.log("tx: "+JSON.stringify(transaction));
       }
 
-      console.log("Transaction after adding signer: "+JSON.stringify(transaction));
+      //console.log("Transaction after adding signer: "+JSON.stringify(transaction));
 
       //transaction.partialSign(...signers);
     }
@@ -582,9 +600,13 @@ export const sendTransactions = async (
             */
             // @ts-ignore
             console.log("Second Pass (ix: "+i+" of "+signedTxns.length+"): Failed, processing has stopped!");
-            failCallback("Failed Tx", i, signedTxns.length);
-            if (sequenceType == SequenceType.StopOnFailure) {
-              breakEarlyObject.breakEarly = true;
+            try{
+              failCallback("Failed Tx", i, signedTxns.length);
+              if (sequenceType == SequenceType.StopOnFailure) {
+                breakEarlyObject.breakEarly = true;
+              }
+            }catch(err){
+              console.log("Failback ERR: "+err);
             }
             /*
           });

@@ -485,13 +485,15 @@ export async function createProposalInstructionsLegacy(
     
     const insertChunks = chunks(insertInstructions, 1);
     
-    const signerChunks = signers && signers.length > 0
-        ? Array.from({ length: insertChunks.length }, (v, i) => i === 0 ? signers : [])
-        : Array.from({ length: insertChunks.length }, () => []);
+    const ixSignerChunks = instructions && instructions.length > 0
+    ? Array.from({ length: instructions.length }, (v, i) => i === 0 ? signers : [])
+    : Array.from({ length: instructions.length }, () => []);
+
+    const signerChunks = Array.from({ length: insertChunks.length }, () => []);
     //console.log('connection publicKey:', connection)
     console.log(`Creating proposal using ${insertChunks.length} chunks`);
     console.log(`Creating proposal using signers ${JSON.stringify(signerChunks)}`);
-
+    
     //return null;
     
     if (!returnTx || returnTx === null || returnTx === undefined){
@@ -527,7 +529,7 @@ export async function createProposalInstructionsLegacy(
             connection,
             wallet,
             [prerequisiteInstructions, instructions, ...insertChunks],
-            [[], [], ...signerChunks],
+            [[], [...ixSignerChunks], ...signerChunks],
             SequenceType.Sequential,
             null,
             successCallback,
@@ -565,7 +567,7 @@ export async function createProposalInstructionsLegacy(
         connection,
         wallet,
         [prerequisiteInstructions, instructions, ...insertChunks],
-        [[], [], ...signerChunks],
+        [[], [...ixSignerChunks], ...signerChunks],
         SequenceType.Sequential
       );
 
