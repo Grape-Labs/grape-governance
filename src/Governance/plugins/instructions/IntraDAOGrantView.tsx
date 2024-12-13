@@ -453,8 +453,8 @@ export default function IntraDAOGrantView(props: any) {
             }
 
             
-            transaction.instructions.unshift(computeBudgetIx); // Add it at the beginning
             setTransactionInstructions(transaction);
+            transaction.instructions.unshift(computeBudgetIx); // Add it at the beginning
             const status =  await simulateIx(transaction);
             setLoadingInstructions(false);
             return transaction;
