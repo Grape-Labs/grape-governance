@@ -454,10 +454,10 @@ export default function IntraDAOGrantView(props: any) {
 
             
             setTransactionInstructions(transaction);
-            const newTx = new Transaction();
-            newTx.add(transaction);
-            newTx.instructions.unshift(computeBudgetIx); // Add it at the beginning
-            const status =  await simulateIx(newTx);
+            const simTx = new Transaction();
+            simTx.add(transaction);
+            simTx.instructions.unshift(computeBudgetIx); // Add it at the beginning
+            const status =  await simulateIx(simTx);
             setLoadingInstructions(false);
             return transaction;
         } catch(err){
