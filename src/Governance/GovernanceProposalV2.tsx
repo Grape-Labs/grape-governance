@@ -960,7 +960,7 @@ export function GovernanceProposalV2View(props: any){
                                                         //return null;
                                                     });
                                                 */
-                                               
+
                                                 //setInstructionRecord(gai.value);
                                                 let newObject = null;
                                                 try{
@@ -1017,14 +1017,15 @@ export function GovernanceProposalV2View(props: any){
                                                 }
                                                 accountInstruction.gai = gai;
                                                 
-                                                const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instructionItem.account.instructions[0].accounts[0].pubkey);
-                                                
-                                                if (!hasInstruction){
-                                                    //console.log("newObject: "+JSON.stringify(newObject))
+                                                if (instructionTransferDetails){
+                                                    const hasInstruction = instructionTransferDetails.some(obj => obj?.pubkey === instructionItem.account.instructions[0].accounts[0]?.pubkey);
+                                                    
+                                                    if (!hasInstruction){
+                                                        //console.log("newObject: "+JSON.stringify(newObject))
 
-                                                    setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
+                                                        setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
+                                                    }
                                                 }
-                                                
                                             }
                                         } else if (programId === "TbpjRtCg2Z2n2Xx7pFm5HVwsjx9GPJ5MsrfBvCoQRNL"){//(instructionInfo?.name === "Batch Token Transfer"){
 
