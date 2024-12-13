@@ -396,7 +396,7 @@ export default function TokenTransferView(props: any) {
                 }
                 
                 setPayerInstructions(pTransaction);
-                transaction.instructions.unshift(computeBudgetIx); // Add it at the beginning
+                //transaction.instructions.unshift(computeBudgetIx); // Add it at the beginning
                 setTransactionInstructions(transaction);
                 const status =  await simulateIx(transaction);
                 return transaction;
