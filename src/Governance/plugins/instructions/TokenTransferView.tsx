@@ -398,10 +398,10 @@ export default function TokenTransferView(props: any) {
                 setPayerInstructions(pTransaction);
                 setTransactionInstructions(transaction);
                 
-                const newTx = new Transaction();
-                newTx.add(transaction);
-                newTx.instructions.unshift(computeBudgetIx); // Add it at the beginning
-                const status =  await simulateIx(newTx);
+                const simTx = new Transaction();
+                simTx.add(transaction);
+                simTx.instructions.unshift(computeBudgetIx); // Add it at the beginning
+                const status =  await simulateIx(simTx);
                 return transaction;
             } catch(err){
                 console.log("GEN ERR: "+JSON.stringify(err));

@@ -218,6 +218,10 @@ export async function createProposalInstructionsLegacy(
     
     console.log("governance: "+JSON.stringify(governance));
     
+    // minInstructionHoldUpTime
+    const minInstructionHoldUpTime = governance?.account?.config?.minInstructionHoldUpTime || 0;
+    console.log("with minInstructionHoldUpTime: "+minInstructionHoldUpTime);
+
     const proposalIndex = governance?.account?.proposalCount;
 
     //will run only if plugin is connected with realm
@@ -441,7 +445,7 @@ export async function createProposalInstructionsLegacy(
           walletPk,
           ixCount+j-startTxIndex,
           0,
-          0,
+          minInstructionHoldUpTime,
           [instructionData[j]],
           walletPk
         );
@@ -493,7 +497,7 @@ export async function createProposalInstructionsLegacy(
     //console.log('connection publicKey:', connection)
     console.log(`Creating proposal using ${insertChunks.length} chunks`);
     console.log(`Creating proposal using signers ${JSON.stringify(signerChunks)}`);
-    
+
     //return null;
     
     if (!returnTx || returnTx === null || returnTx === undefined){

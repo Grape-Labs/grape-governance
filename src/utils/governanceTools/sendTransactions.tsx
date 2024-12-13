@@ -525,6 +525,7 @@ export const sendTransactions = async (
             */
             console.log("Adding Signer: "+signer.publicKey.toBase58())
             transaction = addSignerToInstructions(transaction, signer);
+            //transaction.feePayer = signer.publicKey;
             transaction.setSigners(signer.publicKey); //.addSignature() .setSigners(wallet!.publicKey!, ...signers.map((s) => s.publicKey))
             transaction.partialSign(signer);
             console.log("Added signer");
@@ -601,9 +602,11 @@ export const sendTransactions = async (
             // @ts-ignore
             console.log("Second Pass (ix: "+i+" of "+signedTxns.length+"): Failed, processing has stopped!");
             try{
-              failCallback("Failed Tx", i, signedTxns.length);
-              if (sequenceType == SequenceType.StopOnFailure) {
-                breakEarlyObject.breakEarly = true;
+              if (failCallback){
+                failCallback("Failed Tx", i, signedTxns.length);
+                if (sequenceType == SequenceType.StopOnFailure) {
+                  breakEarlyObject.breakEarly = true;
+                }
               }
             }catch(err){
               console.log("Failback ERR: "+err);
