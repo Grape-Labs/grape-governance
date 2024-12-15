@@ -526,7 +526,7 @@ export const sendTransactions = async (
             console.log("Adding Signer: "+signer.publicKey.toBase58())
             transaction = addSignerToInstructions(transaction, signer);
             //transaction.feePayer = signer.publicKey;
-            transaction.setSigners(signer.publicKey); //.addSignature() .setSigners(wallet!.publicKey!, ...signers.map((s) => s.publicKey))
+            //transaction.setSigners(signer.publicKey); //.addSignature() .setSigners(wallet!.publicKey!, ...signers.map((s) => s.publicKey))
             transaction.partialSign(signer);
             console.log("Added signer");
           }
@@ -556,6 +556,16 @@ export const sendTransactions = async (
   //console.log('signedTxns' +JSON.stringify(signedTxns));
   
   const breakEarlyObject = { breakEarly: false }
+
+  // Inspect signatures
+  signedTxns.forEach((txn, index) => {
+    console.log(`Transaction ${index + 1}:`);
+    txn.signatures.forEach(({ publicKey, signature }, signerIndex) => {
+      console.log(
+        `Signer ${signerIndex + 1}: ${publicKey.toBase58()} - ${signature ? "Signed" : "Not Signed"}`
+      );
+    });
+  });
 
   /*
   const confirmation = await RPC_CONNECTION.confirmTransaction({

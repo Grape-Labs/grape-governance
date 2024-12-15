@@ -444,7 +444,11 @@ export default function WalletCardView(props:any) {
                         <ListItem>
                             Voting Time: {((rulesWallet.account.config.baseVotingTime/60)/60).toFixed(0)}h
                         </ListItem>
-                        
+                        {rulesWallet?.account?.config?.minTransactionHoldTime && rulesWallet.account.config.minTransactionHoldTime > 0 &&
+                            <ListItem>
+                                Holdup Time: {((rulesWallet.account.config.minTransactionHoldTime/60)/60).toFixed(0)}h
+                            </ListItem>
+                        }
                         <ListItem>
                             <Grid alignItems='center'>
                                 <Typography variant="caption" sx={{fontSize:'10px'}}>

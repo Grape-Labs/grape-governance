@@ -6,7 +6,8 @@ import {
     Transaction,
     TransactionMessage,
     TransactionInstruction,
-    VersionedTransaction } from '@solana/web3.js';
+    VersionedTransaction,
+    ComputeBudgetProgram } from '@solana/web3.js';
 import axios from "axios";
 import { 
     createMint,
@@ -18,6 +19,8 @@ import {
     createInitializeMintInstruction,
     createMintToCheckedInstruction,
     mintToChecked,
+    createAccount,
+    createSetAuthorityInstruction,
 } from "@solana/spl-token-v2";
 import {
     //createInitializeMetadataPointerInstruction
@@ -54,6 +57,7 @@ import {
     Tooltip,
     Typography,
     ListItemIcon,
+    CircularProgress,
 } from '@mui/material/';
 import { useSnackbar } from 'notistack';
 import { styled } from '@mui/material/styles';
@@ -124,8 +128,7 @@ export default function TokenManagerView(props) {
     const setInstructions = props?.setInstructions;
     
     const governanceNativeWallet = props?.governanceNativeWallet;
-    const { publicKey } = useWallet();
-    const wallet = useWallet();
+    const { publicKey, wallet, sendTransaction } = useWallet();
     
     const [governingMint, setGoverningMint] = React.useState(null);
     const [isGoverningMintSelectable, setIsGoverningMintSelectable] = React.useState(true);
@@ -133,7 +136,7 @@ export default function TokenManagerView(props) {
     const [isDraft, setIsDraft] = React.useState(false);
     const [openAdvanced, setOpenAdvanced] = React.useState(false);
 
-    const { enqueueSnackbar } = useSnackbar();
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const [tokens, setTokens] = useState([]);
     const [mintAddress, setMintAddress] = useState('');
     const [amount, setAmount] = useState(0);
@@ -152,7 +155,6 @@ export default function TokenManagerView(props) {
     const connection = RPC_CONNECTION; // Change to your desired network
 
     const handleTabChange = (_event, newIndex) => setTabIndex(newIndex);
-
 
     const handleCloseDialog = () => {
         setPropOpen(false);
@@ -396,9 +398,283 @@ export default function TokenManagerView(props) {
             return false; // Indicate failure due to error
         }
     };
+
+    const estimateComputeUnits = (instructionsLength: number) => {
+        // Estimate compute units based on the number of instructions. You can adjust this calculation.
+        const baseUnits = 200_000; // Minimum compute units for a simple transaction
+        const perInstructionUnits = 500_000; // Additional units for each instruction
+        return baseUnits + perInstructionUnits * instructionsLength;
+    };
+    
+    const calculatePriorityFee = (computeUnits: number, baseMicroLamportsPerUnit: number) => {
+        // Calculate the total priority fee based on compute units and price per compute unit
+        return computeUnits * baseMicroLamportsPerUnit;
+    };
+    
+
+    async function createAndSendV0TxInline(txInstructions: TransactionInstruction[], signers?: Keypair[]) {
+        // Step 1 - Fetch Latest Blockhash
+        let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+        console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
+
+        // Step 1: Estimate compute units based on the number of instructions
+        const estimatedComputeUnits = estimateComputeUnits(txInstructions.length);
+
+        // Step 2: Set a base fee per compute unit (microLamports)
+        const baseMicroLamportsPerUnit = 5000; // Adjust this value as needed
+
+        // Step 3: Add a validator tip per compute unit
+        const validatorTip = 0;//2000; // Additional tip per compute unit (0.000002 SOL)
+
+        // Step 4: Calculate the total priority fee
+        const totalPriorityFee = calculatePriorityFee(estimatedComputeUnits, baseMicroLamportsPerUnit);
+
+        console.log(`Estimated compute units: ${estimatedComputeUnits}`);
+        console.log(`Total priority fee: ${totalPriorityFee} microLamports`);
+
+        // Add compute budget instructions for priority fees and validator tips
+        const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: baseMicroLamportsPerUnit + validatorTip, // Total fee including priority and validator tip
+        });
+
+        const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+            units: estimatedComputeUnits, // Use the estimated compute units
+        });
+
+        // Step 3 - Combine Priority Fee Instructions with Other Instructions
+        const allInstructions = [
+            priorityFeeInstruction,
+            computeUnitLimitInstruction,
+            ...txInstructions, // Append your original instructions
+        ];
+        
+        // Add the priority fee instructions to the transaction
+        //transaction.add(priorityFeeInstruction, computeUnitLimitInstruction);
+
+        // Step 2 - Generate Transaction Message
+        const messageV0 = new TransactionMessage({
+            payerKey: publicKey,
+            recentBlockhash: latestBlockhash.blockhash,
+            instructions: allInstructions
+        }).compileToV0Message();
+        console.log("   ✅ - Compiled transaction message");
+        const transaction = new VersionedTransaction(messageV0);
+        if (signers){
+            transaction.sign(signers);
+            console.log("   ✅ - Transaction Signed");
+        }
+
+        const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
+        console.log("🔍 - Simulation result:", simulationResult);
+
+        if (simulationResult.value.err) {
+            console.error("❌ - Simulation failed with error:", simulationResult.value.err);
+            throw new Error(`Simulation error: ${simulationResult.value.err}`);
+        } else{
+            const txid = await sendTransaction(transaction, RPC_CONNECTION, {
+                skipPreflight: true,
+                preflightCommitment: "confirmed",
+                maxRetries: 5
+            });
+            
+            console.log("   ✅ - Transaction sent to network with txid: "+txid);
+        
+            // Step 5 - Confirm Transaction 
+            const snackprogress = (key:any) => (
+                <CircularProgress sx={{padding:'10px'}} />
+            );
+            try{
+                const cnfrmkey = enqueueSnackbar(`Confirming Transaction`,{ variant: 'info', action:snackprogress, persist: true });
+                const confirmation = await RPC_CONNECTION.confirmTransaction({
+                    signature: txid,
+                    blockhash: latestBlockhash.blockhash,
+                    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+                });
+                closeSnackbar(cnfrmkey);
+                if (confirmation.value.err) { 
+                    enqueueSnackbar(`Transaction Error`,{ variant: 'error' });
+                    throw new Error("   ❌ - Transaction not confirmed.") }
+                
+                console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
+                return txid;
+            }catch(e){
+                enqueueSnackbar(`Transaction Error Exceeded Blockhash`,{ variant: 'error' });
+                throw new Error("   ❌ - Transaction not confirmed.") 
+            }
+        }
+    }
     
 
     const createTokenIx = async () => {
+        setLoading(true);
+
+        try {
+
+            const withPublicKey = new PublicKey(governanceNativeWallet);
+            const mintAuthority = new PublicKey(governanceNativeWallet); //publicKey;
+            const freezeAuthority = new PublicKey(governanceNativeWallet); //publicKey;
+            
+            // Define metadata fields
+            
+            // Create an empty account for the mint
+            const mintKeypair = Keypair.generate();
+            const mintPublicKey = mintKeypair.publicKey;
+
+            setProposalDescription(`Create a new token ${mintPublicKey.toBase58()} with DAO mint authority & metadata`);            
+
+            // Set up metadata
+            const metadataProgramId = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"); // Token Metadata Program ID
+            const metadataSeeds = [
+                Buffer.from("metadata"),
+                metadataProgramId.toBuffer(),
+                mintPublicKey.toBuffer(),
+            ];
+            const [metadataPDA] = await PublicKey.findProgramAddress(metadataSeeds, metadataProgramId);
+            const ixSigners = new Array();
+            // Metadata to store in Mint Account
+            const metaData: TokenMetadata = {
+                updateAuthority: withPublicKey,
+                mint: mintKeypair.publicKey,
+                name: name,
+                symbol: symbol,
+                uri: uri,
+                additionalMetadata: [["description", "The Vine Token by the Grape DAO"]],
+            };
+            
+            // Calculate the rent-exempt balance needed
+            const lamports = await getMinimumBalanceForRentExemptMint(connection);
+
+            const authTransaction = new Transaction();
+            // Create a transaction
+            const transaction = new Transaction();
+
+            console.log("1. Create Sys Account");
+            // Create the token mint using your wallet as the payer
+            authTransaction.add(
+                SystemProgram.createAccount({
+                    fromPubkey: publicKey, // Your wallet as the payer
+                    newAccountPubkey: mintPublicKey, // Mint account public key
+                    space: MintLayout.span,
+                    lamports: lamports, // Minimum balance for rent exemption
+                    programId: TOKEN_PROGRAM_ID, // SPL Token program
+                })
+            );
+
+            console.log("2. Init Mint");
+            // Initialize the mint
+            authTransaction.add(
+                createInitializeMintInstruction(
+                    mintPublicKey,    // Mint account public key
+                    decimals,         // Number of decimals
+                    publicKey,        // Mint authority (your wallet)
+                    null//publicKey,              // No freeze authority
+                    //TOKEN_PROGRAM_ID,
+                )
+            );
+
+            // Transfer mint authority to governance-controlled wallet
+            console.log("3. Transfer Mint Authority");
+            // Use a custom instruction or SPL Token program's set authority instruction
+            authTransaction.add(
+                createSetAuthorityInstruction(
+                    mintPublicKey,           // Mint account
+                    publicKey,               // Current authority
+                    0,                       // Authority type: Mint Tokens
+                    withPublicKey,           // New mint authority
+                )
+            );
+
+            console.log("4. Mint 1 Token");
+            const amountToMint = 1 * Math.pow(10, decimals); // Adjust for decimals
+
+            transaction.add(
+                createMintToCheckedInstruction(
+                    mintPublicKey,            // Mint account
+                    withPublicKey,    // Destination token account
+                    withPublicKey,            // Mint authority (new owner)
+                    amountToMint,             // Amount to mint
+                    decimals,                 // Token decimals
+                    //[withPublicKey],          // Signer (governance wallet as new authority)
+                    //TOKEN_PROGRAM_ID          // SPL Token program
+                )
+            );
+
+            /*
+            // Create token account for governance wallet
+            console.log("3. Create Token Account for Governance");
+            const tokenAccount = await createAccount(
+                connection, 
+                wallet,        // Fee payer
+                mintPublicKey,    // Mint associated with the token account
+                withPublicKey     // Owner of the new token account (governance)
+            );
+
+            
+            */
+            
+
+            // Send the transaction
+            // await connection.sendTransaction(transaction, [publicKey, mintKeypair]);
+
+            const isSimulationSuccessful = await simulateCreateTokenIx(authTransaction);
+
+            if (!isSimulationSuccessful) {
+                enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
+                handleCloseDialog();
+                return; // Exit the function as simulation failed
+            } else{
+
+                const txid = await createAndSendV0TxInline(authTransaction.instructions);
+                console.log("txid: ",txid);
+
+                const ixs = transaction;
+                const aixs = null;//authTransaction;
+                
+                if (ixs || aixs){
+                    const createTokenIx = {
+                        title: proposalTitle,
+                        description: proposalDescription,
+                        ix: ixs?.instructions,
+                        aix:aixs?.instructions,
+                        signers: ixSigners,
+                        nativeWallet:governanceNativeWallet,
+                        governingMint:governingMint,
+                        draft: isDraft,
+                    };
+
+                    console.log("Passing signer: "+JSON.stringify(ixSigners));
+
+                    const isSimulationSuccessful = true; // dont sim //await simulateCreateTokenIx(transaction);
+
+                    if (!isSimulationSuccessful) {
+                        enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
+                        handleCloseDialog();
+                        return; // Exit the function as simulation failed
+                    }
+
+                    console.log("Simulation was successful. Proceeding with the transaction.");
+                    
+                    handleCloseDialog();
+                    setInstructions(createTokenIx);
+                    setExpandedLoader(true);
+
+                    enqueueSnackbar("Create token instructions prepared", { variant: 'success' });
+                } else{
+                    enqueueSnackbar(`Error no transaction instructions`, { variant: 'error' });
+                }
+
+                //console.log("Token mint created and authority transferred to governance wallet.");
+            }
+
+        } catch (error) {
+            enqueueSnackbar(`Error preparing create token instructions: ${error?.message}`, { variant: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    const createTokenGovIx = async () => {
         setLoading(true);
 
         try {
@@ -466,7 +742,6 @@ export default function TokenManagerView(props) {
                 );
                 ixSigners.push(mintKeypair);
 
-
                 console.log("1. Create Token Mint Ix Account");
                 /*
                 const amountToMint = 1 * Math.pow(10, decimals);
@@ -492,7 +767,11 @@ export default function TokenManagerView(props) {
                       )
                   );
                   //ixSigners.push([]);
-                
+
+                const block = await connection.getLatestBlockhash();
+                transaction.recentBlockhash = block.blockhash;
+                transaction.feePayer = publicKey;
+                transaction.partialSign(mintKeypair);
                 
                 // Create metadata instruction
                 /*

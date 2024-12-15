@@ -434,7 +434,7 @@ export async function createProposalInstructionsLegacy(
         
         console.log("Inserting tx: "+j);
         console.log("Inserting ix: "+JSON.stringify(instructionData[j]));
-
+        
         await withInsertTransaction(
           insertInstructions,
           programId,
