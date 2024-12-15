@@ -443,12 +443,18 @@ export default function WalletCardView(props:any) {
                         </ListItem>
                         <ListItem>
                             Voting Time: {((rulesWallet.account.config.baseVotingTime/60)/60).toFixed(0)}h
+                            {rulesWallet?.account?.config?.minInstructionHoldUpTime && rulesWallet.account.config.minInstructionHoldUpTime > 0 &&
+                            <><br/>
+                                Holdup Time: {((rulesWallet.account.config.minInstructionHoldUpTime/60)/60).toFixed(0)}h
+                            </>
+                            }
+                            {rulesWallet?.account?.config?.votingCoolOffTime && rulesWallet.account.config.votingCoolOffTime > 0 &&
+                                <><br/>
+                                    CoolOff Time: {((rulesWallet.account.config.votingCoolOffTime/60)/60).toFixed(0)}h
+                                </>
+                            }
                         </ListItem>
-                        {rulesWallet?.account?.config?.minTransactionHoldTime && rulesWallet.account.config.minTransactionHoldTime > 0 &&
-                            <ListItem>
-                                Holdup Time: {((rulesWallet.account.config.minTransactionHoldTime/60)/60).toFixed(0)}h
-                            </ListItem>
-                        }
+                        
                         <ListItem>
                             <Grid alignItems='center'>
                                 <Typography variant="caption" sx={{fontSize:'10px'}}>
