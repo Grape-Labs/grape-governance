@@ -2264,30 +2264,31 @@ export default function GovernanceCreateProposalView(props: any){
                                   }
                                   onClick={(e) => createProposal(true)}
                                   variant="contained"
-                                  color="info"
-                                  sx={{borderTopLeftRadius:'17px', borderBottomLeftRadius:'17px'}}>
+                                  color="info">
                                     <Confetti
                                         active={ proposalMade }
                                         config={ confettiConfig }
                                     />        
                                     Save Draft</Button>
-                                <Button 
-                                  disabled={!(
-                                    (title && title.length > 0) &&
-                                    (description && description.length > 0) &&
-                                    (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
-                                    (!createDisabled)
-                                    )
+                                
+                                {(!instructionsArray || (instructionsArray && instructionsArray?.length <= 0)) &&
+                                  <Button 
+                                    disabled={!(
+                                      (title && title.length > 0) &&
+                                      (description && description.length > 0) &&
+                                      (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
+                                      (!createDisabled)
+                                      )
+                                    }
+                                    onClick={(e) => createProposal(false)}
+                                    variant="contained"
+                                    color="success">
+                                      <Confetti
+                                          active={ proposalMade }
+                                          config={ confettiConfig }
+                                      />     
+                                      Create Proposal</Button>
                                   }
-                                  onClick={(e) => createProposal(false)}
-                                  variant="contained"
-                                  color="success"
-                                  sx={{borderTopRightRadius:'17px', borderBottomRightRadius:'17px'}}>
-                                    <Confetti
-                                        active={ proposalMade }
-                                        config={ confettiConfig }
-                                    />     
-                                    Create Proposal</Button>
                                 </ButtonGroup>
                             </Grid>
                             :

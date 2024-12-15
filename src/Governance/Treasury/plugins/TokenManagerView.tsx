@@ -410,8 +410,22 @@ export default function TokenManagerView(props) {
         // Calculate the total priority fee based on compute units and price per compute unit
         return computeUnits * baseMicroLamportsPerUnit;
     };
-    
 
+    async function calculatePriorityFeeQuickNode(messageV0) {
+        // Call QuickNode's Enhanced API
+        const response = await RPC_CONNECTION.getFeeForMessage(
+            messageV0,
+        );
+    
+        if (response && response.value) {
+            console.log("✅ Estimated Fee from QuickNode:", response.value);
+            return response.value; // This returns fee in lamports
+        } else {
+            console.error("❌ Failed to estimate fee from QuickNode");
+            throw new Error("Failed to estimate fee");
+        }
+    }
+    
     async function createAndSendV0TxInline(txInstructions: TransactionInstruction[], signers?: Keypair[]) {
         // Step 1 - Fetch Latest Blockhash
         let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
@@ -433,7 +447,7 @@ export default function TokenManagerView(props) {
         console.log(`Total priority fee: ${totalPriorityFee} microLamports`);
 
         // Add compute budget instructions for priority fees and validator tips
-        const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
+        const basePriorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
             microLamports: baseMicroLamportsPerUnit + validatorTip, // Total fee including priority and validator tip
         });
 
@@ -443,13 +457,14 @@ export default function TokenManagerView(props) {
 
         // Step 3 - Combine Priority Fee Instructions with Other Instructions
         const allInstructions = [
-            priorityFeeInstruction,
+            basePriorityFeeInstruction,
             computeUnitLimitInstruction,
             ...txInstructions, // Append your original instructions
         ];
         
         // Add the priority fee instructions to the transaction
         //transaction.add(priorityFeeInstruction, computeUnitLimitInstruction);
+
 
         // Step 2 - Generate Transaction Message
         const messageV0 = new TransactionMessage({
@@ -459,6 +474,18 @@ export default function TokenManagerView(props) {
         }).compileToV0Message();
         console.log("   ✅ - Compiled transaction message");
         const transaction = new VersionedTransaction(messageV0);
+        
+        // Calculate Priority Fee from QuickNode
+        const estimatedFee = await calculatePriorityFeeQuickNode(messageV0);
+        console.log(`✅ Estimated Priority Fee: ${estimatedFee} lamports`);
+
+        // Include the estimated fee in the transaction if necessary
+        const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: estimatedFee
+        });
+
+        allInstructions.unshift(priorityFeeInstruction);
+
         if (signers){
             transaction.sign(signers);
             console.log("   ✅ - Transaction Signed");
@@ -540,7 +567,7 @@ export default function TokenManagerView(props) {
                 uri: uri,
                 additionalMetadata: [["description", "The Vine Token by the Grape DAO"]],
             };
-            
+
             // Calculate the rent-exempt balance needed
             const lamports = await getMinimumBalanceForRentExemptMint(connection);
 
