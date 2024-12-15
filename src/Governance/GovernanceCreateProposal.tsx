@@ -2270,7 +2270,6 @@ export default function GovernanceCreateProposalView(props: any){
                                         config={ confettiConfig }
                                     />        
                                     Save Draft</Button>
-                                
                                 {(!instructionsArray || (instructionsArray && instructionsArray?.length <= 0)) &&
                                   <Button 
                                     disabled={!(
