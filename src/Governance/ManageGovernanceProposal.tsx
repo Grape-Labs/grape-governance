@@ -29,7 +29,6 @@ import {
     TokenOwnerRecord, 
     withCreateProposal,
     VoteType, 
-    getGovernanceProgramVersion,
     serializeInstructionToBase64,
     createInstructionData,
     withInsertTransaction,
@@ -42,6 +41,7 @@ import {
     withAddSignatory,
     withCancelProposal,
     withRefundProposalDeposit,
+    withFinalizeVote,
     getSignatoryRecordAddress,
     getAllProposals,
     getProposal,
@@ -59,9 +59,10 @@ import {
     getTokenOwnerRecordsByRealmIndexed,
     getProposalInstructionsIndexed
   } from './api/queries';
+import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
 
 import { sendTransactions, prepareTransactions, SequenceType, WalletSigner, getWalletPublicKey } from '../utils/governanceTools/sendTransactions';
-import { Signer, Connection, MemcmpFilter, TransactionMessage, PublicKey, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
+import { Signer, Connection, MemcmpFilter, TransactionMessage, PublicKey, Transaction, VersionedTransaction, TransactionInstruction, ComputeBudgetProgram } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError, TransactionOrVersionedTransaction } from '@solana/wallet-adapter-base';
 import { useSnackbar } from 'notistack';
@@ -72,7 +73,7 @@ import {
   GGAPI_STORAGE_POOL, 
   GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
 
-import GovernanceCreateProposalView from './GovernanceCreateProposal';
+//import GovernanceCreateProposalView from './GovernanceCreateProposal';
 
 import CancelIcon from '@mui/icons-material/Cancel';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
@@ -211,17 +212,60 @@ export function ManageGovernanceProposal(props: any){
         },
         [enqueueSnackbar]
     );
+
+    const estimateComputeUnits = (instructionsLength: number) => {
+        // Estimate compute units based on the number of instructions. You can adjust this calculation.
+        const baseUnits = 200_000; // Minimum compute units for a simple transaction
+        const perInstructionUnits = 50_000; // Additional units for each instruction
+        return baseUnits + perInstructionUnits * instructionsLength;
+    };
+    
+    const calculatePriorityFee = (computeUnits: number, baseMicroLamportsPerUnit: number) => {
+        // Calculate the total priority fee based on compute units and price per compute unit
+        return computeUnits * baseMicroLamportsPerUnit;
+    };
     
     async function createAndSendV0TxInline(txInstructions: TransactionInstruction[]) {
         // Step 1 - Fetch Latest Blockhash
         let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('confirmed');
         console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
-      
+        
+        // Step 1: Estimate compute units based on the number of instructions
+        const estimatedComputeUnits = estimateComputeUnits(txInstructions.length);
+
+        // Step 2: Set a base fee per compute unit (microLamports)
+        const baseMicroLamportsPerUnit = 5000; // Adjust this value as needed
+
+        // Step 3: Add a validator tip per compute unit
+        const validatorTip = 0;//2000; // Additional tip per compute unit (0.000002 SOL)
+
+        // Step 4: Calculate the total priority fee
+        const totalPriorityFee = calculatePriorityFee(estimatedComputeUnits, baseMicroLamportsPerUnit);
+
+        console.log(`Estimated compute units: ${estimatedComputeUnits}`);
+        console.log(`Total priority fee: ${totalPriorityFee} microLamports`);
+
+        // Add compute budget instructions for priority fees and validator tips
+        const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: baseMicroLamportsPerUnit + validatorTip, // Total fee including priority and validator tip
+        });
+
+        const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+            units: estimatedComputeUnits, // Use the estimated compute units
+        });
+
+        // Step 3 - Combine Priority Fee Instructions with Other Instructions
+        const allInstructions = [
+            priorityFeeInstruction,
+            computeUnitLimitInstruction,
+            ...txInstructions, // Append your original instructions
+        ];
+
         // Step 2 - Generate Transaction Message
         const messageV0 = new TransactionMessage({
             payerKey: publicKey,
             recentBlockhash: latestBlockhash.blockhash,
-            instructions: txInstructions
+            instructions: allInstructions
         }).compileToV0Message();
         console.log("   ✅ - Compiled transaction message");
         const transaction = new VersionedTransaction(messageV0);
@@ -262,6 +306,63 @@ export function ManageGovernanceProposal(props: any){
     }
 
 
+    const handleFinalizeIx = async() => {
+        const programId = new PublicKey(realm.owner);
+        let instructions: TransactionInstruction[] = [];
+        
+        const proposalAddress = new PublicKey(editProposalAddress);
+        const realmPk = new PublicKey(governanceAddress);
+        const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
+
+        
+        let tokenOwnerRecordPk = null;
+        for (let member of memberMap){
+            if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
+                new PublicKey(member.account.governingTokenMint).toBase58() === new PublicKey(governingTokenMint).toBase58())
+                tokenOwnerRecordPk = new PublicKey(member.pubkey);
+        }
+        
+        const signatory = publicKey;
+
+        /*
+        const signatoryRecordAddress = await getSignatoryRecordAddress(
+            programId,
+            proposalAddress,
+            signatory
+        )*/
+
+        const beneficiary = publicKey;
+        const governanceAuthority = publicKey;
+        
+        await withFinalizeVote(
+            instructions, // Sign Off proposal needs to be executed after inserting instructions hence we add it to insertInstructions
+            programId,
+            programVersion,
+            realmPk,
+            new PublicKey(governanceRulesWallet),
+            proposalAddress,
+            proposalAuthor, //proposalAuthor,
+            governingTokenMint,
+            //undefined, // vsr?
+        );
+
+        // with instructions run a transaction and make it rain!!!
+        if (instructions && instructions.length > 0){
+            const signature = await createAndSendV0TxInline(instructions);
+            if (signature){
+                enqueueSnackbar(`Finalized Proposal - ${signature}`,{ variant: 'success' });
+                
+                if (setReload) 
+                    setReload(true);
+
+            } else{
+                enqueueSnackbar(`Error`,{ variant: 'error' });
+            }
+            
+            return null;
+        }
+    }
+
     const handleSignOffIx = async() => {
 
         //console.log("instruction "+JSON.stringify(instruction));
@@ -272,11 +373,8 @@ export function ManageGovernanceProposal(props: any){
         
         const proposalAddress = new PublicKey(editProposalAddress);
         const realmPk = new PublicKey(governanceAddress);
-        const programVersion = await getGovernanceProgramVersion(
-            RPC_CONNECTION,
-            programId,
-        );
-        
+        const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
+
         let tokenOwnerRecordPk = null;
         for (let member of memberMap){
             if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
@@ -303,7 +401,7 @@ export function ManageGovernanceProposal(props: any){
         const beneficiary = publicKey;
         const governanceAuthority = publicKey;
         
-        withSignOffProposal(
+        await withSignOffProposal(
             instructions, // Sign Off proposal needs to be executed after inserting instructions hence we add it to insertInstructions
             programId,
             programVersion,
@@ -340,6 +438,10 @@ export function ManageGovernanceProposal(props: any){
         await handleSignOffIx();
     }
 
+    const handleFinalize = async() => {
+        await handleFinalizeIx();
+    }
+    
     const handleAddSignatoryIx = async() => {
 
         console.log("proposal: "+JSON.stringify(proposal));
@@ -349,11 +451,8 @@ export function ManageGovernanceProposal(props: any){
         
         const proposalAddress = new PublicKey(editProposalAddress);
         const realmPk = new PublicKey(governanceAddress);
-        const programVersion = await getGovernanceProgramVersion(
-            RPC_CONNECTION,
-            programId,
-        );
-        
+        const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
+
         let tokenOwnerRecordPk = null;
         for (let member of memberMap){
             if (new PublicKey(member.account.governingTokenOwner).toBase58() === publicKey.toBase58() &&
@@ -482,10 +581,7 @@ export function ManageGovernanceProposal(props: any){
             
             const proposalAddress = new PublicKey(editProposalAddress);
             const realmPk = new PublicKey(governanceAddress);
-            const programVersion = await getGovernanceProgramVersion(
-                RPC_CONNECTION,
-                programId,
-            );
+            const programVersion = await getGrapeGovernanceProgramVersion(RPC_CONNECTION, programId, realmPk);
             
             /*
             let tokenOwnerRecordPk = null;
@@ -702,7 +798,22 @@ export function ManageGovernanceProposal(props: any){
                                     </Tooltip>
                                 </>
                                 :<>
-                                    
+                                    {mode === 5 ?
+                                        <>
+                                            <Tooltip title={<>Click to Finalize this Proposal<br/><br/>NOTE: If there are instructions you will be able to execute those in the instructions section</>}>
+                                                <Button 
+                                                    onClick={handleFinalize}
+                                                    variant='outlined'
+                                                    color='inherit'
+                                                    fullWidth={true}
+                                                    sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
+                                                    Finalize Proposal <ApprovalIcon fontSize="small" sx={{ml:1}}/>
+                                                </Button>
+                                            </Tooltip>
+                                        </>
+                                        :
+                                        <></>
+                                    }
                                 </>
                             }
                         </>

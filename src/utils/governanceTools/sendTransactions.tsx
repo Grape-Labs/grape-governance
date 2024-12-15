@@ -1,7 +1,6 @@
 import {
   Commitment,
   Connection,
-  FeeCalculator,
   RpcResponseAndContext,
   SignatureStatus,
   SimulatedTransactionResponse,
@@ -22,7 +21,7 @@ import {
   RPC_CONNECTION,
   DEFAULT_PRIORITY_RATE,
   DEFAULT_MAX_PRIORITY_RATE } from '../grapeTools/constants';
-
+import { sendVersionedTransactions } from "./sendVersionedTransactions";
 
 // TODO: sendTransactions() was imported from Oyster as is and needs to be reviewed and updated
 // In particular common primitives should be unified with send.tsx and also ensure the same resiliency mechanism
@@ -334,6 +333,42 @@ export enum SequenceType {
   StopOnFailure,
 }
 
+const addSignerToInstructions = (transaction, signer) => {
+  transaction.instructions.forEach((instruction) => {
+      // Check if the signer is already part of the instruction
+      const isSignerIncluded = instruction.keys.some(
+          (key) => key.pubkey.equals(signer.publicKey) && key.isSigner
+      );
+
+      if (!isSignerIncluded) {
+          // Clone the keys array and add the signer
+          const newKeys = [
+              ...instruction.keys,
+              {
+                  pubkey: signer.publicKey,
+                  isSigner: true,
+                  isWritable: false, // Adjust based on your requirements
+              },
+          ];
+
+          // Create a new instruction with the updated keys
+          const newInstruction = new TransactionInstruction({
+              programId: instruction.programId,
+              keys: newKeys,
+              data: instruction.data,
+          });
+
+          // Replace the old instruction with the new one
+          const index = transaction.instructions.indexOf(instruction);
+          if (index !== -1) {
+              transaction.instructions[index] = newInstruction;
+          }
+      }
+  });
+
+  return transaction;
+};
+
 /////////////////////////////////////////
 export const sendTransactions = async (
   connection: Connection,
@@ -349,7 +384,7 @@ export const sendTransactions = async (
   startIxIndex?: number,
   block?: {
     blockhash: string
-    feeCalculator: FeeCalculator
+    //feeCalculator: FeeCalculator
   }
 ): Promise<any> => {
   
@@ -357,13 +392,13 @@ export const sendTransactions = async (
   const unsignedTxns: Transaction[] = []
 
   if (!block) {
-    block = await connection.getRecentBlockhash(commitment)
+    block = await connection.getLatestBlockhash(commitment)
   }
 
   let average_priority_fee = null;
   let medianPrioritizationFee = null;
-  try{
-
+  
+  try{    
     const rpf = await RPC_CONNECTION.getRecentPrioritizationFees();
     if (rpf){
       console.log("rpf: "+JSON.stringify(rpf));
@@ -403,13 +438,16 @@ export const sendTransactions = async (
   }catch(e){
     console.log("ERR: "+e);
   }
-
+  
   const PRIORITY_RATE = medianPrioritizationFee ? medianPrioritizationFee : DEFAULT_PRIORITY_RATE; // 10000; // MICRO_LAMPORTS 
   const SEND_AMT = 0.01 * LAMPORTS_PER_SOL;
   const PRIORITY_FEE_IX = ComputeBudgetProgram.setComputeUnitPrice({microLamports: PRIORITY_RATE});
   console.log("Adding priority fee at the rate of "+PRIORITY_RATE+ " micro lamports");
   
+  //console.log("sendTx Signers: "+JSON.stringify(signersSet));
+
   for (let i = 0; i < instructionSet.length; i++) {
+    console.log("Checking Ix set "+i);
     const instructions = instructionSet[i]
     const signers = signersSet[i]
 
@@ -417,7 +455,7 @@ export const sendTransactions = async (
       continue
     }
 
-    const transaction = new Transaction();
+    let transaction = new Transaction();
 
     instructions.forEach((instruction) => transaction.add(instruction))
 
@@ -425,20 +463,87 @@ export const sendTransactions = async (
     //  console.log("Has auth instructions: "+JSON.stringify(authTransaction));
       //transaction.add(authTransaction);
     //}
+    
     transaction.recentBlockhash = block.blockhash;
     transaction.feePayer = wallet.publicKey;
     transaction.add(PRIORITY_FEE_IX);
-    /*
-    transaction.setSigners(
-      // fee payed by the wallet owner
-      wallet.publicKey,
-      ...signers.map((s) => s.publicKey)
-    )*/
-
     
-    if (signers.length > 0) {
-      transaction.partialSign(...signers)
+    transaction.instructions.forEach((instruction, index) => {
+      console.log(`Instruction ${index}:`, instruction.keys.map(key => ({
+          pubkey: key.pubkey.toBase58(),
+          isSigner: key.isSigner,
+      })));
+  });
+
+    console.log("signers: "+JSON.stringify(signers));
+
+    const flattenedSigners = signers.flat();
+    if (flattenedSigners && flattenedSigners.length > 0) {
+      for (var signer of flattenedSigners){
+        
+        if (signer && signer?.publicKey){
+          console.log("Signer: "+signer.publicKey?.toBase58())
+          // check if this is a signer
+
+          let foundSigner = false;
+          
+          // Check if the signer is required in the transaction
+            const requiresSigner = transaction.instructions.some((ix) =>
+              ix.keys.some((key) => key.pubkey.equals(signer.publicKey) && key.isSigner)
+          );
+
+          if (requiresSigner) {
+              console.log("Partially signing the transaction...");
+              transaction.partialSign(signer);  // Correct way to partially sign
+          } else {
+              console.warn("Signer not required in the transaction.");
+          }
+          /*
+          transaction.instructions.forEach((ix) => {
+            if (ix.keys.some((key) => key.pubkey.equals(signer.publicKey))) {
+                foundSigner = true;
+                console.log("partially signing...");
+                transaction.partialSign(signer);
+            }
+          });
+          */
+        
+          if (!foundSigner){
+            /*
+            const serializedTransaction = transaction.serialize({
+              requireAllSignatures: false,
+              verifySignatures: false,
+            });
+            console.log("serializedTx");
+            const deserializedTransaction = Transaction.from(serializedTransaction);
+            console.log("deserialized tx");
+            
+            const signature = deserializedTransaction.signatures.find(sig =>
+              sig.publicKey.equals(signer.publicKey)
+            )?.signature;
+            transaction.addSignature(signer.publicKey, signature);  
+            */
+            console.log("Adding Signer: "+signer.publicKey.toBase58())
+            transaction = addSignerToInstructions(transaction, signer);
+            //transaction.feePayer = signer.publicKey;
+            transaction.setSigners(signer.publicKey); //.addSignature() .setSigners(wallet!.publicKey!, ...signers.map((s) => s.publicKey))
+            transaction.partialSign(signer);
+            console.log("Added signer");
+          }
+          
+        }
+        
+      }
+      if (signers.length > 0) {
+        console.log("tx: "+JSON.stringify(transaction));
+      }
+
+      //console.log("Transaction after adding signer: "+JSON.stringify(transaction));
+
+      //transaction.partialSign(...signers);
     }
+
+    console.log("Signed...")
     
     unsignedTxns.push(transaction)
   }
@@ -496,9 +601,15 @@ export const sendTransactions = async (
             */
             // @ts-ignore
             console.log("Second Pass (ix: "+i+" of "+signedTxns.length+"): Failed, processing has stopped!");
-            failCallback("Failed Tx", i, signedTxns.length);
-            if (sequenceType == SequenceType.StopOnFailure) {
-              breakEarlyObject.breakEarly = true;
+            try{
+              if (failCallback){
+                failCallback("Failed Tx", i, signedTxns.length);
+                if (sequenceType == SequenceType.StopOnFailure) {
+                  breakEarlyObject.breakEarly = true;
+                }
+              }
+            }catch(err){
+              console.log("Failback ERR: "+err);
             }
             /*
           });
@@ -545,14 +656,14 @@ export const prepareTransactions = async (
     false,
   block?: {
     blockhash: string
-    feeCalculator: FeeCalculator
+    //feeCalculator: FeeCalculator
   }
 ): Promise<any> => {
   if (!wallet.publicKey) throw new Error('Wallet not connected!')
   const unsignedTxns: Transaction[] = []
 
   if (!block) {
-    block = await connection.getRecentBlockhash(commitment)
+    block = await connection.getLatestBlockhash(commitment)
   }
 
   const bigTx = new Transaction();

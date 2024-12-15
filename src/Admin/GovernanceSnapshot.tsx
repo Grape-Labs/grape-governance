@@ -558,7 +558,7 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
         const destinationWallet = new PublicKey(destinationAddress);
         
         // Fetch token transfers
-        const tokenTransferSignatures = await connection.getConfirmedSignaturesForAddress2(
+        const tokenTransferSignatures = await connection.getSignaturesForAddress(
             sourceWalletPublicKey,
             { limit: 100 } // Adjust the limit as needed
           );
@@ -1221,6 +1221,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             }
         }
         //ia.solToUsd = cgp['solana'].usd;
+        console.log("cgp['So11111111111111111111111111111111111111112']: "+JSON.stringify(cgp));
         ia.solToUsd = cgp['So11111111111111111111111111111111111111112'].price;
         ia.solUsdValue = (ia.solBalance > 0 ? cgp['So11111111111111111111111111111111111111112'].price*(ia.solBalance/(10 ** 9)) : 0);
         console.log("Total NFT Sol Value: "+(totalVaultNftValueSol/(10 ** 9)))
@@ -1328,8 +1329,9 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         while (hasnext){
             if (setPrimaryStatus) setPrimaryStatus("Fetching Governance Transactions ("+(offset+1)+" - "+(offset+limit)+")");
             //const apiUrl = "https://api.solscan.io/account/token/txs";
-            const apiUrl = "https://api.solscan.io/v2/account/token/txs";
-            
+            //const apiUrl = "https://api.solscan.io/v2/account/token/txs";
+            const apiUrl = "https://api-v2.solscan.io/v2/account/transaction";
+
             // Define the desired requestor URL
             const requestorUrl = 'https://solscan.io/';
 
@@ -1479,7 +1481,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
                 // how will we handle direct DAO awards?
 
-
                 governanceEmitted = removeDuplicateSignatures(governanceEmitted);
             }
         }
@@ -1615,12 +1616,17 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                                                 if (!foundSig){
 
                                                     //const parsedTx = await getParsedTransaction(emitItem.signature);
-                                                    const parsedTx = await connection.getParsedTransaction(emitItem.signature);
+                                                    const parsedTx = await connection.getParsedTransaction(
+                                                        emitItem.signature,
+                                                        { maxSupportedTransactionVersion: 0 } // Adjust this if a newer version is supported
+                                                    );
                                                     
-                                                    cachedSignatureData.push({
-                                                        signature:emitItem.signature,
-                                                        transaction:parsedTx
-                                                    });
+                                                    if (parsedTx){
+                                                        cachedSignatureData.push({
+                                                            signature:emitItem.signature,
+                                                            transaction:parsedTx
+                                                        });
+                                                    }
 
                                                     //console.log("Found Grant Voting Power #("+cachedSignatureData.length+") "+JSON.stringify(tTransfer));
                                                     //console.log("Found Grant Voting Power #1 AD "+JSON.stringify(parsedTx));
@@ -2271,7 +2277,6 @@ const getGovernanceProps = async (thisitem: any, this_realm: any, connection: Co
 const getFirstTransactionDate = async(walletAddress:string) => {
     const connection = RPC_CONNECTION;
     const publicKey = new PublicKey(walletAddress);
-    //const transactionHistory = await connection.getConfirmedSignaturesForAddress2(publicKey, { limit: 1 });
     const pullLimit = 100; // this is a hard limit for now so we do not stall our requests
     // wallet would be limited to 100k tx if more we should boost this
     let signaturesArray = [];
@@ -2281,7 +2286,7 @@ const getFirstTransactionDate = async(walletAddress:string) => {
     while (!isEmpty) {
         try {
             const lastSignature = signaturesArray[signaturesArray.length - 1];
-            const requestSignatures = await connection.getConfirmedSignaturesForAddress2(publicKey, {
+            const requestSignatures = await connection.getSignaturesForAddress(publicKey, {
                 before: lastSignature,
                 limit: 1000
             });

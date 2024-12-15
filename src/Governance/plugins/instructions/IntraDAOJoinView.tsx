@@ -11,7 +11,9 @@ import {
 import { Buffer } from "buffer";
 import BN from "bn.js";
 import * as anchor from '@project-serum/anchor';
-import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
+import { publicKey as umiPublicKey  } from '@metaplex-foundation/umi'
+import { Metadata, TokenRecord, fetchDigitalAsset, MPL_TOKEN_METADATA_PROGRAM_ID, getCreateMetadataAccountV3InstructionDataSerializer } from "@metaplex-foundation/mpl-token-metadata";
+import {createUmi} from "@metaplex-foundation/umi-bundle-defaults"
 import { useWallet } from '@solana/wallet-adapter-react';
 
 import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
@@ -20,12 +22,11 @@ import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
 import { styled } from '@mui/material/styles';
 
 import { 
-    getGovernanceProgramVersion,
     withDepositGoverningTokens,
     getRealm,
     serializeInstructionToBase64,
   } from '@solana/spl-governance';
-
+import { getGrapeGovernanceProgramVersion } from '../../../utils/grapeTools/helpers';
 import {
   Dialog,
   Button,
@@ -84,11 +85,17 @@ const confettiConfig = {
 };
 
 const CustomTextarea = styled(TextareaAutosize)(({ theme }) => ({
-    width: '100%', // Make it full width
-    backgroundColor: '#333', // Change the background color to dark
-    color: '#fff', // Change the text color to white or another suitable color
-    border: 'none', // Remove the border (optional)
-    padding: theme.spacing(1), // Add padding (optional)
+    width: '100%', // Keep full width
+    backgroundColor: '#333', // Dark background color
+    color: '#fff', // White text for contrast
+    border: '1px solid rgba(255, 255, 255, 0.2)', // Add a subtle border for clarity
+    padding: theme.spacing(0.5), // Reduce padding for a smaller appearance
+    fontSize: '12px', // Smaller font size for compactness
+    lineHeight: '1.4', // Adjust line height for tighter spacing
+    borderRadius: theme.shape.borderRadius, // Keep consistent border radius
+    resize: 'none', // Prevent manual resizing for consistency
+    outline: 'none', // Remove focus outline
+    boxSizing: 'border-box', // Ensure padding does not affect total width
 }));
 
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
@@ -102,7 +109,7 @@ export default function IntraDAOJoinView(props: any) {
     const [governance, setGovernance] = React.useState(null);
     const [governanceWallet, setGovernanceWallet] = React.useState(props?.governanceWallet);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.nativeTreasuryAddress?.toBase58() || governanceWallet?.vault?.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [tokenAmountStr, setTokenAmountStr] = React.useState(null);
@@ -119,6 +126,61 @@ export default function IntraDAOJoinView(props: any) {
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     
+    const [availableTokens, setAvailableTokens] = React.useState([
+        {
+            mint:"So11111111111111111111111111111111111111112",
+            name:"SOL",
+            symbol:"SOL",
+            decimals:9,
+            logo:"https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/So11111111111111111111111111111111111111112.png"
+        },{
+            mint:"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            name:"USDC",
+            symbol:"USDC",
+            decimals:6,
+            logo:"https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v.png"
+        },{
+            mint:"Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+            name:"USDT",
+            symbol:"USDT",
+            decimals:6,
+            logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.svg"
+        },{
+            mint:"mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+            name:"mSol",
+            symbol:"mSol",
+            decimals:9,
+            logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So/logo.png"
+        },{
+            mint:"8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA",
+            name:"GRAPE",
+            symbol:"GRAPE",
+            decimals:6,
+            logo:"https://lh3.googleusercontent.com/y7Wsemw9UVBc9dtjtRfVilnS1cgpDt356PPAjne5NvMXIwWz9_x7WKMPH99teyv8vXDmpZinsJdgiFQ16_OAda1dNcsUxlpw9DyMkUk=s0"
+        },{
+            mint:"AZsHEMXd36Bj1EMNXhowJajpUXzrKcK57wW4ZGXVa7yR",
+            name:"GUAC",
+            symbol:"GUAC",
+            decimals:5,
+            logo:"https://shdw-drive.genesysgo.net/36JhGq9Aa1hBK6aDYM4NyFjR5Waiu9oHrb44j1j8edUt/image.png"
+        },{
+            mint:"BaoawH9p2J8yUK9r5YXQs3hQwmUJgscACjmTkh8rMwYL",
+            name:"ALL",
+            symbol:"ALL",
+            decimals:6,
+            logo:"https://arweave.net/FY7yQGrLCAvKAup_SYEsHDoTRZXsttuYyQjvHTnOrYk"
+        },{
+            mint:"DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+            name:"BONK",
+            symbol:"BONK",
+            decimals:5,
+            logo:"https://arweave.net/hQiPZOsRZXGXBJd_82PhVdlM_hACsT_q6wqwf5cSY7I"
+        }]);
+    const objectToken = {};
+    availableTokens.forEach(token => {
+        objectToken[token.mint] = token;
+    }); 
+
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
     async function joinDAO() {
@@ -133,14 +195,16 @@ export default function IntraDAOJoinView(props: any) {
         
         const programId = governance.owner;
         console.log("programId: "+JSON.stringify(programId));
-        const programVersion = await getGovernanceProgramVersion(
+        const realmPk = new PublicKey(governance.pubkey);
+        const programVersion = await getGrapeGovernanceProgramVersion(
             connection,
             programId,
+            realmPk
           )
         
         console.log("programVersion: "+JSON.stringify(programVersion));
 
-        const realmPk = new PublicKey(governance.pubkey);
+        
         
         const tokenInfo = await getMint(RPC_CONNECTION, withMint);
         
@@ -334,25 +398,39 @@ export default function IntraDAOJoinView(props: any) {
             const [mintName, setMintName] = React.useState(null);
             const [mintLogo, setMintLogo] = React.useState(null);
 
-            const getTokenMintInfo = async() => {
+            const getTokenMintInfo = async(mintAddress:string) => {
+        
+                const mintInfo = await getMint(RPC_CONNECTION, new PublicKey(mintAddress));
+        
+                //const tokenName = mintInfo.name;
                 
-                    const mint_address = new PublicKey(mintAddress)
-                    const [pda, bump] = await PublicKey.findProgramAddress([
-                        Buffer.from("metadata"),
-                        PROGRAM_ID.toBuffer(),
-                        new PublicKey(mint_address).toBuffer(),
-                    ], PROGRAM_ID)
-                    let tokenMetadata = null;
-                    try{
-                        tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
-                    }catch(e){console.log("ERR: "+e)}
+                //JSON.stringify(mintInfo);
+        
+                const decimals = mintInfo.decimals;
+                //setMintDecimals(decimals);
+                
+                const mint_address = new PublicKey(mintAddress)
+                
+                let foundLogo = false;
+                {
                     
-                    if (tokenMetadata?.data?.name)
-                        setMintName(tokenMetadata.data.name);
-                    
-                    if (tokenMetadata?.data?.uri){
+                    if (objectToken[mint_address.toBase58()]){
+                        setMintLogo(objectToken[mint_address.toBase58()].logo);
+                        foundLogo = true;
+                    }
+                }
+
+                const umi = createUmi(RPC_CONNECTION);
+                const asset = await fetchDigitalAsset(umi, umiPublicKey(mint_address.toBase58()));
+        
+                //console.log("Asset: ",(asset))
+        
+                if (asset){
+                    if (asset?.metadata?.name)
+                        setMintName(asset.metadata.name.trim());
+                    if (!foundLogo && asset?.metadata?.uri){
                         try{
-                            const metadata = await window.fetch(tokenMetadata.data.uri)
+                            const metadata = await window.fetch(asset.metadata.uri)
                             .then(
                                 (res: any) => res.json())
                             .catch((error) => {
@@ -368,11 +446,14 @@ export default function IntraDAOJoinView(props: any) {
                             console.log("ERR: ",err);
                         }
                     }
+                }
+        
+                return asset?.metadata;
             }
 
             React.useEffect(() => { 
                 if (mintAddress && !mintName){
-                    getTokenMintInfo();
+                    getTokenMintInfo(mintAddress);
                 }
             }, [mintAddress]);
 
@@ -527,7 +608,7 @@ export default function IntraDAOJoinView(props: any) {
 
     React.useEffect(() => {
         if (governanceWallet && !consolidatedGovernanceWallet && !loadingWallet) {
-            getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
+            getAndUpdateWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey);
             //setConsolidatedGovernanceWallet(gWallet);
         }
     }, [governanceWallet, consolidatedGovernanceWallet]);

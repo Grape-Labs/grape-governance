@@ -18,7 +18,7 @@ import { invalidateInstructionAccounts } from './v0_tools/queryClient'
 import { 
   sendSignAndConfirmTransactionsProps, 
   sendSignAndConfirmTransactions 
-} from '../../utils/governanceTools/v0_tools/modifiedMangolana'
+} from './v0_tools/modifiedMangolana'
 
 export type WalletSigner = Pick<
   SignerWalletAdapter,

@@ -48,6 +48,7 @@ import { getProfilePicture } from '@solflare-wallet/pfp';
 import { findDisplayName } from '../utils/name-service';
 import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
 
+import ShareIcon from '@mui/icons-material/Share';
 import DownloadIcon from '@mui/icons-material/Download';
 import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
 import Chat from '@mui/icons-material/Chat';
@@ -840,19 +841,30 @@ export function GovernanceMembersView(props: any) {
                                                 </Typography>
                                             </Grid>
                                             <Grid item xs={12}>
-                                                <Button 
-                                                    aria-label="back"
-                                                    variant="outlined" 
-                                                    color='inherit'
-                                                    href={`https://realms.today/dao/${governanceAddress}`}
-                                                    target='blank'
-                                                    sx={{
-                                                        borderRadius:'17px',
-                                                        borderColor:'rgba(255,255,255,0.05)',
-                                                        fontSize:'10px'}}
-                                                >
-                                                    <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
-                                                </Button>
+                                                <Tooltip title={`Share ${realmName ? realmName : ''} Governance Members`}>
+                                                    <Button
+                                                        aria-label="share"
+                                                        variant="outlined"
+                                                        color="inherit"
+                                                        onClick={() => {
+                                                            if (navigator.share) {
+                                                                navigator.share({
+                                                                    title: `${realmName} Governance`,
+                                                                    text: `Visit the ${realmName} DAO:`,
+                                                                    url: `https://governance.so/members/${governanceAddress}`
+                                                                }).catch((error) => console.error('Error sharing:', error));
+                                                            } else {
+                                                                alert("Your browser doesn't support the Share API.");
+                                                            }
+                                                        }}
+                                                        sx={{
+                                                            borderRadius:'17px',
+                                                            borderColor:'rgba(255,255,255,0.05)',
+                                                            fontSize:'10px'}}
+                                                    >
+                                                        <ShareIcon fontSize='inherit' sx={{mr:1}} /> Share
+                                                    </Button>
+                                                </Tooltip>
                                             </Grid>
                                         </Grid>
                                     </Grid>

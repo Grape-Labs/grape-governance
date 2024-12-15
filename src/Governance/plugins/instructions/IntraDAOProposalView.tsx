@@ -11,7 +11,10 @@ import {
 import { Buffer } from "buffer";
 import BN from "bn.js";
 import * as anchor from '@project-serum/anchor';
-import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
+import { publicKey as umiPublicKey  } from '@metaplex-foundation/umi'
+import { Metadata, TokenRecord, fetchDigitalAsset, MPL_TOKEN_METADATA_PROGRAM_ID, getCreateMetadataAccountV3InstructionDataSerializer } from "@metaplex-foundation/mpl-token-metadata";
+import {createUmi} from "@metaplex-foundation/umi-bundle-defaults"
+
 import { useWallet } from '@solana/wallet-adapter-react';
 
 import { RPC_CONNECTION } from '../../../utils/grapeTools/constants';
@@ -22,7 +25,6 @@ import { styled } from '@mui/material/styles';
 import { createCastVoteTransaction } from '../../../utils/governanceTools/components/instructions/createVote';
 
 import { 
-    getGovernanceProgramVersion,
     withDepositGoverningTokens,
     getRealm,
     getRealms,
@@ -94,11 +96,17 @@ const confettiConfig = {
 };
 
 const CustomTextarea = styled(TextareaAutosize)(({ theme }) => ({
-    width: '100%', // Make it full width
-    backgroundColor: '#333', // Change the background color to dark
-    color: '#fff', // Change the text color to white or another suitable color
-    border: 'none', // Remove the border (optional)
-    padding: theme.spacing(1), // Add padding (optional)
+    width: '100%', // Keep full width
+    backgroundColor: '#333', // Dark background color
+    color: '#fff', // White text for contrast
+    border: '1px solid rgba(255, 255, 255, 0.2)', // Add a subtle border for clarity
+    padding: theme.spacing(0.5), // Reduce padding for a smaller appearance
+    fontSize: '12px', // Smaller font size for compactness
+    lineHeight: '1.4', // Adjust line height for tighter spacing
+    borderRadius: theme.shape.borderRadius, // Keep consistent border radius
+    resize: 'none', // Prevent manual resizing for consistency
+    outline: 'none', // Remove focus outline
+    boxSizing: 'border-box', // Ensure padding does not affect total width
 }));
 
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
@@ -114,7 +122,7 @@ export default function IntraDAOProposalView(props: any) {
     const governanceRulesWallet = props?.governanceRulesWallet;
     const [governanceWallet, setGovernanceWallet] = React.useState(props?.governanceWallet);
     const [consolidatedGovernanceWallet, setConsolidatedGovernanceWallet] = React.useState(null);
-    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.vault.pubkey);
+    const [fromAddress, setFromAddress] = React.useState(governanceWallet?.nativeTreasuryAddress?.toBase58() || governanceWallet?.vault?.pubkey);
     const [tokenMint, setTokenMint] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(0.0);
     const [tokenAmountStr, setTokenAmountStr] = React.useState(null);
@@ -151,17 +159,6 @@ export default function IntraDAOProposalView(props: any) {
         const transaction = new Transaction();
         
         // we need to fetch the governance details either her or a step before
-        
-        /*
-        const programId = governance.owner;
-        console.log("programId: "+JSON.stringify(programId));
-        const programVersion = await getGovernanceProgramVersion(
-            connection,
-            programId,
-          )
-        console.log("programVersion: "+JSON.stringify(programVersion));
-
-        */
         
         //    setMemberMap(rawTokenOwnerRecords);
        
@@ -347,9 +344,14 @@ export default function IntraDAOProposalView(props: any) {
             governanceWallet.solBalance = solBalance;
             const itemsToAdd = [];
 
-            console.log("governanceWallet "+JSON.stringify(governanceWallet));
             if (tokenBalance?.value){
                 for (let titem of tokenBalance?.value){
+                    if (!governanceWallet.tokens) {
+                        governanceWallet.tokens = {}; // Initialize tokens as an empty object
+                    }
+                    if (!governanceWallet.tokens.value) {
+                        governanceWallet.tokens.value = []; // Initialize as an array or your desired type
+                    }
                     if (governanceWallet.tokens.value){
                         let foundCached = false;
                         for (let gitem of governanceWallet.tokens.value){
@@ -367,6 +369,8 @@ export default function IntraDAOProposalView(props: any) {
                 }
             }
 
+            console.log("governanceWallet here... "+JSON.stringify(governanceWallet));
+            
             governanceWallet.tokens.value = itemsToAdd;//[...governanceWallet.tokens.value, ...itemsToAdd];
             setConsolidatedGovernanceWallet(governanceWallet);
             setLoadingWallet(false);
@@ -397,25 +401,30 @@ export default function IntraDAOProposalView(props: any) {
         const [mintName, setMintName] = React.useState(null);
         const [mintLogo, setMintLogo] = React.useState(null);
 
-        const getTokenMintInfo = async() => {
+        const getTokenMintInfo = async(mintAddress:string) => {
+        
+            const mintInfo = await getMint(RPC_CONNECTION, new PublicKey(mintAddress));
+    
+            //const tokenName = mintInfo.name;
             
-                const mint_address = new PublicKey(mintAddress)
-                const [pda, bump] = await PublicKey.findProgramAddress([
-                    Buffer.from("metadata"),
-                    PROGRAM_ID.toBuffer(),
-                    new PublicKey(mint_address).toBuffer(),
-                ], PROGRAM_ID)
-                let tokenMetadata = null;
+            //JSON.stringify(mintInfo);
+    
+            const decimals = mintInfo.decimals;
+            //setMintDecimals(decimals);
+            
+            const mint_address = new PublicKey(mintAddress)
+            
+            const umi = createUmi(RPC_CONNECTION);
+            const asset = await fetchDigitalAsset(umi, umiPublicKey(mint_address.toBase58()));
+    
+            //console.log("Asset: ",(asset))
+    
+            if (asset){
+                if (asset?.metadata?.name)
+                    setMintName(asset.metadata.name.trim());
+                if (asset?.metadata?.uri){
                     try{
-                        tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
-                    }catch(e){console.log("ERR: "+e)}
-                
-                if (tokenMetadata?.data?.name)
-                    setMintName(tokenMetadata.data.name);
-                
-                if (tokenMetadata?.data?.uri){
-                    try{
-                        const metadata = await window.fetch(tokenMetadata.data.uri)
+                        const metadata = await window.fetch(asset.metadata.uri)
                         .then(
                             (res: any) => res.json())
                         .catch((error) => {
@@ -431,11 +440,14 @@ export default function IntraDAOProposalView(props: any) {
                         console.log("ERR: ",err);
                     }
                 }
+            }
+    
+            return asset?.metadata;
         }
 
         React.useEffect(() => { 
             if (mintAddress && !mintName){
-                getTokenMintInfo();
+                getTokenMintInfo(mintAddress);
             }
         }, [mintAddress]);
 
@@ -476,7 +488,7 @@ export default function IntraDAOProposalView(props: any) {
 
     React.useEffect(() => {
         if (governanceWallet && !consolidatedGovernanceWallet && !loadingWallet) {
-            getAndUpdateWalletHoldings(governanceWallet?.vault.pubkey);
+            getAndUpdateWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey);
             //setConsolidatedGovernanceWallet(gWallet);
         }
     }, [governanceWallet, consolidatedGovernanceWallet]);
@@ -825,7 +837,7 @@ export default function IntraDAOProposalView(props: any) {
                                         governanceRulesWallet={governanceRulesWallet} 
                                         payerWallet={publicKey} 
                                         intraDao={true}
-                                        governanceWallet={governanceWallet?.vault.pubkey} 
+                                        governanceWallet={governanceWallet?.vault?.pubkey || governanceWallet?.pubkey} 
                                         setInstructionsObject={setInstructionsObject} 
                                         governanceLookup={governanceLookup} />
                                 

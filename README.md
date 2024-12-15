@@ -1,4 +1,4 @@
-# SPL Governance UI by Grape
+# Governance UI by Grape
 
 An increbibly fast DAO Tooling infrastrastructure to improve the experience of SPL Governance via decentralized cached storage, second to introduce new ways to view historical data and to extract important governance metrics which was is currently difficult to achieve efficiently, and finally to provide an API where composing on SPL Governance will be accessible to any developer (even a new developer) with a minimum RPC burden. Ultimately we have achieved web2 load speeds, with an incredible web3 primitive, and this is the path to build for the next billion users that will board and make the experience of crypto seamless & transparent.
 "Building the Web3 infrustructure at Web2 Native Speeds!"
@@ -71,8 +71,7 @@ Storage Pools:
 - GenesysGo Shadow Drive (https://github.com/GenesysGo/shadow-drive)
 
 Identity:
-- Cardinal (https://github.com/cardinal-labs)
-- Bonfida (https://github.com/Bonfida)
+- SNS (https://github.com/Bonfida)
 
 UI:
 - Interface: MUI 5 https://mui.com

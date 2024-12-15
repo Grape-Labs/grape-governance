@@ -9,9 +9,9 @@ import {
 } from '../../../utils/grapeTools/constants';
 
 import { 
-    shortenString
-} from '../../../utils/grapeTools/helpers';
-
+    shortenString, 
+    getJupiterPrices, 
+    convertSecondsToLegibleFormat } from '../../../utils/grapeTools/helpers';
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
@@ -46,13 +46,18 @@ import {
     ListItem,
     ListItemAvatar,
     ListItemText,
+    SelectChangeEvent,
+    FormGroup,
 } from '@mui/material/';
 
 import { useSnackbar } from 'notistack';
 
+import VerticalAlignBottomIcon from '@mui/icons-material/VerticalAlignBottom';
+import VerticalAlignTopIcon from '@mui/icons-material/VerticalAlignTop';
 import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import PersonIcon from '@mui/icons-material/Person';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import SendIcon from '@mui/icons-material/Send';
 import SettingsIcon from '@mui/icons-material/Settings';
 import GetAppIcon from '@mui/icons-material/GetApp';
@@ -100,7 +105,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     },
 }));
 
-export default function SendExtensionView(props: any){
+export default function JupDcaExtensionView(props: any){
     const setReload = props?.setReload;
     const governanceLookup = props.governanceLookup;
     const governanceRulesWallet = props.governanceRulesWallet;
@@ -139,6 +144,15 @@ export default function SendExtensionView(props: any){
     const [tokenAmount, setTokenAmount] = React.useState(null);
     const [tokenRecipient, setTokenRecipient] = React.useState(null);
     
+    const [toMintAddress, setToMintAddress] = React.useState(null);
+    const [period, setPeriod] = React.useState(null);
+    const [periodDuration, setPeriodDuration] = React.useState(1);
+    const [minOutAmountPerCycle, setMinOutAmountPerCycle] = React.useState(null);
+    const [maxOutAmountPerCycle, setMaxOutAmountPerCycle] = React.useState(null);
+    const [pricingStrategy, setPricingStrategy] = React.useState(false);
+    const [currentBuyPrice, setCurrentBuyPrice] = React.useState(null);
+    const [currentDCAs, setCurrentDCAs] = React.useState([]);
+
     const [expanded, setExpanded] = React.useState<string | false>(false);
     
     const provider = new AnchorProvider(RPC_CONNECTION, wallet, {
@@ -344,13 +358,9 @@ export default function SendExtensionView(props: any){
                 </ListItemAvatar>
                 <ListItemText 
                     primary={
-                        <Typography variant="subtitle1" sx={{ color: 'white' }}>
-                            {sol 
-                                ? `Solana` 
-                                : item?.info?.name === "Unknown Token" 
-                                    ? `${item?.address?.slice(0, 3)}...${item?.address?.slice(-3)}`
-                                    : item?.info?.name}
-                        </Typography>    
+                        
+                        <Typography variant="subtitle1" sx={{color:'white'}}>{sol ? `Solana` : item?.info?.name}</Typography>
+                            
                     }
                     secondary={
                         <>
@@ -406,12 +416,8 @@ export default function SendExtensionView(props: any){
                                 sx={{ width: 24, height: 24 }}
                             />
                         </ListItemAvatar>
-                        <ListItemText sx={{ m: 0, p: 0, ml: 1 }}
-                            primary={
-                                tokenSelected.info.name === "Unknown Token" 
-                                    ? `${tokenSelected.address?.slice(0, 3)}...${tokenSelected.address?.slice(-3)}`
-                                    : tokenSelected.info.name
-                            }
+                        <ListItemText sx={{m:0,p:0,ml:1}}
+                            primary={tokenSelected.info.name}
                         />
                     </ListItem>
                 :
@@ -518,14 +524,11 @@ export default function SendExtensionView(props: any){
 
 
     function generateInstructions(){
-        if (tokenSelected && tokenRecipient){
+        if (tokenSelected && toMintAddress){
             if (tokenAmount && tokenAmount > 0){
-                const tokenName = tokenSelected.info.name === "Unknown Token" 
-                                    ? `${tokenSelected.address?.slice(0, 3)}...${tokenSelected.address?.slice(-3)}`
-                                    : tokenSelected.info.name
-                const title = "Send "+tokenName
+                const title = "Swap "+tokenSelected.info.name
                 setProposalTitle(title);
-                const description = "Sending "+tokenAmount.toLocaleString()+" "+tokenName+" to "+shortenString(tokenRecipient,5,5);
+                const description = "Swapping "+tokenAmount.toLocaleString()+" "+tokenSelected.info.name+" to "+shortenString(toMintAddress,5,5);
                 setProposalDescription(description);
             }
         }
@@ -598,11 +601,196 @@ export default function SendExtensionView(props: any){
 
         }
     }
+
+    function PeriodSelect() {
+      
+        const handlePeriodChange = (event: SelectChangeEvent) => {
+            setPeriod(event.target.value as string);
+          
+        };
+      
+        return (
+          
+            <FormControl fullWidth>
+              <InputLabel id="period-select">Every</InputLabel>
+              <Select
+                labelId="period-select"
+                id="period-select"
+                value={period}
+                label="To Buy"
+                onChange={handlePeriodChange}
+                variant="filled"
+                sx={{ m: 0.65 }}
+              >
+                <MenuItem value={60}>Minute</MenuItem>
+                <MenuItem value={60*60}>Hour</MenuItem>
+                <MenuItem value={60*60*24}>Day</MenuItem>
+                <MenuItem value={60*60*26*7}>Week</MenuItem>
+                <MenuItem value={60*60*26*31}>Month</MenuItem>
+              </Select>
+            </FormControl>
+          
+        );
+    }
     
+    const handlePricingStrategyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setPricingStrategy(event.target.checked);
+    };
+
+    const [availableTokens, setAvailableTokens] = React.useState([
+        {
+            mint:"So11111111111111111111111111111111111111112",
+            name:"SOL",
+            symbol:"SOL",
+            decimals:9,
+            logo:"https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/So11111111111111111111111111111111111111112.png"
+        },{
+            mint:"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            name:"USDC",
+            symbol:"USDC",
+            decimals:6,
+            logo:"https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v.png"
+        },{
+            mint:"Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+            name:"USDT",
+            symbol:"USDT",
+            decimals:6,
+            logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.svg"
+        },{
+            mint:"mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+            name:"mSol",
+            symbol:"mSol",
+            decimals:9,
+            logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So/logo.png"
+        },{
+            mint:"8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA",
+            name:"GRAPE",
+            symbol:"GRAPE",
+            decimals:6,
+            logo:"https://lh3.googleusercontent.com/y7Wsemw9UVBc9dtjtRfVilnS1cgpDt356PPAjne5NvMXIwWz9_x7WKMPH99teyv8vXDmpZinsJdgiFQ16_OAda1dNcsUxlpw9DyMkUk=s0"
+        },{
+            mint:"AZsHEMXd36Bj1EMNXhowJajpUXzrKcK57wW4ZGXVa7yR",
+            name:"GUAC",
+            symbol:"GUAC",
+            decimals:5,
+            logo:"https://shdw-drive.genesysgo.net/36JhGq9Aa1hBK6aDYM4NyFjR5Waiu9oHrb44j1j8edUt/image.png"
+        },{
+            mint:"BaoawH9p2J8yUK9r5YXQs3hQwmUJgscACjmTkh8rMwYL",
+            name:"ALL",
+            symbol:"ALL",
+            decimals:6,
+            logo:"https://arweave.net/FY7yQGrLCAvKAup_SYEsHDoTRZXsttuYyQjvHTnOrYk"
+        },{
+            mint:"DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+            name:"BONK",
+            symbol:"BONK",
+            decimals:5,
+            logo:"https://arweave.net/hQiPZOsRZXGXBJd_82PhVdlM_hACsT_q6wqwf5cSY7I"
+        }]);
+
+    const objectToken = {};
+    availableTokens.forEach(token => {
+        objectToken[token.mint] = token;
+    }); 
+    
+    function ToBuySelect() {
+      
+        const handleToBuyChange = (event: SelectChangeEvent) => {
+            setToMintAddress(event.target.value as string);
+          
+        };
+
+        const getTokenPrice = async() => { 
+            /*
+            const cgp = await getJupiterPrices([toMintAddress],tokenMint);
+            if (cgp[toMintAddress]?.price)
+                setCurrentBuyPrice(cgp[toMintAddress].price);
+            */
+            
+            
+            const cgp = await getJupiterPrices([tokenSelected],toMintAddress);
+            if (cgp[tokenSelected]?.price)
+                setCurrentBuyPrice(cgp[tokenSelected].price);
+            
+        }
+
+        React.useEffect(() => { 
+            if (toMintAddress)
+                getTokenPrice()
+        }, [toMintAddress]);
+            if (toMintAddress){
+                
+                // set currentBuyPrice
+                // 
+            }
+      
+        return (
+          <>
+            <FormControl fullWidth  sx={{mt:2,mb:2}}>
+              <InputLabel id="token-buy-select">To</InputLabel>
+              <Select
+                labelId="token-buy-select"
+                id="token-buy-select"
+                value={toMintAddress}
+                label="To Buy"
+                onChange={handleToBuyChange}
+                MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 200, // Adjust this value as needed
+                        overflowY: 'auto', // Add vertical scrollbar if content overflows maxHeight
+                      },
+                    },
+                }}
+                variant="filled"
+                sx={{ m: 0.65 }}
+              >
+                {availableTokens.map((item: any, key: number) => {
+                    return(
+                    <MenuItem value={item.mint} key={key}>
+                        <Grid 
+                            container
+                            direction="row"
+                            alignItems="center"
+                        >
+                            <Grid item>
+                                <Avatar alt={item.symbol} src={item.logo} />
+                            </Grid>
+                            <Grid item xs sx={{ml:1}}>
+                                <Grid container
+                                    direction="row"
+                                    alignItems="center">
+                                        <Grid item>
+                                            <Typography variant="h6">
+                                                {item.symbol}
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs sx={{textAlign:'right'}}>
+                                            <Typography variant="caption">
+                                                {item.mint}
+                                            </Typography>
+                                        </Grid>
+                                </Grid>
+
+                            </Grid>
+                        </Grid>
+                    </MenuItem>);
+                })}
+              </Select>
+                {currentBuyPrice &&
+                    <Grid sx={{textAlign:'right',}}>
+                        <Typography variant="caption">Current Price: {currentBuyPrice}</Typography>
+                    </Grid>
+                }
+            </FormControl>
+          </>
+        );
+    }
+
     return (
         <>
             
-            <Tooltip title="Send" placement="right">
+            <Tooltip title="SWAP" placement="right">
                 {useButtonText && useButtonType === 1 ?
                 <>
                     <Button onClick={publicKey && handleClickOpen} fullWidth color='primary' size="large" variant="contained" sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2,ml:1,mr:1}}>{useButtonText}</Button>
@@ -619,7 +807,7 @@ export default function SendExtensionView(props: any){
                                     },
                                 }}
                                 startIcon={
-                                    <SendIcon 
+                                    <SwapHorizIcon 
                                         fontSize={'small'} 
                                         sx={{
                                             color:'rgba(255,255,255,0.25)',
@@ -636,9 +824,9 @@ export default function SendExtensionView(props: any){
                         <>
                             <MenuItem onClick={publicKey && handleClickOpen}>
                                 <ListItemIcon>
-                                    <SendIcon fontSize="small" />
+                                    <SwapHorizIcon fontSize="small" />
                                 </ListItemIcon>
-                                Send
+                                Swap
                             </MenuItem>
                         </>
                     }
@@ -662,12 +850,12 @@ export default function SendExtensionView(props: any){
                     id='extensions-dialog'
                     onClose={handleCloseDialog}
                 >
-                    Send Extension
+                    Swap Extension
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
                     <DialogContentText sx={{textAlign:'center'}}>
-                        Quickly send SOL & Tokens to any valid Solana address
+                        SWAP / DCA
                     </DialogContentText>
                     
                     <FormControl fullWidth  sx={{mt:2,mb:2}}>
@@ -676,7 +864,7 @@ export default function SendExtensionView(props: any){
                             <Grid container direction='row' sx={{pl:2,pr:1}}>
                                 <Grid item xs>
                                     <Typography variant='caption' sx={{color:'#919EAB'}}>
-                                    You're sending
+                                    You're swappping
                                     </Typography>
                                 </Grid>
                                 <Grid item>
@@ -775,7 +963,108 @@ export default function SendExtensionView(props: any){
                             
                         />
                     </FormControl>
+                    
+                    <ToBuySelect />
+                    
+                    <Grid container direction="row" xs={12} sx={{mt:1}}>
+                    <Grid xs={6}>
+                        <PeriodSelect />  
+                    </Grid>
+                    <Grid xs={6}>
+                        <FormControl fullWidth>
+                            <TextField 
+                                fullWidth 
+                                label="Over" 
+                                id="fullWidth"
+                                type="text"
+                                onChange={(e) => {
+                                    setPeriodDuration(+e.target.value);
+                                }}
+                                InputProps={{
+                                    endAdornment: <InputAdornment position="start">{period && convertSecondsToLegibleFormat(period, true)}</InputAdornment>,
+                                }}
+                                variant="filled"
+                                sx={{ m: 0.65 }}
+                            />
+                        </FormControl> 
+                        {(period && periodDuration) ?
+                            <>
+                            {((period*periodDuration > 31557600)) ?
+                                <Grid sx={{textAlign:'right',}}>
+                                    <Typography variant="caption" color="error">Up to 12m is supported during the beta phase</Typography>
+                                </Grid>
+                                :<></>
+                            }
+                            {(periodDuration > 0 && periodDuration < 1) ?
+                                <Grid sx={{textAlign:'right',}}>
+                                    <Typography variant="caption" color="error">At least 1 cycles are needed</Typography>
+                                </Grid>
+                                :<></>
+                            }
+                            </>
+                            :<></>
+                        }
+                    </Grid>  
+                </Grid>
+                
+                <Grid container direction="row" xs={12} sx={{mt:1}} >
+                    <Grid>
+                        <FormControl fullWidth>
+                            <FormGroup>
+                                <FormControlLabel
+                                control={
+                                    <Switch onChange={handlePricingStrategyChange} name="pricing_strategy" />
+                                }
+                                label={
+                                    <>
+                                    Custom Pricing Rules
+                                        <Typography variant="caption"><br/>Will execute only when the market price is within the desired Minimum and Maximum Price range</Typography>
+                                    </>}
+                                />
+                            </FormGroup>
+                        </FormControl>
+                    </Grid>
+                </Grid>
+                
+                {pricingStrategy &&
+                    <Grid container direction="row" xs={12} sx={{mt:1}} >
+                        <Grid xs={6}>
+                            <FormControl fullWidth>
+                                <TextField 
+                                    label="Min Price Per Cycle" 
+                                    //value={toAddress}
+                                    type="text"
+                                    onChange={(e) => {
+                                        setMinOutAmountPerCycle(+e.target.value);
+                                    }}
+                                    variant="filled"
+                                    sx={{ m: 0.65 }}
+                                    InputProps={{
+                                        endAdornment: <InputAdornment position="start">{(toMintAddress && objectToken[toMintAddress]) ? objectToken[toMintAddress].name : toMintAddress}  <VerticalAlignBottomIcon /></InputAdornment>,
+                                    }}
+                                />
+                            </FormControl>   
+                        </Grid>
+                        <Grid xs={6}>
+                            <FormControl fullWidth >
+                                <TextField 
+                                    label="Max Price Per Cycle" 
+                                    //value={toAddress}
+                                    variant="filled"
+                                    sx={{ m: 0.65 }}
+                                    onChange={(e) => {
+                                        setMaxOutAmountPerCycle(+e.target.value);
+                                    }}
+                                    InputProps={{
+                                        endAdornment: <InputAdornment position="start">{(toMintAddress && objectToken[toMintAddress]) ? objectToken[toMintAddress].name : toMintAddress} <VerticalAlignTopIcon /></InputAdornment>,
+                                    }}
+                                />
+                            </FormControl> 
+                        </Grid>  
+                    </Grid>
+                }
 
+                {/*
                     <FormControl fullWidth  sx={{mb:2}}>
                         <TextField
                             label="Recipient"
@@ -789,19 +1078,6 @@ export default function SendExtensionView(props: any){
                             }}
                         />
                         <Grid sx={{textAlign:'right',}}>
-                            {/*
-                            <Tooltip title='Paste from clipboard'>
-                                <IconButton 
-                                        size="small"
-                                        onClick={handlePasteFromClipboard}
-                                        color='inherit'
-                                        sx={{color:'#919EAB',textTransform:'none',ml:1}}
-                                        onPaste={handlePasteFromClipboard}
-                                        >
-                                    <ContentPasteIcon fontSize='small' />
-                                </IconButton>
-                            </Tooltip>
-                            */}
                             <Tooltip title='Send to my Wallet'>
                                 <IconButton 
                                         size="small"
@@ -813,6 +1089,7 @@ export default function SendExtensionView(props: any){
                             </Tooltip>
                         </Grid>
                     </FormControl>
+                */}
 
                     {openAdvanced ? 
                         <>
@@ -835,7 +1112,7 @@ export default function SendExtensionView(props: any){
 
 
                     <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2, textAlign:'center'}}>
-                        <Typography variant="caption">Made with ❤️ by Grape</Typography>
+                        <Typography variant="caption">Powered by Jupiter</Typography>
                     </Box>
 
                     <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p:0, pb:1 }}>
@@ -869,9 +1146,9 @@ export default function SendExtensionView(props: any){
                         </Box>
 
                         <Box sx={{ display: 'flex', p:0 }}>
-                            {(publicKey && tokenAmount && tokenAmount > 0 && tokenRecipient && tokenSelected) &&
+                            {(publicKey && tokenAmount && tokenAmount > 0 && toMintAddress && tokenSelected) &&
                                 <Button 
-                                    disabled={!tokenRecipient && !loading}
+                                    disabled={!toMintAddress && !loading}
                                     autoFocus 
                                     onClick={handleProposalIx}
                                     sx={{
@@ -883,7 +1160,7 @@ export default function SendExtensionView(props: any){
                                     }}
                                     startIcon={
                                     <>
-                                        <SendIcon 
+                                        <SwapHorizIcon 
                                             sx={{
                                                 color:'rgba(255,255,255,0.25)',
                                                 fontSize:"14px!important"}}
@@ -891,7 +1168,7 @@ export default function SendExtensionView(props: any){
                                     </>
                                     }
                                 >
-                                    Send
+                                    DCA / SWAP
                                 </Button>
                             }
                         </Box>

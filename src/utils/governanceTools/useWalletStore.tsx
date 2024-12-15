@@ -16,7 +16,6 @@ import {
   getGovernance,
   getGovernanceAccount,
   getGovernanceAccounts,
-  getGovernanceProgramVersion,
   Governance,
   GovernanceAccountType,
   GOVERNANCE_CHAT_PROGRAM_ID,
@@ -27,6 +26,7 @@ import {
   TokenOwnerRecord,
   VoteRecord,
 } from '@solana/spl-governance';
+import { getGrapeGovernanceProgramVersion } from '../../utils/grapeTools/helpers';
 import { ProgramAccount } from '@solana/spl-governance';
 import { getGovernanceChatMessages } from '@solana/spl-governance';
 import { ChatMessage } from '@solana/spl-governance';
@@ -162,9 +162,10 @@ const useWalletStore = create<WalletStore>((set, get) => ({
         programId = realmAccountInfo?.owner
       }
       if (realmId && programId) {
-        const programVersion = await getGovernanceProgramVersion(
+        const programVersion = await getGrapeGovernanceProgramVersion(
           connection.current,
-          programId!
+          programId!,
+          realmId
         )
         set((s) => {
           s.selectedRealm.programVersion = programVersion

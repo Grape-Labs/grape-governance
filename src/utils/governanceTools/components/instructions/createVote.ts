@@ -28,11 +28,10 @@ import {
   Vote,
   VoteChoice,
   VoteKind,
-  getGovernanceProgramVersion,
   GOVERNANCE_CHAT_PROGRAM_ID,
   SYSTEM_PROGRAM_ID,
 } from "@solana/spl-governance";
-
+import { getGrapeGovernanceProgramVersion } from '../../../../utils/grapeTools/helpers';
 
 import {
   NFT_PLUGINS_PKS,
@@ -105,9 +104,10 @@ export const createCastVoteTransaction = async (
       //if (new PublicKey(selectedRealm!.pubkey).toBase58() === "DA5G7QQbFioZ6K33wQcH8fVdgFcnaDjLD7DLQkapZg5X") {
       //  programVersion = 2;
       //} else {
-        programVersion = await getGovernanceProgramVersion(
+        programVersion = await getGrapeGovernanceProgramVersion(
           connection,
-          new PublicKey(selectedRealm!.owner)
+          new PublicKey(selectedRealm!.owner),
+          new PublicKey(selectedRealm.pubkey)
         );
       //}
       

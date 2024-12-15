@@ -13,8 +13,8 @@ import {
     getProposal,
     getRealm,
     getRealms, 
+    getTokenOwnerRecordAddress,
     getVoteRecordAddress,
-    getGovernanceProgramVersion,
     getTokenOwnerRecordsByOwner,
     getTokenOwnerRecord,
     getTokenOwnerRecordForRealm,
@@ -24,6 +24,7 @@ import {
     RelinquishVoteArgs,
     VoteRecord,
 } from '@solana/spl-governance';
+import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
 import { 
     getRealmIndexed,
     getProposalIndexed,
@@ -355,19 +356,33 @@ export function MyGovernanceView(props: any){
                         //console.log("tor: "+JSON.stringify(tor))
                         
                         //const programId = governance.owner;
-                        const programVersion = await getGovernanceProgramVersion(
+                        const programVersion = await getGrapeGovernanceProgramVersion(
                             RPC_CONNECTION,
                             programId,
+                            realmPk
                         )
                         
                         console.log("programVersion "+programVersion);
                         
-                        //const voteRecordPk = await getVoteRecordAddress(
-                        //    programId,
-                        //    proposal.pubkey,
-                        //    publicKey
-                        //  )
+                        const voteRecordPk = await getVoteRecordAddress(
+                            programId,
+                            proposal.pubkey,
+                            publicKey
+                          )
+                          console.log("voteRecordPk "+voteRecordPk.toBase58());
                         
+                        var tokenOwnerRecordPk = null;
+                        if (!tokenOwnerRecordPk){
+                            tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+                              programId,
+                              realmPk,
+                              proposal.account.governingTokenMint,
+                              publicKey,
+                            );
+                            if (tokenOwnerRecordPk)
+                              console.log("Using getTokenOwnerRecordAddress: "+tokenOwnerRecordPk.toBase58());
+                        }
+
                         const instructions: TransactionInstruction[] = []
                         
                         await withRelinquishVote(
@@ -377,9 +392,9 @@ export function MyGovernanceView(props: any){
                             realmPk,
                             proposal.account.governance,
                             proposal.pubkey,
-                            proposal.account.tokenOwnerRecord,
+                            tokenOwnerRecordPk,
                             proposal.account.governingTokenMint,
-                            publicKey,//item.pubkey,
+                            proposal.account.tokenOwnerRecord,
                             item.account.governingTokenOwner,
                             publicKey
                         )

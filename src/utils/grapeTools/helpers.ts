@@ -8,7 +8,9 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import {
   getAllTokenOwnerRecords, 
   getTokenOwnerRecord, 
-  getTokenOwnerRecordsByOwner  } from '@solana/spl-governance';
+  getTokenOwnerRecordsByOwner,
+  getGovernanceProgramVersion
+  } from '@solana/spl-governance';
   import { 
     getRealmIndexed,
     getAllProposalsIndexed,
@@ -113,6 +115,23 @@ export const shortenString = (input: any, startChars = 6, endChars = 6) => {
 
   return `${start}...${end}`;
 };
+
+export async function getGrapeGovernanceProgramVersion(connection: Connection, programId: PublicKey, realmPk: PublicKey){
+  return 3;
+  /*
+  if ((realmPk.toBase58() === "By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip") ||
+      (realmPk.toBase58() === "BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2"))
+  {
+    return 3;
+  } else{
+    const programVersion = await getGovernanceProgramVersion(
+      RPC_CONNECTION,
+      programId,
+    );
+    return programVersion;
+  }
+    */
+}
 
 export const getFormattedNumberToLocale = (value: any, digits = 0) => {
   const converted = parseFloat(value.toString());
@@ -241,11 +260,16 @@ export async function getJupiterPrices(tokens:string[], vsToken?:string, strict?
     finalTokenList = tokens;
   }
 
-
-  let apiUrl = "https://price.jup.ag/v4/price?ids="+finalTokenList;
+  // Remove duplicates by converting to a Set and back to an array
+  finalTokenList = [...new Set(finalTokenList)];
+  
+  let apiUrl = "https://api.jup.ag/price/v2?ids=";
+  //let apiUrl = "https://price.jup.ag/v4/price?ids=";
+  
+  let finalUrl = apiUrl + finalTokenList;
   if (vsToken)
-    apiUrl = "https://price.jup.ag/v4/price?ids="+finalTokenList+"&vsToken="+vsToken;
-  const resp = await window.fetch(apiUrl, {
+    finalUrl = apiUrl + finalTokenList+"&vsToken="+vsToken;
+  const resp = await window.fetch(finalUrl, {
   })
   const json = await resp.json(); 
   return json.data;

@@ -17,7 +17,6 @@ import {
   withSignOffProposal,
   withAddSignatory,
   MultiChoiceType,
-  getGovernanceProgramVersion,
   getGovernance,
   getTokenOwnerRecordAddress,
   createInstructionData,
@@ -25,6 +24,7 @@ import {
   getGovernanceAccounts,
   ProposalTransaction,
 } from '@solana/spl-governance';
+import { getGrapeGovernanceProgramVersion } from '../../utils/grapeTools/helpers';
 import { 
   sendTransactionsV3, 
   SequenceType, 
@@ -116,9 +116,12 @@ export async function createProposalInstructionsV0(
 
     let instructions: TransactionInstruction[] = [];
     const programId = new PublicKey(token_realm_program_id);
-    const programVersion = await getGovernanceProgramVersion(
+
+    
+    const programVersion = await getGrapeGovernanceProgramVersion(
       connection,
       programId,
+      realmPk
     );
 
     //const realmPk = new PublicKey('DcR6g5EawaEoTRYcnuBjtD26VSVjWNoi1C1hKJWwvcup');

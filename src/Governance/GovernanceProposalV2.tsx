@@ -4,6 +4,7 @@ import {
     getAllProposals, 
     getGovernance, 
     getGovernanceAccounts, 
+    getNativeTreasuryAddress,
     getGovernanceChatMessages, 
     getTokenOwnerRecord, 
     getTokenOwnerRecordsByOwner, 
@@ -52,9 +53,12 @@ import { InstructionMapping } from "../utils/grapeTools/InstructionMapping";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
+import removeInvalidImages from './removeInvalidImages';
 
+import ErrorBoundary from './ErrorBoundary';
 import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import GovernancePower from './GovernancePower';
+import GovernanceDiscussion from './GovernanceDiscussion';
 import {CopyToClipboard} from 'react-copy-to-clipboard';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
@@ -101,6 +105,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import ShareIcon from '@mui/icons-material/Share';
 import ArticleIcon from '@mui/icons-material/Article';
 import InfoIcon from '@mui/icons-material/Info';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -246,7 +251,9 @@ export function GovernanceProposalV2View(props: any){
     const [openInstructions, setOpenInstructions] = React.useState(false);
     const [expandInfo, setExpandInfo] = React.useState(false);
     const [reload, setReload] = React.useState(false);
-    
+    const [governanceRules, setGovernanceRules] = React.useState(null);
+    const [governanceNativeWallet, setGovernanceNativeWallet] = React.useState(null);
+
     const toggleInfoExpand = () => {
         setExpandInfo(!expandInfo)
     };
@@ -715,6 +722,7 @@ export function GovernanceProposalV2View(props: any){
             if (thisitem.account.signatoriesCount > 0){
                 // how many signed off? check signatoriesSignedOffCount
                 console.log("test "+new PublicKey(thisitem.owner || realm.owner).toBase58());
+                //alert("Getting signatories");
                 const allSignatoryRecords = await getAllProposalSignatoryRecords(new PublicKey(thisitem.owner || realm.owner), new PublicKey(thisitem.pubkey), new PublicKey(governanceAddress))
                 console.log("allSignatoryRecords: "+JSON.stringify(allSignatoryRecords));
                 setProposalSignatories(allSignatoryRecords)
@@ -755,7 +763,6 @@ export function GovernanceProposalV2View(props: any){
             }
         //}
         
-
         
 
         {
@@ -783,7 +790,6 @@ export function GovernanceProposalV2View(props: any){
                     console.log("FRESH RESULTS")
                     isFresh = true;
                 }
-
 
                 if (!voteRecord &&
                     (Number("0x"+vresults?.account?.options[0]?.voteWeight) > 0 ||
@@ -911,14 +917,13 @@ export function GovernanceProposalV2View(props: any){
                                     }
                                 }
 
+
                                 for (var accountInstruction of instructionItem.account.instructions){
                                     //if (instructionItem?.account?.instructions[0].data && instructionItem.account.instructions[0].data.length > 0){
                                         const typeOfInstruction = accountInstruction.data[0];
                                         //console.log("instructionDetails "+JSON.stringify(instructionDetails))
                                         const programId = new PublicKey(instructionItem?.account?.instructions[0].programId).toBase58();
                                         const instructionInfo = InstructionMapping?.[programId]?.[typeOfInstruction];
-                                        
-                                        //console.log("typeOfInstruction "+JSON.stringify(typeOfInstruction))
                                         
                                         if (programId === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"){//(instructionInfo?.name === "Token Transfer"){
 
@@ -933,9 +938,10 @@ export function GovernanceProposalV2View(props: any){
                                             
                                             if (gai){
                                                 // get token metadata
-                                                
-                                                const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai.data.parsed.info.mint}`;
+                                                console.log("gai: "+JSON.stringify(gai))
                                                 /*
+                                                const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai?.data?.parsed?.info?.mint}`;
+                                                
                                                 const meta = axios.get(uri, {
                                                     headers: {
                                                         'x-api-key': SHYFT_KEY
@@ -972,18 +978,113 @@ export function GovernanceProposalV2View(props: any){
                                                         ? adjustedAmount.toLocaleString() // No decimals, just format as integer
                                                         : adjustedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
-                                                    let symbol = "";
-                                                    if (tokenMap.get(gai?.data.parsed.info.mint)?.symbol)
-                                                        symbol = tokenMap.get(gai?.data.parsed.info.mint)?.symbol;
-                                                    else    
-                                                        symbol =`${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
-                                                    //console.log("accountInstruction: "+JSON.stringify(accountInstruction));
+                                                    let symbol = null;//`${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
+                                                    let tname = null;
+                                                    let logo = null;    
+                                                    
+                                                    if (tokenMap){
+                                                        const tmap = tokenMap.get(new PublicKey(gai?.data.parsed.info.mint).toBase58());
+                                                        if (tmap){
+                                                            console.log("tmap: "+JSON.stringify(tmap))
+                                                            if (!tname)
+                                                                tname = tmap?.name;
+                                                            if (!symbol)
+                                                                symbol = tmap?.symbol;
+                                                            if (!logo)
+                                                                logo = tmap?.logoURI;
+                                                        }
+                                                    }
+
+                                                    if (!symbol)
+                                                        symbol = `${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
+
                                                     newObject = {
                                                         type:"TokenTransfer",
                                                         pubkey: accountInstruction.accounts[0].pubkey,
                                                         mint: gai?.data.parsed.info.mint,
-                                                        name: symbol,
-                                                        logoURI: tokenMap.get(gai?.data.parsed.info.mint)?.logoURI,
+                                                        name: tname,
+                                                        logoURI: logo,
+                                                        amount: parseFloat(amount.replace(/,/g, '')), //amount,
+                                                        data: accountInstruction.data,
+                                                        destinationAta:accountInstruction.accounts[1].pubkey,
+                                                        description:amount+' '+symbol+' to '+accountInstruction.accounts[1].pubkey,
+                                                    };
+                                                    
+                                                    //console.log("newObject "+JSON.stringify(newObject))
+                                                    accountInstruction.info = newObject;
+                                                } catch(e){
+                                                    console.log("ERR: "+e);
+                                                }
+                                                accountInstruction.gai = gai;
+                                                
+                                                if (instructionTransferDetails){
+                                                    const hasInstruction = instructionTransferDetails.some(obj => obj?.pubkey === instructionItem.account.instructions[0].accounts[0]?.pubkey);
+                                                    
+                                                    if (!hasInstruction){
+                                                        //console.log("newObject: "+JSON.stringify(newObject))
+
+                                                        setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
+                                                    }
+                                                }
+                                            }
+                                        } else if (programId === "TbpjRtCg2Z2n2Xx7pFm5HVwsjx9GPJ5MsrfBvCoQRNL"){//(instructionInfo?.name === "Batch Token Transfer"){
+
+                                            // check if we have this in gai
+                                            let gai = null;
+                                            if (mintResults && mintResults.length > 0){
+                                                gai = mintResults[cnt];
+                                            } 
+
+                                            if (!gai)
+                                                gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                            
+                                            if (gai){
+                                                // get token metadata
+                                                console.log("gai: "+JSON.stringify(gai))
+
+                                                //setInstructionRecord(gai.value);
+                                                let newObject = null;
+                                                try{
+                                                    const amountBN = new BN(accountInstruction?.data?.slice(1), 'le');
+                                                    const decimals = gai?.data.parsed.info.tokenAmount?.decimals || 0;
+                                                    const divisor = new BN(10).pow(new BN(decimals));
+
+                                                    // To handle decimals, use .toNumber() for both the amount and divisor
+                                                    let adjustedAmount = amountBN.toNumber() / divisor.toNumber(); 
+
+                                                    // Now adjustedAmount will properly reflect decimal values
+                                                    console.log("Adjusted Amount:", adjustedAmount);
+                                                   // Detect if decimals should be displayed (more than 0)
+                                                    let amount = (adjustedAmount % 1 === 0)
+                                                        ? adjustedAmount.toLocaleString() // No decimals, just format as integer
+                                                        : adjustedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+
+                                                    let symbol = null;//`${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
+                                                    let tname = null;
+                                                    let logo = null;    
+                                                    
+                                                    if (tokenMap){
+                                                        const tmap = tokenMap.get(new PublicKey(gai?.data.parsed.info.mint).toBase58());
+                                                        if (tmap){
+                                                            console.log("tmap: "+JSON.stringify(tmap))
+                                                            if (!tname)
+                                                                tname = tmap?.name;
+                                                            if (!symbol)
+                                                                symbol = tmap?.symbol;
+                                                            if (!logo)
+                                                                logo = tmap?.logoURI;
+                                                        }
+                                                    }
+
+                                                    if (!symbol)
+                                                        symbol = `${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
+
+                                                    newObject = {
+                                                        type:"BatchTokenTransfer",
+                                                        pubkey: accountInstruction.accounts[0].pubkey,
+                                                        mint: gai?.data.parsed.info.mint,
+                                                        name: tname,
+                                                        logoURI: logo,
                                                         amount: parseFloat(amount.replace(/,/g, '')), //amount,
                                                         data: accountInstruction.data,
                                                         destinationAta:accountInstruction.accounts[1].pubkey,
@@ -1006,7 +1107,7 @@ export function GovernanceProposalV2View(props: any){
                                                 }
                                                 
                                             }
-                                        } else if (programId === "11111111111111111111111111111111"){//(instructionInfo?.name === "Token Transfer"){
+                                        } else if (programId === "11111111111111111111111111111111"){// SOL Transfer
 
                                             // check if we have this in gai
                                             let gai = null;
@@ -1018,29 +1119,7 @@ export function GovernanceProposalV2View(props: any){
                                                 gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
                                             
                                             if (gai){
-                                                // get token metadata
                                                 
-                                                //const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai.data.parsed.info.mint}`;
-                                                /*
-                                                const meta = axios.get(uri, {
-                                                    headers: {
-                                                        'x-api-key': SHYFT_KEY
-                                                    }
-                                                    })
-                                                    .then(response => {
-                                                        if (response.data?.result){
-                                                            return response.data.result;
-                                                        }
-                                                        //return null
-                                                    })
-                                                    .catch(error => 
-                                                    {   
-                                                        // revert to RPC
-                                                        console.error(error);
-                                                        //return null;
-                                                    });
-                                                */
-
                                                 console.log("SOL IX: "+JSON.stringify(accountInstruction));
 
                                                 //setInstructionRecord(gai.value);
@@ -1049,7 +1128,6 @@ export function GovernanceProposalV2View(props: any){
                                                     
                                                     const amountBuffer = accountInstruction?.data.slice(4, 12);
                                                     const amountBN = new BN(amountBuffer, 'le');
-                                                    //const amountBN = new BN(accountInstruction?.data?.slice(1), 'le');
                                                     const lamports = amountBN.toNumber();
                                                     console.log("Lamports: ",lamports);
                                                     // Convert lamports to SOL (1 SOL = 1,000,000,000 lamports)
@@ -1223,7 +1301,7 @@ export function GovernanceProposalV2View(props: any){
                                                         const divisor = new BN(10).pow(new BN(decimals));
                                                         amount = Number(amountBN.div(divisor)).toLocaleString(); 
                                                         
-                                                        let tname = "";
+                                                        let tname = null;
                                                         // check if this is a Grape Proposal and use the token decimals to format it
                                                         
                                                         if (accountInstruction.accounts.length > 3){
@@ -1261,6 +1339,23 @@ export function GovernanceProposalV2View(props: any){
                                                                     lastMintDecimals = thisMintDecimals;
                                                                 }
                                                             }
+
+                                                            if (tokenMap){
+                                                                const tmap = tokenMap.get(thisMint);
+                                                                if (tmap){
+                                                                    if (!tname)
+                                                                        tname = tmap?.name;
+                                                                        lastMintName = thisMintName = tname;
+                                                                    if (!symbol)
+                                                                        symbol = tmap?.symbol;
+                                                                    if (!logo)
+                                                                        logo = tmap?.logoURI;
+                                                                }
+                                                            }
+
+                                                            if (!symbol)
+                                                                symbol = `${gai?.data.parsed.info.mint.slice(0, 3)}...${gai?.data.parsed.info.mint.slice(-3)}`;
+                                                            
                                                             destinationAta = accountInstruction?.accounts[3].pubkey;
                                                             console.log("Grant "+amount+" "+tname+" to "+accountInstruction?.accounts[3].pubkey.toBase58());
                                                             description = "Grant "+amount+" "+tname+" to "+accountInstruction?.accounts[3].pubkey.toBase58();
@@ -1899,16 +1994,18 @@ export function GovernanceProposalV2View(props: any){
             realmPk = new PublicKey(realm.pubkey);
         }*/
 
+        const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, realmOwner);
+        setGovernanceRules(governanceRulesIndexed);
+
         if (!thisitem){
             console.log("Calling Index/RPC");
             //const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
-            const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, realmOwner);
             const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
             const prop = await getProposalIndexed(governanceRulesStrArr, realmOwner, governanceAddress, proposalPk);
             //console.log("prop: "+JSON.stringify(prop));
             setThisitem(prop);
         }
-        
+
         if (!memberMap){
             let rawTokenOwnerRecords = null;
             let indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realmPk).toBase58(), grealm.owner || realm.owner.toBase58());
@@ -1927,21 +2024,38 @@ export function GovernanceProposalV2View(props: any){
                     }
                 }
                 rawTokenOwnerRecords = indexedTokenOwnerRecords;//cachedMemberMap;
-            } else if (!indexedTokenOwnerRecords){
+            }/* else if (!indexedTokenOwnerRecords){
                 console.log("** Members from RPC")
                 rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
-            } else{
+            }*/ else{
                 console.log("** Members from Index")
                 rawTokenOwnerRecords = indexedTokenOwnerRecords;
             }
             console.log("Setting MemberMap");
             setMemberMap(rawTokenOwnerRecords);
         }
-        
+    
         console.log("Completed Gov Prop setup")
 
         setLoadingValidation(false);
     } 
+
+    const fetchNativeTreasuryAddress = async(governance:any) => {
+        
+        const nta = await getNativeTreasuryAddress(
+            //@ts-ignore
+            new PublicKey(realm.owner),
+            new PublicKey(governance)
+        )
+
+        setGovernanceNativeWallet(nta);
+    }
+
+    React.useEffect(() => { 
+        if (thisitem && !governanceNativeWallet){
+            fetchNativeTreasuryAddress(thisitem.account.governance);
+        }
+    }, [thisitem]);
 
     React.useEffect(() => { 
 
@@ -1959,7 +2073,7 @@ export function GovernanceProposalV2View(props: any){
                 validateGovernanceSetup();
             }
         }
-    }, [governanceLookup, cachedGovernance, loadingValidation]);
+    }, [governanceLookup, loadingValidation]);
 
     React.useEffect(() => { 
 
@@ -1996,7 +2110,7 @@ export function GovernanceProposalV2View(props: any){
                     //getGovernanceProps()
                 }
             }*/
-    }, [loadingValidation, cachedGovernance, thisitem, !thisGovernance, governanceLookup, tokenMap, memberMap, realm, reload]);
+    }, [loadingValidation, thisitem, !thisGovernance, governanceLookup, tokenMap, memberMap, realm, reload]);
 
     React.useEffect(() => { 
         // check again if this voter has voted:
@@ -2135,9 +2249,33 @@ export function GovernanceProposalV2View(props: any){
                                                         </Button>
                                                     </Tooltip>
                                             </CopyToClipboard>
-                                            
+                                                <Tooltip title={`Share ${realmName ? realmName : ''} Governance Proposal`}>
+                                                    <Button
+                                                        aria-label="share"
+                                                        variant="outlined"
+                                                        color="inherit"
+                                                        onClick={() => {
+                                                            if (navigator.share) {
+                                                                navigator.share({
+                                                                    title: `${realmName} Governance Proposal`,
+                                                                    text: `Check out this governance proposal on ${realmName}:`,
+                                                                    url: `https://governance.so/proposal/${governanceAddress}/${proposalPk}`
+                                                                }).catch((error) => console.error('Error sharing:', error));
+                                                            } else {
+                                                                alert("Your browser doesn't support the Share API.");
+                                                            }
+                                                        }}
+                                                        sx={{
+                                                            borderTopRightRadius:'17px',
+                                                            borderBottomRightRadius:'17px',
+                                                            borderColor:'rgba(255,255,255,0.05)',
+                                                            fontSize:'10px'}}
+                                                    >
+                                                        <ShareIcon fontSize='inherit' sx={{mr:1}} /> Share
+                                                    </Button>
+                                                </Tooltip>
                                             </ButtonGroup>
-                                            <Tooltip title={`Visit ${realmName ? realmName : 'DAO'} on the Realms UI`}>
+                                            <Tooltip title={`Visit ${realmName ? realmName : 'DAO'} proposal on the Realms UI`}>
                                                 <Button 
                                                     aria-label="back"
                                                     variant="outlined" 
@@ -2182,7 +2320,31 @@ export function GovernanceProposalV2View(props: any){
                                                             </Button>
                                                         </Tooltip>
                                                 </CopyToClipboard>
-
+                                                <Tooltip title={`Share ${realmName ? realmName : ''} Governance Proposal`}>
+                                                    <Button
+                                                        aria-label="share"
+                                                        variant="outlined"
+                                                        color="inherit"
+                                                        onClick={() => {
+                                                            if (navigator.share) {
+                                                                navigator.share({
+                                                                    title: `${realmName} Governance Proposal`,
+                                                                    text: `Check out this governance proposal on ${realmName}:`,
+                                                                    url: `https://governance.so/proposal/${governanceAddress}/${proposalPk}`
+                                                                }).catch((error) => console.error('Error sharing:', error));
+                                                            } else {
+                                                                alert("Your browser doesn't support the Share API.");
+                                                            }
+                                                        }}
+                                                        sx={{
+                                                            borderTopRightRadius:'17px',
+                                                            borderBottomRightRadius:'17px',
+                                                            borderColor:'rgba(255,255,255,0.05)',
+                                                            fontSize:'10px'}}
+                                                    >
+                                                        <ShareIcon fontSize='inherit' sx={{mr:1}} /> Share
+                                                    </Button>
+                                                </Tooltip>
                                                 <Tooltip title={`Visit  ${realmName ? realmName : 'DAO'} on the Realms UI`}>
                                                     <Button 
                                                         aria-label="back"
@@ -2519,14 +2681,37 @@ export function GovernanceProposalV2View(props: any){
                                                     }} 
                                                 >
                                                     <Typography variant='body2'>
+                                                        <ErrorBoundary>
+                                                            
+                                                            <ReactMarkdown 
+                                                                remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
+                                                                //transformImageUri={transformImageUri}
+                                                                children={proposalDescription}
+                                                                components={{
+                                                                    // Custom component for overriding the image rendering
+                                                                    img: ({ node, ...props }) => (
+                                                                    <img
+                                                                        {...props}
+                                                                        style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
+                                                                    />
+                                                                    ),
+                                                                }}
+                                                            />
+                                                            
+                                                        </ErrorBoundary>
+                                                        {/*
+                                                        <ReactMarkdown
+                                                            remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkImages]}
+                                                            components={{
+                                                                img: ({ src, alt }) => (
+                                                                    <img src={transformImageUri(src)} alt={alt} style={{ maxWidth: '100%' }} />
+                                                                ),
+                                                            }}
+                                                        >
+                                                            {proposalDescription}
+                                                        </ReactMarkdown>
+                                                        */}
                                                         
-                                                        <ReactMarkdown 
-                                                            //remarkPlugins={[remarkGfm]}
-                                                            remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
-                                                            //urlTransform={transformImageUri}
-                                                            transformImageUri={transformImageUri}
-                                                            children={proposalDescription}
-                                                        />
                                                         
                                                     </Typography>
                                                 </div>
@@ -2621,21 +2806,21 @@ export function GovernanceProposalV2View(props: any){
                                                 {thisitem.account.governingTokenMint &&
                                                 <Box sx={{ my: 3, mx: 2 }}>
                                                     <Grid container alignItems="center">
-                                                    <Grid item xs>
-                                                        <Typography gutterBottom variant="subtitle1" component="div">
-                                                            Mint
-                                                        </Typography>
-                                                    </Grid>
-                                                    <Grid item>
-                                                        <Typography gutterBottom variant="body1" component="div">
-                                                                <ExplorerView
-                                                                    address={thisitem.account.governingTokenMint?.toBase58()} type='address'
-                                                                    shorten={8}
-                                                                    hideTitle={false} style='text' color='white' fontSize='12px'
-                                                                    showTokenMetadata={true}
-                                                                    tokenMap={tokenMap}/>
-                                                        </Typography>
-                                                    </Grid>
+                                                        <Grid item xs>
+                                                            <Typography gutterBottom variant="subtitle1" component="div">
+                                                                Mint
+                                                            </Typography>
+                                                        </Grid>
+                                                        <Grid item>
+                                                            <Typography gutterBottom variant="body1" component="div">
+                                                                    <ExplorerView
+                                                                        address={thisitem.account.governingTokenMint?.toBase58()} type='address'
+                                                                        shorten={8}
+                                                                        hideTitle={false} style='text' color='white' fontSize='12px'
+                                                                        showTokenMetadata={true}
+                                                                        tokenMap={tokenMap}/>
+                                                            </Typography>
+                                                        </Grid>
                                                     </Grid>
                                                     <Typography color="text.secondary" variant="caption">
                                                         {propVoteType} used to vote for this proposal
@@ -2659,7 +2844,8 @@ export function GovernanceProposalV2View(props: any){
                                                                         {(+(totalQuorum - (forVotes/10**votingDecimals))
                                                                         .toFixed(0)).toLocaleString()}
                                                                     </>
-                                                                    :<>Passing</>
+                                                                    :
+                                                                    <>Passing</>
                                                                 }
                                                             </Typography>
                                                         </Grid>
@@ -2679,6 +2865,52 @@ export function GovernanceProposalV2View(props: any){
                                                         </Typography>
                                                     </Box>
                                                 :<></>}
+
+
+                                                {
+                                                (publicKey &&
+                                                    +thisitem.account.state === 2 &&
+                                                    (() => {
+                                                    // Inline function to check if the proposal has ended including the cooldown time
+                                                    const signingOffAt = Number(thisitem.account?.signingOffAt || 0);
+                                                    const baseVotingTime = Number(thisGovernance.account?.config?.baseVotingTime || 0);
+                                                    const votingCoolOffTime = Number(thisGovernance.account?.config?.votingCoolOffTime || 0);
+
+                                                    // Calculate end times
+                                                    const votingEndTime = signingOffAt + baseVotingTime;
+                                                    const totalEndTime = votingEndTime + votingCoolOffTime;
+                                                    const currentTime = moment().unix();
+                                                    
+                                                    // Return true if the current time has passed the total end time including cooldown
+                                                    return currentTime >= totalEndTime;
+                                                    })()
+                                                ) ? (
+                                                    <>
+                                                    <Box sx={{ my: 3, mx: 2 }}>
+                                                        <Grid container alignItems="center">
+                                                        <ManageGovernanceProposal
+                                                            governanceAddress={governanceAddress}
+                                                            governanceRulesWallet={thisitem.account.governance}
+                                                            governingTokenMint={thisitem.account.governingTokenMint}
+                                                            proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                            payerWallet={publicKey}
+                                                            governanceLookup={governanceLookup}
+                                                            editProposalAddress={thisitem.pubkey}
+                                                            realm={realm}
+                                                            memberMap={memberMap}
+                                                            setReload={setReload}
+                                                            proposalSignatories={proposalSignatories}
+                                                            mode={5} // finalize
+                                                            state={thisitem.account.state}
+                                                        />
+                                                        </Grid>
+                                                    </Box>
+                                                    </>
+                                                ) : (
+                                                    <></>
+                                                )
+                                                }
+                                                        
 
                                                 {(thisitem.account.signingOffAt && +thisitem.account.signingOffAt > 0 && thisitem.account.status !== 0 && thisitem.account.status !== 1) &&
                                                     <Box sx={{ my: 3, mx: 2 }}>
@@ -2719,8 +2951,6 @@ export function GovernanceProposalV2View(props: any){
 
                                             {expandInfo &&
                                                 <Box>
-
-                                                    
                                                     {totalQuorum &&
                                                     <Box sx={{ my: 3, mx: 2 }}>
                                                         <Grid container alignItems="center">
@@ -2834,6 +3064,35 @@ export function GovernanceProposalV2View(props: any){
                                                             </Grid>
                                                             <Typography color="text.secondary" variant="caption">
                                                                 Total unique voters voting for/against this proposal <sup>*</sup>{uniqueYes+uniqueNo} participants
+                                                            </Typography>
+                                                        </Box>
+                                                    }
+
+                                                    {
+                                                        <Box sx={{ my: 3, mx: 2 }}>
+                                                            <Grid container alignItems="center">
+                                                                <Grid item xs>
+                                                                    <Typography gutterBottom variant="subtitle1" component="div">
+                                                                        Wallet
+                                                                    </Typography>
+                                                                </Grid>
+                                                                <Grid item>
+                                                                    {governanceNativeWallet &&
+                                                                    <Typography gutterBottom variant="body1" component="div">
+                                                                        <ExplorerView 
+                                                                            address={governanceNativeWallet && governanceNativeWallet.toBase58()}
+                                                                            governance={thisitem.account.governance && thisitem.account.governance.toBase58()}
+                                                                            dao={governanceAddress && new PublicKey(governanceAddress).toBase58()}
+                                                                            type='address' 
+                                                                            shorten={4} 
+                                                                            hideTitle={false} 
+                                                                            style='text' color='white' fontSize='14px' />
+                                                                    </Typography>
+                                                                    }
+                                                                </Grid>
+                                                            </Grid>
+                                                            <Typography color="text.secondary" variant="caption">
+                                                                Rules {thisitem.account.governance.toBase58()}
                                                             </Typography>
                                                         </Box>
                                                     }
@@ -3028,6 +3287,24 @@ export function GovernanceProposalV2View(props: any){
                                                         <>
                                                             <Box sx={{ my: 3, mx: 2 }}>
                                                                 <Grid container alignItems="center">
+                                                                        <IntegratedGovernanceProposalDialogView 
+                                                                            governanceAddress={governanceAddress}
+                                                                            governanceRulesWallet={thisitem.account.governance}
+                                                                            governingTokenMint={thisitem.account.governingTokenMint}
+                                                                            proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                                                            payerWallet={publicKey}
+                                                                            governanceLookup={governanceLookup}
+                                                                            editProposalAddress={thisitem.pubkey}
+                                                                            setReload={setReload}
+                                                                            title="Add Instructions"
+                                                                            useButton={5}
+                                                                        />
+                                                                </Grid>
+                                                            </Box>
+                                                                
+                                                            
+                                                            <Box sx={{ my: 3, mx: 2 }}>
+                                                                <Grid container alignItems="center">
                                                                     <ManageGovernanceProposal 
                                                                         governanceAddress={governanceAddress}
                                                                         governanceRulesWallet={thisitem.account.governance}
@@ -3124,33 +3401,51 @@ export function GovernanceProposalV2View(props: any){
                                             }
 
                                             <Box sx={{ my: 3, mx: 2 }}>
-                                                    <Grid container alignItems="center">
-                                                        <Grid item xs>
-                                                            
-                                                        </Grid>
-                                                        <Grid item>
-                                                            <Typography gutterBottom variant="body1" component="div">
-                                                                <Button
-                                                                    size="small"
-                                                                    color='inherit'
-                                                                    variant="outlined"
-                                                                    onClick={toggleInfoExpand}
-                                                                    sx={{
-                                                                        borderRadius:'17px',
-                                                                        textTransform:'none',
-                                                                    }}
-                                                                >
-                                                                    {expandInfo ? <><ExpandLess sx={{mr:1}}/> Less</> : <><ExpandMoreIcon sx={{mr:1}}/> More Info</>}
-                                                                </Button>
-                                                            </Typography>
-                                                        </Grid>
+                                                <Grid container alignItems="center">
+                                                    <Grid item xs>
+                                                        
                                                     </Grid>
-                                                </Box>
+                                                    <Grid item>
+                                                        <Typography gutterBottom variant="body1" component="div">
+                                                            <Button
+                                                                size="small"
+                                                                color='inherit'
+                                                                variant="outlined"
+                                                                onClick={toggleInfoExpand}
+                                                                sx={{
+                                                                    borderRadius:'17px',
+                                                                    textTransform:'none',
+                                                                }}
+                                                            >
+                                                                {expandInfo ? <><ExpandLess sx={{mr:1}}/> Less</> : <><ExpandMoreIcon sx={{mr:1}}/> More Info</>}
+                                                            </Button>
+                                                        </Typography>
+                                                    </Grid>
+                                                </Grid>
+                                            </Box>
                                         </Grid>
                                         
                                     </Grid>  
                                 </Box>
+
+                                <GovernanceDiscussion 
+                                    governanceAddress={governanceAddress}
+                                    proposalAddress={thisitem?.pubkey}
+                                    governanceRulesWallet={thisitem.account.governance}
+                                    governingTokenMint={thisitem.account.governingTokenMint}
+                                    proposalAuthor={thisitem.account.tokenOwnerRecord}
+                                    proposalInstructions={proposalInstructions}
+                                    payerWallet={publicKey}
+                                    governanceLookup={governanceLookup}
+                                    realm={realm}
+                                    memberMap={memberMap}
+                                    proposalSignatories={proposalSignatories}
+                                />
                             </Grid>
+
+
+                            
+
                         </Grid>
 
                         {(proposalInstructions && proposalInstructions.length > 0) &&
@@ -3204,19 +3499,20 @@ export function GovernanceProposalV2View(props: any){
                                                     </Typography>
                                                     <Typography variant="caption">
 
-                                                        {Object.values(
+                                                    {Object.values(
                                                             instructionTransferDetails.reduce((result, item) => {
-                                                                //console.log("item: "+JSON.stringify(item))
-                                                                const { mint, amount, name, logoURI, destinationAta } = item;
-                                                                if (!result[mint]) {
-                                                                    result[mint] = { mint, totalAmount: 0, name, logoURI, uniqueDestinationAta: new Set() };
+                                                                // Ensure item exists and has necessary properties before destructuring
+                                                                if (item && typeof item === 'object') {
+                                                                    const { mint, amount, name, logoURI, destinationAta } = item;
+                                                                    if (!result[mint]) {
+                                                                        result[mint] = { mint, totalAmount: 0, name, logoURI, uniqueDestinationAta: new Set() };
+                                                                    }
+                                                                    result[mint].totalAmount += +amount || 0; // Fallback to 0 if amount is invalid
+                                                                    if (destinationAta) result[mint].uniqueDestinationAta.add(destinationAta);
                                                                 }
-                                                                result[mint].totalAmount += +amount;
-                                                                if (destinationAta)
-                                                                    result[mint].uniqueDestinationAta.add(destinationAta);
                                                                 return result;
                                                             }, {})
-                                                            ).map((item) => (
+                                                        ).map((item) => (
                                                                 <>
                                                                     <Grid container
                                                                         direction="row"
@@ -3230,7 +3526,8 @@ export function GovernanceProposalV2View(props: any){
                                                                                     to ${item.uniqueDestinationAta.size} unique wallet${(item.uniqueDestinationAta.size > 1) ? `s`:``}
                                                                                 `} 
                                                                                 hideTitle={false} style='text' color='white' fontSize='12px'
-                                                                                showNftData={true} />
+                                                                                showNftData={true} 
+                                                                            />
                                                                             }
                                                                         </Grid>
                                                                     </Grid>
@@ -3246,6 +3543,8 @@ export function GovernanceProposalV2View(props: any){
                                         <InstructionTableView   
                                             proposalInstructions={proposalInstructions}
                                             proposal={thisitem} 
+                                            governanceNativeWallet={governanceNativeWallet}
+                                            governanceRulesWallet={thisitem.account.governance}
                                             governingTokenMint={thisitem.account.governingTokenMint} 
                                             setReload={setReload} 
                                             realm={realm} 

@@ -21,7 +21,6 @@ import {
     Vote,
     VoteChoice,
     VoteKind,
-    getGovernanceProgramVersion,
     GOVERNANCE_CHAT_PROGRAM_ID,
     SYSTEM_PROGRAM_ID,
 } from "@solana/spl-governance";

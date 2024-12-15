@@ -26,11 +26,9 @@ import GovernanceCreateProposalView from './GovernanceCreateProposal';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import SendIcon from '@mui/icons-material/Send';
 import EditIcon from '@mui/icons-material/Edit';
-import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
-import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
-import FitScreenIcon from '@mui/icons-material/FitScreen';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
+import AddIcon from '@mui/icons-material/Add';
 
 export interface DialogTitleProps {
     id: string;
@@ -78,7 +76,7 @@ export function IntegratedGovernanceProposalDialogView(props: any){
     const governanceRulesWallet = props.governanceRulesWallet;
     const editProposalAddress = props?.editProposalAddress;
     const governingTokenMint = props.governingTokenMint;
-    const tokenMap = props.tokenMap;
+    const tokenMap = props?.tokenMap;
     const memberMap = props.memberMap;
     const governanceAddress = props.governanceAddress;
     const intraDao = props?.intraDao;
@@ -167,11 +165,25 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                                             Create Proposal</MenuItem>
                                     </>
                                 :
-                                    <Button 
-                                        onClick={handleClickOpen}
-                                        sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
-                                        Draft <EditIcon fontSize="small" sx={{ml:1}}/>
-                                    </Button>
+                                    <>
+                                        {useButtonType === 5 ?
+                                            <Button 
+                                                onClick={handleClickOpen}
+                                                variant='outlined'
+                                                color='inherit'
+                                                fullWidth={true}
+                                                sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
+                                                    {title} <AddIcon fontSize="small" sx={{ml:1}}/>
+                                            </Button>
+                                        :
+                                            <Button 
+                                                onClick={handleClickOpen}
+                                                sx={{color:'white',textTransform:'none',borderRadius:'17px'}}>
+                                                        Draft <EditIcon fontSize="small" sx={{ml:1}}/>
+                                            </Button>
+                                        }
+                                        
+                                    </>
                                 }
                             </>
                         }
@@ -186,13 +198,22 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                 open={open} onClose={handleClose}
                 PaperProps={{
                     style: {
-                        p:0,
+                        //p:0,
                         background: '#13151C',
                         border: '1px solid rgba(255,255,255,0.05)',
                         borderTop: '1px solid rgba(255,255,255,0.1)',
                         borderRadius: '20px'
                     }
                     }}
+                disableEscapeKeyDown
+                disableAutoFocus
+                disableEnforceFocus
+                disableRestoreFocus
+                onKeyDown={(e) => {
+                    if (e.key === 'Tab') {
+                        e.preventDefault(); // Prevent dialog from closing
+                    }
+                }}
                 >
                 <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog}>
                     {title} {editProposalAddress && editProposalAddress.toBase58()}
@@ -207,6 +228,8 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                         governingTokenMint={governingTokenMint}
                         proposalAuthor={proposalAuthor}
                         usePlugin={usePlugin}
+                        realm={realm}
+                        tokenMap={tokenMap}
                         //payerWallet={publicKey} 
                         //governanceWallet={governanceWallet?.vault.pubkey} 
                         //setInstructionsObject={setInstructionsObject} 

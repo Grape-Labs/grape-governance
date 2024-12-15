@@ -51,7 +51,7 @@ import { ValidateCurve } from '../grapeTools/WalletAddress';
 
 import SolIcon from '../../components/static/SolIcon';
 import SolCurrencyIcon from '../../components/static/SolCurrencyIcon';
-
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import CloseIcon from '@mui/icons-material/Close';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import TwitterIcon from '@mui/icons-material/Twitter';
@@ -125,6 +125,8 @@ export default function ExplorerView(props:any){
     const shorten = props?.shorten || 0;
     const [anchorEl, setAnchorEl] = React.useState(null);
     const open = Boolean(anchorEl);
+    const dao = props?.dao;
+    const governance = props?.governance;
     const showSolanaProfile = props.showSolanaProfile || null;
     const showNftData = props.showNftData || null;
     const showSolBalance = props.showSolBalance || null;
@@ -637,6 +639,24 @@ export default function ExplorerView(props:any){
                                     <PersonIcon fontSize="small" />
                                 </ListItemIcon>
                                 Grape Identity
+                        </MenuItem>
+                        
+                        <Divider />
+                    </>
+                }
+
+                {governance &&
+                    <>    
+                        <MenuItem 
+                            color='inherit'
+                            component='a'
+                            target='_blank'
+                            href={`https://governance.so/treasury/${dao}/${governance}`}
+                            onClick={handleClose}>
+                                <ListItemIcon>
+                                    <AccountBalanceIcon fontSize="small" />
+                                </ListItemIcon>
+                                Treasury Wallet
                         </MenuItem>
                         
                         <Divider />

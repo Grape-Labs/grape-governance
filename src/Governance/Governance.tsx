@@ -31,6 +31,7 @@ import {
   FormGroup,
   FormControlLabel,
   Switch,
+  ButtonGroup
 } from '@mui/material/';
 
 import { Helmet } from 'react-helmet';
@@ -48,6 +49,8 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import { GovernanceProposalDialog } from './GovernanceProposalDialog';
 import moment from 'moment';
 
+import ShareIcon from '@mui/icons-material/Share';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EditIcon from '@mui/icons-material/Edit';
 import SearchIcon from '@mui/icons-material/Search';
@@ -90,6 +93,7 @@ import {
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
+    getVoteRecordsByVoterIndexed,
 } from './api/queries';
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
@@ -258,6 +262,7 @@ function RenderGovernanceTable(props:any) {
     const governanceType = props.governanceType;
     const governanceLookup = props.governanceLookup;
     const cachedGovernance = props.cachedGovernance;
+    const votesForWallet = props?.votesForWallet;
     const [loading, setLoading] = React.useState(false);
     //const [proposals, setProposals] = React.useState(props.proposals);
     const governanceToken = props.governanceToken;
@@ -274,7 +279,8 @@ function RenderGovernanceTable(props:any) {
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
     // Avoid a layout jump when reaching the last page with empty rows.
     const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - proposals.length) : 0;
-    
+    const [hasVoted, setHasVoted] = React.useState(false);
+
     const handleChangePage = (event:any, newPage:number) => {
         setPage(newPage);
     };
@@ -291,6 +297,34 @@ function RenderGovernanceTable(props:any) {
     function GetProposalStatus(props: any){
         const thisitem = props.item;
         const [thisGovernance, setThisGovernance] = React.useState(props.cachedGovernnace);
+        const [hasVotedForProp, setHasVotedForProp] = React.useState(false);
+
+        const findProposalVote = (proposalId: string, voterPublicKey: string, voteRecords: any) => {
+            // Find the record matching the proposal and voter, and check if voterWeight > 0
+            if (voteRecords && voteRecords.length > 0){
+                const record = voteRecords.find(
+                    item =>
+                        item.account.proposal.toBase58() === proposalId &&
+                        item.account.governingTokenOwner.toBase58() === voterPublicKey &&
+                        item.account.voterWeight > 0
+                );
+            
+                if (record) {
+                    console.log("User has voted on the proposal ("+proposalId+"):", record);
+                    return true;
+                } else {
+                    console.log("User has not voted on this proposal ("+proposalId+" - "+voterPublicKey+").");
+                    return false;
+                }
+            }
+            //return false;
+        };
+
+        React.useEffect(() => { 
+            if (publicKey && thisitem?.pubkey && votesForWallet){
+                setHasVotedForProp(findProposalVote(thisitem?.pubkey?.toBase58(), publicKey?.toBase58(), votesForWallet));
+            }
+        }, [publicKey, thisitem, votesForWallet]);
 
         React.useEffect(() => { 
             if (thisitem.account?.state === 2){ // if voting state
@@ -334,7 +368,16 @@ function RenderGovernanceTable(props:any) {
                                         </>
                                     }
                                     </>
-                                } 
+                                }
+                                    {publicKey &&
+                                    <> 
+                                    {hasVotedForProp ?
+                                        <><br/>You voted</>
+                                    :
+                                        <><br/>You have not voted for this proposal</>
+                                    }
+                                    </>
+                                    }
                                 </>
                             </>
                             }>
@@ -342,32 +385,48 @@ function RenderGovernanceTable(props:any) {
                             <Button sx={{borderRadius:'17px',color:'inherit',textTransform:'none'}}>
                                 {GOVERNANCE_STATE[thisitem.account?.state]}
                                     <>
-                                    {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
-                                        <>
-                                            { (thisitem.account?.state === 3 || thisitem.account?.state === 5) ?
-                                                <CheckCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
+
+                                    {(publicKey && hasVotedForProp) ?
+                                            <CheckCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
+                                        :
+                                            <>
+                                                {(thisitem.account?.votingCompletedAt && Number(thisitem.account?.votingCompletedAt > 0)) ?
+                                                <>
+                                                    { (thisitem.account?.state === 3 || thisitem.account?.state === 5) ?
+                                                        <></>
+                                                    :
+                                                        <>
+                                                        {thisitem.account?.state === 4 ? 
+                                                            <PlayCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
+                                                        :
+                                                            <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
+                                                        }
+                                                        </>
+                                                    }
+                                                </>
                                             :
                                                 <>
-                                                <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
+                                                { thisitem.account?.state === 2 ?
+                                                    <TimerIcon sx={{ fontSize:"small",ml:1}} />
+                                                
+                                                : 
+                                                    <>
+                                                    { thisitem.account?.state === 0 ? 
+                                                        <AccessTimeIcon sx={{ fontSize:"small", color:"gray",ml:1}} />
+                                                    :
+                                                    <>
+                                                        {thisitem.account?.state === 4 ? 
+                                                            <PlayCircleOutlineIcon sx={{ fontSize:"small", color:"green",ml:1}} />
+                                                        :
+                                                            <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
+                                                        }
+                                                    </>
+                                                    }
+                                                    </>
+                                                }
                                                 </>
                                             }
-                                        </>
-                                    :
-                                        <>
-                                        { thisitem.account?.state === 2 ?
-                                            <TimerIcon sx={{ fontSize:"small",ml:1}} />
-                                        
-                                        : 
-                                            <>
-                                            { thisitem.account?.state === 0 ? 
-                                            
-                                            <AccessTimeIcon sx={{ fontSize:"small", color:"gray",ml:1}} />
-                                            :
-                                            <CancelOutlinedIcon sx={{ fontSize:"small", color:"red",ml:1}} />
-                                            }
                                             </>
-                                        }
-                                        </>
                                     }
                                     </>
                             </Button>
@@ -717,7 +776,7 @@ function RenderGovernanceTable(props:any) {
                                                             :<></>}
                                                         </TableCell>
                                                     }
-                                                    <GetProposalStatus item={item} cachedGovernance={cachedGovernance} />
+                                                    <GetProposalStatus item={item} cachedGovernance={cachedGovernance} castedVotesForWallet={votesForWallet} />
                                                     {/*
                                                     <TableCell align="center">
                                                         <GovernanceProposalDialog governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={item} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
@@ -829,6 +888,7 @@ export function GovernanceCachedView(props: any) {
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
     const [daoName, setDaoName] = React.useState(null);
     const [daoIcon, setDaoIcon] = React.useState(null);
+    const [votesForWallet, setVotesForWallet] = React.useState(null);
 
     const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
@@ -969,7 +1029,7 @@ export function GovernanceCachedView(props: any) {
                                 //gTD = btkn.decimals;
                                 //setGoverningTokenDecimals(gTD)
                             } else{ // NFT
-                                const token = await connection.getParsedAccountInfo(new PublicKey(thisitem.account.governingTokenMint)) //await getMint(connection, new PublicKey(thisitem.account.governingTokenMint));
+                                const token = await connection.getParsedAccountInfo(new PublicKey(grealm.account.governingTokenMint)) //await getMint(connection, new PublicKey(thisitem.account.governingTokenMint));
                                 console.log("found: "+JSON.stringify(token.value.data.parsed.info.decimals))
                                 if (token.value.data.parsed.info.decimals > 0)
                                     setGovernanceType(0);
@@ -1278,8 +1338,6 @@ export function GovernanceCachedView(props: any) {
                 }
                 const image = result?.content?.links?.image;
                 
-                
-
                 if (image){
                     setDaoIcon(image);
                 } else { // check token registry if token exists
@@ -1475,6 +1533,19 @@ export function GovernanceCachedView(props: any) {
         setGovernanceLookup(fglf);
     }
 
+    const getVotesForWallet = async() => {
+        const votes = await getVoteRecordsByVoterIndexed(realm?.owner?.toBase58(),governanceAddress,publicKey.toBase58());
+        // here lets cache this so we can display it nice
+        setVotesForWallet(votes);
+    }
+
+    React.useEffect(() => {
+        if (publicKey && governanceAddress){
+            getVotesForWallet();
+        }
+
+    }, [publicKey, governanceAddress]);
+
     React.useEffect(() => {
         if (background)
             document.body.style.backgroundColor = background;
@@ -1667,19 +1738,32 @@ export function GovernanceCachedView(props: any) {
                                                     </Typography>
                                                 </Grid>
                                                 <Grid item xs={12}>    
-                                                    <Button 
-                                                        aria-label="back"
-                                                        variant="outlined" 
-                                                        color='inherit'
-                                                        href={`https://realms.today/dao/${governanceAddress}`}
-                                                        target='blank'
-                                                        sx={{
-                                                            borderRadius:'17px',
-                                                            borderColor:'rgba(255,255,255,0.05)',
-                                                            fontSize:'10px'}}
-                                                    >
-                                                        <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
-                                                    </Button>
+                                                    <ButtonGroup>
+                                                        <Tooltip title={`Share ${realmName ? realmName : ''} Governance`}>
+                                                            <Button
+                                                                aria-label="share"
+                                                                variant="outlined"
+                                                                color="inherit"
+                                                                onClick={() => {
+                                                                    if (navigator.share) {
+                                                                        navigator.share({
+                                                                            title: `${realmName} Governance`,
+                                                                            text: `Visit the ${realmName} DAO:`,
+                                                                            url: `https://governance.so/dao/${governanceAddress}`
+                                                                        }).catch((error) => console.error('Error sharing:', error));
+                                                                    } else {
+                                                                        alert("Your browser doesn't support the Share API.");
+                                                                    }
+                                                                }}
+                                                                sx={{
+                                                                    borderRadius:'17px',
+                                                                    borderColor:'rgba(255,255,255,0.05)',
+                                                                    fontSize:'10px'}}
+                                                            >
+                                                                <ShareIcon fontSize='inherit' sx={{mr:1}} /> Share
+                                                            </Button>
+                                                        </Tooltip>
+                                                    </ButtonGroup>
                                                 </Grid>
                                             </Grid>
                                         </Grid>
@@ -1938,7 +2022,8 @@ export function GovernanceCachedView(props: any) {
                                     nftBasedGovernance={nftBasedGovernance} 
                                     filterState={filterState}
                                     setFilterState={setFilterState}
-                                    governanceAddress={governanceAddress} />
+                                    governanceAddress={governanceAddress}
+                                    votesForWallet={votesForWallet} />
                             </ThemeProvider>
                             {endTime &&
                                 <Grid
@@ -1952,6 +2037,20 @@ export function GovernanceCachedView(props: any) {
                                             textAlign:'center'
                                         }}
                                     >
+                                        Alternative UI: 
+                                        <Button 
+                                            aria-label="back"
+                                            variant="text" 
+                                            color='inherit'
+                                            href={`https://realms.today/dao/${governanceAddress}`}
+                                            target='blank'
+                                            sx={{
+                                                borderColor:'rgba(255,255,255,0.05)',
+                                                fontSize:'10px'}}
+                                        >
+                                            <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Visit the Realms UI
+                                        </Button>
+                                        <br/>
                                         Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime Hybrid Caching<br/>
                                         {cachedTimestamp &&
                                             <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>

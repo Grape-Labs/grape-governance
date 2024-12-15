@@ -52,9 +52,11 @@ import Logout from '@mui/icons-material/Logout';
 import ExtensionIcon from '@mui/icons-material/Extension';
 
 import SendExtensionView from './SendView';
+import JupDcaExtensionView from './JupDcaView';
 import DirectoryExtensionView from './DirectoryView';
 import DistributorExtensionView from './DistributorView';
 import ClaimExtensionView from './ClaimView';
+import TokenManagerView from './TokenManagerView';
 import DemoExtensionView from './DemoView';
 
 export default function ExtensionsMenuView(props: any) {
@@ -139,6 +141,32 @@ export default function ExtensionsMenuView(props: any) {
             masterWallet={masterWallet}
             usdcValue={usdcValue}
         />
+        {governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' &&
+        <TokenManagerView
+            realm={realm}
+            handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
+        }
+        {governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' &&
+          <JupDcaExtensionView
+              realm={realm}
+              handleCloseExtMenu={handleClose}
+              rulesWallet={rulesWallet}
+              governanceNativeWallet={governanceNativeWallet}
+              expandedLoader={expandedLoader} 
+              setExpandedLoader={setExpandedLoader}
+              instructions={instructions}
+              setInstructions={setInstructions}
+              masterWallet={masterWallet}
+              usdcValue={usdcValue}
+          />
+        }
         <DirectoryExtensionView
             realm={realm}
             handleCloseExtMenu={handleClose}
