@@ -2622,12 +2622,22 @@ export default function WalletCardView(props:any) {
         <CardActions disableSpacing>
             <CopyToClipboard text={`https://governance.so/treasury/${governanceAddress}/${rulesWalletAddress}`} onCopy={handleCopy}>
                 <IconButton aria-label="share" 
-                //    disabled={true}
+                    onClick={() => {
+                        if (navigator.share) {
+                            navigator.share({
+                                title: `Copy/Share this treasury wallet address`,
+                                text: `Copy/Share this treasury wallet address`,
+                                url: `https://governance.so/treasury/${governanceAddress}/${rulesWalletAddress}`
+                            }).catch((error) => console.error('Error sharing:', error));
+                        } else {
+                            alert("Your browser doesn't support the Share API.");
+                        }
+                    }}
                 >
                     <ShareIcon />
                 </IconButton>
             </CopyToClipboard>
-            {loading ?
+            {(loading && loadingPrices) ?
                 <></>
             :
                 <>

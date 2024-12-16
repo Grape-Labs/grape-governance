@@ -7,7 +7,8 @@ import {
     TransactionMessage,
     TransactionInstruction,
     VersionedTransaction,
-    ComputeBudgetProgram } from '@solana/web3.js';
+    ComputeBudgetProgram,
+    sendAndConfirmTransaction } from '@solana/web3.js';
 import axios from "axios";
 import { 
     createMint,
@@ -22,6 +23,7 @@ import {
     createAccount,
     createSetAuthorityInstruction,
 } from "@solana/spl-token-v2";
+//import * as token from '@solana/spl-token';
 import {
     //createInitializeMetadataPointerInstruction
 } from "@solana/spl-token";
@@ -406,127 +408,129 @@ export default function TokenManagerView(props) {
         return baseUnits + perInstructionUnits * instructionsLength;
     };
     
-    const calculatePriorityFee = (computeUnits: number, baseMicroLamportsPerUnit: number) => {
+    const calculateBasePriorityFee = (computeUnits: number, baseMicroLamportsPerUnit: number) => {
         // Calculate the total priority fee based on compute units and price per compute unit
         return computeUnits * baseMicroLamportsPerUnit;
     };
 
-    async function calculatePriorityFeeQuickNode(messageV0) {
-        // Call QuickNode's Enhanced API
-        const response = await RPC_CONNECTION.getFeeForMessage(
-            messageV0,
-        );
-    
-        if (response && response.value) {
-            console.log("✅ Estimated Fee from QuickNode:", response.value);
-            return response.value; // This returns fee in lamports
-        } else {
-            console.error("❌ Failed to estimate fee from QuickNode");
-            throw new Error("Failed to estimate fee");
+    async function calculatePriorityFee(messageV0) {
+        try {
+            // Correct use of VersionedMessage
+            const response = await RPC_CONNECTION.getFeeForMessage(
+                messageV0, // Pass the VersionedMessage directly
+                'finalized' // Optional: specify a commitment level
+            );
+        
+            if (response && response.value !== null) {
+                console.log("✅ Estimated Fee:", response.value);
+                return response.value; // Fee in lamports
+            } else {
+                console.error("❌ Failed to estimate fee from QuickNode");
+                throw new Error("Failed to estimate fee");
+            }
+        } catch (error) {
+            console.error("❌ Error calculating priority fee:", error);
+            throw error;
         }
     }
     
-    async function createAndSendV0TxInline(txInstructions: TransactionInstruction[], signers?: Keypair[]) {
-        // Step 1 - Fetch Latest Blockhash
-        let latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
-        console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
-
-        // Step 1: Estimate compute units based on the number of instructions
+    async function createAndSendV0TxInline(txInstructions, signers) {
+        // Fetch latest blockhash
+        const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
+        console.log("✅ Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
+    
+        // Compute budget instructions
+        const MAX_COMPUTE_UNITS = 1_400_000;
         const estimatedComputeUnits = estimateComputeUnits(txInstructions.length);
-
-        // Step 2: Set a base fee per compute unit (microLamports)
-        const baseMicroLamportsPerUnit = 5000; // Adjust this value as needed
-
-        // Step 3: Add a validator tip per compute unit
-        const validatorTip = 0;//2000; // Additional tip per compute unit (0.000002 SOL)
-
-        // Step 4: Calculate the total priority fee
-        const totalPriorityFee = calculatePriorityFee(estimatedComputeUnits, baseMicroLamportsPerUnit);
-
-        console.log(`Estimated compute units: ${estimatedComputeUnits}`);
-        console.log(`Total priority fee: ${totalPriorityFee} microLamports`);
-
-        // Add compute budget instructions for priority fees and validator tips
-        const basePriorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
-            microLamports: baseMicroLamportsPerUnit + validatorTip, // Total fee including priority and validator tip
-        });
-
         const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
-            units: estimatedComputeUnits, // Use the estimated compute units
+            units: MAX_COMPUTE_UNITS//estimatedComputeUnits,
         });
-
-        // Step 3 - Combine Priority Fee Instructions with Other Instructions
-        const allInstructions = [
-            basePriorityFeeInstruction,
-            computeUnitLimitInstruction,
-            ...txInstructions, // Append your original instructions
+    
+        // Combine instructions
+        let allInstructions = [
+            //computeUnitLimitInstruction,
+            ...txInstructions,
         ];
-        
-        // Add the priority fee instructions to the transaction
-        //transaction.add(priorityFeeInstruction, computeUnitLimitInstruction);
-
-
-        // Step 2 - Generate Transaction Message
-        const messageV0 = new TransactionMessage({
+    
+        // Generate Versioned Transaction Message
+        let messageV0 = new TransactionMessage({
             payerKey: publicKey,
             recentBlockhash: latestBlockhash.blockhash,
-            instructions: allInstructions
+            instructions: allInstructions,
         }).compileToV0Message();
-        console.log("   ✅ - Compiled transaction message");
+    
         const transaction = new VersionedTransaction(messageV0);
-        
-        // Calculate Priority Fee from QuickNode
-        const estimatedFee = await calculatePriorityFeeQuickNode(messageV0);
+    
+        // Calculate Priority Fee
+        const estimatedFee = await calculatePriorityFee(messageV0);
         console.log(`✅ Estimated Priority Fee: ${estimatedFee} lamports`);
+    
+        //const multiplier = 5; 
+        //const MIN_PRIORITY_FEE = 100000; // Example: 0.0001 SOL
+        //const adjustedPriorityFee = Math.max(estimatedFee * multiplier, MIN_PRIORITY_FEE);
+        //console.log(`✅ Final Priority Fee: ${adjustedPriorityFee} lamports`);
 
-        // Include the estimated fee in the transaction if necessary
+        // Add priority fee instruction
         const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
-            microLamports: estimatedFee
+            microLamports: estimatedFee,
         });
-
-        allInstructions.unshift(priorityFeeInstruction);
-
-        if (signers){
+    
+        // Recompile the transaction with updated instructions
+        allInstructions.unshift(priorityFeeInstruction, computeUnitLimitInstruction);
+        messageV0 = new TransactionMessage({
+            payerKey: publicKey,
+            recentBlockhash: latestBlockhash.blockhash,
+            instructions: allInstructions,
+        }).compileToV0Message();
+    
+        transaction.message = messageV0;
+    
+        if (signers) {
             transaction.sign(signers);
-            console.log("   ✅ - Transaction Signed");
+            console.log("✅ Transaction Signed");
         }
-
+    
         const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
-        console.log("🔍 - Simulation result:", simulationResult);
-
+        console.log("🔍 Simulation result:", simulationResult);
+    
         if (simulationResult.value.err) {
-            console.error("❌ - Simulation failed with error:", simulationResult.value.err);
+            console.error("❌ Simulation failed with error:", simulationResult.value.err);
             throw new Error(`Simulation error: ${simulationResult.value.err}`);
-        } else{
+        } else {
             const txid = await sendTransaction(transaction, RPC_CONNECTION, {
-                skipPreflight: true,
+                skipPreflight: false,
                 preflightCommitment: "confirmed",
-                maxRetries: 5
+                maxRetries: 5,
             });
-            
-            console.log("   ✅ - Transaction sent to network with txid: "+txid);
-        
-            // Step 5 - Confirm Transaction 
-            const snackprogress = (key:any) => (
-                <CircularProgress sx={{padding:'10px'}} />
-            );
-            try{
+    
+            console.log("✅ Transaction sent to network with txid:", txid);
+    
+            // Confirm Transaction
+            try {
+                const snackprogress = (key:any) => (
+                    <CircularProgress sx={{padding:'10px'}} />
+                );
                 const cnfrmkey = enqueueSnackbar(`Confirming Transaction`,{ variant: 'info', action:snackprogress, persist: true });
-                const confirmation = await RPC_CONNECTION.confirmTransaction({
-                    signature: txid,
-                    blockhash: latestBlockhash.blockhash,
-                    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-                });
+                const confirmation = await RPC_CONNECTION.confirmTransaction(
+                    {
+                        signature: txid,
+                        blockhash: latestBlockhash.blockhash,
+                        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+                    },
+                    'finalized' // Add commitment level
+                );
                 closeSnackbar(cnfrmkey);
-                if (confirmation.value.err) { 
-                    enqueueSnackbar(`Transaction Error`,{ variant: 'error' });
-                    throw new Error("   ❌ - Transaction not confirmed.") }
-                
-                console.log('🎉 Transaction succesfully confirmed!', '\n', `https://explorer.solana.com/tx/${txid}`);
+    
+                if (confirmation.value.err) {
+                    console.error("❌ Transaction not confirmed:", confirmation.value.err);
+                    throw new Error("Transaction not confirmed.");
+                }
+    
+                console.log(`🎉 Transaction successfully confirmed: https://explorer.solana.com/tx/${txid}`);
                 return txid;
-            }catch(e){
-                enqueueSnackbar(`Transaction Error Exceeded Blockhash`,{ variant: 'error' });
-                throw new Error("   ❌ - Transaction not confirmed.") 
+            } catch (e) {
+                console.error("❌ Transaction confirmation failed:", e);
+                throw new Error("Transaction not confirmed.");
             }
         }
     }
@@ -574,10 +578,11 @@ export default function TokenManagerView(props) {
             const authTransaction = new Transaction();
             // Create a transaction
             const transaction = new Transaction();
+            const walletTransaction = new Transaction();
 
             console.log("1. Create Sys Account");
             // Create the token mint using your wallet as the payer
-            authTransaction.add(
+            walletTransaction.add(
                 SystemProgram.createAccount({
                     fromPubkey: publicKey, // Your wallet as the payer
                     newAccountPubkey: mintPublicKey, // Mint account public key
@@ -589,20 +594,20 @@ export default function TokenManagerView(props) {
 
             console.log("2. Init Mint");
             // Initialize the mint
-            authTransaction.add(
+            walletTransaction.add(
                 createInitializeMintInstruction(
                     mintPublicKey,    // Mint account public key
                     decimals,         // Number of decimals
                     publicKey,        // Mint authority (your wallet)
-                    null//publicKey,              // No freeze authority
-                    //TOKEN_PROGRAM_ID,
+                    publicKey,              // No freeze authority
+                    TOKEN_PROGRAM_ID,
                 )
             );
 
             // Transfer mint authority to governance-controlled wallet
             console.log("3. Transfer Mint Authority");
             // Use a custom instruction or SPL Token program's set authority instruction
-            authTransaction.add(
+            walletTransaction.add(
                 createSetAuthorityInstruction(
                     mintPublicKey,           // Mint account
                     publicKey,               // Current authority
@@ -643,19 +648,20 @@ export default function TokenManagerView(props) {
             // Send the transaction
             // await connection.sendTransaction(transaction, [publicKey, mintKeypair]);
 
+            /*
             const isSimulationSuccessful = await simulateCreateTokenIx(authTransaction);
 
             if (!isSimulationSuccessful) {
                 enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
                 handleCloseDialog();
                 return; // Exit the function as simulation failed
-            } else{
+            } else*/{
 
-                const txid = await createAndSendV0TxInline(authTransaction.instructions);
+                const txid = await createAndSendV0TxInline(walletTransaction.instructions, null);
                 console.log("txid: ",txid);
 
                 const ixs = transaction;
-                const aixs = null;//authTransaction;
+                const aixs = authTransaction;
                 
                 if (ixs || aixs){
                     const createTokenIx = {

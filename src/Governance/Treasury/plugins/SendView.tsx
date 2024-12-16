@@ -733,36 +733,31 @@ export default function SendExtensionView(props: any){
                                                     </MenuItem>
                                                 }
 
-                                                {masterWallet?.nativeTokens && masterWallet.nativeTokens
-                                                    //.sort((a:any,b:any) => (b.balance - a.balance))
+                                                {usdcValue && masterWallet?.nativeTokens && masterWallet.nativeTokens
                                                     .sort((a, b) => {
-                                                        const priceA = usdcValue[a.address]?.price;
-                                                        const priceB = usdcValue[b.address]?.price;
-                                                        
-                                                        if (priceA !== undefined && priceB !== undefined) {
-                                                            return (b.balance * priceB) - (a.balance * priceA);
-                                                        } else if (priceA !== undefined) {
-                                                            // If only the first token has a price, it should come first
-                                                            return -1;
-                                                        } else if (priceB !== undefined) {
-                                                            // If only the second token has a price, it should come first
-                                                            return 1;
-                                                        } else {
-                                                            // If neither has a price, fall back to sorting by balance
-                                                            return b.balance - a.balance;
+                                                        try {
+                                                            const priceA = usdcValue?.[a?.address]?.price || 0;
+                                                            const priceB = usdcValue?.[b?.address]?.price || 0;
+
+                                                            if (priceA && priceB) {
+                                                                return (b.balance * priceB) - (a.balance * priceA);
+                                                            } else if (priceA) {
+                                                                return -1;  // If only token A has a price, it comes first
+                                                            } else if (priceB) {
+                                                                return 1;   // If only token B has a price, it comes first
+                                                            } else {
+                                                                return b.balance - a.balance; // Fallback to balance sorting
+                                                            }
+                                                        } catch (error) {
+                                                            console.error("Sorting error:", error);
+                                                            return 0; // Default if comparison fails
                                                         }
                                                     })
-                                                    //.sort((a:any,b:any) => ((usdcValue && (usdcValue[b.address] && usdcValue[a.address]) && (b.balance * usdcValue[b.address]?.price)-(a.balance * usdcValue[a.address]?.price))) || (b.balance - a.balance))
-                                                    //.sort((a:any,b:any) => (b.balance - a.balance))
-                                                    .map((item: any,key:number) => (   
+                                                    .map((item: any, key: number) => (
                                                         <MenuItem value={item.associated_account} key={key+1}>
-                                                         
-                                                            <RenderTokenItem item={item} key={key+1} />
-                                                            
+                                                            <RenderTokenItem item={item} />
                                                         </MenuItem>
-                                                        
                                                     ))
-
                                                 }
                                             </Select> 
                                         
