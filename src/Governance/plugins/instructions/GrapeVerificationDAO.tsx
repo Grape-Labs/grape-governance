@@ -225,7 +225,7 @@ export function GrapeVerificationDAO(props: any){
 
     return (
         <>
-            <Tooltip title='Grape Verification: via DAO Members'>
+            <Tooltip title='Click for Grape Verification via DAO Members'>
                 <Button 
                   size="small"
                   onClick={handleVerifyAllAddressBooks}
