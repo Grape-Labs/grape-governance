@@ -92,6 +92,8 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import WarningIcon from '@mui/icons-material/Warning';
+import VerifiedIcon from '@mui/icons-material/Verified';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import DeveloperModeIcon from '@mui/icons-material/DeveloperMode';
@@ -196,10 +198,35 @@ export function InstructionTableView(props: any) {
     const governanceRulesWallet = props?.governanceRulesWallet;
     const governanceNativeWallet = props?.governanceNativeWallet;
     const memberMap = props.memberMap;
+    const verifiedDestinationWalletArray = props?.verifiedDestinationWalletArray;
+    const verifiedDAODestinationWalletArray = props?.verifiedDAODestinationWalletArray;
+    
     const [instructionSet, setInstructionSet] = React.useState(null);
     const { publicKey, sendTransaction, signTransaction } = useWallet();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     
+    const findPubkey = (address:string) => {
+        try{
+            const entry = verifiedDestinationWalletArray.find((item) => item.info.addresses.includes(address));
+            //console.log("checking: "+address+" vs "+entry)
+            if (entry) {
+                return entry.pubkey.toBase58();
+            }
+            return null; // Address not found
+        }catch(e){console.log("ERR: "+e)}
+    };
+    const findDAOPubkey = (address:string) => {
+        try{
+            //console.log("verifiedDAODestinationWalletArray: "+JSON.stringify(verifiedDAODestinationWalletArray))
+            const entry = verifiedDAODestinationWalletArray.find((item) => item.info.includes(address));
+            //console.log("checking: "+address+" entry "+JSON.stringify(entry))
+            if (entry) {
+                return entry.pubkey;
+            }
+            return null; // Address not found
+        }catch(e){console.log("ERR: "+e)}
+    };
+
     async function createAndSendLargeTransaction(txInstructions: TransactionInstruction[], chunkSize: number = 5) {
         // Split txInstructions into smaller chunks
         const instructionChunks = [];
@@ -577,9 +604,64 @@ export function InstructionTableView(props: any) {
         { field: 'program', headerName: 'Program', minWidth: 120, resizable:true, hide: false},
         { field: 'status', headerName: 'Status', minWidth: 75, hide: false,
             renderCell: (params) => {
+                const destPK = (params?.value?.account?.instructions && params?.value?.account?.instructions[0]?.info?.tokenOwner) ?  new PublicKey(params.value.account.instructions[0].info.tokenOwner) : null;//new PublicKey("6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD");//new PublicKey("KirkNf6VGMgc8dcbp5Zx3EKbDzN6goyTBMKN9hxSnBT");
                 return(
-                    params.value === 0 ?
-                            <><RadioButtonUncheckedIcon /></>
+                    params.value.account.executionStatus === 0 ?
+                            <>
+                                <RadioButtonUncheckedIcon />
+                                {(publicKey && proposalAuthor === publicKey.toBase58() && state === 0 && destPK) ? 
+                                    <>
+                                    
+                                        {/*destPK.toBase58().trim()}{' '}*/}
+                                            {verifiedDestinationWalletArray ? (
+                                                findPubkey(destPK.toBase58()) ? (
+                                                    <Tooltip title={`Grape Verified on ${findPubkey(destPK.toBase58())} via Speed Dial`}>
+                                                        <IconButton size="small" sx={{}}>
+                                                            <VerifiedIcon sx={{ color:'yellow', fontSize: '12px' }}/>
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                ) : (
+                                                    <>
+                                                        {verifiedDestinationWalletArray.length > 0 &&
+                                                            <Tooltip title={`This address is not part of a Speed Dial`}>
+                                                                <IconButton
+                                                                    size="small" sx={{}}
+                                                                >
+                                                                    <WarningIcon color="error" sx={{ fontSize: '12px' }}/>
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        }
+                                                    </>
+                                                )
+                                                ) : (
+                                                ''
+                                            )}
+                                            
+
+                                            {verifiedDAODestinationWalletArray ? 
+                                                (
+                                                    findDAOPubkey(destPK.toBase58()) ? (
+                                                        <Tooltip title={`DAO Verified on ${findDAOPubkey(destPK.toBase58())}`}>
+                                                            <IconButton
+                                                                size="small" sx={{}}
+                                                            >
+                                                                <CheckCircleIcon color='primary' sx={{ fontSize: '12px' }}/>
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    ) : (
+                                                        <Tooltip title={`Could not find a voter record for this address, or voter has no voting power`}>
+                                                            <IconButton
+                                                                size="small" sx={{}}
+                                                            >
+                                                                <WarningIcon color="error" sx={{ fontSize: '12px' }}/>
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    )
+                                                ):<></>}
+                                    </>
+                                    
+                                :<></>}
+                            </>
                         :
                             <><CheckCircleOutlineIcon /></>
                     
@@ -721,7 +803,7 @@ export function InstructionTableView(props: any) {
                         description:description,
                         program: new PublicKey(item?.account?.instructions[0].programId).toBase58(),
                         //manage:item.account.instructionIndex,
-                        status:item.account.executionStatus,
+                        status:item,
                         manage:item,
                         inspector:item,
                     })
