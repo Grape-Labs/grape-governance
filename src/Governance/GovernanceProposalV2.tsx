@@ -19,6 +19,7 @@ import {
     tryGetRealmConfig, 
     getRealmConfig,
     InstructionData  } from '@solana/spl-governance';
+import { Buffer } from 'buffer';
 import { 
         getRealmIndexed,
         getProposalIndexed,
@@ -40,7 +41,10 @@ import BN from 'bn.js'
 import { BorshCoder } from "@coral-xyz/anchor";
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
-import { getMint, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token-v2";
+import { 
+    AccountLayout,
+    getMint, 
+    TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token-v2";
 import { PublicKey, TokenAmount, Connection, TransactionInstruction, Transaction } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
@@ -55,6 +59,8 @@ import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
 import removeInvalidImages from './removeInvalidImages';
 
+import { GrapeVerificationSpeedDial } from './plugins/instructions/GrapeVerificationSpeedDial';
+import { GrapeVerificationDAO } from './plugins/instructions/GrapeVerificationDAO';
 import ErrorBoundary from './ErrorBoundary';
 import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import GovernancePower from './GovernancePower';
@@ -253,6 +259,11 @@ export function GovernanceProposalV2View(props: any){
     const [reload, setReload] = React.useState(false);
     const [governanceRules, setGovernanceRules] = React.useState(null);
     const [governanceNativeWallet, setGovernanceNativeWallet] = React.useState(null);
+
+    const [verifiedDestinationWalletArray, setVerifiedDestinationWalletArray] = React.useState(null);
+    const [verifiedDAODestinationWalletArray, setVerifiedDAODestinationWalletArray] = React.useState(null);
+    const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
+    
 
     const toggleInfoExpand = () => {
         setExpandInfo(!expandInfo)
@@ -2140,6 +2151,56 @@ export function GovernanceProposalV2View(props: any){
         }
     }, [publicKey, loadingValidation, thisitem]);
 
+    const fetchTokenOwner = async (ataPublicKey:PublicKey) => {
+        try {
+            
+            // Fetch account info
+            const accountInfo = await connection.getAccountInfo(ataPublicKey);
+
+            if (accountInfo && accountInfo.owner.equals(TOKEN_PROGRAM_ID)) {
+                const accountData = AccountLayout.decode(new Uint8Array(accountInfo.data));
+                return new PublicKey(accountData.owner).toBase58();
+            } else {
+                console.error('Account not found or is not an ATA.');
+                return null;
+            }
+        } catch (error) {
+            console.error('Error fetching token owner:', error);
+            return null;
+        }
+    };
+
+
+    const populateArrayWithOwners = async (instructionTransferDetails:any) => {
+        const populatedArray = await Promise.all(
+            instructionTransferDetails
+                .filter(item => item?.amount > 0)
+                .map(async (item) => {
+                    const tokenOwner = await fetchTokenOwner(item.destinationAta);
+                    if (tokenOwner)
+                        item.tokenOwner = tokenOwner;
+                    return {
+                        amount: item.amount,
+                        mint: item.mint,
+                        address: tokenOwner || item.destinationAta, // Fallback if owner fetch fails
+                    };
+                })
+        );
+        //console.log("instructionTransferDetails: "+JSON.stringify(instructionTransferDetails));
+        //console.log("populatedArray: "+JSON.stringify(populatedArray))
+        setDestinationWalletArray(populatedArray);
+        //return populatedArray;
+    };
+
+    // Process and map over the reduced result
+    React.useEffect(() => {
+        if (instructionTransferDetails && instructionTransferDetails?.length > 0){
+            // Populate destinationWalletArray
+            populateArrayWithOwners(instructionTransferDetails)
+            
+        }
+    }, [instructionTransferDetails]);
+
     return (
         <>
             <ThemeProvider theme={grapeTheme}>
@@ -3498,41 +3559,61 @@ export function GovernanceProposalV2View(props: any){
                                                         Instructions Summary
                                                     </Typography>
                                                     <Typography variant="caption">
-
-                                                    {Object.values(
-                                                            instructionTransferDetails.reduce((result, item) => {
-                                                                // Ensure item exists and has necessary properties before destructuring
-                                                                if (item && typeof item === 'object') {
-                                                                    const { mint, amount, name, logoURI, destinationAta } = item;
-                                                                    if (!result[mint]) {
-                                                                        result[mint] = { mint, totalAmount: 0, name, logoURI, uniqueDestinationAta: new Set() };
+                                                    
+                                                        {Object.values(
+                                                                instructionTransferDetails.reduce((result, item) => {
+                                                                    // Ensure item exists and has necessary properties before destructuring
+                                                                    if (item && typeof item === 'object') {
+                                                                        const { mint, amount, name, logoURI, destinationAta } = item;
+                                                                        if (!result[mint]) {
+                                                                            result[mint] = { mint, totalAmount: 0, name, logoURI, uniqueDestinationAta: new Set() };
+                                                                        }
+                                                                        result[mint].totalAmount += +amount || 0; // Fallback to 0 if amount is invalid
+                                                                        if (destinationAta) result[mint].uniqueDestinationAta.add(destinationAta);
                                                                     }
-                                                                    result[mint].totalAmount += +amount || 0; // Fallback to 0 if amount is invalid
-                                                                    if (destinationAta) result[mint].uniqueDestinationAta.add(destinationAta);
-                                                                }
-                                                                return result;
-                                                            }, {})
-                                                        ).map((item) => (
-                                                                <>
-                                                                    <Grid container
-                                                                        direction="row"
-                                                                    >
-                                                                        <Grid item>
-                                                                            {item && item?.totalAmount > 0 &&
-                                                                            <ExplorerView
-                                                                                address={item.mint} type='address' useLogo={item?.logoURI} 
-                                                                                title={`${item.totalAmount.toLocaleString()} 
-                                                                                    ${item?.name || (item?.mint && trimAddress(item.mint)) || 'Explore'}
-                                                                                    to ${item.uniqueDestinationAta.size} unique wallet${(item.uniqueDestinationAta.size > 1) ? `s`:``}
-                                                                                `} 
-                                                                                hideTitle={false} style='text' color='white' fontSize='12px'
-                                                                                showNftData={true} 
-                                                                            />
-                                                                            }
+                                                                    return result;
+                                                                }, {})
+                                                            ).map((item, key, array) => (
+                                                                    <>
+                                                                        <Grid container
+                                                                            direction="row"
+                                                                        >
+                                                                            <Grid item>
+                                                                                {(item && item?.totalAmount > 0 && item.uniqueDestinationAta.size > 0) &&
+                                                                                    <>
+                                                                                    <ExplorerView
+                                                                                        address={item.mint} type='address' useLogo={item?.logoURI} 
+                                                                                        title={`${item.totalAmount.toLocaleString()} 
+                                                                                            ${item?.name || (item?.mint && trimAddress(item.mint)) || 'Explore'}
+                                                                                            to ${item.uniqueDestinationAta.size} unique wallet${(item.uniqueDestinationAta.size > 1) ? `s`:``}
+                                                                                        `} 
+                                                                                        hideTitle={false} style='text' color='white' fontSize='12px'
+                                                                                        showNftData={true} 
+                                                                                    />
+                                                                                
+                                                                                    {(publicKey && key === array.length - 1 && thisitem.account?.state === 0) && (
+                                                                                        <>
+                                                                                            <GrapeVerificationSpeedDial
+                                                                                                address={governanceNativeWallet.toBase58()}
+                                                                                                destinationWalletArray={destinationWalletArray}
+                                                                                                setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}
+                                                                                            />
+                                                                                            <GrapeVerificationDAO
+                                                                                                governanceAddress={governanceAddress}
+                                                                                                governanceLookup={governanceLookup}
+                                                                                                address={governanceNativeWallet.toBase58()}
+                                                                                                destinationWalletArray={destinationWalletArray}
+                                                                                                setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray}
+                                                                                            />
+                                                                                        </>
+
+                                                                                    )}
+                                                                                    </>
+                                                                                }
+                                                                            </Grid>
                                                                         </Grid>
-                                                                    </Grid>
-                                                                </>
-                                                            )
+                                                                    </>
+                                                                )
 
                                                         )}
                                                     </Typography>
@@ -3540,6 +3621,7 @@ export function GovernanceProposalV2View(props: any){
                                             }
                                         </Box>
                                         
+                                            
                                         <InstructionTableView   
                                             proposalInstructions={proposalInstructions}
                                             proposal={thisitem} 
@@ -3557,6 +3639,8 @@ export function GovernanceProposalV2View(props: any){
                                             tokenMap={tokenMap} 
                                             //instruction={item} 
                                             //index={index} 
+                                            verifiedDestinationWalletArray={verifiedDestinationWalletArray}
+                                            verifiedDAODestinationWalletArray={verifiedDAODestinationWalletArray}
                                             instructionOwnerRecord={instructionOwnerRecord} 
                                             instructionOwnerRecordATA={instructionOwnerRecordATA}
                                         />

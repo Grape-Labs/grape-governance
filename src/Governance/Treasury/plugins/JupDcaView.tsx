@@ -1,7 +1,16 @@
 import { AnchorProvider, web3 } from '@coral-xyz/anchor';
-import { Signer, Connection, PublicKey, SystemProgram, Transaction, VersionedTransaction, TransactionInstruction } from '@solana/web3.js';
+import { 
+    Signer, 
+    Connection, 
+    PublicKey, 
+    SystemProgram,
+    TransactionMessage, 
+    Transaction, 
+    VersionedTransaction, 
+    TransactionInstruction } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, createTransferInstruction } from "@solana/spl-token-v2";
 import axios from "axios";
+import { CloseDCAParams, CreateDCAParams, DCA, type DepositParams, type WithdrawParams, Network } from '@jup-ag/dca-sdk';
 
 import { 
     RPC_CONNECTION,
@@ -210,6 +219,49 @@ export default function JupDcaExtensionView(props: any){
             handleCloseExtMenu();
     };
 
+    // Helper function to split instructions into chunks
+    const chunkInstructions = (instructions: TransactionInstruction[], chunkSize: number) => {
+        const chunks = [];
+        for (let i = 0; i < instructions.length; i += chunkSize) {
+            chunks.push(instructions.slice(i, i + chunkSize));
+        }
+        return chunks;
+    };
+
+    const simulateIx = async (transaction: Transaction): Promise<boolean> => {
+        try {
+            const { blockhash } = await RPC_CONNECTION.getLatestBlockhash();
+            const payerKey = new PublicKey(governanceNativeWallet);
+            const transactionIxs: TransactionInstruction[] = transaction.instructions;
+
+            for (const instructionChunk of chunkInstructions(transactionIxs, 10)) { // Adjust chunk size as needed
+                const message = new TransactionMessage({
+                    payerKey,
+                    recentBlockhash: blockhash,
+                    instructions: instructionChunk,
+                }).compileToV0Message();
+    
+                const transaction = new VersionedTransaction(message);
+    
+                // Simulate the chunk
+                const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
+                //setSimulationResults(simulationResult.value.logs);
+    
+                if (simulationResult.value.err) {
+                    console.error("Chunk simulation failed with error:", simulationResult.value.err);
+                    return false;
+                }
+    
+                console.log("Chunk simulation successful.");
+            }
+    
+            return true;
+        } catch (error) {
+            console.error("Error simulating large transaction:", error);
+            return false;
+        }
+    };
+
     const handleProposalIx = async() => {
         if (handleCloseExtMenu)
             handleCloseExtMenu();
@@ -217,90 +269,86 @@ export default function JupDcaExtensionView(props: any){
 
         const tokenMint = tokenSelected.address;
         const tokenAta = tokenSelected.associated_account;
-        const transaction = new Transaction();
+        //const transaction = new Transaction();
         const pTransaction = new Transaction();
         const fromWallet = new PublicKey(governanceNativeWallet);
+    
+        const fromMintAddressPk = new PublicKey(tokenMint);
+        const toMintAddressPk = new PublicKey(toMintAddress);
+        const dca = new DCA(RPC_CONNECTION, Network.MAINNET);
+        let toDecimals = 6;
+        let fromDecimals = tokenSelected?.decimals || toDecimals;
 
-        if (tokenMint === "So11111111111111111111111111111111111111112"){ // Check if SOL
-            
-            const decimals = 9;
-            
-            /* this is to handle multiple recipients 
-            for (let index = 0; index < [recipientAddress].length; index++) {
-                const destinationObject = destinationWalletArray[index];
-                const amount = Math.floor((destinationObject.amount * Math.pow(10, decimals)));
-                transaction.add(
-                    SystemProgram.transfer({
-                        fromPubkey: fromWallet,
-                        toPubkey: new PublicKey(destinationObject.address),
-                        lamports: amount,
-                    })
-                );
-            }
-            */
-
-            // simple transfer
-            const amount = Math.floor((tokenAmount * Math.pow(10, decimals)));
-            transaction.add(
-                SystemProgram.transfer({
-                    fromPubkey: fromWallet,
-                    toPubkey: new PublicKey(tokenRecipient),
-                    lamports: amount,
-                })
-            );
-
-        } else { // token transfer
-                const decimals = tokenSelected.info.decimals; // fix this to be dynamic!
-
-                // getOrCreateAssociatedTokenAccount
-                const fromTokenAccount = await getAssociatedTokenAddress(
-                    new PublicKey(tokenMint),
-                    new PublicKey(fromWallet),
-                    true
-                )
-
-                const fromPublicKey = new PublicKey(fromWallet);
-                const destPublicKey = new PublicKey(tokenRecipient);
-                
-                const destTokenAccount = await getAssociatedTokenAddress(
-                    new PublicKey(tokenMint),
-                    destPublicKey,
-                    true
-                )
-                
-                const receiverAccount = await RPC_CONNECTION.getAccountInfo(
-                    destTokenAccount
-                )
-                
-                if (receiverAccount === null) {
-                    const transactionInstruction = createAssociatedTokenAccountInstruction(
-                        publicKey || fromPublicKey, // or use payerWallet
-                        destTokenAccount,
-                        destPublicKey,
-                        new PublicKey(tokenMint),
-                        TOKEN_PROGRAM_ID,
-                        ASSOCIATED_TOKEN_PROGRAM_ID
-                    );
-                    
-                    if (publicKey)
-                        pTransaction.add(transactionInstruction);
-                    else
-                        transaction.add(transactionInstruction);
-                }
-
-                const amount = Math.floor((tokenAmount * Math.pow(10, decimals)));
-
-                transaction.add(
-                    createTransferInstruction(
-                        new PublicKey(tokenAta || fromTokenAccount),
-                        destTokenAccount,
-                        fromPublicKey,
-                        amount
-                    )
-                )
+        for (var item of availableTokens){
+            if (item.mint === toMintAddress)
+                toDecimals = item.decimals;
+            if (item.mint === tokenMint)
+                fromDecimals = item.decimals
         }
 
-        const ixs = transaction; //await distributor.claimToken(new PublicKey(governanceNativeWallet));
+        /*
+        if (!fromDecimals){
+            {governanceWallet && governanceWallet.tokens.value
+                //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
+                .map((item: any, key: number) => {
+                    if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
+                        item.account.data.parsed.info.tokenAmount.amount > 0) {
+                            if (item.account.data.parsed.info.mint === tokenMint){
+                                fromDecimals = item.account.data.parsed.info.tokenAmount.decimals;
+                            }
+                    }
+            })}
+        }*/
+
+        //const transaction = new Transaction();
+        //const pTransaction = new Transaction();
+        
+        let integerTokenAmount = Math.floor(tokenAmount * Math.pow(10, fromDecimals));
+        const inAmount = BigInt(integerTokenAmount);
+        console.log("inAmount: "+inAmount);
+
+        // second test:
+        //let test = tokenAmount/10 ** decimals;
+        //let testAmount = BigInt(test);
+        //console.log("testAmount: "+testAmount);
+
+        integerTokenAmount = Math.floor((tokenAmount * Math.pow(10, fromDecimals))/periodDuration);
+        console.log("integerTokenAmount: "+integerTokenAmount);
+        const inAmountPerCycle = BigInt(integerTokenAmount.toFixed(0));
+
+        let biMinOutAmountPerCycle = null;
+        if (minOutAmountPerCycle){
+            integerTokenAmount = Math.floor(minOutAmountPerCycle * Math.pow(10, fromDecimals));
+            biMinOutAmountPerCycle = BigInt(integerTokenAmount.toFixed(0));
+        }
+
+        let biMaxOutAmountPerCycle = null;
+        if (biMaxOutAmountPerCycle){
+            integerTokenAmount = Math.floor(maxOutAmountPerCycle * Math.pow(10, fromDecimals));
+            biMaxOutAmountPerCycle = BigInt(integerTokenAmount.toFixed(0));
+        }
+
+        const params: CreateDCAParams = {
+            user: fromWallet,
+            inAmount: inAmount, // buy a total of 5 USDC over 5 days
+            inAmountPerCycle: BigInt(inAmountPerCycle), // buy using 1 USDC each day
+            cycleSecondsApart: BigInt(period), // 1 day between each order -> 60 * 60 * 24
+            inputMint: fromMintAddressPk, // sell
+            outputMint: toMintAddressPk, // buy
+            minOutAmountPerCycle: (minOutAmountPerCycle && minOutAmountPerCycle > 0) ? biMinOutAmountPerCycle : null,  // refer to Integration doc
+            maxOutAmountPerCycle: (maxOutAmountPerCycle && maxOutAmountPerCycle > 0) ? biMaxOutAmountPerCycle : null, // refer to Integration doc
+            startAt: null, // unix timestamp in seconds
+            userInTokenAccount: null, // optional: if the inputMint token is not in an Associated Token Account but some other token account, pass in the PublicKey of the token account, otherwise, leave it undefined
+          };
+      
+        console.log("params:", JSON.stringify(params, (key, value) =>
+            typeof value === "bigint" ? value.toString() : value
+        ));
+
+        const { tx, dcaPubKey } = await dca.createDCA(params);
+
+
+        const ixs = tx; //await distributor.claimToken(new PublicKey(governanceNativeWallet));
         const aixs = pTransaction;
 
         //const ixts: TransactionInstruction[] = [];
@@ -319,6 +367,10 @@ export default function JupDcaExtensionView(props: any){
 
             //console.log("ixs: "+JSON.stringify(ixs))
             console.log("propIx: "+JSON.stringify(propIx))
+
+            // simulate?
+            const status =  await simulateIx(ixs);
+
 
             setInstructions(propIx);
             setExpandedLoader(true);
@@ -716,7 +768,9 @@ export default function JupDcaExtensionView(props: any){
 
         React.useEffect(() => { 
             if (toMintAddress)
-                getTokenPrice()
+                getTokenPrice();
+            
+
         }, [toMintAddress]);
             if (toMintAddress){
                 
@@ -1112,9 +1166,9 @@ export default function JupDcaExtensionView(props: any){
 
                     <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', p:0, pb:1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', p:0 }}>
-                        {(publicKey && tokenAmount && tokenAmount > 0 && tokenRecipient && tokenSelected) &&
+                        {(publicKey && tokenAmount && tokenAmount > 0 && periodDuration && toMintAddress && tokenSelected) ?
                                 <Button
-                                    disabled={!tokenRecipient && !loading}
+                                    //disabled={!loading}
                                     size='small'
                                     onClick={handleAdvancedToggle}
                                     sx={{
@@ -1137,11 +1191,12 @@ export default function JupDcaExtensionView(props: any){
                                 >
                                     Advanced
                                 </Button>
+                        : <></>
                         }
                         </Box>
 
                         <Box sx={{ display: 'flex', p:0 }}>
-                            {(publicKey && tokenAmount && tokenAmount > 0 && toMintAddress && tokenSelected) &&
+                            {(publicKey && tokenAmount && tokenAmount > 0 && periodDuration && toMintAddress && tokenSelected) ?
                                 <Button 
                                     disabled={!toMintAddress && !loading}
                                     autoFocus 
@@ -1165,6 +1220,7 @@ export default function JupDcaExtensionView(props: any){
                                 >
                                     DCA / SWAP
                                 </Button>
+                            : <></>
                             }
                         </Box>
                     </DialogActions>

@@ -297,6 +297,14 @@ export async function createProposalInstructionsLegacy(
           console.log("No Voter/Max Voter Weight Set");
         }
       }
+
+      console.log("realmPk "+realmPk.toBase58());
+      console.log("governancePk " + governancePk.toBase58());
+      console.log("tokenOwnerRecordPk "+tokenOwnerRecordPk.toBase58());
+      console.log("governingTokenMint "+governingTokenMint.toBase58());
+      console.log("programId "+programId.toBase58());
+      console.log("governingTokenMint "+governingTokenMint.toBase58());
+      console.log("payer "+payer.toBase58());
       
       proposalAddress = await withCreateProposal(
         instructions,
@@ -434,7 +442,7 @@ export async function createProposalInstructionsLegacy(
         
         console.log("Inserting tx: "+j);
         console.log("Inserting ix: "+JSON.stringify(instructionData[j]));
-        
+
         await withInsertTransaction(
           insertInstructions,
           programId,

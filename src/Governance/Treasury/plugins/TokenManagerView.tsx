@@ -309,7 +309,6 @@ export default function TokenManagerView(props) {
                 draft: isDraft,
             };
             
-
             const isSimulationSuccessful = await simulateCreateTokenIx(transaction);
 
             if (!isSimulationSuccessful) {
@@ -345,8 +344,6 @@ export default function TokenManagerView(props) {
     const handleAdvancedToggle = () => {
         setOpenAdvanced(!openAdvanced);
     }
-
-
 
     React.useEffect(() => { 
         setIsGoverningMintSelectable(false);
