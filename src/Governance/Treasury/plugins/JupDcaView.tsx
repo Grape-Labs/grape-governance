@@ -162,6 +162,7 @@ export default function JupDcaExtensionView(props: any){
     const [pricingStrategy, setPricingStrategy] = React.useState(false);
     const [currentBuyPrice, setCurrentBuyPrice] = React.useState(null);
     const [currentDCAs, setCurrentDCAs] = React.useState([]);
+    const [showCurrentDCAs, setShowCurrentDCAs] = React.useState(false);
 
     const [expanded, setExpanded] = React.useState<string | false>(false);
     
@@ -262,6 +263,80 @@ export default function JupDcaExtensionView(props: any){
             return false;
         }
     };
+
+    //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
+    async function getCurrentDCAAccounts(){
+        if (governanceNativeWallet){
+            const dca = new DCA(RPC_CONNECTION, Network.MAINNET);
+            //console.log("governanceWallet "+fromAddress)
+            const dcaAccounts = await dca.getCurrentByUser(new PublicKey(governanceNativeWallet));
+            //console.log("dcaAccounts " + JSON.stringify(dcaAccounts));
+            setCurrentDCAs(JSON.parse(JSON.stringify(dcaAccounts)));
+            setShowCurrentDCAs(!showCurrentDCAs);
+        }
+    }
+
+    /*
+    async function withdrawAndCloseDCAAccount(dcaWallet: string, dcaPubKey: string, inputMint: string, outputMint: string, withdrawInAmount: number, withdrawOutAmount: number){
+       
+        const transaction = new Transaction();
+       
+        //const tx1 = await withdrawDCA(dcaWallet, dcaPubKey, inputMint, outputMint, withdrawInAmount, withdrawOutAmount);
+        const tx2 = await closeDCA(dcaWallet, dcaPubKey);
+
+        //transaction.add(tx1);
+        transaction.add(tx2);
+
+        setTransactionInstructions(transaction);
+        const description = "Withdraw from "+dcaWallet+" inputMint: "+inputMint+" outputMint: "+outputMint;
+
+        setInstructionsObject({
+            "type":`DCA`,
+            "description":description,
+            "governanceInstructions":transaction,
+            "authorInstructions":null,
+            "transactionEstimatedFee":transactionEstimatedFee,
+        });
+
+    }
+    */
+    
+    async function withdrawDCA(dcaWallet: string, dcaPubKey: string, inputMint: string, outputMint: string, withdrawInAmount: number, withdrawOutAmount: number) {
+        // it's possible to withdraw in-tokens only or out-tokens only or both in and out tokens together. See WithdrawParams for more details
+        console.log("inputMint: "+inputMint)
+        
+        const params: WithdrawParams = {
+            user: new PublicKey(dcaWallet),
+            dca: new PublicKey(dcaPubKey),
+            inputMint: new PublicKey(inputMint),
+            outputMint: null,
+            withdrawInAmount: BigInt(withdrawInAmount),
+            withdrawOutAmount: null,
+        };
+    
+        const dca = new DCA(RPC_CONNECTION, Network.MAINNET);
+        const { tx } = await dca.withdraw(params);
+        return tx;
+       // const txid = await sendAndConfirmTransaction(connection, tx, [user]);
+    
+        //console.log('Withdraw: ', { txid });
+    }
+    
+    async function closeDCA(dcaWallet:string,dcaPubKey:string) {
+        const params: CloseDCAParams = {
+            user: new PublicKey(dcaWallet),
+            dca: new PublicKey(dcaPubKey),
+        };
+    
+        const dca = new DCA(RPC_CONNECTION, Network.MAINNET);
+        const { tx } = await dca.closeDCA(params);
+
+        return tx;
+    
+        //const txid = await sendAndConfirmTransaction(connection, tx, [user]);
+    
+        //console.log('Close DCA: ', { txid });
+    }
 
     const handleProposalIx = async() => {
         if (handleCloseExtMenu)
@@ -893,12 +968,12 @@ export default function JupDcaExtensionView(props: any){
                     id='extensions-dialog'
                     onClose={handleCloseDialog}
                 >
-                    Swap Extension
+                    DCA/Swap Extension
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
                     <DialogContentText sx={{textAlign:'center'}}>
-                        SWAP / DCA
+                        DCA / Scheduled Swap
                     </DialogContentText>
                     
                     <FormControl fullWidth  sx={{mt:2,mb:2}}>
@@ -1150,6 +1225,22 @@ export default function JupDcaExtensionView(props: any){
                         <></>
                     }
 
+                    <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2, textAlign:'center'}}>
+                        {showCurrentDCAs ?
+                            <>
+                                {currentDCAs && currentDCAs.length > 0 ? <>
+                                    {JSON.stringify(currentDCAs)}
+                                </>
+                                :
+                                <>No Active DCA/Scheduled Swaps</>
+                                }
+                            </>
+                            :
+                            <>
+                            </>
+                        }
+                    </Box>
+
 
                     <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2, textAlign:'center'}}>
                         <Typography variant="caption">Powered by Jupiter</Typography>
@@ -1187,6 +1278,18 @@ export default function JupDcaExtensionView(props: any){
                         </Box>
 
                         <Box sx={{ display: 'flex', p:0 }}>
+                            
+                            {publicKey &&
+                            <Button 
+                                //size="small"
+                                onClick={getCurrentDCAAccounts}
+                                //variant="contained"
+                                color="warning"
+                                sx={{borderRadius:'17px'}}
+                                >
+                                Active Orders</Button>
+                            }
+                            
                             {(publicKey && tokenAmount && tokenAmount > 0 && periodDuration && toMintAddress && tokenSelected) ?
                                 <Button 
                                     disabled={!toMintAddress && !loading && !period && !periodDuration}
