@@ -776,8 +776,7 @@ export default function GovernanceCreateProposalView(props: any){
                 disabled={(
                   governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
                   governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg' &&
-                  governanceAddress !== 'EKCVQN6vYgTkE52QXa6vvr6ZLjEXpEynx8fsEmTWQ1uF' &&
-                  governanceAddress !== '5PP7vKjJyLw1MR55LoexRsCj3CpZj9MdD6aNXRrvxG42'
+                  governanceAddress !== 'EKCVQN6vYgTkE52QXa6vvr6ZLjEXpEynx8fsEmTWQ1uF' 
                 ) ? true : false}
               >DCA / Scheduled Swap</MenuItem>
                
@@ -797,7 +796,6 @@ export default function GovernanceCreateProposalView(props: any){
                 ) ? true : false}
               >Buy from Magic Eden</MenuItem>
               
-
               {/*governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
                 <MenuItem value={16}>List on Tensor</MenuItem>
               */}
