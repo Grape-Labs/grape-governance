@@ -138,10 +138,11 @@ export default function JupiterSwapView(props: any) {
     const [pricingStrategy, setPricingStrategy] = React.useState(false);
     const [currentBuyPrice, setCurrentBuyPrice] = React.useState(null);
     const [currentDCAs, setCurrentDCAs] = React.useState([]);
+    const [availableTokens, setAvailableTokens] = React.useState(null);
     const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const connection = RPC_CONNECTION;
     
-    const availableTokens = [{
+    const staticAvailableTokens = [{
         mint:"So11111111111111111111111111111111111111112",
         name:"SOL",
         decimals:9,
@@ -169,9 +170,38 @@ export default function JupiterSwapView(props: any) {
     }];
 
     const objectToken = {};
-    availableTokens.forEach(token => {
+    staticAvailableTokens.forEach(token => {
         objectToken[token.mint] = token;
     }); 
+    
+    const fetchTokensFromJupiter = async () => {
+        try {
+            const response = await fetch('https://tokens.jup.ag/tokens?tags=verified');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch tokens: ${response.statusText}`);
+            }
+            const tokenList = await response.json();
+    
+            // Convert to the expected format
+            const formattedTokens = tokenList.map(token => ({
+                mint: token.address,
+                name: token.symbol,
+                decimals: token.decimals,
+                logo: token.logoURI,
+            }));
+    
+            // Convert to object format
+            const objectToken = {};
+            formattedTokens.forEach(token => {
+                objectToken[token.mint] = token;
+            });
+    
+            return objectToken;
+        } catch (error) {
+            console.error('Error fetching token list:', error);
+            return {};
+        }
+    };
 
     
     async function setupSwap() {
@@ -778,7 +808,14 @@ export default function JupiterSwapView(props: any) {
     React.useState(() => {
         if (governanceWallet && !consolidatedGovernanceWallet) 
             getAndUpdateWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey);
-    }, [governanceWallet, consolidatedGovernanceWallet]);
+
+        const getTokenList = async () => {
+            const tokens = await fetchTokensFromJupiter();
+            setAvailableTokens(tokens);
+        };
+
+        getTokenList();
+    }, [governanceWallet]);
 
     React.useEffect(() => { 
         /*

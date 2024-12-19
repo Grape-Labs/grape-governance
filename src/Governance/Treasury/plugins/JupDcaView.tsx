@@ -152,7 +152,8 @@ export default function JupDcaExtensionView(props: any){
     const [tokenSelected, setTokenSelected] = React.useState(null);
     const [tokenAmount, setTokenAmount] = React.useState(null);
     const [tokenRecipient, setTokenRecipient] = React.useState(null);
-    
+    const [availableTokens, setAvailableTokens] = React.useState(null);
+
     const [toMintAddress, setToMintAddress] = React.useState(null);
     const [period, setPeriod] = React.useState(null);
     const [periodDuration, setPeriodDuration] = React.useState(1);
@@ -481,29 +482,6 @@ export default function JupDcaExtensionView(props: any){
         );
     }
 
-    const getMintFromApi = async(tokenAddress: PublicKey) => {
-        
-        const uri = `https://api.shyft.to/sol/v1/token/get_info?network=mainnet-beta&token_address=${tokenAddress}`;
-        
-        return axios.get(uri, {
-                headers: {
-                    'x-api-key': SHYFT_KEY
-                }
-                })
-            .then(response => {
-                if (response.data?.result){
-                    return response.data.result;
-                }
-                return null
-            })
-            .catch(error => 
-                {   
-                    // revert to RPC
-                    console.error(error);
-                    return null;
-                });
-    }
-
     const adjustTokenAmount = (amountFixed?:number,amountPercent?:number) => {
         if (amountPercent){
             if (amountPercent > 0){
@@ -521,38 +499,7 @@ export default function JupDcaExtensionView(props: any){
             setTokenAmount(0);
         }
     }
-
     
-    const handleSetTokenRecipient = (reciever:string) => {
-        if (reciever){
-            setTokenRecipient(reciever);
-        } else {
-            setTokenRecipient(null);
-        }
-    }
-    
-    function handleAddMyWallet(){
-        if (publicKey){
-            if (!tokenRecipient)
-                setTokenRecipient(publicKey.toBase58());
-            else if (tokenRecipient.length <= 0)
-                setTokenRecipient(publicKey.toBase58());
-            else if (tokenRecipient.includes(publicKey.toBase58()))
-                return;
-            //else
-                //setDestinationString(tokenRecipient + "\n" + publicKey.toBase58());
-        }
-    }
-
-    const handlePasteFromClipboard = (event:any) => {
-        
-        /*event.preventDefault(); // Prevent default paste behavior
-        const pastedText = event.clipboardData?.getData('text');
-        if (pastedText)
-            setTokenRecipient(pastedText);
-        */
-    }
-
     React.useEffect(() => { 
         setIsGoverningMintSelectable(false);
         if (realm && realm?.account.config?.councilMint){
@@ -570,6 +517,9 @@ export default function JupDcaExtensionView(props: any){
                 setGoverningMint(realm?.account.communityMint);
                 setIsGoverningMintCouncilSelected(false);
             }
+        }
+        if (!availableTokens){
+            getTokenList();
         }
 
     }, []);
@@ -689,6 +639,45 @@ export default function JupDcaExtensionView(props: any){
         setPricingStrategy(event.target.checked);
     };
 
+
+    async function getTokenList(){
+        const uri = `https://token.jup.ag/strict`;
+        
+        return axios.get(uri, {
+                headers: {
+                //    'x-api-key': SHYFT_KEY
+                }
+                })
+            .then(response => {
+                if (response?.data){
+                    const tokenList = response.data;
+                    let normalizedTokenList = new Array();
+                    for (var item of tokenList){
+                        // fix to push only what we have not already added
+                        normalizedTokenList.push({
+                            mint:item.address,
+                            name:item.name,
+                            symbol:item.symbol,
+                            decimals:item.decimals,
+                            logo:item.logoURI
+                        
+                        });
+                        //return response;
+                    }
+                    setAvailableTokens(normalizedTokenList);
+                }
+ 
+                //console.log("availableTokens: "+JSON.stringify(availableTokens));
+                return null
+            })
+            .catch(error => 
+                {   
+                    // revert to RPC
+                    console.error(error);
+                    return null;
+                });
+    }
+    /*
     const [availableTokens, setAvailableTokens] = React.useState([
         {
             mint:"So11111111111111111111111111111111111111112",
@@ -743,7 +732,7 @@ export default function JupDcaExtensionView(props: any){
     const objectToken = {};
     availableTokens.forEach(token => {
         objectToken[token.mint] = token;
-    }); 
+    }); */
     
     function ToBuySelect() {
       
@@ -799,7 +788,7 @@ export default function JupDcaExtensionView(props: any){
                 variant="filled"
                 sx={{ m: 0.65 }}
               >
-                {availableTokens.map((item: any, key: number) => {
+                {availableTokens && availableTokens.map((item: any, key: number) => {
                     return(
                     <MenuItem value={item.mint} key={key}>
                         <Grid 
@@ -1013,7 +1002,9 @@ export default function JupDcaExtensionView(props: any){
                         />
                     </FormControl>
                     
-                    <ToBuySelect />
+                    {availableTokens &&
+                        <ToBuySelect />
+                    }
                     
                     <Grid container direction="row" xs={12} sx={{mt:1}}>
                     <Grid xs={6}>
