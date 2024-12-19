@@ -303,9 +303,10 @@ export async function createProposalInstructionsLegacy(
       console.log("tokenOwnerRecordPk "+tokenOwnerRecordPk.toBase58());
       console.log("governingTokenMint "+governingTokenMint.toBase58());
       console.log("programId "+programId.toBase58());
-      console.log("governingTokenMint "+governingTokenMint.toBase58());
+      console.log("name "+name);
       console.log("payer "+payer.toBase58());
       
+      console.log("Creating proposal...");
       proposalAddress = await withCreateProposal(
         instructions,
         programId,

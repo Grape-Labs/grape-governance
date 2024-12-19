@@ -272,7 +272,7 @@ export default function JupDcaExtensionView(props: any){
         //const transaction = new Transaction();
         const pTransaction = new Transaction();
         const fromWallet = new PublicKey(governanceNativeWallet);
-    
+
         const fromMintAddressPk = new PublicKey(tokenMint);
         const toMintAddressPk = new PublicKey(toMintAddress);
         const dca = new DCA(RPC_CONNECTION, Network.MAINNET);
@@ -576,18 +576,18 @@ export default function JupDcaExtensionView(props: any){
 
 
     function generateInstructions(){
-        if (tokenSelected && toMintAddress){
+        if (tokenSelected && toMintAddress && period && periodDuration){
             if (tokenAmount && tokenAmount > 0){
                 const title = "Swap "+tokenSelected.info.name
                 setProposalTitle(title);
-                const description = "Swapping "+tokenAmount.toLocaleString()+" "+tokenSelected.info.name+" to "+shortenString(toMintAddress,5,5);
+                const description = "Swapping "+tokenAmount.toLocaleString()+" "+tokenSelected.info.name+" to "+shortenString(toMintAddress,5,5)+" ("+period+"s x "+periodDuration+")";
                 setProposalDescription(description);
             }
         }
     }
 
     React.useEffect(() => { 
-        if (tokenSelected && tokenRecipient){
+        if (tokenSelected && toMintAddress && period && periodDuration){
             if (tokenAmount && tokenAmount > 0){
                 generateInstructions();
                 //setOpenAdvanced(true);
@@ -596,7 +596,7 @@ export default function JupDcaExtensionView(props: any){
         } else {
             setOpenAdvanced(false);
         }
-    }, [tokenSelected, tokenAmount, tokenRecipient]);
+    }, [tokenSelected, tokenAmount, toMintAddress, period, periodDuration]);
     
     React.useEffect(() => { 
         if (preSelectedTokenAta && masterWallet){
@@ -1198,7 +1198,7 @@ export default function JupDcaExtensionView(props: any){
                         <Box sx={{ display: 'flex', p:0 }}>
                             {(publicKey && tokenAmount && tokenAmount > 0 && periodDuration && toMintAddress && tokenSelected) ?
                                 <Button 
-                                    disabled={!toMintAddress && !loading}
+                                    disabled={!toMintAddress && !loading && !period && !periodDuration}
                                     autoFocus 
                                     onClick={handleProposalIx}
                                     sx={{

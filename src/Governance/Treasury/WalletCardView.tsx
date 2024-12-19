@@ -1442,6 +1442,7 @@ export default function WalletCardView(props:any) {
                     console.log("accountInfo: "+JSON.stringify(accountInfo));
                     if (accountInfo){
                         setLoadingText("New Proposal Created!");
+                        setProposalCreated(true);
                         // close any expanded sections
                         // reload proposals & expand
                         await getWalletProposals();
