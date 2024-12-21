@@ -9,6 +9,7 @@ import {
     VersionedTransaction, 
     TransactionInstruction } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, getOrCreateAssociatedTokenAccount, createAssociatedTokenAccount, createTransferInstruction } from "@solana/spl-token-v2";
+import moment from "moment";
 import axios from "axios";
 import { CloseDCAParams, CreateDCAParams, DCA, type DepositParams, type WithdrawParams, Network } from '@jup-ag/dca-sdk';
 
@@ -43,7 +44,6 @@ import {
     DialogContentText,
     DialogActions,
     MenuItem,
-    ListItemIcon,
     TextField,
     Stack,
     Switch,
@@ -52,7 +52,9 @@ import {
     InputAdornment,
     InputLabel,
     Select,
+    List,
     ListItem,
+    ListItemIcon,
     ListItemAvatar,
     ListItemText,
     SelectChangeEvent,
@@ -61,6 +63,7 @@ import {
 
 import { useSnackbar } from 'notistack';
 
+import CodeIcon from '@mui/icons-material/Code';
 import VerticalAlignBottomIcon from '@mui/icons-material/VerticalAlignBottom';
 import VerticalAlignTopIcon from '@mui/icons-material/VerticalAlignTop';
 import ContentPasteIcon from '@mui/icons-material/ContentPaste';
@@ -276,7 +279,7 @@ export default function JupDcaExtensionView(props: any){
         }
     }
 
-    /*
+    
     async function withdrawAndCloseDCAAccount(dcaWallet: string, dcaPubKey: string, inputMint: string, outputMint: string, withdrawInAmount: number, withdrawOutAmount: number){
        
         const transaction = new Transaction();
@@ -287,6 +290,36 @@ export default function JupDcaExtensionView(props: any){
         //transaction.add(tx1);
         transaction.add(tx2);
 
+
+        const ixs = transaction; //await distributor.claimToken(new PublicKey(governanceNativeWallet));
+        const aixs = new Transaction();
+
+        //const ixts: TransactionInstruction[] = [];
+        
+        if (ixs || aixs){
+
+            const description = "Withdraw from "+dcaWallet+" inputMint: "+inputMint+" outputMint: "+outputMint;
+            const propIx = {
+                title:"Close DCA",
+                description:description,
+                ix:ixs.instructions,
+                aix:aixs?.instructions,
+                nativeWallet:governanceNativeWallet,
+                governingMint:governingMint,
+                draft:isDraft,
+            }
+
+            //console.log("ixs: "+JSON.stringify(ixs))
+            console.log("propIx: "+JSON.stringify(propIx))
+
+            // simulate?
+            const status =  await simulateIx(ixs);
+            
+            setInstructions(propIx);
+            setExpandedLoader(true);
+        }
+
+        /*
         setTransactionInstructions(transaction);
         const description = "Withdraw from "+dcaWallet+" inputMint: "+inputMint+" outputMint: "+outputMint;
 
@@ -297,9 +330,10 @@ export default function JupDcaExtensionView(props: any){
             "authorInstructions":null,
             "transactionEstimatedFee":transactionEstimatedFee,
         });
+        */
 
     }
-    */
+    
     
     async function withdrawDCA(dcaWallet: string, dcaPubKey: string, inputMint: string, outputMint: string, withdrawInAmount: number, withdrawOutAmount: number) {
         // it's possible to withdraw in-tokens only or out-tokens only or both in and out tokens together. See WithdrawParams for more details
@@ -1278,7 +1312,91 @@ export default function JupDcaExtensionView(props: any){
                         {showCurrentDCAs ?
                             <>
                                 {currentDCAs && currentDCAs.length > 0 ? <>
-                                    {JSON.stringify(currentDCAs)}
+                                    {(currentDCAs && currentDCAs.length > 0) ?
+                    <>  
+                        <Box
+                            sx={{ m:1,
+                                background: 'rgba(0, 0, 0, 0.2)',
+                                borderRadius: '17px',
+                                overflow: 'hidden',
+                                p:1
+                            }}
+                        >
+                            <Typography variant="h6">Current DCA / Scheduled Swaps for this Governance Wallet</Typography>
+                            <Typography variant="caption">
+                                <List sx={{ width: '100%' }}>
+                                    {currentDCAs.map((item: any, key: number) => {
+                                        return (
+                                            <ListItem alignItems="flex-start">
+                                                <ListItemAvatar>
+                                                    <Avatar alt={item.publicKey}><CodeIcon /></Avatar>
+                                                </ListItemAvatar>
+                                                <ListItemText
+                                                    primary={`Account: ${item.publicKey}`}
+                                                    secondary={
+                                                        <React.Fragment>
+                                                            <Typography
+                                                                sx={{ display: 'inline' }}
+                                                                component="span"
+                                                                variant="body2"
+                                                                color="text.primary"
+                                                            >
+                                                                Selling: {objectToken[item.account.inputMint] ? objectToken[item.account.inputMint].name : item.account.inputMint}<br/>
+                                                                Buying: {objectToken[item.account.outputMint] ? objectToken[item.account.outputMint].name : item.account.outputMint}<br/>
+                                                            </Typography>
+                                                            <br/>
+                                                            <Typography variant="caption">
+                                                                Created: {moment.unix(parseInt(item.account.createdAt,16)).toLocaleString()}<br/>
+                                                                {objectToken[item.account.inputMint] ?
+                                                                    <>
+                                                                        Deposited: {parseInt(item.account.inDeposited,16)  / 10 ** objectToken[item.account.inputMint].decimals} {objectToken[item.account.inputMint] ? objectToken[item.account.inputMint].name : item.account.inputMint}<br/>
+                                                                        Next Cycle: {parseInt(item.account.nextCycleAmountLeft,16) / 10 ** objectToken[item.account.inputMint].decimals} {objectToken[item.account.inputMint] ? objectToken[item.account.inputMint].name : ''} at {moment.unix(parseInt(item.account.nextCycleAt,16)).toLocaleString()}<br/>
+                                                                    </>
+                                                                :
+                                                                    <>
+                                                                        Deposited: {parseInt(item.account.inDeposited,16)}<br/>
+                                                                        Next Cycle: {parseInt(item.account.nextCycleAmountLeft,16)} {item.account.inputMint} at {moment.unix(parseInt(item.account.nextCycleAt,16)).toLocaleString()}<br/>
+                                                                        
+                                                                    </>
+                                                                }
+                                                                Cycle: {convertSecondsToLegibleFormat(parseInt(item.account.cycleFrequency,16).toString())}<br/>
+                                                                
+                                                                {objectToken[item.account.outputMint] ?
+                                                                    <>
+                                                                        Withdrawn: {parseInt(item.account.outWithdrawn,16) / 10 ** objectToken[item.account.outputMint].decimals}<br/>
+                                                                        Received: {parseInt(item.account.outReceived,16) / 10 ** objectToken[item.account.outputMint].decimals}<br/>
+                                                                    </>
+                                                                :
+                                                                    <>
+                                                                        Withdrawn: {parseInt(item.account.outWithdrawn,16)}<br/>
+                                                                        Received: {parseInt(item.account.outReceived,16)}<br/>
+                                                                    </>
+                                                                }
+                                                                
+                                                            </Typography>
+                                                            
+                                                            <Button 
+                                                                onClick={e => withdrawAndCloseDCAAccount(item.account.user, item.publicKey, item.account.inputMint, item.account.outputMint, 0, parseInt(item.account.nextCycleAmountLeft,16))}
+                                                                size="small"
+                                                                variant="contained"
+                                                                color="error"
+                                                                sx={{borderRadius:'17px',mt:1}}>
+                                                                Withdraw & Close Account</Button>
+                                                        </React.Fragment>
+                                                    }
+                                                    />
+                                            </ListItem>
+                                        );
+                                    })}
+                                </List>
+                                {/*JSON.stringify(currentDCAs)*/}
+                            </Typography>
+                        </Box>
+                        
+                    </>
+                :
+                    <></>
+                }
                                 </>
                                 :
                                 <>No Active DCA/Scheduled Swaps</>
