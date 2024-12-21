@@ -156,7 +156,7 @@ export default function JupDcaExtensionView(props: any){
 
     const [toMintAddress, setToMintAddress] = React.useState(null);
     const [period, setPeriod] = React.useState(null);
-    const [periodDuration, setPeriodDuration] = React.useState(1);
+    const [periodDuration, setPeriodDuration] = React.useState(2);
     const [minOutAmountPerCycle, setMinOutAmountPerCycle] = React.useState(null);
     const [maxOutAmountPerCycle, setMaxOutAmountPerCycle] = React.useState(null);
     const [pricingStrategy, setPricingStrategy] = React.useState(false);
@@ -1105,6 +1105,7 @@ export default function JupDcaExtensionView(props: any){
                                 onChange={(e) => {
                                     setPeriodDuration(+e.target.value);
                                 }}
+                                value={periodDuration}
                                 InputProps={{
                                     endAdornment: <InputAdornment position="start">{period && convertSecondsToLegibleFormat(period, true)}</InputAdornment>,
                                 }}
@@ -1229,6 +1230,44 @@ export default function JupDcaExtensionView(props: any){
                                 isDraft={isDraft}
                                 setIsDraft={setIsDraft}
                             />
+                            
+                        </>
+                    :
+                        <></>
+                    }
+
+                    {(tokenAmount && toMintAddress && tokenSelected && periodDuration && period && periodDuration > 0 && objectToken) ?
+                        <>  
+                            <Box
+                                sx={{ m:2,
+                                    background: 'rgba(0, 0, 0, 0.2)',
+                                    borderRadius: '17px',
+                                    overflow: 'hidden',
+                                    p:2
+                                }}
+                            >
+                                <Typography variant="h6">Preview/Summary</Typography>
+                                <Typography variant="caption">
+                                <strong>Time Swap Description</strong>
+                                <br/>
+                                Sell: {tokenAmount} {objectToken[tokenSelected.address] ? objectToken[tokenSelected.address].name : tokenSelected.address}<br/>
+                                Buy: {objectToken[toMintAddress] ? objectToken[toMintAddress].name : toMintAddress}<br/>
+                                Frequency: {convertSecondsToLegibleFormat(period, true)}<br/>
+                                Over: {periodDuration}<br/>
+                                Amount per cycle: {(tokenAmount/periodDuration).toFixed(3)} {objectToken[tokenSelected.address] ? objectToken[tokenSelected.address].name : tokenSelected.address}<br/>
+                                {pricingStrategy &&
+                                    <>
+                                        {minOutAmountPerCycle &&
+                                            <>Minumum Buy Mint Price per Cycle: {minOutAmountPerCycle} {objectToken[tokenSelected.address] ? objectToken[tokenSelected.address].name : tokenSelected.address}<br/></>
+                                        }
+                                        {maxOutAmountPerCycle &&
+                                            <>Max Buy Mint Price per Cycle: {maxOutAmountPerCycle} {objectToken[tokenSelected.address] ? objectToken[tokenSelected.address].name : tokenSelected.address}<br/></>
+                                        }
+                                    </>
+                                }
+                                Ends in : {convertSecondsToLegibleFormat((period*periodDuration).toFixed(0), false, periodDuration)} from proposal execution<br/>
+                                </Typography>
+                            </Box>
                             
                         </>
                     :
