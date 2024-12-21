@@ -809,6 +809,8 @@ export default function JupDcaExtensionView(props: any){
         objectToken[token.mint] = token;
     }); */
     
+    const objectToken = {};
+
     function ToBuySelect() {
       
         const handleToBuyChange = (event: SelectChangeEvent) => {
@@ -829,6 +831,14 @@ export default function JupDcaExtensionView(props: any){
                 setCurrentBuyPrice(cgp[tokenSelected].price);
             
         }
+
+        React.useEffect(() => {
+            if (availableTokens && availableTokens.length > 0){
+                availableTokens.forEach(token => {
+                    objectToken[token.mint] = token;
+                }); 
+            }
+        }, [availableTokens]);
 
         React.useEffect(() => { 
             if (toMintAddress)
@@ -1154,9 +1164,9 @@ export default function JupDcaExtensionView(props: any){
                                     }}
                                     variant="filled"
                                     sx={{ m: 0.65 }}
-                                    InputProps={{
-                                        endAdornment: <InputAdornment position="start">{(toMintAddress && objectToken[toMintAddress]) ? objectToken[toMintAddress].name : toMintAddress}  <VerticalAlignBottomIcon /></InputAdornment>,
-                                    }}
+                                    //InputProps={{
+                                    //    endAdornment: <InputAdornment position="start">{(toMintAddress && objectToken[toMintAddress]) ? objectToken[toMintAddress].name : toMintAddress}  <VerticalAlignBottomIcon /></InputAdornment>,
+                                    //}}
                                 />
                             </FormControl>   
                         </Grid>
@@ -1170,9 +1180,9 @@ export default function JupDcaExtensionView(props: any){
                                     onChange={(e) => {
                                         setMaxOutAmountPerCycle(+e.target.value);
                                     }}
-                                    InputProps={{
-                                        endAdornment: <InputAdornment position="start">{(toMintAddress && objectToken[toMintAddress]) ? objectToken[toMintAddress].name : toMintAddress} <VerticalAlignTopIcon /></InputAdornment>,
-                                    }}
+                                    //InputProps={{
+                                    //    endAdornment: <InputAdornment position="start">{(toMintAddress && objectToken[toMintAddress]) ? objectToken[toMintAddress].name : toMintAddress} <VerticalAlignTopIcon /></InputAdornment>,
+                                    //}}
                                 />
                             </FormControl> 
                         </Grid>  
