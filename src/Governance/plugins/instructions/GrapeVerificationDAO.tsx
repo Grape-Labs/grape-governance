@@ -167,7 +167,7 @@ export function GrapeVerificationDAO(props: any){
         
         //if (cached_members){
         if (members){
-          //console.log("cached_members: "+JSON.stringify(cached_members))
+          //console.log("members: "+JSON.stringify(members))
 
           const simpleArray = members
             .filter((item: any) => 
@@ -188,6 +188,8 @@ export function GrapeVerificationDAO(props: any){
                 ;
             });
           
+            //console.log("simpleArray: "+JSON.stringify(simpleArray));
+            //console.log("objectArray: "+JSON.stringify(objectArray));
 
           plt.push({
             pubkey: governanceAddress,

@@ -55,6 +55,7 @@ import SendExtensionView from './SendView';
 import JupDcaExtensionView from './JupDcaView';
 import DirectoryExtensionView from './DirectoryView';
 import DistributorExtensionView from './DistributorView';
+import CustomIxView from './CustomIxView';
 import ClaimExtensionView from './ClaimView';
 import TokenManagerView from './TokenManagerView';
 import DemoExtensionView from './DemoView';
@@ -170,6 +171,16 @@ export default function ExtensionsMenuView(props: any) {
           />
         }
         <DirectoryExtensionView
+            realm={realm}
+            handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
+        <CustomIxView
             realm={realm}
             handleCloseExtMenu={handleClose}
             rulesWallet={rulesWallet}
