@@ -360,7 +360,7 @@ export default function DistributorExtensionView(props: any){
                             />
                     
                     <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2, textAlign:'center'}}>
-                        <Typography variant="caption">Made with ❤️ by Grape #OPOS</Typography>
+                        <Typography variant="caption">Made with ❤️ by Grape</Typography>
                     </Box>
 
                     <DialogActions>
