@@ -580,7 +580,14 @@ export default function TokenManagerView(props) {
             throw error; // Rethrow to handle upstream
         }
     }
-    
+
+    /**
+     * Pauses execution for the specified number of milliseconds.
+     * @param ms Number of milliseconds to wait.
+     */
+    const sleep = (ms: number): Promise<void> => {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    };  
 
     const createTokenIx = async () => {
         setLoading(true);
@@ -645,7 +652,7 @@ export default function TokenManagerView(props) {
                     mintPublicKey,    // Mint account public key
                     decimals,         // Number of decimals
                     publicKey,        // Mint authority (your wallet)
-                    publicKey,              // No freeze authority
+                    withPublicKey,              // No freeze authority
                     TOKEN_PROGRAM_ID,
                 )
             );
@@ -677,69 +684,57 @@ export default function TokenManagerView(props) {
                 )
             );
 
-            /*
-            // Create token account for governance wallet
-            console.log("3. Create Token Account for Governance");
-            const tokenAccount = await createAccount(
-                connection, 
-                wallet,        // Fee payer
-                mintPublicKey,    // Mint associated with the token account
-                withPublicKey     // Owner of the new token account (governance)
-            );
+            {
 
-            
-            */
-            
-
-            // Send the transaction
-            // await connection.sendTransaction(transaction, [publicKey, mintKeypair]);
-
-            /*
-            const isSimulationSuccessful = await simulateCreateTokenIx(authTransaction);
-
-            if (!isSimulationSuccessful) {
-                enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
-                handleCloseDialog();
-                return; // Exit the function as simulation failed
-            } else*/{
-
+                enqueueSnackbar("Creating & transferring token on the wallet "+mintPublicKey.toBase58()+", you will be prompted to then create a mint as a proposal", { variant: 'success' });
                 const txid = await createAndSendV0TxInline(walletTransaction.instructions, [mintKeypair]);
                 console.log("txid: ",txid);
 
-                const ixs = transaction;
-                const aixs = authTransaction;
-                
-                if (ixs || aixs){
-                    const createTokenIx = {
-                        title: proposalTitle,
-                        description: proposalDescription,
-                        ix: ixs?.instructions,
-                        aix:aixs?.instructions,
-                        signers: ixSigners,
-                        nativeWallet:governanceNativeWallet,
-                        governingMint:governingMint,
-                        draft: isDraft,
-                    };
+                if (txid){
+                    //ixSigners.push(mintKeypair)
 
-                    console.log("Passing signer: "+JSON.stringify(ixSigners));
-
-                    const isSimulationSuccessful = true; // dont sim //await simulateCreateTokenIx(transaction);
-
-                    if (!isSimulationSuccessful) {
-                        enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
-                        handleCloseDialog();
-                        return; // Exit the function as simulation failed
-                    }
-
-                    console.log("Simulation was successful. Proceeding with the transaction.");
+                    // we should wait a few seconds to proceed so that we can make sure that this tx can simulate
                     
-                    handleCloseDialog();
-                    setInstructions(createTokenIx);
-                    setExpandedLoader(true);
+                    // Introduce a delay of 2 seconds (2000 milliseconds)
+                    await sleep(2000);
+                    console.log("✅ Waited for 2 seconds before proceeding.");
 
-                    enqueueSnackbar("Create token instructions prepared", { variant: 'success' });
+                    const ixs = transaction;
+                    const aixs = walletTransaction;//authTransaction;
+                    
+                    if (ixs || aixs){
+                        const createTokenIx = {
+                            title: proposalTitle,
+                            description: proposalDescription,
+                            ix: ixs?.instructions,
+                            aix: null,//aixs?.instructions,
+                            signers: null,
+                            nativeWallet:governanceNativeWallet,
+                            governingMint:governingMint,
+                            draft: isDraft,
+                        };
+
+                        //console.log("Passing signer: "+JSON.stringify(ixSigners));
+
+                        const isSimulationSuccessful = true; // dont sim //await simulateCreateTokenIx(transaction);
+                        if (!isSimulationSuccessful) {
+                            enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
+                            handleCloseDialog();
+                            return; // Exit the function as simulation failed
+                        }
+
+                        console.log("Simulation was successful. Proceeding with the transaction.");
+                        
+                        handleCloseDialog();
+                        setInstructions(createTokenIx);
+                        setExpandedLoader(true);
+
+                        enqueueSnackbar("Create token instructions prepared", { variant: 'success' });
+                    } else{
+                        enqueueSnackbar(`Error no transaction instructions`, { variant: 'error' });
+                    }
                 } else{
-                    enqueueSnackbar(`Error no transaction instructions`, { variant: 'error' });
+                    enqueueSnackbar(`Mint has not been created`, { variant: 'error' });
                 }
 
                 //console.log("Token mint created and authority transferred to governance wallet.");
@@ -768,285 +763,6 @@ export default function TokenManagerView(props) {
 
 
             
-        } finally {
-            setLoading(false);
-        }
-    };
-
-
-    const createTokenGovIx = async () => {
-        setLoading(true);
-
-        try {
-
-            const withPublicKey = new PublicKey(governanceNativeWallet);
-            const mintAuthority = new PublicKey(governanceNativeWallet); //publicKey;
-            const freezeAuthority = new PublicKey(governanceNativeWallet); //publicKey;
-            
-            // Define metadata fields
-            
-            // Create an empty account for the mint
-            const mintKeypair = Keypair.generate();
-            const mintPublicKey = mintKeypair.publicKey;
-
-            setProposalDescription(`Create a new token ${mintPublicKey.toBase58()} with DAO mint authority & metadata`);            
-
-            // Set up metadata
-            const metadataProgramId = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"); // Token Metadata Program ID
-            const metadataSeeds = [
-                Buffer.from("metadata"),
-                metadataProgramId.toBuffer(),
-                mintPublicKey.toBuffer(),
-            ];
-            const [metadataPDA] = await PublicKey.findProgramAddress(metadataSeeds, metadataProgramId);
-            const ixSigners = new Array();
-            // Metadata to store in Mint Account
-            const metaData: TokenMetadata = {
-                updateAuthority: withPublicKey,
-                mint: mintKeypair.publicKey,
-                name: name,
-                symbol: symbol,
-                uri: uri,
-                additionalMetadata: [["description", "The Vine Token by the Grape DAO"]],
-            };
-
-                // Calculate the rent-exempt balance needed
-                const lamports = await getMinimumBalanceForRentExemptMint(connection);
-
-                const pTransaction = new Transaction();
-                // Create a transaction
-                const transaction = new Transaction();
-
-                // Instruction to create an account for the mint
-                
-                // we are using the keypair above
-                /*
-                const mint = await createMint(
-                    connection,
-                    withPublicKey,
-                    mintAuthority,
-                    freezeAuthority,
-                    TOKEN_DECIMALS
-                );
-                */
-                
-                console.log("1. Create Sys Account");
-                transaction.add(
-                    SystemProgram.createAccount({
-                        fromPubkey: withPublicKey, // Multi-sig wallet as the payer
-                        newAccountPubkey: mintPublicKey,
-                        space: MintLayout.span,
-                        lamports: lamports,
-                        programId: TOKEN_PROGRAM_ID,
-                    })
-                );
-                ixSigners.push(mintKeypair);
-
-                console.log("1. Create Token Mint Ix Account");
-                /*
-                const amountToMint = 1 * Math.pow(10, decimals);
-                transaction.add(
-                    createMintToCheckedInstruction(
-                        mintPublicKey,
-                        withPublicKey,
-                        withPublicKey,
-                        amountToMint,
-                        decimals
-                    )
-                  );
-                */
-                  console.log("2. Init Mint");
-                  // Instruction to initialize the mint
-                  transaction.add(
-                      createInitializeMintInstruction(
-                          mintPublicKey,   // Address of the new mint
-                          decimals,        // Number of decimals for the token
-                          mintAuthority,   // Mint authority
-                          null//freezeAuthority, // Freeze authority (optional)
-                          //TOKEN_PROGRAM_ID // Program ID for the SPL Token program
-                      )
-                  );
-                  //ixSigners.push([]);
-
-                const block = await connection.getLatestBlockhash();
-                transaction.recentBlockhash = block.blockhash;
-                transaction.feePayer = publicKey;
-                transaction.partialSign(mintKeypair);
-                
-                // Create metadata instruction
-                /*
-                const metadataBuilder = createMetadataAccountV3(
-                    {
-                    eddsa: null,
-                    identity: {
-                        publicKey: (withPublicKey.toBase58()),
-                        signTransaction: async () => {
-                        throw new Error("Direct signing is not supported in this example.");
-                        },
-                        signAllTransactions: async () => {
-                        throw new Error("Direct signing is not supported in this example.");
-                        },
-                        signMessage: async () => {
-                        throw new Error("Direct signing is not supported in this example.");
-                        },
-                    },
-                    payer: {
-                        publicKey: withPublicKey.toBase58(),
-                        signTransaction: async () => {
-                        throw new Error("Direct signing is not supported in this example.");
-                        },
-                        signAllTransactions: async () => {
-                        throw new Error("Direct signing is not supported in this example.");
-                        },
-                        signMessage: async () => {
-                        throw new Error("Direct signing is not supported in this example.");
-                        },
-                    },
-                    },
-                    {
-                    metadata: metadataPDA.toBase58(),
-                    mint: mintKeypair.publicKey.toBase58(),
-                    mintAuthority: withPublicKey.toBase58(),
-                    payer: withPublicKey.toBase58(),
-                    updateAuthority: withPublicKey.toBase58(),
-                    data: {
-                        name: name,
-                        symbol: symbol,
-                        uri: uri,
-                        sellerFeeBasisPoints: 500, // 5% royalties
-                        creators: [
-                        {
-                            address: withPublicKey.toBase58(),
-                            verified: true,
-                            share: 100,
-                        },
-                        ],
-                    },
-                    }
-                );
-                // Convert Metaplex Instructions to Solana TransactionInstructions
-                const metadataInstructions = metadataBuilder.getInstructions().map((ix) => {
-                    return new TransactionInstruction({
-                    keys: ix.keys.map((key) => ({
-                        pubkey: new PublicKey(key.pubkey),
-                        isSigner: key.isSigner,
-                        isWritable: key.isWritable,
-                    })),
-                    programId: new PublicKey(ix.programId),
-                    data: Buffer.from(ix.data),
-                    });
-                });
-
-                // Add each converted instruction to the transaction
-                metadataInstructions.forEach((instruction) => transaction.add(instruction));
-
-
-                //metadataInstructions.forEach((instruction) => transaction.add(instruction));
-
-                //transaction.add(metadataInstruction);
-                */
-                
-                console.log("3. Mint Tokens Ix")
-                
-                /*
-                
-                transaction.add(
-                    createMintToCheckedInstruction(
-                        mintPublicKey, // mint
-                        mintAuthority, // receiver (should be a token account)
-                        mintAuthority, // mint authority
-                        amountToMint, // amount. if your decimals is 8, you mint 10^8 for 1 token.
-                        decimals, // decimals
-                        // [signer1, signer2 ...], // only multisig account will use
-                    ),
-                );
-                */
-
-                /*
-                transaction.add(
-                    createInitializeInstruction({
-                        programId: TOKEN_PROGRAM_ID, // Token Extension Program as Metadata Program
-                        metadata: mintKeypair.publicKey, // Account address that holds the metadata
-                        updateAuthority: mintAuthority, // Authority that can update the metadata
-                        mint: mintKeypair.publicKey, // Mint Account address
-                        mintAuthority: mintAuthority, // Designated Mint Authority
-                        name: name,
-                        symbol: symbol,
-                        uri: uri,
-                    })
-                );
-                */
-
-                /*
-                const updateFieldInstruction = createUpdateFieldInstruction({
-                    programId: TOKEN_2022_PROGRAM_ID, // Token Extension Program as Metadata Program
-                    metadata: mint, // Account address that holds the metadata
-                    updateAuthority: updateAuthority, // Authority that can update the metadata
-                    field: metaData.additionalMetadata[0][0], // key
-                    value: metaData.additionalMetadata[0][1], // value
-                  });
-                */
-
-                
-                
-                // Add metadata instruction to the transaction
-                //transaction.add(metadataInstruction);
-
-            console.log("mintPublicKey: "+mintPublicKey.toBase58());
-            
-            // Sign and simulate
-            //const latestBlockhash = await connection.getLatestBlockhash();
-            //transaction.recentBlockhash = latestBlockhash.blockhash;
-            //transaction.feePayer = withPublicKey;
-            
-
-            //console.log("4: To Sign");
-            // Add the mint keypair as a signer
-            //transaction.sign(mintKeypair);
-            
-            //console.log("5: serializing");
-
-            //const signedTransaction = transaction.serialize();
-
-            //console.log("6: serialized");
-
-            const ixs = transaction;
-            const aixs = pTransaction;
-            
-            if (ixs || aixs){
-                const createTokenIx = {
-                    title: proposalTitle,
-                    description: proposalDescription,
-                    ix: ixs?.instructions,
-                    aix:aixs?.instructions,
-                    signers: ixSigners,
-                    nativeWallet:governanceNativeWallet,
-                    governingMint:governingMint,
-                    draft: isDraft,
-                };
-
-                console.log("passing siogner: "+JSON.stringify(ixSigners));
-
-                const isSimulationSuccessful = await simulateCreateTokenIx(transaction);
-
-                if (!isSimulationSuccessful) {
-                    enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
-                    handleCloseDialog();
-                    return; // Exit the function as simulation failed
-                }
-
-                console.log("Simulation was successful. Proceeding with the transaction.");
-                
-                handleCloseDialog();
-                setInstructions(createTokenIx);
-                setExpandedLoader(true);
-
-                enqueueSnackbar("Create token instructions prepared", { variant: 'success' });
-            } else{
-                enqueueSnackbar(`Error no transaction instructions`, { variant: 'error' });
-            }
-        } catch (error) {
-            enqueueSnackbar(`Error preparing create token instructions: ${error?.message}`, { variant: 'error' });
         } finally {
             setLoading(false);
         }
@@ -1132,7 +848,7 @@ export default function TokenManagerView(props) {
     
                             <Button
                                 variant="contained"
-                                onClick={() => createTokenIx()}
+                                onClick={() => createTokenIx()}//createTokenGovIx()}//createTokenIx()}
                                 disabled={loading}
                             >
                                 Prepare Create Token Instructions
