@@ -274,7 +274,7 @@ export default function TokenManagerView(props) {
             setProposalTitle(`Mint More Tokens`);
             setProposalDescription(`Mint ${amount} ${mintPubKey.toBase58()} to the associated account`);
 
-            const amountToMint = 1_000_000 * Math.pow(10, decimals);
+            const amountToMint = amount * Math.pow(10, decimals);
             
             const transaction = new Transaction();
             transaction.add(
@@ -306,6 +306,7 @@ export default function TokenManagerView(props) {
             );
             */
 
+
             const mintTokenIx = {
                 title: proposalTitle,
                 description: proposalDescription,
@@ -314,8 +315,13 @@ export default function TokenManagerView(props) {
                 governingMint:governingMint,
                 draft: isDraft,
             };
+
+            console.log("Simulating");
             
             const isSimulationSuccessful = await simulateCreateTokenIx(transaction);
+
+
+            console.log("Simulate complete");
 
             if (!isSimulationSuccessful) {
                 enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
