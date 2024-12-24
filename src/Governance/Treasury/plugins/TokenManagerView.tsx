@@ -6,9 +6,11 @@ import {
     Transaction,
     TransactionMessage,
     TransactionInstruction,
+    VersionedMessage,
     VersionedTransaction,
     ComputeBudgetProgram,
-    sendAndConfirmTransaction } from '@solana/web3.js';
+    sendAndConfirmTransaction,
+    SendTransactionError } from '@solana/web3.js';
 import axios from "axios";
 import { 
     createMint,
@@ -39,6 +41,7 @@ import { Metaplex, TransactionBuilder } from '@metaplex-foundation/js';
 import { Buffer } from 'buffer';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { 
+    RPC_DEVNET_CONNECTION,
     RPC_CONNECTION,
     SHYFT_KEY
 } from '../../../utils/grapeTools/constants';
@@ -81,7 +84,10 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     },
 }));
 
-const TOKEN_DECIMALS = 9; // Adjust based on your token setup
+// Extend the SendTransactionError to include 'signature'
+interface SendTransactionErrorWithSignature extends SendTransactionError {
+    signature?: string;
+}
 
 export interface DialogTitleProps {
     id: string;
@@ -347,10 +353,10 @@ export default function TokenManagerView(props) {
 
     React.useEffect(() => { 
         setIsGoverningMintSelectable(false);
-        if (realm && realm?.account.config?.councilMint){
+        if (realm?.account.config?.councilMint){
             setGoverningMint(realm?.account.config.councilMint);
             setIsGoverningMintCouncilSelected(true);
-            if (realm && realm?.account?.communityMint){
+            if (realm.account?.communityMint){
                 if (Number(rulesWallet.account.config.minCommunityTokensToCreateProposal) !== 18446744073709551615){
                     setGoverningMint(realm?.account.communityMint);
                     setIsGoverningMintSelectable(true);
@@ -358,8 +364,8 @@ export default function TokenManagerView(props) {
                 }
             }
         } else {
-            if (realm && realm?.account?.communityMint){
-                setGoverningMint(realm?.account.communityMint);
+            if (realm?.account?.communityMint){
+                setGoverningMint(realm.account.communityMint);
                 setIsGoverningMintCouncilSelected(false);
             }
         }
@@ -410,19 +416,18 @@ export default function TokenManagerView(props) {
         return computeUnits * baseMicroLamportsPerUnit;
     };
 
-    async function calculatePriorityFee(messageV0) {
+    async function calculatePriorityFee(messageV0: VersionedMessage): Promise<number> {
         try {
-            // Correct use of VersionedMessage
-            const response = await RPC_CONNECTION.getFeeForMessage(
-                messageV0, // Pass the VersionedMessage directly
-                'finalized' // Optional: specify a commitment level
+            const response = await connection.getFeeForMessage(
+                messageV0,
+                'finalized'
             );
-        
+    
             if (response && response.value !== null) {
                 console.log("✅ Estimated Fee:", response.value);
                 return response.value; // Fee in lamports
             } else {
-                console.error("❌ Failed to estimate fee from QuickNode");
+                console.error("❌ Failed to estimate fee from RPC");
                 throw new Error("Failed to estimate fee");
             }
         } catch (error) {
@@ -431,84 +436,108 @@ export default function TokenManagerView(props) {
         }
     }
     
-    async function createAndSendV0TxInline(txInstructions, signers) {
-        // Fetch latest blockhash
-        const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
-        console.log("✅ Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
+    async function createAndSendV0TxInline(
+        txInstructions: TransactionInstruction[],
+        signers: Keypair[] | null
+    ): Promise<string> {
+        try {
+            // Fetch latest blockhash
+            const latestBlockhash = await connection.getLatestBlockhash('finalized');
+            console.log("✅ Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
     
-        // Compute budget instructions
-        const MAX_COMPUTE_UNITS = 1_400_000;
-        const estimatedComputeUnits = estimateComputeUnits(txInstructions.length);
-        const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
-            units: MAX_COMPUTE_UNITS//estimatedComputeUnits,
-        });
+            // Compute budget instructions
+            const estimatedComputeUnits = await estimateComputeUnits(txInstructions.length);
+            const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+                units: estimatedComputeUnits,
+            });
     
-        // Combine instructions
-        let allInstructions = [
-            //computeUnitLimitInstruction,
-            ...txInstructions,
-        ];
+            // Calculate Priority Fee
+            // Temporary: create a message with only computeUnitLimitInstruction and txInstructions
+            let allInstructions = [
+                computeUnitLimitInstruction,
+                ...txInstructions,
+            ];
+            
+            let messageV0 = new TransactionMessage({
+                payerKey: publicKey,
+                recentBlockhash: latestBlockhash.blockhash,
+                instructions: allInstructions,
+            }).compileToV0Message();
     
-        // Generate Versioned Transaction Message
-        let messageV0 = new TransactionMessage({
-            payerKey: publicKey,
-            recentBlockhash: latestBlockhash.blockhash,
-            instructions: allInstructions,
-        }).compileToV0Message();
+            // Calculate the fee based on the current instructions
+            const estimatedFee = await calculatePriorityFee(messageV0);
+            console.log(`✅ Estimated Priority Fee: ${estimatedFee} lamports`);
     
-        const transaction = new VersionedTransaction(messageV0);
+            // Convert lamports to microLamports
+            const microLamportsFee = estimatedFee * 1000;
+            console.log(`✅ Converted Priority Fee: ${microLamportsFee} microLamports`);
     
-        // Calculate Priority Fee
-        const estimatedFee = await calculatePriorityFee(messageV0);
-        console.log(`✅ Estimated Priority Fee: ${estimatedFee} lamports`);
+            // Add priority fee instruction
+            const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
+                microLamports: microLamportsFee,
+            });
     
-        //const multiplier = 5; 
-        //const MIN_PRIORITY_FEE = 100000; // Example: 0.0001 SOL
-        //const adjustedPriorityFee = Math.max(estimatedFee * multiplier, MIN_PRIORITY_FEE);
-        //console.log(`✅ Final Priority Fee: ${adjustedPriorityFee} lamports`);
-
-        // Add priority fee instruction
-        const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
-            microLamports: estimatedFee,
-        });
+            // Recompile the transaction with updated instructions
+            allInstructions = [
+                computeUnitLimitInstruction,
+                priorityFeeInstruction,
+                ...txInstructions,
+            ];
     
-        // Recompile the transaction with updated instructions
-        allInstructions.unshift(priorityFeeInstruction, computeUnitLimitInstruction);
-        messageV0 = new TransactionMessage({
-            payerKey: publicKey,
-            recentBlockhash: latestBlockhash.blockhash,
-            instructions: allInstructions,
-        }).compileToV0Message();
+            messageV0 = new TransactionMessage({
+                payerKey: publicKey,
+                recentBlockhash: latestBlockhash.blockhash,
+                instructions: allInstructions,
+            }).compileToV0Message();
     
-        transaction.message = messageV0;
+            const transaction = new VersionedTransaction(messageV0);
     
-        if (signers) {
-            transaction.sign(signers);
-            console.log("✅ Transaction Signed");
-        }
+            // Sign the transaction with all required signers
+            if (signers && signers.length > 0) {
+                transaction.sign(signers); // Spread the signers array
+                console.log("✅ Transaction Signed with provided signer(s) "+signers[0].publicKey.toBase58());
+            } else {
+                console.warn("⚠️ No signers provided. Transaction may fail if signatures are required.");
+            }
     
-        const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
-        console.log("🔍 Simulation result:", simulationResult);
+            // Simulate Transaction
+            const simulationResult = await connection.simulateTransaction(transaction);
+            console.log("🔍 Simulation result:", simulationResult);
     
-        if (simulationResult.value.err) {
-            console.error("❌ Simulation failed with error:", simulationResult.value.err);
-            throw new Error(`Simulation error: ${simulationResult.value.err}`);
-        } else {
-            const txid = await sendTransaction(transaction, RPC_CONNECTION, {
+            if (simulationResult.value.err) {
+                console.error("❌ Simulation failed with error:", simulationResult.value.err);
+                throw new Error(`Simulation error: ${simulationResult.value.err}`);
+            }
+            
+            const txid = await sendTransaction(transaction, connection, {
                 skipPreflight: false,
                 preflightCommitment: "confirmed",
                 maxRetries: 5,
             });
-    
+            /*
+            // Serialize the transaction
+            const rawTransaction = transaction.serialize();
+            // Send the raw transaction
+            const txid = await connection.sendRawTransaction(rawTransaction, {
+                skipPreflight: false,
+                preflightCommitment: "confirmed",
+                maxRetries: 5,
+            });
+            */
             console.log("✅ Transaction sent to network with txid:", txid);
     
             // Confirm Transaction
             try {
-                const snackprogress = (key:any) => (
-                    <CircularProgress sx={{padding:'10px'}} />
+                const snackprogress = (key: any) => (
+                    <CircularProgress sx={{ padding: '10px' }} />
                 );
-                const cnfrmkey = enqueueSnackbar(`Confirming Transaction`,{ variant: 'info', action:snackprogress, persist: true });
-                const confirmation = await RPC_CONNECTION.confirmTransaction(
+                const cnfrmkey = enqueueSnackbar(`Confirming Transaction`, { 
+                    variant: 'info', 
+                    action: snackprogress, 
+                    persist: true 
+                });
+    
+                const confirmation = await connection.confirmTransaction(
                     {
                         signature: txid,
                         blockhash: latestBlockhash.blockhash,
@@ -529,6 +558,26 @@ export default function TokenManagerView(props) {
                 console.error("❌ Transaction confirmation failed:", e);
                 throw new Error("Transaction not confirmed.");
             }
+        } catch (error) {
+            // Enhanced error handling
+            if (error instanceof SendTransactionError) {
+                const extendedError = error as SendTransactionErrorWithSignature;
+                const signature = extendedError.signature;
+                console.error(`❌ SendTransactionError: ${extendedError.message}`);
+    
+                if (signature) {
+                    try {
+                        const logs = await connection.getTransaction(signature, { commitment: 'finalized' });
+                        console.error("📜 Transaction Logs:", logs);
+                        enqueueSnackbar(`Transaction failed: ${JSON.stringify(logs)}`, { variant: 'error' });
+                    } catch (logError) {
+                        console.error("❌ Failed to retrieve transaction logs:", logError);
+                    }
+                }
+            } else {
+                console.error("❌ Error in createAndSendV0TxInline:", error);
+            }
+            throw error; // Rethrow to handle upstream
         }
     }
     
@@ -654,7 +703,7 @@ export default function TokenManagerView(props) {
                 return; // Exit the function as simulation failed
             } else*/{
 
-                const txid = await createAndSendV0TxInline(walletTransaction.instructions, null);
+                const txid = await createAndSendV0TxInline(walletTransaction.instructions, [mintKeypair]);
                 console.log("txid: ",txid);
 
                 const ixs = transaction;
@@ -697,7 +746,28 @@ export default function TokenManagerView(props) {
             }
 
         } catch (error) {
-            enqueueSnackbar(`Error preparing create token instructions: ${error?.message}`, { variant: 'error' });
+
+            if (error instanceof SendTransactionError) {
+                const extendedError = error as SendTransactionErrorWithSignature;
+                const signature = extendedError.signature;
+                console.error(`❌ SendTransactionError: ${extendedError.message}`);
+    
+                if (signature) {
+                    try {
+                        const logs = await connection.getTransaction(signature, { commitment: 'finalized' });
+                        console.error("📜 Transaction Logs:", logs);
+                        enqueueSnackbar(`Transaction failed: ${JSON.stringify(logs)}`, { variant: 'error' });
+                    } catch (logError) {
+                        console.error("❌ Failed to retrieve transaction logs:", logError);
+                    }
+                }
+            } else {
+                console.error("❌ Error in createTokenIx:", error);
+                enqueueSnackbar(`Error preparing create token instructions: ${JSON.stringify(error)}`, { variant: 'error' });
+            }
+
+
+            
         } finally {
             setLoading(false);
         }
