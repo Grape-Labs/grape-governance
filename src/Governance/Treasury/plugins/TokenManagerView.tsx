@@ -508,7 +508,7 @@ export default function TokenManagerView(props) {
                 console.error("❌ Simulation failed with error:", simulationResult.value.err);
                 throw new Error(`Simulation error: ${simulationResult.value.err}`);
             }
-            
+
             const txid = await sendTransaction(transaction, connection, {
                 skipPreflight: false,
                 preflightCommitment: "confirmed",
@@ -597,7 +597,7 @@ export default function TokenManagerView(props) {
             const mintKeypair = Keypair.generate();
             const mintPublicKey = mintKeypair.publicKey;
 
-            setProposalDescription(`Create a new token ${mintPublicKey.toBase58()} with DAO mint authority & metadata`);            
+            setProposalDescription(`Create a new token ${mintPublicKey.toBase58()} with DAO mint authority (w/out metadata)`);            
 
             // Set up metadata
             const metadataProgramId = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"); // Token Metadata Program ID
