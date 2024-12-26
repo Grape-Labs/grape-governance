@@ -377,7 +377,7 @@ export default function TokenManagerView(props) {
             
             // Step 2: Check if the ATA already exists
             const ataAccountInfo = await connection.getAccountInfo(associatedTokenAccount);
-            
+
             setProposalTitle(`Mint More Tokens`);
             setProposalDescription(`Mint ${amountToMint} ${mintPubKey.toBase58()} to ATA: ${associatedTokenAccount.toBase58()}`);
 
@@ -1227,7 +1227,7 @@ export default function TokenManagerView(props) {
                             <Button
                                 variant="contained"
                                 onClick={() => transferMintIx()}
-                                disabled={loading || !mintAddress || !amountToMint}
+                                disabled={loading || !mintAddress || !destinationAddress}
                             >
                                 Transfer Instructions
                             </Button>
