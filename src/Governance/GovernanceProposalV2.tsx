@@ -2744,20 +2744,23 @@ export function GovernanceProposalV2View(props: any){
                                                     <Typography variant='body2'>
                                                         <ErrorBoundary>
                                                             
-                                                            <ReactMarkdown 
-                                                                remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
-                                                                //transformImageUri={transformImageUri}
-                                                                children={proposalDescription}
-                                                                components={{
-                                                                    // Custom component for overriding the image rendering
-                                                                    img: ({ node, ...props }) => (
-                                                                    <img
-                                                                        {...props}
-                                                                        style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
-                                                                    />
-                                                                    ),
-                                                                }}
-                                                            />
+                                                            {window.location.hostname !== 'localhost' ? (
+                                                                <ReactMarkdown
+                                                                    remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkImages]}
+                                                                    children={proposalDescription}
+                                                                    components={{
+                                                                        // Custom component for overriding the image rendering
+                                                                        img: ({ node, ...props }) => (
+                                                                            <img
+                                                                                {...props}
+                                                                                style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
+                                                                            />
+                                                                        ),
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <p>Markdown rendering is disabled on localhost.</p>
+                                                            )}
                                                             
                                                         </ErrorBoundary>
                                                         {/*

@@ -6,14 +6,18 @@ import {
     Transaction,
     TransactionMessage,
     TransactionInstruction,
+    VersionedMessage,
     VersionedTransaction,
     ComputeBudgetProgram,
-    sendAndConfirmTransaction } from '@solana/web3.js';
+    sendAndConfirmTransaction,
+    SendTransactionError } from '@solana/web3.js';
 import axios from "axios";
 import { 
     createMint,
     TOKEN_PROGRAM_ID, 
     mintTo, 
+    getAssociatedTokenAddress,
+    createAssociatedTokenAccountInstruction,
     getOrCreateAssociatedTokenAccount,
     MintLayout,
     getMinimumBalanceForRentExemptMint,
@@ -22,6 +26,7 @@ import {
     mintToChecked,
     createAccount,
     createSetAuthorityInstruction,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token-v2";
 //import * as token from '@solana/spl-token';
 import {
@@ -32,13 +37,24 @@ import {
     createInitializeInstruction,
     createUpdateFieldInstruction,
   } from "@solana/spl-token-metadata";
-import { generateSigner, percentAmount } from '@metaplex-foundation/umi'
+import { generateSigner, percentAmount, publicKey as UmiPK, Instruction, createNoopSigner, none } from '@metaplex-foundation/umi'
 import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
-import { Metadata, createV1, createMetadataAccountV3, mintV1, TokenStandard, MPL_TOKEN_METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
+import { toWeb3JsInstruction } from '@metaplex-foundation/umi-web3js-adapters';
+import { 
+    Metadata, 
+    createV1, 
+    createMetadataAccountV3, 
+    CreateMetadataAccountV3InstructionDataArgs,
+    CreateMetadataAccountV3InstructionAccounts,
+    mplTokenMetadata,
+    mintV1, 
+    TokenStandard, 
+    MPL_TOKEN_METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
 import { Metaplex, TransactionBuilder } from '@metaplex-foundation/js';
 import { Buffer } from 'buffer';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { 
+    RPC_DEVNET_CONNECTION,
     RPC_CONNECTION,
     SHYFT_KEY
 } from '../../../utils/grapeTools/constants';
@@ -81,7 +97,10 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     },
 }));
 
-const TOKEN_DECIMALS = 9; // Adjust based on your token setup
+// Extend the SendTransactionError to include 'signature'
+interface SendTransactionErrorWithSignature extends SendTransactionError {
+    signature?: string;
+}
 
 export interface DialogTitleProps {
     id: string;
@@ -151,6 +170,7 @@ export default function TokenManagerView(props) {
     const [symbol, setSymbol] = useState("MCXT");
     const [uri, setUri] = useState("https://arweave.net/lyeMvAF6kpccNhJ0XXPkrplbcT6A5UtgBiZI_fKff6I");
     const [decimals, setDecimals] = useState(8);
+    const [amountToMint, setAmountToMint] = useState(0);
 
     const [tabIndex, setTabIndex] = useState(0); // Tab index to toggle between Create and Manage tabs
 
@@ -256,7 +276,7 @@ export default function TokenManagerView(props) {
     };
 
     const mintMoreTokensIx = async () => {
-        if (!mintAddress || !amount) return;
+        if (!mintAddress || !amountToMint) return;
         setLoading(true);
 
         try {
@@ -266,40 +286,66 @@ export default function TokenManagerView(props) {
             const freezeAuthority = new PublicKey(governanceNativeWallet); //publicKey;
             
             setProposalTitle(`Mint More Tokens`);
-            setProposalDescription(`Mint ${amount} ${mintPubKey.toBase58()} to the associated account`);
+            setProposalDescription(`Mint ${amountToMint} ${mintPubKey.toBase58()} to the associated account`);
 
-            const amountToMint = 1_000_000 * Math.pow(10, decimals);
+            const adjustedAmount = amountToMint * Math.pow(10, decimals);
             
+            // Step 1: Get or Create the Associated Token Account
+            const associatedTokenAccount = await getAssociatedTokenAddress(
+                mintPubKey,
+                mintAuthority,
+                true
+            );
+
             const transaction = new Transaction();
+            
+            // Step 2: Check if the ATA already exists
+            const ataAccountInfo = await connection.getAccountInfo(associatedTokenAccount);
+
+            // Initialize an array to hold transaction instructions
+            const instructions = [];
+
+            if (!ataAccountInfo) {
+                // ATA does not exist, add instruction to create it
+                transaction.add(
+                    createAssociatedTokenAccountInstruction(
+                        mintAuthority, // payer
+                        associatedTokenAccount, // ATA address
+                        mintAuthority, // owner of the ATA
+                        mintPubKey, // mint
+                        TOKEN_PROGRAM_ID,
+                        ASSOCIATED_TOKEN_PROGRAM_ID
+                    )
+                );
+            } else {
+                // Optionally, you can perform additional checks to ensure the ATA is valid
+                // For example, verify that the ATA is indeed associated with the correct mint and owner
+                // Uncomment the following lines if you want to perform these checks
+
+                /*
+                try {
+                    const tokenAccount = await getAccount(connection, associatedTokenAddress);
+                    if (!tokenAccount.mint.equals(mintPubKey) || !tokenAccount.owner.equals(mintAuthority)) {
+                        throw new Error("Existing ATA has mismatched mint or owner.");
+                    }
+                } catch (error) {
+                    enqueueSnackbar(`Error verifying ATA: ${error.message}`, { variant: 'error' });
+                    return;
+                }
+                */
+            }
+
             transaction.add(
                 createMintToCheckedInstruction(
                     mintPubKey, // mint
-                    mintAuthority, // receiver (should be a token account)
+                    associatedTokenAccount, // receiver (should be a token account)
                     mintAuthority, // mint authority
-                    amountToMint, // amount. if your decimals is 8, you mint 10^8 for 1 token.
+                    adjustedAmount, // amount. if your decimals is 8, you mint 10^8 for 1 token.
                     decimals, // decimals
                     // [signer1, signer2 ...], // only multisig account will use
                 ),
             );
                 
-            /*
-            const associatedTokenAccount = await getOrCreateAssociatedTokenAccount(
-                connection,
-                new PublicKey(governanceNativeWallet),
-                mintPubKey,
-                new PublicKey(governanceNativeWallet)
-            );
-
-            const mintIx = await mintTo(
-                connection,
-                new PublicKey(governanceNativeWallet),
-                mintPubKey,
-                associatedTokenAccount.address,
-                publicKey,
-                amount * 10 ** TOKEN_DECIMALS
-            );
-            */
-
             const mintTokenIx = {
                 title: proposalTitle,
                 description: proposalDescription,
@@ -308,8 +354,13 @@ export default function TokenManagerView(props) {
                 governingMint:governingMint,
                 draft: isDraft,
             };
+
+            console.log("Simulating");
             
             const isSimulationSuccessful = await simulateCreateTokenIx(transaction);
+
+
+            console.log("Simulate complete");
 
             if (!isSimulationSuccessful) {
                 enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
@@ -347,10 +398,10 @@ export default function TokenManagerView(props) {
 
     React.useEffect(() => { 
         setIsGoverningMintSelectable(false);
-        if (realm && realm?.account.config?.councilMint){
+        if (realm?.account.config?.councilMint){
             setGoverningMint(realm?.account.config.councilMint);
             setIsGoverningMintCouncilSelected(true);
-            if (realm && realm?.account?.communityMint){
+            if (realm.account?.communityMint){
                 if (Number(rulesWallet.account.config.minCommunityTokensToCreateProposal) !== 18446744073709551615){
                     setGoverningMint(realm?.account.communityMint);
                     setIsGoverningMintSelectable(true);
@@ -358,8 +409,8 @@ export default function TokenManagerView(props) {
                 }
             }
         } else {
-            if (realm && realm?.account?.communityMint){
-                setGoverningMint(realm?.account.communityMint);
+            if (realm?.account?.communityMint){
+                setGoverningMint(realm.account.communityMint);
                 setIsGoverningMintCouncilSelected(false);
             }
         }
@@ -410,19 +461,18 @@ export default function TokenManagerView(props) {
         return computeUnits * baseMicroLamportsPerUnit;
     };
 
-    async function calculatePriorityFee(messageV0) {
+    async function calculatePriorityFee(messageV0: VersionedMessage): Promise<number> {
         try {
-            // Correct use of VersionedMessage
-            const response = await RPC_CONNECTION.getFeeForMessage(
-                messageV0, // Pass the VersionedMessage directly
-                'finalized' // Optional: specify a commitment level
+            const response = await connection.getFeeForMessage(
+                messageV0,
+                'finalized'
             );
-        
+    
             if (response && response.value !== null) {
                 console.log("✅ Estimated Fee:", response.value);
                 return response.value; // Fee in lamports
             } else {
-                console.error("❌ Failed to estimate fee from QuickNode");
+                console.error("❌ Failed to estimate fee from RPC");
                 throw new Error("Failed to estimate fee");
             }
         } catch (error) {
@@ -431,84 +481,108 @@ export default function TokenManagerView(props) {
         }
     }
     
-    async function createAndSendV0TxInline(txInstructions, signers) {
-        // Fetch latest blockhash
-        const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('finalized');
-        console.log("✅ Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
+    async function createAndSendV0TxInline(
+        txInstructions: TransactionInstruction[],
+        signers: Keypair[] | null
+    ): Promise<string> {
+        try {
+            // Fetch latest blockhash
+            const latestBlockhash = await connection.getLatestBlockhash('finalized');
+            console.log("✅ Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
     
-        // Compute budget instructions
-        const MAX_COMPUTE_UNITS = 1_400_000;
-        const estimatedComputeUnits = estimateComputeUnits(txInstructions.length);
-        const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
-            units: MAX_COMPUTE_UNITS//estimatedComputeUnits,
-        });
+            // Compute budget instructions
+            const estimatedComputeUnits = await estimateComputeUnits(txInstructions.length);
+            const computeUnitLimitInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+                units: estimatedComputeUnits,
+            });
     
-        // Combine instructions
-        let allInstructions = [
-            //computeUnitLimitInstruction,
-            ...txInstructions,
-        ];
+            // Calculate Priority Fee
+            // Temporary: create a message with only computeUnitLimitInstruction and txInstructions
+            let allInstructions = [
+                computeUnitLimitInstruction,
+                ...txInstructions,
+            ];
+            
+            let messageV0 = new TransactionMessage({
+                payerKey: publicKey,
+                recentBlockhash: latestBlockhash.blockhash,
+                instructions: allInstructions,
+            }).compileToV0Message();
     
-        // Generate Versioned Transaction Message
-        let messageV0 = new TransactionMessage({
-            payerKey: publicKey,
-            recentBlockhash: latestBlockhash.blockhash,
-            instructions: allInstructions,
-        }).compileToV0Message();
+            // Calculate the fee based on the current instructions
+            const estimatedFee = await calculatePriorityFee(messageV0);
+            console.log(`✅ Estimated Priority Fee: ${estimatedFee} lamports`);
     
-        const transaction = new VersionedTransaction(messageV0);
+            // Convert lamports to microLamports
+            const microLamportsFee = estimatedFee * 1000;
+            console.log(`✅ Converted Priority Fee: ${microLamportsFee} microLamports`);
     
-        // Calculate Priority Fee
-        const estimatedFee = await calculatePriorityFee(messageV0);
-        console.log(`✅ Estimated Priority Fee: ${estimatedFee} lamports`);
+            // Add priority fee instruction
+            const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
+                microLamports: microLamportsFee,
+            });
     
-        //const multiplier = 5; 
-        //const MIN_PRIORITY_FEE = 100000; // Example: 0.0001 SOL
-        //const adjustedPriorityFee = Math.max(estimatedFee * multiplier, MIN_PRIORITY_FEE);
-        //console.log(`✅ Final Priority Fee: ${adjustedPriorityFee} lamports`);
+            // Recompile the transaction with updated instructions
+            allInstructions = [
+                computeUnitLimitInstruction,
+                priorityFeeInstruction,
+                ...txInstructions,
+            ];
+    
+            messageV0 = new TransactionMessage({
+                payerKey: publicKey,
+                recentBlockhash: latestBlockhash.blockhash,
+                instructions: allInstructions,
+            }).compileToV0Message();
+    
+            const transaction = new VersionedTransaction(messageV0);
+    
+            // Sign the transaction with all required signers
+            if (signers && signers.length > 0) {
+                transaction.sign(signers); // Spread the signers array
+                console.log("✅ Transaction Signed with provided signer(s) "+signers[0].publicKey.toBase58());
+            } else {
+                console.warn("⚠️ No signers provided. Transaction may fail if signatures are required.");
+            }
+    
+            // Simulate Transaction
+            const simulationResult = await connection.simulateTransaction(transaction);
+            console.log("🔍 Simulation result:", simulationResult);
+    
+            if (simulationResult.value.err) {
+                console.error("❌ Simulation failed with error:", simulationResult.value.err);
+                throw new Error(`Simulation error: ${simulationResult.value.err}`);
+            }
 
-        // Add priority fee instruction
-        const priorityFeeInstruction = ComputeBudgetProgram.setComputeUnitPrice({
-            microLamports: estimatedFee,
-        });
-    
-        // Recompile the transaction with updated instructions
-        allInstructions.unshift(priorityFeeInstruction, computeUnitLimitInstruction);
-        messageV0 = new TransactionMessage({
-            payerKey: publicKey,
-            recentBlockhash: latestBlockhash.blockhash,
-            instructions: allInstructions,
-        }).compileToV0Message();
-    
-        transaction.message = messageV0;
-    
-        if (signers) {
-            transaction.sign(signers);
-            console.log("✅ Transaction Signed");
-        }
-    
-        const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
-        console.log("🔍 Simulation result:", simulationResult);
-    
-        if (simulationResult.value.err) {
-            console.error("❌ Simulation failed with error:", simulationResult.value.err);
-            throw new Error(`Simulation error: ${simulationResult.value.err}`);
-        } else {
-            const txid = await sendTransaction(transaction, RPC_CONNECTION, {
+            const txid = await sendTransaction(transaction, connection, {
                 skipPreflight: false,
                 preflightCommitment: "confirmed",
                 maxRetries: 5,
             });
-    
+            /*
+            // Serialize the transaction
+            const rawTransaction = transaction.serialize();
+            // Send the raw transaction
+            const txid = await connection.sendRawTransaction(rawTransaction, {
+                skipPreflight: false,
+                preflightCommitment: "confirmed",
+                maxRetries: 5,
+            });
+            */
             console.log("✅ Transaction sent to network with txid:", txid);
     
             // Confirm Transaction
             try {
-                const snackprogress = (key:any) => (
-                    <CircularProgress sx={{padding:'10px'}} />
+                const snackprogress = (key: any) => (
+                    <CircularProgress sx={{ padding: '10px' }} />
                 );
-                const cnfrmkey = enqueueSnackbar(`Confirming Transaction`,{ variant: 'info', action:snackprogress, persist: true });
-                const confirmation = await RPC_CONNECTION.confirmTransaction(
+                const cnfrmkey = enqueueSnackbar(`Confirming Transaction`, { 
+                    variant: 'info', 
+                    action: snackprogress, 
+                    persist: true 
+                });
+    
+                const confirmation = await connection.confirmTransaction(
                     {
                         signature: txid,
                         blockhash: latestBlockhash.blockhash,
@@ -529,9 +603,62 @@ export default function TokenManagerView(props) {
                 console.error("❌ Transaction confirmation failed:", e);
                 throw new Error("Transaction not confirmed.");
             }
+        } catch (error) {
+            // Enhanced error handling
+            if (error instanceof SendTransactionError) {
+                const extendedError = error as SendTransactionErrorWithSignature;
+                const signature = extendedError.signature;
+                console.error(`❌ SendTransactionError: ${extendedError.message}`);
+    
+                if (signature) {
+                    try {
+                        const logs = await connection.getTransaction(signature, { commitment: 'finalized' });
+                        console.error("📜 Transaction Logs:", logs);
+                        enqueueSnackbar(`Transaction failed: ${JSON.stringify(logs)}`, { variant: 'error' });
+                    } catch (logError) {
+                        console.error("❌ Failed to retrieve transaction logs:", logError);
+                    }
+                }
+            } else {
+                console.error("❌ Error in createAndSendV0TxInline:", error);
+            }
+            throw error; // Rethrow to handle upstream
         }
     }
-    
+
+    /**
+     * Pauses execution for the specified number of milliseconds.
+     * @param ms Number of milliseconds to wait.
+     */
+    const sleep = (ms: number): Promise<void> => {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    };  
+
+    /**
+     * Converts a Umi Instruction to a Solana TransactionInstruction.
+     * @param umiInstruction - The Umi Instruction to convert.
+     * @returns A Solana TransactionInstruction.
+     */
+    const convertUmiInstructionToSolana = (umiInstruction: Instruction): TransactionInstruction => {
+        const { programId, keys, data } = umiInstruction;
+
+        // Convert programId from string to PublicKey
+        const solanaProgramId = new PublicKey(programId);
+
+        // Convert each key's pubkey from string to PublicKey
+        const solanaKeys = keys.map((key) => ({
+            pubkey: new PublicKey(key.pubkey),
+            isSigner: key.isSigner,
+            isWritable: key.isWritable,
+        }));
+
+        // Create and return the Solana TransactionInstruction
+        return new TransactionInstruction({
+            keys: solanaKeys,
+            programId: solanaProgramId,
+            data: Buffer.from(data) //data,
+        });
+    };
 
     const createTokenIx = async () => {
         setLoading(true);
@@ -548,7 +675,7 @@ export default function TokenManagerView(props) {
             const mintKeypair = Keypair.generate();
             const mintPublicKey = mintKeypair.publicKey;
 
-            setProposalDescription(`Create a new token ${mintPublicKey.toBase58()} with DAO mint authority & metadata`);            
+            setProposalDescription(`Create a new token ${mintPublicKey.toBase58()} with DAO mint authority (w/out metadata)`);            
 
             // Set up metadata
             const metadataProgramId = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"); // Token Metadata Program ID
@@ -559,16 +686,7 @@ export default function TokenManagerView(props) {
             ];
             const [metadataPDA] = await PublicKey.findProgramAddress(metadataSeeds, metadataProgramId);
             const ixSigners = new Array();
-            // Metadata to store in Mint Account
-            const metaData: TokenMetadata = {
-                updateAuthority: withPublicKey,
-                mint: mintKeypair.publicKey,
-                name: name,
-                symbol: symbol,
-                uri: uri,
-                additionalMetadata: [["description", "The Vine Token by the Grape DAO"]],
-            };
-
+            
             // Calculate the rent-exempt balance needed
             const lamports = await getMinimumBalanceForRentExemptMint(connection);
 
@@ -596,7 +714,7 @@ export default function TokenManagerView(props) {
                     mintPublicKey,    // Mint account public key
                     decimals,         // Number of decimals
                     publicKey,        // Mint authority (your wallet)
-                    publicKey,              // No freeze authority
+                    withPublicKey,              // No freeze authority
                     TOKEN_PROGRAM_ID,
                 )
             );
@@ -613,370 +731,230 @@ export default function TokenManagerView(props) {
                 )
             );
 
-            console.log("4. Mint 1 Token");
-            const amountToMint = 1 * Math.pow(10, decimals); // Adjust for decimals
+            try{
+                const umi = createUmi(connection).use(mplTokenMetadata());
 
-            transaction.add(
-                createMintToCheckedInstruction(
-                    mintPublicKey,            // Mint account
-                    withPublicKey,    // Destination token account
-                    withPublicKey,            // Mint authority (new owner)
-                    amountToMint,             // Amount to mint
-                    decimals,                 // Token decimals
-                    //[withPublicKey],          // Signer (governance wallet as new authority)
-                    //TOKEN_PROGRAM_ID          // SPL Token program
-                )
-            );
+                console.log("4. Creating v1 Metadata");
 
+                const createMetadataAccountV3Ix = createMetadataAccountV3(
+                    umi, {
+                        metadata: UmiPK(metadataPDA.toBase58()),
+                        mint: UmiPK(mintPublicKey.toBase58()),
+                        mintAuthority: createNoopSigner(UmiPK(withPublicKey.toBase58())), //umi.identity,
+                        isMutable: true,
+                        collectionDetails: none(),
+                        data: {
+                            name: name,
+                            uri: uri,
+                            symbol: symbol,
+                            sellerFeeBasisPoints: 0,
+                            creators: none(),
+                            collection: none(),
+                            uses: none(),
+                        },
+                    }
+                ).getInstructions()
+
+                console.log("4. Getting IX for Metadata");
+                /*
+                const createV1Ix = createV1(
+                    umi, {
+                        mint: UmiPK(mintPublicKey.toBase58()),
+                        authority: umi.identity,
+                        name: name,
+                        uri: uri,
+                        symbol: symbol,
+                        sellerFeeBasisPoints: percentAmount(0),
+                        tokenStandard: TokenStandard.Fungible,
+                    }
+                ).getInstructions()
+                */
+                createMetadataAccountV3Ix.forEach((umiInstruction) => {
+                    const solanaInstruction = toWeb3JsInstruction(umiInstruction);
+                    transaction.add(solanaInstruction);
+                });
+            }catch(metaErr){
+                console.error("❌ Error in MetaErr:", metaErr);
+            }
+
+            //const web3jsinstruction = toWeb3JsInstruction(createMetadataAccountV3Ix)
             /*
-            // Create token account for governance wallet
-            console.log("3. Create Token Account for Governance");
-            const tokenAccount = await createAccount(
-                connection, 
-                wallet,        // Fee payer
-                mintPublicKey,    // Mint associated with the token account
-                withPublicKey     // Owner of the new token account (governance)
-            );
-
-            
+            createMetadataAccountV3Ix.forEach((umiInstruction) => {
+                const solanaInstruction = convertUmiInstructionToSolana(umiInstruction);
+                transaction.add(solanaInstruction);
+            });
             */
-            
-
-            // Send the transaction
-            // await connection.sendTransaction(transaction, [publicKey, mintKeypair]);
 
             /*
-            const isSimulationSuccessful = await simulateCreateTokenIx(authTransaction);
+            let CreateMetadataAccountV3InstructionAccounts = {
+                metadata: metadataPDA,
+                mint: mintPublicKey,
+                mintAuthority: withPublicKey,
+                //payer?: withPublicKey;
+                //rent?: PublicKey | Pda;
+                //systemProgram?: PublicKey | Pda;
+                //updateAuthority?: PublicKey | Pda | Signer;
+            }
 
-            if (!isSimulationSuccessful) {
-                enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
-                handleCloseDialog();
-                return; // Exit the function as simulation failed
-            } else*/{
+            let CreateMetadataAccountV3InstructionDataArgs = {
+                collectionDetails: null,
+                data: {
+                    collection: null,
+                    creators: null,
+                    name: name,
+                    sellerFeeBasisPoints: 0,
+                    symbol: symbol,
+                    uri: uri,
+                    uses: null
+                }
+                //isMutable: boolean;
+            }
 
-                const txid = await createAndSendV0TxInline(walletTransaction.instructions, null);
+
+
+            let CreateMetadataAccountV3Args = {
+                //accounts
+                metadata: metadataPDA,
+                mint: mintPublicKey,
+                mintAuthority: withPublicKey,
+                payer: withPublicKey,
+                updateAuthority: withPublicKey,
+                // & instruction data
+            data: {
+              name: "myname",
+              symbol: "exp",
+              uri: "example_uri.com",
+              sellerFeeBasisPoints: 0,
+              creators: null,
+              collection: null,
+              uses: null
+            },
+                isMutable: true,
+                collectionDetails: null,
+            }
+        
+          let myTransaction = createMetadataAccountV3(
+            umi,
+                {
+                    CreateMetadataAccountV3InstructionAccounts, 
+                    CreateMetadataAccountV3InstructionDataArgs
+                }
+          )
+            */
+        
+            console.log("5. Mint 1 Token");
+            if (amountToMint > 0){
+                const adjustedAmount = amountToMint * Math.pow(10, decimals); // Adjust for decimals
+                // Step 1: Get or Create the Associated Token Account
+                const associatedTokenAccount = await getAssociatedTokenAddress(
+                    mintPublicKey,
+                    mintAuthority,
+                    true
+                );
+
+                transaction.add( 
+                    createAssociatedTokenAccountInstruction(
+                    mintAuthority, // or use payerWallet
+                    associatedTokenAccount,
+                    mintAuthority,
+                    mintPublicKey,
+                    TOKEN_PROGRAM_ID,
+                    ASSOCIATED_TOKEN_PROGRAM_ID
+                    )
+                );
+
+                transaction.add(
+                    createMintToCheckedInstruction(
+                        mintPublicKey,            // Mint account
+                        withPublicKey,    // Destination token account
+                        withPublicKey,            // Mint authority (new owner)
+                        adjustedAmount,             // Amount to mint
+                        decimals,                 // Token decimals
+                        //[withPublicKey],          // Signer (governance wallet as new authority)
+                        //TOKEN_PROGRAM_ID          // SPL Token program
+                    )
+                );
+            }
+
+            {
+
+                enqueueSnackbar("Creating & transferring token on the wallet "+mintPublicKey.toBase58()+", you will be prompted to then create a mint as a proposal", { variant: 'success' });
+                const txid = await createAndSendV0TxInline(walletTransaction.instructions, [mintKeypair]);
                 console.log("txid: ",txid);
 
-                const ixs = transaction;
-                const aixs = authTransaction;
-                
-                if (ixs || aixs){
-                    const createTokenIx = {
-                        title: proposalTitle,
-                        description: proposalDescription,
-                        ix: ixs?.instructions,
-                        aix:aixs?.instructions,
-                        signers: ixSigners,
-                        nativeWallet:governanceNativeWallet,
-                        governingMint:governingMint,
-                        draft: isDraft,
-                    };
+                if (txid){
+                    //ixSigners.push(mintKeypair)
 
-                    console.log("Passing signer: "+JSON.stringify(ixSigners));
-
-                    const isSimulationSuccessful = true; // dont sim //await simulateCreateTokenIx(transaction);
-
-                    if (!isSimulationSuccessful) {
-                        enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
-                        handleCloseDialog();
-                        return; // Exit the function as simulation failed
-                    }
-
-                    console.log("Simulation was successful. Proceeding with the transaction.");
+                    // we should wait a few seconds to proceed so that we can make sure that this tx can simulate
                     
-                    handleCloseDialog();
-                    setInstructions(createTokenIx);
-                    setExpandedLoader(true);
+                    // Introduce a delay of 2 seconds (2000 milliseconds)
+                    await sleep(2000);
+                    console.log("✅ Waited for 2 seconds before proceeding.");
 
-                    enqueueSnackbar("Create token instructions prepared", { variant: 'success' });
+                    const ixs = transaction;
+                    const aixs = walletTransaction;//authTransaction;
+                    
+                    if (ixs || aixs){
+                        const createTokenIx = {
+                            title: proposalTitle,
+                            description: proposalDescription,
+                            ix: ixs?.instructions,
+                            aix: null,//aixs?.instructions,
+                            signers: null,
+                            nativeWallet:governanceNativeWallet,
+                            governingMint:governingMint,
+                            draft: isDraft,
+                        };
+
+                        //console.log("Passing signer: "+JSON.stringify(ixSigners));
+
+                        const isSimulationSuccessful = true; // dont sim //await simulateCreateTokenIx(transaction);
+                        if (!isSimulationSuccessful) {
+                            enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
+                            handleCloseDialog();
+                            return; // Exit the function as simulation failed
+                        }
+
+                        console.log("Simulation was successful. Proceeding with the transaction.");
+                        
+                        handleCloseDialog();
+                        setInstructions(createTokenIx);
+                        setExpandedLoader(true);
+
+                        enqueueSnackbar("Create token instructions prepared", { variant: 'success' });
+                    } else{
+                        enqueueSnackbar(`Error no transaction instructions`, { variant: 'error' });
+                    }
                 } else{
-                    enqueueSnackbar(`Error no transaction instructions`, { variant: 'error' });
+                    enqueueSnackbar(`Mint has not been created`, { variant: 'error' });
                 }
 
                 //console.log("Token mint created and authority transferred to governance wallet.");
             }
 
         } catch (error) {
-            enqueueSnackbar(`Error preparing create token instructions: ${error?.message}`, { variant: 'error' });
-        } finally {
-            setLoading(false);
-        }
-    };
 
-
-    const createTokenGovIx = async () => {
-        setLoading(true);
-
-        try {
-
-            const withPublicKey = new PublicKey(governanceNativeWallet);
-            const mintAuthority = new PublicKey(governanceNativeWallet); //publicKey;
-            const freezeAuthority = new PublicKey(governanceNativeWallet); //publicKey;
-            
-            // Define metadata fields
-            
-            // Create an empty account for the mint
-            const mintKeypair = Keypair.generate();
-            const mintPublicKey = mintKeypair.publicKey;
-
-            setProposalDescription(`Create a new token ${mintPublicKey.toBase58()} with DAO mint authority & metadata`);            
-
-            // Set up metadata
-            const metadataProgramId = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"); // Token Metadata Program ID
-            const metadataSeeds = [
-                Buffer.from("metadata"),
-                metadataProgramId.toBuffer(),
-                mintPublicKey.toBuffer(),
-            ];
-            const [metadataPDA] = await PublicKey.findProgramAddress(metadataSeeds, metadataProgramId);
-            const ixSigners = new Array();
-            // Metadata to store in Mint Account
-            const metaData: TokenMetadata = {
-                updateAuthority: withPublicKey,
-                mint: mintKeypair.publicKey,
-                name: name,
-                symbol: symbol,
-                uri: uri,
-                additionalMetadata: [["description", "The Vine Token by the Grape DAO"]],
-            };
-
-                // Calculate the rent-exempt balance needed
-                const lamports = await getMinimumBalanceForRentExemptMint(connection);
-
-                const pTransaction = new Transaction();
-                // Create a transaction
-                const transaction = new Transaction();
-
-                // Instruction to create an account for the mint
-                
-                // we are using the keypair above
-                /*
-                const mint = await createMint(
-                    connection,
-                    withPublicKey,
-                    mintAuthority,
-                    freezeAuthority,
-                    TOKEN_DECIMALS
-                );
-                */
-                
-                console.log("1. Create Sys Account");
-                transaction.add(
-                    SystemProgram.createAccount({
-                        fromPubkey: withPublicKey, // Multi-sig wallet as the payer
-                        newAccountPubkey: mintPublicKey,
-                        space: MintLayout.span,
-                        lamports: lamports,
-                        programId: TOKEN_PROGRAM_ID,
-                    })
-                );
-                ixSigners.push(mintKeypair);
-
-                console.log("1. Create Token Mint Ix Account");
-                /*
-                const amountToMint = 1 * Math.pow(10, decimals);
-                transaction.add(
-                    createMintToCheckedInstruction(
-                        mintPublicKey,
-                        withPublicKey,
-                        withPublicKey,
-                        amountToMint,
-                        decimals
-                    )
-                  );
-                */
-                  console.log("2. Init Mint");
-                  // Instruction to initialize the mint
-                  transaction.add(
-                      createInitializeMintInstruction(
-                          mintPublicKey,   // Address of the new mint
-                          decimals,        // Number of decimals for the token
-                          mintAuthority,   // Mint authority
-                          null//freezeAuthority, // Freeze authority (optional)
-                          //TOKEN_PROGRAM_ID // Program ID for the SPL Token program
-                      )
-                  );
-                  //ixSigners.push([]);
-
-                const block = await connection.getLatestBlockhash();
-                transaction.recentBlockhash = block.blockhash;
-                transaction.feePayer = publicKey;
-                transaction.partialSign(mintKeypair);
-                
-                // Create metadata instruction
-                /*
-                const metadataBuilder = createMetadataAccountV3(
-                    {
-                    eddsa: null,
-                    identity: {
-                        publicKey: (withPublicKey.toBase58()),
-                        signTransaction: async () => {
-                        throw new Error("Direct signing is not supported in this example.");
-                        },
-                        signAllTransactions: async () => {
-                        throw new Error("Direct signing is not supported in this example.");
-                        },
-                        signMessage: async () => {
-                        throw new Error("Direct signing is not supported in this example.");
-                        },
-                    },
-                    payer: {
-                        publicKey: withPublicKey.toBase58(),
-                        signTransaction: async () => {
-                        throw new Error("Direct signing is not supported in this example.");
-                        },
-                        signAllTransactions: async () => {
-                        throw new Error("Direct signing is not supported in this example.");
-                        },
-                        signMessage: async () => {
-                        throw new Error("Direct signing is not supported in this example.");
-                        },
-                    },
-                    },
-                    {
-                    metadata: metadataPDA.toBase58(),
-                    mint: mintKeypair.publicKey.toBase58(),
-                    mintAuthority: withPublicKey.toBase58(),
-                    payer: withPublicKey.toBase58(),
-                    updateAuthority: withPublicKey.toBase58(),
-                    data: {
-                        name: name,
-                        symbol: symbol,
-                        uri: uri,
-                        sellerFeeBasisPoints: 500, // 5% royalties
-                        creators: [
-                        {
-                            address: withPublicKey.toBase58(),
-                            verified: true,
-                            share: 100,
-                        },
-                        ],
-                    },
+            if (error instanceof SendTransactionError) {
+                const extendedError = error as SendTransactionErrorWithSignature;
+                const signature = extendedError.signature;
+                console.error(`❌ SendTransactionError: ${extendedError.message}`);
+    
+                if (signature) {
+                    try {
+                        const logs = await connection.getTransaction(signature, { commitment: 'finalized' });
+                        console.error("📜 Transaction Logs:", logs);
+                        enqueueSnackbar(`Transaction failed: ${JSON.stringify(logs)}`, { variant: 'error' });
+                    } catch (logError) {
+                        console.error("❌ Failed to retrieve transaction logs:", logError);
                     }
-                );
-                // Convert Metaplex Instructions to Solana TransactionInstructions
-                const metadataInstructions = metadataBuilder.getInstructions().map((ix) => {
-                    return new TransactionInstruction({
-                    keys: ix.keys.map((key) => ({
-                        pubkey: new PublicKey(key.pubkey),
-                        isSigner: key.isSigner,
-                        isWritable: key.isWritable,
-                    })),
-                    programId: new PublicKey(ix.programId),
-                    data: Buffer.from(ix.data),
-                    });
-                });
-
-                // Add each converted instruction to the transaction
-                metadataInstructions.forEach((instruction) => transaction.add(instruction));
-
-
-                //metadataInstructions.forEach((instruction) => transaction.add(instruction));
-
-                //transaction.add(metadataInstruction);
-                */
-                
-                console.log("3. Mint Tokens Ix")
-                
-                /*
-                
-                transaction.add(
-                    createMintToCheckedInstruction(
-                        mintPublicKey, // mint
-                        mintAuthority, // receiver (should be a token account)
-                        mintAuthority, // mint authority
-                        amountToMint, // amount. if your decimals is 8, you mint 10^8 for 1 token.
-                        decimals, // decimals
-                        // [signer1, signer2 ...], // only multisig account will use
-                    ),
-                );
-                */
-
-                /*
-                transaction.add(
-                    createInitializeInstruction({
-                        programId: TOKEN_PROGRAM_ID, // Token Extension Program as Metadata Program
-                        metadata: mintKeypair.publicKey, // Account address that holds the metadata
-                        updateAuthority: mintAuthority, // Authority that can update the metadata
-                        mint: mintKeypair.publicKey, // Mint Account address
-                        mintAuthority: mintAuthority, // Designated Mint Authority
-                        name: name,
-                        symbol: symbol,
-                        uri: uri,
-                    })
-                );
-                */
-
-                /*
-                const updateFieldInstruction = createUpdateFieldInstruction({
-                    programId: TOKEN_2022_PROGRAM_ID, // Token Extension Program as Metadata Program
-                    metadata: mint, // Account address that holds the metadata
-                    updateAuthority: updateAuthority, // Authority that can update the metadata
-                    field: metaData.additionalMetadata[0][0], // key
-                    value: metaData.additionalMetadata[0][1], // value
-                  });
-                */
-
-                
-                
-                // Add metadata instruction to the transaction
-                //transaction.add(metadataInstruction);
-
-            console.log("mintPublicKey: "+mintPublicKey.toBase58());
-            
-            // Sign and simulate
-            //const latestBlockhash = await connection.getLatestBlockhash();
-            //transaction.recentBlockhash = latestBlockhash.blockhash;
-            //transaction.feePayer = withPublicKey;
-            
-
-            //console.log("4: To Sign");
-            // Add the mint keypair as a signer
-            //transaction.sign(mintKeypair);
-            
-            //console.log("5: serializing");
-
-            //const signedTransaction = transaction.serialize();
-
-            //console.log("6: serialized");
-
-            const ixs = transaction;
-            const aixs = pTransaction;
-            
-            if (ixs || aixs){
-                const createTokenIx = {
-                    title: proposalTitle,
-                    description: proposalDescription,
-                    ix: ixs?.instructions,
-                    aix:aixs?.instructions,
-                    signers: ixSigners,
-                    nativeWallet:governanceNativeWallet,
-                    governingMint:governingMint,
-                    draft: isDraft,
-                };
-
-                console.log("passing siogner: "+JSON.stringify(ixSigners));
-
-                const isSimulationSuccessful = await simulateCreateTokenIx(transaction);
-
-                if (!isSimulationSuccessful) {
-                    enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
-                    handleCloseDialog();
-                    return; // Exit the function as simulation failed
                 }
-
-                console.log("Simulation was successful. Proceeding with the transaction.");
-                
-                handleCloseDialog();
-                setInstructions(createTokenIx);
-                setExpandedLoader(true);
-
-                enqueueSnackbar("Create token instructions prepared", { variant: 'success' });
-            } else{
-                enqueueSnackbar(`Error no transaction instructions`, { variant: 'error' });
+            } else {
+                console.error("❌ Error in createTokenIx:", error);
+                enqueueSnackbar(`Error preparing create token instructions: ${JSON.stringify(error)}`, { variant: 'error' });
             }
-        } catch (error) {
-            enqueueSnackbar(`Error preparing create token instructions: ${error?.message}`, { variant: 'error' });
+
+
+            
         } finally {
             setLoading(false);
         }
@@ -1059,10 +1037,19 @@ export default function TokenManagerView(props) {
                                 onChange={(e) => setDecimals(Number(e.target.value))}
                                 placeholder="Enter token decimals"
                             />
+                            <TextField
+                                label="Amount To Mint"
+                                fullWidth
+                                type="number"
+                                variant="outlined"
+                                value={amountToMint}
+                                onChange={(e) => setAmountToMint(Number(e.target.value))}
+                                placeholder="Enter token amount to mint"
+                            />
     
                             <Button
                                 variant="contained"
-                                onClick={() => createTokenIx()}
+                                onClick={() => createTokenIx()}//createTokenGovIx()}//createTokenIx()}
                                 disabled={loading}
                             >
                                 Prepare Create Token Instructions
@@ -1094,14 +1081,14 @@ export default function TokenManagerView(props) {
                                 fullWidth
                                 type="number"
                                 variant="outlined"
-                                value={amount}
-                                onChange={(e) => setAmount(Number(e.target.value))}
+                                value={amountToMint}
+                                onChange={(e) => setAmountToMint(Number(e.target.value))}
                                 placeholder="Enter amount to mint"
                             />
                             <Button
                                 variant="contained"
                                 onClick={() => mintMoreTokensIx()}
-                                disabled={loading || !mintAddress || !amount}
+                                disabled={loading || !mintAddress || !amountToMint}
                             >
                                 Prepare Mint Tokens Instructions
                             </Button>
