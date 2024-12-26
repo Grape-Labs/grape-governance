@@ -16,6 +16,8 @@ import {
     createMint,
     TOKEN_PROGRAM_ID, 
     mintTo, 
+    getAssociatedTokenAddress,
+    createAssociatedTokenAccountInstruction,
     getOrCreateAssociatedTokenAccount,
     MintLayout,
     getMinimumBalanceForRentExemptMint,
@@ -24,6 +26,7 @@ import {
     mintToChecked,
     createAccount,
     createSetAuthorityInstruction,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token-v2";
 //import * as token from '@solana/spl-token';
 import {
@@ -34,9 +37,19 @@ import {
     createInitializeInstruction,
     createUpdateFieldInstruction,
   } from "@solana/spl-token-metadata";
-import { generateSigner, percentAmount } from '@metaplex-foundation/umi'
+import { generateSigner, percentAmount, publicKey as UmiPK, Instruction, createNoopSigner, none } from '@metaplex-foundation/umi'
 import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
-import { Metadata, createV1, createMetadataAccountV3, mintV1, TokenStandard, MPL_TOKEN_METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
+import { toWeb3JsInstruction } from '@metaplex-foundation/umi-web3js-adapters';
+import { 
+    Metadata, 
+    createV1, 
+    createMetadataAccountV3, 
+    CreateMetadataAccountV3InstructionDataArgs,
+    CreateMetadataAccountV3InstructionAccounts,
+    mplTokenMetadata,
+    mintV1, 
+    TokenStandard, 
+    MPL_TOKEN_METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
 import { Metaplex, TransactionBuilder } from '@metaplex-foundation/js';
 import { Buffer } from 'buffer';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -157,6 +170,7 @@ export default function TokenManagerView(props) {
     const [symbol, setSymbol] = useState("MCXT");
     const [uri, setUri] = useState("https://arweave.net/lyeMvAF6kpccNhJ0XXPkrplbcT6A5UtgBiZI_fKff6I");
     const [decimals, setDecimals] = useState(8);
+    const [amountToMint, setAmountToMint] = useState(0);
 
     const [tabIndex, setTabIndex] = useState(0); // Tab index to toggle between Create and Manage tabs
 
@@ -262,7 +276,7 @@ export default function TokenManagerView(props) {
     };
 
     const mintMoreTokensIx = async () => {
-        if (!mintAddress || !amount) return;
+        if (!mintAddress || !amountToMint) return;
         setLoading(true);
 
         try {
@@ -272,41 +286,66 @@ export default function TokenManagerView(props) {
             const freezeAuthority = new PublicKey(governanceNativeWallet); //publicKey;
             
             setProposalTitle(`Mint More Tokens`);
-            setProposalDescription(`Mint ${amount} ${mintPubKey.toBase58()} to the associated account`);
+            setProposalDescription(`Mint ${amountToMint} ${mintPubKey.toBase58()} to the associated account`);
 
-            const amountToMint = amount * Math.pow(10, decimals);
+            const adjustedAmount = amountToMint * Math.pow(10, decimals);
             
+            // Step 1: Get or Create the Associated Token Account
+            const associatedTokenAccount = await getAssociatedTokenAddress(
+                mintPubKey,
+                mintAuthority,
+                true
+            );
+
             const transaction = new Transaction();
+            
+            // Step 2: Check if the ATA already exists
+            const ataAccountInfo = await connection.getAccountInfo(associatedTokenAccount);
+
+            // Initialize an array to hold transaction instructions
+            const instructions = [];
+
+            if (!ataAccountInfo) {
+                // ATA does not exist, add instruction to create it
+                transaction.add(
+                    createAssociatedTokenAccountInstruction(
+                        mintAuthority, // payer
+                        associatedTokenAccount, // ATA address
+                        mintAuthority, // owner of the ATA
+                        mintPubKey, // mint
+                        TOKEN_PROGRAM_ID,
+                        ASSOCIATED_TOKEN_PROGRAM_ID
+                    )
+                );
+            } else {
+                // Optionally, you can perform additional checks to ensure the ATA is valid
+                // For example, verify that the ATA is indeed associated with the correct mint and owner
+                // Uncomment the following lines if you want to perform these checks
+
+                /*
+                try {
+                    const tokenAccount = await getAccount(connection, associatedTokenAddress);
+                    if (!tokenAccount.mint.equals(mintPubKey) || !tokenAccount.owner.equals(mintAuthority)) {
+                        throw new Error("Existing ATA has mismatched mint or owner.");
+                    }
+                } catch (error) {
+                    enqueueSnackbar(`Error verifying ATA: ${error.message}`, { variant: 'error' });
+                    return;
+                }
+                */
+            }
+
             transaction.add(
                 createMintToCheckedInstruction(
                     mintPubKey, // mint
-                    mintAuthority, // receiver (should be a token account)
+                    associatedTokenAccount, // receiver (should be a token account)
                     mintAuthority, // mint authority
-                    amountToMint, // amount. if your decimals is 8, you mint 10^8 for 1 token.
+                    adjustedAmount, // amount. if your decimals is 8, you mint 10^8 for 1 token.
                     decimals, // decimals
                     // [signer1, signer2 ...], // only multisig account will use
                 ),
             );
                 
-            /*
-            const associatedTokenAccount = await getOrCreateAssociatedTokenAccount(
-                connection,
-                new PublicKey(governanceNativeWallet),
-                mintPubKey,
-                new PublicKey(governanceNativeWallet)
-            );
-
-            const mintIx = await mintTo(
-                connection,
-                new PublicKey(governanceNativeWallet),
-                mintPubKey,
-                associatedTokenAccount.address,
-                publicKey,
-                amount * 10 ** TOKEN_DECIMALS
-            );
-            */
-
-
             const mintTokenIx = {
                 title: proposalTitle,
                 description: proposalDescription,
@@ -595,6 +634,32 @@ export default function TokenManagerView(props) {
         return new Promise(resolve => setTimeout(resolve, ms));
     };  
 
+    /**
+     * Converts a Umi Instruction to a Solana TransactionInstruction.
+     * @param umiInstruction - The Umi Instruction to convert.
+     * @returns A Solana TransactionInstruction.
+     */
+    const convertUmiInstructionToSolana = (umiInstruction: Instruction): TransactionInstruction => {
+        const { programId, keys, data } = umiInstruction;
+
+        // Convert programId from string to PublicKey
+        const solanaProgramId = new PublicKey(programId);
+
+        // Convert each key's pubkey from string to PublicKey
+        const solanaKeys = keys.map((key) => ({
+            pubkey: new PublicKey(key.pubkey),
+            isSigner: key.isSigner,
+            isWritable: key.isWritable,
+        }));
+
+        // Create and return the Solana TransactionInstruction
+        return new TransactionInstruction({
+            keys: solanaKeys,
+            programId: solanaProgramId,
+            data: Buffer.from(data) //data,
+        });
+    };
+
     const createTokenIx = async () => {
         setLoading(true);
 
@@ -621,16 +686,7 @@ export default function TokenManagerView(props) {
             ];
             const [metadataPDA] = await PublicKey.findProgramAddress(metadataSeeds, metadataProgramId);
             const ixSigners = new Array();
-            // Metadata to store in Mint Account
-            const metaData: TokenMetadata = {
-                updateAuthority: withPublicKey,
-                mint: mintKeypair.publicKey,
-                name: name,
-                symbol: symbol,
-                uri: uri,
-                additionalMetadata: [["description", "The Vine Token by the Grape DAO"]],
-            };
-
+            
             // Calculate the rent-exempt balance needed
             const lamports = await getMinimumBalanceForRentExemptMint(connection);
 
@@ -675,20 +731,150 @@ export default function TokenManagerView(props) {
                 )
             );
 
-            console.log("4. Mint 1 Token");
-            const amountToMint = 1 * Math.pow(10, decimals); // Adjust for decimals
+            try{
+                const umi = createUmi(connection).use(mplTokenMetadata());
 
-            transaction.add(
-                createMintToCheckedInstruction(
-                    mintPublicKey,            // Mint account
-                    withPublicKey,    // Destination token account
-                    withPublicKey,            // Mint authority (new owner)
-                    amountToMint,             // Amount to mint
-                    decimals,                 // Token decimals
-                    //[withPublicKey],          // Signer (governance wallet as new authority)
-                    //TOKEN_PROGRAM_ID          // SPL Token program
-                )
-            );
+                console.log("4. Creating v1 Metadata");
+
+                const createMetadataAccountV3Ix = createMetadataAccountV3(
+                    umi, {
+                        metadata: UmiPK(metadataPDA.toBase58()),
+                        mint: UmiPK(mintPublicKey.toBase58()),
+                        mintAuthority: createNoopSigner(UmiPK(withPublicKey.toBase58())), //umi.identity,
+                        isMutable: true,
+                        collectionDetails: none(),
+                        data: {
+                            name: name,
+                            uri: uri,
+                            symbol: symbol,
+                            sellerFeeBasisPoints: 0,
+                            creators: none(),
+                            collection: none(),
+                            uses: none(),
+                        },
+                    }
+                ).getInstructions()
+
+                console.log("4. Getting IX for Metadata");
+                /*
+                const createV1Ix = createV1(
+                    umi, {
+                        mint: UmiPK(mintPublicKey.toBase58()),
+                        authority: umi.identity,
+                        name: name,
+                        uri: uri,
+                        symbol: symbol,
+                        sellerFeeBasisPoints: percentAmount(0),
+                        tokenStandard: TokenStandard.Fungible,
+                    }
+                ).getInstructions()
+                */
+                createMetadataAccountV3Ix.forEach((umiInstruction) => {
+                    const solanaInstruction = toWeb3JsInstruction(umiInstruction);
+                    transaction.add(solanaInstruction);
+                });
+            }catch(metaErr){
+                console.error("❌ Error in MetaErr:", metaErr);
+            }
+
+            //const web3jsinstruction = toWeb3JsInstruction(createMetadataAccountV3Ix)
+            /*
+            createMetadataAccountV3Ix.forEach((umiInstruction) => {
+                const solanaInstruction = convertUmiInstructionToSolana(umiInstruction);
+                transaction.add(solanaInstruction);
+            });
+            */
+
+            /*
+            let CreateMetadataAccountV3InstructionAccounts = {
+                metadata: metadataPDA,
+                mint: mintPublicKey,
+                mintAuthority: withPublicKey,
+                //payer?: withPublicKey;
+                //rent?: PublicKey | Pda;
+                //systemProgram?: PublicKey | Pda;
+                //updateAuthority?: PublicKey | Pda | Signer;
+            }
+
+            let CreateMetadataAccountV3InstructionDataArgs = {
+                collectionDetails: null,
+                data: {
+                    collection: null,
+                    creators: null,
+                    name: name,
+                    sellerFeeBasisPoints: 0,
+                    symbol: symbol,
+                    uri: uri,
+                    uses: null
+                }
+                //isMutable: boolean;
+            }
+
+
+
+            let CreateMetadataAccountV3Args = {
+                //accounts
+                metadata: metadataPDA,
+                mint: mintPublicKey,
+                mintAuthority: withPublicKey,
+                payer: withPublicKey,
+                updateAuthority: withPublicKey,
+                // & instruction data
+            data: {
+              name: "myname",
+              symbol: "exp",
+              uri: "example_uri.com",
+              sellerFeeBasisPoints: 0,
+              creators: null,
+              collection: null,
+              uses: null
+            },
+                isMutable: true,
+                collectionDetails: null,
+            }
+        
+          let myTransaction = createMetadataAccountV3(
+            umi,
+                {
+                    CreateMetadataAccountV3InstructionAccounts, 
+                    CreateMetadataAccountV3InstructionDataArgs
+                }
+          )
+            */
+        
+            console.log("5. Mint 1 Token");
+            if (amountToMint > 0){
+                const adjustedAmount = amountToMint * Math.pow(10, decimals); // Adjust for decimals
+                // Step 1: Get or Create the Associated Token Account
+                const associatedTokenAccount = await getAssociatedTokenAddress(
+                    mintPublicKey,
+                    mintAuthority,
+                    true
+                );
+
+                transaction.add( 
+                    createAssociatedTokenAccountInstruction(
+                    mintAuthority, // or use payerWallet
+                    associatedTokenAccount,
+                    mintAuthority,
+                    mintPublicKey,
+                    TOKEN_PROGRAM_ID,
+                    ASSOCIATED_TOKEN_PROGRAM_ID
+                    )
+                );
+
+                transaction.add(
+                    createMintToCheckedInstruction(
+                        mintPublicKey,            // Mint account
+                        withPublicKey,    // Destination token account
+                        withPublicKey,            // Mint authority (new owner)
+                        adjustedAmount,             // Amount to mint
+                        decimals,                 // Token decimals
+                        //[withPublicKey],          // Signer (governance wallet as new authority)
+                        //TOKEN_PROGRAM_ID          // SPL Token program
+                    )
+                );
+            }
 
             {
 
@@ -851,6 +1037,15 @@ export default function TokenManagerView(props) {
                                 onChange={(e) => setDecimals(Number(e.target.value))}
                                 placeholder="Enter token decimals"
                             />
+                            <TextField
+                                label="Amount To Mint"
+                                fullWidth
+                                type="number"
+                                variant="outlined"
+                                value={amountToMint}
+                                onChange={(e) => setAmountToMint(Number(e.target.value))}
+                                placeholder="Enter token amount to mint"
+                            />
     
                             <Button
                                 variant="contained"
@@ -886,14 +1081,14 @@ export default function TokenManagerView(props) {
                                 fullWidth
                                 type="number"
                                 variant="outlined"
-                                value={amount}
-                                onChange={(e) => setAmount(Number(e.target.value))}
+                                value={amountToMint}
+                                onChange={(e) => setAmountToMint(Number(e.target.value))}
                                 placeholder="Enter amount to mint"
                             />
                             <Button
                                 variant="contained"
                                 onClick={() => mintMoreTokensIx()}
-                                disabled={loading || !mintAddress || !amount}
+                                disabled={loading || !mintAddress || !amountToMint}
                             >
                                 Prepare Mint Tokens Instructions
                             </Button>
