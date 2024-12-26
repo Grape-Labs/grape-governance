@@ -38,7 +38,13 @@ import {
     createInitializeInstruction,
     createUpdateFieldInstruction,
   } from "@solana/spl-token-metadata";
-import { generateSigner, percentAmount, publicKey as UmiPK, Instruction, createNoopSigner, none } from '@metaplex-foundation/umi'
+import { 
+    generateSigner, 
+    percentAmount, 
+    publicKey as UmiPK, 
+    Instruction, 
+    createNoopSigner,
+    none } from '@metaplex-foundation/umi'
 import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
 import { toWeb3JsInstruction } from '@metaplex-foundation/umi-web3js-adapters';
 import { 
@@ -295,8 +301,8 @@ export default function TokenManagerView(props) {
             const mintInfo = await getMint(connection, mintPubKey);
             const mintAuthority = mintInfo.mintAuthority;
 
-            setProposalTitle(`Transfer Mint Authority`);
-            setProposalDescription(`Transfer ${mintPubKey.toBase58()} mint authority from ${mintAuthority.toBase58()} to ${destinationAddress}`);
+            let title = `Transfer Mint Authority`;
+            let description = `Transfer ${mintPubKey.toBase58()} mint authority from ${mintAuthority.toBase58()} to ${destinationAddress}`;
 
             transaction.add(
                 createSetAuthorityInstruction(
@@ -324,9 +330,13 @@ export default function TokenManagerView(props) {
             console.log("mintAuthority: " + mintAuthority.toBase58());
 
             if (mintAuthority.toBase58() === withPublicKey.toBase58()){
+                
+                setProposalTitle(title);
+                setProposalDescription(description);
+
                 const transferMintIx = {
-                    title: proposalTitle,
-                    description: proposalDescription,
+                    title: title || proposalTitle,
+                    description: description || proposalDescription,
                     ix: transaction.instructions,
                     nativeWallet:governanceNativeWallet,
                     governingMint:governingMint,
@@ -380,9 +390,8 @@ export default function TokenManagerView(props) {
             // Step 2: Check if the ATA already exists
             const ataAccountInfo = await connection.getAccountInfo(associatedTokenAccount);
 
-            setProposalTitle(`Mint More Tokens`);
-            setProposalDescription(`Mint ${amountToMint} ${mintPubKey.toBase58()} to ATA: ${associatedTokenAccount.toBase58()}`);
-
+            let title = `Mint More Tokens`;
+            let description = `Mint ${amountToMint} ${mintPubKey.toBase58()} to ATA: ${associatedTokenAccount.toBase58()}`;
 
             // Initialize an array to hold transaction instructions
             const instructions = [];
@@ -427,10 +436,13 @@ export default function TokenManagerView(props) {
                     // [signer1, signer2 ...], // only multisig account will use
                 ),
             );
+
+            setProposalTitle(title);
+            setProposalDescription(description);
                 
             const mintTokenIx = {
-                title: proposalTitle,
-                description: proposalDescription,
+                title: title || proposalTitle,
+                description: description || proposalDescription,
                 ix: transaction.instructions,
                 nativeWallet:governanceNativeWallet,
                 governingMint:governingMint,
@@ -757,9 +769,9 @@ export default function TokenManagerView(props) {
             const mintKeypair = Keypair.generate();
             const mintPublicKey = mintKeypair.publicKey;
 
-            setProposalTitle(`Create New Token`);
-            setProposalDescription(`Create a new token ${mintPublicKey.toBase58()} with DAO mint authority (w/out metadata)`);            
-
+            let title = `Create New Token`;
+            let description = `Create a new token ${mintPublicKey.toBase58()} with DAO mint authority`;
+            
             // Set up metadata
             const metadataProgramId = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"); // Token Metadata Program ID
             const metadataSeeds = [
@@ -818,18 +830,21 @@ export default function TokenManagerView(props) {
                 const umi = createUmi(connection).use(mplTokenMetadata());
 
                 console.log("4. Creating v1 Metadata");
+                // Metadata to store in Mint Account
                 
                 const createMetadataAccountV3Ix = createMetadataAccountV3(
                     umi, {
                         metadata: UmiPK(metadataPDA.toBase58()),
                         mint: UmiPK(mintPublicKey.toBase58()),
-                        mintAuthority: createNoopSigner(UmiPK(withPublicKey.toBase58())), //umi.identity,
+                        mintAuthority: createNoopSigner(UmiPK(withPublicKey.toBase58())), // Use createNoopSigner for mintAuthority
+                        payer: createNoopSigner(UmiPK(withPublicKey.toBase58())),
+                        updateAuthority: UmiPK(withPublicKey.toBase58()),
                         isMutable: true,
                         collectionDetails: none(),
                         data: {
                             name: name,
-                            uri: uri,
                             symbol: symbol,
+                            uri: uri,
                             sellerFeeBasisPoints: 0,
                             creators: none(),
                             collection: none(),
@@ -837,8 +852,9 @@ export default function TokenManagerView(props) {
                         },
                     }
                 ).getInstructions()
-                setProposalTitle(`Create New Token w/Metadata`);
-                
+                title = `Create New Token w/Metadata`;
+                description = `Create a new token ${mintPublicKey.toBase58()} with DAO mint authority (w/Metadata)`;            
+
                 console.log("4. a. Getting IX for Metadata");
                 /*
                 const createV1Ix = createV1(
@@ -960,6 +976,9 @@ export default function TokenManagerView(props) {
                 );
             }
 
+            setProposalTitle(title);
+            setProposalDescription(description);
+
             {
 
                 enqueueSnackbar("Creating & transferring token on the wallet "+mintPublicKey.toBase58()+", you will be prompted to then create a mint as a proposal", { variant: 'success' });
@@ -980,8 +999,8 @@ export default function TokenManagerView(props) {
                     
                     if (ixs || aixs){
                         const createTokenIx = {
-                            title: proposalTitle,
-                            description: proposalDescription,
+                            title: title || proposalTitle,
+                            description: description || proposalDescription,
                             ix: ixs?.instructions,
                             aix: null,//aixs?.instructions,
                             signers: null,
