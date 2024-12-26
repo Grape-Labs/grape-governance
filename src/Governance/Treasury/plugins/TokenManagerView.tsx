@@ -27,6 +27,7 @@ import {
     createAccount,
     createSetAuthorityInstruction,
     ASSOCIATED_TOKEN_PROGRAM_ID,
+    getMint,
 } from "@solana/spl-token-v2";
 //import * as token from '@solana/spl-token';
 import {
@@ -161,8 +162,8 @@ export default function TokenManagerView(props) {
     const [tokens, setTokens] = useState([]);
     const [mintAddress, setMintAddress] = useState('');
     const [amount, setAmount] = useState(0);
-    const [proposalTitle, setProposalTitle] = useState(`Create New Token with Metadata`);
-    const [proposalDescription, setProposalDescription] = useState(`Create a new token with mint authority & metadata`);
+    const [proposalTitle, setProposalTitle] = useState(``);
+    const [proposalDescription, setProposalDescription] = useState(``);
     const [loading, setLoading] = useState(false);
     const [open, setPropOpen] = React.useState(false);
 
@@ -171,6 +172,7 @@ export default function TokenManagerView(props) {
     const [uri, setUri] = useState("https://arweave.net/lyeMvAF6kpccNhJ0XXPkrplbcT6A5UtgBiZI_fKff6I");
     const [decimals, setDecimals] = useState(8);
     const [amountToMint, setAmountToMint] = useState(0);
+    const [destinationAddress, setDestinationAddress] = useState(null);
 
     const [tabIndex, setTabIndex] = useState(0); // Tab index to toggle between Create and Manage tabs
 
@@ -275,6 +277,85 @@ export default function TokenManagerView(props) {
         }
     };
 
+    const transferMintIx = async () => {
+        if (!mintAddress || !destinationAddress) return;
+        setLoading(true);
+
+        try {
+            const mintPubKey = new PublicKey(mintAddress);
+            const withPublicKey = new PublicKey(governanceNativeWallet);
+            //const mintAuthority = new PublicKey(governanceNativeWallet); //publicKey;
+            //const freezeAuthority = new PublicKey(governanceNativeWallet); //publicKey;
+            
+            
+            const transaction = new Transaction();
+            
+            // TODO:
+            // check the mint authority, and automatically get the current one, if the current is not the governance wallet i.e. withPublicKey but publicKey then it needs to be done in the wallet level
+            const mintInfo = await getMint(connection, mintPubKey);
+            const mintAuthority = mintInfo.mintAuthority;
+
+            setProposalTitle(`Transfer Mint Authority`);
+            setProposalDescription(`Transfer ${mintPubKey.toBase58()} mint authority from ${mintAuthority.toBase58()} to ${destinationAddress}`);
+
+            transaction.add(
+                createSetAuthorityInstruction(
+                    mintPubKey,           // Mint account
+                    mintAuthority,        // Current authority
+                    0,                    // Authority type: Mint Tokens
+                    new PublicKey(destinationAddress),           // New mint authority
+                )
+            );
+
+            console.log("Simulating");
+                
+            const isSimulationSuccessful = await simulateCreateTokenIx(transaction);
+
+            console.log("Simulate complete");
+
+            if (!isSimulationSuccessful) {
+                enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
+                handleCloseDialog();
+                return; // Exit the function as simulation failed
+            }
+
+            console.log("Simulation was successful. Proceeding with the transaction.");
+            
+            console.log("mintAuthority: " + mintAuthority.toBase58());
+
+            if (mintAuthority.toBase58() === withPublicKey.toBase58()){
+                const transferMintIx = {
+                    title: proposalTitle,
+                    description: proposalDescription,
+                    ix: transaction.instructions,
+                    nativeWallet:governanceNativeWallet,
+                    governingMint:governingMint,
+                    draft: isDraft,
+                };
+                
+                handleCloseDialog();
+                setInstructions(transferMintIx);
+                setExpandedLoader(true);
+                enqueueSnackbar("Mint instructions prepared", { variant: 'success' });
+            } else if (mintAuthority.toBase58() === publicKey.toBase58()){
+                // do this on the wallet level
+                enqueueSnackbar("Creating & transferring token on the wallet "+mintPubKey.toBase58()+", you will be prompted to then create a mint as a proposal", { variant: 'success' });
+                const txid = await createAndSendV0TxInline(transaction.instructions, null);
+                console.log("txid: ",txid);
+
+                if (txid){
+                    enqueueSnackbar("Transaction sent to network with txid: "+txid, { variant: 'success' });
+                }
+            } else{ // neither the governance or the publicKey have the mint authority of this mint
+                enqueueSnackbar(`Error preparing mint instructions: Mint Authority is not the governance or the connected wallet ${mintAuthority.toBase58()}`, { variant: 'error' });
+            }
+        } catch (error) {
+            enqueueSnackbar(`Error preparing mint instructions: ${error?.message}`, { variant: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const mintMoreTokensIx = async () => {
         if (!mintAddress || !amountToMint) return;
         setLoading(true);
@@ -285,9 +366,6 @@ export default function TokenManagerView(props) {
             const mintAuthority = new PublicKey(governanceNativeWallet); //publicKey;
             const freezeAuthority = new PublicKey(governanceNativeWallet); //publicKey;
             
-            setProposalTitle(`Mint More Tokens`);
-            setProposalDescription(`Mint ${amountToMint} ${mintPubKey.toBase58()} to the associated account`);
-
             const adjustedAmount = amountToMint * Math.pow(10, decimals);
             
             // Step 1: Get or Create the Associated Token Account
@@ -301,6 +379,10 @@ export default function TokenManagerView(props) {
             
             // Step 2: Check if the ATA already exists
             const ataAccountInfo = await connection.getAccountInfo(associatedTokenAccount);
+
+            setProposalTitle(`Mint More Tokens`);
+            setProposalDescription(`Mint ${amountToMint} ${mintPubKey.toBase58()} to ATA: ${associatedTokenAccount.toBase58()}`);
+
 
             // Initialize an array to hold transaction instructions
             const instructions = [];
@@ -675,6 +757,7 @@ export default function TokenManagerView(props) {
             const mintKeypair = Keypair.generate();
             const mintPublicKey = mintKeypair.publicKey;
 
+            setProposalTitle(`Create New Token`);
             setProposalDescription(`Create a new token ${mintPublicKey.toBase58()} with DAO mint authority (w/out metadata)`);            
 
             // Set up metadata
@@ -735,7 +818,7 @@ export default function TokenManagerView(props) {
                 const umi = createUmi(connection).use(mplTokenMetadata());
 
                 console.log("4. Creating v1 Metadata");
-
+                
                 const createMetadataAccountV3Ix = createMetadataAccountV3(
                     umi, {
                         metadata: UmiPK(metadataPDA.toBase58()),
@@ -754,8 +837,9 @@ export default function TokenManagerView(props) {
                         },
                     }
                 ).getInstructions()
-
-                console.log("4. Getting IX for Metadata");
+                setProposalTitle(`Create New Token w/Metadata`);
+                
+                console.log("4. a. Getting IX for Metadata");
                 /*
                 const createV1Ix = createV1(
                     umi, {
@@ -994,8 +1078,9 @@ export default function TokenManagerView(props) {
                         textColor="primary"
                         variant="fullWidth"
                     >
-                        <Tab label="Create New Token" />
-                        <Tab label="Manage/Mint Tokens" />
+                        <Tab label="Create" />
+                        <Tab label="Mint" />
+                        <Tab label="Transfer" />
                     </Tabs>
                 </AppBar>
     
@@ -1060,12 +1145,14 @@ export default function TokenManagerView(props) {
                     {tabIndex === 1 && (
                         <Stack spacing={2} sx={{ pt: 2, pb: 2 }}>
                             <Box display="flex" justifyContent="space-between" alignItems="center">
-                                <Typography variant="h6">Manage/Mint Tokens</Typography>
+                                <Typography variant="h6">Mint Tokens</Typography>
+                                {/*
                                 <Tooltip title="Fetch Tokens for this DAO">
                                     <IconButton onClick={fetchCreatedTokensIx} disabled={loading}>
                                         <RefreshIcon />
                                     </IconButton>
                                 </Tooltip>
+                                */}
                             </Box>
     
                             <TextField
@@ -1092,7 +1179,7 @@ export default function TokenManagerView(props) {
                             >
                                 Prepare Mint Tokens Instructions
                             </Button>
-    
+                            {/*
                             <Box>
                                 <Typography variant="h6">Created Tokens:</Typography>
                                 {tokens.length > 0 ? (
@@ -1113,6 +1200,40 @@ export default function TokenManagerView(props) {
                                     <Typography variant="body2">No tokens found</Typography>
                                 )}
                             </Box>
+                            */}
+                        </Stack>
+                    )}
+                    {tabIndex === 2 && (
+                        <Stack spacing={2} sx={{ pt: 2, pb: 2 }}>
+                            <Box display="flex" justifyContent="space-between" alignItems="center">
+                                <Typography variant="h6">Transfer</Typography>
+                            </Box>
+    
+                            <TextField
+                                label="Mint Address"
+                                fullWidth
+                                variant="outlined"
+                                value={mintAddress}
+                                onChange={(e) => setMintAddress(e.target.value)}
+                                placeholder="Enter mint address to mint more tokens"
+                            />
+                            <TextField
+                                label="Destination Address"
+                                fullWidth
+                                variant="outlined"
+                                value={destinationAddress}
+                                onChange={(e) => setDestinationAddress(e.target.value)}
+                                placeholder="Enter address to transfer the mint authority to"
+                            />
+
+                            <Button
+                                variant="contained"
+                                onClick={() => transferMintIx()}
+                                disabled={loading || !mintAddress || !destinationAddress}
+                            >
+                                Transfer Instructions
+                            </Button>
+                            
                         </Stack>
                     )}
 
