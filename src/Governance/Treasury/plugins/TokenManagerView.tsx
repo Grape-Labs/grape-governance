@@ -321,7 +321,9 @@ export default function TokenManagerView(props) {
 
             console.log("Simulation was successful. Proceeding with the transaction.");
             
-            if (mintAuthority.toBase58() === publicKey.toBase58()){
+            console.log("mintAuthority: " + mintAuthority.toBase58());
+
+            if (mintAuthority.toBase58() === withPublicKey.toBase58()){
                 const transferMintIx = {
                     title: proposalTitle,
                     description: proposalDescription,
