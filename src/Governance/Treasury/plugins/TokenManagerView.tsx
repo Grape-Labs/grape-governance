@@ -173,9 +173,10 @@ export default function TokenManagerView(props) {
     const [loading, setLoading] = useState(false);
     const [open, setPropOpen] = React.useState(false);
 
-    const [name, setName] = useState("CollabX Test Token");
-    const [symbol, setSymbol] = useState("MCXT");
-    const [uri, setUri] = useState("https://arweave.net/lyeMvAF6kpccNhJ0XXPkrplbcT6A5UtgBiZI_fKff6I");
+    const [name, setName] = useState("DAO Token");
+    const [symbol, setSymbol] = useState("TKN");
+    //const [uri, setUri] = useState("https://arweave.net/lyeMvAF6kpccNhJ0XXPkrplbcT6A5UtgBiZI_fKff6I");
+    const [uri, setUri] = useState("");
     const [decimals, setDecimals] = useState(8);
     const [amountToMint, setAmountToMint] = useState(0);
     const [destinationAddress, setDestinationAddress] = useState(null);
