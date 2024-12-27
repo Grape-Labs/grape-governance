@@ -849,7 +849,7 @@ export default function TokenManagerView(props) {
             );
 
             try{
-                if (name.length > 0 && symbol.length > 0 && uri.length > 0){
+                if (name.length > 0 && symbol.length > 0  && uri.length > 0){
                     const umi = createUmi(connection).use(mplTokenMetadata());
 
                     console.log("4. Creating v1 Metadata");
