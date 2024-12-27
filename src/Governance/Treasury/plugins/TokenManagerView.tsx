@@ -854,8 +854,8 @@ export default function TokenManagerView(props) {
                             },
                         }
                     ).getInstructions()
-                    title = `Create New Token w/Metadata`;
-                    description = `Create a new token ${mintPublicKey.toBase58()} with DAO mint authority (w/Metadata)`;            
+                    title = `Create ${name} Token w/Metadata`;
+                    description = `Create a ${name} ${symbol} ${mintPublicKey.toBase58()} with DAO mint authority (w/Metadata)`;            
 
                     console.log("4. a. Getting IX for Metadata");
                     /*
