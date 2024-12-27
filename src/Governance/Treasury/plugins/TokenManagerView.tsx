@@ -173,9 +173,10 @@ export default function TokenManagerView(props) {
     const [loading, setLoading] = useState(false);
     const [open, setPropOpen] = React.useState(false);
 
-    const [name, setName] = useState("CollabX Test Token");
-    const [symbol, setSymbol] = useState("MCXT");
-    const [uri, setUri] = useState("https://arweave.net/lyeMvAF6kpccNhJ0XXPkrplbcT6A5UtgBiZI_fKff6I");
+    const [name, setName] = useState("DAO Token");
+    const [symbol, setSymbol] = useState("TKN");
+    //const [uri, setUri] = useState("https://arweave.net/lyeMvAF6kpccNhJ0XXPkrplbcT6A5UtgBiZI_fKff6I");
+    const [uri, setUri] = useState("");
     const [decimals, setDecimals] = useState(8);
     const [amountToMint, setAmountToMint] = useState(0);
     const [destinationAddress, setDestinationAddress] = useState(null);
@@ -827,52 +828,54 @@ export default function TokenManagerView(props) {
             );
 
             try{
-                const umi = createUmi(connection).use(mplTokenMetadata());
+                if (name.length > 0 && symbol.length > 0 && uri.length > 0){
+                    const umi = createUmi(connection).use(mplTokenMetadata());
 
-                console.log("4. Creating v1 Metadata");
-                // Metadata to store in Mint Account
-                
-                const createMetadataAccountV3Ix = createMetadataAccountV3(
-                    umi, {
-                        metadata: UmiPK(metadataPDA.toBase58()),
-                        mint: UmiPK(mintPublicKey.toBase58()),
-                        mintAuthority: createNoopSigner(UmiPK(withPublicKey.toBase58())), // Use createNoopSigner for mintAuthority
-                        payer: createNoopSigner(UmiPK(withPublicKey.toBase58())),
-                        updateAuthority: UmiPK(withPublicKey.toBase58()),
-                        isMutable: true,
-                        collectionDetails: none(),
-                        data: {
+                    console.log("4. Creating v1 Metadata");
+                    // Metadata to store in Mint Account
+                    
+                    const createMetadataAccountV3Ix = createMetadataAccountV3(
+                        umi, {
+                            metadata: UmiPK(metadataPDA.toBase58()),
+                            mint: UmiPK(mintPublicKey.toBase58()),
+                            mintAuthority: createNoopSigner(UmiPK(withPublicKey.toBase58())), // Use createNoopSigner for mintAuthority
+                            payer: createNoopSigner(UmiPK(withPublicKey.toBase58())),
+                            updateAuthority: UmiPK(withPublicKey.toBase58()),
+                            isMutable: true,
+                            collectionDetails: none(),
+                            data: {
+                                name: name,
+                                symbol: symbol,
+                                uri: uri,
+                                sellerFeeBasisPoints: 0,
+                                creators: none(),
+                                collection: none(),
+                                uses: none(),
+                            },
+                        }
+                    ).getInstructions()
+                    title = `Create New Token w/Metadata`;
+                    description = `Create a new token ${mintPublicKey.toBase58()} with DAO mint authority (w/Metadata)`;            
+
+                    console.log("4. a. Getting IX for Metadata");
+                    /*
+                    const createV1Ix = createV1(
+                        umi, {
+                            mint: UmiPK(mintPublicKey.toBase58()),
+                            authority: umi.identity,
                             name: name,
-                            symbol: symbol,
                             uri: uri,
-                            sellerFeeBasisPoints: 0,
-                            creators: none(),
-                            collection: none(),
-                            uses: none(),
-                        },
-                    }
-                ).getInstructions()
-                title = `Create New Token w/Metadata`;
-                description = `Create a new token ${mintPublicKey.toBase58()} with DAO mint authority (w/Metadata)`;            
-
-                console.log("4. a. Getting IX for Metadata");
-                /*
-                const createV1Ix = createV1(
-                    umi, {
-                        mint: UmiPK(mintPublicKey.toBase58()),
-                        authority: umi.identity,
-                        name: name,
-                        uri: uri,
-                        symbol: symbol,
-                        sellerFeeBasisPoints: percentAmount(0),
-                        tokenStandard: TokenStandard.Fungible,
-                    }
-                ).getInstructions()
-                */
-                createMetadataAccountV3Ix.forEach((umiInstruction) => {
-                    const solanaInstruction = toWeb3JsInstruction(umiInstruction);
-                    transaction.add(solanaInstruction);
-                });
+                            symbol: symbol,
+                            sellerFeeBasisPoints: percentAmount(0),
+                            tokenStandard: TokenStandard.Fungible,
+                        }
+                    ).getInstructions()
+                    */
+                    createMetadataAccountV3Ix.forEach((umiInstruction) => {
+                        const solanaInstruction = toWeb3JsInstruction(umiInstruction);
+                        transaction.add(solanaInstruction);
+                    });
+                }
             }catch(metaErr){
                 console.error("❌ Error in MetaErr:", metaErr);
             }
