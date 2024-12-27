@@ -168,8 +168,8 @@ export default function TokenManagerView(props) {
     const [tokens, setTokens] = useState([]);
     const [mintAddress, setMintAddress] = useState('');
     const [amount, setAmount] = useState(0);
-    const [proposalTitle, setProposalTitle] = useState(``);
-    const [proposalDescription, setProposalDescription] = useState(``);
+    const [proposalTitle, setProposalTitle] = useState(`Create a New Token`);
+    const [proposalDescription, setProposalDescription] = useState(`Initialize a new token with the specified name, symbol, and metadata URI.`);
     const [loading, setLoading] = useState(false);
     const [open, setPropOpen] = React.useState(false);
 
@@ -185,7 +185,27 @@ export default function TokenManagerView(props) {
 
     const connection = RPC_CONNECTION; // Change to your desired network
 
-    const handleTabChange = (_event, newIndex) => setTabIndex(newIndex);
+    const handleTabChange = (_event, newIndex) => {
+        setTabIndex(newIndex);
+
+        switch (newIndex) {
+            case 0: // Create Tab
+                setProposalTitle("Create a New Token");
+                setProposalDescription("Initialize a new token with the specified name, symbol, and metadata URI.");
+                break;
+            case 1: // Mint Tab
+                setProposalTitle("Mint Additional Tokens");
+                setProposalDescription("Mint more tokens to the associated token account of the specified mint address.");
+                break;
+            case 2: // Transfer Tab
+                setProposalTitle("Transfer Mint Authority");
+                setProposalDescription("Transfer the mint authority of the specified token to another wallet address.");
+                break;
+            default:
+                setProposalTitle("");
+                setProposalDescription("");
+        }
+    };
 
     const handleCloseDialog = () => {
         setPropOpen(false);
@@ -302,7 +322,7 @@ export default function TokenManagerView(props) {
             const mintInfo = await getMint(connection, mintPubKey);
             const mintAuthority = mintInfo.mintAuthority;
 
-            let title = `Transfer Mint Authority`;
+            //let title = `Transfer Mint Authority`;
             let description = `Transfer ${mintPubKey.toBase58()} mint authority from ${mintAuthority.toBase58()} to ${destinationAddress}`;
 
             transaction.add(
@@ -332,11 +352,13 @@ export default function TokenManagerView(props) {
 
             if (mintAuthority.toBase58() === withPublicKey.toBase58()){
                 
-                setProposalTitle(title);
+
+                //setProposalTitle(title);
+                // ask if we should change the description
                 setProposalDescription(description);
 
                 const transferMintIx = {
-                    title: title || proposalTitle,
+                    title: proposalTitle,
                     description: description || proposalDescription,
                     ix: transaction.instructions,
                     nativeWallet:governanceNativeWallet,
@@ -391,7 +413,6 @@ export default function TokenManagerView(props) {
             // Step 2: Check if the ATA already exists
             const ataAccountInfo = await connection.getAccountInfo(associatedTokenAccount);
 
-            let title = `Mint More Tokens`;
             let description = `Mint ${amountToMint} ${mintPubKey.toBase58()} to ATA: ${associatedTokenAccount.toBase58()}`;
 
             // Initialize an array to hold transaction instructions
@@ -438,11 +459,11 @@ export default function TokenManagerView(props) {
                 ),
             );
 
-            setProposalTitle(title);
+            //setProposalTitle(title);
             setProposalDescription(description);
                 
             const mintTokenIx = {
-                title: title || proposalTitle,
+                title: proposalTitle,
                 description: description || proposalDescription,
                 ix: transaction.instructions,
                 nativeWallet:governanceNativeWallet,
@@ -979,18 +1000,20 @@ export default function TokenManagerView(props) {
                 );
             }
 
+
             setProposalTitle(title);
             setProposalDescription(description);
 
             {
 
-                enqueueSnackbar("Creating & transferring token on the wallet "+mintPublicKey.toBase58()+", you will be prompted to then create a mint as a proposal", { variant: 'success' });
+                enqueueSnackbar("Creating & transferring token on the wallet "+mintPublicKey.toBase58()+"", { variant: 'success' });
                 const txid = await createAndSendV0TxInline(walletTransaction.instructions, [mintKeypair]);
                 console.log("txid: ",txid);
 
                 if (txid){
                     //ixSigners.push(mintKeypair)
-
+                    if (transaction?.instructions)
+                        enqueueSnackbar("Creating Metadata & Initial Mint", { variant: 'success' });
                     // we should wait a few seconds to proceed so that we can make sure that this tx can simulate
                     
                     // Introduce a delay of 2 seconds (2000 milliseconds)
