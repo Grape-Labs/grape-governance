@@ -1093,18 +1093,18 @@ export default function GovernanceCreateProposalView(props: any){
                   <Select
                     labelId="governance-wallet-select-label"
                     id="governance-wallet-select"
-                    value={new PublicKey(governanceWallet.nativeTreasuryAddress).toBase58()}
+                    value={governanceWallet?.nativeTreasuryAddress && new PublicKey(governanceWallet.nativeTreasuryAddress).toBase58()}
                     label="Governance Wallet"
                     onChange={handleGovernanceWalletChange}
                   > 
                     {cachedTreasury && cachedTreasury
                       .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
                       .map((item: any, key: number) => {
+                        
                         if (item.vault?.nativeTreasuryAddress) {
-                          // rules wallet:
-                          // item.vault.pubkey
+                        
                           return (
-                            <MenuItem key={key} value={new PublicKey(item.vault.nativeTreasury).toBase58()}>
+                            <MenuItem key={key} value={new PublicKey(item.vault.nativeTreasuryAddress).toBase58()}>
                                 
                                 <Grid container>
                                   <Grid item xs={12}>
@@ -1440,6 +1440,7 @@ export default function GovernanceCreateProposalView(props: any){
                         }
 
                         //console.log("merged_treasury: "+JSON.stringify(cached_treasury))
+                        //console.log("cached_treasury: "+JSON.stringify(cached_treasury));
 
                         setCachedTreasury(cached_treasury);
                     }
@@ -1458,7 +1459,7 @@ export default function GovernanceCreateProposalView(props: any){
             }
         }
 
-        
+        //console.log("cached_governance: "+JSON.stringify(cached_governance));
         setCachedGovernance(cached_governance);
         //setLoading(false);
         endTimer();
