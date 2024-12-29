@@ -1182,7 +1182,7 @@ export default function TokenManagerView(props) {
                                 onClick={() => createTokenIx()}//createTokenGovIx()}//createTokenIx()}
                                 disabled={loading}
                             >
-                                Prepare Create Token Instructions
+                                Create Token
                             </Button>
                         </Stack>
                     )}
@@ -1222,7 +1222,7 @@ export default function TokenManagerView(props) {
                                 onClick={() => mintMoreTokensIx()}
                                 disabled={loading || !mintAddress || !amountToMint}
                             >
-                                Prepare Mint Tokens Instructions
+                                Mint Tokens
                             </Button>
                             {/*
                             <Box>
@@ -1276,7 +1276,7 @@ export default function TokenManagerView(props) {
                                 onClick={() => transferMintIx()}
                                 disabled={loading || !mintAddress || !destinationAddress}
                             >
-                                Transfer Instructions
+                                Transfer Mint Authority
                             </Button>
                             
                         </Stack>
