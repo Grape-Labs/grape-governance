@@ -1,51 +1,28 @@
 # Governance UI by Grape
 
-An increbibly fast DAO Tooling infrastrastructure to improve the experience of SPL Governance via decentralized cached storage, second to introduce new ways to view historical data and to extract important governance metrics which was is currently difficult to achieve efficiently, and finally to provide an API where composing on SPL Governance will be accessible to any developer (even a new developer) with a minimum RPC burden. Ultimately we have achieved web2 load speeds, with an incredible web3 primitive, and this is the path to build for the next billion users that will board and make the experience of crypto seamless & transparent.
-"Building the Web3 infrustructure at Web2 Native Speeds!"
-
-What we built:
-- New UI Interfaces for simulating both RPC and Cached experiences of SPL Governance/Realms
-- Administrator UI for for fetching historical and up to date SPL Governance proposals along with participation
-- Proof of speed improvements in the respective UIs (cached storage can be fetched in less than 1 second)
-
-
-Why did we build it:
-- SPL Governance is slow for the average governance user (30+ seconds to load a governance), this results to a diminished user experience and potentially drives away participation
-- Most importantly the delay also reduces the ability to onboard traditional web2 businesses to web3
-- Historical data is by nature historic on the blockchain and as a result via traditional fetching methods are expensive, significantly slow, RPC heavy, and redundant
-
-
-Next Steps...
-- Phase 1
--- Continue to focus on building a unique, and incredibly fast SPL Governance experience
--- Create unique metrics to add an understanding on SPL Governance participation, trends, activity
--- Provide metrics solutions run by the unique cached storage
--- Automate the caching process with smart webhooks (upon proposal creation, completion and participation)
-- Phase 2
--- Improve NFT Governance, reliability & speed
--- Create an improved NFT SPL Governance Experience for mass adoption
--- Create SPL Governance plugins and begin working to capture true web2 companies to convert and use SPL Governance in the most transparent possible way
--- API Access for improved composability over SPL Governance
--- Add more decentralized storage pools
+Grape offers an incredibly fast DAO tooling infrastructure designed to enhance the SPL Governance experience. We introduce innovative ways to utilize SPL Governance through an easy-to-use interface, enabling users to view historical data and extract essential governance metrics—tasks that have been challenging to perform efficiently. Additionally, we provide an API that allows any developer to compose on SPL Governance with minimal RPC overhead. Our platform achieves Web2-like load speeds while leveraging the powerful Web3 DAO primitive (SPL Governance). This seamless and transparent experience paves the way for building tools that can onboard the next billion users to crypto.
+                    
+                    Our development doesn’t stop there. We showcase tools like "Realtime" and demonstrate real-world use cases for organizations through simulations using "Frictionless" proposal authors. DAOs require even more tools, and Governance.so delivers a comprehensive suite of plugins. Our full IntraDAO tooling enables existing DAOs to join and participate in voting processes within other DAOs. Moreover, our groundbreaking IntraDAO proposal creation leverages Grape and Integration Partners' extensive plugin suite to craft proposals, revolutionizing DAO tooling within the Solana ecosystem.
+                    “Building the Web3 infrastructure at Web2 Native Speeds!”
 
 **Getting Started**
-- The Administration panel requires the connected wallet to be whitelisted (https://spl-governance-caching.vercel.app/admin), this provides a GUI for fetching single Governances, Generating cached files and Uploading the created files to a decentralized storage pool
+- The Administration panel requires the connected wallet to be whitelisted (https://governance.so/admin), this provides a GUI for fetching single Governances, Generating cached files and Uploading the created files to a decentralized storage pool
 - <img width="436" alt="Screenshot 2023-03-22 at 11 55 19 PM" src="https://user-images.githubusercontent.com/13381905/227047472-fb31afd1-079b-4b3d-836b-5b0f27d74183.png">
 - <img width="428" alt="Screenshot 2023-03-22 at 11 55 57 PM" src="https://user-images.githubusercontent.com/13381905/227047565-037eb923-e341-4548-857e-80754137f65b.png">
 
 
-- The simulation can be run for any Governance and a timer will show for the load time on the bottom https://spl-governance-caching.vercel.app/dao/HgcYAkXFT1ENpUCjBZWc1TjAAFacUwdGZRNhTHx9cuo
+- The simulation can be run for any Governance and a timer will show for the load time on the bottom https://governance.so/dao/HgcYAkXFT1ENpUCjBZWc1TjAAFacUwdGZRNhTHx9cuo
 
 <img width="1682" alt="Screenshot 2023-03-22 at 11 53 50 PM" src="https://user-images.githubusercontent.com/13381905/227047342-0fd4d7a8-7638-44c2-8d63-1d0fab2a7e4b.png">
 
 
 Time taken on Realms UI for SPL Governance https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE is roughly **25-35s**
 
-Time taken for load via Cached Storage **<1s (38ms!)** (Governance: Mango https://spl-governance-caching.vercel.app/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
+Time taken for load via Cached Storage **<1s (38ms!)** (Governance: Mango https://governance.so/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
 <img width="543" alt="Screenshot 2023-03-22 at 11 56 46 PM" src="https://user-images.githubusercontent.com/13381905/227047694-0d793e26-c49f-4ae3-87fa-c7767076555a.png">
 
 
-Time taken to load via Indexed RPC calls **~10s** (Governance: Mango https://spl-governance-caching.vercel.app/rpcgovernance/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
+Time taken to load via Indexed RPC calls **~10s** (Governance: Mango https://governance.so/rpcgovernance/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
 <img width="861" alt="Screenshot 2023-03-15 at 2 46 11 PM" src="https://user-images.githubusercontent.com/13381905/225312925-7557e495-859e-46ac-9b85-86dd481893f2.png">
 
 Featuring a full active DAO (cached) Directory:
