@@ -178,33 +178,44 @@ export default function TokenManagerView(props) {
     //const [uri, setUri] = useState("https://arweave.net/lyeMvAF6kpccNhJ0XXPkrplbcT6A5UtgBiZI_fKff6I");
     const [uri, setUri] = useState("");
     const [decimals, setDecimals] = useState(8);
-    const [amountToMint, setAmountToMint] = useState(0);
+    const [amountToMint, setAmountToMint] = useState('');
     const [destinationAddress, setDestinationAddress] = useState(null);
-
+    const [isGistDescription, setIsGistDescription] = useState(false);
     const [tabIndex, setTabIndex] = useState(0); // Tab index to toggle between Create and Manage tabs
+
+    // Define default titles and descriptions corresponding to each tab index
+    const defaultTitles = [
+        "Create a New Token",        // Tab Index 0: Create
+        "Mint Additional Tokens",    // Tab Index 1: Mint
+        "Transfer Mint Authority"    // Tab Index 2: Transfer
+    ];
+
+    const defaultDescriptions = [
+        "Initialize a new token with the specified name, symbol, and metadata URI.", // Create
+        "Mint more tokens to the associated token account of the specified mint address.", // Mint
+        "Transfer the mint authority of the specified token to another wallet address." // Transfer
+    ];
+    const [customTitles, setCustomTitles] = useState<string[]>(["", "", ""]);
+    const [customDescriptions, setCustomDescriptions] = useState<string[]>(["", "", ""]);
 
     const connection = RPC_CONNECTION; // Change to your desired network
 
-    const handleTabChange = (_event, newIndex) => {
+    const handleTabChange = (_event: React.ChangeEvent<{}>, newIndex: number) => {
         setTabIndex(newIndex);
-
-        switch (newIndex) {
-            case 0: // Create Tab
-                setProposalTitle("Create a New Token");
-                setProposalDescription("Initialize a new token with the specified name, symbol, and metadata URI.");
-                break;
-            case 1: // Mint Tab
-                setProposalTitle("Mint Additional Tokens");
-                setProposalDescription("Mint more tokens to the associated token account of the specified mint address.");
-                break;
-            case 2: // Transfer Tab
-                setProposalTitle("Transfer Mint Authority");
-                setProposalDescription("Transfer the mint authority of the specified token to another wallet address.");
-                break;
-            default:
-                setProposalTitle("");
-                setProposalDescription("");
-        }
+    
+        // Determine the title based on custom input or default
+        //if (customTitles[newIndex].trim().length > 0) {
+        //    setProposalTitle(customTitles[newIndex]);
+        //} else {
+            setProposalTitle(defaultTitles[newIndex]);
+        //}
+    
+        // Determine the description based on custom input or default
+        //if (customDescriptions[newIndex].trim().length > 0) {
+        //    setProposalDescription(customDescriptions[newIndex]);
+        //} else {
+            setProposalDescription(defaultDescriptions[newIndex]);
+        //}
     };
 
     const handleCloseDialog = () => {
@@ -323,7 +334,15 @@ export default function TokenManagerView(props) {
             const mintAuthority = mintInfo.mintAuthority;
 
             //let title = `Transfer Mint Authority`;
-            let description = `Transfer ${mintPubKey.toBase58()} mint authority from ${mintAuthority.toBase58()} to ${destinationAddress}`;
+            // check if we are using the default description otherwise use the text as is
+            const currentTabDefaultDescription = defaultDescriptions[tabIndex];
+            const isDefaultDescription = proposalDescription === currentTabDefaultDescription;
+            // Set the description based on whether it's default or custom
+            const description = (isDefaultDescription || proposalDescription.length <= 0)
+                ? `Transfer mint authority of ${mintPubKey.toBase58()} from ${mintAuthority.toBase58()} to ${destinationAddress}.`
+                : proposalDescription;
+
+            //let description = `Transfer ${mintPubKey.toBase58()} mint authority from ${mintAuthority.toBase58()} to ${destinationAddress}`;
 
             transaction.add(
                 createSetAuthorityInstruction(
@@ -413,7 +432,12 @@ export default function TokenManagerView(props) {
             // Step 2: Check if the ATA already exists
             const ataAccountInfo = await connection.getAccountInfo(associatedTokenAccount);
 
-            let description = `Mint ${amountToMint} ${mintPubKey.toBase58()} to ATA: ${associatedTokenAccount.toBase58()}`;
+            const currentTabDefaultDescription = defaultDescriptions[tabIndex];
+            const isDefaultDescription = proposalDescription === currentTabDefaultDescription;
+            // Set the description based on whether it's default or custom
+            const description = (isDefaultDescription || proposalDescription.length <= 0)
+                ? `Mint ${amountToMint} ${mintPubKey.toBase58()} to ATA: ${associatedTokenAccount.toBase58()}`
+                : proposalDescription;
 
             // Initialize an array to hold transaction instructions
             const instructions = [];
@@ -791,9 +815,15 @@ export default function TokenManagerView(props) {
             const mintKeypair = Keypair.generate();
             const mintPublicKey = mintKeypair.publicKey;
 
-            let title = `Create New Token`;
-            let description = `Create a new token ${mintPublicKey.toBase58()} with DAO mint authority`;
+            let title = proposalTitle;
             
+            const currentTabDefaultDescription = defaultDescriptions[tabIndex];
+            let isDefaultDescription = proposalDescription === currentTabDefaultDescription;
+            // Set the description based on whether it's default or custom
+            let description = (isDefaultDescription || proposalDescription.length <= 0)
+                ? `Create a new token ${mintPublicKey.toBase58()} with DAO mint authority${amountToMint > 0 ? ` and mint ${amountToMint} tokens` : ``}`
+                : proposalDescription;
+
             // Set up metadata
             const metadataProgramId = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"); // Token Metadata Program ID
             const metadataSeeds = [
@@ -875,9 +905,19 @@ export default function TokenManagerView(props) {
                             },
                         }
                     ).getInstructions()
-                    title = `Create ${name} Token w/Metadata`;
-                    description = `Create a ${name} ${symbol} ${mintPublicKey.toBase58()} with DAO mint authority (w/Metadata)`;            
-
+                    
+                    const currentTabDefaultTitle = defaultTitles[tabIndex];
+                    const isDefaultTitle = proposalTitle === currentTabDefaultTitle;
+                    // Set the description based on whether it's default or custom
+                    title = isDefaultTitle
+                        ? `Create ${name} Token w/Metadata`
+                        : proposalTitle;
+                    
+                    // Set the description based on whether it's default or custom
+                    description = (isDefaultDescription || proposalDescription.length <= 0)
+                        ? `Create a ${name} ${symbol} ${mintPublicKey.toBase58()} with DAO mint authority (w/Metadata)${amountToMint > 0 ? ` and mint ${amountToMint} tokens` : ``}`
+                        : proposalDescription;
+                        
                     console.log("4. a. Getting IX for Metadata");
                     /*
                     const createV1Ix = createV1(
@@ -1173,8 +1213,25 @@ export default function TokenManagerView(props) {
                                 type="number"
                                 variant="outlined"
                                 value={amountToMint}
-                                onChange={(e) => setAmountToMint(Number(e.target.value))}
+                                onChange={(e) => {
+                                    let value = e.target.value;
+                                    
+                                    // Remove leading zeros except when the value is exactly '0'
+                                    if (value.length > 1) {
+                                        value = value.replace(/^0+/, '');
+                                    }
+                            
+                                    // Optionally, enforce a minimum value (e.g., 1)
+                                    if (Number(value) < 0) {
+                                        value = "0";
+                                    }
+                            
+                                    setAmountToMint(value);
+                                }}
                                 placeholder="Enter token amount to mint"
+                                inputProps={{
+                                    min: "0", // Prevent negative numbers
+                                }}
                             />
     
                             <Button
@@ -1214,8 +1271,25 @@ export default function TokenManagerView(props) {
                                 type="number"
                                 variant="outlined"
                                 value={amountToMint}
-                                onChange={(e) => setAmountToMint(Number(e.target.value))}
+                                onChange={(e) => {
+                                    let value = e.target.value;
+                                    
+                                    // Remove leading zeros except when the value is exactly '0'
+                                    if (value.length > 1) {
+                                        value = value.replace(/^0+/, '');
+                                    }
+                            
+                                    // Optionally, enforce a minimum value (e.g., 1)
+                                    if (Number(value) < 0) {
+                                        value = "0";
+                                    }
+                            
+                                    setAmountToMint(value);
+                                }}
                                 placeholder="Enter amount to mint"
+                                inputProps={{
+                                    min: "0", // Prevent negative numbers
+                                }}
                             />
                             <Button
                                 variant="contained"
