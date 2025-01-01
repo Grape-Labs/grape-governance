@@ -175,6 +175,10 @@ export default function TokenManagerView(props) {
     const [loading, setLoading] = useState(false);
     const [open, setPropOpen] = React.useState(false);
 
+    const [fetchedName, setFetchedName] = useState(null);
+    const [fetchedSymbol, setFetchedSymbol] = useState(null);
+    const [fetchedUri, setFetchedUri] = useState(null);
+
     const [name, setName] = useState("DAO Token");
     const [symbol, setSymbol] = useState("TKN");
     //const [uri, setUri] = useState("https://arweave.net/lyeMvAF6kpccNhJ0XXPkrplbcT6A5UtgBiZI_fKff6I");
@@ -197,7 +201,7 @@ export default function TokenManagerView(props) {
         "Initialize a new token with the specified name, symbol, and metadata URI.", // Create
         "Mint more tokens to the associated token account of the specified mint address.", // Mint
         "Transfer the mint authority of the specified token to another wallet address.", // Transfer
-        "Update token metadata with the specified name, symcol, and metadata URI." // Update
+        "Update token metadata with the specified name, symbol, and metadata URI." // Update
     ];
     const [customTitles, setCustomTitles] = useState<string[]>(["", "", ""]);
     const [customDescriptions, setCustomDescriptions] = useState<string[]>(["", "", ""]);
@@ -359,15 +363,24 @@ export default function TokenManagerView(props) {
                 if (name.length > 0 && symbol.length > 0  && uri.length > 0){
                     const umi = createUmi(connection).use(mplTokenMetadata());
 
-                    console.log("1. Creating v1 Metadata");
+                    
                     // Metadata to store in Mint Account
                     
                     let createUpdateMetadata = null;
-                    const update = true;
+                    let update = false;
+                    if (fetchedName != name || fetchedSymbol != symbol || fetchedUri != uri){
+                        update = true;
+                    } else{
+                        if (fetchedName && fetchedName.length > 0 && fetchedSymbol && fetchedSymbol.length > 0 && fetchedUri && fetchedUri.length > 0){
+                            enqueueSnackbar("Nothing to change.", { variant: 'error' });
+                            return;
+                        }
+                    }
 
                     if (update){
+                        console.log("1. Updating v1 Metadata");
                         //updateMetadataAccountV2
-                        const createUpdateMetadata = updateMetadataAccountV2(
+                        createUpdateMetadata = updateMetadataAccountV2(
                             umi, {
                                 metadata: UmiPK(metadataPDA.toBase58()),
                                 //mint: UmiPK(mintPubKey.toBase58()),
@@ -390,8 +403,8 @@ export default function TokenManagerView(props) {
 
 
                     } else{
-
-                        const createUpdateMetadata = createMetadataAccountV3(
+                        console.log("1. Creating v1 Metadata");
+                        createUpdateMetadata = createMetadataAccountV3(
                             umi, {
                                 metadata: UmiPK(metadataPDA.toBase58()),
                                 mint: UmiPK(mintPubKey.toBase58()),
@@ -1330,6 +1343,9 @@ export default function TokenManagerView(props) {
 
     useEffect(() => {
         const fetchMetadata = async () => {
+            setFetchedName('');
+            setFetchedSymbol('');
+            setFetchedUri('');
             if (!mintAddress) {
                 setName('');
                 setSymbol('');
@@ -1364,6 +1380,10 @@ export default function TokenManagerView(props) {
 
                 // Deserialize the metadata using Metaplex's library
                 //const metadata = Metadata.deserialize(metadataAccount.data)[0];
+
+                setFetchedName(asset?.metadata?.name.trim());
+                setFetchedSymbol(asset?.metadata?.symbol);
+                setFetchedUri(asset?.metadata?.uri);
 
                 // Extract and set the metadata fields
                 setName(asset?.metadata?.name.trim());
