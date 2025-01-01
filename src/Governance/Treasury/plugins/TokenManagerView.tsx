@@ -51,9 +51,11 @@ import {
     Metadata, 
     createV1, 
     createMetadataAccountV3, 
+    updateMetadataAccountV2,
     CreateMetadataAccountV3InstructionDataArgs,
     CreateMetadataAccountV3InstructionAccounts,
     mplTokenMetadata,
+    fetchDigitalAsset,
     mintV1, 
     TokenStandard, 
     MPL_TOKEN_METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
@@ -187,13 +189,15 @@ export default function TokenManagerView(props) {
     const defaultTitles = [
         "Create a New Token",        // Tab Index 0: Create
         "Mint Additional Tokens",    // Tab Index 1: Mint
-        "Transfer Mint Authority"    // Tab Index 2: Transfer
+        "Transfer Mint Authority",    // Tab Index 2: Transfer
+        "Update Token Metadata"    // Tab Index 3: Update
     ];
 
     const defaultDescriptions = [
         "Initialize a new token with the specified name, symbol, and metadata URI.", // Create
         "Mint more tokens to the associated token account of the specified mint address.", // Mint
-        "Transfer the mint authority of the specified token to another wallet address." // Transfer
+        "Transfer the mint authority of the specified token to another wallet address.", // Transfer
+        "Update token metadata with the specified name, symcol, and metadata URI." // Update
     ];
     const [customTitles, setCustomTitles] = useState<string[]>(["", "", ""]);
     const [customDescriptions, setCustomDescriptions] = useState<string[]>(["", "", ""]);
@@ -315,6 +319,201 @@ export default function TokenManagerView(props) {
         }
     };
 
+    const updateTokenIx = async () => {
+        if (!mintAddress) return;
+        setLoading(true);
+
+        try {
+            const mintPubKey = new PublicKey(mintAddress);
+            const withPublicKey = new PublicKey(governanceNativeWallet);
+            const mintAuthority = new PublicKey(governanceNativeWallet); //publicKey;
+            const freezeAuthority = new PublicKey(governanceNativeWallet); //publicKey;
+            
+            let title = proposalTitle;
+            
+            const currentTabDefaultDescription = defaultDescriptions[tabIndex];
+            let isDefaultDescription = proposalDescription === currentTabDefaultDescription;
+            // Set the description based on whether it's default or custom
+            let description = (isDefaultDescription || proposalDescription.length <= 0)
+                ? `Update token Metadata`
+                : proposalDescription;
+
+            // Set up metadata
+            const metadataProgramId = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"); // Token Metadata Program ID
+            const metadataSeeds = [
+                Buffer.from("metadata"),
+                metadataProgramId.toBuffer(),
+                mintPubKey.toBuffer(),
+            ];
+            const [metadataPDA] = await PublicKey.findProgramAddress(metadataSeeds, metadataProgramId);
+            const ixSigners = new Array();
+            
+            // Calculate the rent-exempt balance needed
+            
+            const authTransaction = new Transaction();
+            // Create a transaction
+            const transaction = new Transaction();
+            const walletTransaction = new Transaction();
+
+            try{
+                if (name.length > 0 && symbol.length > 0  && uri.length > 0){
+                    const umi = createUmi(connection).use(mplTokenMetadata());
+
+                    console.log("1. Creating v1 Metadata");
+                    // Metadata to store in Mint Account
+                    
+                    let createUpdateMetadata = null;
+                    const update = true;
+
+                    if (update){
+                        //updateMetadataAccountV2
+                        const createUpdateMetadata = updateMetadataAccountV2(
+                            umi, {
+                                metadata: UmiPK(metadataPDA.toBase58()),
+                                //mint: UmiPK(mintPubKey.toBase58()),
+                                //mintAuthority: createNoopSigner(UmiPK(withPublicKey.toBase58())), // Use createNoopSigner for mintAuthority
+                                //payer: createNoopSigner(UmiPK(withPublicKey.toBase58())),
+                                updateAuthority: createNoopSigner(UmiPK(withPublicKey.toBase58())), //UmiPK(withPublicKey.toBase58()),
+                                //isMutable: true,
+                                //collectionDetails: none(),
+                                data: {
+                                    name: name,
+                                    symbol: symbol,
+                                    uri: uri,
+                                    sellerFeeBasisPoints: 0,
+                                    creators: none(),
+                                    collection: none(),
+                                    uses: none(),
+                                },
+                            }
+                        ).getInstructions()
+
+
+                    } else{
+
+                        const createUpdateMetadata = createMetadataAccountV3(
+                            umi, {
+                                metadata: UmiPK(metadataPDA.toBase58()),
+                                mint: UmiPK(mintPubKey.toBase58()),
+                                mintAuthority: createNoopSigner(UmiPK(withPublicKey.toBase58())), // Use createNoopSigner for mintAuthority
+                                payer: createNoopSigner(UmiPK(withPublicKey.toBase58())),
+                                updateAuthority: UmiPK(withPublicKey.toBase58()),
+                                isMutable: true,
+                                collectionDetails: none(),
+                                data: {
+                                    name: name,
+                                    symbol: symbol,
+                                    uri: uri,
+                                    sellerFeeBasisPoints: 0,
+                                    creators: none(),
+                                    collection: none(),
+                                    uses: none(),
+                                },
+                            }
+                        ).getInstructions()
+                    }
+                    
+                    const currentTabDefaultTitle = defaultTitles[tabIndex];
+                    const isDefaultTitle = proposalTitle === currentTabDefaultTitle;
+                    // Set the description based on whether it's default or custom
+                    title = isDefaultTitle
+                        ? `Uopdate ${name} Metadata`
+                        : proposalTitle;
+                    
+                    // Set the description based on whether it's default or custom
+                    description = (isDefaultDescription || proposalDescription.length <= 0)
+                        ? `Update token ${name} ${symbol} ${mintPubKey.toBase58()} Metadata`
+                        : proposalDescription;
+                        
+                    console.log("4. a. Getting IX for Metadata");
+
+                    //transaction.add(toWeb3JsInstruction(createUpdateMetadata));
+                    createUpdateMetadata && createUpdateMetadata?.length > 0 && createUpdateMetadata.forEach((umiInstruction) => {
+                        const solanaInstruction = toWeb3JsInstruction(umiInstruction);
+                        if (solanaInstruction)
+                            transaction.add(solanaInstruction);
+                    });
+                }
+            }catch(metaErr){
+                console.error("❌ Error in MetaErr:", metaErr);
+            }
+
+
+            setProposalTitle(title);
+            setProposalDescription(description);
+
+            //ixSigners.push(mintKeypair)
+            if (transaction?.instructions)
+                enqueueSnackbar("Updating token metadata", { variant: 'success' });
+            
+            const ixs = transaction;
+            const aixs = walletTransaction;//authTransaction;
+            
+            if ((ixs && ixs?.instructions) || (aixs && aixs?.instructions)){
+                const createTokenIx = {
+                    title: title || proposalTitle,
+                    description: description || proposalDescription,
+                    ix: ixs?.instructions,
+                    aix: null,//aixs?.instructions,
+                    signers: null,
+                    nativeWallet:governanceNativeWallet,
+                    governingMint:governingMint,
+                    draft: isDraft,
+                };
+
+                //console.log("Passing signer: "+JSON.stringify(ixSigners));
+
+                const isSimulationSuccessful = true; // dont sim //await simulateCreateTokenIx(transaction);
+                if (!isSimulationSuccessful) {
+                    enqueueSnackbar("Transaction simulation failed. Please check the logs for details.", { variant: 'error' });
+                    handleCloseDialog();
+                    return; // Exit the function as simulation failed
+                }
+
+                console.log("Simulation was successful. Proceeding with the transaction.");
+                
+                handleCloseDialog();
+                setInstructions(createTokenIx);
+                setExpandedLoader(true);
+
+                enqueueSnackbar("Update token instructions prepared", { variant: 'success' });
+            } else{
+                enqueueSnackbar(`Error no transaction instructions`, { variant: 'error' });
+            }
+        
+
+        //console.log("Token mint created and authority transferred to governance wallet.");
+    
+
+        } catch (error) {
+
+            if (error instanceof SendTransactionError) {
+                const extendedError = error as SendTransactionErrorWithSignature;
+                const signature = extendedError.signature;
+                console.error(`❌ SendTransactionError: ${extendedError.message}`);
+    
+                if (signature) {
+                    try {
+                        const logs = await connection.getTransaction(signature, { commitment: 'finalized' });
+                        console.error("📜 Transaction Logs:", logs);
+                        enqueueSnackbar(`Transaction failed: ${JSON.stringify(logs)}`, { variant: 'error' });
+                    } catch (logError) {
+                        console.error("❌ Failed to retrieve transaction logs:", logError);
+                    }
+                }
+            } else {
+                console.error("❌ Error in updateTokenIx:", error);
+                enqueueSnackbar(`Error preparing update token instructions: ${JSON.stringify(error)}`, { variant: 'error' });
+            }
+
+
+            
+        } finally {
+            setLoading(false);
+        }
+
+    }
+
     const transferMintIx = async () => {
         if (!mintAddress || !destinationAddress) return;
         setLoading(true);
@@ -418,7 +617,7 @@ export default function TokenManagerView(props) {
             const mintAuthority = new PublicKey(governanceNativeWallet); //publicKey;
             const freezeAuthority = new PublicKey(governanceNativeWallet); //publicKey;
             
-            const adjustedAmount = amountToMint * Math.pow(10, decimals);
+            const adjustedAmount = +amountToMint * Math.pow(10, decimals);
             
             // Step 1: Get or Create the Associated Token Account
             const associatedTokenAccount = await getAssociatedTokenAddress(
@@ -821,7 +1020,7 @@ export default function TokenManagerView(props) {
             let isDefaultDescription = proposalDescription === currentTabDefaultDescription;
             // Set the description based on whether it's default or custom
             let description = (isDefaultDescription || proposalDescription.length <= 0)
-                ? `Create a new token ${mintPublicKey.toBase58()} with DAO mint authority${amountToMint > 0 ? ` and mint ${amountToMint} tokens` : ``}`
+                ? `Create a new token ${mintPublicKey.toBase58()} with DAO mint authority${+amountToMint > 0 ? ` and mint ${amountToMint} tokens` : ``}`
                 : proposalDescription;
 
             // Set up metadata
@@ -915,7 +1114,7 @@ export default function TokenManagerView(props) {
                     
                     // Set the description based on whether it's default or custom
                     description = (isDefaultDescription || proposalDescription.length <= 0)
-                        ? `Create a ${name} ${symbol} ${mintPublicKey.toBase58()} with DAO mint authority (w/Metadata)${amountToMint > 0 ? ` and mint ${amountToMint} tokens` : ``}`
+                        ? `Create a ${name} ${symbol} ${mintPublicKey.toBase58()} with DAO mint authority (w/Metadata)${+amountToMint > 0 ? ` and mint ${amountToMint} tokens` : ``}`
                         : proposalDescription;
                         
                     console.log("4. a. Getting IX for Metadata");
@@ -1007,8 +1206,8 @@ export default function TokenManagerView(props) {
             */
         
             console.log("5. Mint 1 Token");
-            if (amountToMint > 0){
-                const adjustedAmount = amountToMint * Math.pow(10, decimals); // Adjust for decimals
+            if (+amountToMint > 0){
+                const adjustedAmount = +amountToMint * Math.pow(10, decimals); // Adjust for decimals
                 // Step 1: Get or Create the Associated Token Account
                 const associatedTokenAccount = await getAssociatedTokenAddress(
                     mintPublicKey,
@@ -1129,6 +1328,60 @@ export default function TokenManagerView(props) {
         }
     };
 
+    useEffect(() => {
+        const fetchMetadata = async () => {
+            if (!mintAddress) {
+                setName('');
+                setSymbol('');
+                setUri('');
+                return;
+            }
+
+            let mintPubKey;
+            try {
+                mintPubKey = new PublicKey(mintAddress);
+            } catch (error) {
+                console.error('Invalid mint address:', error);
+                enqueueSnackbar('Invalid mint address', { variant: 'error' });
+                setName('');
+                setSymbol('');
+                setUri('');
+                return;
+            }
+
+            try {
+                
+                const umi = createUmi(RPC_CONNECTION);
+                const asset = await fetchDigitalAsset(umi, UmiPK(mintPubKey.toBase58()));
+                
+                if (!asset) {
+                    enqueueSnackbar('Metadata not found for this mint address', { variant: 'warning' });
+                    setName('');
+                    setSymbol('');
+                    setUri('');
+                    return;
+                }
+
+                // Deserialize the metadata using Metaplex's library
+                //const metadata = Metadata.deserialize(metadataAccount.data)[0];
+
+                // Extract and set the metadata fields
+                setName(asset?.metadata?.name.trim());
+                setSymbol(asset?.metadata?.symbol);
+                setUri(asset?.metadata?.uri);
+            } catch (error) {
+                console.error('Error fetching metadata:', error);
+                enqueueSnackbar('Error fetching metadata', { variant: 'error' });
+                setName('');
+                setSymbol('');
+                setUri('');
+            }
+        };
+
+        // Call the fetchMetadata function
+        fetchMetadata();
+    }, [mintAddress]);
+
     return (
         <>
             <Tooltip title="Token Manager (Create, Manage Tokens)" placement="right">
@@ -1166,6 +1419,7 @@ export default function TokenManagerView(props) {
                         <Tab label="Create" />
                         <Tab label="Mint" />
                         <Tab label="Transfer" />
+                        <Tab label="Update" />
                     </Tabs>
                 </AppBar>
     
@@ -1353,6 +1607,53 @@ export default function TokenManagerView(props) {
                                 Transfer Mint Authority
                             </Button>
                             
+                        </Stack>
+                    )}
+
+                    {tabIndex === 3 && (
+                        <Stack spacing={2} sx={{ pt: 2, pb: 2 }}>
+                            <Typography variant="h6">Update Token Metadata</Typography>
+    
+                            <TextField
+                                label="Mint Address"
+                                fullWidth
+                                variant="outlined"
+                                value={mintAddress}
+                                onChange={(e) => setMintAddress(e.target.value)}
+                                placeholder="Enter mint address to update"
+                            />
+                            <TextField
+                                label="Token Name"
+                                fullWidth
+                                variant="outlined"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Enter token name"
+                            />
+                            <TextField
+                                label="Token Symbol"
+                                fullWidth
+                                variant="outlined"
+                                value={symbol}
+                                onChange={(e) => setSymbol(e.target.value)}
+                                placeholder="Enter token symbol"
+                            />
+                            <TextField
+                                label="Metadata URI"
+                                fullWidth
+                                variant="outlined"
+                                value={uri}
+                                onChange={(e) => setUri(e.target.value)}
+                                placeholder="Enter metadata URI"
+                            />
+                            
+                            <Button
+                                variant="contained"
+                                onClick={() => updateTokenIx()}
+                                disabled={loading}
+                            >
+                                Update Token
+                            </Button>
                         </Stack>
                     )}
 
