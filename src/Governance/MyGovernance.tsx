@@ -97,6 +97,7 @@ export function MyGovernanceView(props: any){
     const [selectionGovernanceModel, setSelectionGovernanceModel] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(props?.tokenMap);
     const [loading, setLoading] = React.useState(false);
+    const [refresh, setRefresh] = React.useState(true);
     const { publicKey, sendTransaction } = useWallet();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
@@ -423,7 +424,9 @@ export function MyGovernanceView(props: any){
             }
             
             if (txInstructions && txInstructions.length > 0){
-                createAndSendV0Tx(txInstructions);
+                const txid = await createAndSendV0Tx(txInstructions);
+                if (txid)
+                    setRefresh(true);
             }
         } else{
             enqueueSnackbar(`Currently there are proposals that have not been finalized! Please finalize those proposals to relinquish the casted votes`,{ variant: 'warning' });
@@ -591,7 +594,7 @@ export function MyGovernanceView(props: any){
             setGovernanceRecord(ownerRecordsbyOwner);
             setGovernanceRecordRows(governance);
             setLoadingGovernance(false);
-        
+            setRefresh(false);
         }catch(e){
             console.log("ERR: "+e);
             setLoadingGovernance(false);
@@ -606,11 +609,11 @@ export function MyGovernanceView(props: any){
     React.useEffect(() => {
         //setLoadingGovernance(true);
         console.log("checking: "+JSON.stringify(pubkey))
-        if (pubkey && tokenMap){
+        if (pubkey && tokenMap && refresh){
             console.log("pubkey: "+JSON.stringify(pubkey))
             fetchGovernancePositions();
         }
-    }, [tokenMap, pubkey]);
+    }, [tokenMap, pubkey, refresh]);
 
     React.useEffect(() => {
         setLoadingGovernance(true);
