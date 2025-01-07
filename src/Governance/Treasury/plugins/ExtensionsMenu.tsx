@@ -143,7 +143,8 @@ export default function ExtensionsMenuView(props: any) {
             usdcValue={usdcValue}
         />
         {(governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' ||
-          governanceNativeWallet === '6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD' 
+          governanceNativeWallet === '6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD'  ||
+          governanceNativeWallet === 'AWaMVkukciGYPEpJbnmSXPJzVxuuMFz1gWYBkznJ2qbq' 
         ) &&
         <TokenManagerView
             realm={realm}
