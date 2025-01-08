@@ -1162,21 +1162,40 @@ export default function TokenManagerView(props) {
                     true
                 );
 
-                transaction.add( 
-                    createAssociatedTokenAccountInstruction(
-                        mintAuthority, // or use payerWallet
-                        associatedTokenAccount,
-                        mintAuthority,
-                        mintPublicKey,
-                        TOKEN_PROGRAM_ID,
-                        ASSOCIATED_TOKEN_PROGRAM_ID
-                    )
-                );
+                if (!associatedTokenAccount) {
+                    // ATA does not exist, add instruction to create it
+                    transaction.add(
+                        createAssociatedTokenAccountInstruction(
+                            mintAuthority, // payer
+                            associatedTokenAccount, // ATA address
+                            mintAuthority, // owner of the ATA
+                            mintPublicKey, // mint
+                            TOKEN_PROGRAM_ID,
+                            ASSOCIATED_TOKEN_PROGRAM_ID
+                        )
+                    );
+                } else {
+                    // Optionally, you can perform additional checks to ensure the ATA is valid
+                    // For example, verify that the ATA is indeed associated with the correct mint and owner
+                    // Uncomment the following lines if you want to perform these checks
+
+                    /*
+                    try {
+                        const tokenAccount = await getAccount(connection, associatedTokenAddress);
+                        if (!tokenAccount.mint.equals(mintPubKey) || !tokenAccount.owner.equals(mintAuthority)) {
+                            throw new Error("Existing ATA has mismatched mint or owner.");
+                        }
+                    } catch (error) {
+                        enqueueSnackbar(`Error verifying ATA: ${error.message}`, { variant: 'error' });
+                        return;
+                    }
+                    */
+                }
 
                 transaction.add(
                     createMintToCheckedInstruction(
                         mintPublicKey,            // Mint account
-                        withPublicKey,    // Destination token account
+                        associatedTokenAccount,    // Destination token account
                         withPublicKey,            // Mint authority (new owner)
                         adjustedAmount,             // Amount to mint
                         decimals,                 // Token decimals
