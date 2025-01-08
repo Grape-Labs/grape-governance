@@ -1121,7 +1121,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:string, realmO
 
 
 
-export const getProposalIndexed = async (filterGovernance?:string, realmOwner?:string, realmPk?:string, filterProposal?:string) => {
+export const getProposalIndexed = async (filterGovernance?:any, realmOwner?:string, realmPk?:string, filterProposal?:string) => {
 
     let proposal = null;
     //const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk).owner;

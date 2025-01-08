@@ -183,7 +183,7 @@ export default function TokenManagerView(props) {
     const [symbol, setSymbol] = useState("TKN");
     //const [uri, setUri] = useState("https://arweave.net/lyeMvAF6kpccNhJ0XXPkrplbcT6A5UtgBiZI_fKff6I");
     const [uri, setUri] = useState("");
-    const [decimals, setDecimals] = useState(8);
+    const [decimals, setDecimals] = useState(null);
     const [amountToMint, setAmountToMint] = useState('');
     const [destinationAddress, setDestinationAddress] = useState(null);
     const [isGistDescription, setIsGistDescription] = useState(false);
@@ -430,7 +430,7 @@ export default function TokenManagerView(props) {
                     const isDefaultTitle = proposalTitle === currentTabDefaultTitle;
                     // Set the description based on whether it's default or custom
                     title = isDefaultTitle
-                        ? `Uopdate ${name} Metadata`
+                        ? `Update ${name} Metadata`
                         : proposalTitle;
                     
                     // Set the description based on whether it's default or custom
@@ -450,7 +450,6 @@ export default function TokenManagerView(props) {
             }catch(metaErr){
                 console.error("❌ Error in MetaErr:", metaErr);
             }
-
 
             setProposalTitle(title);
             setProposalDescription(description);
@@ -1152,71 +1151,6 @@ export default function TokenManagerView(props) {
             }catch(metaErr){
                 console.error("❌ Error in MetaErr:", metaErr);
             }
-
-            //const web3jsinstruction = toWeb3JsInstruction(createMetadataAccountV3Ix)
-            /*
-            createMetadataAccountV3Ix.forEach((umiInstruction) => {
-                const solanaInstruction = convertUmiInstructionToSolana(umiInstruction);
-                transaction.add(solanaInstruction);
-            });
-            */
-
-            /*
-            let CreateMetadataAccountV3InstructionAccounts = {
-                metadata: metadataPDA,
-                mint: mintPublicKey,
-                mintAuthority: withPublicKey,
-                //payer?: withPublicKey;
-                //rent?: PublicKey | Pda;
-                //systemProgram?: PublicKey | Pda;
-                //updateAuthority?: PublicKey | Pda | Signer;
-            }
-
-            let CreateMetadataAccountV3InstructionDataArgs = {
-                collectionDetails: null,
-                data: {
-                    collection: null,
-                    creators: null,
-                    name: name,
-                    sellerFeeBasisPoints: 0,
-                    symbol: symbol,
-                    uri: uri,
-                    uses: null
-                }
-                //isMutable: boolean;
-            }
-
-
-
-            let CreateMetadataAccountV3Args = {
-                //accounts
-                metadata: metadataPDA,
-                mint: mintPublicKey,
-                mintAuthority: withPublicKey,
-                payer: withPublicKey,
-                updateAuthority: withPublicKey,
-                // & instruction data
-            data: {
-              name: "myname",
-              symbol: "exp",
-              uri: "example_uri.com",
-              sellerFeeBasisPoints: 0,
-              creators: null,
-              collection: null,
-              uses: null
-            },
-                isMutable: true,
-                collectionDetails: null,
-            }
-        
-          let myTransaction = createMetadataAccountV3(
-            umi,
-                {
-                    CreateMetadataAccountV3InstructionAccounts, 
-                    CreateMetadataAccountV3InstructionDataArgs
-                }
-          )
-            */
         
             console.log("5. Mint 1 Token");
             if (+amountToMint > 0){
@@ -1228,21 +1162,40 @@ export default function TokenManagerView(props) {
                     true
                 );
 
-                transaction.add( 
-                    createAssociatedTokenAccountInstruction(
-                    mintAuthority, // or use payerWallet
-                    associatedTokenAccount,
-                    mintAuthority,
-                    mintPublicKey,
-                    TOKEN_PROGRAM_ID,
-                    ASSOCIATED_TOKEN_PROGRAM_ID
-                    )
-                );
+                if (!associatedTokenAccount) {
+                    // ATA does not exist, add instruction to create it
+                    transaction.add(
+                        createAssociatedTokenAccountInstruction(
+                            mintAuthority, // payer
+                            associatedTokenAccount, // ATA address
+                            mintAuthority, // owner of the ATA
+                            mintPublicKey, // mint
+                            TOKEN_PROGRAM_ID,
+                            ASSOCIATED_TOKEN_PROGRAM_ID
+                        )
+                    );
+                } else {
+                    // Optionally, you can perform additional checks to ensure the ATA is valid
+                    // For example, verify that the ATA is indeed associated with the correct mint and owner
+                    // Uncomment the following lines if you want to perform these checks
+
+                    /*
+                    try {
+                        const tokenAccount = await getAccount(connection, associatedTokenAddress);
+                        if (!tokenAccount.mint.equals(mintPubKey) || !tokenAccount.owner.equals(mintAuthority)) {
+                            throw new Error("Existing ATA has mismatched mint or owner.");
+                        }
+                    } catch (error) {
+                        enqueueSnackbar(`Error verifying ATA: ${error.message}`, { variant: 'error' });
+                        return;
+                    }
+                    */
+                }
 
                 transaction.add(
                     createMintToCheckedInstruction(
                         mintPublicKey,            // Mint account
-                        withPublicKey,    // Destination token account
+                        associatedTokenAccount,    // Destination token account
                         withPublicKey,            // Mint authority (new owner)
                         adjustedAmount,             // Amount to mint
                         decimals,                 // Token decimals
@@ -1346,6 +1299,10 @@ export default function TokenManagerView(props) {
             setFetchedName('');
             setFetchedSymbol('');
             setFetchedUri('');
+            
+            // fetch token information
+            // setDecimals
+            
             if (!mintAddress) {
                 setName('');
                 setSymbol('');
@@ -1365,13 +1322,24 @@ export default function TokenManagerView(props) {
                 return;
             }
 
+            if (mintPubKey){
+                try {
+                    const mintInfo = await getMint(connection, mintPubKey);
+                    console.log("mintInfo: ",mintInfo);
+                    enqueueSnackbar(`Mint is valid ${mintAddress} with ${mintInfo.decimals} decimals & supply ${mintInfo.supply}`, { variant: 'success' });
+                    setDecimals(mintInfo.decimals);
+                } catch(error){
+                    console.error('Failed to fetch mint info:', error);
+                }
+            }
+
             try {
                 
                 const umi = createUmi(RPC_CONNECTION);
                 const asset = await fetchDigitalAsset(umi, UmiPK(mintPubKey.toBase58()));
                 
                 if (!asset) {
-                    enqueueSnackbar('Metadata not found for this mint address', { variant: 'warning' });
+                    enqueueSnackbar(`Metadata not found for ${mintAddress}`, { variant: 'warning' });
                     setName('');
                     setSymbol('');
                     setUri('');
@@ -1391,7 +1359,7 @@ export default function TokenManagerView(props) {
                 setUri(asset?.metadata?.uri);
             } catch (error) {
                 console.error('Error fetching metadata:', error);
-                enqueueSnackbar('Error fetching metadata', { variant: 'error' });
+                enqueueSnackbar(`No Metadata found for ${mintAddress}`, { variant: 'error' });
                 setName('');
                 setSymbol('');
                 setUri('');

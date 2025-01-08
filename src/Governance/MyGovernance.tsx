@@ -261,6 +261,7 @@ export function MyGovernanceView(props: any){
         const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
         const gprops = await getAllProposalsIndexed(governanceRulesStrArr, programId, realmPk);
         // loop all items and push to a new array
+        //console.log("governanceRulesIndexed: "+JSON.stringify(governanceRulesIndexed));
         //console.log("props: "+JSON.stringify(gprops));
         //console.log("gtor: "+JSON.stringify(gtor));
         
@@ -388,13 +389,16 @@ export function MyGovernanceView(props: any){
                             }
                         }
 
-                        if (!voteRecordPk){
+                        if (!voteRecordPk && !gitem.pubkey.toBase58()){
                             voteRecordPk = await getVoteRecordAddress(
                                 programId,
                                 proposal.pubkey,
                                 tokenOwnerRecordPk
                             )
                             console.log("voteRecordPk "+voteRecordPk.toBase58());
+                        } else if (gitem.pubkey.toBase58()){
+                            voteRecordPk = gitem.pubkey;
+                            console.log("from gitem voteRecordPk "+voteRecordPk.toBase58());
                         }
 
                         const instructions: TransactionInstruction[] = []
