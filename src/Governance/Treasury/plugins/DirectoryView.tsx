@@ -19,6 +19,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
 import React, { useCallback } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
+import { RPC_ENDPOINT } from '../../../utils/grapeTools/constants';
 
 import {
     Avatar,
@@ -39,21 +40,27 @@ import {
     ListItemIcon,
     TextField,
     Stack,
+    FormControl,
+    Select,
+    InputLabel
 } from '@mui/material/';
 
 import { useSnackbar } from 'notistack';
 
 import GetAppIcon from '@mui/icons-material/GetApp';
-import BookIcon from '@mui/icons-material/Book';
+import VerifiedIcon from '@mui/icons-material/Verified';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
-import SendIcon from '@mui/icons-material/Send';
 import EditIcon from '@mui/icons-material/Edit';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import AssuredWorkloadIcon from '@mui/icons-material/AssuredWorkload';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
+
+import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
+import {getRealms, RequestStatus, GovernanceEntryAccountData, DAOType} from "gspl-directory";
+import {publicKey as UmiPK} from "@metaplex-foundation/umi";
 
 export interface DialogTitleProps {
     id: string;
@@ -94,6 +101,32 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     },
 }));
 
+function statusToDescription(value: RequestStatus): string {
+    switch (value) {
+      case RequestStatus.Pending:
+        return "Pending";
+      case RequestStatus.Approved:
+        return "Approved";
+      case RequestStatus.Rejected:
+        return "Rejected";
+      case RequestStatus.Disabled:
+        return "Disabled";
+      default:
+        return "Unknown";
+    }
+  }
+
+  function daoTypeToDescription(value: DAOType): string {
+    switch (value) {
+      case DAOType.Social:
+        return "Social";
+      case DAOType.Finance:
+        return "Finance";
+      default:
+        return "Unknown";
+    }
+  }
+
 export default function DirectoryExtensionView(props: any){
     const setReload = props?.setReload;
     const governanceLookup = props.governanceLookup;
@@ -103,6 +136,7 @@ export default function DirectoryExtensionView(props: any){
     const title = props?.title || "Proposal";
     const realm = props?.realm;
     const governanceAddress = props.governanceAddress || realm.pubkey.toBase58();
+    const realmName = props?.realmName;
     
     const handleCloseExtMenu = props?.handleCloseExtMenu;
     const expandedLoader = props?.expandedLoader;
@@ -122,7 +156,33 @@ export default function DirectoryExtensionView(props: any){
     const [mintInfo, setMintInfo] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
     const [open, setPropOpen] = React.useState(false);
-    
+
+    const [initialGsplUri, setInitialGsplUri] = React.useState('');
+    const [initialGsplName, setInitialGsplName] = React.useState('');
+    const [initialGsplDaoType, setInitialGsplDaoType] = React.useState('');
+    const [initialGsplRank, setInitialGsplRank] = React.useState(null);
+
+    const [gsplName, setGsplName] = React.useState('');
+    const [gsplStatus, setGsplStatus] = React.useState('');
+    const [gsplDaoType, setGsplDaoType] = React.useState('');
+    const [gsplRank, setGsplRank] = React.useState(null);
+    const [gsplUri, setGsplUri] = React.useState('');
+    const [listingExists, setListingExists] = React.useState(false); // Track if listing exists
+      
+    // Function to get color based on the gsplStatus value
+    const getTextColor = () => {
+        if (gsplStatus === 'Pending') {
+            return 'orange'; // Example for Pending status
+        } else if (gsplStatus === 'Approved') {
+            return 'green';  // Example for Approved status
+        } else if (gsplStatus === 'Rejected') {
+            return 'red';    // Example for Rejected status
+        } else if (gsplStatus === 'Disabled') {
+            return 'purple';    // Example for Rejected status
+        }
+        return 'pink';      // Default color
+    };
+
     const [expanded, setExpanded] = React.useState<string | false>(false);
     
     const provider = new AnchorProvider(RPC_CONNECTION, wallet, {
@@ -140,17 +200,28 @@ export default function DirectoryExtensionView(props: any){
 
     const handleCloseDialog = () => {
         setPropOpen(false);
-        handleCloseExtMenu();
+        handleCloseExtMenu(); 
     }
 
     const handleClickOpen = () => {
         setPropOpen(true);
+        callGovernanceLookup();
     };
 
     const handleClose = () => {
         setPropOpen(false);
         handleCloseExtMenu();
     };
+
+    const handleSubmitProposal = () => {
+        console.log("Submit button clicked");
+        // Add your submit logic here
+    }
+
+    const handleUpdateProposal = () => {
+        console.log("Update button clicked");
+        // Add your submit logic here
+    }
 
     const handleProposalIx = async() => {
         handleCloseExtMenu();
@@ -247,13 +318,123 @@ export default function DirectoryExtensionView(props: any){
         checkClaimStatus();
     }
 
-    
+    // State to handle the button's disabled status
+    const [isEditButtonDisabled, setEditButtonDisabled] = React.useState(true);
+
+    // Function to check if only the gspl_uri has been edited
+    const isOnlyGsplUriEdited = () => {
+        return gsplUri !== initialGsplUri && (
+            gsplName === initialGsplName &&
+            gsplDaoType === initialGsplDaoType &&
+            gsplRank === initialGsplRank
+        );
+    };
+
+    // Function to check if any field other than gspl_uri has been edited
+    const isOtherFieldEdited = () => {
+        return (
+            gsplUri === initialGsplUri &&
+            (gsplName !== initialGsplName ||
+             gsplDaoType !== initialGsplDaoType ||
+             gsplRank !== initialGsplRank)
+        );
+    };
+        
+    // Function to check whether the button should be enabled
+    React.useEffect(() => {
+        if (isOnlyGsplUriEdited() || isOtherFieldEdited()) {
+            setEditButtonDisabled(false); // Enable the button
+        } else {
+            setEditButtonDisabled(true); // Disable the button
+        }
+        console.log('isOnlyGsplUriEdited:', isOnlyGsplUriEdited());
+        console.log('isOtherFieldEdited:', isOtherFieldEdited());
+    }, [gsplUri, gsplName, gsplDaoType, gsplRank, initialGsplUri, initialGsplName, initialGsplDaoType, initialGsplRank]); // Recalculate whenever any field changes
+
+    const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
+    //RPC call to get from Directory all the listings with various combinations of requestStatus
+    const initGrapeGovernanceDirectory = async(): Promise<GovernanceEntryAccountData[]> => {
+        try{
+            const umi = createUmi(RPC_ENDPOINT);
+            const requestStatuses = [RequestStatus.Approved, RequestStatus.Pending, RequestStatus.Rejected, RequestStatus.Disabled];
+            const allEntries: GovernanceEntryAccountData[] = [];
+            for (const status of requestStatuses) {
+                const entries = await getRealms(umi, CONFIG, status);
+                allEntries.push(...entries); // Push each result into the final array
+            }
+            //console.log("Entries: "+JSON.stringify(allEntries));
+            return allEntries;
+        } catch(e){
+            console.log("Could not load GSPDL");
+            return [];
+        }
+    }
+
+    //get DAO's GSPL entry
+    const callGovernanceLookup = async() => {
+        setGsplName('');
+        setGsplStatus('');
+        setGsplDaoType('');
+        let exists = false;
+        const gspldir = await initGrapeGovernanceDirectory();
+        if (realm.account?.name){
+            for (var diritem of gspldir){
+                if (realm.account?.name === diritem.name){
+                    const gsplEntry = diritem;
+                    const fetchedGsplUri = gsplEntry.metadataUri || '';
+                    const fetchedGsplName = gsplEntry.name || '';
+                    const fetchedGsplDaoType = daoTypeToDescription(gsplEntry.govAccountType) || '';
+                    const fetchedGsplRank = gsplEntry.rank !== undefined ? gsplEntry.rank : 0;
+
+                    setGsplName(fetchedGsplName);
+                    setGsplStatus(statusToDescription(gsplEntry.requestStatus));
+                    setGsplDaoType(fetchedGsplDaoType);
+                    setGsplRank(fetchedGsplRank);
+                    setGsplUri(fetchedGsplUri);
+                    /*setGsplName(gsplEntry.name);
+                    setGsplStatus(statusToDescription(gsplEntry.requestStatus));
+                    setGsplDaoType(daoTypeToDescription(gsplEntry.govAccountType));
+                    setGsplRank(gsplEntry.rank);
+                    setGsplUri(gsplEntry.metadataUri);*/
+                    exists = true;
+                    //console.log("request status: ",gsplEntry.requestStatus);
+                    // Set initial values directly from fetched data
+                    setInitialGsplUri(fetchedGsplUri);
+                    setInitialGsplName(fetchedGsplName);
+                    setInitialGsplDaoType(fetchedGsplDaoType);
+                    setInitialGsplRank(fetchedGsplRank);
+                }
+            }
+        }
+        //set default values if the DAO isn't listed yet
+        if (!exists){
+            setGsplName(realm.account?.name|| '');
+            setGsplStatus("Pending");
+            setGsplRank(0);
+
+            // Set initial values for a new listing
+            setInitialGsplUri('');
+            setInitialGsplName(realm.account?.name|| '');
+            setInitialGsplDaoType('');
+            setInitialGsplRank(0);
+        }
+        setListingExists(exists); // Update state
+
+        if (exists){
+                // Set initial values based on the props or fetched data
+                setInitialGsplUri(gsplUri|| '');
+                setInitialGsplName(gsplName|| '');
+                setInitialGsplDaoType(gsplDaoType|| '');
+                setInitialGsplRank(gsplRank|| null);
+        }
+    }
+
     return (
         <>
             <Tooltip title="Manage this Governance Directory Listing" placement="right">
-                <MenuItem onClick={handleClickOpen} disabled={true}>
+                <MenuItem onClick={handleClickOpen} disabled={false}>
                 <ListItemIcon>
-                    <BookIcon fontSize="small" />
+                    <VerifiedIcon fontSize="small" />
                 </ListItemIcon>
                 Directory
                 </MenuItem>
@@ -281,141 +462,123 @@ export default function DirectoryExtensionView(props: any){
                 <DialogContent>
                     
                     <DialogContentText>
-                        Welcome to the first Governance Wallet Extension, check any merkle distribution, enter the address of the token
+                        Welcome to the GSPL Directory Extension.  Create a proposal to get your DAO listed or update its current listing.
                     </DialogContentText>
-                    
-                    <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{mt:1,mb:1,textAlign:'center'}}>
-                        <Stack direction="row" spacing={1}>
-                            <Chip
-                                disabled={loading}
-                                variant="outlined"
-                                label="WEN"
-                                onClick={(e) => fetchClaimForToken("WENWENvqqNya429ubCdR81ZmD69brwQaaBYY6p3LCpk")}
-                                avatar={<Avatar alt="WEN" src="https://shdw-drive.genesysgo.net/GwJapVHVvfM4Mw4sWszkzywncUWuxxPd6s9VuFfXRgie/wen_logo.png" />}
-                                />
-                            
-                            <Chip
-                                disabled={loading}
-                                variant="outlined"
-                                label="JUP"
-                                onClick={(e) => fetchClaimForToken("JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN")}
-                                avatar={<Avatar alt="WEN" src="https://static.jup.ag/jup/icon.png" />}
-                                />
-                        </Stack>
-                    </Box>
-
-                    
                         <TextField
                             autoFocus
-                            required
                             margin="dense"
-                            id="claim_token_address"
-                            name="claim_token_address"
-                            label="Token Address"
+                            id="gspl_status"
+                            name="gspl_status"
+                            label="DAO Request Status"
                             type="text"
                             fullWidth
                             variant="outlined"
-                            value={claimTokenAddress}
+                            value={gsplStatus}
                             InputLabelProps={{ shrink: true }}
-                            onChange={(e) => setClaimTokenAddress(e.target.value)}
+                            inputProps={{ readonly: true}}
+                            sx={{
+                                textAlign: "center",
+                                input: { color: getTextColor() } // Conditionally set the text color
+                            }}
+                        />
+                        <TextField
+                            autoFocus
+                            margin="dense"
+                            id="gspl_name"
+                            name="gspl_name"
+                            label="DAO Name"
+                            type="text"
+                            fullWidth
+                            variant="outlined"
+                            color="success"
+                            focused
+                            value={gsplName}
+                            InputLabelProps={{ shrink: true }}
                             sx={{textAlign:"center"}}
-                            />
-                    
-
-                    {(claimableAmount && governanceNativeWallet) ?
-                        <Box  alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2,textAlign:'center'}}>
-                            <Typography variant="h6">
-                                This Governance can claim {(claimableAmount/10**claimMintInfo.decimals).toLocaleString()}&nbsp;
-                                {mintInfo &&
-                                <>
-                                    {mintInfo.name}
-                                </>}
-                                {/*
-                                <br/><br/>
-                                
-                                <Typography variant='body1'>Add your plugins now on governance.so - the most powerful Wallet on Solana by Grape - reach out to the Grape DAO on 
-                                    <Button 
-                                        target='_blank' href={`https://discord.gg/grapedao`}
-                                        color='inherit'
-                                        sx={{
-                                        verticalAlign: 'middle',
-                                        display: 'inline-flex',
-                                        borderRadius:'17px',
-                                        m:1,
-                                        textTransform:'none'
-                                    }}>
-                                        <DiscordIcon sx={{mt:1,fontSize:27.5,color:'white'}} /> <strong>Discord</strong>
-                                    </Button> to get started
-                                    </Typography>
-                                */}
-                            </Typography>
-                        </Box>
-                    :<>
-                        {(!claimableAmount && claimMintInfo && !loading) ?
-                            <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2,textAlign:'center'}}>
-                                <Typography variant="h6">
-                                    Nothing to claim
-                                </Typography>
+                        />
+                        <Grid container spacing={2}> {/* Grid container with spacing between the fields */}
+                            <Grid item xs={6}> 
+                                <FormControl fullWidth variant="outlined" margin="dense">
+                                <InputLabel 
+                                    id="gspl_daoType_label" 
+                                    shrink={!!gsplDaoType} // Conditionally shrink label if value is set
+                                    >
+                                    
+                                </InputLabel>
+                                    <Select
+                                    labelId="gspl_daoType_label"
+                                    id="gspl_daoType"
+                                    name="gspl_daoType"
+                                    value={gsplDaoType}
+                                    onChange={(e) => setGsplDaoType(e.target.value)} // Handle changes
+                                    label="Type of DAO"
+                                    displayEmpty // Allows display of empty option
+                                    >
+                                        <MenuItem value="">
+                                        <em>Select DAO Type</em> {/* Placeholder when no value is selected */}
+                                    </MenuItem>
+                                        <MenuItem value="Social">Social</MenuItem>
+                                        <MenuItem value="Finance">Finance</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                            <Grid item xs={6}> {/* The second field, taking the other half of the width */}
+                                <TextField
+                                    autoFocus
+                                    margin="dense"
+                                    id="gspl_rank"
+                                    name="gspl_rank"
+                                    label="Rank"
+                                    type="number"
+                                    fullWidth
+                                    variant="outlined"
+                                    value={gsplRank}
+                                    InputLabelProps={{ shrink: true }}
+                                    sx={{textAlign:"center"}}
+                                />
+                            </Grid>
+                        </Grid>
+                        <TextField
+                            autoFocus
+                            margin="dense"
+                            id="gspl_uri"
+                            name="gspl_uri"
+                            label="Metadata URI"
+                            type="text"
+                            fullWidth
+                            multiline
+                            maxRows={3}
+                            variant="outlined"
+                            value={gsplUri}
+                            InputLabelProps={{ shrink: true }}
+                            onChange={(e) => setGsplUri(e.target.value)}
+                            sx={{textAlign:"center"}}
+                        />
+                        {listingExists && (
+                            <Box mt={2} textAlign="right">
+                                <Button 
+                                    variant="contained" 
+                                    color="primary" 
+                                    onClick={handleUpdateProposal}
+                                    startIcon={<EditIcon />}
+                                    disabled={isEditButtonDisabled} // Conditionally disable/enable button need to look at it doesn't seem to work
+                                >
+                                    Proposal to Update Listing
+                                </Button>
                             </Box>
-                        :<></>}
-                    </>}
-
-                    <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2, textAlign:'center'}}>
-                        <Typography variant="caption">Made with ❤️ by Grape &amp; Jupiter #OPOS</Typography>
-                    </Box>
-
-                    <DialogActions>
-                        <Button 
-                            disabled={!claimTokenAddress && !loading}
-                            autoFocus 
-                            onClick={handleCheckClaimStatus}
-                            sx={{
-                                '&:hover .MuiSvgIcon-root.claimIcon': {
-                                    color:'rgba(255,255,255,0.90)'
-                                }
-                            }}
-                            startIcon={
-                            <>
-                                <BookIcon 
-                                    className="claimIcon"
-                                    sx={{
-                                        color:'rgba(255,255,255,0.25)',
-                                        fontSize:"14px!important"}} />
-                            </>
-                            }
-                        >
-                            {loading ?
-                                <>Checking...</>
-                            :
-                                <>Check</>
-                            }
-                            
-                        </Button>
-                        {(publicKey && claimableAmount && claimableAmount > 0) &&
-                        <Button 
-                            disabled={!claimTokenAddress && !loading}
-                            autoFocus 
-                            onClick={handleProposalIx}
-                            sx={{
-                                '&:hover .MuiSvgIcon-root.claimNowIcon': {
-                                    color:'rgba(255,255,255,0.90)'
-                                }
-                            }}
-                            startIcon={
-                            <>
-                                <GetAppIcon 
-                                    className="claimNowIcon"
-                                    sx={{
-                                        color:'rgba(255,255,255,0.25)',
-                                        fontSize:"14px!important"}} />
-                            </>
-                            }
-                        >
-                            <>Claim</>
-                        </Button>
-                        }
-                    </DialogActions>
-                    
+                        )}
+                        {!listingExists && (
+                            <Box mt={2} textAlign="right">
+                                <Button 
+                                    variant="contained" 
+                                    color="primary" 
+                                    onClick={handleSubmitProposal}
+                                    startIcon={<AddCircleIcon />}
+                                >
+                                    Submit Listing Proposal
+                                </Button>
+                            </Box>
+                        )}
                 </DialogContent> 
             </BootstrapDialog>
         </>
