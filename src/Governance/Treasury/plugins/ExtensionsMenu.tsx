@@ -142,10 +142,10 @@ export default function ExtensionsMenuView(props: any) {
             masterWallet={masterWallet}
             usdcValue={usdcValue}
         />
-        {(governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' ||
+        {/*(governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' ||
           governanceNativeWallet === '6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD'  ||
           governanceNativeWallet === 'AWaMVkukciGYPEpJbnmSXPJzVxuuMFz1gWYBkznJ2qbq' 
-        ) &&
+        ) && */}
         <TokenManagerView
             realm={realm}
             handleCloseExtMenu={handleClose}
@@ -156,7 +156,7 @@ export default function ExtensionsMenuView(props: any) {
             instructions={instructions}
             setInstructions={setInstructions}
         />
-        }
+        
         {(governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' ||
           governanceNativeWallet === '3BEvopNQ89zkM4r6ADva18i5fao1sqR1pmswyQyfj838'
          ) &&

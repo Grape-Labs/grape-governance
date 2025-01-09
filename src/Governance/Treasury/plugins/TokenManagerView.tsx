@@ -145,11 +145,11 @@ export default function TokenManagerView(props) {
     const setReload = props?.setReload;
     const governanceLookup = props.governanceLookup;
     const governanceRulesWallet = props.governanceRulesWallet;
-    const editProposalAddress = props?.editProposalAddress;
     const governingTokenMint = props.governingTokenMint;
-    const governanceAddress = props.governanceAddress;
     
     const realm = props?.realm;
+    const governanceAddress = props.governanceAddress || realm.pubkey.toBase58();
+    
     const rulesWallet = props?.rulesWallet;
     const handleCloseExtMenu = props?.handleCloseExtMenu;
     const expandedLoader = props?.expandedLoader;
@@ -172,6 +172,8 @@ export default function TokenManagerView(props) {
     const [amount, setAmount] = useState(0);
     const [proposalTitle, setProposalTitle] = useState(`Create a New Token`);
     const [proposalDescription, setProposalDescription] = useState(`Initialize a new token with the specified name, symbol, and metadata URI.`);
+    const [editProposalAddress, setEditProposalAddress] = useState(props?.editProposalAddress);
+    
     const [loading, setLoading] = useState(false);
     const [open, setPropOpen] = React.useState(false);
 
@@ -471,6 +473,7 @@ export default function TokenManagerView(props) {
                     nativeWallet:governanceNativeWallet,
                     governingMint:governingMint,
                     draft: isDraft,
+                    editProposalAddress: editProposalAddress,
                 };
 
                 //console.log("Passing signer: "+JSON.stringify(ixSigners));
@@ -594,6 +597,7 @@ export default function TokenManagerView(props) {
                     nativeWallet:governanceNativeWallet,
                     governingMint:governingMint,
                     draft: isDraft,
+                    editProposalAddress: editProposalAddress,
                 };
                 
                 handleCloseDialog();
@@ -704,6 +708,7 @@ export default function TokenManagerView(props) {
                 nativeWallet:governanceNativeWallet,
                 governingMint:governingMint,
                 draft: isDraft,
+                editProposalAddress: editProposalAddress,fu
             };
 
             console.log("Simulating");
@@ -1238,6 +1243,7 @@ export default function TokenManagerView(props) {
                             nativeWallet:governanceNativeWallet,
                             governingMint:governingMint,
                             draft: isDraft,
+                            editProposalAddress: editProposalAddress,
                         };
 
                         //console.log("Passing signer: "+JSON.stringify(ixSigners));
@@ -1679,6 +1685,7 @@ export default function TokenManagerView(props) {
                         {openAdvanced ? 
                             <>
                                 <AdvancedProposalView 
+                                    governanceAddress={governanceAddress}
                                     proposalTitle={proposalTitle}
                                     setProposalTitle={setProposalTitle}
                                     proposalDescription={proposalDescription}
@@ -1688,6 +1695,8 @@ export default function TokenManagerView(props) {
                                     isGoverningMintSelectable={isGoverningMintSelectable}
                                     isDraft={isDraft}
                                     setIsDraft={setIsDraft}
+                                    setEditProposalAddress={setEditProposalAddress}
+                                    editProposalAddress={editProposalAddress}
                                 />
                             </>
                         :
