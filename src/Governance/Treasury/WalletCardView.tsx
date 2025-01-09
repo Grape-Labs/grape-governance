@@ -1406,7 +1406,8 @@ export default function WalletCardView(props:any) {
                 console.log("Creating prop with "+publicKey.toBase58());
                 
                 console.log("ix signers: "+JSON.stringify(instructions?.signers))
-
+                console.log("editProposalAddress: "+JSON.stringify(instructions?.editProposalAddress))
+                
                 const propResponse = await createProposalInstructionsLegacy(
                     new PublicKey(programId),
                     new PublicKey(governanceAddress),
@@ -1423,8 +1424,8 @@ export default function WalletCardView(props:any) {
                     null,
                     isDraft,
                     returnTx,
-                    publicKey,
-                    null,
+                    publicKey, 
+                    instructions.editProposalAddress ? new PublicKey(instructions.editProposalAddress) : null,
                     null,
                     null,
                     null,

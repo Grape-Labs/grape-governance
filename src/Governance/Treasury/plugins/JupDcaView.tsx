@@ -121,10 +121,9 @@ export default function JupDcaExtensionView(props: any){
     const setReload = props?.setReload;
     const governanceLookup = props.governanceLookup;
     const governanceRulesWallet = props.governanceRulesWallet;
-    const editProposalAddress = props?.editProposalAddress;
     const governingTokenMint = props.governingTokenMint;
-    const governanceAddress = props.governanceAddress;
-    
+    const [editProposalAddress, setEditProposalAddress] = React.useState(props?.editProposalAddress);
+
     const preSelectedTokenAta = props?.preSelectedTokenAta;
     const useButtonText = props?.useButtonText;
     const useButtonType = props?.useButtonType;
@@ -132,6 +131,7 @@ export default function JupDcaExtensionView(props: any){
     const masterWallet = props?.masterWallet;
     const usdcValue = props?.usdcValue;
     const realm = props?.realm;
+    const governanceAddress = props.governanceAddress || realm.pubkey.toBase58();
     const rulesWallet = props?.rulesWallet;
     const handleCloseExtMenu = props?.handleCloseExtMenu;
     const expandedLoader = props?.expandedLoader;
@@ -1254,6 +1254,7 @@ export default function JupDcaExtensionView(props: any){
                     {openAdvanced ? 
                         <>
                             <AdvancedProposalView 
+                                governanceAddress={governanceAddress}
                                 proposalTitle={proposalTitle}
                                 setProposalTitle={setProposalTitle}
                                 proposalDescription={proposalDescription}
@@ -1263,6 +1264,8 @@ export default function JupDcaExtensionView(props: any){
                                 isGoverningMintSelectable={isGoverningMintSelectable}
                                 isDraft={isDraft}
                                 setIsDraft={setIsDraft}
+                                setEditProposalAddress={setEditProposalAddress}
+                                editProposalAddress={editProposalAddress}
                             />
                             
                         </>
