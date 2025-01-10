@@ -38,6 +38,8 @@ import {
     getVoteRecordsByVoterIndexed,
 } from '../../api/queries';
 
+import { useWallet } from '@solana/wallet-adapter-react';
+
 export default function AdvanvedProposalView(props: any){
     const governanceAddress = props?.governanceAddress;
     const proposalTitle = props?.proposalTitle;
@@ -56,39 +58,61 @@ export default function AdvanvedProposalView(props: any){
     const maxTitleLen = 130;
     const maxDescriptionLen = 350;//512;
 
+    const { publicKey } = useWallet();
+
     const [loading, setLoading] = React.useState(false);
     const [draftProposals, setDraftProposals] = React.useState(null);
 
-    // add function to show all proposals in a draft state to use the setEditProposalAddress
     const getGovernanceProposals = async () => {
         console.log("get governance proposals...");
-            if (!loading){
-                //startTimer();
-                setLoading(true);
-                try{
-                    let grealm = await getRealmIndexed(new PublicKey(governanceAddress).toBase58());
-                    const governanceRulesIndexed = await getAllGovernancesIndexed(new PublicKey(governanceAddress).toBase58(), grealm?.owner);
-                    const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
-                    
-                    const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm?.owner, new PublicKey(governanceAddress).toBase58());
-
-                    // filter proposals that are in draft state and that are in the same rules wallet?
-                    // {GOVERNANCE_STATE[item.account?.state]} if it is 0 then it is a draft
-                    let processedDraftProposals = new Array();
-                    gprops.forEach((item) => {
-                        if (item?.account?.state === 0) {
-                                processedDraftProposals.push(item);
+        if (!loading){
+            setLoading(true);
+            try {
+                const governanceAddressBase58 = new PublicKey(governanceAddress).toBase58();
+                const grealm = await getRealmIndexed(governanceAddressBase58);
+                const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddressBase58, grealm?.owner);
+                const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
+                
+                const gprops = await getAllProposalsIndexed(
+                    governanceRulesStrArr, 
+                    grealm?.owner, 
+                    governanceAddressBase58
+                );
+                
+                const processedDraftProposals = [];
+                
+                for (const item of gprops) {
+                    if (item?.account?.state === 0) { // Check if proposal is in draft state
+                        try {
+                            const voter = await getAllTokenOwnerRecordsIndexed(
+                                governanceAddressBase58,
+                                grealm.owner.toBase58(),
+                                publicKey.toBase58(),
+                                item.account.governingTokenMint.toBase58()
+                            );
+                            //console.log("post voter:"+ JSON.stringify(voter));
+                            //console.log("proposal author:", item.account.tokenOwnerRecord.toBase58());
+                            //console.log("governance rules:", item.account.governance.toBase58());
+                            
+                            // You can add additional logic here based on the voter record if needed
+                            if (voter && voter.length > 0){
+                                if (voter[0].pubkey.toBase58() === item.account.tokenOwnerRecord.toBase58())
+                                    processedDraftProposals.push(item);
                             }
-                      });
-
-                      setDraftProposals(processedDraftProposals);
-
-                    setLoading(false);
-                } catch(e){
-                    console.log("ERR: "+JSON.stringify(e));
-                    setLoading(false);
+                        } catch (voterError) {
+                            console.error("Error fetching voter record:", voterError);
+                            // Handle individual voter fetch errors if necessary
+                        }
+                    }
                 }
+                
+                setDraftProposals(processedDraftProposals);
+            } catch (e) {
+                console.error("Error in getGovernanceProposals:", e);
+            } finally {
+                setLoading(false);
             }
+        }
     }
 
     const handleSelectChange = (event: any) => {
