@@ -528,10 +528,10 @@ function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number, toke
     if (tokenOwner && governingTokenMint){
         return gql `
             query MyQuery {
-                ${programId}_TokenOwnerRecordV2(offset:"${pointer}", 
+                ${programId}_TokenOwnerRecordV2(offset:${pointer}, 
                 where: {
-                    realm: {_eq: "${realm}"}
                     _and: [
+                        { realm: {_eq: "${realm}"} },
                         { governingTokenOwner: { _eq: "${tokenOwner}" } },
                         { governingTokenMint: { _eq: "${governingTokenMint}" } }
                       ]
@@ -548,13 +548,13 @@ function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number, toke
                     version
                     pubkey      
                 }
-                ${programId}_TokenOwnerRecordV1(offset:"${pointer}",
+                ${programId}_TokenOwnerRecordV1(offset:${pointer},
                 where: {
-                    realm: {_eq: "${realm}"}
                     _and: [
+                        { realm: {_eq: "${realm}"} },
                         { governingTokenOwner: { _eq: "${tokenOwner}" } },
                         { governingTokenMint: { _eq: "${governingTokenMint}" } }
-                      ]
+                    ]
                 }) {
                     governanceDelegate
                     governingTokenDepositAmount
@@ -575,11 +575,11 @@ function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number, toke
             query MyQuery {
                 ${programId}_TokenOwnerRecordV2(offset:"${pointer}", 
                 where: {
-                    realm: {_eq: "${realm}"}
                     _and: [
+                        { realm: {_eq: "${realm}"} }, 
                         { governingTokenOwner: { _eq: "${tokenOwner}" } },
                         { governanceDelegate: { _eq: "${tokenOwner}" } }
-                      ]
+                    ]
                 }) {
                     governanceDelegate
                     governingTokenDepositAmount
@@ -595,11 +595,11 @@ function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number, toke
                 }
                 ${programId}_TokenOwnerRecordV1(offset:"${pointer}",
                 where: {
-                    realm: {_eq: "${realm}"}
                     _and: [
+                        { realm: {_eq: "${realm}"} }, 
                         { governingTokenOwner: { _eq: "${tokenOwner}" } },
                         { governanceDelegate: { _eq: "${tokenOwner}" } }
-                      ]
+                    ]
                 }) {
                     governanceDelegate
                     governingTokenDepositAmount
