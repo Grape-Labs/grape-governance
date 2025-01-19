@@ -114,6 +114,7 @@ export async function createProposalInstructionsLegacy(
     failCallback?: any,
     startIndex?: number,
     signers?: Keypair[][],
+    delegate?: PublicKey,
   ): Promise<any>{//Promise<Transaction> {
 
     //console.log('inDAOProposal instructionArray before adding DAO Instructions:'+JSON.stringify(transactionInstr));
@@ -201,7 +202,7 @@ export async function createProposalInstructionsLegacy(
       }
     }
 
-    const governanceAuthority = walletPk
+    const governanceAuthority = delegate || walletPk
     console.log("programId: "+programId.toBase58());
     console.log("programVersion: "+programVersion);
     console.log("realmPk: "+realmPk.toBase58());
@@ -456,7 +457,7 @@ export async function createProposalInstructionsLegacy(
           0,
           minInstructionHoldUpTime,
           [instructionData[j]],
-          walletPk
+          payer
         );
 
         console.log("Inserting insertInstructions: "+JSON.stringify(insertInstructions));
