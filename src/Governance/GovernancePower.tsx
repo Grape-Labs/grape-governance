@@ -968,7 +968,7 @@ export default function GovernancePower(props: any){
                                         <Grid container alignItems="center">
                                             <Grid item xs>
                                                 <Typography gutterBottom variant="h5" component="div">
-                                                Community Delegation From
+                                                You have Community Delegation
                                                 </Typography>
                                             </Grid>
                                         </Grid>
@@ -995,7 +995,7 @@ export default function GovernancePower(props: any){
                                         <Grid container alignItems="center">
                                             <Grid item xs>
                                                 <Typography gutterBottom variant="h5" component="div">
-                                                Council Delegation From
+                                                You have Council Delegation
                                                 </Typography>
                                             </Grid>
                                         </Grid>
