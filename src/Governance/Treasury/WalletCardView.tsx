@@ -1302,7 +1302,7 @@ export default function WalletCardView(props:any) {
                 //const txid = await connection.sendRawTransaction(rawTransaction, {
                 //skipPreflight: true,
                 //});
-
+                
                 console.log("Transaction: "+JSON.stringify(transaction));
 
                 setLoaderSuccess(true);
@@ -1429,7 +1429,8 @@ export default function WalletCardView(props:any) {
                     null,
                     null,
                     null,
-                    instructions?.signers
+                    instructions?.signers,
+                    null, // delegate
                 );
                 
                 setLoaderCreationComplete(false);

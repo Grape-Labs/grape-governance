@@ -427,6 +427,9 @@ export default function GovernanceCreateProposalView(props: any){
             editProposalAddress,
             successCallback,
             failCallback,
+            null,
+            null,
+            null, // delegate
           );
         }
         //console.log("Simulation: ",propSimulation);
@@ -563,6 +566,8 @@ export default function GovernanceCreateProposalView(props: any){
             successCallback,
             failCallback,
             startIndex,
+            null,
+            null,
           );
         }
         
