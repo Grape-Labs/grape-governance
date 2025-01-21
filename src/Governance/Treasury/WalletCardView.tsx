@@ -1390,8 +1390,11 @@ export default function WalletCardView(props:any) {
 
                 console.log("with Governing Mint: "+useGoverningMint)
 
-                console.log("sending to createProposalInstructionsLegacy")
-                setLoadingText("Creating Proposal...");
+                console.log("sending to createProposalInstructionsLegacy");
+                if (instructions.editProposalAddress)
+                    setLoadingText("Editing Proposal...");
+                else
+                    setLoadingText("Creating Proposal...");
                 setLoadingPropCreation(true);
                 
                 /*
@@ -1443,7 +1446,10 @@ export default function WalletCardView(props:any) {
                     const accountInfo = await RPC_CONNECTION.getAccountInfo(publicKey);
                     console.log("accountInfo: "+JSON.stringify(accountInfo));
                     if (accountInfo){
-                        setLoadingText("New Proposal Created!");
+                        if (instructions.editProposalAddress)
+                            setLoadingText("Added to proposal "+instructions.editProposalAddress);
+                        else
+                            setLoadingText("New Proposal Created!");
                         setProposalCreated(true);
                         // close any expanded sections
                         // reload proposals & expand
@@ -1457,7 +1463,7 @@ export default function WalletCardView(props:any) {
                         hideCloseAllExpandedViews();
                     }
                 } else{
-                    setLoadingText("New Proposal Failed!");
+                    setLoadingText("Proposal Failed!");
                     setProposalCreated(false);
                     hideCloseAllExpandedViews();
                 }

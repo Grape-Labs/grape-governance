@@ -202,7 +202,7 @@ export async function createProposalInstructionsLegacy(
       }
     }
 
-    const governanceAuthority = delegate || walletPk
+    const governanceAuthority = delegate || walletPk;
     console.log("programId: "+programId.toBase58());
     console.log("programVersion: "+programVersion);
     console.log("realmPk: "+realmPk.toBase58());

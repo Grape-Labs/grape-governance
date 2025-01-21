@@ -63,6 +63,8 @@ export default function AdvanvedProposalView(props: any){
     const [loading, setLoading] = React.useState(false);
     const [draftProposals, setDraftProposals] = React.useState(null);
 
+    // let's check here if the user is a delegate to give the option to choose who to create the proposal from
+
     const getGovernanceProposals = async () => {
         console.log("get governance proposals...");
         if (!loading){
