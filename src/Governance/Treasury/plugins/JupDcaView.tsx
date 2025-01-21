@@ -307,6 +307,7 @@ export default function JupDcaExtensionView(props: any){
                 nativeWallet:governanceNativeWallet,
                 governingMint:governingMint,
                 draft:isDraft,
+                editProposalAddress: editProposalAddress,
             }
 
             //console.log("ixs: "+JSON.stringify(ixs))
@@ -473,6 +474,7 @@ export default function JupDcaExtensionView(props: any){
                 nativeWallet:governanceNativeWallet,
                 governingMint:governingMint,
                 draft:isDraft,
+                editProposalAddress: editProposalAddress,
             }
 
             //console.log("ixs: "+JSON.stringify(ixs))
@@ -632,7 +634,6 @@ export default function JupDcaExtensionView(props: any){
         }
 
     }, []);
-
 
     function generateInstructions(){
         if (tokenSelected && toMintAddress && period && periodDuration){
