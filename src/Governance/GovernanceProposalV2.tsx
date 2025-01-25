@@ -643,7 +643,20 @@ export function GovernanceProposalV2View(props: any){
         }
     }
 
-
+    function escapeCSV(value) {
+        if (value == null) {
+            return '';
+        }
+        const stringValue = value.toString();
+        // Check if the value contains any characters that need escaping
+        if (/[",\n\r]/.test(stringValue)) {
+            // Escape double quotes by replacing " with ""
+            const escaped = stringValue.replace(/"/g, '""');
+            // Enclose the field in double quotes
+            return `"${escaped}"`;
+        }
+        return stringValue;
+    }
 
     const getVotingParticipants = async () => {
         setLoadingParticipants(true);
@@ -1693,48 +1706,72 @@ export function GovernanceProposalV2View(props: any){
                 if (counter > 1)
                     csvFile += '\r\n';
                 else
-                    csvFile = 'tokenOwner,uiVotes,voterWeight,tokenDecimals,voteType,proposal\r\n';
+                    csvFile = 'Voter,Vote,Votes Casted,Voter Weight,Token Decimals,Vote Type,Proposal\r\n';
                 
                 let voteType = 0;
                 let voterWeight = 0;
-
+                let voteDirection = 'No';
                 if (!from_cache){
                     if (item.account?.voterWeight){
                         voteType = item.account?.vote?.voteType;
                         voterWeight = Number(item.account?.voterWeight);
+                        if (voteType === 0)
+                            voteDirection = 'Yes';
+                        else
+                            voteDirection = 'No';
                     } else{
                         if (item.account?.voteWeight?.yes && item.account?.voteWeight?.yes > 0){
                             voteType = 0
-                            voterWeight = item.account?.voteWeight?.yes
+                            voterWeight = item.account?.voteWeight?.yes;
+                            voteDirection = 'Yes';
                         }else{
                             voteType = 1
-                            voterWeight = item.account?.voteWeight?.no
+                            voterWeight = item.account?.voteWeight?.no;
+                            voteDirection = 'No';
                         }
                     }
-
                     
-                    csvFile += item.account.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, ((realm.account.config?.councilMint && new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58()) ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
+                    csvFile += item.account.governingTokenOwner.toBase58()+','+voteDirection+','+(+((voterWeight)/Math.pow(10, ((realm.account.config?.councilMint && new PublicKey(realm.account.config?.councilMint).toBase58() === thisitem.account.governingTokenMint?.toBase58()) ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.account.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.account.proposal.toBase58()+'';
                 
                 } else{
                     if (item.vote?.voterWeight){
                         voteType = item.vote?.vote?.voteType;
                         voterWeight = Number(item.vote?.voterWeight);
+                        if (voteType === 0)
+                            voteDirection = 'Yes';
+                        else
+                            voteDirection = 'No';
                     } else{
                         if (item.vote?.voteWeight?.yes && item.account?.voteWeight?.yes > 0){
                             voteType = 0
-                            voterWeight = item.vote?.voteWeight?.yes
+                            voterWeight = item.vote?.voteWeight?.yes;
+                            voteDirection = 'Yes';
                         }else{
                             voteType = 1
-                            voterWeight = item.vote?.voteWeight?.no
+                            voterWeight = item.vote?.voteWeight?.no;
+                            voteDirection = 'No';
                         }
                     }
 
-                    csvFile += item.governingTokenOwner.toBase58()+','+(+((voterWeight)/Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.proposal.toBase58()+'';
+                    csvFile += item.governingTokenOwner.toBase58()+','+voteDirection+','+(+((voterWeight)/Math.pow(10, ((realm.account.config?.councilMint) === thisitem.governingTokenMint?.toBase58() ? 0 : td))).toFixed(0))+','+(voterWeight)+','+(realm.account.config?.councilMint === thisitem.governingTokenMint?.toBase58() ? 0 : td)+','+voteType+','+item.proposal.toBase58()+'';
                     
                 }
+
                 
                 //    csvFile += item.pubkey.toBase58();
             }
+            let prepend = '';
+            prepend += 'Proposal,'+escapeCSV(thisitem.account?.name)+',,,,,,';
+            prepend += '\r\n';
+            prepend += 'Total Voters,'+counter+',,,,,,';
+            prepend += '\r\n';
+            prepend += 'Total Yes,'+uYes+',,,,,,';
+            prepend += '\r\n';
+            prepend += 'Total No,'+uNo+',,,,,,';
+            prepend += '\r\n';
+            prepend += '\r\n';
+            csvFile = prepend + csvFile;
+            
         }
 
         //console.log("votingResults: "+JSON.stringify(votingResults));
