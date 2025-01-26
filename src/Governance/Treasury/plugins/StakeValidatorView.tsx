@@ -1,4 +1,5 @@
 import { AnchorProvider, web3 } from '@coral-xyz/anchor';
+import { v4 as uuidv4 } from 'uuid';
 import { 
     Signer, 
     Connection, 
@@ -169,6 +170,10 @@ export default function StakeValidatorView(props: any){
         },
         [enqueueSnackbar]
     );
+
+    const generateUniqueSeed = () => {
+        return `stake-${uuidv4()}`;
+    }
 
     const toggleGoverningMintSelected = (council: boolean) => {
         if (council){
@@ -452,6 +457,22 @@ export default function StakeValidatorView(props: any){
                                     sx={{ m: 0.65 }}
                                 />
                             </Grid>
+                            {/*
+                            <Grid item xs={12}>
+                                <TextField 
+                                    fullWidth 
+                                    label="Seed for Stake Address" 
+                                    id="stakeSeed"
+                                    type="text"
+                                    value={stakeSeed}
+                                    onChange={(e) => setStakeSeed(e.target.value)}
+                                    variant="filled"
+                                    required
+                                    helperText="A unique seed string to generate the stake account."
+                                    sx}={{ m: 0.65 }}
+                                />
+                            </Grid>
+                            */}
                             <Grid item xs={12}>
                                 <TextField 
                                     fullWidth 
@@ -464,7 +485,13 @@ export default function StakeValidatorView(props: any){
                                     required
                                     helperText="A unique seed string to generate the stake account."
                                     sx={{ m: 0.65 }}
+                                    InputProps={{
+                                        readOnly: true, // Make it read-only if generating automatically
+                                    }}
                                 />
+                                <Button onClick={() => setStakeSeed(generateUniqueSeed())}>
+                                    Regenerate Seed
+                                </Button>
                             </Grid>
                             <Grid item xs={12}>
                                 <TextField 
