@@ -79,6 +79,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import GetAppIcon from '@mui/icons-material/GetApp';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 import AdvancedProposalView from './AdvancedProposalView';
 
@@ -159,7 +160,7 @@ export default function StakeValidatorView(props: any){
     
     // New state variables for staking
     const [validatorVoteAddress, setValidatorVoteAddress] = React.useState('');
-    const [stakeSeed, setStakeSeed] = React.useState('');
+    const [stakeSeed, setStakeSeed] = React.useState(null);
     const [amount, setAmount] = React.useState('');
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
@@ -369,6 +370,9 @@ export default function StakeValidatorView(props: any){
                 setIsGoverningMintCouncilSelected(false);
             }
         }
+        if (!stakeSeed){
+            generateUniqueSeed();
+        }
     }, []);
 
     return (
@@ -486,12 +490,20 @@ export default function StakeValidatorView(props: any){
                                     helperText="A unique seed string to generate the stake account."
                                     sx={{ m: 0.65 }}
                                     InputProps={{
-                                        readOnly: true, // Make it read-only if generating automatically
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <IconButton
+                                                    aria-label="regenerate seed"
+                                                    onClick={() => setStakeSeed(generateUniqueSeed())}
+                                                    edge="end"
+                                                    size="small"
+                                                >
+                                                    <RefreshIcon fontSize="small" />
+                                                </IconButton>
+                                            </InputAdornment>
+                                        ),
                                     }}
                                 />
-                                <Button onClick={() => setStakeSeed(generateUniqueSeed())}>
-                                    Regenerate Seed
-                                </Button>
                             </Grid>
                             <Grid item xs={12}>
                                 <TextField 
