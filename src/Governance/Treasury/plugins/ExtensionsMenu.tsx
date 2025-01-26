@@ -56,6 +56,7 @@ import JupDcaExtensionView from './JupDcaView';
 import DirectoryExtensionView from './DirectoryView';
 import DistributorExtensionView from './DistributorView';
 import CustomIxView from './CustomIxView';
+import StakeValidatorView from './StakeValidatorView';
 import ClaimExtensionView from './ClaimView';
 import TokenManagerView from './TokenManagerView';
 import DemoExtensionView from './DemoView';
@@ -184,6 +185,16 @@ export default function ExtensionsMenuView(props: any) {
             setInstructions={setInstructions}
         />
         <CustomIxView
+            realm={realm}
+            handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
+        <StakeValidatorView
             realm={realm}
             handleCloseExtMenu={handleClose}
             rulesWallet={rulesWallet}
