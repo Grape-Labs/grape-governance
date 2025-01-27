@@ -60,6 +60,7 @@ import StakeValidatorView from './StakeValidatorView';
 import ClaimExtensionView from './ClaimView';
 import TokenManagerView from './TokenManagerView';
 import DemoExtensionView from './DemoView';
+import GovernanceConfigView from './GovernanceConfigView';
 
 export default function ExtensionsMenuView(props: any) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -131,6 +132,17 @@ export default function ExtensionsMenuView(props: any) {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
+        <DemoExtensionView
+            realm={realm}
+            handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
+        <Divider />
         <SendExtensionView
             realm={realm}
             handleCloseExtMenu={handleClose}
@@ -225,7 +237,7 @@ export default function ExtensionsMenuView(props: any) {
             setInstructions={setInstructions}
         />
         <Divider />
-        <DemoExtensionView
+        <GovernanceConfigView 
             realm={realm}
             handleCloseExtMenu={handleClose}
             rulesWallet={rulesWallet}

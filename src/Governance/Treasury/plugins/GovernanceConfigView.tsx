@@ -20,7 +20,9 @@ import axios from "axios";
 import {
     getInstructionDataFromBase64,
     serializeInstructionToBase64,
-  } from '@solana/spl-governance'
+    GoverningTokenConfigAccountArgs,
+    MintMaxVoteWeightSource,
+} from '@solana/spl-governance'
 
 import { 
     RPC_CONNECTION,
@@ -29,7 +31,7 @@ import {
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletError, WalletNotConnectedError } from '@solana/wallet-adapter-base';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 
 import {
@@ -72,7 +74,7 @@ import VerticalAlignBottomIcon from '@mui/icons-material/VerticalAlignBottom';
 import VerticalAlignTopIcon from '@mui/icons-material/VerticalAlignTop';
 import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import PersonIcon from '@mui/icons-material/Person';
-import LockIcon from '@mui/icons-material/Lock';
+import SettingsIcon from '@mui/icons-material/Settings';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import SendIcon from '@mui/icons-material/Send';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -82,6 +84,7 @@ import IconButton from '@mui/material/IconButton';
 import RefreshIcon from '@mui/icons-material/Refresh';
 
 import AdvancedProposalView from './AdvancedProposalView';
+import { createSetRealmConfig } from '@solana/spl-governance'; // Adjust the import path as needed
 
 export interface DialogTitleProps {
     id: string;
@@ -114,15 +117,15 @@ const BootstrapDialogTitle = (props: DialogTitleProps) => {
 };
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-    '& .MuDialogContent-root': {
+    '& .MuiDialogContent-root': {
       padding: theme.spacing(2),
     },
-    '& .MuDialogActions-root': {
+    '& .MuiDialogActions-root': {
       padding: theme.spacing(1),
     },
 }));
 
-export default function StakeValidatorView(props: any){
+export default function GovernanceSettingsView(props: any) {
     const setReload = props?.setReload;
     const governanceLookup = props.governanceLookup;
     const governanceRulesWallet = props.governanceRulesWallet;
@@ -151,17 +154,22 @@ export default function StakeValidatorView(props: any){
     const [loading, setLoading] = React.useState(false);
     const [open, setPropOpen] = React.useState(false);
     const [openAdvanced, setOpenAdvanced] = React.useState(false);
-    const [proposalTitle, setProposalTitle] = React.useState(null);
-    const [proposalDescription, setProposalDescription] = React.useState(null);
-    const [governingMint, setGoverningMint] = React.useState(null);
+    const [proposalTitle, setProposalTitle] = React.useState<string | null>(null);
+    const [proposalDescription, setProposalDescription] = React.useState<string | null>(null);
+    const [governingMint, setGoverningMint] = React.useState<string | null>(null);
     const [isGoverningMintSelectable, setIsGoverningMintSelectable] = React.useState(true);
     const [isGoverningMintCouncilSelected, setIsGoverningMintCouncilSelected] = React.useState(true);
     const [isDraft, setIsDraft] = React.useState(false);
     
-    // New state variables for staking
-    const [validatorVoteAddress, setValidatorVoteAddress] = React.useState('');
-    const [stakeSeed, setStakeSeed] = React.useState(null);
-    const [amount, setAmount] = React.useState('');
+    // Governance Settings State Variables
+    const [minCommunityTokensEnabled, setMinCommunityTokensEnabled] = React.useState<boolean>(false);
+    const [communityMintSupplyFactor, setCommunityMintSupplyFactor] = React.useState<number | null>(null);
+    const [communityTokenType, setCommunityTokenType] = React.useState<string | null>(null); // Disabled
+    const [communityVoterWeightAddIn, setCommunityVoterWeightAddIn] = React.useState<number | null>(null);
+    const [communityMaxVoterWeightAddIn, setCommunityMaxVoterWeightAddIn] = React.useState<number | null>(null);
+    const [councilTokenType, setCouncilTokenType] = React.useState<string | null>(null); // Membership
+    const [councilVoterWeightAddIn, setCouncilVoterWeightAddIn] = React.useState<number | null>(null);
+    const [councilMaxVoterWeightAddIn, setCouncilMaxVoterWeightAddIn] = React.useState<number | null>(null);
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const onError = useCallback(
@@ -171,10 +179,6 @@ export default function StakeValidatorView(props: any){
         },
         [enqueueSnackbar]
     );
-
-    const generateUniqueSeed = () => {
-        return `stake-${uuidv4()}`;
-    }
 
     const toggleGoverningMintSelected = (council: boolean) => {
         if (council){
@@ -208,7 +212,7 @@ export default function StakeValidatorView(props: any){
 
     // Helper function to split instructions into chunks
     const chunkInstructions = (instructions: TransactionInstruction[], chunkSize: number) => {
-        const chunks = [];
+        const chunks: TransactionInstruction[][] = [];
         for (let i = 0; i < instructions.length; i += chunkSize) {
             chunks.push(instructions.slice(i, i + chunkSize));
         }
@@ -227,21 +231,20 @@ export default function StakeValidatorView(props: any){
                     recentBlockhash: blockhash,
                     instructions: instructionChunk,
                 }).compileToV0Message();
-    
-                const transaction = new VersionedTransaction(message);
-    
+
+                const versionedTx = new VersionedTransaction(message);
+
                 // Simulate the chunk
-                const simulationResult = await RPC_CONNECTION.simulateTransaction(transaction);
-                //setSimulationResults(simulationResult.value.logs);
-    
+                const simulationResult = await RPC_CONNECTION.simulateTransaction(versionedTx);
+
                 if (simulationResult.value.err) {
                     console.error("Chunk simulation failed with error:", simulationResult.value.err);
                     return false;
                 }
-    
+
                 console.log("Chunk simulation successful.");
             }
-    
+
             return true;
         } catch (error) {
             console.error("Error simulating large transaction:", error);
@@ -249,82 +252,89 @@ export default function StakeValidatorView(props: any){
         }
     };
 
-    // New function to create staking instructions
-    const createStakingInstructions = async (): Promise<TransactionInstruction[]> => {
+    // Function to create Governance Configuration Instructions
+    const createGovernanceConfigInstructions = async (): Promise<TransactionInstruction[]> => {
         try {
-            // Generate stake account public key using seed
-            const seed = stakeSeed;
-            const stakePubkey = await PublicKey.createWithSeed(
-                new PublicKey(governanceNativeWallet),
-                seed,
-                StakeProgram.programId
+            // Define the realm public key
+            const realmPubkey = new PublicKey(governanceAddress);
+
+            // Define the realm authority public key (the authority that can configure the realm)
+            const realmAuthority = new PublicKey("REALM_AUTHORITY_PUBKEY"); // Replace with the actual realm authority public key
+
+            // Define the council mint public key (if applicable)
+            const councilMint = new PublicKey("COUNCIL_MINT_PUBKEY"); // Replace with the actual council mint public key or undefined if not applicable
+
+            // Define the community mint max vote weight source
+            const communityMintMaxVoteWeightSource = MintMaxVoteWeightSource.FULL_SUPPLY_FRACTION; // Example value, adjust as needed
+
+            // Define the minimum community tokens to create governance
+            const minCommunityTokensToCreateGovernance = minCommunityTokensEnabled ? new BN(1_000_000) : null; // Example value, adjust as needed
+
+            // Define the community token config
+            const communityTokenConfig: GoverningTokenConfigAccountArgs = {
+                voterWeightAddin: communityVoterWeightAddIn,
+                maxVoterWeightAddin: communityMaxVoterWeightAddIn,
+                tokenType: communityTokenType, // Assuming communityTokenType is defined
+            };
+
+            // Define the council token config (if applicable)
+            const councilTokenConfig: GoverningTokenConfigAccountArgs = {
+                voterWeightAddin: councilVoterWeightAddIn,
+                maxVoterWeightAddin: councilMaxVoterWeightAddIn,
+                tokenType: councilTokenType, // Assuming councilTokenType is defined
+            };
+
+            // Define the payer public key (the account that will pay for the transaction)
+            const payer = new PublicKey("PAYER_PUBKEY"); // Replace with the actual payer public key
+
+            // Create the set realm config instruction
+            const setRealmConfigIx = await createSetRealmConfig(
+                new PublicKey("GOVERNANCE_PROGRAM_ID"), // Replace with the actual governance program ID
+                1, // Program version
+                realmPubkey,
+                realmAuthority,
+                councilMint,
+                communityMintMaxVoteWeightSource,
+                minCommunityTokensToCreateGovernance,
+                communityTokenConfig,
+                councilTokenConfig,
+                payer
             );
 
-            // Create stake account if it does not exist
-            const createStakeAccountIx = SystemProgram.createAccountWithSeed({
-                fromPubkey: new PublicKey(governanceNativeWallet),
-                newAccountPubkey: stakePubkey,
-                basePubkey: new PublicKey(governanceNativeWallet),
-                seed: seed,
-                lamports: await RPC_CONNECTION.getMinimumBalanceForRentExemption(StakeProgram.space),
-                space: StakeProgram.space,
-                programId: StakeProgram.programId,
-            });
-
-            // Initialize the stake account
-            const initializeStakeIx = StakeProgram.initialize({
-                stakePubkey: stakePubkey,
-                authorized: new Authorized(
-                    new PublicKey(governanceNativeWallet),
-                    new PublicKey(governanceNativeWallet)
-                ),
-                lockup: new Lockup(0, 0, new PublicKey(governanceNativeWallet)),
-            });
-
-            // Delegate the stake to the validator
-            const delegateStakeIx = StakeProgram.delegate({
-                stakePubkey: stakePubkey,
-                authorizedPubkey: new PublicKey(governanceNativeWallet),
-                votePubkey: new PublicKey(validatorVoteAddress),
-            });
-
-            // Assuming delegateStakeIx is a Transaction with only one instruction
-            const instructions = delegateStakeIx.instructions;
-
-            if (instructions.length !== 1) {
-                throw new Error("Transaction does not contain exactly one instruction.");
-            }
-
-            const delegateStakeInstruction = instructions[0];
-
-            return [createStakeAccountIx, initializeStakeIx, delegateStakeInstruction];
+            return [setRealmConfigIx];
         } catch (error) {
-            console.error("Error creating staking instructions:", error);
+            console.error("Error creating governance config instructions:", error);
             throw error;
         }
-    }
+    };
 
-    const handleStakeIx = async () => {
+    const handleSetGovernanceConfig = async () => {
         if (handleCloseExtMenu)
             handleCloseExtMenu();
         setPropOpen(false);
 
         try {
-            const stakeAmount = parseFloat(amount);
-            if (isNaN(stakeAmount) || stakeAmount <= 0) {
-                enqueueSnackbar("Invalid amount", { variant: 'error' });
+            // Validate required fields
+            if (
+                communityMintSupplyFactor === null ||
+                communityVoterWeightAddIn === null ||
+                communityMaxVoterWeightAddIn === null ||
+                councilTokenType === null ||
+                councilVoterWeightAddIn === null ||
+                councilMaxVoterWeightAddIn === null
+            ) {
+                enqueueSnackbar("Please fill in all required fields.", { variant: 'error' });
                 return;
             }
 
-            // Convert SOL amount to lamports
-            const lamports = web3.LAMPORTS_PER_SOL * stakeAmount;
-
-            // Create staking instructions
-            const stakingIxs = await createStakingInstructions();
+            // Create governance configuration instructions
+            const governanceIxs = await createGovernanceConfigInstructions();
 
             // Create Transaction object
+            const transaction = new Transaction().add(...governanceIxs);
+
             // Simulate transaction
-            const status = await simulateIx(new Transaction().add(...stakingIxs));
+            const status = await simulateIx(transaction);
             if (!status) {
                 enqueueSnackbar("Transaction simulation failed", { variant: 'error' });
                 return;
@@ -332,14 +342,14 @@ export default function StakeValidatorView(props: any){
 
             // Prepare proposal instruction
             const propIx = {
-                title: "Stake to Validator",
-                description: `Staking ${stakeAmount} SOL to validator ${validatorVoteAddress}`,
-                ix: stakingIxs,
+                title: "Update Settings",
+                description: `Updating governance settings with the provided configurations.`,
+                ix: governanceIxs,
                 aix: [], // Additional instructions if any
                 nativeWallet: governanceNativeWallet,
                 governingMint: governingMint,
                 draft: isDraft,
-            }
+            };
 
             console.log("propIx: ", JSON.stringify(propIx));
 
@@ -347,12 +357,12 @@ export default function StakeValidatorView(props: any){
             setInstructions(propIx);
             setExpandedLoader(true);
         } catch (error) {
-            enqueueSnackbar("Failed to create staking instructions", { variant: 'error' });
-            console.error('Failed to create staking instructions:', error);
+            enqueueSnackbar("Failed to create governance configuration instructions.", { variant: 'error' });
+            console.error('Failed to create governance configuration instructions:', error);
         }
-    }
+    };
 
-    React.useEffect(() => { 
+    useEffect(() => { 
         setIsGoverningMintSelectable(false);
         if (realm && realm?.account.config?.councilMint){
             setGoverningMint(realm?.account.config.councilMint);
@@ -370,14 +380,11 @@ export default function StakeValidatorView(props: any){
                 setIsGoverningMintCouncilSelected(false);
             }
         }
-        if (!stakeSeed){
-            generateUniqueSeed();
-        }
     }, []);
 
     return (
         <>
-            <Tooltip title="Stake to Validator" placement="right">
+            <Tooltip title="Manage Governance Settings" placement="right">
                 {useButtonText && useButtonType === 1 ?
                 <>
                     <Button onClick={publicKey && handleClickOpen} fullWidth color='primary' size="large" variant="contained" sx={{backgroundColor:'rgba(255,255,255,0.05)',pl:2,pr:2,ml:1,mr:1}}>
@@ -396,7 +403,7 @@ export default function StakeValidatorView(props: any){
                                     },
                                 }}
                                 startIcon={
-                                    <LockIcon 
+                                    <SettingsIcon 
                                         fontSize={'small'} 
                                         sx={{
                                             color:'rgba(255,255,255,0.25)',
@@ -411,11 +418,11 @@ export default function StakeValidatorView(props: any){
                         </>
                     :
                         <>
-                            <MenuItem onClick={publicKey && handleClickOpen}>
+                            <MenuItem disabled onClick={publicKey && handleClickOpen}>
                                 <ListItemIcon>
-                                    <LockIcon fontSize="small" />
+                                    <SettingsIcon fontSize="small" />
                                 </ListItemIcon>
-                                Stake to Validator
+                                Settings
                             </MenuItem>
                         </>
                     }
@@ -435,71 +442,146 @@ export default function StakeValidatorView(props: any){
                     }}
                 >
                 <BootstrapDialogTitle 
-                    id='staking-dialog'
+                    id='governance-settings-dialog'
                     onClose={handleCloseDialog}
                 >
-                    Stake to Validator
+                    Manage Governance Settings
                 </BootstrapDialogTitle>
                 <DialogContent>
                     
                     <DialogContentText sx={{textAlign:'center'}}>
-                        Stake SOL to a Solana Validator
+                        Update Wallet Settings
                     </DialogContentText>
                     
                     <FormControl fullWidth sx={{mt:2, mb:2}}>
                         <Grid container spacing={2}>
+                            {/* 1. Toggle for "Min community tokens to create governance" */}
                             <Grid item xs={12}>
-                                <TextField 
-                                    fullWidth 
-                                    label="Validator Vote Address" 
-                                    id="validatorVoteAddress"
-                                    type="text"
-                                    value={validatorVoteAddress}
-                                    onChange={(e) => setValidatorVoteAddress(e.target.value)}
-                                    variant="filled"
-                                    required
-                                    sx={{ m: 0.65 }}
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={minCommunityTokensEnabled}
+                                            onChange={(e) => setMinCommunityTokensEnabled(e.target.checked)}
+                                            name="minCommunityTokensEnabled"
+                                            color="primary"
+                                        />
+                                    }
+                                    label="Enable Minimum Community Tokens to Create Governance"
                                 />
                             </Grid>
+
+                            {/* 2. Community mint supply factor (max vote weight) */}
                             <Grid item xs={12}>
-                                <TextField 
-                                    fullWidth 
-                                    label="Seed for Stake Address" 
-                                    id="stakeSeed"
-                                    type="text"
-                                    value={stakeSeed}
-                                    onChange={(e) => setStakeSeed(e.target.value)}
-                                    variant="filled"
-                                    required
-                                    helperText="A unique seed string to generate the stake account."
-                                    sx={{ m: 0.65 }}
-                                    InputProps={{
-                                        endAdornment: (
-                                            <InputAdornment position="end">
-                                                <IconButton
-                                                    aria-label="regenerate seed"
-                                                    onClick={() => setStakeSeed(generateUniqueSeed())}
-                                                    edge="end"
-                                                    size="small"
-                                                >
-                                                    <RefreshIcon fontSize="small" />
-                                                </IconButton>
-                                            </InputAdornment>
-                                        ),
-                                    }}
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <TextField 
-                                    fullWidth 
-                                    label="Amount (SOL)" 
-                                    id="amount"
+                                <TextField
+                                    fullWidth
+                                    label="Community Mint Supply Factor (Max Vote Weight)"
+                                    id="communityMintSupplyFactor"
                                     type="number"
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
+                                    value={communityMintSupplyFactor ?? ''}
+                                    onChange={(e) => setCommunityMintSupplyFactor(parseFloat(e.target.value))}
                                     variant="filled"
                                     required
-                                    inputProps={{ min: "0", step: "0.0001" }}
+                                    helperText="Set the maximum vote weight factor for the community mint."
+                                    inputProps={{ min: "0", step: "0.1" }}
+                                    sx={{ m: 0.65 }}
+                                />
+                            </Grid>
+
+                            {/* 3. Community token type (disabled) */}
+                            <Grid item xs={12}>
+                                <TextField
+                                    fullWidth
+                                    label="Community Token Type"
+                                    id="communityTokenType"
+                                    type="text"
+                                    value={communityTokenType ?? 'Standard'}
+                                    variant="filled"
+                                    disabled
+                                    helperText="The type of community token. This field is disabled."
+                                    sx={{ m: 0.65 }}
+                                />
+                            </Grid>
+
+                            {/* 4. Community voter weight add-in */}
+                            <Grid item xs={12}>
+                                <TextField
+                                    fullWidth
+                                    label="Community Voter Weight Add-In"
+                                    id="communityVoterWeightAddIn"
+                                    type="number"
+                                    value={communityVoterWeightAddIn ?? ''}
+                                    onChange={(e) => setCommunityVoterWeightAddIn(parseFloat(e.target.value))}
+                                    variant="filled"
+                                    required
+                                    helperText="Add-in value to adjust community voter weight."
+                                    inputProps={{ min: "0", step: "0.1" }}
+                                    sx={{ m: 0.65 }}
+                                />
+                            </Grid>
+
+                            {/* 5. Community max voter weight add-in */}
+                            <Grid item xs={12}>
+                                <TextField
+                                    fullWidth
+                                    label="Community Max Voter Weight Add-In"
+                                    id="communityMaxVoterWeightAddIn"
+                                    type="number"
+                                    value={communityMaxVoterWeightAddIn ?? ''}
+                                    onChange={(e) => setCommunityMaxVoterWeightAddIn(parseFloat(e.target.value))}
+                                    variant="filled"
+                                    required
+                                    helperText="Maximum add-in value for community voter weight."
+                                    inputProps={{ min: "0", step: "0.1" }}
+                                    sx={{ m: 0.65 }}
+                                />
+                            </Grid>
+
+                            {/* 6. Council token type (membership) */}
+                            <Grid item xs={12}>
+                                <TextField
+                                    fullWidth
+                                    label="Council Token Type (Membership)"
+                                    id="councilTokenType"
+                                    type="text"
+                                    value={councilTokenType ?? 'Membership'}
+                                    onChange={(e) => setCouncilTokenType(e.target.value)}
+                                    variant="filled"
+                                    required
+                                    helperText="The type of council token."
+                                    sx={{ m: 0.65 }}
+                                />
+                            </Grid>
+
+                            {/* 7. Council voter weight add-in */}
+                            <Grid item xs={12}>
+                                <TextField
+                                    fullWidth
+                                    label="Council Voter Weight Add-In"
+                                    id="councilVoterWeightAddIn"
+                                    type="number"
+                                    value={councilVoterWeightAddIn ?? ''}
+                                    onChange={(e) => setCouncilVoterWeightAddIn(parseFloat(e.target.value))}
+                                    variant="filled"
+                                    required
+                                    helperText="Add-in value to adjust council voter weight."
+                                    inputProps={{ min: "0", step: "0.1" }}
+                                    sx={{ m: 0.65 }}
+                                />
+                            </Grid>
+
+                            {/* 8. Council max voter weight add-in */}
+                            <Grid item xs={12}>
+                                <TextField
+                                    fullWidth
+                                    label="Council Max Voter Weight Add-In"
+                                    id="councilMaxVoterWeightAddIn"
+                                    type="number"
+                                    value={councilMaxVoterWeightAddIn ?? ''}
+                                    onChange={(e) => setCouncilMaxVoterWeightAddIn(parseFloat(e.target.value))}
+                                    variant="filled"
+                                    required
+                                    helperText="Maximum add-in value for council voter weight."
+                                    inputProps={{ min: "0", step: "0.1" }}
                                     sx={{ m: 0.65 }}
                                 />
                             </Grid>
@@ -536,7 +618,6 @@ export default function StakeValidatorView(props: any){
                         <Box sx={{ display: 'flex', alignItems: 'center', p:0 }}>
                         {(publicKey) ?
                                 <Button
-                                    //disabled={!loading}
                                     size='small'
                                     onClick={handleAdvancedToggle}
                                     sx={{
@@ -567,9 +648,8 @@ export default function StakeValidatorView(props: any){
                             
                             {(publicKey) ?
                                 <Button 
-                                   //disabled={!loading}
                                     autoFocus 
-                                    onClick={handleStakeIx}
+                                    onClick={handleSetGovernanceConfig}
                                     sx={{
                                         p:1,
                                         borderRadius:'17px',
@@ -579,7 +659,7 @@ export default function StakeValidatorView(props: any){
                                     }}
                                     startIcon={
                                     <>
-                                        <LockIcon 
+                                        <SettingsIcon 
                                             sx={{
                                                 color:'rgba(255,255,255,0.25)',
                                                 fontSize:"14px!important"}}
@@ -587,7 +667,7 @@ export default function StakeValidatorView(props: any){
                                     </>
                                     }
                                 >
-                                    Create Stake Account
+                                    Create Proposal
                                 </Button>
                             : <></>
                             }
@@ -599,3 +679,4 @@ export default function StakeValidatorView(props: any){
         </>
     )
 }
+
