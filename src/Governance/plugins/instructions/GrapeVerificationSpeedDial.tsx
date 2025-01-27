@@ -206,7 +206,7 @@ export function GrapeVerificationSpeedDial(props: any){
 
     return (
         <>
-            <Tooltip title='Grape Verification: using your on-chain Speed Dial'>
+            <Tooltip title='Click for Grape Verification using your on-chain DAO Speed Dial'>
                 <Button 
                   size="small"
                   onClick={handleVerifyAllAddressBooks}

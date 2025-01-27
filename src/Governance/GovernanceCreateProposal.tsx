@@ -427,6 +427,9 @@ export default function GovernanceCreateProposalView(props: any){
             editProposalAddress,
             successCallback,
             failCallback,
+            null,
+            null,
+            null, // delegate
           );
         }
         //console.log("Simulation: ",propSimulation);
@@ -563,6 +566,8 @@ export default function GovernanceCreateProposalView(props: any){
             successCallback,
             failCallback,
             startIndex,
+            null,
+            null,
           );
         }
         
@@ -776,7 +781,7 @@ export default function GovernanceCreateProposalView(props: any){
                 disabled={(
                   governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' && 
                   governanceAddress !== 'jtncbMzs2k3wypGiLBtM55ou3mFERpeZniH7V1Bq4zg' &&
-                  governanceAddress !== 'EKCVQN6vYgTkE52QXa6vvr6ZLjEXpEynx8fsEmTWQ1uF'
+                  governanceAddress !== 'EKCVQN6vYgTkE52QXa6vvr6ZLjEXpEynx8fsEmTWQ1uF' 
                 ) ? true : false}
               >DCA / Scheduled Swap</MenuItem>
                
@@ -796,7 +801,6 @@ export default function GovernanceCreateProposalView(props: any){
                 ) ? true : false}
               >Buy from Magic Eden</MenuItem>
               
-
               {/*governanceAddress !== 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
                 <MenuItem value={16}>List on Tensor</MenuItem>
               */}
@@ -1094,18 +1098,18 @@ export default function GovernanceCreateProposalView(props: any){
                   <Select
                     labelId="governance-wallet-select-label"
                     id="governance-wallet-select"
-                    value={new PublicKey(governanceWallet.nativeTreasuryAddress).toBase58()}
+                    value={governanceWallet?.nativeTreasuryAddress && new PublicKey(governanceWallet.nativeTreasuryAddress).toBase58()}
                     label="Governance Wallet"
                     onChange={handleGovernanceWalletChange}
                   > 
                     {cachedTreasury && cachedTreasury
                       .sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
                       .map((item: any, key: number) => {
+                        
                         if (item.vault?.nativeTreasuryAddress) {
-                          // rules wallet:
-                          // item.vault.pubkey
+                        
                           return (
-                            <MenuItem key={key} value={new PublicKey(item.vault.nativeTreasury).toBase58()}>
+                            <MenuItem key={key} value={new PublicKey(item.vault.nativeTreasuryAddress).toBase58()}>
                                 
                                 <Grid container>
                                   <Grid item xs={12}>
@@ -1441,6 +1445,7 @@ export default function GovernanceCreateProposalView(props: any){
                         }
 
                         //console.log("merged_treasury: "+JSON.stringify(cached_treasury))
+                        //console.log("cached_treasury: "+JSON.stringify(cached_treasury));
 
                         setCachedTreasury(cached_treasury);
                     }
@@ -1459,7 +1464,7 @@ export default function GovernanceCreateProposalView(props: any){
             }
         }
 
-        
+        //console.log("cached_governance: "+JSON.stringify(cached_governance));
         setCachedGovernance(cached_governance);
         //setLoading(false);
         endTimer();
@@ -2264,30 +2269,30 @@ export default function GovernanceCreateProposalView(props: any){
                                   }
                                   onClick={(e) => createProposal(true)}
                                   variant="contained"
-                                  color="info"
-                                  sx={{borderTopLeftRadius:'17px', borderBottomLeftRadius:'17px'}}>
+                                  color="info">
                                     <Confetti
                                         active={ proposalMade }
                                         config={ confettiConfig }
                                     />        
                                     Save Draft</Button>
-                                <Button 
-                                  disabled={!(
-                                    (title && title.length > 0) &&
-                                    (description && description.length > 0) &&
-                                    (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
-                                    (!createDisabled)
-                                    )
+                                {(!instructionsArray || (instructionsArray && instructionsArray?.length <= 0)) &&
+                                  <Button 
+                                    disabled={!(
+                                      (title && title.length > 0) &&
+                                      (description && description.length > 0) &&
+                                      (proposalType ||(instructionsArray && instructionsArray.length > 0)) &&
+                                      (!createDisabled)
+                                      )
+                                    }
+                                    onClick={(e) => createProposal(false)}
+                                    variant="contained"
+                                    color="success">
+                                      <Confetti
+                                          active={ proposalMade }
+                                          config={ confettiConfig }
+                                      />     
+                                      Create Proposal</Button>
                                   }
-                                  onClick={(e) => createProposal(false)}
-                                  variant="contained"
-                                  color="success"
-                                  sx={{borderTopRightRadius:'17px', borderBottomRightRadius:'17px'}}>
-                                    <Confetti
-                                        active={ proposalMade }
-                                        config={ confettiConfig }
-                                    />     
-                                    Create Proposal</Button>
                                 </ButtonGroup>
                             </Grid>
                             :

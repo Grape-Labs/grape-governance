@@ -139,7 +139,7 @@ export function GrapeVerificationDAO(props: any){
   const getAndVerifyFromDAOMembers = async(address: string) => {
     setLoading(true);
     
-    console.log("Fetching DAO Members "+address);
+    console.log("Fetching DAO Members "+governanceAddress+" (voter: "+address+")");
 
     const plt = new Array();
     const plto = new Array();
@@ -167,7 +167,7 @@ export function GrapeVerificationDAO(props: any){
         
         //if (cached_members){
         if (members){
-          //console.log("cached_members: "+JSON.stringify(cached_members))
+          //console.log("members: "+JSON.stringify(members))
 
           const simpleArray = members
             .filter((item: any) => 
@@ -188,6 +188,8 @@ export function GrapeVerificationDAO(props: any){
                 ;
             });
           
+            //console.log("simpleArray: "+JSON.stringify(simpleArray));
+            //console.log("objectArray: "+JSON.stringify(objectArray));
 
           plt.push({
             pubkey: governanceAddress,
@@ -206,7 +208,6 @@ export function GrapeVerificationDAO(props: any){
 
     
     if (setVerifiedDAODestinationWalletArray){
-      //console.log("plt: "+JSON.stringify(plt))
       setVerifiedDAODestinationWalletArray(plt);
     }
 
@@ -226,7 +227,7 @@ export function GrapeVerificationDAO(props: any){
 
     return (
         <>
-            <Tooltip title='Grape Verification: via DAO Members'>
+            <Tooltip title='Click for Grape Verification via DAO Members'>
                 <Button 
                   size="small"
                   onClick={handleVerifyAllAddressBooks}

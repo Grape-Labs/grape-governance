@@ -105,11 +105,11 @@ export default function ClaimExtensionView(props: any){
     const setReload = props?.setReload;
     const governanceLookup = props.governanceLookup;
     const governanceRulesWallet = props.governanceRulesWallet;
-    const editProposalAddress = props?.editProposalAddress;
     const governingTokenMint = props.governingTokenMint;
-    const governanceAddress = props.governanceAddress;
-    
+    const [editProposalAddress, setEditProposalAddress] = React.useState(props?.editProposalAddress);
+
     const realm = props?.realm;
+    const governanceAddress = props.governanceAddress || realm.pubkey.toBase58();
     const rulesWallet = props?.rulesWallet;
     const handleCloseExtMenu = props?.handleCloseExtMenu;
     const expandedLoader = props?.expandedLoader;
@@ -420,6 +420,7 @@ export default function ClaimExtensionView(props: any){
                     {openAdvanced ? 
                         <>
                             <AdvancedProposalView 
+                                governanceAddress={governanceAddress}
                                 proposalTitle={proposalTitle}
                                 setProposalTitle={setProposalTitle}
                                 proposalDescription={proposalDescription}
@@ -429,7 +430,8 @@ export default function ClaimExtensionView(props: any){
                                 isGoverningMintSelectable={isGoverningMintSelectable}
                                 isDraft={isDraft}
                                 setIsDraft={setIsDraft}
-
+                                setEditProposalAddress={setEditProposalAddress}
+                                editProposalAddress={editProposalAddress}
                             />
                         </>
                     :

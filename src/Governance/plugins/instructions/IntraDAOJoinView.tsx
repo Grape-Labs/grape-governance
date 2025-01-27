@@ -126,61 +126,6 @@ export default function IntraDAOJoinView(props: any) {
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     
-    const [availableTokens, setAvailableTokens] = React.useState([
-        {
-            mint:"So11111111111111111111111111111111111111112",
-            name:"SOL",
-            symbol:"SOL",
-            decimals:9,
-            logo:"https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/So11111111111111111111111111111111111111112.png"
-        },{
-            mint:"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-            name:"USDC",
-            symbol:"USDC",
-            decimals:6,
-            logo:"https://cdn.jsdelivr.net/gh/saber-hq/spl-token-icons@master/icons/101/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v.png"
-        },{
-            mint:"Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-            name:"USDT",
-            symbol:"USDT",
-            decimals:6,
-            logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.svg"
-        },{
-            mint:"mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
-            name:"mSol",
-            symbol:"mSol",
-            decimals:9,
-            logo:"https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So/logo.png"
-        },{
-            mint:"8upjSpvjcdpuzhfR1zriwg5NXkwDruejqNE9WNbPRtyA",
-            name:"GRAPE",
-            symbol:"GRAPE",
-            decimals:6,
-            logo:"https://lh3.googleusercontent.com/y7Wsemw9UVBc9dtjtRfVilnS1cgpDt356PPAjne5NvMXIwWz9_x7WKMPH99teyv8vXDmpZinsJdgiFQ16_OAda1dNcsUxlpw9DyMkUk=s0"
-        },{
-            mint:"AZsHEMXd36Bj1EMNXhowJajpUXzrKcK57wW4ZGXVa7yR",
-            name:"GUAC",
-            symbol:"GUAC",
-            decimals:5,
-            logo:"https://shdw-drive.genesysgo.net/36JhGq9Aa1hBK6aDYM4NyFjR5Waiu9oHrb44j1j8edUt/image.png"
-        },{
-            mint:"BaoawH9p2J8yUK9r5YXQs3hQwmUJgscACjmTkh8rMwYL",
-            name:"ALL",
-            symbol:"ALL",
-            decimals:6,
-            logo:"https://arweave.net/FY7yQGrLCAvKAup_SYEsHDoTRZXsttuYyQjvHTnOrYk"
-        },{
-            mint:"DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-            name:"BONK",
-            symbol:"BONK",
-            decimals:5,
-            logo:"https://arweave.net/hQiPZOsRZXGXBJd_82PhVdlM_hACsT_q6wqwf5cSY7I"
-        }]);
-    const objectToken = {};
-    availableTokens.forEach(token => {
-        objectToken[token.mint] = token;
-    }); 
-
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
     async function joinDAO() {
@@ -316,11 +261,81 @@ export default function IntraDAOJoinView(props: any) {
         }
     }
 
+    async function fetchWalletHoldings(wallet:string){
+            
+        //if (!tokenMap){
+        //    const tmap = await getTokens(setTokenMap);
+        //    setTokenMap(tmap);
+        // }
+
+        let solBalance = 0;
+
+        if (wallet === governanceWallet?.vault?.pubkey || wallet === governanceWallet?.nativeTreasuryAddress?.toBase58() || wallet === governanceWallet?.pubkey?.toBase58()){
+            
+            console.log("wallet: "+wallet);
+            if (governanceWallet?.vault?.pubkey)
+                solBalance = await connection.getBalance(new PublicKey(governanceWallet.vault.pubkey));
+            else
+                solBalance = await connection.getBalance(new PublicKey(governanceWallet?.nativeTreasuryAddress));
+            //if (governanceWallet?.vault?.pubkey ){
+            governanceWallet.solBalance = solBalance;
+            //setTokenMaxAmount(governanceWallet.solBalance/10 ** 9)
+            /*
+            } else{
+                if (!governanceWallet.solBalance && consolidatedGovernanceWallet?.solBalance){
+                    setTokenMaxAmount(consolidatedGovernanceWallet.solBalance)
+                } else{
+                    console.log("max: "+governanceWallet.solBalance)
+                    setTokenMaxAmount(governanceWallet.solBalance)
+                }
+            }*/
+        }
+        
+        console.log("getting parsed tokens: "+wallet);
+        const tokenBalance = await connection.getParsedTokenAccountsByOwner(
+            new PublicKey(wallet),
+            {
+            programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+            }
+        )
+        // loop through governanceWallet
+        const itemsToAdd = [];
+
+        if (tokenBalance && tokenBalance?.value){
+            for (let titem of tokenBalance.value){
+                itemsToAdd.push(titem);
+                    
+                    /*
+                    let foundCached = false;
+                    for (let gitem of governanceWallet.tokens.value){
+                        if (titem.pubkey.toBase58() === gitem.pubkey){
+                            foundCached = true;
+                            gitem.account.data.parsed.info.tokenAmount.amount = titem.account.data.parsed.info.tokenAmount.amount;
+                            gitem.account.data.parsed.info.tokenAmount.uiAmount = titem.account.data.parsed.info.tokenAmount.uiAmount;
+                            itemsToAdd.push(gitem);
+                        }
+                    }
+                    if (!foundCached) {
+                        itemsToAdd.push(titem);
+                    }*/
+                
+            }
+        }
+
+        // return a more easy to read object?
+        const walletObject = {
+            pubkey: wallet,
+            solBalance: solBalance,
+            tokens: itemsToAdd,
+        }
+        return walletObject;
+    }
+
     async function getAndUpdateWalletHoldings(wallet:string){
         try{
             setLoadingWallet(true);
-            const solBalance = await connection.getBalance(new PublicKey(wallet));
-
+            //const solBalance = await connection.getBalance(new PublicKey(wallet));
+            /*
             const tokenBalance = await connection.getParsedTokenAccountsByOwner(
                 new PublicKey(wallet),
                 {
@@ -328,8 +343,12 @@ export default function IntraDAOJoinView(props: any) {
                 }
             )
             // loop through governanceWallet
-            governanceWallet.solBalance = solBalance;
+            //governanceWallet.solBalance = solBalance;
             const itemsToAdd = [];
+
+            console.log("tokenBalance "+JSON.stringify(tokenBalance));
+            
+
 
             console.log("governanceWallet "+JSON.stringify(governanceWallet));
             if (tokenBalance?.value){
@@ -337,7 +356,8 @@ export default function IntraDAOJoinView(props: any) {
                     if (governanceWallet.tokens.value){
                         let foundCached = false;
                         for (let gitem of governanceWallet.tokens.value){
-                            if (titem.pubkey.toBase58() === gitem.pubkey){
+                            if (titem.pubkey.toBase58() === gitem.pubkey.toBase58()){
+                                alert("HERE!")
                                 foundCached = true;
                                 gitem.account.data.parsed.info.tokenAmount.amount = titem.account.data.parsed.info.tokenAmount.amount;
                                 gitem.account.data.parsed.info.tokenAmount.uiAmount = titem.account.data.parsed.info.tokenAmount.uiAmount;
@@ -350,9 +370,14 @@ export default function IntraDAOJoinView(props: any) {
                     }
                 }
             }
+            
 
             governanceWallet.tokens.value = itemsToAdd;//[...governanceWallet.tokens.value, ...itemsToAdd];
-            setConsolidatedGovernanceWallet(governanceWallet);
+            */
+            const gwToAdd = await fetchWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.nativeTreasuryAddress?.toBase58());
+
+
+            setConsolidatedGovernanceWallet(gwToAdd);
             setLoadingWallet(false);
         } catch(e){
             console.log("ERR: "+e);
@@ -377,9 +402,8 @@ export default function IntraDAOJoinView(props: any) {
             const selectedTokenMint = event.target.value as string;
             setTokenMint(selectedTokenMint);
 
-            
             // with token mint traverse to get the mint info if > 0 amount
-            {governanceWallet && governanceWallet.tokens.value
+            {consolidatedGovernanceWallet && consolidatedGovernanceWallet.tokens
                 //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
                 .map((item: any, key: number) => {
                     if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
@@ -411,13 +435,14 @@ export default function IntraDAOJoinView(props: any) {
                 
                 const mint_address = new PublicKey(mintAddress)
                 
+
                 let foundLogo = false;
                 {
                     
-                    if (objectToken[mint_address.toBase58()]){
-                        setMintLogo(objectToken[mint_address.toBase58()].logo);
-                        foundLogo = true;
-                    }
+                    //if (objectToken[mint_address.toBase58()]){
+                    //    setMintLogo(objectToken[mint_address.toBase58()].logo);
+                    //    foundLogo = true;
+                    //}
                 }
 
                 const umi = createUmi(RPC_CONNECTION);
@@ -503,7 +528,7 @@ export default function IntraDAOJoinView(props: any) {
                     },
                   }}
                 >
-                    {governanceWallet && governanceWallet.tokens.value
+                    {consolidatedGovernanceWallet && consolidatedGovernanceWallet?.tokens && consolidatedGovernanceWallet.tokens
                     // ? item.account.data.parsed.info.mint === filter
                             .filter((item: any) => 
                                 item.account.data?.parsed?.info?.tokenAmount?.amount > 0
@@ -517,8 +542,6 @@ export default function IntraDAOJoinView(props: any) {
                                     item.account.data.parsed.info.tokenAmount.amount > 0 &&
                                     (item.account.data.parsed.info.mint === filter[0] || item.account.data.parsed.info.mint === filter[1])) {
                                 
-                                    //console.log("mint: "+item.account.data.parsed.info.mint)
-
                                     return (
                                         <MenuItem key={key} value={item.account.data.parsed.info.mint}>
                                             {/*console.log("wallet: "+JSON.stringify(item))*/}

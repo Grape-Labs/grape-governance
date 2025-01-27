@@ -55,9 +55,12 @@ import SendExtensionView from './SendView';
 import JupDcaExtensionView from './JupDcaView';
 import DirectoryExtensionView from './DirectoryView';
 import DistributorExtensionView from './DistributorView';
+import CustomIxView from './CustomIxView';
+import StakeValidatorView from './StakeValidatorView';
 import ClaimExtensionView from './ClaimView';
 import TokenManagerView from './TokenManagerView';
 import DemoExtensionView from './DemoView';
+import GovernanceConfigView from './GovernanceConfigView';
 
 export default function ExtensionsMenuView(props: any) {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -129,6 +132,17 @@ export default function ExtensionsMenuView(props: any) {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
+        <DemoExtensionView
+            realm={realm}
+            handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
+        <Divider />
         <SendExtensionView
             realm={realm}
             handleCloseExtMenu={handleClose}
@@ -141,7 +155,10 @@ export default function ExtensionsMenuView(props: any) {
             masterWallet={masterWallet}
             usdcValue={usdcValue}
         />
-        {governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' &&
+        {/*(governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' ||
+          governanceNativeWallet === '6jEQpEnoSRPP8A2w6DWDQDpqrQTJvG4HinaugiBGtQKD'  ||
+          governanceNativeWallet === 'AWaMVkukciGYPEpJbnmSXPJzVxuuMFz1gWYBkznJ2qbq' 
+        ) && */}
         <TokenManagerView
             realm={realm}
             handleCloseExtMenu={handleClose}
@@ -152,8 +169,10 @@ export default function ExtensionsMenuView(props: any) {
             instructions={instructions}
             setInstructions={setInstructions}
         />
-        }
-        {governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' &&
+        
+        {(governanceNativeWallet === '614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8' ||
+          governanceNativeWallet === '3BEvopNQ89zkM4r6ADva18i5fao1sqR1pmswyQyfj838'
+         ) &&
           <JupDcaExtensionView
               realm={realm}
               handleCloseExtMenu={handleClose}
@@ -168,6 +187,26 @@ export default function ExtensionsMenuView(props: any) {
           />
         }
         <DirectoryExtensionView
+            realm={realm}
+            handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
+        <CustomIxView
+            realm={realm}
+            handleCloseExtMenu={handleClose}
+            rulesWallet={rulesWallet}
+            governanceNativeWallet={governanceNativeWallet}
+            expandedLoader={expandedLoader} 
+            setExpandedLoader={setExpandedLoader}
+            instructions={instructions}
+            setInstructions={setInstructions}
+        />
+        <StakeValidatorView
             realm={realm}
             handleCloseExtMenu={handleClose}
             rulesWallet={rulesWallet}
@@ -198,7 +237,7 @@ export default function ExtensionsMenuView(props: any) {
             setInstructions={setInstructions}
         />
         <Divider />
-        <DemoExtensionView
+        <GovernanceConfigView 
             realm={realm}
             handleCloseExtMenu={handleClose}
             rulesWallet={rulesWallet}

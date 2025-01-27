@@ -105,12 +105,13 @@ export default function DistributorExtensionView(props: any){
     const setReload = props?.setReload;
     const governanceLookup = props.governanceLookup;
     const governanceRulesWallet = props.governanceRulesWallet;
-    const editProposalAddress = props?.editProposalAddress;
     const governingTokenMint = props.governingTokenMint;
-    const governanceAddress = props.governanceAddress;
     const title = props?.title || "Proposal";
     const realm = props?.realm;
+    const governanceAddress = props.governanceAddress || realm.pubkey.toBase58();
     
+    const [editProposalAddress, setEditProposalAddress] = React.useState(props?.editProposalAddress);
+
     const handleCloseExtMenu = props?.handleCloseExtMenu;
     const expandedLoader = props?.expandedLoader;
     const setExpandedLoader = props?.setExpandedLoader;
@@ -360,7 +361,7 @@ export default function DistributorExtensionView(props: any){
                             />
                     
                     <Box alignItems={'center'} alignContent={'center'} justifyContent={'center'} sx={{m:2, textAlign:'center'}}>
-                        <Typography variant="caption">Made with ❤️ by Grape #OPOS</Typography>
+                        <Typography variant="caption">Made with ❤️ by Grape</Typography>
                     </Box>
 
                     <DialogActions>

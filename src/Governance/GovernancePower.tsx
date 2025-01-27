@@ -161,6 +161,10 @@ export default function GovernancePower(props: any){
     const [isCouncilSelected, setIsCouncilSelected] = React.useState(false);
     const [currentCommunityDelegate, setCurrentCommunityDelegate] = React.useState(null);
     const [currentCouncilDelegate, setCurrentCouncilDelegate] = React.useState(null);
+    const [currentCommunityDelegateFrom, setCurrentCommunityDelegateFrom] = React.useState(null);
+    const [currentCouncilDelegateFrom, setCurrentCouncilDelegateFrom] = React.useState(null);
+    const [currentCommunityDelegateFromAmount, setCurrentCommunityDelegateFromAmount] = React.useState(null);
+    const [currentCouncilDelegateFromAmount, setCurrentCouncilDelegateFromAmount] = React.useState(null);
     const [isPlugin, setIsPlugin] = React.useState(false);
     const [realmConfig, setRealmConfig] = React.useState(null);
 
@@ -262,28 +266,44 @@ export default function GovernancePower(props: any){
             let depCommunityDelegate = null;
             let depCouncilDelegate = null;
             let fetchedTMI = false;
+            setCurrentCommunityDelegate(null);
+            setCurrentCouncilDelegate(null);
+            setCurrentCommunityDelegateFrom(null);
+            setCurrentCouncilDelegateFrom(null);
+            setCurrentCommunityDelegateFromAmount(null);
+            setCurrentCouncilDelegateFromAmount(null);
+            
             for (let record of tokenOwnerRecord){
                 if (record.account.realm.toBase58() === governanceAddress){
                     
-                    if (record.account.governingTokenMint.toBase58() === communityMint){
-                        const tki = await getTokenMintInfo(communityMint);
-                        fetchedTMI = true;
-                        //console.log("tokenMintInfo: "+JSON.stringify(tki));
-                        depCommunityMint = Number(record.account.governingTokenDepositAmount);
-                        depCommunityDelegate = record.account?.governanceDelegate;
+                    if (record.account.governingTokenOwner.toBase58() === publicKey.toBase58()){
+                        if (record.account.governingTokenMint.toBase58() === communityMint){
+                            const tki = await getTokenMintInfo(communityMint);
+                            fetchedTMI = true;
+                            //console.log("tokenMintInfo: "+JSON.stringify(tki));
+                            depCommunityMint = Number(record.account.governingTokenDepositAmount);
+                            depCommunityDelegate = record.account?.governanceDelegate;
+                        }else if (record.account.governingTokenMint.toBase58() === councilMint){
+                            depCouncilMint = Number(record.account.governingTokenDepositAmount); 
+                            depCouncilDelegate = record.account?.governanceDelegate;
+                        }
+                        //console.log("record "+JSON.stringify(record));
+                    } else if (record.account.governanceDelegate.toBase58() === publicKey.toBase58()){
+                        if (record.account.governingTokenMint.toBase58() === communityMint){
+                            setCurrentCommunityDelegateFrom(record.account.governingTokenOwner.toBase58());
+                            setCurrentCommunityDelegateFromAmount(Number(record.account.governingTokenDepositAmount));
+                        } else if (record.account.governingTokenMint.toBase58() === councilMint){
+                            setCurrentCouncilDelegateFrom(record.account.governingTokenOwner.toBase58());
+                            setCurrentCouncilDelegateFromAmount(Number(record.account.governingTokenDepositAmount));
+                        }
+                        //console.log("delegate "+JSON.stringify(record));
                     }
-                    if (record.account.governingTokenMint.toBase58() === councilMint){
-                        depCouncilMint = Number(record.account.governingTokenDepositAmount); 
-                        depCouncilDelegate = record.account?.governanceDelegate;
-                    }
-                    //console.log("record "+JSON.stringify(record));
+
                 }
             }
 
             //console.log("de com: "+depCommunityDelegate);
             //console.log("dep con: "+depCouncilDelegate);
-            setCurrentCommunityDelegate(null);
-            setCurrentCouncilDelegate(null);
 
             if (depCommunityMint && Number(depCommunityMint) > 0){
                 setDepositedCommunityMint(depCommunityMint);
@@ -675,7 +695,7 @@ export default function GovernancePower(props: any){
         const decimals = isCouncil ? 0 : (props?.decimals || mintDecimals);
         // generateMEEditListingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, price: number, newPrice: number)
         const [delegatedStr, setDelegatedStr] = React.useState(null);
-
+        
         const [open, setOpen] = React.useState(false);
         const [newDepositAmount, setNewDepositAmount] = React.useState(selectedMintAvailableAmount/10**decimals);
 
@@ -935,6 +955,60 @@ export default function GovernancePower(props: any){
                                 </Box>
                             </Box>
 
+                            {currentCommunityDelegateFrom &&
+                                <Box sx={{
+                                    m:2,
+                                    background: 'rgba(0, 0, 0, 0.1)',
+                                    borderRadius: '17px',
+                                    p:1,
+                                    width:"100%",
+                                    minWidth:'360px'
+                                }}>
+                                    <Box sx={{ my: 3, mx: 2 }}>
+                                        <Grid container alignItems="center">
+                                            <Grid item xs>
+                                                <Typography gutterBottom variant="h5" component="div">
+                                                You have Community Delegation
+                                                </Typography>
+                                            </Grid>
+                                        </Grid>
+                                        <Typography color="text.secondary" variant="body1">
+                                            {(currentCommunityDelegateFromAmount/10**decimals).toLocaleString()} - 
+                                            <ExplorerView 
+                                                address={currentCommunityDelegateFrom} 
+                                                type='address' shorten={4} hideTitle={false} style='text' color='white' fontSize='14px' 
+                                            /> 
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            }
+                            {currentCouncilDelegateFrom &&
+                                <Box sx={{
+                                    m:2,
+                                    background: 'rgba(0, 0, 0, 0.1)',
+                                    borderRadius: '17px',
+                                    p:1,
+                                    width:"100%",
+                                    minWidth:'360px'
+                                }}>
+                                    <Box sx={{ my: 3, mx: 2 }}>
+                                        <Grid container alignItems="center">
+                                            <Grid item xs>
+                                                <Typography gutterBottom variant="h5" component="div">
+                                                You have Council Delegation
+                                                </Typography>
+                                            </Grid>
+                                        </Grid>
+                                        <Typography color="text.secondary" variant="body1">
+                                            {(currentCouncilDelegateFromAmount/10**decimals).toLocaleString()} - 
+                                            <ExplorerView 
+                                                address={currentCouncilDelegateFrom} 
+                                                type='address' shorten={4} hideTitle={false} style='text' color='white' fontSize='14px' 
+                                            /> 
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            }
                         </Grid>
                     </DialogContentText>
                     

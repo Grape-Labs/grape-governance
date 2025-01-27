@@ -443,6 +443,16 @@ export default function WalletCardView(props:any) {
                         </ListItem>
                         <ListItem>
                             Voting Time: {((rulesWallet.account.config.baseVotingTime/60)/60).toFixed(0)}h
+                            {rulesWallet?.account?.config?.minInstructionHoldUpTime && rulesWallet.account.config.minInstructionHoldUpTime > 0 &&
+                            <><br/>
+                                Holdup Time: {((rulesWallet.account.config.minInstructionHoldUpTime/60)/60).toFixed(0)}h
+                            </>
+                            }
+                            {rulesWallet?.account?.config?.votingCoolOffTime && rulesWallet.account.config.votingCoolOffTime > 0 &&
+                                <><br/>
+                                    CoolOff Time: {((rulesWallet.account.config.votingCoolOffTime/60)/60).toFixed(0)}h
+                                </>
+                            }
                         </ListItem>
                         
                         <ListItem>
@@ -1292,7 +1302,7 @@ export default function WalletCardView(props:any) {
                 //const txid = await connection.sendRawTransaction(rawTransaction, {
                 //skipPreflight: true,
                 //});
-
+                
                 console.log("Transaction: "+JSON.stringify(transaction));
 
                 setLoaderSuccess(true);
@@ -1380,8 +1390,11 @@ export default function WalletCardView(props:any) {
 
                 console.log("with Governing Mint: "+useGoverningMint)
 
-                console.log("sending to createProposalInstructionsLegacy")
-                setLoadingText("Creating Proposal...");
+                console.log("sending to createProposalInstructionsLegacy");
+                if (instructions.editProposalAddress)
+                    setLoadingText("Editing Proposal...");
+                else
+                    setLoadingText("Creating Proposal...");
                 setLoadingPropCreation(true);
                 
                 /*
@@ -1396,7 +1409,8 @@ export default function WalletCardView(props:any) {
                 console.log("Creating prop with "+publicKey.toBase58());
                 
                 console.log("ix signers: "+JSON.stringify(instructions?.signers))
-
+                console.log("editProposalAddress: "+JSON.stringify(instructions?.editProposalAddress))
+                
                 const propResponse = await createProposalInstructionsLegacy(
                     new PublicKey(programId),
                     new PublicKey(governanceAddress),
@@ -1413,12 +1427,13 @@ export default function WalletCardView(props:any) {
                     null,
                     isDraft,
                     returnTx,
-                    publicKey,
+                    publicKey, 
+                    instructions.editProposalAddress ? new PublicKey(instructions.editProposalAddress) : null,
                     null,
                     null,
                     null,
-                    null,
-                    instructions?.signers
+                    instructions?.signers,
+                    null, // delegate
                 );
                 
                 setLoaderCreationComplete(false);
@@ -1431,7 +1446,11 @@ export default function WalletCardView(props:any) {
                     const accountInfo = await RPC_CONNECTION.getAccountInfo(publicKey);
                     console.log("accountInfo: "+JSON.stringify(accountInfo));
                     if (accountInfo){
-                        setLoadingText("New Proposal Created!");
+                        if (instructions.editProposalAddress)
+                            setLoadingText("Added to proposal "+instructions.editProposalAddress);
+                        else
+                            setLoadingText("New Proposal Created!");
+                        setProposalCreated(true);
                         // close any expanded sections
                         // reload proposals & expand
                         await getWalletProposals();
@@ -1444,7 +1463,7 @@ export default function WalletCardView(props:any) {
                         hideCloseAllExpandedViews();
                     }
                 } else{
-                    setLoadingText("New Proposal Failed!");
+                    setLoadingText("Proposal Failed!");
                     setProposalCreated(false);
                     hideCloseAllExpandedViews();
                 }
@@ -1924,20 +1943,24 @@ export default function WalletCardView(props:any) {
                                                                 }} 
                                                             >
                                                                 <>
-                                                                    <ReactMarkdown 
-                                                                        remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
-                                                                        transformImageUri={transformImageUri}
-                                                                        children={descriptionMarkdown}
-                                                                        components={{
-                                                                            // Custom component for overriding the image rendering
-                                                                            img: ({ node, ...props }) => (
-                                                                            <img
-                                                                                {...props}
-                                                                                style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
-                                                                            />
-                                                                            ),
-                                                                        }}
-                                                                    />
+                                                                    {window.location.hostname !== 'localhost' ? (
+                                                                        <ReactMarkdown 
+                                                                            remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
+                                                                            transformImageUri={transformImageUri}
+                                                                            children={descriptionMarkdown}
+                                                                            components={{
+                                                                                // Custom component for overriding the image rendering
+                                                                                img: ({ node, ...props }) => (
+                                                                                <img
+                                                                                    {...props}
+                                                                                    style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
+                                                                                />
+                                                                                ),
+                                                                            }}
+                                                                        />
+                                                                    ) : (
+                                                                        <p>Markdown rendering is disabled on localhost.</p>
+                                                                    )}
                                                                 </>
                                                             </Grid>
                                                             <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
@@ -2612,12 +2635,22 @@ export default function WalletCardView(props:any) {
         <CardActions disableSpacing>
             <CopyToClipboard text={`https://governance.so/treasury/${governanceAddress}/${rulesWalletAddress}`} onCopy={handleCopy}>
                 <IconButton aria-label="share" 
-                //    disabled={true}
+                    onClick={() => {
+                        if (navigator.share) {
+                            navigator.share({
+                                title: `Copy/Share this treasury wallet address`,
+                                text: `Copy/Share this treasury wallet address`,
+                                url: `https://governance.so/treasury/${governanceAddress}/${rulesWalletAddress}`
+                            }).catch((error) => console.error('Error sharing:', error));
+                        } else {
+                            alert("Your browser doesn't support the Share API.");
+                        }
+                    }}
                 >
                     <ShareIcon />
                 </IconButton>
             </CopyToClipboard>
-            {loading ?
+            {(loading && loadingPrices) ?
                 <></>
             :
                 <>

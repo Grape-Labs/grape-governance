@@ -360,7 +360,28 @@ export default function JupiterDCAView(props: any) {
             setTokenMint(selectedTokenMint);
 
             // with token mint traverse to get the mint info if > 0 amount
-            {governanceWallet && governanceWallet.tokens.value
+            
+            {consolidatedGovernanceWallet && consolidatedGovernanceWallet
+                //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
+                .map((governanceItem: any, key: number) => {
+                    governanceItem.tokens
+                        .map((item: any, key: number) => {
+                            
+                            if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
+                                item.account.data.parsed.info.tokenAmount.amount > 0) {
+                                    //if (item.account.data.parsed.info.mint === selectedTokenMint){
+                                    //console.log("Item: "+JSON.stringify(item))
+                                    if (new PublicKey(item.pubkey).toBase58() === selectedTokenMint){
+                                        //console.log("Found Token: "+item.account.data.parsed.info.mint)
+                                        setTokenMaxAmount(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals);
+                                        setTokenMint(item.account.data.parsed.info.mint);
+                                    }
+                            }
+                        })
+                    })}
+            
+            
+            {/*governanceWallet && governanceWallet.tokens.value
                 //.sort((a:any,b:any) => (b.solBalance - a.solBalance) || b.tokens?.value.length - a.tokens?.value.length)
                 .map((item: any, key: number) => {
                     if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
@@ -370,7 +391,7 @@ export default function JupiterDCAView(props: any) {
                                 setTokenMaxAmount(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals);
                             }
                     }
-            })}
+            })*/}
             
         };
 
@@ -475,7 +496,7 @@ export default function JupiterDCAView(props: any) {
                     },
                   }}
                 >
-                    {(governanceWallet && governanceWallet.solBalance > 0) &&
+                    {(consolidatedGovernanceWallet && consolidatedGovernanceWallet.solBalance > 0) &&
                         <MenuItem key={1} value={'So11111111111111111111111111111111111111112'} selected>
                             <Grid container
                                 alignItems="center"
@@ -519,80 +540,62 @@ export default function JupiterDCAView(props: any) {
                         </MenuItem>
                     }
 
-                    {(governanceWallet) && governanceWallet.tokens.value
-                            .filter((item: any) => 
-                                item.account.data?.parsed?.info?.tokenAmount?.amount > 0
-                            )
-                            .sort((a: any, b: any) => 
-                                b.account.data.parsed.info.tokenAmount.amount - a.account.data.parsed.info.tokenAmount.amount
-                            )
-                            .map((item: any, key: number) => {
-                            
-                                if (item.account.data?.parsed?.info?.tokenAmount?.amount &&
-                                    item.account.data.parsed.info.tokenAmount.amount > 0 &&
-                                    item.account.data.parsed.info.tokenAmount.decimals > 0) {
-                                
-                                    return (
-                                        <MenuItem key={key} value={item.account.data.parsed.info.mint}>
-                                            {/*console.log("wallet: "+JSON.stringify(item))*/}
-                                            
-                                            <Grid container
-                                                alignItems="center"
-                                            >
-                                                <Grid item xs={12}>
-                                                    <Grid container>
-                                                        <Grid item sm={8}>
-                                                            <Grid
-                                                                container
-                                                                direction="row"
-                                                                justifyContent="left"
-                                                                alignItems="left"
-                                                            >
-
-                                                                {item.account?.tokenMap?.tokenName ?
-                                                                    <Grid 
-                                                                        container
-                                                                        direction="row"
-                                                                        alignItems="center"
-                                                                    >
-                                                                        <Grid item>
-                                                                            <Avatar alt={item.account.tokenMap.tokenName} src={item.account.tokenMap.tokenLogo} />
-                                                                        </Grid>
-                                                                        <Grid item sx={{ml:1}}>
-                                                                            <Typography variant="h6">
-                                                                            {item.account.tokenMap.tokenName}
-                                                                            </Typography>
-                                                                        </Grid>
-                                                                    </Grid>
-                                                                :
-                                                                    <>
-                                                                        <ShowTokenMintInfo mintAddress={item.account.data.parsed.info.mint} />
-                                                                    </>
-                                                                }
-                                                            </Grid>
-                                                        </Grid>
-                                                        <Grid item xs sx={{textAlign:'right'}}>
-                                                            <Typography variant="h6">
-                                                                {/*item.vault?.nativeTreasury?.solBalance/(10 ** 9)*/}
-
-                                                                {(item.account.data.parsed.info.tokenAmount.amount/10 ** item.account.data.parsed.info.tokenAmount.decimals).toLocaleString()}
-                                                            </Typography>
-                                                        </Grid>
-                                                    </Grid>  
-
-                                                    <Grid item xs={12} sx={{textAlign:'center',mt:-1}}>
-                                                        <Typography variant="caption" sx={{borderTop:'1px solid rgba(255,255,255,0.05)',pt:1}}>
-                                                            {shortenString(item.account.data.parsed.info.mint,5,5)}
-                                                        </Typography>
+                    {consolidatedGovernanceWallet.map((governanceItem: any, govKey: number) => (
+                        governanceItem.tokens
+                        .filter((item: any) => 
+                            // Adjust filter logic if you want to show tokens with zero balance
+                            item?.pubkey && 
+                            item?.account?.data?.parsed?.info?.mint && 
+                            Number(item.account.data?.parsed?.info?.tokenAmount?.amount) > 0
+                        )
+                        .sort((a: any, b: any) => 
+                            Number(b.account.data?.parsed?.info?.tokenAmount?.amount) - 
+                            Number(a.account.data?.parsed?.info?.tokenAmount?.amount)
+                        )
+                        .map((item: any) => (
+                            <MenuItem key={`${govKey}-${item.pubkey}`} value={new PublicKey(item.pubkey).toBase58()}>
+                                <Grid container alignItems="center">
+                                    <Grid item xs={12}>
+                                        <Grid container>
+                                            <Grid item sm={8}>
+                                            <Grid container direction="row" justifyContent="left" alignItems="left">
+                                                {item.account?.tokenMap?.tokenName ? (
+                                                <Grid container direction="row" alignItems="center">
+                                                    <Grid item>
+                                                    <Avatar 
+                                                        alt={item.account?.tokenMap?.tokenName || "Token"} 
+                                                        src={item.account?.tokenMap?.tokenLogo && item.account.tokenMap.tokenLogo} 
+                                                    />
+                                                    </Grid>
+                                                    <Grid item sx={{ ml: 1 }}>
+                                                    <Typography variant="h6">
+                                                        {item.account?.tokenMap?.tokenName || "Token"}
+                                                    </Typography>
                                                     </Grid>
                                                 </Grid>
+                                                ) : (
+                                                    <>-</>
+                                                )}
                                             </Grid>
-                                        </MenuItem>
-                                    );
-                                } else {
-                                    //return null; // Don't render anything for items without nativeTreasuryAddress
-                                }
-                            })}
+                                            </Grid>
+                                            <Grid item xs sx={{ textAlign: 'right' }}>
+                                            <Typography variant="h6">
+                                                {(Number(item.account.data.parsed.info.tokenAmount.amount) / 
+                                                10 ** item.account.data.parsed.info.tokenAmount.decimals
+                                                ).toLocaleString()}
+                                            </Typography>
+                                            </Grid>
+                                        </Grid>
+                                        <Grid item xs={12} sx={{ textAlign: 'center', mt: -1 }}>
+                                            <Typography variant="caption" sx={{ borderTop: '1px solid rgba(255,255,255,0.05)', pt: 1 }}>
+                                            {shortenString(item.account.data.parsed.info.mint, 5, 5)}
+                                            </Typography>
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+                            </MenuItem>
+                        ))
+                    ))}
                     
                 </Select>
               </FormControl>

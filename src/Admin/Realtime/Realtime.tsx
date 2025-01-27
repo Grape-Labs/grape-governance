@@ -693,20 +693,24 @@ function TablePaginationActions(props) {
                                                                         }} 
                                                                     >
                                                                         <>
-                                                                            <ReactMarkdown 
-                                                                                remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
-                                                                                //transformImageUri={transformImageUri}
-                                                                                children={descriptionMarkdown}
-                                                                                components={{
-                                                                                    // Custom component for overriding the image rendering
-                                                                                    img: ({ node, ...props }) => (
-                                                                                    <img
-                                                                                        {...props}
-                                                                                        style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
-                                                                                    />
-                                                                                    ),
-                                                                                }}
-                                                                            />
+                                                                            {window.location.hostname !== 'localhost' ? (
+                                                                                <ReactMarkdown 
+                                                                                    remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
+                                                                                    //transformImageUri={transformImageUri}
+                                                                                    children={descriptionMarkdown}
+                                                                                    components={{
+                                                                                        // Custom component for overriding the image rendering
+                                                                                        img: ({ node, ...props }) => (
+                                                                                        <img
+                                                                                            {...props}
+                                                                                            style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
+                                                                                        />
+                                                                                        ),
+                                                                                    }}
+                                                                                />
+                                                                            ) : (
+                                                                                <p>Markdown rendering is disabled on localhost.</p>
+                                                                            )}
                                                                         </>
                                                                     </Grid>
                                                                     <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>

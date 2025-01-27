@@ -97,6 +97,7 @@ export function MyGovernanceView(props: any){
     const [selectionGovernanceModel, setSelectionGovernanceModel] = React.useState(null);
     const [tokenMap, setTokenMap] = React.useState(props?.tokenMap);
     const [loading, setLoading] = React.useState(false);
+    const [refresh, setRefresh] = React.useState(true);
     const { publicKey, sendTransaction } = useWallet();
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
@@ -246,7 +247,7 @@ export function MyGovernanceView(props: any){
         )
         
         //const tor = await getTokenOwnerRecord(RPC_CONNECTION, publicKey);
-        //console.log("tor: "+JSON.stringify(tor))
+        //console.log("tor: "+JSON.stringify(gtor))
         
         //console.log("gtor: ",gtor)
 
@@ -260,9 +261,9 @@ export function MyGovernanceView(props: any){
         const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
         const gprops = await getAllProposalsIndexed(governanceRulesStrArr, programId, realmPk);
         // loop all items and push to a new array
+        //console.log("governanceRulesIndexed: "+JSON.stringify(governanceRulesIndexed));
         //console.log("props: "+JSON.stringify(gprops));
         //console.log("gtor: "+JSON.stringify(gtor));
-        
         
         // now with gprops & gtor we need to match the two to find the respective proposals that are not relinquished
         const thisGtor = new Array();
@@ -307,7 +308,7 @@ export function MyGovernanceView(props: any){
         let props = new Array();
         if (thisGtor && thisGtor.length > 0){
             let counter = 0;
-            for (var item of thisGtor){
+            for (var gitem of thisGtor){
 
                 //console.log("item: "+JSON.stringify(item))
                 
@@ -321,7 +322,7 @@ export function MyGovernanceView(props: any){
                 
                 //const governanceRulesIndexed = await getAllGovernancesIndexed(realmPk.toBase58(), programId.toBase58());
                 //const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
-                const proposal = await getProposalIndexed(governanceRulesIndexed, programId.toBase58(), realmPk.toBase58(), item.account.proposal.toBase58());
+                const proposal = await getProposalIndexed(governanceRulesIndexed, programId.toBase58(), realmPk.toBase58(), gitem.account.proposal.toBase58());
                 
                 //const gaccounts = await getAllGovernancesIndexed(realmPk, )
                 
@@ -331,6 +332,8 @@ export function MyGovernanceView(props: any){
                 //if (proposal.account.)
                 //if (item.account.proposal.toBase58() === proposal.pubkey.toBase58()){
                 
+                let voteRecordPk = null;
+                let tokenOwnerRecordPk = null;
                 for (var gaccount of gaccounts){
                     if (gaccount.pubkey.toBase58() === proposal.account.governance.toBase58()){
                         console.log("gaccount = "+JSON.stringify(gaccount))
@@ -349,8 +352,8 @@ export function MyGovernanceView(props: any){
                         console.log("proposal "+proposal.pubkey.toBase58());
                         console.log("tokenOwnerRecord "+proposal.account.tokenOwnerRecord.toBase58());
                         console.log("governingTokenMint "+proposal.account.governingTokenMint.toBase58());
-                        console.log("Vote Record "+item.pubkey.toBase58());
-                        console.log("governanceAuthority "+item.account.governingTokenOwner.toBase58());
+                        console.log("Vote Record "+gitem.pubkey.toBase58());
+                        console.log("governingTokenOwner "+gitem.account.governingTokenOwner.toBase58());
                         console.log("publicKey "+publicKey.toBase58());
                         //const tor = await getTokenOwnerRecordForRealm(RPC_CONNECTION, proposal.owner, realmPk, proposal.account.governingTokenMint, publicKey);
                         //console.log("tor: "+JSON.stringify(tor))
@@ -364,27 +367,44 @@ export function MyGovernanceView(props: any){
                         
                         console.log("programVersion "+programVersion);
                         
-                        const voteRecordPk = await getVoteRecordAddress(
-                            programId,
-                            proposal.pubkey,
-                            publicKey
-                          )
-                          console.log("voteRecordPk "+voteRecordPk.toBase58());
                         
-                        var tokenOwnerRecordPk = null;
+
                         if (!tokenOwnerRecordPk){
-                            tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
-                              programId,
-                              realmPk,
-                              proposal.account.governingTokenMint,
-                              publicKey,
-                            );
-                            if (tokenOwnerRecordPk)
-                              console.log("Using getTokenOwnerRecordAddress: "+tokenOwnerRecordPk.toBase58());
+                            
+                            const indexedTokenOwnerRecordPk = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), programId.toBase58(), publicKey.toBase58(), proposal.account.governingTokenMint.toBase58());
+                            if (indexedTokenOwnerRecordPk){
+                                tokenOwnerRecordPk = indexedTokenOwnerRecordPk[0].pubkey;
+                                console.log("Using getAllTokenOwnerRecordsIndexed filtered: "+tokenOwnerRecordPk.toBase58());
+                                //tokenOwnerRecordPk = new PublicKey(tokenOwnerRecordPk);
+                                //console.log("Using indexedTokenOwnerRecordPk: "+JSON.stringify(indexedTokenOwnerRecordPk));
+                            } else {
+                                tokenOwnerRecordPk = await getTokenOwnerRecordAddress(
+                                    programId,
+                                    realmPk,
+                                    proposal.account.governingTokenMint,
+                                    publicKey,
+                                );
+                                if (tokenOwnerRecordPk)
+                                    console.log("Using RPC getTokenOwnerRecordAddress: "+tokenOwnerRecordPk.toBase58());
+                            }
+                        }
+
+                        if (!voteRecordPk && !gitem.pubkey.toBase58()){
+                            voteRecordPk = await getVoteRecordAddress(
+                                programId,
+                                proposal.pubkey,
+                                tokenOwnerRecordPk
+                            )
+                            console.log("voteRecordPk "+voteRecordPk.toBase58());
+                        } else if (gitem.pubkey.toBase58()){
+                            voteRecordPk = gitem.pubkey;
+                            console.log("from gitem voteRecordPk "+voteRecordPk.toBase58());
                         }
 
                         const instructions: TransactionInstruction[] = []
                         
+                        const governanceAuthority = publicKey;
+                        const beneficiary = publicKey;
                         await withRelinquishVote(
                             instructions,
                             programId,
@@ -392,10 +412,10 @@ export function MyGovernanceView(props: any){
                             realmPk,
                             proposal.account.governance,
                             proposal.pubkey,
-                            tokenOwnerRecordPk,
+                            tokenOwnerRecordPk, // gitem.account.governingTokenOwner, //
                             proposal.account.governingTokenMint,
-                            proposal.account.tokenOwnerRecord,
-                            item.account.governingTokenOwner,
+                            voteRecordPk,
+                            governanceAuthority,
                             publicKey
                         )
                         
@@ -408,7 +428,9 @@ export function MyGovernanceView(props: any){
             }
             
             if (txInstructions && txInstructions.length > 0){
-                createAndSendV0Tx(txInstructions);
+                const txid = await createAndSendV0Tx(txInstructions);
+                if (txid)
+                    setRefresh(true);
             }
         } else{
             enqueueSnackbar(`Currently there are proposals that have not been finalized! Please finalize those proposals to relinquish the casted votes`,{ variant: 'warning' });
@@ -576,7 +598,7 @@ export function MyGovernanceView(props: any){
             setGovernanceRecord(ownerRecordsbyOwner);
             setGovernanceRecordRows(governance);
             setLoadingGovernance(false);
-        
+            setRefresh(false);
         }catch(e){
             console.log("ERR: "+e);
             setLoadingGovernance(false);
@@ -591,11 +613,11 @@ export function MyGovernanceView(props: any){
     React.useEffect(() => {
         //setLoadingGovernance(true);
         console.log("checking: "+JSON.stringify(pubkey))
-        if (pubkey && tokenMap){
+        if (pubkey && tokenMap && refresh){
             console.log("pubkey: "+JSON.stringify(pubkey))
             fetchGovernancePositions();
         }
-    }, [tokenMap, pubkey]);
+    }, [tokenMap, pubkey, refresh]);
 
     React.useEffect(() => {
         setLoadingGovernance(true);
