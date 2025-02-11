@@ -916,14 +916,14 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury NFTs");
 
     const client = new RestClient(HELLO_MOON_BEARER);
-    const vaultsWithNftsPromise = await Promise.all(
+    const vaultsWithNftsPromise = null;/*await Promise.all(
         vaultsInfo.map((vault) =>
             client.send(new NftMintsByOwnerRequest({
                 ownerAccount: vault.pubkey,
                 limit: 1000
             }))
         )
-    );
+    );*/
 
     //console.log("vaultSolBalancesPromise "+JSON.stringify(vaultSolBalancesPromise));
     //console.log("vaultsWithTokensPromise "+JSON.stringify(vaultsWithTokensPromise));
@@ -943,7 +943,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             vault:gv,
             solBalance:vaultSolBalancesPromise[x],
             tokens:vaultsWithTokensPromise[x],
-            nfts:vaultsWithNftsPromise[x].data,
+            nfts:vaultsWithNftsPromise ? vaultsWithNftsPromise[x].data : null,
             domains:domainsForAddress,
         })
         x++;

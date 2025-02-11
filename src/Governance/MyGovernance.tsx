@@ -416,7 +416,7 @@ export function MyGovernanceView(props: any){
                             proposal.account.governingTokenMint,
                             voteRecordPk,
                             governanceAuthority,
-                            publicKey
+                            beneficiary
                         )
                         
                         if (instructions)
