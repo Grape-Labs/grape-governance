@@ -936,6 +936,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     for (var gv of vaultsInfo){ // reformat to something pretty ;)
         //console.log("vault: "+JSON.stringify(gv));
 
+        if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury Domains");
+
         const domainsForAddress = await getAllDomains(gv.pubkey);
         console.log("SNS: "+JSON.stringify(domainsForAddress));
         
