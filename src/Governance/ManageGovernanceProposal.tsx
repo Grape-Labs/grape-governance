@@ -426,6 +426,8 @@ export function ManageGovernanceProposal(props: any){
                 if (setReload) 
                     setReload(true);
 
+                // reload does not update the proposal status
+
             } else{
                 enqueueSnackbar(`Error`,{ variant: 'error' });
             }
