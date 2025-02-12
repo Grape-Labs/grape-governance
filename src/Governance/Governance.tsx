@@ -1795,7 +1795,6 @@ export function GovernanceCachedView(props: any) {
                                                     
                                                     {gsplMetadata ?
                                                         <Grid container alignItems="center" spacing={1}>
-                                                            {console.log("gsplMetadata: "+JSON.stringify(gsplMetadata))}
                                                             {/* Governance Image as a Small Circular Icon */}
                                                             {gsplMetadata?.metadata?.ogImage && !gsplMetadata.metadata.ogImage.endsWith("/") && (
                                                                 <Grid item>
