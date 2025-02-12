@@ -1184,7 +1184,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     }
 
     // consider jupiter as a backup... (per token address)
-
+    
     if (setPrimaryStatus) setPrimaryStatus("Fetching Prices from Jupiter");
 
     const cgp = await getJupiterPrices(cgMintArray, null, true);
