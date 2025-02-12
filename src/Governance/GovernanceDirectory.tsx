@@ -38,7 +38,6 @@ import GovernanceDirectoryCardView from "./GovernanceDirectoryCardView";
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 
-import VerifiedIcon from '@mui/icons-material/Verified';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -300,7 +299,6 @@ export function GovernanceDirectoryView(props: Props) {
     }
     
     const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
-    
     const initGrapeGovernanceDirectory = async() => {
         try{
             const umi = createUmi(RPC_ENDPOINT);
