@@ -33,21 +33,41 @@ function GovernanceDirectoryCardView(props: any) {
                         </Grid>
                     )}
 
-                    {/* Governance Name */}
-                    <Grid item>
+                    {/* Governance Name & Verified Badge */}
+                    <Grid item sx={{ display: "flex", alignItems: "center" }}>
                         <Tooltip title={`View ${metadata?.displayName || item.governanceName} Governance`}>
                             <Button 
                                 component={Link}
                                 to={'/dao/' + item.governanceAddress}
                                 size="large"
                                 color='inherit'
-                                sx={{ borderRadius: '17px', textTransform: 'none', display: 'flex', alignItems: 'center' }}
+                                sx={{ 
+                                    borderRadius: '17px', 
+                                    textTransform: 'none', 
+                                    display: 'flex', 
+                                    alignItems: 'center'
+                                }}
                             >
                                 <Typography variant="h5">
                                     {metadata?.displayName || item.governanceName}
                                 </Typography>
                             </Button>
                         </Tooltip>
+
+                        {/* Verified Checkmark (if item is verified) */}
+                        {item?.gspl && (
+                            <Tooltip title="Verified Governance">
+                                <VerifiedIcon 
+                                    sx={{ 
+                                        fontSize: 20, 
+                                        color: "#4CAF50", 
+                                        marginLeft: 1, 
+                                        opacity: 0.8, 
+                                        boxShadow: "0px 2px 5px rgba(0,0,0,0.2)" 
+                                    }} 
+                                />
+                            </Tooltip>
+                        )}
                     </Grid>
                 </Grid>
 
