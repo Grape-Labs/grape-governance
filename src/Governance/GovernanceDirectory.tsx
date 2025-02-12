@@ -33,6 +33,7 @@ import {
 } from '@mui/material/';
 
 import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
+import GovernanceDirectoryCardView from "./GovernanceDirectoryCardView";
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
@@ -143,249 +144,11 @@ function ScrollTop(props: Props) {
     );
   }
 
-
-function GovernanceCardView(props:any) {
-    const item = props.item;
-    const randomColor = Math.floor(Math.random()*16777215).toString(16);
-    //console.log("randomColor: "+randomColor)
-
-    return (
-        <Card sx={{ 
-            borderRadius: '17px',
-            background: 'linear-gradient(75deg, rgba(0,0,0,0.50) 40%, #'+randomColor+' 200%)' }}>
-        <CardContent>
-            <Grid container>
-                <Grid item xs={12} sm={8} container justifyContent="flex-start">
-                    <Typography sx={{ fontSize: 10, color:'rgba(255,255,255,0.1)' }} gutterBottom>
-                            <Tooltip title={
-                                <>
-                                    {item?.communityMint &&
-                                        <Grid item xs={12} container>
-                                            <Typography sx={{fontSize:'10px'}} gutterBottom>
-                                                Community Mint {item.communityMint}
-                                            </Typography>
-                                        </Grid>
-                                        }
-                                        {item?.councilMint &&
-                                        <Grid item xs={12} container>
-                                            <Typography sx={{fontSize:'10px'}} variant="caption" gutterBottom>
-                                                Council Mint {item.councilMint}
-                                            </Typography>
-                                        </Grid>
-                                        }
-                                </>
-                            }>
-                                <Button variant="text" size="small" sx={{fontSize:'10px',textAlign:'left'}}>
-                                    Governance {item?.governanceAddress &&
-                                        <>{item.governanceAddress}</>
-                                    }
-                                </Button>
-                            </Tooltip>
-                    </Typography>
-                </Grid>
-
-                <Grid item xs={12} sm={4} container justifyContent="flex-end">
-                    {/*item.totalProposalsVoting && item.totalProposalsVoting > 0 ?
-                        <Tooltip title={
-                            <>Voting: {item.totalProposalsVoting} Active Proposal{item.totalProposalsVoting > 1 ? `s`:``}</>}>
-                            <IconButton
-                                color='inherit'
-                                sx={{borderRadius:'17px'}}
-                            >
-                                <Badge badgeContent={item.totalProposalsVoting} color="success"><HowToVoteIcon /></Badge>
-                                
-                            </IconButton>
-                        </Tooltip>
-                    :
-                        <></>
-                    */}
-
-                    {item?.gspl?
-                        <Tooltip title={
-                            <>Directory: Grape GSPL<br/>
-                            Status: Verified<br/>
-                            <Typography sx={{fontSize:'10px'}} gutterBottom>
-                            GovyJPza6EV6srUcmwA1vS3EmWGdLSkkDafRE54X1Dir</Typography></>}>
-                            <IconButton
-                                color='inherit'
-                            >
-                                <Badge color="success"><VerifiedIcon /></Badge>
-                                
-                            </IconButton>
-                        </Tooltip>
-                        :<>
-                            {/*
-                            <Tooltip title={
-                                <>Directory: Grape GSPL<br/>
-                                Status: Not Listed/Not Claimed<br/>
-                                <Typography sx={{fontSize:'10px'}} gutterBottom>
-                                GovyJPza6EV6srUcmwA1vS3EmWGdLSkkDafRE54X1Dir</Typography></>}>
-                                <IconButton>
-                                    <VerifiedIcon color="disabled"/>
-                                </IconButton>
-                            </Tooltip>
-                            */}
-                        </>
-                    }
-
-                </Grid>
-            </Grid>
-                <Tooltip title={`View ${item.governanceName} Governance`}>
-                    <Button 
-                        component={Link}
-                        to={'/dao/'+item.governanceAddress}
-                        size="large"
-                        color='inherit'
-                        sx={{borderRadius:'17px',textTransform:'none'}}
-                        >
-                        <Typography variant="h4" component="div">
-                            {item.governanceName}
-                        </Typography>
-                    </Button>
-                </Tooltip>
-                
-                <Box
-                    sx={{
-                        borderRadius:'24px',
-                        m:1,
-                        p:1,
-                        background: 'rgba(0, 0, 0, 0.2)'
-                    }}
-                >
-
-                    <TableContainer>
-                        <Table size="small" aria-label="dense table">
-                            <TableBody>
-                                
-                                    {item?.totalVaultValue?
-                                        <>{item.totalVaultValue > 1 ?
-                                            <TableRow>
-                                                <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}><strong>Treasury</strong></TableCell>
-                                                <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}><strong>{getFormattedNumberToLocale(Number(item.totalVaultValue).toFixed(2))} USD</strong></TableCell>
-                                            </TableRow>
-                                        :<></>}
-                                        </>
-                                        :<></>
-                                    }
-
-                                    {item?.totalVaultStableCoinValue?
-                                        <>{item.totalVaultStableCoinValue > 1 ?
-                                            <TableRow>
-                                                <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>Treasury in Stable Coin</TableCell>
-                                                <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>{getFormattedNumberToLocale(Number(item.totalVaultStableCoinValue).toFixed(2))} USD</TableCell>
-                                            </TableRow>
-                                        :<></>}
-                                        </>
-                                        :<></>
-                                    }
-
-                                    {item?.totalVaultSolValue?
-                                        <>{item.totalVaultSolValue > 100 ?
-                                            <TableRow>
-                                                <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>Treasury in Solana</TableCell>
-                                                <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>{getFormattedNumberToLocale(Number(item.totalVaultSolValue).toFixed(2))} USD</TableCell>
-                                            </TableRow>
-                                        :<></>}
-                                        </>
-                                        :<></>
-                                    }
-
-                                    {item?.totalVaultNftValue?
-                                        <>{item.totalVaultNftValue > 1 ?
-                                            <TableRow>
-                                                <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>Treasury NFT Floor Price</TableCell>
-                                                <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>{getFormattedNumberToLocale(Number(item.totalVaultNftValue).toFixed(2))} USD</TableCell>
-                                            </TableRow>
-                                        :<></>}
-                                        </>
-                                        :<></>
-                                    }
-
-                                    {item?.totalMembers?
-                                        <>{item.totalMembers > 0 ?
-                                            <TableRow>
-                                                <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>All Time Members</TableCell>
-                                                <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>{(Number(item.totalMembers).toLocaleString())}</TableCell>
-                                            </TableRow>
-                                        :<></>}
-                                        </>
-                                        :<></>
-                                    }
-
-                                    {item?.totalProposals?
-                                        <>{item.totalProposals > 0 ?
-                                            <>
-                                            <TableRow>
-                                                <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>All Proposals</TableCell>
-                                                <TableCell align="right" sx={{borderBottom:'1px solid rgba(255,255,255,0.05)'}}>{(Number(item.totalProposals).toLocaleString())}</TableCell>
-                                            </TableRow>
-
-                                            {item?.totalCouncilProposals ?
-                                                <TableRow>{item.totalCouncilProposals > 0 &&
-                                                    <TableCell sx={{borderBottom:'1px solid rgba(255,255,255,0.05)',textAlign:'right'}} colSpan={2}><Typography sx={{fontSize:'10px'}}>{item.totalProposals - item.totalCouncilProposals} community / {item.totalCouncilProposals} council</Typography></TableCell>
-                                                }
-                                                </TableRow>
-                                                :<></>
-                                            }
-                                            </>
-                                        :<></>}
-                                        </>
-                                        :<></>
-                                    }
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                    {/*
-                    <Typography variant="caption">
-                        {item?.lastProposalDate &&
-                            <Tooltip title={
-                                <> {moment.unix(Number("0x"+item.lastProposalDate)).format("MMMM D, YYYY, h:mm a") }</>
-                            }>
-                                <Button
-                                    color='inherit'
-                                    sx={{borderRadius:'17px',textTransform:'none'}}
-                                >
-                                Last Proposal {timeAgo(Number("0x"+item.lastProposalDate).toString())}
-                                </Button>
-                            </Tooltip>
-                        }
-                    </Typography>
-                    */}
-                </Box>
-        </CardContent>
-        <CardActions>
-            {/*
-            <Tooltip title="Cached method will fetch Governance will load all proposals & proposal details">
-                <Button 
-                    component={Link}
-                    to={'/dao/'+item.governanceAddress}
-                    size="small"
-                    color='inherit'
-                    sx={{borderRadius:'17px',textTransform:'none'}}
-                    >View Governance via Cache</Button>
-            </Tooltip>
-            */}
-            {/*
-            <Tooltip title="RPC method will fetch Governance via RPC calls (additional RPC calls are needed per proposal, significantly increasing the load time)">
-                <Button 
-                    component={Link}
-                    to={'/rpcgovernance/'+item.governanceAddress}
-                    size="small"
-                    color='inherit'
-                    sx={{borderRadius:'17px',textTransform:'none'}}>View via RPC</Button>
-                </Tooltip>
-            */}
-            {item.timestamp &&
-                <Typography marginLeft='auto' variant='caption'>Cached: {moment.unix(Number(item.timestamp)).format("MMMM D, YYYY, h:mm a") }</Typography>
-            }
-        </CardActions>
-        </Card>
-    );
-}
-
 export function GovernanceDirectoryView(props: Props) {
     const { publicKey } = useWallet();
     
+    const [metadataMap, setMetadataMap] = React.useState<{ [key: string]: any }>({});
+
     const [storagePool, setStoragePool] = React.useState(GGAPI_STORAGE_POOL);
     const [loading, setLoading] = React.useState(false);
     const [governanceLookup, setGovernanceLookup] = React.useState(null);
@@ -444,7 +207,6 @@ export function GovernanceDirectoryView(props: Props) {
 
         setSortingType(type);
         setSortingDirection(direction);
-
         setGovernanceLookup(sorted);
     }
 
@@ -690,6 +452,34 @@ export function GovernanceDirectoryView(props: Props) {
         //console.log("exportable: "+JSON.stringify(exportFglf));
         setLoading(false);
     }
+
+
+    React.useEffect(() => {
+        const fetchMetadata = async () => {
+            const newMetadataMap = { ...metadataMap };
+            if (governanceLookup){
+                await Promise.all(
+                    governanceLookup.map(async (item:any) => {
+                        if (item.gspl && item.gspl.metadataUri && !newMetadataMap[item.gspl.metadataUri]) {
+                            try {
+                                const response = await fetch(item.gspl.metadataUri);
+                                if (response.ok) {
+                                    const metadata = await response.json();
+                                    newMetadataMap[item.gspl.metadataUri] = metadata;
+                                } else {
+                                    console.error("Failed to fetch metadata:", item.gspl.metadataUri);
+                                }
+                            } catch (error) {
+                                console.error("Error fetching metadata:", error);
+                            }
+                        }
+                    })
+                );
+            }
+            setMetadataMap(newMetadataMap);
+        };
+        fetchMetadata();
+    }, [governanceLookup]);
 
     React.useEffect(() => {
         if (!governanceLookup){
@@ -1061,14 +851,19 @@ export function GovernanceDirectoryView(props: Props) {
                     <GovernanceDirectorySorting />
                     
                     <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
-                        {governanceLookup.map((item: any,key:number) => (
+                        
+                        
+                        {governanceLookup.map((item: any,key:number) => {
+                            const metadata = (item?.gspl && item.gspl?.metadataUri) ? metadataMap[item.gspl.metadataUri] : {};
+                            return (
                             <>
                             {searchFilter ?
                                 <>
                                     {item.governanceName.toUpperCase().includes(searchFilter.toUpperCase()) ?
                                         <Grid item xs={12} sm={6} md={4} key={key}>
-                                            <GovernanceCardView 
+                                            <GovernanceDirectoryCardView 
                                                 item={item}
+                                                metadata={metadata} 
                                             />
                                         </Grid>
                                         :
@@ -1079,7 +874,10 @@ export function GovernanceDirectoryView(props: Props) {
                                                 (item?.councilMint && item.councilMint.includes(searchFilter))) && 
                                                 (
                                                     <Grid item xs={12} sm={6} md={4} key={key}>
-                                                        <GovernanceCardView item={item} />
+                                                        <GovernanceDirectoryCardView 
+                                                            item={item}
+                                                            metadata={metadata} 
+                                                        />
                                                     </Grid>
                                                 )
                                             }
@@ -1088,17 +886,18 @@ export function GovernanceDirectoryView(props: Props) {
                                 </>
                                 :
                                 <Grid item xs={12} sm={6} key={key}>
-                                    
                                     {/*(item.realm.owner !== 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw') &&
                                         console.log(item.realm.account.name+": "+item.realm.owner)
                                     */}
-                                    <GovernanceCardView 
+                                    <GovernanceDirectoryCardView 
                                         item={item}
+                                        metadata={metadata} 
                                     />
                                 </Grid>
                             }
                             </>
-                        ))}
+                            )
+                        })}
                     </Grid>
 
                     <ScrollTop {...props}>
