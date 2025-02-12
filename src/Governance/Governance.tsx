@@ -8,30 +8,35 @@ import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import grapeTheme from  '../utils/config/theme';
 import { ThemeProvider } from '@mui/material/styles';
 
+import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
+import {getRealms, RequestStatus} from "gspl-directory";
+import {publicKey as UmiPK} from "@metaplex-foundation/umi";
+
 import {
-  Typography,
-  Button,
-  Grid,
-  Box,
-  Paper,
-  Table,
-  TableContainer,
-  TableCell,
-  TableHead,
-  TableBody,
-  TableFooter,
-  TableRow,
-  TablePagination,
-  TextField,
-  Tooltip,
-  LinearProgress,
-  DialogTitle,
-  Dialog,
-  Badge,
-  FormGroup,
-  FormControlLabel,
-  Switch,
-  ButtonGroup
+    Avatar,
+    Typography,
+    Button,
+    Grid,
+    Box,
+    Paper,
+    Table,
+    TableContainer,
+    TableCell,
+    TableHead,
+    TableBody,
+    TableFooter,
+    TableRow,
+    TablePagination,
+    TextField,
+    Tooltip,
+    LinearProgress,
+    DialogTitle,
+    Dialog,
+    Badge,
+    FormGroup,
+    FormControlLabel,
+    Switch,
+    ButtonGroup
 } from '@mui/material/';
 
 import { Helmet } from 'react-helmet';
@@ -49,6 +54,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import { GovernanceProposalDialog } from './GovernanceProposalDialog';
 import moment from 'moment';
 
+import VerifiedIcon from '@mui/icons-material/Verified';
 import ShareIcon from '@mui/icons-material/Share';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -249,7 +255,19 @@ function TablePaginationActions(props) {
             </IconButton>
         </Box>
     );
-  }
+}
+
+const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
+const initGrapeGovernanceDirectory = async() => {
+    try{
+        const umi = createUmi(RPC_CONNECTION);
+        const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
+        //console.log("Entries: "+JSON.stringify(entries));
+        return entries;
+    } catch(e){
+        console.log("Could not load GSPDL");
+    }
+}
 
 function RenderGovernanceTable(props:any) {
     const endTimer = props.endTimer;
@@ -889,6 +907,8 @@ export function GovernanceCachedView(props: any) {
     const [daoName, setDaoName] = React.useState(null);
     const [daoIcon, setDaoIcon] = React.useState(null);
     const [votesForWallet, setVotesForWallet] = React.useState(null);
+    const [gspl, setGSPL] = React.useState(null);
+    const [gsplMetadata, setGSPLMetadata] = React.useState(null);
 
     const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
@@ -937,6 +957,7 @@ export function GovernanceCachedView(props: any) {
     }
 
     const getGovernanceParameters = async (cached_governance:any) => {
+        let grealm = null;
         if (!loading){
             setRealm(null);
             setRealmName(null);
@@ -951,8 +972,6 @@ export function GovernanceCachedView(props: any) {
                 //console.log("cached_governance: "+JSON.stringify(cached_governance));
                 
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
-                let grealm = null;
-
                 grealm = await getRealmIndexed(governanceAddress);
                 
                 //if (!grealm)
@@ -1266,6 +1285,47 @@ export function GovernanceCachedView(props: any) {
                 }
             }catch(e){console.log("ERR: "+e)}
         }
+
+        const fetchedgspl = await initGrapeGovernanceDirectory();
+        setGSPL(fetchedgspl);
+        console.log("fetchedgspl: "+JSON.stringify(fetchedgspl));
+        let gsplMeta = null;
+        if (fetchedgspl && grealm){
+            for (var diritem of fetchedgspl){
+                if (grealm.account.name === diritem.name){ // also make sure that diritem.governanceProgram ===item.parent?
+                    // check if there is also metadata and fetch it 
+                    if (diritem.metadataUri) {
+                        try {
+                            const response = await fetch(diritem.metadataUri);
+                            if (response.ok) {
+                                const metadata = await response.json();
+                                gsplMeta = {
+                                    gspl:diritem,
+                                    metadata: metadata
+                                }
+                            } else {
+                                console.error("Failed to fetch metadata:", diritem.metadataUri);
+                            }
+                        } catch (error) {
+                            console.error("Error fetching metadata:", error);
+                        }
+                    }
+
+                    if (!gsplMeta){
+                        gsplMeta = {
+                            gspl:diritem,
+                        }
+                    }
+
+                    setGSPLMetadata(gsplMeta);
+                    console.log("GSPL Entry found for "+diritem.name);
+                }
+            }
+        }
+    
+        // filter for only this governance
+        // setGSPLMetadata
+
         setLoading(false);
     }
 
@@ -1729,13 +1789,58 @@ export function GovernanceCachedView(props: any) {
                                             <meta name="twitter:image:alt" content={`${realmName}`}/>
                                         </Helmet>
                                         
-
                                         <Grid item xs={6} container justifyContent="flex-start">
                                             <Grid container>
                                                 <Grid item xs={12}>
-                                                    <Typography variant="h4">
-                                                        {realmName}
-                                                    </Typography>
+                                                    
+                                                    {gsplMetadata ?
+                                                        <Grid container alignItems="center" spacing={1}>
+                                                            {console.log("gsplMetadata: "+JSON.stringify(gsplMetadata))}
+                                                            {/* Governance Image as a Small Circular Icon */}
+                                                            {gsplMetadata?.metadata?.ogImage && !gsplMetadata.metadata.ogImage.endsWith("/") && (
+                                                                <Grid item>
+                                                                    <Avatar 
+                                                                        src={gsplMetadata.metadata.ogImage.startsWith("http") ? gsplMetadata.metadata.ogImage : `https://realms.today${gsplMetadata.metadata.ogImage}`} 
+                                                                        alt={gsplMetadata.metadata.displayName || realmName}
+                                                                        sx={{
+                                                                            width: 40, // Small and consistent
+                                                                            height: 40, // Small and consistent
+                                                                            boxShadow: "0px 4px 10px rgba(0,0,0,0.3)" // Subtle shadow effect
+                                                                        }}
+                                                                    />
+                                                                </Grid>
+                                                            )}
+
+                                                            {/* Governance Name & Verified Badge */}
+                                                            <Grid item sx={{ display: "flex", alignItems: "center" }}>
+                                                                
+                                                                <Typography variant="h5">
+                                                                    {gsplMetadata?.metadata?.displayName || realmName}
+                                                                </Typography>
+                                                            
+                                                            
+                                                                {/* Verified Checkmark (if item is verified) */}
+                                                                
+                                                                    <Tooltip title="Verified Governance">
+                                                                        <VerifiedIcon 
+                                                                            sx={{ 
+                                                                                fontSize: 20, 
+                                                                                color: "#4CAF50", 
+                                                                                marginLeft: 1, 
+                                                                                opacity: 0.8, 
+                                                                                boxShadow: "0px 2px 5px rgba(0,0,0,0.2)" 
+                                                                            }} 
+                                                                        />
+                                                                    </Tooltip>
+                                                                
+                                                            </Grid>
+                                                        </Grid>
+                                                        
+                                                    :
+                                                        <Typography variant="h4">
+                                                            {realmName}
+                                                        </Typography>
+                                                    }
                                                 </Grid>
                                                 <Grid item xs={12}>    
                                                     <ButtonGroup>
