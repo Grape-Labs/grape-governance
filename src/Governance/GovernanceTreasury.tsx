@@ -7,16 +7,15 @@ import {
     getAssociatedTokenAddress
 } from "@solana/spl-token-v2";
 
+import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
+import {getRealms, RequestStatus} from "gspl-directory";
+import {publicKey as UmiPK} from "@metaplex-foundation/umi";
+
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import axios from "axios";
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
 import moment from 'moment';
 
-import { 
-    tryGetName,
-} from '@cardinal/namespaces';
-
-import { CardinalTwitterIdentityResolver } from '@dialectlabs/identity-cardinal';
 import React, { useCallback } from 'react';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import BN from 'bn.js';
@@ -46,6 +45,7 @@ import TreeView from '@mui/lab/TreeView';
 import TreeItem, { TreeItemProps, treeItemClasses } from '@mui/lab/TreeItem';
 
 import WalletCardView from './Treasury/WalletCardView';
+import { GovernanceHeaderView } from './GovernanceHeaderView';
 import GovernanceNavigation from './GovernanceNavigation'; 
 
 import { 
@@ -123,8 +123,24 @@ export function GovernanceTreasuryView(props: any) {
 
     const [communityMintDecimals, setCommunityMintDecimals] = React.useState(0);
     const [governanceWallets, setGovernanceWallets] = React.useState(null);
+    const [gspl, setGSPL] = React.useState(null);
+    const [gsplMetadata, setGSPLMetadata] = React.useState(null);
 
     const { publicKey } = useWallet();
+
+    const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
+    const initGrapeGovernanceDirectory = async() => {
+        try{
+            const umi = createUmi(RPC_CONNECTION);
+            const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
+            //console.log("Entries: "+JSON.stringify(entries));
+            return entries;
+        } catch(e){
+            console.log("Could not load GSPDL");
+        }
+    }
+
+
 
     const getTokens = async () => {
         const tarray:any[] = [];
@@ -173,6 +189,7 @@ export function GovernanceTreasuryView(props: any) {
     const fetchGovernances = async() => {
         const tmpGovernanceAddresses = await getAllGovernancesIndexed(governanceAddress);
         
+        let thisrealm = null;
         if (tmpGovernanceAddresses){
 
             const governanceAddresses = new Array();
@@ -188,7 +205,6 @@ export function GovernanceTreasuryView(props: any) {
 
             }
             
-            let thisrealm = null;
             if (realm)
                 thisrealm = realm;
             else
@@ -215,6 +231,43 @@ export function GovernanceTreasuryView(props: any) {
             }
 
             setGovernanceWallets(governanceAddresses);
+        }
+
+        const fetchedgspl = await initGrapeGovernanceDirectory();
+        setGSPL(fetchedgspl);
+        console.log("fetchedgspl: "+JSON.stringify(fetchedgspl));
+        let gsplMeta = null;
+        if (fetchedgspl && thisrealm){
+            for (var diritem of fetchedgspl){
+                if (thisrealm.account.name === diritem.name){ // also make sure that diritem.governanceProgram ===item.parent?
+                    // check if there is also metadata and fetch it 
+                    if (diritem.metadataUri) {
+                        try {
+                            const response = await fetch(diritem.metadataUri);
+                            if (response.ok) {
+                                const metadata = await response.json();
+                                gsplMeta = {
+                                    gspl:diritem,
+                                    metadata: metadata
+                                }
+                            } else {
+                                console.error("Failed to fetch metadata:", diritem.metadataUri);
+                            }
+                        } catch (error) {
+                            console.error("Error fetching metadata:", error);
+                        }
+                    }
+
+                    if (!gsplMeta){
+                        gsplMeta = {
+                            gspl:diritem,
+                        }
+                    }
+
+                    setGSPLMetadata(gsplMeta);
+                    console.log("GSPL Entry found for "+diritem.name);
+                }
+            }
         }
 
         endTimer();
@@ -267,41 +320,11 @@ export function GovernanceTreasuryView(props: any) {
                     {realmName &&
                         <>
                             <Grid container>
-                                <Grid item xs={6} container justifyContent="flex-start">
-                                    <Grid container>
-                                        <Grid item xs={12}>
-                                            <Typography variant="h4">
-                                                {realmName}
-                                            </Typography>
-                                        </Grid>
-                                        <Grid item xs={12}>
-                                            <Tooltip title={`Share ${realmName ? realmName : ''} Governance`}>
-                                                <Button
-                                                    aria-label="share"
-                                                    variant="outlined"
-                                                    color="inherit"
-                                                    onClick={() => {
-                                                        if (navigator.share) {
-                                                            navigator.share({
-                                                                title: `${realmName} Governance`,
-                                                                text: `Visit the ${realmName} DAO:`,
-                                                                url: `https://governance.so/treasury/${governanceAddress}`
-                                                            }).catch((error) => console.error('Error sharing:', error));
-                                                        } else {
-                                                            alert("Your browser doesn't support the Share API.");
-                                                        }
-                                                    }}
-                                                    sx={{
-                                                        borderRadius:'17px',
-                                                        borderColor:'rgba(255,255,255,0.05)',
-                                                        fontSize:'10px'}}
-                                                >
-                                                    <ShareIcon fontSize='inherit' sx={{mr:1}} /> Share
-                                                </Button>
-                                            </Tooltip>
-                                        </Grid>
-                                    </Grid>
-                                </Grid>
+                                <GovernanceHeaderView
+                                    governanceName={realmName}
+                                    governanceAddress={governanceAddress}
+                                    gsplMetadata={gsplMetadata}
+                                />
                                 <Grid item xs={6} container justifyContent="flex-end">
                                     <GovernanceNavigation governanceAddress={governanceAddress} />
                                 </Grid>

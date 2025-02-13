@@ -1,0 +1,164 @@
+import { 
+    Card, 
+    CardContent, 
+    CardActions, 
+    Grid, 
+    Typography, 
+    Tooltip, 
+    Button, 
+    ButtonGroup, 
+    IconButton, 
+    Badge, 
+    Table,
+    TableBody, 
+    TableRow, 
+    TableCell, 
+    TableContainer, 
+    Box, 
+    Avatar } from "@mui/material";
+import { Link } from "react-router-dom";
+import { Helmet } from 'react-helmet';
+
+import VerifiedIcon from "@mui/icons-material/Verified";
+import ShareIcon from '@mui/icons-material/Share';
+import CodeIcon from '@mui/icons-material/Code';
+
+export function GovernanceHeaderView(props: any) {
+    const { governanceName, governanceAddress, gsplMetadata } = props;
+    
+    return (
+        <>
+            
+            <Helmet>
+                <meta name="msapplication-TileImage" content="./public/ms-icon-144x144.png"/>
+                <meta name="msapplication-TileColor" content="#180A1E"/>
+                <meta name="msapplication-TileImage" content="./public/ms-icon-144x144.png"/>
+            
+                <meta name="description" content={`${governanceName} powered by Governance.so by Grape`} />
+                <title>{`${governanceName}`}</title>
+                
+                <meta property="og:url" content="https://governance.so"/>
+                <meta property="og:type" content="website"/>
+                <meta property="og:title" content={`${governanceName}`}/>
+                <meta property="og:description" content={`${governanceName} powered by Governance.so by Grape`}/>
+                <meta property="og:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplash.png"/>  
+                
+                <meta name="twitter:card" content="summary_large_image"/>
+                <meta name="twitter:title" content={`${governanceName}`}/>
+                <meta name="twitter:site" content="@grapeprotocol"/>
+                <meta name="twitter:description" content={`${governanceName} powered by Governance.so by Grape`}/>
+                <meta name="twitter:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplash.png"/>
+                <meta name="twitter:image:alt" content={`${governanceName}`}/>
+            </Helmet>
+            
+            <Grid item xs={6} container justifyContent="flex-start">
+                <Grid container>
+                    <Grid item xs={12}>
+                        
+                        {gsplMetadata ?
+                            <Grid container alignItems="center" spacing={1}>
+                                {/* Governance Image as a Small Circular Icon */}
+                                {gsplMetadata?.metadata?.ogImage && !gsplMetadata.metadata.ogImage.endsWith("/") && (
+                                    <Grid item>
+                                        <Avatar 
+                                            src={gsplMetadata.metadata.ogImage.startsWith("http") ? gsplMetadata.metadata.ogImage : `https://realms.today${gsplMetadata.metadata.ogImage}`} 
+                                            alt={gsplMetadata.metadata.displayName || governanceName}
+                                            sx={{
+                                                width: 40, // Small and consistent
+                                                height: 40, // Small and consistent
+                                                boxShadow: "0px 4px 10px rgba(0,0,0,0.3)" // Subtle shadow effect
+                                            }}
+                                        />
+                                    </Grid>
+                                )}
+
+                                {/* Governance Name & Verified Badge */}
+                                <Grid item sx={{ display: "flex", alignItems: "center" }}>
+                                    
+                                    <Typography variant="h5">
+                                        {gsplMetadata?.metadata?.displayName || governanceName}
+                                    </Typography>
+                                
+                                
+                                    {/* Verified Checkmark (if item is verified) */}
+                                    
+                                        <Tooltip title="Verified Governance">
+                                            <VerifiedIcon 
+                                                sx={{ 
+                                                    fontSize: 20, 
+                                                    color: "#4CAF50", 
+                                                    marginLeft: 1, 
+                                                    opacity: 0.8, 
+                                                    boxShadow: "0px 2px 5px rgba(0,0,0,0.2)" 
+                                                }} 
+                                            />
+                                        </Tooltip>
+                                    
+                                </Grid>
+                            </Grid>
+                            
+                        :
+                            <Typography variant="h4">
+                                {governanceName}
+                            </Typography>
+                        }
+                    </Grid>
+                    <Grid item xs={12}>    
+                        <ButtonGroup>
+                            <Tooltip title={`Share ${governanceName ? governanceName : ''} Governance`}>
+                                <Button
+                                    aria-label="share"
+                                    variant="outlined"
+                                    color="inherit"
+                                    onClick={() => {
+                                        if (navigator.share) {
+                                            navigator.share({
+                                                title: `${governanceName} Governance`,
+                                                text: `Visit the ${governanceName} DAO:`,
+                                                url: `https://governance.so/dao/${governanceAddress}`
+                                            }).catch((error) => console.error('Error sharing:', error));
+                                        } else {
+                                            alert("Your browser doesn't support the Share API.");
+                                        }
+                                    }}
+                                    sx={{
+                                        borderRadius:'17px',
+                                        borderColor:'rgba(255,255,255,0.05)',
+                                        fontSize:'10px'}}
+                                >
+                                    <ShareIcon fontSize='inherit' sx={{mr:1}} /> Share
+                                </Button>
+                            </Tooltip>
+                            {gsplMetadata ? 
+                            <Tooltip
+                                title={
+                                    <Box sx={{ maxWidth: 400, whiteSpace: 'pre-wrap', overflow: 'hidden', p: 1 }}>
+                                        <Typography variant="subtitle2">
+                                            {gsplMetadata.metadata.displayName || governanceName} GSPL Metadata
+                                        </Typography>
+                                        <pre style={{ margin: 0, fontSize: "0.65rem", lineHeight: "1", wordBreak: "break-word", whiteSpace: "pre-wrap" }}>
+                                            {JSON.stringify(gsplMetadata, null, 2)}
+                                        </pre>
+                                    </Box>
+                                }
+                            >
+                                <Button
+                                    aria-label="share"
+                                    variant="outlined"
+                                    color="inherit"
+                                    sx={{
+                                        borderRadius:'17px',
+                                        borderColor:'rgba(255,255,255,0.05)',
+                                        fontSize:'10px'}}
+                                >
+                                    <CodeIcon fontSize='inherit' sx={{mr:1}} />
+                                </Button>
+                            </Tooltip>
+                            :<></>}
+                        </ButtonGroup>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </>
+    )
+}
