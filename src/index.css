@@ -79,27 +79,29 @@ body .frictionless-body{
 }
 
 body .app-body {
-  background: linear-gradient(70deg, #3b2f50, #111111, #7a3ba3, #fffff);
-  background-size: 200% 200%;
-  animation: movingWaves 8s ease-in-out infinite alternate;
+  background: linear-gradient(70deg, #3b2f50, #111111, #923CB5, #ffffff);
+  background-size: 400% 400%;
+  animation: subtleGlow 10s ease-in-out infinite alternate;
   height: 100%;
   min-height: 100vh;
   padding: 0;
   background-attachment: fixed;
   position: relative;
-  overflow: hidden;
 }
 
-/* Smooth background motion */
-@keyframes movingWaves {
+/* Subtle glowing effect */
+@keyframes subtleGlow {
   0% {
     background-position: 0% 50%;
+    filter: brightness(1);
   }
   50% {
-    background-position: 100% 55%;
+    background-position: 100% 50%;
+    filter: brightness(1.15);
   }
   100% {
     background-position: 0% 50%;
+    filter: brightness(1);
   }
 }
 
