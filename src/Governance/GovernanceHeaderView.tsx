@@ -171,7 +171,7 @@ export function GovernanceHeaderView(props: any) {
                                 aria-label="twitter"
                                 variant="outlined"
                                 color="inherit"
-                                href={gsplMetadata.metadata.twitter}
+                                href={`https://x.com/${gsplMetadata.metadata.twitter}`}
                                 target="_blank"
                                 sx={{
                                     borderRadius: '17px',
