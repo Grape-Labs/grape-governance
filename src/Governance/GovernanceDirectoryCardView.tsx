@@ -56,7 +56,21 @@ function GovernanceDirectoryCardView(props: any) {
 
                         {/* Verified Checkmark (if item is verified) */}
                         {item?.gspl && (
-                            <Tooltip title="Verified Governance">
+                            <Tooltip
+                                title={
+                                    <Box sx={{ maxWidth: 400, whiteSpace: 'pre-wrap', overflow: 'hidden', p: 1 }}>
+                                        <Typography variant="h6">
+                                            Verified Governance 
+                                        </Typography>
+                                        <Typography variant="subtitle2">
+                                            {metadata?.displayName || item.governanceName} GSPL Metadata
+                                        </Typography>
+                                        <pre style={{ margin: 0, fontSize: '0.65rem', lineHeight: '1', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                                            {JSON.stringify(metadata, null, 2)}
+                                        </pre>
+                                    </Box>
+                                }
+                        >
                                 <VerifiedIcon 
                                     sx={{ 
                                         fontSize: 20, 
