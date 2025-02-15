@@ -79,6 +79,7 @@ body .frictionless-body{
 }
 
 body .app-body {
+  background-color: #3b2f50; /* Fallback solid color */
   background: linear-gradient(70deg, #3b2f50, #111111, #923CB5, #ffffff);
   background-size: 200% 200%; /* Reduced from 400% */
   animation: subtleGlow 30s ease-in-out infinite alternate; /* Shorter duration */
