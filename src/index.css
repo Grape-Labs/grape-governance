@@ -80,37 +80,27 @@ body .frictionless-body{
 
 body .app-body {
   background: linear-gradient(70deg, #3b2f50, #111111, #923CB5, #ffffff);
-  background-size: 400% 400%;
-  animation: subtleGlow 60s ease-in-out infinite alternate;
+  background-size: 200% 200%; /* Reduced from 400% */
+  animation: subtleGlow 30s ease-in-out infinite alternate; /* Shorter duration */
   height: 100%;
   min-height: 100vh;
   padding: 0;
   background-attachment: fixed;
   position: relative;
-  will-change: transform, background-position;
+  will-change: background-position; /* Keeps it lightweight */
   -webkit-backface-visibility: hidden;
-  -webkit-transform: translateZ(0); /* Forces GPU acceleration */
 }
 
 /* Subtle glowing effect */
 @keyframes subtleGlow {
   0% {
     background-position: 0% 50%;
-    -webkit-filter: brightness(1);
-    filter: brightness(1);
-    transform: translateZ(0); /* GPU acceleration for Safari */
   }
   50% {
     background-position: 100% 50%;
-    -webkit-filter: brightness(1.15);
-    filter: brightness(1.15);
-    transform: translateZ(0);
   }
   100% {
     background-position: 0% 50%;
-    -webkit-filter: brightness(1);
-    filter: brightness(1);
-    transform: translateZ(0);
   }
 }
 
