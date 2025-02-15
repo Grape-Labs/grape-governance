@@ -78,13 +78,29 @@ body .frictionless-body{
   -moz-osx-font-smoothing: grayscale;
 }
 
-body .app-body{
-  background: #111111;  /* fallback for old browsers */
-  background: linear-gradient(70deg, #000000, #923CB5);
-  height:100%;
+body .app-body {
+  background: linear-gradient(70deg, #3b2f50, #111111, #7a3ba3, #fffff);
+  background-size: 200% 200%;
+  animation: movingWaves 8s ease-in-out infinite alternate;
+  height: 100%;
   min-height: 100vh;
-  padding:0;
+  padding: 0;
   background-attachment: fixed;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Smooth background motion */
+@keyframes movingWaves {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 55%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .app-body {
