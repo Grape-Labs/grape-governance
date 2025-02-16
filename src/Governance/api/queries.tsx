@@ -849,7 +849,7 @@ export const getRealmIndexed = async (filterRealm?:string) => {
         //console.log("allRealms: "+JSON.stringify(allRealms));
 
         if ((!allRealms || allRealms.length <= 0) && filterRealm){ // fallback to RPC call is governance not found in index
-            console.log("No indexed realm found reverting to RPC getRealms")
+            console.log("No indexed realm found reverting to RPC getRealm")
             const realm = await getRealm(RPC_CONNECTION, new PublicKey(filterRealm));
             allRealms.push(realm);
         } else{
