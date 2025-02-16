@@ -117,13 +117,32 @@ function GovernanceParticipationView(props: any) {
                     }
 
                     const existingRecord = governanceMap.get(realmKey);
-                    existingRecord.communityVotes += votes;
+                    if (realm?.account?.config?.councilMint?.toBase58() === item?.account?.governingTokenMint?.toBase58()) {
+                        existingRecord.councilVotes += votes;
+                    } else {
+                        existingRecord.communityVotes += votes;
+                    }
                     governanceMap.set(realmKey, existingRecord);
                 }
             }
 
+            // **Sorting by priority & token count**
+            const sortedGovernance = Array.from(governanceMap.values()).sort((a, b) => {
+                const aHasBoth = a.communityVotes > 0 && a.councilVotes > 0;
+                const bHasBoth = b.communityVotes > 0 && b.councilVotes > 0;
+                const aHasCouncil = a.councilVotes > 0;
+                const bHasCouncil = b.councilVotes > 0;
+
+                if (aHasBoth && !bHasBoth) return -1;
+                if (!aHasBoth && bHasBoth) return 1;
+                if (aHasCouncil && !bHasCouncil) return -1;
+                if (!aHasCouncil && bHasCouncil) return 1;
+
+                return b.totalVotesCount - a.totalVotesCount;
+            });
+
             // **Fetch metadata correctly**
-            const governanceArray = Array.from(governanceMap.values()).map(row => {
+            const governanceArray = Array.from(sortedGovernance.values()).map(row => {
                 let metadata = metadataMap[governanceLookup.find(glItem => glItem.governanceAddress === row.id)?.gspl?.metadataUri] || {};
                 return {
                     ...row,
@@ -164,7 +183,14 @@ function GovernanceParticipationView(props: any) {
                     {/* DAOs You Can Join */}
                     {canParticipate && canParticipate.length > 0 && (
                         <Box sx={{ mb: 2, background: 'rgba(0,0,0,0.2)', borderRadius: '17px' }}>
-                            <ListItemButton onClick={() => setOpenCanParticipate(!openCanParticipate)}>
+                            <ListItemButton onClick={() => setOpenCanParticipate(!openCanParticipate)}
+                                sx={{
+                                    backgroundColor:'rgba(0,0,0,0.2)',
+                                    borderRadius:'17px',
+                                    borderBottomLeftRadius: openCanParticipate ? '0' : '17px',
+                                    borderBottomRightRadius: openCanParticipate ? '0' : '17px', 
+                                }}      
+                            >
                                 <ListItemText primary="DAOs You Can Join" />
                                 {openCanParticipate ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                             </ListItemButton>
@@ -192,7 +218,14 @@ function GovernanceParticipationView(props: any) {
                     {/* Governance Participation */}
                     {governanceRecordRows && governanceRecordRows.length > 0 && (
                         <Box sx={{ background: 'rgba(0,0,0,0.2)', borderRadius: '17px' }}>
-                            <ListItemButton onClick={() => setOpenParticipation(!openParticipation)}>
+                            <ListItemButton onClick={() => setOpenParticipation(!openParticipation)}
+                                sx={{
+                                    backgroundColor:'rgba(0,0,0,0.2)',
+                                    borderRadius:'17px',
+                                    borderBottomLeftRadius: openParticipation ? '0' : '17px',
+                                    borderBottomRightRadius: openParticipation ? '0' : '17px', 
+                                }}    
+                            >
                                 <ListItemText primary="Your Governance Participation" />
                                 {openParticipation ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                             </ListItemButton>
