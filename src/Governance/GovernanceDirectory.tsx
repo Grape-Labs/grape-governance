@@ -34,6 +34,7 @@ import {
 
 import GovernanceRealtimeInfo from './GovernanceRealtimeInfo';
 import GovernanceDirectoryCardView from "./GovernanceDirectoryCardView";
+import GovernanceParticipationView from "./GovernanceParticipationView";
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
@@ -565,6 +566,8 @@ export function GovernanceDirectoryView(props: Props) {
                         </Grid>
                     </Grid>
 
+                    <GovernanceParticipationView pubkey={publicKey} metadataMap={metadataMap} governanceLookup={governanceLookup} />
+
                     {(!searchFilter || (searchFilter && searchFilter.length <= 0)) &&
                     <>
                         {/*
@@ -849,7 +852,6 @@ export function GovernanceDirectoryView(props: Props) {
                     <GovernanceDirectorySorting />
                     
                     <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
-                        
                         
                         {governanceLookup.map((item: any,key:number) => {
                             const metadata = (item?.gspl && item.gspl?.metadataUri) ? metadataMap[item.gspl.metadataUri] : {};
