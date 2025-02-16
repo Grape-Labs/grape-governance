@@ -1,48 +1,34 @@
-import React from "react";
-import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
-// @ts-ignore
-import { PublicKey, Connection } from '@solana/web3.js';
+import React, { useState } from "react";
+import { PublicKey } from '@solana/web3.js';
+import axios from "axios";
 
 import { 
     getRealms, 
-    getTokenOwnerRecordsByOwner,
-    getTokenOwnerRecord
 } from '@solana/spl-governance';
 import { 
-    getRealmIndexed,
-    getProposalIndexed,
-    getProposalNewIndexed,
-    getAllProposalsIndexed,
-    getGovernanceIndexed,
-    getAllGovernancesIndexed,
-    getAllTokenOwnerRecordsIndexed,
     getTokenOwnerRecordsByOwnerIndexed,
-    getTokenOwnerRecordsByRealmIndexed,
 } from './api/queries';
-
-import ExplorerView from '../utils/grapeTools/Explorer';
-import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
-
-import GovernanceDetailsView from './GovernancePlugin';
-import { TokenAmount } from '../utils/grapeTools/safe-math';
-import { useWallet } from '@solana/wallet-adapter-react';
 
 import {
     Grid,
-    Button,
-    LinearProgress,
-    Typography, 
     CircularProgress,
-    Card,
-    CardContent,
-    Tooltip,
+    Typography,
     Avatar,
+    Tooltip,
     Box,
+    Card,
+    CardActionArea,
+    CardContent,
+    ListItemButton,
+    ListItemText,
+    Collapse
 } from '@mui/material';
+
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { Link } from "react-router-dom";
 
-import { RPC_CONNECTION, RPC_ENDPOINT
-} from '../utils/grapeTools/constants';
+import { RPC_CONNECTION, SHYFT_KEY } from '../utils/grapeTools/constants';
 
 function GovernanceParticipationView(props: any) {
     const pubkey = props.pubkey;
@@ -51,7 +37,52 @@ function GovernanceParticipationView(props: any) {
     const [realms, setRealms] = React.useState(null);
     const [governanceRecordRows, setGovernanceRecordRows] = React.useState(null);
     const [loadingGovernance, setLoadingGovernance] = React.useState(false);
-    
+    const [canParticipate, setCanParticipate] = React.useState(null);
+
+    // Collapsible state
+    const [openCanParticipate, setOpenCanParticipate] = useState(false);
+    const [openParticipation, setOpenParticipation] = useState(true);
+
+    const getWalletAllTokenBalance = async (tokenOwnerRecord: PublicKey) => {
+        const uri = `https://api.shyft.to/sol/v1/wallet/all_tokens?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}`;
+        return axios.get(uri, {
+            headers: {
+                'x-api-key': SHYFT_KEY,
+                'Accept-Encoding': 'gzip, deflate, br'
+            }
+        })
+        .then(response => response.data?.result || null)
+        .catch(error => {
+            console.error(error);
+            return null;
+        });
+    };
+
+    const fetchDaoWalletHoldingsCheck = async (tokenOwnerRecord: PublicKey) => {
+        const holdings = await getWalletAllTokenBalance(tokenOwnerRecord);
+        let potentialDao = [];
+
+        for (const holdingsItem of holdings) {
+            if (holdingsItem.balance > 0) {
+                for (const governanceItem of governanceLookup) {
+                    if (governanceItem?.communityMint === holdingsItem.address || governanceItem?.councilMint === holdingsItem.address) {
+                        let metadata = metadataMap[governanceItem.gspl?.metadataUri] || {};
+                        potentialDao.push({
+                            name: metadata?.displayName || governanceItem.governanceName,
+                            governanceAddress: governanceItem.governanceAddress,
+                            token: holdingsItem.address,
+                            balance: holdingsItem.balance,
+                            logoUrl: metadata?.ogImage && !metadata.ogImage.endsWith("/")
+                                ? (metadata.ogImage.startsWith("http") ? metadata.ogImage : `https://realms.today${metadata.ogImage}`)
+                                : null
+                        });
+                    }
+                }
+            }
+        }
+        setCanParticipate(potentialDao);
+    };
+
     const fetchGovernance = async () => {
         const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
         const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
@@ -72,7 +103,7 @@ function GovernanceParticipationView(props: any) {
                 const realm = uTable[realmKey];
                 const name = realm?.account?.name || "Unknown Realm";
                 const votes = item.account.governingTokenDepositAmount.toNumber();
-                
+
                 if (votes > 0) {
                     if (!governanceMap.has(realmKey)) {
                         governanceMap.set(realmKey, {
@@ -86,18 +117,24 @@ function GovernanceParticipationView(props: any) {
                     }
 
                     const existingRecord = governanceMap.get(realmKey);
-                    
-                    if (realm?.account?.config?.councilMint?.toBase58() === item?.account?.governingTokenMint?.toBase58()) {
-                        existingRecord.councilVotes += votes;
-                    } else {
-                        existingRecord.communityVotes += votes;
-                    }
-
+                    existingRecord.communityVotes += votes;
                     governanceMap.set(realmKey, existingRecord);
                 }
             }
 
-            setGovernanceRecordRows(Array.from(governanceMap.values()));
+            // **Fetch metadata correctly**
+            const governanceArray = Array.from(governanceMap.values()).map(row => {
+                let metadata = metadataMap[governanceLookup.find(glItem => glItem.governanceAddress === row.id)?.gspl?.metadataUri] || {};
+                return {
+                    ...row,
+                    displayName: metadata?.displayName || row.realm,
+                    logoUrl: metadata?.ogImage && !metadata.ogImage.endsWith("/")
+                        ? (metadata.ogImage.startsWith("http") ? metadata.ogImage : `https://realms.today${metadata.ogImage}`)
+                        : null
+                };
+            });
+
+            setGovernanceRecordRows(governanceArray);
         } catch (e) {
             console.log("ERR: " + e);
         }
@@ -112,116 +149,73 @@ function GovernanceParticipationView(props: any) {
     React.useEffect(() => {
         if (pubkey && governanceLookup && metadataMap) {
             fetchGovernancePositions();
+            fetchDaoWalletHoldingsCheck(pubkey);
         }
     }, [pubkey, governanceLookup, metadataMap]);
 
     return (
-        <Box sx={{ mt: 2, pb: 4 }}> {/* Added bottom padding */}
+        <Box sx={{ mt: 2, pb: 4 }}>
             {loadingGovernance && pubkey ? (
                 <Grid container justifyContent="center">
                     <CircularProgress />
                 </Grid>
-            ) : pubkey && governanceRecordRows && governanceRecordRows.length > 0 ? (
+            ) : pubkey ? (
                 <>
-                    <Typography variant="h6" align="center" sx={{ mb: 2 }}>
-                        Governance Participation
-                    </Typography>
-
-                    <Grid container spacing={2} justifyContent="center">
-                        {governanceRecordRows.map((row: any) => {
-                            let metadata = null;
-                            
-                            for (let glItem of governanceLookup) {
-                                if (glItem.governanceAddress === row.id) {
-                                    metadata = (glItem?.gspl && glItem.gspl?.metadataUri) ? metadataMap[glItem.gspl.metadataUri] : {};
-                                    break;
-                                }
-                            }
-
-                            const displayName = metadata?.displayName || row.realm;
-                            const logoUrl = metadata?.ogImage && !metadata.ogImage.endsWith("/")
-                                ? (metadata.ogImage.startsWith("http") ? metadata.ogImage : `https://realms.today${metadata.ogImage}`)
-                                : null;
-
-                            return (
-                                <Grid item xs={6} sm={4} md={3} lg={2} key={row.id}>
-                                    <Card 
-                                        elevation={3} 
-                                        sx={{
-                                            borderRadius: 3,
-                                            textAlign: 'center',
-                                            p: 2,
-                                            height: 140, // Fixed height for uniformity
-                                            width: 140,  // Fixed width for uniformity
-                                            backgroundColor: "transparent", // Transparent background
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            transition: "transform 0.2s",
-                                            "&:hover": { transform: "scale(1.05)" }
-                                        }}
-                                    >
-                                        <CardContent sx={{ p: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
-                                            <Tooltip title={`View ${displayName} Governance`}>
-                                                <Button
-                                                    component={Link}
-                                                    to={'/dao/' + row.id}
-                                                    color="inherit"
-                                                    sx={{
-                                                        display: "flex",
-                                                        flexDirection: "column",
-                                                        alignItems: "center",
-                                                        textTransform: "none"
-                                                    }}
-                                                >
-                                                    {/* Governance Icon */}
-                                                    <Avatar
-                                                        src={logoUrl}
-                                                        alt={displayName}
-                                                        sx={{
-                                                            width: 50,
-                                                            height: 50,
-                                                            mb: 1,
-                                                            boxShadow: "0px 4px 10px rgba(0,0,0,0.3)",
-                                                            backgroundColor: logoUrl ? "transparent" : "#ddd"
-                                                        }}
-                                                    >
-                                                        {!logoUrl && displayName.charAt(0)} {/* Show first letter if no image */}
-                                                    </Avatar>
-
-                                                    {/* Governance Name */}
-                                                    <Typography 
-                                                        variant="subtitle2"
-                                                        fontWeight="bold"
-                                                        sx={{ 
-                                                            maxWidth: "100%", 
-                                                            whiteSpace: "nowrap", 
-                                                            overflow: "hidden", 
-                                                            textOverflow: "ellipsis",
-                                                            textAlign: "center"
-                                                        }}
-                                                    >
-                                                        {displayName}
-                                                    </Typography>
-                                                </Button>
-                                            </Tooltip>
-                                        </CardContent>
-                                    </Card>
+                    {/* DAOs You Can Join */}
+                    {canParticipate && canParticipate.length > 0 && (
+                        <Box sx={{ mb: 2, background: 'rgba(0,0,0,0.2)', borderRadius: '17px' }}>
+                            <ListItemButton onClick={() => setOpenCanParticipate(!openCanParticipate)}>
+                                <ListItemText primary="DAOs You Can Join" />
+                                {openCanParticipate ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                            </ListItemButton>
+                            <Collapse in={openCanParticipate} timeout="auto" unmountOnExit sx={{ p: 2 }}>
+                                <Grid container spacing={2} justifyContent="center">
+                                    {canParticipate.map((dao: any) => (
+                                        <Grid item xs={12} sm={6} md={4} lg={3} key={dao.governanceAddress}>
+                                            <Card sx={{ background: "rgba(0, 0, 0, 0.2)", borderRadius: 2 }}>
+                                                <CardActionArea component={Link} to={'/dao/' + dao.governanceAddress}>
+                                                    <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                                                        <Avatar src={dao.logoUrl} alt={dao.name} sx={{ width: 40, height: 40 }} />
+                                                        <Typography variant="body2" sx={{ fontWeight: "bold", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                                            {dao.name}
+                                                        </Typography>
+                                                    </CardContent>
+                                                </CardActionArea>
+                                            </Card>
+                                        </Grid>
+                                    ))}
                                 </Grid>
-                            );
-                        })}
-                    </Grid>
+                            </Collapse>
+                        </Box>
+                    )}
+
+                    {/* Governance Participation */}
+                    {governanceRecordRows && governanceRecordRows.length > 0 && (
+                        <Box sx={{ background: 'rgba(0,0,0,0.2)', borderRadius: '17px' }}>
+                            <ListItemButton onClick={() => setOpenParticipation(!openParticipation)}>
+                                <ListItemText primary="Your Governance Participation" />
+                                {openParticipation ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                            </ListItemButton>
+                            <Collapse in={openParticipation} timeout="auto" unmountOnExit sx={{ p: 2 }}>
+                                <Grid container spacing={2} justifyContent="center">
+                                    {governanceRecordRows.map((row: any) => (
+                                        <Grid item xs={12} sm={6} md={4} lg={3} key={row.id}>
+                                            <Card sx={{ background: "rgba(0, 0, 0, 0.2)", borderRadius: 2 }}>
+                                                <CardActionArea component={Link} to={'/dao/' + row.id}>
+                                                    <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                                                        <Avatar src={row.logoUrl} alt={row.displayName} sx={{ width: 40, height: 40 }} />
+                                                        <Typography variant="body2">{row.displayName}</Typography>
+                                                    </CardContent>
+                                                </CardActionArea>
+                                            </Card>
+                                        </Grid>
+                                    ))}
+                                </Grid>
+                            </Collapse>
+                        </Box>
+                    )}
                 </>
-            ) : (
-                <>
-                {pubkey &&
-                    <Grid container justifyContent="center">
-                        <Typography align="center">No governance records with voting power found.</Typography>
-                    </Grid>
-                }
-                </>
-            )}
+            ) : null}
         </Box>
     );
 }
