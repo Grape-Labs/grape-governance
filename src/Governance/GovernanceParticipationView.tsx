@@ -211,7 +211,7 @@ const DAOItem = ({ name, governanceAddress, logoUrl, balance, hasMetadata }) => 
     <Grid item xs={12} sm={6} md={4} lg={3} key={governanceAddress}>
         <Card sx={{ background: "rgba(0, 0, 0, 0.2)", borderRadius: 2 }}>
             <Tooltip 
-                title={balance ? `Join this DAO you have ${balance.toLocaleString()} voting power in your wallet` : `Visit DAO`}
+                title={balance ? `Join ${name} with ${balance.toLocaleString()} voting power` : `Visit DAO`}
             >
                 <CardActionArea component={Link} to={'/dao/' + governanceAddress}>
                     <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
