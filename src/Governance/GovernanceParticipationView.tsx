@@ -14,16 +14,17 @@ import {
     CircularProgress,
     Typography,
     Avatar,
-    Tooltip,
     Box,
     Card,
     CardActionArea,
     CardContent,
     ListItemButton,
     ListItemText,
-    Collapse
+    Collapse,
+    Tooltip,
 } from '@mui/material';
 
+import VerifiedIcon from "@mui/icons-material/Verified";
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { Link } from "react-router-dom";
@@ -39,7 +40,7 @@ function GovernanceParticipationView(props: any) {
     const [loadingGovernance, setLoadingGovernance] = React.useState(false);
     const [canParticipate, setCanParticipate] = React.useState(null);
 
-    // Collapsible state
+    // Collapsible sections
     const [openCanParticipate, setOpenCanParticipate] = useState(false);
     const [openParticipation, setOpenParticipation] = useState(true);
 
@@ -68,18 +69,23 @@ function GovernanceParticipationView(props: any) {
                     if (governanceItem?.communityMint === holdingsItem.address || governanceItem?.councilMint === holdingsItem.address) {
                         let metadata = metadataMap[governanceItem.gspl?.metadataUri] || {};
                         potentialDao.push({
-                            name: metadata?.displayName || governanceItem.governanceName,
+                            name: metadata?.displayName || governanceItem.governanceName || "Unknown Governance",
                             governanceAddress: governanceItem.governanceAddress,
                             token: holdingsItem.address,
                             balance: holdingsItem.balance,
                             logoUrl: metadata?.ogImage && !metadata.ogImage.endsWith("/")
                                 ? (metadata.ogImage.startsWith("http") ? metadata.ogImage : `https://realms.today${metadata.ogImage}`)
-                                : null
+                                : null,
+                            hasMetadata: !!metadata?.displayName // Check if metadata exists
                         });
                     }
                 }
             }
         }
+
+        // **Sort DAOs: First those with metadata, then others**
+        potentialDao.sort((a, b) => Number(b.hasMetadata) - Number(a.hasMetadata));
+
         setCanParticipate(potentialDao);
     };
 
@@ -107,8 +113,8 @@ function GovernanceParticipationView(props: any) {
                 if (votes > 0) {
                     if (!governanceMap.has(realmKey)) {
                         governanceMap.set(realmKey, {
-                            id: realmKey,
-                            realm: name,
+                            governanceAddress: realmKey,
+                            name: name,
                             communityVotes: 0,
                             councilVotes: 0,
                             totalVotesCount: item.account.totalVotesCount,
@@ -117,11 +123,7 @@ function GovernanceParticipationView(props: any) {
                     }
 
                     const existingRecord = governanceMap.get(realmKey);
-                    if (realm?.account?.config?.councilMint?.toBase58() === item?.account?.governingTokenMint?.toBase58()) {
-                        existingRecord.councilVotes += votes;
-                    } else {
-                        existingRecord.communityVotes += votes;
-                    }
+                    existingRecord.communityVotes += votes;
                     governanceMap.set(realmKey, existingRecord);
                 }
             }
@@ -141,17 +143,22 @@ function GovernanceParticipationView(props: any) {
                 return b.totalVotesCount - a.totalVotesCount;
             });
 
-            // **Fetch metadata correctly**
             const governanceArray = Array.from(sortedGovernance.values()).map(row => {
-                let metadata = metadataMap[governanceLookup.find(glItem => glItem.governanceAddress === row.id)?.gspl?.metadataUri] || {};
+                let metadata = metadataMap[governanceLookup.find(glItem => glItem.governanceAddress === row.governanceAddress)?.gspl?.metadataUri] || {};
+                console.log("found: "+  metadata.governanceName + " v "+ row?.account?.name);
+                        
                 return {
                     ...row,
-                    displayName: metadata?.displayName || row.realm,
+                    displayName: metadata?.displayName || row?.account?.name || "Unknown Governance",
                     logoUrl: metadata?.ogImage && !metadata.ogImage.endsWith("/")
                         ? (metadata.ogImage.startsWith("http") ? metadata.ogImage : `https://realms.today${metadata.ogImage}`)
-                        : null
+                        : null,
+                    hasMetadata: !!metadata?.displayName // Check if metadata exists
                 };
             });
+
+            // **Sort: Prioritize DAOs with metadata**
+            governanceArray.sort((a, b) => Number(b.hasMetadata) - Number(a.hasMetadata));
 
             setGovernanceRecordRows(governanceArray);
         } catch (e) {
@@ -159,15 +166,9 @@ function GovernanceParticipationView(props: any) {
         }
     };
 
-    const fetchGovernancePositions = async () => {
-        setLoadingGovernance(true);
-        await fetchGovernance();
-        setLoadingGovernance(false);
-    };
-
     React.useEffect(() => {
         if (pubkey && governanceLookup && metadataMap) {
-            fetchGovernancePositions();
+            fetchGovernance();
             fetchDaoWalletHoldingsCheck(pubkey);
         }
     }, [pubkey, governanceLookup, metadataMap]);
@@ -182,75 +183,72 @@ function GovernanceParticipationView(props: any) {
                 <>
                     {/* DAOs You Can Join */}
                     {canParticipate && canParticipate.length > 0 && (
-                        <Box sx={{ mb: 2, background: 'rgba(0,0,0,0.2)', borderRadius: '17px' }}>
-                            <ListItemButton onClick={() => setOpenCanParticipate(!openCanParticipate)}
-                                sx={{
-                                    backgroundColor:'rgba(0,0,0,0.2)',
-                                    borderRadius:'17px',
-                                    borderBottomLeftRadius: openCanParticipate ? '0' : '17px',
-                                    borderBottomRightRadius: openCanParticipate ? '0' : '17px', 
-                                }}      
-                            >
-                                <ListItemText primary="DAOs You Can Join" />
-                                {openCanParticipate ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                            </ListItemButton>
-                            <Collapse in={openCanParticipate} timeout="auto" unmountOnExit sx={{ p: 2 }}>
-                                <Grid container spacing={2} justifyContent="center">
-                                    {canParticipate.map((dao: any) => (
-                                        <Grid item xs={12} sm={6} md={4} lg={3} key={dao.governanceAddress}>
-                                            <Card sx={{ background: "rgba(0, 0, 0, 0.2)", borderRadius: 2 }}>
-                                                <CardActionArea component={Link} to={'/dao/' + dao.governanceAddress}>
-                                                    <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                                                        <Avatar src={dao.logoUrl} alt={dao.name} sx={{ width: 40, height: 40 }} />
-                                                        <Typography variant="body2" sx={{ fontWeight: "bold", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                                            {dao.name}
-                                                        </Typography>
-                                                    </CardContent>
-                                                </CardActionArea>
-                                            </Card>
-                                        </Grid>
-                                    ))}
-                                </Grid>
-                            </Collapse>
-                        </Box>
+                        <CollapsibleSection 
+                            title="Join a DAO" 
+                            open={openCanParticipate} 
+                            setOpen={setOpenCanParticipate}
+                            data={canParticipate} 
+                        />
                     )}
 
                     {/* Governance Participation */}
                     {governanceRecordRows && governanceRecordRows.length > 0 && (
-                        <Box sx={{ background: 'rgba(0,0,0,0.2)', borderRadius: '17px' }}>
-                            <ListItemButton onClick={() => setOpenParticipation(!openParticipation)}
-                                sx={{
-                                    backgroundColor:'rgba(0,0,0,0.2)',
-                                    borderRadius:'17px',
-                                    borderBottomLeftRadius: openParticipation ? '0' : '17px',
-                                    borderBottomRightRadius: openParticipation ? '0' : '17px', 
-                                }}    
-                            >
-                                <ListItemText primary="Your Governance Participation" />
-                                {openParticipation ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                            </ListItemButton>
-                            <Collapse in={openParticipation} timeout="auto" unmountOnExit sx={{ p: 2 }}>
-                                <Grid container spacing={2} justifyContent="center">
-                                    {governanceRecordRows.map((row: any) => (
-                                        <Grid item xs={12} sm={6} md={4} lg={3} key={row.id}>
-                                            <Card sx={{ background: "rgba(0, 0, 0, 0.2)", borderRadius: 2 }}>
-                                                <CardActionArea component={Link} to={'/dao/' + row.id}>
-                                                    <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                                                        <Avatar src={row.logoUrl} alt={row.displayName} sx={{ width: 40, height: 40 }} />
-                                                        <Typography variant="body2">{row.displayName}</Typography>
-                                                    </CardContent>
-                                                </CardActionArea>
-                                            </Card>
-                                        </Grid>
-                                    ))}
-                                </Grid>
-                            </Collapse>
-                        </Box>
+                        <CollapsibleSection 
+                            title="Your Governance Participation" 
+                            open={openParticipation} 
+                            setOpen={setOpenParticipation}
+                            data={governanceRecordRows} 
+                        />
                     )}
                 </>
             ) : null}
         </Box>
     );
 }
+
+// **Reusable DAO Item**
+const DAOItem = ({ name, governanceAddress, logoUrl, balance, hasMetadata }) => (
+    <Grid item xs={12} sm={6} md={4} lg={3} key={governanceAddress}>
+        <Card sx={{ background: "rgba(0, 0, 0, 0.2)", borderRadius: 2 }}>
+            <Tooltip 
+                title={balance ? `Join this DAO you have ${balance.toLocaleString()} voting power in your wallet` : `Visit DAO`}
+            >
+                <CardActionArea component={Link} to={'/dao/' + governanceAddress}>
+                    <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                        <Avatar src={logoUrl} alt={name} sx={{ width: 40, height: 40 }} />
+                        <Typography variant="body2">{name}</Typography>
+                        {hasMetadata && 
+                            <Tooltip title="Governance Verified">
+                                <VerifiedIcon sx={{ color: "green", fontSize: 18 }} />
+                            </Tooltip>
+                        }
+                    </CardContent>
+                </CardActionArea>
+            </Tooltip>
+        </Card>
+    </Grid>
+);
+
+// **Reusable Collapsible Section**
+const CollapsibleSection = ({ title, open, setOpen, data }) => (
+    <Box sx={{ mb: 2, background: 'rgba(0,0,0,0.2)', borderRadius: '17px' }}>
+            <ListItemButton onClick={() => setOpen(!open)}
+                sx={{
+                    backgroundColor:'rgba(0,0,0,0.2)',
+                    borderRadius:'17px',
+                    borderBottomLeftRadius: open ? '0' : '17px',
+                    borderBottomRightRadius: open ? '0' : '17px', 
+                }}
+            >
+                <ListItemText primary={title} />
+                {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </ListItemButton>
+        <Collapse in={open} timeout="auto" unmountOnExit sx={{ p: 2 }}>
+            <Grid container spacing={2} justifyContent="center">
+                {data.map((dao) => <DAOItem key={dao.governanceAddress} {...dao} />)}
+            </Grid>
+        </Collapse>
+    </Box>
+);
 
 export default GovernanceParticipationView;
