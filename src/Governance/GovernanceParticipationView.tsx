@@ -62,7 +62,7 @@ function GovernanceParticipationView(props: any) {
     const fetchDaoWalletHoldingsCheck = async (tokenOwnerRecord: PublicKey) => {
         const holdings = await getWalletAllTokenBalance(tokenOwnerRecord);
         let potentialDao = [];
-
+    
         for (const holdingsItem of holdings) {
             if (holdingsItem.balance > 0) {
                 for (const governanceItem of governanceLookup) {
@@ -73,6 +73,7 @@ function GovernanceParticipationView(props: any) {
                             governanceAddress: governanceItem.governanceAddress,
                             token: holdingsItem.address,
                             balance: holdingsItem.balance,
+                            members: governanceItem.totalMembers || 0, // Ensure a valid members count
                             logoUrl: metadata?.ogImage && !metadata.ogImage.endsWith("/")
                                 ? (metadata.ogImage.startsWith("http") ? metadata.ogImage : `https://realms.today${metadata.ogImage}`)
                                 : null,
@@ -82,10 +83,14 @@ function GovernanceParticipationView(props: any) {
                 }
             }
         }
-
-        // **Sort DAOs: First those with metadata, then others**
-        potentialDao.sort((a, b) => Number(b.hasMetadata) - Number(a.hasMetadata));
-
+    
+        // **Sorting: hasMetadata > members > token balance**
+        potentialDao.sort((a, b) => {
+            if (b.hasMetadata !== a.hasMetadata) return Number(b.hasMetadata) - Number(a.hasMetadata);
+            if (b.members !== a.members) return b.members - a.members;
+            return b.balance - a.balance;
+        });
+    
         setCanParticipate(potentialDao);
     };
 
@@ -119,6 +124,7 @@ function GovernanceParticipationView(props: any) {
                             councilVotes: 0,
                             totalVotesCount: item.account.totalVotesCount,
                             unrelinquishedVotesCount: item.account.unrelinquishedVotesCount,
+                            members: 0,
                         });
                     }
 
@@ -128,38 +134,33 @@ function GovernanceParticipationView(props: any) {
                 }
             }
 
-            // **Sorting by priority & token count**
-            const sortedGovernance = Array.from(governanceMap.values()).sort((a, b) => {
-                const aHasBoth = a.communityVotes > 0 && a.councilVotes > 0;
-                const bHasBoth = b.communityVotes > 0 && b.councilVotes > 0;
-                const aHasCouncil = a.councilVotes > 0;
-                const bHasCouncil = b.councilVotes > 0;
+            // **Map governance items to metadata & enrich data**
+            const governanceArray = Array.from(governanceMap.values()).map(row => {
+                const governanceItem = governanceLookup.find(glItem => glItem.governanceAddress === row.governanceAddress);
+                let metadata = metadataMap[governanceItem?.gspl?.metadataUri] || {};
 
-                if (aHasBoth && !bHasBoth) return -1;
-                if (!aHasBoth && bHasBoth) return 1;
-                if (aHasCouncil && !bHasCouncil) return -1;
-                if (!aHasCouncil && bHasCouncil) return 1;
-
-                return b.totalVotesCount - a.totalVotesCount;
-            });
-
-            const governanceArray = Array.from(sortedGovernance.values()).map(row => {
-                let metadata = metadataMap[governanceLookup.find(glItem => glItem.governanceAddress === row.governanceAddress)?.gspl?.metadataUri] || {};
-                console.log("found: "+  metadata.governanceName + " v "+ row?.account?.name);
-                        
                 return {
                     ...row,
                     displayName: metadata?.displayName || row?.account?.name || "Unknown Governance",
+                    members: governanceItem?.totalMembers || 0, // Ensuring a valid members count
                     logoUrl: metadata?.ogImage && !metadata.ogImage.endsWith("/")
                         ? (metadata.ogImage.startsWith("http") ? metadata.ogImage : `https://realms.today${metadata.ogImage}`)
                         : null,
-                    hasMetadata: !!metadata?.displayName // Check if metadata exists
+                    hasMetadata: !!metadata?.displayName, // Check if metadata exists
+                    hasBothVotes: row.communityVotes > 0 && row.councilVotes > 0 // Check if both vote types exist
                 };
             });
 
-            // **Sort: Prioritize DAOs with metadata**
-            governanceArray.sort((a, b) => Number(b.hasMetadata) - Number(a.hasMetadata));
+            // **Sorting: hasMetadata > members > both votes > community votes > council votes**
+            governanceArray.sort((a, b) => {
+                if (b.hasMetadata !== a.hasMetadata) return Number(b.hasMetadata) - Number(a.hasMetadata);
+                if (b.members !== a.members) return b.members - a.members;
+                if (b.hasBothVotes !== a.hasBothVotes) return Number(b.hasBothVotes) - Number(a.hasBothVotes);
+                if (b.communityVotes !== a.communityVotes) return b.communityVotes - a.communityVotes;
+                return b.councilVotes - a.councilVotes;
+            });
 
+            
             setGovernanceRecordRows(governanceArray);
         } catch (e) {
             console.log("ERR: " + e);
