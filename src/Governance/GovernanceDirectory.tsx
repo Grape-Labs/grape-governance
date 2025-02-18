@@ -524,7 +524,7 @@ export function GovernanceDirectoryView(props: Props) {
                             <Grid container>
                                 <Grid item xs={12}>
                                     <Typography variant="h4">
-                                        Governance Directory
+                                        DAO Directory
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12}>
