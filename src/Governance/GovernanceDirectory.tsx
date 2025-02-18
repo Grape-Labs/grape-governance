@@ -860,7 +860,8 @@ export function GovernanceDirectoryView(props: Props) {
                             <>
                             {searchFilter ?
                                 <>
-                                    {item.governanceName.toUpperCase().includes(searchFilter.toUpperCase()) ?
+                                    {item.governanceName.replace(/\s+/g, '').toUpperCase()
+                                        .includes(searchFilter.trim().replace(/\s+/g, '').toUpperCase()) ?
                                         <Grid item xs={12} sm={6} md={4} key={key}>
                                             <GovernanceDirectoryCardView 
                                                 item={item}
@@ -869,10 +870,10 @@ export function GovernanceDirectoryView(props: Props) {
                                         </Grid>
                                         :
                                         <>
-                                            {isValidSolanaPublicKey(searchFilter) && 
-                                                (item.governanceAddress.includes(searchFilter) || 
-                                                (item?.communityMint && item.communityMint.includes(searchFilter)) || 
-                                                (item?.councilMint && item.councilMint.includes(searchFilter))) && 
+                                            {isValidSolanaPublicKey(searchFilter.trim()) && 
+                                                (item.governanceAddress.trim().includes(searchFilter.trim()) || 
+                                                (item?.communityMint && item.communityMint.trim().includes(searchFilter.trim())) || 
+                                                (item?.councilMint && item.councilMint.trim().includes(searchFilter.trim()))) && 
                                                 (
                                                     <Grid item xs={12} sm={6} md={4} key={key}>
                                                         <GovernanceDirectoryCardView 
