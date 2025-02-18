@@ -126,7 +126,7 @@ function GovernanceDirectoryCardView(props: any) {
 
                                 {item?.totalMembers > 0 && (
                                     <TableRow>
-                                        <TableCell>All Time Members</TableCell>
+                                        <TableCell>Members</TableCell>
                                         <TableCell align="right">{Number(item.totalMembers).toLocaleString()}</TableCell>
                                     </TableRow>
                                 )}
@@ -134,7 +134,7 @@ function GovernanceDirectoryCardView(props: any) {
                                 {item?.totalProposals > 0 && (
                                     <>
                                         <TableRow>
-                                            <TableCell>All Proposals</TableCell>
+                                            <TableCell>Proposals</TableCell>
                                             <TableCell align="right">{Number(item.totalProposals).toLocaleString()}</TableCell>
                                         </TableRow>
 
