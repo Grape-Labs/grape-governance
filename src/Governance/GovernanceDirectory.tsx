@@ -566,10 +566,11 @@ export function GovernanceDirectoryView(props: Props) {
                         </Grid>
                     </Grid>
 
-                    <GovernanceParticipationView pubkey={publicKey} metadataMap={metadataMap} governanceLookup={governanceLookup} />
-
+                    
                     {(!searchFilter || (searchFilter && searchFilter.length <= 0)) &&
                     <>
+                        <GovernanceParticipationView pubkey={publicKey} metadataMap={metadataMap} governanceLookup={governanceLookup} />
+
                         {/*
                         <Box sx={{mb:1}}>
                             <Box
