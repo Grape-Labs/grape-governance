@@ -1,5 +1,5 @@
 import { Connection } from '@solana/web3.js';
-import STATIC_LOGO from '../../public/governance_logo.svg';
+import STATIC_LOGO from '../../public/governance-logo.svg';
 import STATIC_CREATOR_LOGO from '../../public/Element_46x.png';
 import FRICTIONLESS_ASSET_1 from '../../public/isolated_graphic_frictionless.jpeg';
 import FRICTIONLESS_LOGO_ASSET from '../../public/frictionless_logo.png';

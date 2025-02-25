@@ -916,14 +916,14 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury NFTs");
 
     const client = new RestClient(HELLO_MOON_BEARER);
-    const vaultsWithNftsPromise = await Promise.all(
+    const vaultsWithNftsPromise = null;/*await Promise.all(
         vaultsInfo.map((vault) =>
             client.send(new NftMintsByOwnerRequest({
                 ownerAccount: vault.pubkey,
                 limit: 1000
             }))
         )
-    );
+    );*/
 
     //console.log("vaultSolBalancesPromise "+JSON.stringify(vaultSolBalancesPromise));
     //console.log("vaultsWithTokensPromise "+JSON.stringify(vaultsWithTokensPromise));
@@ -936,6 +936,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     for (var gv of vaultsInfo){ // reformat to something pretty ;)
         //console.log("vault: "+JSON.stringify(gv));
 
+        if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury Domains");
+
         const domainsForAddress = await getAllDomains(gv.pubkey);
         console.log("SNS: "+JSON.stringify(domainsForAddress));
         
@@ -943,7 +945,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             vault:gv,
             solBalance:vaultSolBalancesPromise[x],
             tokens:vaultsWithTokensPromise[x],
-            nfts:vaultsWithNftsPromise[x].data,
+            nfts:vaultsWithNftsPromise ? vaultsWithNftsPromise[x].data : null,
             domains:domainsForAddress,
         })
         x++;
@@ -1182,7 +1184,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     }
 
     // consider jupiter as a backup... (per token address)
-
+    
     if (setPrimaryStatus) setPrimaryStatus("Fetching Prices from Jupiter");
 
     const cgp = await getJupiterPrices(cgMintArray, null, true);

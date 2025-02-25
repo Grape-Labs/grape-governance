@@ -8,30 +8,35 @@ import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import grapeTheme from  '../utils/config/theme';
 import { ThemeProvider } from '@mui/material/styles';
 
+import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
+import {getRealms, RequestStatus} from "gspl-directory";
+import {publicKey as UmiPK} from "@metaplex-foundation/umi";
+
 import {
-  Typography,
-  Button,
-  Grid,
-  Box,
-  Paper,
-  Table,
-  TableContainer,
-  TableCell,
-  TableHead,
-  TableBody,
-  TableFooter,
-  TableRow,
-  TablePagination,
-  TextField,
-  Tooltip,
-  LinearProgress,
-  DialogTitle,
-  Dialog,
-  Badge,
-  FormGroup,
-  FormControlLabel,
-  Switch,
-  ButtonGroup
+    Avatar,
+    Typography,
+    Button,
+    Grid,
+    Box,
+    Paper,
+    Table,
+    TableContainer,
+    TableCell,
+    TableHead,
+    TableBody,
+    TableFooter,
+    TableRow,
+    TablePagination,
+    TextField,
+    Tooltip,
+    LinearProgress,
+    DialogTitle,
+    Dialog,
+    Badge,
+    FormGroup,
+    FormControlLabel,
+    Switch,
+    ButtonGroup
 } from '@mui/material/';
 
 import { Helmet } from 'react-helmet';
@@ -47,8 +52,10 @@ import {
 } from './CachedStorageHelpers'; 
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
 import { GovernanceProposalDialog } from './GovernanceProposalDialog';
+import { GovernanceHeaderView } from './GovernanceHeaderView';
 import moment from 'moment';
 
+import VerifiedIcon from '@mui/icons-material/Verified';
 import ShareIcon from '@mui/icons-material/Share';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -249,7 +256,19 @@ function TablePaginationActions(props) {
             </IconButton>
         </Box>
     );
-  }
+}
+
+const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
+const initGrapeGovernanceDirectory = async() => {
+    try{
+        const umi = createUmi(RPC_CONNECTION);
+        const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
+        //console.log("Entries: "+JSON.stringify(entries));
+        return entries;
+    } catch(e){
+        console.log("Could not load GSPDL");
+    }
+}
 
 function RenderGovernanceTable(props:any) {
     const endTimer = props.endTimer;
@@ -889,6 +908,8 @@ export function GovernanceCachedView(props: any) {
     const [daoName, setDaoName] = React.useState(null);
     const [daoIcon, setDaoIcon] = React.useState(null);
     const [votesForWallet, setVotesForWallet] = React.useState(null);
+    const [gspl, setGSPL] = React.useState(null);
+    const [gsplMetadata, setGSPLMetadata] = React.useState(null);
 
     const GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
@@ -937,6 +958,7 @@ export function GovernanceCachedView(props: any) {
     }
 
     const getGovernanceParameters = async (cached_governance:any) => {
+        let grealm = null;
         if (!loading){
             setRealm(null);
             setRealmName(null);
@@ -951,8 +973,6 @@ export function GovernanceCachedView(props: any) {
                 //console.log("cached_governance: "+JSON.stringify(cached_governance));
                 
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
-                let grealm = null;
-
                 grealm = await getRealmIndexed(governanceAddress);
                 
                 //if (!grealm)
@@ -1266,6 +1286,47 @@ export function GovernanceCachedView(props: any) {
                 }
             }catch(e){console.log("ERR: "+e)}
         }
+
+        const fetchedgspl = await initGrapeGovernanceDirectory();
+        setGSPL(fetchedgspl);
+        console.log("fetchedgspl: "+JSON.stringify(fetchedgspl));
+        let gsplMeta = null;
+        if (fetchedgspl && grealm){
+            for (var diritem of fetchedgspl){
+                if (grealm.account.name === diritem.name){ // also make sure that diritem.governanceProgram ===item.parent?
+                    // check if there is also metadata and fetch it 
+                    if (diritem.metadataUri) {
+                        try {
+                            const response = await fetch(diritem.metadataUri);
+                            if (response.ok) {
+                                const metadata = await response.json();
+                                gsplMeta = {
+                                    gspl:diritem,
+                                    metadata: metadata
+                                }
+                            } else {
+                                console.error("Failed to fetch metadata:", diritem.metadataUri);
+                            }
+                        } catch (error) {
+                            console.error("Error fetching metadata:", error);
+                        }
+                    }
+
+                    if (!gsplMeta){
+                        gsplMeta = {
+                            gspl:diritem,
+                        }
+                    }
+
+                    setGSPLMetadata(gsplMeta);
+                    console.log("GSPL Entry found for "+diritem.name);
+                }
+            }
+        }
+    
+        // filter for only this governance
+        // setGSPLMetadata
+
         setLoading(false);
     }
 
@@ -1707,66 +1768,12 @@ export function GovernanceCachedView(props: any) {
                                         }}
                                     >
                                         
-                                        <Helmet>
-                                            <meta name="msapplication-TileImage" content="./public/ms-icon-144x144.png"/>
-                                            <meta name="msapplication-TileColor" content="#180A1E"/>
-                                            <meta name="msapplication-TileImage" content="./public/ms-icon-144x144.png"/>
-                                        
-                                            <meta name="description" content={`${realmName} powered by Governance.so by Grape`} />
-                                            <title>{`${realmName}`}</title>
-                                            
-                                            <meta property="og:url" content="https://governance.so"/>
-                                            <meta property="og:type" content="website"/>
-                                            <meta property="og:title" content={`${realmName}`}/>
-                                            <meta property="og:description" content={`${realmName} powered by Governance.so by Grape`}/>
-                                            <meta property="og:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplash.png"/>  
-                                            
-                                            <meta name="twitter:card" content="summary_large_image"/>
-                                            <meta name="twitter:title" content={`${realmName}`}/>
-                                            <meta name="twitter:site" content="@grapeprotocol"/>
-                                            <meta name="twitter:description" content={`${realmName} powered by Governance.so by Grape`}/>
-                                            <meta name="twitter:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplash.png"/>
-                                            <meta name="twitter:image:alt" content={`${realmName}`}/>
-                                        </Helmet>
-                                        
+                                        <GovernanceHeaderView
+                                            governanceName={realmName}
+                                            governanceAddress={governanceAddress}
+                                            gsplMetadata={gsplMetadata}
+                                        />
 
-                                        <Grid item xs={6} container justifyContent="flex-start">
-                                            <Grid container>
-                                                <Grid item xs={12}>
-                                                    <Typography variant="h4">
-                                                        {realmName}
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={12}>    
-                                                    <ButtonGroup>
-                                                        <Tooltip title={`Share ${realmName ? realmName : ''} Governance`}>
-                                                            <Button
-                                                                aria-label="share"
-                                                                variant="outlined"
-                                                                color="inherit"
-                                                                onClick={() => {
-                                                                    if (navigator.share) {
-                                                                        navigator.share({
-                                                                            title: `${realmName} Governance`,
-                                                                            text: `Visit the ${realmName} DAO:`,
-                                                                            url: `https://governance.so/dao/${governanceAddress}`
-                                                                        }).catch((error) => console.error('Error sharing:', error));
-                                                                    } else {
-                                                                        alert("Your browser doesn't support the Share API.");
-                                                                    }
-                                                                }}
-                                                                sx={{
-                                                                    borderRadius:'17px',
-                                                                    borderColor:'rgba(255,255,255,0.05)',
-                                                                    fontSize:'10px'}}
-                                                            >
-                                                                <ShareIcon fontSize='inherit' sx={{mr:1}} /> Share
-                                                            </Button>
-                                                        </Tooltip>
-                                                    </ButtonGroup>
-                                                </Grid>
-                                            </Grid>
-                                        </Grid>
                                         {(showGovernanceNavigation && realm) ?
                                             <Grid item xs={6} container justifyContent="flex-end">
                                                 <GovernanceNavigation governanceAddress={governanceAddress} cachedMemberMap={cachedMemberMap} realm={realm} />
