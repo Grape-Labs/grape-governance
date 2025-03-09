@@ -156,7 +156,7 @@ export default function TokenTransferView(props: any) {
     const [loadingInstructions, setLoadingInstructions] = React.useState(false);
     const [tokenAmountStr, setTokenAmountStr] = React.useState(null);
     const [simulationResults, setSimulationResults] = React.useState(null);
-    
+    const [isCalculating, setIsCalculating] = React.useState(false);
     const { publicKey } = useWallet();
     const connection = RPC_CONNECTION;
     const tokenMetadataCache = new Map<string, { name: string; logo: string }>();
@@ -712,7 +712,6 @@ export default function TokenTransferView(props: any) {
         }
     },[tokenAmount]);
     
-    
     function calculateDestinationsEvenly(destinations:string, destinationAmount: number){
         const destinationsStr = destinations.replace(/['"]/g, '');;
         
@@ -751,7 +750,101 @@ export default function TokenTransferView(props: any) {
         }
     }
     
-    function calculateDestinations(destination:string) {
+    async function calculateDestinations(destination) {
+        setIsCalculating(true);
+        if (destination.includes('\t') && destination.includes(',')) {
+            destination = destination.replace(/,/g, '');
+        }
+    
+        const destinationsStr = destination.replace(/['"]/g, '').replace(/[\t]/g, ',');
+        const destinationArray = destinationsStr.split('\n').map(item => item.trim()).filter(item => item !== '');
+    
+        const uniqueDestinationsMap = new Map();
+        let totalAmount = 0;
+        let columnToUse = null;
+    
+        let totalColumn1 = 0;
+        let totalColumn2 = 0;
+    
+        // **First pass: Calculate totals without modifying the map**
+        for (const destination of destinationArray) {
+            let parts = destination.split(',').map(part => part.trim());
+    
+            if (parts.length === 3) {
+                const amount1 = parseFloat(parts[1]);
+                const amount2 = parseFloat(parts[2]);
+    
+                if (!isNaN(amount1)) totalColumn1 += amount1;
+                if (!isNaN(amount2)) totalColumn2 += amount2;
+            }
+        }
+    
+        // **Prompt user ONCE if both columns have valid totals**
+        if (totalColumn1 > 0 && totalColumn2 > 0) {
+            columnToUse = await askUserWhichColumnToUse(totalColumn1, totalColumn2);
+        } else {
+            columnToUse = totalColumn2 > 0 ? 2 : 1; // Default to a valid column
+        }
+    
+        // **Second pass: Process the destinations using the chosen column**
+        for (const destination of destinationArray) {
+            let parts = destination.split(',').map(part => part.trim());
+    
+            let address = '';
+            let amountStr = '';
+    
+            if (parts.length === 3) {
+                address = parts[0];
+                amountStr = parts[columnToUse];
+            } else if (parts.length === 2) {
+                [address, amountStr] = parts;
+            }
+    
+            if (isValidSolanaPublicKey(address)) {
+                const amount = parseFloat(amountStr);
+    
+                if (!isNaN(amount)) {
+                    totalAmount += amount;
+                    if (uniqueDestinationsMap.has(address)) {
+                        uniqueDestinationsMap.get(address).amount += amount;
+                    } else {
+                        uniqueDestinationsMap.set(address, { address, amount });
+                    }
+                }
+            }
+        }
+    
+        let uniqueDestinations = Array.from(uniqueDestinationsMap.values());
+    
+        if (uniqueDestinations.length > maxDestinationWalletLen) {
+            uniqueDestinations = uniqueDestinations.slice(0, maxDestinationWalletLen);
+        }
+    
+        if (totalAmount === 0 && tokenAmount > 0) {
+            calculateDestinationsEvenly(destination, tokenAmount);
+        } else {
+            setTokenAmount(totalAmount);
+            setDestinationWalletArray(uniqueDestinations);
+        }
+        setIsCalculating(false);
+    }
+    
+    // **Ensure this function is only called ONCE per execution**
+    async function askUserWhichColumnToUse(totalColumn1, totalColumn2) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                let choice = window.prompt(
+                    `A third column was detected.\n` +
+                    `Enter '1' for total calculated amount: ${totalColumn1}\n` +
+                    `Enter '2' for the total amount: ${totalColumn2}`,
+                    "1"
+                );
+                resolve(choice === "2" ? 2 : 1); // Default to column 1 if invalid input
+            }, 0);
+        });
+    }
+    
+    function calculateDestinationsOriginal(destination:string) {
 
         if (destination.includes('\t') && destination.includes(',')){ // here remove all commas
             destination = destination.replace(/,/g, '');
@@ -1061,12 +1154,14 @@ export default function TokenTransferView(props: any) {
     }
 
     React.useEffect(() => { 
-        if (destinationString && tokenAmount && distributionType){
-            calculateDestinationsEvenly(destinationString, tokenAmount);
-        } else if (destinationString){
-            calculateDestinations(destinationString);
-        } else{
-            setDestinationWalletArray(null);
+        if (!isCalculating){
+            if (destinationString && tokenAmount && distributionType){
+                calculateDestinationsEvenly(destinationString, tokenAmount);
+            } else if (destinationString){
+                calculateDestinations(destinationString);
+            } else{
+                setDestinationWalletArray(null);
+            }
         }
     }, [destinationString, tokenAmount, distributionType]);
 
