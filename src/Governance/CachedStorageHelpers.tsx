@@ -4,7 +4,14 @@ import { Keypair } from "@solana/web3.js";
 import * as fs from "fs";
 import moment from "moment";
 
-export const formatBytes = (bytes: any, decimals = 2) => {
+// Constants
+const DEFAULT_HEADERS = {
+    method: 'GET',
+    headers: {},
+};
+
+// Utility to format bytes
+export const formatBytes = (bytes: number, decimals = 2): string => {
     if (bytes === 0) return '0 Bytes';
 
     const k = 1024;
@@ -12,101 +19,64 @@ export const formatBytes = (bytes: any, decimals = 2) => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
 
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-}
+};
 
-export const fetchGovernanceMasterMembersFile = async(storagePool:string) => {
-    try{
-        const url = GGAPI_STORAGE_URI+"/"+storagePool+'/governance_mastermembers.json';
-        const response = await window.fetch(url, {
-            method: 'GET',
-            headers: {
-            }
-          });
-          
-          const compressed = await response.arrayBuffer(); //.text();
-          //const decompressed = compressed;
-          // if compressed we need to decompress:
-        try{
+// Generic function to fetch and decompress files
+const fetchAndDecompressFile = async (url: string): Promise<any> => {
+    try {
+        const response = await window.fetch(url, DEFAULT_HEADERS);
+        const compressed = await response.arrayBuffer();
+
+        try {
             const decompressed = pako.inflate(new Uint8Array(compressed), { to: 'string' });
-            //let decompressed:any = pako.ungzip((compressed), {"to": "string"});
-            const json = decompressed === "" ? {} : JSON.parse(decompressed);
-            return json;
-        }catch(err){ 
-            console.log("err decompressed: "+JSON.stringify(compressed))
+            return decompressed === "" ? {} : JSON.parse(decompressed);
+        } catch (decompressionError) {
+            console.error("Error decompressing file:", decompressionError);
             return null;
         }
-    } catch(e){
-        console.log("ERR: "+e)
+    } catch (fetchError) {
+        console.error("Error fetching file:", fetchError);
         return null;
     }
-}
+};
 
-export const fetchGovernanceLookupFile = async(storagePool:string) => {
-    try{
-        const url = GGAPI_STORAGE_URI+"/"+storagePool+'/governance_lookup.json#'+moment().unix();
-        const response = await window.fetch(url, {
-            method: 'GET',
-            headers: {
-            }
-          });
+// Fetch governance master members file
+export const fetchGovernanceMasterMembersFile = async (storagePool: string): Promise<any> => {
+    const url = `${GGAPI_STORAGE_URI}/${storagePool}/governance_mastermembers.json`;
+    return fetchAndDecompressFile(url);
+};
 
-          const compressed = await response.arrayBuffer(); //.text();
-          //const decompressed = compressed;
-          // if compressed we need to decompress:
-        try{
-            const decompressed = pako.inflate(new Uint8Array(compressed), { to: 'string' });
-            //let decompressed:any = pako.ungzip((compressed), {"to": "string"});
-            const json = decompressed === "" ? {} : JSON.parse(decompressed);
-            return json;
-        }catch(err){ 
-            console.log("err decompressed: "+JSON.stringify(compressed))
-            return null;
-        }
-    } catch(e){
-        console.log("ERR: "+e)
-        return null;
-    }
-}
+// Fetch governance lookup file
+export const fetchGovernanceLookupFile = async (storagePool: string): Promise<any> => {
+    const url = `${GGAPI_STORAGE_URI}/${storagePool}/governance_lookup.json#${moment().unix()}`;
+    return fetchAndDecompressFile(url);
+};
 
+// Generic function to fetch any lookup file
+export const fetchLookupFile = async (fileName: string, storagePool: string): Promise<any> => {
+    const url = `${GGAPI_STORAGE_URI}/${storagePool}/${fileName}`;
+    return fetchAndDecompressFile(url);
+};
+
+// Get file from lookup
+export const getFileFromLookup = async (fileName: string, storagePool: string): Promise<any> => {
+    return fetchLookupFile(fileName, storagePool);
+};
+
+// Load wallet key from a keypair file
 export function loadWalletKey(keypair: string): Keypair {
-    if (!keypair || keypair == "") {
+    if (!keypair || keypair === "") {
         throw new Error("Keypair is required!");
     }
-    const loaded = Keypair.fromSecretKey(
-        new Uint8Array(JSON.parse(fs.readFileSync(keypair).toString()))
-    );
-    //log.debug(`Wallet public key: ${loaded.publicKey}`);
-    return loaded;
-}
 
-export const fetchLookupFile = async(fileName:string,storagePool:string) => {
-    try{
-        const url = GGAPI_STORAGE_URI+"/"+storagePool+'/'+fileName+'';
-        const response = await window.fetch(url, {
-            method: 'GET',
-            headers: {
-            }
-        });
-        const compressed = await response.arrayBuffer(); //.text();
-        //const decompressed = compressed;
-        // if compressed we need to decompress:
-        try{
-            const decompressed = pako.inflate(new Uint8Array(compressed), { to: 'string' });
-            const json = decompressed === "" ? {} : JSON.parse(decompressed);
-            return json;
-        }catch(e){
-            console.log("err decompressed: "+JSON.stringify(compressed))
-            return null;
-        }
-    } catch(e){
-        console.log("ERR: "+e)
-        return null;
+    try {
+        const loaded = Keypair.fromSecretKey(
+            new Uint8Array(JSON.parse(fs.readFileSync(keypair).toString()))
+        );
+        return loaded;
+    } catch (error) {
+        console.error("Error loading wallet key:", error);
+        throw error;
     }
 }
-
-export const getFileFromLookup  = async (fileName:string, storagePool:string) => {
-    const fgl = await fetchLookupFile(fileName, storagePool);
-    return fgl;
-} 
