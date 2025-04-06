@@ -66,7 +66,8 @@ import {
     GovBoardingConfigAccountData, 
     getGovBoardingConfigAccountDataSerializer,
     createEntry,
-    setEntryStatus
+    setEntryStatus,
+    createConfig
 } from "gspl-directory";
 
 import {publicKey as UmiPK, createNoopSigner, Context, generateSigner, KeypairSigner, Pda, isSome, MaybeRpcAccount} from "@metaplex-foundation/umi";
@@ -163,13 +164,13 @@ const confirmTx = async (sig: Uint8Array, umi: Context) => {
 
 export default function DirectoryExtensionView(props: any){
     const setReload = props?.setReload;
-    const governanceLookup = props.governanceLookup;
-    const governanceRulesWallet = props.governanceRulesWallet;
-    const governingTokenMint = props.governingTokenMint;
+    const governanceLookup = props?.governanceLookup;
+    const governanceRulesWallet = props?.governanceRulesWallet;
+    const governingTokenMint = props?.governingTokenMint;
     const [editProposalAddress, setEditProposalAddress] = React.useState(props?.editProposalAddress);
     const title = props?.title || "Proposal";
     const realm = props?.realm;
-    const governanceAddress = props.governanceAddress || realm.pubkey.toBase58();
+    const governanceAddress = props?.governanceAddress || realm.pubkey.toBase58();
     const realmName = props?.realmName;
     const rulesWallet = props?.rulesWallet;
     
@@ -229,10 +230,6 @@ export default function DirectoryExtensionView(props: any){
         }
         return 'purple';      // Default color
     };
-    
-    const verifierRealm = new PublicKey("By2sVGZXwfQq6rAiAM3rNPJ9iQfb5e2QhnF4YjJ4Bip");
-    const SPL_GOVERNANCE_PROGRAM_ID = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    //const static_verifier = UmiPK("5ox6yroSZeDAhSu98juR8MDYoxWTiG2yP2cP7s1Xb8ru");
 
     const [expanded, setExpanded] = React.useState<string | false>(false);
     
@@ -323,6 +320,8 @@ export default function DirectoryExtensionView(props: any){
         const transaction = new Transaction();
         const pTransaction = new Transaction();
         let gsplconfig: GovBoardingConfigAccountData = {} as GovBoardingConfigAccountData;
+        // Extract realm and pubkey from rulesWallet
+        const { pubkey, account: { realm } } = rulesWallet;
         //check if instructions will be associated with an update or new listing
         if(listingExists){  //update
             //listing exists so get gspl admin, verifier and verifierOverride
@@ -333,23 +332,8 @@ export default function DirectoryExtensionView(props: any){
                     console.log("detected URI has changes");
                     enqueueSnackbar("Detected URI has changed", { variant: 'info' });
                     typeOfAction = 1;
-                    //generateInstructions()
-                    //setActionType(1);
-                    /*if (!openAdvanced){
-                        setProposalTitle("GSPL Directory Listing URI Update");
-                        setProposalDescription("GSPL Directory Listing URI Update for "+realm.account?.name);
-                    }*/
-                    //need to see how to improve this first
-                    //const setEntryStatusBuilder = setEntryUri;
-                    //const {governanceEntry, config} = await createRequest(umi, "test_entry3");
-                    
-                    //const governanceEntry = umi.eddsa.findPda(umi.programs.get("govBoarding").publicKey,
-                        //[Buffer.from("entry"), Buffer.from(entryName), bs58.decode(config.publicKey), bs58.decode(SPL_GOVERNANCE_PROGRAM_ID)]); 
                     const umi = createUmi(RPC_ENDPOINT)
                         .use(walletAdapterIdentity(wallet));
-                    /*const nativeTreasury = umi.eddsa.findPda(UmiPK(gsplGovProgram),
-                        [Buffer.from("native-treasury"),
-                            rulesWallet.pubkey.toBuffer()])[0];*/
                     const governanceEntry = umi.eddsa.findPda(GOV_BOARDING,
                         [
                             Uint8Array.from(Buffer.from("entry")), 
@@ -357,89 +341,17 @@ export default function DirectoryExtensionView(props: any){
                             Uint8Array.from(bs58.decode(CONFIG)), 
                             Uint8Array.from(bs58.decode(gsplGovProgram))
                         ]); 
-                    console.log("uri: ", gsplUri); 
-                    console.log("governanceEntryJson: " +JSON.stringify(governanceEntry));
-                    console.log("governanceEntry: ", governanceEntry[0]);    
-                    console.log("config: ", CONFIG);
-                    console.log("verifier: ", createNoopSigner(governanceNativeWallet));
-                    //console.log("alternative verifier: ", createNoopSigner(nativeTreasury));
-                    //console.log("static_verifier: ", UmiPK("5ox6yroSZeDAhSu98juR8MDYoxWTiG2yP2cP7s1Xb8ru"));
-                    console.log("dynamic_verifier: ", gsplconfig.verifierOverride);
-                    console.log("gsplconfig admin: ", gsplconfig.admin);
-                    console.log("governance: ", fromWeb3JsPublicKey(rulesWallet.pubkey));
-                    console.log("governanceProgram: ", UmiPK(gsplGovProgram));
-                    console.log("derive governanceProgram: ", UmiPK(rulesWallet.owner));
-                    /*const governanceEntrySerializer = getGovernanceEntryAccountDataSerializer();
-                    const governanceEntryAccount = await umi.rpc.getAccount(governanceEntry[0]);
-                    if(governanceEntryAccount.exists) {
-                        const governanceEntryData = governanceEntrySerializer.deserialize(governanceEntryAccount.data);
-                        console.log("GovernanceEntryData:"+JSON.stringify(governanceEntryData));
-                    */
-                        /*expect(governanceEntryData[0].name).to.equal("test_entry6");
-                        expect(governanceEntryData[0].metadataUri).to.equal("test_uri");
-                        expect(governanceEntryData[0].govAccountType).to.equal(DAOType.Finance);
-                        expect(governanceEntryData[0].config).to.equal(config.publicKey);
-                        expect(governanceEntryData[0].governanceProgram).to.equal(SPL_GOVERNANCE_PROGRAM_ID);
-                        expect(governanceEntryData[0].requestStatus).to.equal(RequestStatus.Pending);
-                        expect(unwrapOption(governanceEntryData[0].parentLinks).realms.length).to.equal(2);
-                        expect(unwrapOption(governanceEntryData[0].parentLinks).realms[0].parentRealm).to.equal(parentRealm1);
-                        expect(unwrapOption(governanceEntryData[0].parentLinks).realms[0].status).to.equal(RequestStatus.Approved);
-                        expect(unwrapOption(governanceEntryData[0].parentLinks).realms[1].parentRealm).to.equal(parentRealm2);
-                        expect(unwrapOption(governanceEntryData[0].parentLinks).realms[1].status).to.equal(RequestStatus.Pending);*/
-                    /*} else {
-                        throw new Error("Governance entry account does not exist");
-                    }
-                    */
-
-                    /*const governanceConfig = umi.eddsa.findPda(GOV_BOARDING,
-                        [
-                            Uint8Array.from(Buffer.from("config")), 
-                            Uint8Array.from(Buffer.from(initialGsplName)), 
-                            Uint8Array.from(bs58.decode(CONFIG)), 
-                            //Uint8Array.from(bs58.decode(GOVERNANCE_PROGRAM_ID))
-                            Uint8Array.from(bs58.decode(gsplGovProgram))
-                        ]); 
-                    */
-                    //console.log("GovernanceEntry2"+JSON.stringify(gsplGovProgram)); its different
-                    //const {governanceProgramId,  governance } = governanceKeys;
-                    /*const governanceRulesWalletSelected = rulesWallet.pubkey;
-                    console.log("governanceRulesWallet: "+JSON.stringify(governanceRulesWalletSelected));
-                    console.log("rulesWallet: "+JSON.stringify(rulesWallet.pubkey));
-                    const nativeTreasury = umi.eddsa.findPda(UmiPK(gsplGovProgram),
-                        [Buffer.from("native-treasury"),
-                            governanceRulesWalletSelected.toBuffer()])[0]
-                    console.log("nativeTreasury: "+JSON.stringify(nativeTreasury));*/
-                    //the native treasury is actually the governanceNativeWallet
-                    //console.log("governanceNativeWallet: "+JSON.stringify(governanceNativeWallet));
-
-                    //CCdapb7GtJnXt3fSBXqMEiwwGxjPCjVoTrhHkaGTqAho is the governanceAddress/authority for collabx
-                    //GdLEESzMSWuyPsvvx46jN6UKnfpFG57LzwtZVWhNqXEN or this
-                    //614CZK9HV9zPcKiCFnhaCL9yX5KjAVNPEK9GJbBtxUZ8
-
                     const setEntryStatusBuilder = setEntryUri(umi, {
                         uri: gsplUri,
                         governanceEntry: governanceEntry[0],
                         config: CONFIG,
-                        //config: config.config.publicKey,
-                        //verifier: createNoopSigner(governanceNativeWallet),
-                        //verifier: createNoopSigner(nativeTreasury),
                         verifier: createNoopSigner(gsplconfig.verifierOverride && isSome(gsplconfig.verifierOverride) ? gsplconfig.verifierOverride.value : gsplconfig.admin),
-                        //verifier: createNoopSigner(static_verifier),
-                        //verifier: createNoopSigner(gsplconfig.admin),
                         governance: fromWeb3JsPublicKey(rulesWallet.pubkey),
                         governanceProgram: UmiPK(gsplGovProgram),
                     });
                     const ixs = setEntryStatusBuilder.getInstructions();
-                    //console.log("setEntryStatusBuilder: "+JSON.stringify(setEntryStatusBuilder));
-                    //console.log(setEntryStatusBuilder.items);
                     console.log("instructions: "+JSON.stringify(ixs));
-                    //const instructionData = createInstructionData(toWeb3JsInstruction(ixs[0]));
                     const web3Instructions = ixs.map(instruction => toWeb3JsInstruction(instruction));
-
-                    /*const instructionData = createInstructionData(toWeb3JsInstruction(ixs[0]));
-                    await executeWithGovernance(umi, instructionData, connection, keypair);
-                    const governanceEntryAccount = await umi.rpc.getAccount(governanceEntry[0]);*/
-                    //if (instructionData){
                     const aixs = pTransaction;
                     
                     if(web3Instructions){
@@ -453,17 +365,117 @@ export default function DirectoryExtensionView(props: any){
                             governingMint:governingMint,
                             draft:isDraft,
                         }
-            
                         console.log("propIx: "+JSON.stringify(propIx))
                         setInstructions(propIx);
                         setExpandedLoader(true);
                     }
-
-
                 }else{
                     typeOfAction = 0;
                     console.log("no changes detected to create instructions");
                     enqueueSnackbar("No changes detected, nothing to update.", { variant: 'info' });
+                }
+            }else if (gsplName.match(initialGsplName)&&gsplDaoType.match(initialGsplDaoType)&&gsplRank ==initialGsplRank && gsplStatus=="Pending"){
+                //proposal creatinon to request listing approval
+                console.log("Verifier Realm:"+JSON.stringify(gsplconfig.verifierRealm));
+                try{
+                    const umi = createUmi(RPC_ENDPOINT).use(walletAdapterIdentity(wallet));
+                    //const umi = createUmi(RPC_ENDPOINT);
+                    //attempt to build a configBuilder
+                    const configUmi = generateSigner(umi);
+                    console.log("This config is", configUmi.publicKey);
+                    let createConfigBuilder = createConfig(umi, {
+                        admin: umi.identity,
+                        //config: createNoopSigner(CONFIG),
+                        config: configUmi,
+                        verifierRealm: fromWeb3JsPublicKey(new PublicKey(governanceAddress)),
+                        //verifierRealm: gsplconfig.verifierRealm,
+                        verifier: umi.identity
+                        //verifier: createNoopSigner(gsplconfig.verifierRealm),
+                    });
+                    //The latest blockhash is set for the request listing builder to ensure the transaction is processed in the current block.
+                    createConfigBuilder = await createConfigBuilder.setLatestBlockhash(umi);
+                    console.log("createConfigBuilder: "+JSON.stringify(createConfigBuilder));
+                    //console.log("createConfigBuilder.verifierRealm: "+JSON.stringify(createConfigBuilder.items.keys[0].
+                    const governanceEntry = umi.eddsa.findPda(GOV_BOARDING,
+                        [   
+                            Uint8Array.from(Buffer.from("entry")), 
+                            Uint8Array.from(Buffer.from(initialGsplName)), 
+                            Uint8Array.from(bs58.decode(CONFIG)), 
+                            Uint8Array.from(bs58.decode(gsplGovProgram))
+                        ]); 
+                    const nativeTreasury = umi.eddsa.findPda(UmiPK(gsplGovProgram),
+                        [Buffer.from("native-treasury"),
+                            rulesWallet.pubkey.toBuffer()])[0];
+                    
+                    console.log('rulesWallet value: ' +JSON.stringify(rulesWallet));
+                    let approveListingBuilder =  createConfigBuilder.add(setEntryStatus(umi, {
+                    //let approveListingBuilder =  setEntryStatus(umi, {
+                        status: RequestStatus.Approved,
+                        governanceEntry: governanceEntry[0],
+                        config: CONFIG,
+                        //********using the verifier below gets you to the wallet and then program crashes with simulation error************/
+                        //********Simulation result: {"InstructionError":[0,{"Custom":1101}]} createProposalInstructionsLegacy.tsx:347************/
+                        verifier: createNoopSigner(gsplconfig.verifierOverride && isSome(gsplconfig.verifierOverride) ? gsplconfig.verifierOverride.value : gsplconfig.admin),
+                        //********approves a request with dao governance**********/
+                        //verifier: createNoopSigner(fromWeb3JsPublicKey(rulesWallet.pubkey)),
+                        //verifier: createNoopSigner(fromWeb3JsPublicKey(new PublicKey(rulesWallet.pubkey))),
+                        //*********approves a request with doa native treasury**********/
+                        //verifier: createNoopSigner(nativeTreasury),
+                        //*********alternative verifier tests*********/
+                        //verifier: createNoopSigner(umi.identity.publicKey),
+                        //verifier:umi.identity,
+                        //*********governance tests***********/
+                        //governance: fromWeb3JsPublicKey(rulesWallet.pubkey),
+                        //governance: rulesWallet,
+                        governance: fromWeb3JsPublicKey(new PublicKey(rulesWallet.pubkey)),
+                        governanceProgram: fromWeb3JsPublicKey(new PublicKey(gsplGovProgram)),
+                    })
+                )
+                    /*console.log('governance address: ', governanceAddress);
+                    console.log('governaceUmiPk address: ', UmiPK(governanceAddress));
+                    console.log('gpslconfig.admin: '+JSON.stringify(gsplconfig.admin));
+                    console.log('gpslconfig.verifierOverride: '+JSON.stringify(gsplconfig.verifierOverride));
+                    console.log("governanceEntry: "+JSON.stringify(governanceEntry[0]));
+                    console.log('nativeTreasury: '+JSON.stringify(nativeTreasury));
+                    console.log('CONFIG: '+JSON.stringify(CONFIG));
+                    
+                    console.log('governance: '+JSON.stringify(fromWeb3JsPublicKey(rulesWallet.pubkey)));
+                    console.log('governanceProgram: '+JSON.stringify(UmiPK(gsplGovProgram)));*/
+                    //need to see below what instructions we are sending to goverance for the proposal afterwards
+                    const ixs = approveListingBuilder.getInstructions();
+                    //console.log("instructions: "+JSON.stringify(ixs));
+                    const web3Instructions = ixs.map(instruction => toWeb3JsInstruction(instruction));
+                    const aixs = pTransaction;
+                    if(web3Instructions){
+                        const propIx = {
+                            title:proposalTitle,
+                            description:proposalDescription,
+                            ix:web3Instructions,
+                            aix:aixs?.instructions,
+                            nativeWallet:governanceNativeWallet,
+                            governingMint:governingMint,
+                            draft:isDraft,
+                        }
+                        //console.log("propIx: "+JSON.stringify(propIx))
+                        setInstructions(propIx);
+                        setExpandedLoader(true);
+                    }
+                        //code for signing from wallet directly avoid above instructions to embed in the proposal
+                        /*approveListingBuilder = await approveListingBuilder.setLatestBlockhash(umi);
+                        const approveListingTx = await approveListingBuilder.buildAndSign(umi);
+
+                        console.log("requestListingTx: "+JSON.stringify(approveListingTx));
+                        const sig = await umi.rpc.sendTransaction(approveListingTx, {commitment: "finalized"});
+                        if (!sig) {
+                            throw new Error('Transaction signature is null');
+                        }                
+                        await confirmTx(sig, umi);
+                        console.log(sig);
+                        enqueueSnackbar('Transaction successful!', { variant: 'success' });*/
+                        //end of code to sign off from wallet
+                } catch (error) {
+                    console.error('Transaction failed:', error);
+                    enqueueSnackbar('Transaction failed!', { variant: 'error' });
                 }
             }else{
                 //setActionType(2);
@@ -472,51 +484,7 @@ export default function DirectoryExtensionView(props: any){
                 typeOfAction = 2;
 
             }
-        }else if (gsplStatus.match("Pending")){
-            //proposal creatinon to request listing approval
-            const umi = createUmi(RPC_ENDPOINT).use(walletAdapterIdentity(wallet));
-            const governanceEntry = umi.eddsa.findPda(GOV_BOARDING,
-                [   
-                    Uint8Array.from(Buffer.from("entry")), 
-                    Uint8Array.from(Buffer.from(initialGsplName)), 
-                    Uint8Array.from(bs58.decode(CONFIG)), 
-                    Uint8Array.from(bs58.decode(gsplGovProgram))
-                ]); 
-
-            const approveListingBuilder =  setEntryStatus(umi, {
-                status: RequestStatus.Approved,
-                governanceEntry: governanceEntry,
-                config: CONFIG,
-                verifier: createNoopSigner(gsplconfig.verifierOverride && isSome(gsplconfig.verifierOverride) ? gsplconfig.verifierOverride.value : gsplconfig.admin),
-                governanceProgram: UmiPK(gsplGovProgram),
-            })
-            
-            //need to see below what instructinos we are sending to goverance for the proposal afterwards
-            const ixs = approveListingBuilder.getInstructions();
-            console.log("instructions: "+JSON.stringify(ixs));
-            console.log("governanceEntry: "+JSON.stringify(governanceEntry));
-            console.log("governanceProgram: "+JSON.stringify(rulesWallet.owner));
-            console.log("config: "+JSON.stringify(CONFIG));
-            console.log("gsplUri: "+JSON.stringify(gsplUri));
-            console.log("gsplName: "+JSON.stringify(gsplName));
-            console.log("gsplDaoType: "+JSON.stringify(descriptionToDaoType(gsplDaoType)));
-            const web3Instructions = ixs.map(instruction => toWeb3JsInstruction(instruction));
-            const aixs = pTransaction;
-            if(web3Instructions){
-                const propIx = {
-                    title:proposalTitle,
-                    description:proposalDescription,
-                    ix:web3Instructions,
-                    aix:aixs?.instructions,
-                    nativeWallet:governanceNativeWallet,
-                    governingMint:governingMint,
-                    draft:isDraft,
-                }
-                console.log("propIx: "+JSON.stringify(propIx))
-                setInstructions(propIx);
-                setExpandedLoader(true);
-            }
-        } else { //new listing  
+        } else if (gsplStatus=="Unlisted") { //new listing  
             //setActionType(3);  
             console.log("New listing proposal");
             enqueueSnackbar("New Listing Proposal", { variant: 'info' });
@@ -583,116 +551,13 @@ export default function DirectoryExtensionView(props: any){
                 setInstructions(propIx);
                 setExpandedLoader(true);
             }*/
+        }else{
+            typeOfAction = 0;
+            console.log("no changes detected to create instructions");
+            enqueueSnackbar("No changes detected, nothing to update or list.", { variant: 'info' });
         }
     }
-    /*const getMintFromApi = async(tokenAddress: PublicKey) => {
-        
-        const uri = `https://api.shyft.to/sol/v1/token/get_info?network=mainnet-beta&token_address=${tokenAddress}`;
-        
-        return axios.get(uri, {
-                headers: {
-                    'x-api-key': SHYFT_KEY
-                }
-                })
-            .then(response => {
-                if (response.data?.result){
-                    return response.data.result;
-                }
-                return null
-            })
-            .catch(error => 
-                {   
-                    // revert to RPC
-                    console.error(error);
-                    return null;
-                });
-    }*/
 
-    /*const checkClaimStatus = async(tokenAddress?:string) => {
-        setLoading(true);
-        setClaimMintInfo(null);
-        setMintInfo(null);
-        setClaimableAmount(null);
-        const merkleDistributor = new MerkleDistributor(provider, {
-            targetToken: new PublicKey(tokenAddress || claimTokenAddress), // the token to be distributed.
-            claimProofEndpoint: 'https://worker.jup.ag/jup-claim-proof',
-        });
-        setDistributor(merkleDistributor);
-        
-        const mintInfo = await getMint(RPC_CONNECTION, new PublicKey(tokenAddress || claimTokenAddress));
-        if (mintInfo){
-            setClaimMintInfo(mintInfo);
-            //console.log("mintInfo: ",mintInfo);
-            const mintInfoApi = await getMintFromApi(tokenAddress || claimTokenAddress);
-            if (mintInfoApi)
-                setMintInfo(mintInfoApi)
-            // governanceNativeWallet
-            const claimStatus = await merkleDistributor.getUser(new PublicKey(governanceNativeWallet));
-            const amount = claimStatus?.amount;
-            //const isClaimed = claimStatus?.proof. .isClaimed;
-            console.log("claimStatus: "+JSON.stringify(claimStatus));
-
-            setClaimableAmount(amount);
-        } else{
-
-        }
-        setLoading(false);
-        
-    }
-
-    const fetchClaimForToken = (tokenAddress:string) => {
-        setClaimTokenAddress(tokenAddress);
-        checkClaimStatus(tokenAddress);
-    }
-
-    const handleCheckClaimStatus = () => {
-        checkClaimStatus();
-    }*/
-
-    // State to handle the button's disabled status
-    /*const [isEditButtonDisabled, setEditButtonDisabled] = React.useState(true);
-
-    const hasAnyFieldBeenEdited = () => {
-    console.log('initialvalues', initialGsplUri, initialGsplName, initialGsplDaoType, initialGsplRank);
-    console.log('gsplvalues', gsplUri, gsplName, gsplDaoType, gsplRank);
-    return (
-        gsplUri !== initialGsplUri ||
-        gsplName !== initialGsplName ||
-        gsplDaoType !== initialGsplDaoType ||
-        gsplRank !== initialGsplRank
-        );
-    };*/
-
-    // Function to check if only the gspl_uri has been edited
-    /*const isOnlyGsplUriEdited = () => {
-        return gsplUri !== initialGsplUri && (
-            gsplName === initialGsplName &&
-            gsplDaoType === initialGsplDaoType &&
-            gsplRank === initialGsplRank
-        );
-    };
-
-    // Function to check if any field other than gspl_uri has been edited
-    const isOtherFieldEdited = () => {
-        return (
-            gsplUri === initialGsplUri &&
-            (gsplName !== initialGsplName ||
-             gsplDaoType !== initialGsplDaoType ||
-             gsplRank !== initialGsplRank)
-        );
-    };*/
-        
-    // Function to check whether the button should be enabled
-    /*React.useEffect(() => {
-        if (isOnlyGsplUriEdited() || isOtherFieldEdited()) {
-            setEditButtonDisabled(false); // Enable the button
-        } else {
-            setEditButtonDisabled(true); // Disable the button
-        }
-        console.log('isOnlyGsplUriEdited:', isOnlyGsplUriEdited());
-        console.log('isOtherFieldEdited:', isOtherFieldEdited());
-    }, [gsplUri, gsplName, gsplDaoType, gsplRank, initialGsplUri, initialGsplName, initialGsplDaoType, initialGsplRank]); // Recalculate whenever any field changes
-    */
     const GOV_BOARDING = UmiPK("GovyJPza6EV6srUcmwA1vS3EmWGdLSkkDafRE54X1Dir");
     const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
     let exists = false;
@@ -772,7 +637,7 @@ export default function DirectoryExtensionView(props: any){
                 } 
             }
         }
-        console.log("listingExists: "+listingExists);
+        //console.log("listingExists: "+listingExists);
         //set default values if the DAO isn't listed yet
         if (!exists){
             setGsplName(realm.account?.name|| '');
@@ -785,65 +650,12 @@ export default function DirectoryExtensionView(props: any){
             setInitialGsplRank(0);
         }
     }
-    //probably delete soon only keep typeOfAction logic for later
-    /*function generateInstructions(){
-        console.log("listingExists: "+listingExists);
-        console.log("typeOfAction: "+typeOfAction);
-        console.log("exsists: "+exists);
-        //let title = "GSPL Listing Request Proposal";
-        //let description = "GSPL Listing Request Proposal";   
-        switch(typeOfAction){
-            case 0: {
-                if (exists){
-                    const title = "GSPL Listing Update Proposal first time";
-                    setProposalTitle(title);
-                    const description = "GSPL Listing Update Proposal for "+realm.account?.name;
-                    setProposalDescription(description);
-                    console.log("exists is true and typeOfAction is 0");
-                }else{
-                    const title = "GSPL Listing Request Proposal";
-                    setProposalTitle(title);
-                    const description = "GSPL Listing Request Proposal for "+realm.account?.name;
-                    setProposalDescription(description);
-                }
-                break;
-            }
-            case 1: {
-                const title = "GSPL Listing URI Update Proposal";
-                setProposalTitle(title);
-                const description = "GSPL Listing URI Update Proposal for "+realm.account?.name;
-                setProposalDescription(description);
-                console.log("typeOfAction is 1");
-                break;
-            }
-            case 2: {  
-                const title = "GSPL Listing Update Proposal";
-                setProposalTitle(title);
-                const description = "GSPL Listing Update Proposal for "+realm.account?.name;
-                setProposalDescription(description);
-                break;
-            }case 3: {
-                const title = "GSPL Listing Request Proposal";
-                setProposalTitle(title);
-                const description = "GSPL Listing Request Proposal for "+realm.account?.name;
-                setProposalDescription(description);
-                break;
-            }
-            default: {
-                const title = "GSPL Listing Request Proposal";
-                setProposalTitle(title);
-                const description = "GSPL Listing Request Proposal for "+realm.account?.name;
-                setProposalDescription(description);
-                break;
-            }
-        }
-    }*/
 
     function generateInstructions(){
         if (gsplName && gsplStatus && gsplDaoType && gsplUri){
             let setTitle = "GSPL Listing Request Proposal";
             let setDescription = "GSPL Listing Request Proposal for "+realm.account?.name;
-            if (listingExists){
+            if (listingExists&&gsplStatus!="Pending"&&gsplStatus!="Unlisted"){
                 setTitle = "GSPL Listing Update Proposal for "+realm.account?.name;
                 setDescription = "GSPL Listing Update Proposal for "+realm.account?.name;
             }
@@ -1036,8 +848,6 @@ export default function DirectoryExtensionView(props: any){
                                     </Button>
                             }
                             </Box>
-                            {console.log("listingExists2 "+listingExists)} {/* This will log the value of listingExists */}
-
                             {listingExists ? (
                                 <Box sx={{ display: 'flex', p:0 }}>
                                     <Button 
