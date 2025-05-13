@@ -708,14 +708,13 @@ export default function TokenManagerView(props) {
                 nativeWallet:governanceNativeWallet,
                 governingMint:governingMint,
                 draft: isDraft,
-                editProposalAddress: editProposalAddress,fu
+                editProposalAddress: editProposalAddress,
             };
 
             console.log("Simulating");
             
             const isSimulationSuccessful = await simulateCreateTokenIx(transaction);
-
-
+            
             console.log("Simulate complete");
 
             if (!isSimulationSuccessful) {
