@@ -2260,13 +2260,13 @@ export function GovernanceProposalV2View(props: any){
                             <meta property="og:type" content="website"/>
                             <meta property="og:title" content={`${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``} `}/>
                             <meta property="og:description" content={`Proposal ${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``}  powered by Governance.so by Grape`}/>
-                            <meta property="og:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplash.png"/>  
+                            <meta property="og:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplashv2.png"/>  
                             
                             <meta name="twitter:card" content="summary_large_image"/>
                             <meta name="twitter:title" content={`${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``} `}/>
                             <meta name="twitter:site" content="@grapeprotocol"/>
                             <meta name="twitter:description" content={`Proposal ${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``}  powered by Governance.so by Grape`}/>
-                            <meta name="twitter:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplash.png"/>
+                            <meta name="twitter:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplashv2.png"/>
                             <meta name="twitter:image:alt" content={`${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``} `}/>
                         </Helmet>
                         
