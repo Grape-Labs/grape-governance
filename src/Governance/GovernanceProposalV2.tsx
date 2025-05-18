@@ -862,25 +862,23 @@ export function GovernanceProposalV2View(props: any){
                 let instructions = null;
                 
                 
-                if (!thisitem?.instructions || thisitem.account.state === 0){
-                
-                    //if (!thisitem?.instructions){
-                        //(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
-                        
+                if (!thisitem?.instructions || thisitem.account.state === 0) {
+                    try {
                         instructions = await getGovernanceAccounts(
                             connection,
                             new PublicKey(thisitem.owner || realm.owner),
                             ProposalTransaction,
                             [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
                         );
-                        
                         thisitem.instructions = instructions;
-                    //}
-                } else {
-                    if (!thisitem?.instructions){
+                    } catch (e) {
+                        console.warn("getGovernanceAccounts failed, falling back to Indexed", e);
                         instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
                         thisitem.instructions = instructions;
                     }
+                } else if (!thisitem?.instructions) {
+                    instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                    thisitem.instructions = instructions;
                 }
 
                 if (thisitem?.instructions){
@@ -895,7 +893,30 @@ export function GovernanceProposalV2View(props: any){
                     var ataArray = new Array();
                     if (useInstructions){
                         let cnt = 0;
+                           
+                        // Collect all unique mint PublicKeys from useInstructions
+                        const mintSet = new Set<string>();
 
+                        for (const instructionItem of useInstructions) {
+                        for (const accountInstruction of instructionItem.account.instructions) {
+                            const pubkey = accountInstruction.accounts?.[0]?.pubkey;
+                            if (pubkey) {
+                            mintSet.add(pubkey); // use string form to prevent duplicate PublicKey instances
+                            }
+                        }
+                        }
+
+                        // Convert Set to array of PublicKey objects
+                        const mintArr = Array.from(mintSet, (key) => new PublicKey(key));
+
+                        // Fetch parsed accounts
+                        let mintResults = [];
+
+                        if (mintArr.length > 0) {
+                        const { value } = await RPC_CONNECTION.getMultipleParsedAccounts(mintArr);
+                        mintResults = value?.filter(Boolean) || [];
+                        }
+                        /*
                         const mintArr = new Array();
                         for (var instructionItem of useInstructions){
                             // use multiple accounts rather than a single account to get gai
@@ -906,13 +927,13 @@ export function GovernanceProposalV2View(props: any){
                                     mintArr.push(new PublicKey(accountInstruction.accounts[0].pubkey))
                             }
                         }
-                        
                         let mintResults = null;
                         if (mintArr && mintArr?.length > 0){
                             const results = await RPC_CONNECTION.getMultipleParsedAccounts(mintArr);
                             mintResults = results.value;
                             //console.log("mintArrResults: "+JSON.stringify(mintResults));
                         }
+                        */
                         
                         let lastMint = null;
                         let lastMintName = null;
