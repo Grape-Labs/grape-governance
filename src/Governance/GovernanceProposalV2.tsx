@@ -264,7 +264,6 @@ export function GovernanceProposalV2View(props: any){
     const [verifiedDAODestinationWalletArray, setVerifiedDAODestinationWalletArray] = React.useState(null);
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
     
-
     const toggleInfoExpand = () => {
         setExpandInfo(!expandInfo)
     };
@@ -860,7 +859,6 @@ export function GovernanceProposalV2View(props: any){
                 
                 // if this is voting we should fetch via RPC
                 let instructions = null;
-                
                 
                 if (!thisitem?.instructions || thisitem.account.state === 0) {
                     try {
