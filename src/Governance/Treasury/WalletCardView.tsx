@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PublicKey, TokenAmount, Connection, Transaction } from '@solana/web3.js';
+import { PublicKey, TokenAmount, Connection, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import axios from "axios";
 import moment from 'moment';
@@ -1269,7 +1269,21 @@ export default function WalletCardView(props:any) {
                 console.log("ix: "+JSON.stringify(instructions.ix));
                 console.log("aix: "+JSON.stringify(instructions.aix));
 
-                transaction.add(...instructions.ix);// we should simulate when sending back to the wallet...
+                //transaction.add(...instructions.ix);// we should simulate when sending back to the wallet...
+                            
+                // Ensure instructions.ix is an array of TransactionInstruction
+                if (Array.isArray(instructions.ix) && instructions.ix.every(ix => ix instanceof TransactionInstruction)) {
+                    transaction.add(...instructions.ix);
+                } else {
+                    console.error("instructions.ix is not an array of TransactionInstruction");
+                }
+
+                // Ensure instructions.aix is an array of TransactionInstruction
+                /*if (instructions.aix && Array.isArray(instructions.aix) && instructions.aix.every(aix => aix instanceof TransactionInstruction)) {
+                    transaction.add(...instructions.aix);
+                } else {
+                    console.error("instructions.aix is not an array of TransactionInstruction");
+                }*/
                 
                 if (instructions?.aix){
                     //if (instructions?.aix)
