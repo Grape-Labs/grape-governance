@@ -407,7 +407,6 @@ export default function GovernanceDiscussion(props: any){
     const getGovernanceDiscussion = async() => {
         
         setLoading(true);
-
         const messages = await getGovernanceChatMessages(
             RPC_CONNECTION,
             GOVERNANCE_CHAT_PROGRAM_ID,

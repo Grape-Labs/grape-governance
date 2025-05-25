@@ -860,8 +860,10 @@ export function GovernanceProposalV2View(props: any){
                 // if this is voting we should fetch via RPC
                 let instructions = null;
                 
+                /*
                 if (!thisitem?.instructions || thisitem.account.state === 0) {
                     try {
+                        //alert("HERE!!!");
                         instructions = await getGovernanceAccounts(
                             connection,
                             new PublicKey(thisitem.owner || realm.owner),
@@ -874,11 +876,12 @@ export function GovernanceProposalV2View(props: any){
                         instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
                         thisitem.instructions = instructions;
                     }
-                } else if (!thisitem?.instructions) {
+                } else */
+                if (!thisitem?.instructions) {
                     instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
                     thisitem.instructions = instructions;
                 }
-
+                
                 if (thisitem?.instructions){
                     let useInstructions = thisitem.instructions;
                     //console.log("ix index: "+JSON.stringify(useInstructions));

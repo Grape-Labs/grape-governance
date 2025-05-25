@@ -1,5 +1,6 @@
 import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
-import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
+import { PublicKey, MemcmpFilter } from '@solana/web3.js';
+//import gql from 'graphql-tag';
 import { 
     SHYFT_KEY,
     RPC_CONNECTION } from '../../utils/grapeTools/constants';
@@ -19,6 +20,7 @@ import {
     ProposalTransaction,
     getGovernanceAccounts,
     pubkeyFilter,
+    SignatoryRecord,
     getRealmConfig  } from '@solana/spl-governance';
 
 import { getVoteRecords } from '../../utils/governanceTools/getVoteRecords';
@@ -167,7 +169,6 @@ function GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk?:string, realmOwner?:string)
                 pubkey
             }
         }
-        
     `;
 }
 
@@ -1607,3 +1608,102 @@ export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, re
             return indexedRecord;
         }
 }
+
+function GET_QUERY_SIGNATORYRECORDS(proposalPk?: string, realmOwner?: string) {
+    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+    return gql `
+        query MyQuery {
+            ${programId}_SignatoryRecordV2(limit: 100, where: { proposal: { _eq: "${proposalPk}" } }) {
+                pubkey
+                proposal
+                signatory
+                signedOff
+                slot
+                lamports
+            }
+            ${programId}_SignatoryRecordV1(limit: 100, where: { proposal: { _eq: "${proposalPk}" } }) {
+                pubkey
+                proposal
+                signatory
+                signedOff
+                slot
+                lamports
+            }
+        }
+    `;
+}
+
+export const getSignatoryRecordsIndexed = async (proposalPk?: any, realmOwner?: any, realmPk?: any) => {
+    const programName = findGovOwnerByDao(realmPk)?.name
+        ? findGovOwnerByDao(realmPk).name
+        : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = realmOwner
+        ? realmOwner
+        : findGovOwnerByDao(realmPk)?.owner
+        ? findGovOwnerByDao(realmPk).owner
+        : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+    const indexedRecord = [];
+
+    try {
+        const { data } = await client.query({
+            query: GET_QUERY_SIGNATORYRECORDS(proposalPk, realmOwner),
+            fetchPolicy: 'no-cache',
+        });
+
+        if (data[programName + '_SignatoryRecordV2']) {
+            data[programName + '_SignatoryRecordV2'].forEach((account) => {
+                indexedRecord.push({
+                    owner: programId,
+                    pubkey: new PublicKey(account.pubkey),
+                    account: {
+                        proposal: new PublicKey(account.proposal),
+                        signatory: new PublicKey(account.signatory),
+                        signedOff: account.signedOff,
+                        slot: account.slot,
+                        lamports: account.lamports,
+                    },
+                });
+            });
+        }
+
+        if (data[programName + '_SignatoryRecordV1']) {
+            data[programName + '_SignatoryRecordV1'].forEach((account) => {
+                indexedRecord.push({
+                    owner: programId,
+                    pubkey: new PublicKey(account.pubkey),
+                    account: {
+                        proposal: new PublicKey(account.proposal),
+                        signatory: new PublicKey(account.signatory),
+                        signedOff: account.signedOff,
+                        slot: account.slot,
+                        lamports: account.lamports,
+                    },
+                });
+            });
+        }
+    } catch (e) {
+        console.log('Signatory Record Index Err. Falling back to RPC...');
+        const memcmpFilter = {
+                memcmp: {
+                    offset: 1,
+                    bytes: new PublicKey(proposalPk).toBase58(),
+                },
+            };
+        
+            const filters: MemcmpFilter[] = [
+                memcmpFilter,
+            ];
+        
+            const filter = pubkeyFilter(1, new PublicKey(proposalPk))
+            const signatoryResults = await getGovernanceAccounts(
+                RPC_CONNECTION,
+                programId,
+                SignatoryRecord,
+                [filter]
+            );
+    }
+
+    return indexedRecord;
+};

@@ -243,7 +243,7 @@ export default function GovernancePower(props: any){
             setWalletCouncilMintAddress(councilMint);
 
             console.log("Start tryGetRealmConfig");
-            
+            //alert('get realm config...');
             const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(realm?.owner), new PublicKey(realm?.pubkey));
             let plugin = false;
             setIsPlugin(false);
