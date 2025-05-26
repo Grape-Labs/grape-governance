@@ -62,18 +62,9 @@ import MilitaryTechIcon from '@mui/icons-material/MilitaryTech';
 import AddCircle from '@mui/icons-material/AddCircle';
 
 import { 
-    getRealm, 
-    getTokenOwnerRecord,
-    getTokenOwnerRecordsByOwner,
-    getTokenOwnerRecordForRealm,
-    getTokenOwnerRecordAddress,
-    getAllTokenOwnerRecords, 
-    SYSTEM_PROGRAM_ID,
-    withRelinquishVote,
     withDepositGoverningTokens,
     withWithdrawGoverningTokens,
     withSetGovernanceDelegate,
-    tryGetRealmConfig,
 } from '@solana/spl-governance';
 import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
 
@@ -86,6 +77,7 @@ import {
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
     getTokenOwnerRecordsByRealmIndexed,
+    getRealmConfigIndexed
 } from './api/queries';
 
 import { 
@@ -244,7 +236,8 @@ export default function GovernancePower(props: any){
 
             console.log("Start tryGetRealmConfig");
             //alert('get realm config...');
-            const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(realm?.owner), new PublicKey(realm?.pubkey));
+            //const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(realm?.owner), new PublicKey(realm?.pubkey));
+            const config = await getRealmConfigIndexed(null, new PublicKey(realm?.owner), new PublicKey(realm?.pubkey));
             let plugin = false;
             setIsPlugin(false);
             if (config?.account?.communityTokenConfig?.voterWeightAddin){

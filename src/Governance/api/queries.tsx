@@ -1645,7 +1645,6 @@ export const getSignatoryRecordsIndexed = async (proposalPk?: any, realmOwner?: 
         : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
     const indexedRecord = [];
-
     try {
         const { data } = await client.query({
             query: GET_QUERY_SIGNATORYRECORDS(proposalPk, realmOwner),
@@ -1703,7 +1702,68 @@ export const getSignatoryRecordsIndexed = async (proposalPk?: any, realmOwner?: 
                 SignatoryRecord,
                 [filter]
             );
+
+            return signatoryResults;
     }
 
     return indexedRecord;
+};
+
+function GET_QUERY_REALMCONFIG(realmConfigPk?: string, realmOwner?: string) {
+    const programId = realmOwner || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+    const queryStr = `
+        query GetRealmConfig {
+            ${programId}_RealmConfig(where: { realm: { _eq: "${realmConfigPk}" } }) {
+                realm
+                communityTokenConfig
+                councilTokenConfig
+                lamports
+                reserved
+                slot
+            }
+        }
+    `;
+
+    return gql`${queryStr}`;
+}
+
+export const getRealmConfigIndexed = async (realmConfigPk?: any, realmOwner?: any, realmPk?: any) => {
+    const programId = realmOwner || findGovOwnerByDao(realmPk)?.owner || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = findGovOwnerByDao(realmPk)?.name || programId;
+
+    try {
+        const { data } = await client.query({
+            query: GET_QUERY_REALMCONFIG(realmConfigPk, realmOwner),
+            fetchPolicy: 'no-cache',
+        });
+
+        const result = data?.[programName + '_RealmConfig']?.[0];
+
+        if (!result) return null;
+
+        return {
+            owner: programId,
+            pubkey: new PublicKey(result.realm),
+            account: {
+                communityTokenConfig: result.communityTokenConfig,
+                councilTokenConfig: result.councilTokenConfig,
+                lamports: result.lamports,
+                reserved: result.reserved,
+                slot: result.slot,
+            },
+        };
+    } catch (e) {
+        console.warn('Failed to fetch RealmConfig via Shyft index. Consider falling back to RPC.');
+        if (realmConfigPk){
+            const realmConfig = await getRealmConfig(
+                RPC_CONNECTION,
+                realmConfigPk
+            )
+            return realmConfig;
+        } else if (realmOwner && realmPk){
+            const realmConfig = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(realmOwner), new PublicKey(realmPk));
+            return realmConfig;
+        }
+    }
 };

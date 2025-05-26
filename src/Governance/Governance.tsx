@@ -85,15 +85,8 @@ import {
     GGAPI_STORAGE_URI,
     SHYFT_KEY } from '../utils/grapeTools/constants';
 
-import { 
-    getGovernance,
-    getRealm, 
-    getAllGovernances,
-    getAllProposals, 
-    getAllTokenOwnerRecords, 
-    getRealmConfigAddress, 
-    tryGetRealmConfig, 
-    getRealmConfig  } from '@solana/spl-governance';
+import {  
+    getRealmConfigAddress  } from '@solana/spl-governance';
 
 import { 
     getRealmIndexed,
@@ -101,6 +94,7 @@ import {
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
     getVoteRecordsByVoterIndexed,
+    getRealmConfigIndexed,
 } from './api/queries';
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
@@ -266,7 +260,7 @@ const initGrapeGovernanceDirectory = async() => {
         //console.log("Entries: "+JSON.stringify(entries));
         return entries;
     } catch(e){
-        console.log("Could not load GSPDL");
+        console.log("Could not load GSPL");
     }
 }
 
@@ -1202,11 +1196,23 @@ export function GovernanceCachedView(props: any) {
 
                             console.log("Getting Realm Config")
 
+                            /*
                             const realmConfig = await getRealmConfig(
                                 connection,
                                 realmConfigPk
                             )
-                            //console.log("realmConfig: "+JSON.stringify(realmConfig));
+                            */
+
+                            const realmConfig = await getRealmConfigIndexed(
+                                //realmConfigPk,
+                                null,
+                                programId,
+                                realmPk,
+                            )
+
+                            
+
+                            console.log("realmConfig: "+JSON.stringify(realmConfig));
                             /*
                             const tryRealmConfig = await tryGetRealmConfig(
                                 connection,

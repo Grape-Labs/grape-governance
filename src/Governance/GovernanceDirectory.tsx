@@ -304,7 +304,7 @@ export function GovernanceDirectoryView(props: Props) {
         try{
             const umi = createUmi(RPC_ENDPOINT);
             const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
-
+            
             // set to verified list
             // set entry in verified list
             console.log("Entries: "+JSON.stringify(entries));

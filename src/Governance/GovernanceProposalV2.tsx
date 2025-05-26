@@ -1,24 +1,5 @@
 import { 
-    getRealm, 
-    getProposal,
-    getAllProposals, 
-    getGovernance, 
-    getGovernanceAccounts, 
-    getNativeTreasuryAddress,
-    getGovernanceChatMessages, 
-    getTokenOwnerRecord, 
-    getTokenOwnerRecordsByOwner, 
-    getAllTokenOwnerRecords,
-    getMaxVoterWeightRecord,
-    getRealmConfigAddress, 
-    getGovernanceAccount, 
-    getAccountTypes, 
-    ProposalTransaction,
-    pubkeyFilter,
-    GovernanceAccountType, 
-    tryGetRealmConfig, 
-    getRealmConfig,
-    InstructionData  } from '@solana/spl-governance';
+    getNativeTreasuryAddress } from '@solana/spl-governance';
 import { Buffer } from 'buffer';
 import { 
         getRealmIndexed,
@@ -860,23 +841,6 @@ export function GovernanceProposalV2View(props: any){
                 // if this is voting we should fetch via RPC
                 let instructions = null;
                 
-                /*
-                if (!thisitem?.instructions || thisitem.account.state === 0) {
-                    try {
-                        //alert("HERE!!!");
-                        instructions = await getGovernanceAccounts(
-                            connection,
-                            new PublicKey(thisitem.owner || realm.owner),
-                            ProposalTransaction,
-                            [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
-                        );
-                        thisitem.instructions = instructions;
-                    } catch (e) {
-                        console.warn("getGovernanceAccounts failed, falling back to Indexed", e);
-                        instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
-                        thisitem.instructions = instructions;
-                    }
-                } else */
                 if (!thisitem?.instructions) {
                     instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
                     thisitem.instructions = instructions;
@@ -1320,7 +1284,7 @@ export function GovernanceProposalV2View(props: any){
                                                 //const instruction = instructionItem.account.instructions[0];
                                                 //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
                                                 
-                                                let description = "SPL Governance Interaction";
+                                                let description = "GSPL Governance Interaction";
                                                 let decodedIx = null;
                                                 let amount = null;
                                                 let mint = null;
