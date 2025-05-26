@@ -18,7 +18,6 @@ import { GovernanceTreasuryView } from "./Governance/GovernanceTreasury";
 import { GovernanceDirectoryView } from "./Governance/GovernanceDirectory";
 import { GovernanceDirectoryTestView } from "./Governance/GovernanceDirectoryTest";
 import { GovernanceReputationView } from "./Governance/GovernanceReputation";
-import { GovernanceProposalView } from "./Governance/GovernanceProposal";
 import { GovernanceProposalV2View } from "./Governance/GovernanceProposalV2";
 import { GovernanceProposalWrapper } from "./Governance/GovernanceProposalWrapper";
 import GovernanceCreateProposalView from "./Governance/GovernanceCreateProposal";

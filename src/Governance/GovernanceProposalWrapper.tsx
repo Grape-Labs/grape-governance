@@ -149,11 +149,6 @@ export function GovernanceProposalWrapper(props: any){
                     p:4
                 }} 
             >       
-              {/*beta ?
-                <GovernanceProposalV2View showGovernanceTitle={true} governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
-              :
-                <GovernanceProposalView showGovernanceTitle={true} governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
-              */}
                 <GovernanceProposalV2View showGovernanceTitle={true} governanceLookup={governanceLookup} governanceAddress={governanceAddress} cachedGovernance={cachedGovernance} item={thisitem} realm={realm} tokenMap={tokenMap} memberMap={memberMap} governanceToken={governanceToken} />
               
             

@@ -719,68 +719,62 @@ function GET_QUERY_ALL_TOKEN_OWNER_RECORDS(owner:string, realmOwner?:string){
         `
 }
 
-export const getProposalInstructionsIndexed = async (filterRealm?:string, proposalPk?:string) => {
-    
-    
+export const getProposalInstructionsIndexed = async (filterRealm?: string, proposalPk?: string) => {
     const programId = findGovOwnerByDao(filterRealm)?.owner;
+    const allProposalIx = [];
 
-    const allProposalIx = new Array();
-    try{
-        const { data } = await client.query({ query: GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk, programId), fetchPolicy: 'no-cache' });
-        
-        data[programId+"_ProposalTransactio"] && data[programId+"_ProposalTransactio"].map((item) => {
-            if (item?.instructions){
-                
+    let fallbackToRPC = false;
 
-                allProposalIx.push({
-                    pubkey: new PublicKey(0),
-                    account: {
-                            pubkey: new PublicKey(item.pubkey),
-                            proposal: new PublicKey(proposalPk),
-                            executedAt: item.executedAt,
-                            executionStatus: item.executionStatus,
-                            instructionIndex: item?.instructionIndex,
-                            holdUpTime: item.holdUpTime,
-                            instructions: item.instructions.map((ixn) => {
-                                return {
-                                    programId: new PublicKey(ixn.programId),
-                                    accounts: ixn.accounts.map((acts) => {
-                                        return {
-                                            pubkey: new PublicKey(acts.pubkey),
-                                            isSigner: acts.isSigner,
-                                            isWritable: acts.isWritable,
-                                        }
-                                    }),
-                                    data: ixn.data,
-                                }
-                            })
-                        }
-                    }
-                )
-            
-            }
+    try {
+        const { data } = await client.query({
+            query: GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk, programId),
+            fetchPolicy: 'no-cache',
         });
-        
-        //console.log("allProposalIx Index: "+JSON.stringify(allProposalIx));
-    }catch(e){
-        console.log("Ix Index Err reverting to RPC "+e);
+
+        const gqlKey = `${programId}_ProposalTransactio`;
+        const indexedResults = data?.[gqlKey] || [];
+
+        for (const item of indexedResults) {
+            if (item?.instructions) {
+                allProposalIx.push({
+                    pubkey: new PublicKey(0), // Placeholder — actual pubkey not included in GraphQL result
+                    account: {
+                        pubkey: new PublicKey(item.pubkey),
+                        proposal: new PublicKey(proposalPk),
+                        executedAt: item.executedAt,
+                        executionStatus: item.executionStatus,
+                        instructionIndex: item.instructionIndex,
+                        holdUpTime: item.holdUpTime,
+                        instructions: item.instructions.map((ixn) => ({
+                            programId: new PublicKey(ixn.programId),
+                            accounts: ixn.accounts.map((acts) => ({
+                                pubkey: new PublicKey(acts.pubkey),
+                                isSigner: acts.isSigner,
+                                isWritable: acts.isWritable,
+                            })),
+                            data: ixn.data,
+                        })),
+                    },
+                });
+            }
+        }
+    } catch (e) {
+        console.warn("GraphQL error for ProposalInstructions — falling back to RPC:", e);
+        fallbackToRPC = true;
     }
 
-    
-    if ((!allProposalIx || allProposalIx.length <= 0) && filterRealm){ // fallback to RPC call is governance not found in index
-        const instructions = await getGovernanceAccounts(
+    if (fallbackToRPC) {
+        const rpcResults = await getGovernanceAccounts(
             RPC_CONNECTION,
             new PublicKey(programId),
             ProposalTransaction,
             [pubkeyFilter(1, new PublicKey(proposalPk))!]
         );
-        allProposalIx.push(...instructions);
+        allProposalIx.push(...rpcResults);
     }
-    //console.log("allProposalIx: "+JSON.stringify(allProposalIx));
+
     return allProposalIx;
-    
-    
-}
+};
 
 export const getRealmIndexed = async (filterRealm?:string) => {
     if (filterRealm){
@@ -1645,7 +1639,6 @@ export const getSignatoryRecordsIndexed = async (proposalPk?: any, realmOwner?: 
         : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
     const indexedRecord = [];
-
     try {
         const { data } = await client.query({
             query: GET_QUERY_SIGNATORYRECORDS(proposalPk, realmOwner),
@@ -1703,7 +1696,68 @@ export const getSignatoryRecordsIndexed = async (proposalPk?: any, realmOwner?: 
                 SignatoryRecord,
                 [filter]
             );
+
+            return signatoryResults;
     }
 
     return indexedRecord;
+};
+
+function GET_QUERY_REALMCONFIG(realmConfigPk?: string, realmOwner?: string) {
+    const programId = realmOwner || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+    const queryStr = `
+        query GetRealmConfig {
+            ${programId}_RealmConfig(where: { realm: { _eq: "${realmConfigPk}" } }) {
+                realm
+                communityTokenConfig
+                councilTokenConfig
+                lamports
+                reserved
+                slot
+            }
+        }
+    `;
+
+    return gql`${queryStr}`;
+}
+
+export const getRealmConfigIndexed = async (realmConfigPk?: any, realmOwner?: any, realmPk?: any) => {
+    const programId = realmOwner || findGovOwnerByDao(realmPk)?.owner || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = findGovOwnerByDao(realmPk)?.name || programId;
+
+    try {
+        const { data } = await client.query({
+            query: GET_QUERY_REALMCONFIG(realmConfigPk, realmOwner),
+            fetchPolicy: 'no-cache',
+        });
+
+        const result = data?.[programName + '_RealmConfig']?.[0];
+
+        if (!result) return null;
+
+        return {
+            owner: programId,
+            pubkey: new PublicKey(result.realm),
+            account: {
+                communityTokenConfig: result.communityTokenConfig,
+                councilTokenConfig: result.councilTokenConfig,
+                lamports: result.lamports,
+                reserved: result.reserved,
+                slot: result.slot,
+            },
+        };
+    } catch (e) {
+        console.warn('Failed to fetch RealmConfig via Shyft index. Consider falling back to RPC.');
+        if (realmConfigPk){
+            const realmConfig = await getRealmConfig(
+                RPC_CONNECTION,
+                realmConfigPk
+            )
+            return realmConfig;
+        } else if (realmOwner && realmPk){
+            const realmConfig = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(realmOwner), new PublicKey(realmPk));
+            return realmConfig;
+        }
+    }
 };

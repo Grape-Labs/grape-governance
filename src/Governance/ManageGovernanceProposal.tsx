@@ -89,8 +89,7 @@ import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { AlreadyInitializedError } from '@metaplex-foundation/mpl-token-metadata';
 
 export const getAllProposalSignatories = async(programId:PublicKey, proposalAddress:PublicKey) => {
-
-
+    
     const signatoryResults = await getSignatoryRecordsIndexed(proposalAddress.toBase58());
 
     /*

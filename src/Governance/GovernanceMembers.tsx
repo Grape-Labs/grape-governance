@@ -72,6 +72,7 @@ import {
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
+    getRealmConfigIndexed,
 } from './api/queries';
 
 import PropTypes from 'prop-types';
@@ -449,7 +450,8 @@ export function GovernanceMembersView(props: any) {
                 setRealm(grealm);
                 setRealmName(grealm.account.name);
                 
-                const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(grealm.owner), new PublicKey(grealm.pubkey));
+                //const config = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(grealm.owner), new PublicKey(grealm.pubkey));
+                const config = await getRealmConfigIndexed(null, grealm.owner, realmPk);
 
                 if (config?.account?.communityTokenConfig?.voterWeightAddin){
                     setPluginDao(true);
