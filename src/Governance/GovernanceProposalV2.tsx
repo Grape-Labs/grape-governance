@@ -245,6 +245,8 @@ export function GovernanceProposalV2View(props: any){
     const [verifiedDAODestinationWalletArray, setVerifiedDAODestinationWalletArray] = React.useState(null);
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
     
+    const [loadingMessage, setLoadingMessage] = React.useState(null);
+
     const toggleInfoExpand = () => {
         setExpandInfo(!expandInfo)
     };
@@ -399,6 +401,8 @@ export function GovernanceProposalV2View(props: any){
         let governance_item = null;
         let governance = null;
         
+        setLoadingMessage("Loading Governance...");
+
         if (governanceLookup){
             for (let glitem of governanceLookup){
                 if (glitem.governanceAddress === governanceAddress){
@@ -447,6 +451,8 @@ export function GovernanceProposalV2View(props: any){
             //}
             
             //console.log("communityMintPromise ("+thisitem.account.governingTokenMint+") "+JSON.stringify(governingMintPromise))
+            
+            setLoadingMessage("Loading Governance Mint...");
             setGoverningMintInfo(governingMintDetails);
             
             const communityWeight = governingMintDetails.value.data.parsed.info.supply - Number(realm.account.config.minCommunityTokensToCreateGovernance);
@@ -644,6 +650,8 @@ export function GovernanceProposalV2View(props: any){
         let td = 0; // this is the default for NFT mints
         let vType = null;
 
+
+        setLoadingMessage("Loading Voting Participants...");
         // this method is not correct, migrate to set decimals by an RPC:
         const tokenInfo = await getMint(RPC_CONNECTION, new PublicKey(thisitem.account.governingTokenMint));
         
@@ -725,8 +733,10 @@ export function GovernanceProposalV2View(props: any){
 
             if (thisitem.account.signatoriesCount > 0){
                 // how many signed off? check signatoriesSignedOffCount
-                console.log("test "+new PublicKey(thisitem.owner || realm.owner).toBase58());
+                //console.log("test "+new PublicKey(thisitem.owner || realm.owner).toBase58());
                 //alert("Getting signatories");
+                
+                setLoadingMessage("Loading Additional Signatory Records...");
                 const allSignatoryRecords = await getAllProposalSignatoryRecords(new PublicKey(thisitem.owner || realm.owner), new PublicKey(thisitem.pubkey), new PublicKey(governanceAddress))
                 console.log("allSignatoryRecords: "+JSON.stringify(allSignatoryRecords));
                 setProposalSignatories(allSignatoryRecords)
@@ -753,10 +763,15 @@ export function GovernanceProposalV2View(props: any){
             }
         }
 
+
+        setLoadingMessage("Loading Governances...");
+
         //if (!vresults){
             //const gp = await getProposal(RPC_CONNECTION, thisitem.pubkey);
             const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, thisitem?.owner);
             const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
+        
+        setLoadingMessage("Loading Proposal...");
             const gp = await getProposalIndexed(governanceRulesStrArr, null, governanceAddress, proposalPk);
             //const gpiv2 = await getProposalNewIndexed(thisitem.pubkey);
             //console.log("gp: "+JSON.stringify(gp));
@@ -813,6 +828,7 @@ export function GovernanceProposalV2View(props: any){
 
                     from_cache = false;
 
+                    setLoadingMessage("Loading Vote Records...");
                     const voteRecords = await getVoteRecordsIndexed(
                         thisitem.pubkey,
                         (thisitem.owner || realm.owner),
@@ -842,10 +858,12 @@ export function GovernanceProposalV2View(props: any){
                 let instructions = null;
                 
                 if (!thisitem?.instructions) {
+
+                    setLoadingMessage("Loading Proposal Instructions...");
                     instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
                     thisitem.instructions = instructions;
                 }
-                
+
                 if (thisitem?.instructions){
                     let useInstructions = thisitem.instructions;
                     //console.log("ix index: "+JSON.stringify(useInstructions));
@@ -858,7 +876,9 @@ export function GovernanceProposalV2View(props: any){
                     var ataArray = new Array();
                     if (useInstructions){
                         let cnt = 0;
-                           
+                            
+                        
+                    
                         // Collect all unique mint PublicKeys from useInstructions
                         const mintSet = new Set<string>();
 
@@ -908,6 +928,8 @@ export function GovernanceProposalV2View(props: any){
                         let thisMintDecimals = null;
                         for (var instructionItem of useInstructions){
                             
+                            setLoadingMessage(`Loading Instruction ${cnt+1} of ${useInstructions.length}...`);
+
                             if (instructionItem.account?.instructions && instructionItem.account.instructions.length > 0){
                                 for (var accountInstruction of instructionItem.account.instructions){
                                     for (var account of accountInstruction.accounts){
@@ -3841,7 +3863,8 @@ export function GovernanceProposalV2View(props: any){
                             xs={12}
                             sx={{textAlign:'center'}}
                         >
-                            <CircularProgress color="inherit" />
+                            <CircularProgress color="inherit" /><br/>
+                            <small>{loadingMessage || 'Loading...'}</small>
                         </Grid>
                     }
                 </Box>
