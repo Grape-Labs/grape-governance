@@ -41,7 +41,8 @@ import {
   getAllGovernancesIndexed,
   getAllTokenOwnerRecordsIndexed,
   getTokenOwnerRecordsByRealmIndexed,
-  getProposalInstructionsIndexed
+  getProposalInstructionsIndexed,
+  getSignatoryRecordsIndexed,
 } from '../api/queries';
 
 import { getVotingPlugin } from '../../utils/governanceTools/components/instructions/getVotePlugin';
@@ -215,8 +216,10 @@ export async function createProposalInstructionsLegacy(
     
     // we have the following already cached so this should be passed:
     console.log("3");
-    const governance = await getGovernance(connection, governancePk);
+    //const governance = await getGovernance(connection, governancePk);
     
+    const governance = await getGovernanceIndexed(realmPk.toBase58(), programId.toBase58(), governancePk.toBase58()); 
+
     console.log("governance: "+JSON.stringify(governance));
     
     // minInstructionHoldUpTime
