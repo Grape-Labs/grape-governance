@@ -3608,78 +3608,91 @@ export function GovernanceProposalV2View(props: any){
                                     >
                                         
                                         <Box>
-                                            {(instructionTransferDetails && instructionTransferDetails.length > 0) &&
+                                            {(instructionTransferDetails && instructionTransferDetails.length > 0) && (
                                                 <Box
                                                     sx={{
-                                                        p:1,
-                                                        m:1,
-                                                        borderRadius:'17px',
-                                                        backgroundColor:'rgba(0,0,0,0.2)'}}
+                                                        p: 1,
+                                                        m: 1,
+                                                        borderRadius: '17px',
+                                                        backgroundColor: 'rgba(0,0,0,0.2)',
+                                                    }}
                                                 >
                                                     <Typography variant="subtitle1">
                                                         Instructions Summary
                                                     </Typography>
                                                     <Typography variant="caption">
-                                                    
                                                         {Object.values(
-                                                                instructionTransferDetails.reduce((result, item) => {
-                                                                    // Ensure item exists and has necessary properties before destructuring
-                                                                    if (item && typeof item === 'object') {
-                                                                        const { mint, amount, name, logoURI, destinationAta } = item;
-                                                                        if (!result[mint]) {
-                                                                            result[mint] = { mint, totalAmount: 0, name, logoURI, uniqueDestinationAta: new Set() };
-                                                                        }
-                                                                        result[mint].totalAmount += +amount || 0; // Fallback to 0 if amount is invalid
-                                                                        if (destinationAta) result[mint].uniqueDestinationAta.add(destinationAta);
+                                                            instructionTransferDetails.reduce((result, item) => {
+                                                                if (item && typeof item === 'object') {
+                                                                    const { mint, amount, name, logoURI, destinationAta } = item;
+                                                                    if (!mint || !destinationAta) return result;
+
+                                                                    if (!result[mint]) {
+                                                                        result[mint] = {
+                                                                            mint,
+                                                                            name,
+                                                                            logoURI,
+                                                                            destinationAmounts: {}, // map destinationAta => amount
+                                                                            totalAmount: 0,
+                                                                        };
                                                                     }
-                                                                    return result;
-                                                                }, {})
-                                                            ).map((item, key, array) => (
-                                                                    <>
-                                                                        <Grid container
-                                                                            direction="row"
-                                                                        >
-                                                                            <Grid item>
-                                                                                {(item && item?.totalAmount > 0 && item.uniqueDestinationAta.size > 0) &&
-                                                                                    <>
-                                                                                    <ExplorerView
-                                                                                        address={item.mint} type='address' useLogo={item?.logoURI} 
-                                                                                        title={`${item.totalAmount.toLocaleString()} 
-                                                                                            ${item?.name || (item?.mint && trimAddress(item.mint)) || 'Explore'}
-                                                                                            to ${item.uniqueDestinationAta.size} unique wallet${(item.uniqueDestinationAta.size > 1) ? `s`:``}
-                                                                                        `} 
-                                                                                        hideTitle={false} style='text' color='white' fontSize='12px'
-                                                                                        showNftData={true} 
+
+                                                                    const group = result[mint];
+
+                                                                    if (!group.destinationAmounts[destinationAta]) {
+                                                                        group.destinationAmounts[destinationAta] = 0;
+                                                                    }
+
+                                                                    group.destinationAmounts[destinationAta] += +amount || 0;
+
+                                                                    group.totalAmount = Object.values(group.destinationAmounts).reduce(
+                                                                        (sum, val) => sum + val,
+                                                                        0
+                                                                    );
+                                                                }
+                                                                return result;
+                                                            }, {})
+                                                        ).map((item, key, array) => (
+                                                            <Grid container direction="row" key={item.mint}>
+                                                                <Grid item>
+                                                                    {(item && item.totalAmount > 0 && Object.keys(item.destinationAmounts).length > 0) && (
+                                                                        <>
+                                                                            <ExplorerView
+                                                                                address={item.mint}
+                                                                                type="address"
+                                                                                useLogo={item.logoURI}
+                                                                                title={`${item.totalAmount.toLocaleString()} ${item.name || trimAddress(item.mint)} to ${Object.keys(item.destinationAmounts).length} unique wallet${Object.keys(item.destinationAmounts).length > 1 ? 's' : ''}`}
+                                                                                hideTitle={false}
+                                                                                style="text"
+                                                                                color="white"
+                                                                                fontSize="12px"
+                                                                                showNftData={true}
+                                                                            />
+
+                                                                            {(publicKey && key === array.length - 1 && thisitem.account?.state === 0) && (
+                                                                                <>
+                                                                                    <GrapeVerificationSpeedDial
+                                                                                        address={governanceNativeWallet.toBase58()}
+                                                                                        destinationWalletArray={destinationWalletArray}
+                                                                                        setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}
                                                                                     />
-                                                                                
-                                                                                    {(publicKey && key === array.length - 1 && thisitem.account?.state === 0) && (
-                                                                                        <>
-                                                                                            <GrapeVerificationSpeedDial
-                                                                                                address={governanceNativeWallet.toBase58()}
-                                                                                                destinationWalletArray={destinationWalletArray}
-                                                                                                setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}
-                                                                                            />
-                                                                                            <GrapeVerificationDAO
-                                                                                                governanceAddress={governanceAddress}
-                                                                                                governanceLookup={governanceLookup}
-                                                                                                address={governanceNativeWallet.toBase58()}
-                                                                                                destinationWalletArray={destinationWalletArray}
-                                                                                                setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray}
-                                                                                            />
-                                                                                        </>
-
-                                                                                    )}
-                                                                                    </>
-                                                                                }
-                                                                            </Grid>
-                                                                        </Grid>
-                                                                    </>
-                                                                )
-
-                                                        )}
+                                                                                    <GrapeVerificationDAO
+                                                                                        governanceAddress={governanceAddress}
+                                                                                        governanceLookup={governanceLookup}
+                                                                                        address={governanceNativeWallet.toBase58()}
+                                                                                        destinationWalletArray={destinationWalletArray}
+                                                                                        setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray}
+                                                                                    />
+                                                                                </>
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                </Grid>
+                                                            </Grid>
+                                                        ))}
                                                     </Typography>
                                                 </Box>
-                                            }
+                                            )}
                                         </Box>
                                         
                                             
