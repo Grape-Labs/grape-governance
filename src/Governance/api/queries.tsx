@@ -719,68 +719,62 @@ function GET_QUERY_ALL_TOKEN_OWNER_RECORDS(owner:string, realmOwner?:string){
         `
 }
 
-export const getProposalInstructionsIndexed = async (filterRealm?:string, proposalPk?:string) => {
-    
-    
+export const getProposalInstructionsIndexed = async (filterRealm?: string, proposalPk?: string) => {
     const programId = findGovOwnerByDao(filterRealm)?.owner;
+    const allProposalIx = [];
 
-    const allProposalIx = new Array();
-    try{
-        const { data } = await client.query({ query: GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk, programId), fetchPolicy: 'no-cache' });
-        
-        data[programId+"_ProposalTransactio"] && data[programId+"_ProposalTransactio"].map((item) => {
-            if (item?.instructions){
-                
+    let fallbackToRPC = false;
 
-                allProposalIx.push({
-                    pubkey: new PublicKey(0),
-                    account: {
-                            pubkey: new PublicKey(item.pubkey),
-                            proposal: new PublicKey(proposalPk),
-                            executedAt: item.executedAt,
-                            executionStatus: item.executionStatus,
-                            instructionIndex: item?.instructionIndex,
-                            holdUpTime: item.holdUpTime,
-                            instructions: item.instructions.map((ixn) => {
-                                return {
-                                    programId: new PublicKey(ixn.programId),
-                                    accounts: ixn.accounts.map((acts) => {
-                                        return {
-                                            pubkey: new PublicKey(acts.pubkey),
-                                            isSigner: acts.isSigner,
-                                            isWritable: acts.isWritable,
-                                        }
-                                    }),
-                                    data: ixn.data,
-                                }
-                            })
-                        }
-                    }
-                )
-            
-            }
+    try {
+        const { data } = await client.query({
+            query: GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk, programId),
+            fetchPolicy: 'no-cache',
         });
-        
-        //console.log("allProposalIx Index: "+JSON.stringify(allProposalIx));
-    }catch(e){
-        console.log("Ix Index Err reverting to RPC "+e);
+
+        const gqlKey = `${programId}_ProposalTransactio`;
+        const indexedResults = data?.[gqlKey] || [];
+
+        for (const item of indexedResults) {
+            if (item?.instructions) {
+                allProposalIx.push({
+                    pubkey: new PublicKey(0), // Placeholder — actual pubkey not included in GraphQL result
+                    account: {
+                        pubkey: new PublicKey(item.pubkey),
+                        proposal: new PublicKey(proposalPk),
+                        executedAt: item.executedAt,
+                        executionStatus: item.executionStatus,
+                        instructionIndex: item.instructionIndex,
+                        holdUpTime: item.holdUpTime,
+                        instructions: item.instructions.map((ixn) => ({
+                            programId: new PublicKey(ixn.programId),
+                            accounts: ixn.accounts.map((acts) => ({
+                                pubkey: new PublicKey(acts.pubkey),
+                                isSigner: acts.isSigner,
+                                isWritable: acts.isWritable,
+                            })),
+                            data: ixn.data,
+                        })),
+                    },
+                });
+            }
+        }
+    } catch (e) {
+        console.warn("GraphQL error for ProposalInstructions — falling back to RPC:", e);
+        fallbackToRPC = true;
     }
 
-    
-    if ((!allProposalIx || allProposalIx.length <= 0) && filterRealm){ // fallback to RPC call is governance not found in index
-        const instructions = await getGovernanceAccounts(
+    if (fallbackToRPC) {
+        const rpcResults = await getGovernanceAccounts(
             RPC_CONNECTION,
             new PublicKey(programId),
             ProposalTransaction,
             [pubkeyFilter(1, new PublicKey(proposalPk))!]
         );
-        allProposalIx.push(...instructions);
+        allProposalIx.push(...rpcResults);
     }
-    //console.log("allProposalIx: "+JSON.stringify(allProposalIx));
+
     return allProposalIx;
-    
-    
-}
+};
 
 export const getRealmIndexed = async (filterRealm?:string) => {
     if (filterRealm){
