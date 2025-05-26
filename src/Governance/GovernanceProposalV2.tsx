@@ -1,4 +1,7 @@
 import { 
+    getGovernanceAccounts,
+    pubkeyFilter,
+    ProposalTransaction,
     getNativeTreasuryAddress } from '@solana/spl-governance';
 import { Buffer } from 'buffer';
 import { 
@@ -860,6 +863,16 @@ export function GovernanceProposalV2View(props: any){
                 if (!thisitem?.instructions) {
 
                     setLoadingMessage("Loading Proposal Instructions...");
+                    //instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                    /*
+                    const test = await getGovernanceAccounts(
+                                RPC_CONNECTION,
+                                new PublicKey(thisitem.owner || realm.owner),
+                                ProposalTransaction,
+                                [pubkeyFilter(1, new PublicKey(proposalPk))!]
+                            );
+                    console.log("test: "+JSON.stringify(test));
+                    */      
                     instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
                     thisitem.instructions = instructions;
                 }

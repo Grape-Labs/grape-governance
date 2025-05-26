@@ -1,6 +1,7 @@
 import { 
     withRemoveTransaction,
     withExecuteTransaction,
+    InstructionData
 } from '@solana/spl-governance';
 import {
     fetchGovernanceLookupFile,
@@ -397,6 +398,7 @@ export function InstructionTableView(props: any) {
         }*/
         
         // Iterate over each set of instructions
+        /*
         for (const instruction of instructionSets) {
             const proposal = new PublicKey(instruction.account.proposal);
             const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
@@ -411,7 +413,32 @@ export function InstructionTableView(props: any) {
                 governanceRulesWallet,
                 proposal,
                 proposalTransaction,
-                [...instruction.account.getAllInstructions()] // Assuming this returns the instructions for this set
+                [...instruction.account?.getAllInstructions()] // Assuming this returns the instructions for this set
+            );
+        }*/
+       for (const instruction of instructionSets) {
+            const proposal = new PublicKey(instruction.account.proposal);
+            const proposalTransaction = new PublicKey(instruction.account.pubkey || instruction.pubkey);
+
+            console.log("Preparing Execute Instruction Selected");
+            console.log("Handling instruction for transaction: " + proposalTransaction.toBase58());
+            
+            let txi: InstructionData[] = [];
+
+            if (typeof instruction.account?.getAllInstructions === 'function') {
+                txi = instruction.account.getAllInstructions();
+            } else if (Array.isArray(instruction.account?.instructions)) {
+                txi = instruction.account.instructions;
+            }
+
+            await withExecuteTransaction(
+                instructions,
+                programId,
+                programVersion,
+                governanceRulesWallet,
+                proposal,
+                proposalTransaction,
+                txi
             );
         }
         
@@ -515,24 +542,36 @@ export function InstructionTableView(props: any) {
     const [ixRows, setIxRows] = React.useState(null);
 
     const handleRedirectIx = async(instructionSets:any[]) => {
-        
-
         const tx = [];
         // now lets get all tx items
         for (const instruction of instructionSets) {
-            const txi = instruction.account.getAllInstructions();
-            console.log("Transaction txi:", txi);
+            let txi: any[] | undefined = undefined;
+            if (typeof instruction.account?.getAllInstructions === 'function') {
+                // From RPC: getAllInstructions() is available
+                txi = instruction.account.getAllInstructions();
+            } else if (Array.isArray(instruction.account?.instructions)) {
+                // From GraphQL: instructions is an array
+                txi = instruction.account.instructions;
+            }
 
-            const transactionInstruction = new TransactionInstruction({
-                keys: txi[0].accounts.map((key:any) => ({
-                    pubkey: new PublicKey(key.pubkey), // Ensure pubkey is a PublicKey instance
-                    isSigner: key.isSigner,
-                    isWritable: key.isWritable,
-                })),
-                programId: new PublicKey(txi[0].programId), // Ensure programId is a PublicKey instance
-                data: Buffer.from(txi[0].data), // Convert data to Buffer
-            });
-            tx.push(transactionInstruction);
+            if (txi && txi.length > 0) {
+                const first = txi[0];
+                const dataBuffer = Array.isArray(first.data)
+                    ? Buffer.from(first.data)
+                    : Buffer.from(first.data, 'base64');
+
+                const transactionInstruction = new TransactionInstruction({
+                    keys: first.accounts.map((key: any) => ({
+                        pubkey: new PublicKey(key.pubkey),
+                        isSigner: key.isSigner,
+                        isWritable: key.isWritable,
+                    })),
+                    programId: new PublicKey(first.programId),
+                    data: dataBuffer,
+                });
+
+                tx.push(transactionInstruction);
+            }
         }
 
         const latestBlockhash = await RPC_CONNECTION.getLatestBlockhash('confirmed');
