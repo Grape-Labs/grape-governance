@@ -15,10 +15,16 @@ import {
     TableCell, 
     TableContainer, 
     Box, 
-    Avatar } from "@mui/material";
+    Avatar, 
+    Menu, 
+    MenuItem, 
+    useTheme, 
+    useMediaQuery } from '@mui/material';
+
 import { Link } from "react-router-dom";
 import { Helmet } from 'react-helmet';
 
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import VerifiedIcon from "@mui/icons-material/Verified";
 import ShareIcon from '@mui/icons-material/Share';
 import CodeIcon from '@mui/icons-material/Code';
@@ -54,7 +60,7 @@ export function GovernanceHeaderView(props: any) {
                 <meta name="twitter:image:alt" content={`${governanceName}`}/>
             </Helmet>
             
-            <Grid item xs={6} container justifyContent="flex-start">
+            <Grid item sm={6} container justifyContent="flex-start">
                 <Grid container>
                     <Grid item xs={12}>
                         
@@ -122,84 +128,84 @@ export function GovernanceHeaderView(props: any) {
                         }
                     </Grid>
                     <Grid item xs={12}>    
-                    <ButtonGroup>
-                        <Tooltip title={`Share ${governanceName ? governanceName : ''} Governance`}>
-                            <Button
-                                aria-label="share"
-                                variant="outlined"
-                                color="inherit"
-                                onClick={() => {
-                                    if (navigator.share) {
-                                        navigator.share({
-                                            title: `${governanceName} Governance`,
-                                            text: `Visit the ${governanceName} DAO:`,
-                                            url: `https://governance.so/dao/${governanceAddress}`
-                                        }).catch((error) => console.error('Error sharing:', error));
-                                    } else {
-                                        alert("Your browser doesn't support the Share API.");
-                                    }
-                                }}
-                                sx={{
-                                    borderRadius: '17px',
-                                    borderColor: 'rgba(255,255,255,0.05)',
-                                    fontSize: '10px'
-                                }}
-                            >
-                                <ShareIcon fontSize="inherit" sx={{ mr: 1 }} /> Share
-                            </Button>
-                        </Tooltip>
+                        <ButtonGroup>
+                            <Tooltip title={`Share ${governanceName ? governanceName : ''} Governance`}>
+                                <Button
+                                    aria-label="share"
+                                    variant="outlined"
+                                    color="inherit"
+                                    onClick={() => {
+                                        if (navigator.share) {
+                                            navigator.share({
+                                                title: `${governanceName} Governance`,
+                                                text: `Visit the ${governanceName} DAO:`,
+                                                url: `https://governance.so/dao/${governanceAddress}`
+                                            }).catch((error) => console.error('Error sharing:', error));
+                                        } else {
+                                            alert("Your browser doesn't support the Share API.");
+                                        }
+                                    }}
+                                    sx={{
+                                        borderRadius: '17px',
+                                        borderColor: 'rgba(255,255,255,0.05)',
+                                        fontSize: '10px'
+                                    }}
+                                >
+                                    <ShareIcon fontSize="inherit" sx={{ mr: 1 }} />
+                                </Button>
+                            </Tooltip>
 
-                        {gsplMetadata?.metadata?.discord && (
-                            <Button
-                                aria-label="discord"
-                                variant="outlined"
-                                color="inherit"
-                                href={gsplMetadata.metadata.discord}
-                                target="_blank"
-                                sx={{
-                                    borderRadius: '17px',
-                                    borderColor: 'rgba(255,255,255,0.05)',
-                                    fontSize: '10px'
-                                }}
-                            >
-                                <DiscordIcon sx={{ mt: 0.5, fontSize: 17.5, color: 'white' }} />
-                            </Button>
-                        )}
+                            {gsplMetadata?.metadata?.discord && (
+                                <Button
+                                    aria-label="discord"
+                                    variant="outlined"
+                                    color="inherit"
+                                    href={gsplMetadata.metadata.discord}
+                                    target="_blank"
+                                    sx={{
+                                        borderRadius: '17px',
+                                        borderColor: 'rgba(255,255,255,0.05)',
+                                        fontSize: '10px'
+                                    }}
+                                >
+                                    <DiscordIcon sx={{ mt: 0.5, fontSize: 17.5, color: 'white' }} />
+                                </Button>
+                            )}
 
-                        {gsplMetadata?.metadata?.twitter && (
-                            <Button
-                                aria-label="twitter"
-                                variant="outlined"
-                                color="inherit"
-                                href={`https://x.com/${gsplMetadata.metadata.twitter}`}
-                                target="_blank"
-                                sx={{
-                                    borderRadius: '17px',
-                                    borderColor: 'rgba(255,255,255,0.05)',
-                                    fontSize: '10px'
-                                }}
-                            >
-                                <XIcon fontSize="inherit" sx={{ mr: 1 }} />
-                            </Button>
-                        )}
+                            {gsplMetadata?.metadata?.twitter && (
+                                <Button
+                                    aria-label="twitter"
+                                    variant="outlined"
+                                    color="inherit"
+                                    href={`https://x.com/${gsplMetadata.metadata.twitter}`}
+                                    target="_blank"
+                                    sx={{
+                                        borderRadius: '17px',
+                                        borderColor: 'rgba(255,255,255,0.05)',
+                                        fontSize: '10px'
+                                    }}
+                                >
+                                    <XIcon fontSize="inherit" sx={{ mr: 1 }} />
+                                </Button>
+                            )}
 
-                        {gsplMetadata?.metadata?.website && (
-                            <Button
-                                aria-label="website"
-                                variant="outlined"
-                                color="inherit"
-                                href={gsplMetadata.metadata.website}
-                                target="_blank"
-                                sx={{
-                                    borderRadius: '17px',
-                                    borderColor: 'rgba(255,255,255,0.05)',
-                                    fontSize: '10px'
-                                }}
-                            >
-                                <LanguageIcon fontSize="inherit" sx={{ mr: 1 }} />
-                            </Button>
-                        )}
-                    </ButtonGroup>
+                            {gsplMetadata?.metadata?.website && (
+                                <Button
+                                    aria-label="website"
+                                    variant="outlined"
+                                    color="inherit"
+                                    href={gsplMetadata.metadata.website}
+                                    target="_blank"
+                                    sx={{
+                                        borderRadius: '17px',
+                                        borderColor: 'rgba(255,255,255,0.05)',
+                                        fontSize: '10px'
+                                    }}
+                                >
+                                    <LanguageIcon fontSize="inherit" sx={{ mr: 1 }} />
+                                </Button>
+                            )}
+                        </ButtonGroup>
                     </Grid>
                 </Grid>
             </Grid>
