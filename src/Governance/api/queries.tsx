@@ -2,7 +2,6 @@ import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
 import { PublicKey, MemcmpFilter } from '@solana/web3.js';
 //import gql from 'graphql-tag';
 import { 
-    SHYFT_KEY,
     RPC_CONNECTION } from '../../utils/grapeTools/constants';
 
 import BN from 'bignumber.js';

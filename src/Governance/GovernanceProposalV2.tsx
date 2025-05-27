@@ -1681,7 +1681,6 @@ export function GovernanceProposalV2View(props: any){
                             multipleChoice: multipleChoice
                         }
                     });
-                        
                 }
 
                 if (counter > 1)
