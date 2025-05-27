@@ -18,6 +18,7 @@ import {
     tryGetRealmConfig, 
     ProposalTransaction,
     getGovernanceAccounts,
+    getNativeTreasuryAddress,
     pubkeyFilter,
     SignatoryRecord,
     getRealmConfig  } from '@solana/spl-governance';
@@ -880,7 +881,6 @@ export const getAllGovernancesIndexed = async (filterRealm?:string, realmOwner?:
         try{
             const { data } = await client.query({ query: GET_QUERY_RULES(filterRealm, programName), fetchPolicy: 'no-cache' });
             // normalize data
-            
             data[programName+"_GovernanceV2"] && data[programName+"_GovernanceV2"].map((item) => {
                 allRules.push({
                     pubkey: new PublicKey(item.pubkey),

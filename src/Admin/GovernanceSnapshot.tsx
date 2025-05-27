@@ -27,11 +27,16 @@ import {
     SYSTEM_PROGRAM_ID
 } from '@solana/spl-governance';
 import { 
-    getRealmIndexed,
-    getGovernanceIndexed,
-    getAllProposalsIndexed,
-    getAllGovernancesIndexed,
-    getAllTokenOwnerRecordsIndexed,
+        getRealmIndexed,
+        getProposalIndexed,
+        getVoteRecordsIndexed,
+        getProposalNewIndexed,
+        getAllProposalsIndexed,
+        getGovernanceIndexed,
+        getAllGovernancesIndexed,
+        getAllTokenOwnerRecordsIndexed,
+        getProposalInstructionsIndexed,
+        getRealmConfigIndexed,
 } from '../Governance/api/queries';
 
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
@@ -235,24 +240,29 @@ const getGovernanceFromLookup  = async (fileName:string, storagePool: any) => {
 } 
 
 const fetchRealm = async(address:string) => {
-    //const grealm = await getRealmIndexed(address);
-    const grealm = await getRealm(RPC_CONNECTION, new PublicKey(address))
+    const grealm = await getRealmIndexed(address);
+    //const grealm = await getRealm(RPC_CONNECTION, new PublicKey(address))
     return grealm;
 }
 
 const fetchGovernanceVaults = async(grealm:any) => {
     
+    const rawGovernances = await getAllGovernancesIndexed(
+        new PublicKey(grealm.pubkey).toBase58(),
+        new PublicKey(grealm.owner).toBase58()
+    );
+
+    /*
+    console.log("rawGovernances2: "+JSON.stringify(rawGovernances2));
+
     const rawGovernances = await getAllGovernances(
         RPC_CONNECTION,
         new PublicKey(grealm.owner),
         new PublicKey(grealm.pubkey)
     );
 
-    /*
-    const rawGovernances = await getAllGovernancesIndexed(
-        new PublicKey(grealm.pubkey).toBase58(),
-        new PublicKey(grealm.owner).toBase58()
-    )
+    console.log("rawGovernances: "+JSON.stringify(rawGovernances));
+    
     */
     
     return rawGovernances;
@@ -826,14 +836,16 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
     //console.log("vaultsInfo: ("+vaultsInfo.length+") "+JSON.stringify(vaultsInfo))
 
     const rawNativeSolAddresses = await Promise.all(
-        rawGovernances.map((x) =>
+        rawFilteredVaults.map((x) =>
             getNativeTreasuryAddress(
-            //@ts-ignore
-            new PublicKey(grealm.owner),
-            x!.pubkey
+                //@ts-ignore
+                new PublicKey(grealm.owner),
+                x.pubkey
             )
         )
     );
+
+    console.log("rawNativeSolAddresses: "+JSON.stringify(rawNativeSolAddresses));
 
     // add the native treasury address for governance rules
     if (rawNativeSolAddresses){
@@ -1259,11 +1271,18 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
             )
             //console.log("realmConfigPk: "+JSON.stringify(realmConfigPk));
             try{ 
+                const realmConfig = await getRealmConfigIndexed(
+                    null,
+                    programId,
+                    realmPk,
+                )
+                /*
                 const realmConfig = await getRealmConfig(
                     connection,
                     realmConfigPk
                 )
-                
+                */
+
                 /*
                 const tryRealmConfig = await tryGetRealmConfig(
                     connection,
@@ -1491,8 +1510,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
         
         //console.log("rawTokenOwnerRecords "+JSON.stringify(rawTokenOwnerRecords))
         // get unique members
-        //const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), new PublicKey(grealm.owner).toBase58());
-        const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
+        const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), new PublicKey(grealm.owner).toBase58());
+        //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
 
         //setMemberMap(rawTokenOwnerRecords);
         // fetch current records if available
@@ -1755,8 +1774,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
         const grules = await getAllGovernancesIndexed(realmPk.toBase58());
         const governanceRulesStrArr = grules.map(item => item.pubkey.toBase58());
-        //const gprops = await getAllProposalsIndexed(governanceRulesStrArr, new PublicKey(grealm.owner).toBase58(), realmPk.toBase58());
-        const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
+        const gprops = await getAllProposalsIndexed(governanceRulesStrArr, new PublicKey(grealm.owner).toBase58(), realmPk.toBase58());
+        //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
         
         const allprops: any[] = [];
         let passed = 0;
@@ -1972,12 +1991,18 @@ const fetchProposalData = async(address:string, finalList:any, forceSkip:boolean
                 let instructions = null;
                 
                 if (thisitem.pubkey){
+                    instructions = await getProposalInstructionsIndexed(
+                        thisitem.pubkey.toBase58(),
+                        new PublicKey(thisitem.pubkey).toBase58(),
+                    )
+                    /*
                     instructions = await getGovernanceAccounts(
                         connection,
                         new PublicKey(thisitem.owner),
                         ProposalTransaction,
                         [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
                     );
+                    */
                     
                     //if (instructions)
                     //    console.log("instructions: "+JSON.stringify(instructions))

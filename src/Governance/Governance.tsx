@@ -83,7 +83,8 @@ import {
     RPC_CONNECTION,
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI,
-    SHYFT_KEY } from '../utils/grapeTools/constants';
+    SHYFT_KEY,
+    HELIUS_API } from '../utils/grapeTools/constants';
 
 import {  
     getRealmConfigAddress  } from '@solana/spl-governance';
@@ -1328,6 +1329,15 @@ export function GovernanceCachedView(props: any) {
                     console.log("GSPL Entry found for "+diritem.name);
                 }
             }
+        } else {
+            if (realm){
+                console.log("Fetch community mint if available and set token metadata accordingly");
+                if (realm.account?.communityMint){
+                    // use DAS to efficiently get the token metadata
+                    // only use this call if we do not have GSPL
+                    fetchTokenData(new PublicKey(realm.account.communityMint).toBase58());
+                }
+            }
         }
     
         // filter for only this governance
@@ -1380,36 +1390,54 @@ export function GovernanceCachedView(props: any) {
 
     const fetchTokenData = async(address:string) => {
         try{
-            const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
-
-            const response = await fetch(uri, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    jsonrpc: '2.0',
-                    id: 'rpc-id',
-                    method: 'getAsset',
-                    params: {
-                    id: address
+            if (HELIUS_API && !gsplMetadata){
+                const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
+                const response = await fetch(uri, {
+                    method: 'POST',
+                    headers: {
+                    "Content-Type": "application/json"
                     },
-                }),
+                    body: JSON.stringify({
+                    "jsonrpc": "2.0",
+                    "id": "text",
+                    "method": "getAsset",
+                    "params": {
+                        id: address,
+                    }
+                    }),
                 });
-            const { result } = await response.json();
-            
-            if (result){
-                if (result?.content?.metadata?.name){
-                    //setSolanaDomain(result?.content?.metadata?.name);
-                    setDaoName(result.content.metadata.name);
-                }
-                const image = result?.content?.links?.image;
+                /*
+                const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
+                const response = await fetch(uri, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 'rpc-id',
+                        method: 'getAsset',
+                        params: {
+                            id: address
+                        },
+                    }),
+                    });
+                    */ 
+                const { result } = await response.json();
                 
-                if (image){
-                    setDaoIcon(image);
-                } else { // check token registry if token exists
-                    if (governanceAddress === "899YG3yk4F66ZgbNWLHriZHTXSKk9e1kvsKEquW7L6Mo"){
-                        setDaoIcon("https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/MNDEFzGvMt87ueuHvVU9VcTqsAP5b3fTGPsHuuPA5ey/logo.png");
+                if (result){
+                    if (result?.content?.metadata?.name){
+                        //setSolanaDomain(result?.content?.metadata?.name);
+                        setDaoName(result.content.metadata.name);
+                    }
+                    const image = result?.content?.links?.image;
+                    
+                    if (image){
+                        setDaoIcon(image);
+                    } else { // check token registry if token exists
+                        if (governanceAddress === "899YG3yk4F66ZgbNWLHriZHTXSKk9e1kvsKEquW7L6Mo"){
+                            setDaoIcon("https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/MNDEFzGvMt87ueuHvVU9VcTqsAP5b3fTGPsHuuPA5ey/logo.png");
+                        }
                     }
                 }
             }
@@ -1570,16 +1598,6 @@ export function GovernanceCachedView(props: any) {
             document.querySelector('head').appendChild(element);
         }
     }, [daoName, daoIcon]);
-
-    React.useEffect(() => {
-        if (realm){
-            console.log("Fetch community mint if available and set token metadata accordingly");
-            if (realm.account?.communityMint){
-                // use DAS to efficiently get the token metadata
-                fetchTokenData(new PublicKey(realm.account.communityMint).toBase58());
-            }
-        }
-    }, [realm]);
 
     React.useEffect(() => {
         if (cachedGovernance && governanceAddress){
