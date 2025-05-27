@@ -13,6 +13,7 @@ import { GovernanceCachedView } from "./Governance/Governance";
 import { GovernanceRealtimeView } from "./Admin/Realtime/Realtime";
 import { PremiumView } from "./Governance/Premium";
 import { GovernanceMetricsView } from "./Governance/GovernanceMetrics";
+import { GovernanceStatsView } from "./Governance/GovernanceStats";
 import { GovernanceMembersView } from "./Governance/GovernanceMembers";
 import { GovernanceTreasuryView } from "./Governance/GovernanceTreasury";
 import { GovernanceDirectoryView } from "./Governance/GovernanceDirectory";
@@ -369,6 +370,9 @@ function DashboardContent() {
                                               */}
                                               <Route path="members/*" element={<GovernanceMembersView />} >
                                                   <Route path=":handlekey" element={<GovernanceMembersView />} />
+                                              </Route>
+                                              <Route path="stats/*" element={<GovernanceStatsView />} >
+                                                  <Route path=":handlekey" element={<GovernanceStatsView />} />
                                               </Route>
                                               <Route path="treasury/*" element={<GovernanceTreasuryView />} >
                                                   <Route path=":address" element={<GovernanceTreasuryView />} />

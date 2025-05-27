@@ -354,14 +354,14 @@ export async function createProposalInstructionsLegacy(
       proposalAddress = editAddress;
       
       // revert to use this when SHYFT properly adjusts the total ix
-      //const ix = await getProposalInstructionsIndexed(realmPk.toBase58(), proposalAddress);
-      
+      const ix = await getProposalInstructionsIndexed(realmPk.toBase58(), proposalAddress);
+      /*
       const ix = await getGovernanceAccounts(
         connection,
         new PublicKey(programId),
         ProposalTransaction,
         [pubkeyFilter(1, new PublicKey(proposalAddress))!]
-      );
+      );*/
 
       //console.log("ix: "+JSON.stringify(ix));
       for (var ixItem of ix){

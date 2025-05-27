@@ -1488,7 +1488,7 @@ export function GovernanceProposalV2View(props: any){
                             cnt++;
                         }
 
-
+                        setLoadingMessage(`Loading Multiple Account Info for ${useInstructions.length} accounts...`);
                         const chunks = [];
                         let chunk = [];
 
@@ -1510,46 +1510,6 @@ export function GovernanceProposalV2View(props: any){
 
                         setInstructionOwnerRecord(chunks);
                         setInstructionOwnerRecordATA(ataArray);
-
-                        // replace newObject if .destinationAta is set
-
-
-                        
-
-                        /*
-                        if (ataArray && ataArray.length <= 100 ){ // to fix add support for over 100 records for gma
-
-                            const owners = await connection.getMultipleParsedAccounts(ataArray);
-                            setInstructionOwnerRecord(owners.value);
-                            setInstructionOwnerRecordATA(ataArray);
-                        }*/
-
-                        /* IMPORTANT Move to this for better efficiency
-                        const chunkSize = 100;
-                        const holderArr = new Array();
-                        // Loop through the array in chunks
-                        for (let i = 0; i < ataArray.length; i += chunkSize) {
-                            // Slice the array to get a chunk of 100 items
-                            const chunk = ataArray.slice(i, i + chunkSize);
-
-                            // Fetch parsed account information for the current chunk
-                            const accountInfo = await connection.getMultipleParsedAccounts(chunk);
-                            if (accountInfo){
-                                // Extract relevant data from the account information and parse it to ensure deep cloning
-                                const holders = JSON.parse(JSON.stringify(accountInfo)).value.map(
-                                (data:any, key:number) => {
-                                    // Map the account data to a new format, extracting address and converting balance
-                                    return {data};
-                                }
-                                );
-
-                                holderArr.push(...holders);
-                                // Process the fetched information as needed
-                                console.log(`Processed ${holders.length} accounts in chunk ${i / chunkSize + 1}`);
-                            }
-                        }
-                        */
-                        
                     }
                     
                     
@@ -1571,7 +1531,7 @@ export function GovernanceProposalV2View(props: any){
         if (voteResults){
             let counter = 0;
             for (let item of voteResults){
-
+                setLoadingMessage(`Loading Voting Results ${counter+1} of ${voteResults.length} voters...`);
                 counter++;
                 //console.log("counter: "+counter);
                 //console.log("voter item: "+JSON.stringify(item));
@@ -1721,7 +1681,6 @@ export function GovernanceProposalV2View(props: any){
                             multipleChoice: multipleChoice
                         }
                     });
-                        
                 }
 
                 if (counter > 1)
