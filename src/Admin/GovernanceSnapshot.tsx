@@ -44,7 +44,7 @@ import { ENV, TokenListProvider, TokenInfo } from '@solana/spl-token-registry';
 import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import { getJupiterPrices } from '../utils/grapeTools/helpers';
 
-import { Metadata, PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
+import { Metadata, MPL_TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 
 /*
 import { 
@@ -359,23 +359,30 @@ const getSocialConnections = async(address: string) => {
             console.log("ERR: "+e);
         }
 
-        if (!found_cardinal){
-            const domain = await findDisplayName(connection, address);
+        if (!found_cardinal) {
+            let domain = null;
+
+            try {
+                domain = await findDisplayName(connection, address);
+            } catch (err) {
+                console.warn("findDisplayName failed for", address, err);
+            }
+
             if (domain) {
                 if (domain[0] !== address) {
-                    //setHasSolanaDomain(true);
-                    //setSolanaDomain(domain[0]);
                     registrationInfo.bonfida.handle = domain[0];
                     registrationInfo.bonfida.handles = domain;
                 }
-            }
-
-            if (!domain){
-                const parser = new TldParser(connection); 
-                let allUserDomains = await parser.getParsedAllUserDomains(address);
-                if (allUserDomains){
-                    registrationInfo.allDomains.handles = allUserDomains;
-                    console.log("All Domains: "+address+" : "+JSON.stringify(allUserDomains));
+            } else {
+                try {
+                    const parser = new TldParser(connection); 
+                    const allUserDomains = await parser.getParsedAllUserDomains(address);
+                    if (allUserDomains) {
+                        registrationInfo.allDomains.handles = allUserDomains;
+                        console.log("All Domains: " + address + " : " + JSON.stringify(allUserDomains));
+                    }
+                } catch (err) {
+                    console.warn("getParsedAllUserDomains failed for", address, err);
                 }
             }
         }
@@ -1002,13 +1009,13 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 if (!tn){
                     
                     //const getTokenMintInfo = async() => {
-                    try{
+                    try{/*
                         const mint_address = new PublicKey(thisitem.account.data.parsed.info.mint)
                         const [pda, bump] = await PublicKey.findProgramAddress([
                             Buffer.from("metadata"),
-                            PROGRAM_ID.toBuffer(),
+                            MPL_TOKEN_METADATA_PROGRAM_ID.toBuffer(),
                             new PublicKey(mint_address).toBuffer(),
-                        ], PROGRAM_ID)
+                        ], MPL_TOKEN_METADATA_PROGRAM_ID)
                         let tokenMetadata = null;
                         try{
                             tokenMetadata = await Metadata.fromAccountAddress(connection, pda)
@@ -1044,6 +1051,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                                 }
                             }
                         }
+                        */
                     }catch(e){
                         console.log("ERR 2: ",e)
                     }
