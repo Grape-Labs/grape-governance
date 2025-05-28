@@ -109,6 +109,7 @@ import {
     HELIUS_RPC_ENDPOINT,
     SHYFT_RPC_ENDPOINT,
     ALCHEMY_RPC_ENDPOINT,
+    FLUX_RPC_ENDPOINT,
     HELLO_MOON_ENDPOINT,
     WS_ENDPOINT,
     TWITTER_PROXY,
@@ -119,7 +120,7 @@ const rpcOptions = [
   { label: 'QuickNode', value: QUICKNODE_RPC_ENDPOINT },
   { label: 'Alchemy', value: ALCHEMY_RPC_ENDPOINT },
   { label: 'Shyft', value: SHYFT_RPC_ENDPOINT },
-  //{ label: 'Hello Moon', value: HELLO_MOON_ENDPOINT },
+  { label: 'Flux RPC', value: FLUX_RPC_ENDPOINT },
   { label: 'Helius', value: HELIUS_RPC_ENDPOINT },
   { label: 'Default', value: 'https://api.mainnet-beta.solana.com' },
 ];
