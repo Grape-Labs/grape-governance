@@ -71,6 +71,9 @@ import {
     FormControl,
     FormControlLabel,
     Switch,
+    InputLabel,
+    Select,
+    MenuItem,
 } from '@mui/material';
 
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
@@ -102,10 +105,24 @@ import {
     GGAPI_STORAGE_URI,
     PRIMARY_STORAGE_WALLET,
     RPC_ENDPOINT,
+    QUICKNODE_RPC_ENDPOINT,
+    HELIUS_RPC_ENDPOINT,
+    SHYFT_RPC_ENDPOINT,
+    ALCHEMY_RPC_ENDPOINT,
+    HELLO_MOON_ENDPOINT,
     WS_ENDPOINT,
     TWITTER_PROXY,
     SHYFT_KEY,
 } from '../utils/grapeTools/constants';
+
+const rpcOptions = [
+  { label: 'QuickNode', value: QUICKNODE_RPC_ENDPOINT },
+  { label: 'Alchemy', value: ALCHEMY_RPC_ENDPOINT },
+  { label: 'Shyft', value: SHYFT_RPC_ENDPOINT },
+  //{ label: 'Hello Moon', value: HELLO_MOON_ENDPOINT },
+  { label: 'Helius', value: HELIUS_RPC_ENDPOINT },
+  { label: 'Default', value: 'https://api.mainnet-beta.solana.com' },
+];
 
 import WarningIcon from '@mui/icons-material/Warning';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
@@ -280,8 +297,8 @@ const removeDuplicateSignatures = (array) => {
     });
 };
 
-const getSocialConnections = async(address: string) => {
-    const connection = RPC_CONNECTION;
+const getSocialConnections = async(address: string, connection: Connection) => {
+    //const connection = RPC_CONNECTION;
 
     const fetchSolflareProfilePicture = async () => {
         //setLoadingPicture(true);  
@@ -664,8 +681,8 @@ const getTokenTransfers = async (sourceAddress: string, tokenMintAddress: string
 
   };
 
-const getAllDomains = async(address: string) => {
-    const domain = await findDisplayName(RPC_CONNECTION, address);
+const getAllDomains = async(address: string, connection: Connection) => {
+    const domain = await findDisplayName(connection || RPC_CONNECTION, address);
     if (domain) {
         //if (domain[0] !== address) {
             //setHasSolanaDomain(true);
@@ -752,21 +769,21 @@ const getParsedTransaction = async(txn_signature: string) => {
         });
 }
 
-const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, wallet: any, setPrimaryStatus: any, setStatus: any, fetchGovernanceRewards:boolean) => {
+const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, wallet: any, setPrimaryStatus: any, setStatus: any, fetchGovernanceRewards:boolean, connection: Connection) => {
     //const finalList = new Array();
     //setLoading(true);
     //setProposals(null);
     //setCurrentUploadInfo(null);
 
     let rpcLabel = '';
-    const parsedURL = new URL(RPC_ENDPOINT);
+    const parsedURL = new URL(connection.rpcEndpoint);
     // Split the hostname by '.' and get the last two parts
     const parts = parsedURL.hostname.split('.');
     const mainDomain = parts.slice(-2).join('.');
     rpcLabel = mainDomain;
     
     if (setStatus) setStatus("Fetching Governance - Source: "+rpcLabel);
-    const connection = RPC_CONNECTION;
+    //const connection = RPC_CONNECTION;
     //console.log("Fetching governance "+address);
     //const grealm = await getRealm(RPC_CONNECTION, new PublicKey(address))
     //setRealm(grealm);
@@ -957,7 +974,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
 
         if (setPrimaryStatus) setPrimaryStatus("Fetching Treasury Domains");
 
-        const domainsForAddress = await getAllDomains(gv.pubkey);
+        const domainsForAddress = await getAllDomains(gv.pubkey, connection);
         console.log("SNS: "+JSON.stringify(domainsForAddress));
         
         vaultsInflated.push({
@@ -1560,7 +1577,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                             if (cachedOwner?.socialConnections){
                                 owner.socialConnections = cachedOwner?.socialConnections;
                             } else{
-                                const socialConnections = await getSocialConnections(tokenOwnerRecord.toBase58());
+                                const socialConnections = await getSocialConnections(tokenOwnerRecord.toBase58(), connection);
                                 if (socialConnections){
                                     owner.socialConnections = socialConnections;
                                     console.log("socialConnections "+tokenOwnerRecord.toBase58()+": "+JSON.stringify(socialConnections))
@@ -1609,8 +1626,6 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         // get all emitted to this wallet
                         // we should save also all instances to keep historic data
                         if (governanceEmitted && governanceEmitted.length > 0){
-                            
-
                             for (let emitItem of governanceEmitted){
                                 if (emitItem.tokenTransfers){
                                     if (!excludeSignatures.some(address => emitItem.signature.includes(address))){ // this cannot take into consideration rewards! Check inner instructions also
@@ -1765,7 +1780,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 }
 
                 if (!hasFtd){
-                    let ftd = await getFirstTransactionDate(tokenOwnerRecord.toBase58());
+                    let ftd = await getFirstTransactionDate(tokenOwnerRecord.toBase58(), connection);
                     if (ftd){
                         const txBlockTime = moment.unix(ftd)
                         owner.firstTransactionDate = ftd;
@@ -2309,8 +2324,8 @@ const getGovernanceProps = async (thisitem: any, this_realm: any, connection: Co
     }
 }
 
-const getFirstTransactionDate = async(walletAddress:string) => {
-    const connection = RPC_CONNECTION;
+const getFirstTransactionDate = async(walletAddress:string, connection: Connection) => {
+    //const connection = RPC_CONNECTION;
     const publicKey = new PublicKey(walletAddress);
     const pullLimit = 100; // this is a hard limit for now so we do not stall our requests
     // wallet would be limited to 100k tx if more we should boost this
@@ -2479,7 +2494,7 @@ const generateMasterVoterRecord = async(connection: Connection, governanceLookup
   
 
 // STEP 1.
-const processGovernance = async(address:string, sent_realm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, currentWallet: any, setPrimaryStatus: any, setStatus: any, fetchGovernanceRewards: boolean) => {
+const processGovernance = async(address:string, sent_realm:any, tokenMap: any, governanceLookupItem: any, storagePool: any, currentWallet: any, setPrimaryStatus: any, setStatus: any, fetchGovernanceRewards: boolean, connection: Connection) => {
     // Second drive creation (otherwise wallet is not connected when done earlier)
     if (address){
         let fgovernance = null;
@@ -2489,7 +2504,7 @@ const processGovernance = async(address:string, sent_realm:any, tokenMap: any, g
             grealm = await fetchRealm(address);
 
             
-        fgovernance = await fetchGovernance(address, grealm, tokenMap, governanceLookupItem, storagePool, currentWallet, setPrimaryStatus, setStatus, fetchGovernanceRewards);
+        fgovernance = await fetchGovernance(address, grealm, tokenMap, governanceLookupItem, storagePool, currentWallet, setPrimaryStatus, setStatus, fetchGovernanceRewards, connection);
         
         return fgovernance;
     }
@@ -2600,7 +2615,7 @@ const fileToDataUri = (file:any) => new Promise((resolve, reject) => {
     reader.readAsDataURL(file);
 })
 
-const initStorage  = async (setThisDrive: any, setCurrentWallet: any, wallet: any, setStorageAutocomplete: any) => {
+const initStorage  = async (setThisDrive: any, setCurrentWallet: any, wallet: any, setStorageAutocomplete: any, connection: Connection) => {
 
     // use soft wallet...
 
@@ -2627,7 +2642,7 @@ const initStorage  = async (setThisDrive: any, setCurrentWallet: any, wallet: an
         const kpwallet = new MyWallet(fromKeypair);
         
         console.log("Initializing SHDW with soft wallet "+kpwallet.publicKey.toBase58())
-        drive = await new ShdwDrive(RPC_CONNECTION, kpwallet).init();
+        drive = await new ShdwDrive(connection || RPC_CONNECTION, kpwallet).init();
         //const testing = drive.userInfo;
         //console.log("drive: "+JSON.stringify(testing));
         if (setThisDrive) setThisDrive(drive);
@@ -2637,7 +2652,7 @@ const initStorage  = async (setThisDrive: any, setCurrentWallet: any, wallet: an
     } else{
         if (wallet){
             console.log("Initializing SHDW wallet adapter "+wallet.publicKey.toBase58())
-            const drive = await new ShdwDrive(RPC_CONNECTION, wallet).init();
+            const drive = await new ShdwDrive(connection || RPC_CONNECTION, wallet).init();
             //console.log("drive: "+JSON.stringify(drive));
             if (setThisDrive) setThisDrive(drive);
 
@@ -3108,7 +3123,7 @@ const handleUploadToStoragePool = async (sentRealm: any, address: string, passed
             const kpwallet = new MyWallet(fromKeypair);
             
             console.log("Initializing SHDW with soft wallet "+kpwallet.publicKey.toBase58())
-            drive = await new ShdwDrive(RPC_CONNECTION, kpwallet).init();
+            drive = await new ShdwDrive(connection || RPC_CONNECTION, kpwallet).init();
             const testing = drive.userInfo;
             console.log("drive: "+JSON.stringify(testing));
         } else{
@@ -3337,7 +3352,7 @@ const processGovernanceUploadSnapshotAll = async(
                 if (setProgress) setProgress(0);
                 const grealm = await fetchRealm(item.governanceAddress);
                 if (setSecondaryStatus) setSecondaryStatus("Processing Governance");
-                const governanceData = await processGovernance(item.governanceAddress, grealm, tokenMap, item, storagePool, currentWallet, setPrimaryStatus, setSecondaryStatus, fetchGovernenanceRewards);
+                const governanceData = await processGovernance(item.governanceAddress, grealm, tokenMap, item, storagePool, currentWallet, setPrimaryStatus, setSecondaryStatus, fetchGovernenanceRewards, connection);
                 if (setProgress) setProgress(1);
                 if (setSecondaryStatus) setSecondaryStatus("Processing Proposals");
                 const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData, connection, tokenMap, storagePool, governanceLookup, setSecondaryStatus, setProgress);
@@ -3358,7 +3373,7 @@ const processGovernanceUploadSnapshotAll = async(
             if (setBatchStatus) setBatchStatus("Adding Governance: "+address+"");
             
             const grealm = await fetchRealm(address);
-            const governanceData = await processGovernance(address, grealm, tokenMap, null, storagePool, currentWallet, setPrimaryStatus, setSecondaryStatus, fetchGovernenanceRewards);
+            const governanceData = await processGovernance(address, grealm, tokenMap, null, storagePool, currentWallet, setPrimaryStatus, setSecondaryStatus, fetchGovernenanceRewards, connection);
             const processedFiles = await processProposals(item.governanceAddress, governanceData.proposals, force, grealm, governanceData, connection, tokenMap, storagePool, governanceLookup, setSecondaryStatus, setProgress);
 
             //console.log("processedFiles.proposalsString "+JSON.stringify(processedFiles.proposalsString))
@@ -3379,7 +3394,6 @@ const processGovernanceUploadSnapshotAll = async(
 
 export function GovernanceSnapshotView (this: any, props: any) {
 	const wallet = useWallet();
-    const connection = RPC_CONNECTION;
     
     const [progress, setProgress] = React.useState(0);
     const [secondaryStatus, setSecondaryStatus] = React.useState(null);
@@ -3404,7 +3418,9 @@ export function GovernanceSnapshotView (this: any, props: any) {
         }
     ]);
 
-    const [rpcProvider, setRPCProviderPool] = React.useState(RPC_ENDPOINT);
+
+    const [rpcProvider, setRpcProvider] = useState(RPC_ENDPOINT);
+    //const [rpcProvider, setRPCProviderPool] = React.useState(RPC_ENDPOINT);
     const [cronBookmark, setCronBookmark] = React.useState(null);
     const [currentWallet, setCurrentWallet] = React.useState(null);
 
@@ -3422,7 +3438,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
     }
 
     const initCachingSystem = async () => {
-        const storageSettings = await initStorage(setThisDrive, setCurrentWallet, wallet, setStorageAutocomplete);
+        const storageSettings = await initStorage(setThisDrive, setCurrentWallet, wallet, setStorageAutocomplete, new Connection(rpcProvider || RPC_ENDPOINT, 'confirmed'));
         const tokensMapped = await getTokens();
         setTokenMap(tokensMapped);
         const lookupSettings = await getGovernanceLookup(setGovernanceAutocomplete, setGovernanceLookup, storagePool);
@@ -3484,7 +3500,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                     {currentWallet && <Typography variant="caption">Storage Wallet: {currentWallet}</Typography>}
                 </Typography>
 
-                {rpcAutocomplete ?
+                {/*rpcAutocomplete ?
                     <Autocomplete
                         freeSolo
                         disablePortal
@@ -3509,7 +3525,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                             label="Enter a custom RPC pool address" 
                             //value={rpcProvider || RPC_CONNECTION}
                             onChange={(e) => setRPCProviderPool(e.target.value)}/>
-                }
+                */}
 
 
                 {storageAutocomplete ?
@@ -3550,7 +3566,7 @@ export function GovernanceSnapshotView (this: any, props: any) {
                                     governanceLookup, 
                                     tokenMap, 
                                     currentWallet, 
-                                    new Connection(rpcProvider || RPC_ENDPOINT), 
+                                    new Connection(rpcProvider || RPC_ENDPOINT, 'confirmed'), 
                                     storagePool, 
                                     governanceAutocomplete, 
                                     thisDrive, 
@@ -3581,6 +3597,22 @@ export function GovernanceSnapshotView (this: any, props: any) {
                 
                 {(!loading && tokenMap) &&
                     <>
+                    <FormControl fullWidth sx={{ mt: 2 }}>
+                        <InputLabel id="rpc-select-label">RPC Endpoint</InputLabel>
+                        <Select
+                            labelId="rpc-select-label"
+                            value={rpcProvider}
+                            label="RPC Endpoint"
+                            onChange={(e) => setRpcProvider(e.target.value)}
+                        >
+                            {rpcOptions.map((opt) => (
+                            <MenuItem key={opt.label} value={opt.value}>
+                                {opt.label}
+                            </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+
                     {governanceAutocomplete ?
                         <Autocomplete
                             freeSolo
