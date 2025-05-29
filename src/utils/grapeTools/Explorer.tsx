@@ -19,7 +19,8 @@ import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
 import { 
     RPC_CONNECTION, 
     TWITTER_PROXY,
-    SHYFT_KEY } from './constants';
+    SHYFT_KEY,
+    BLACKLIST_WALLETS } from './constants';
 
 import { 
     Avatar,
@@ -140,6 +141,8 @@ export default function ExplorerView(props:any){
     const [solBalance, setSolBalance] = React.useState(null);
     const showTokenMetadata = props?.showTokenMetadata;
     const tokenMap = props?.tokenMap;
+
+    const isBlacklisted = BLACKLIST_WALLETS.some(w => w.toLowerCase() === address.toLowerCase());
 
     const handleClickOpenDialog = (event:any) => {
         setOpenDialog(true);
@@ -445,6 +448,7 @@ export default function ExplorerView(props:any){
 
     return (
         <>
+            <Tooltip title={isBlacklisted ? "This wallet is blacklisted" : "View in explorer"}>
             <Button
                 aria-controls={open ? 'basic-menu' : undefined}
                 aria-haspopup="true"
@@ -470,7 +474,13 @@ export default function ExplorerView(props:any){
                                 {hideIcon ?
                                     <></>
                                 :
-                                    <ExploreIcon sx={{color:`${buttonColor}`, fontSize:`${fontSize}`}} />
+                                    <>
+                                        {isBlacklisted ? (
+                                            <WarningAmberIcon sx={{ color: 'orange', fontSize: fontSize }} />
+                                        ) : (
+                                            <ExploreIcon sx={{ color: buttonColor, fontSize: fontSize }} />
+                                        )}
+                                    </>
                                 }
                                 </>
                             }
@@ -512,6 +522,7 @@ export default function ExplorerView(props:any){
                     
                 </Typography>
             </Button>
+            </Tooltip>
             <Box
             >
                 <StyledMenu

@@ -124,7 +124,8 @@ import {
     RPC_CONNECTION, 
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI,
-    SHYFT_KEY } from '../utils/grapeTools/constants';
+    SHYFT_KEY,
+    BLACKLIST_WALLETS } from '../utils/grapeTools/constants';
 import { 
     formatAmount, 
     getFormattedNumberToLocale,

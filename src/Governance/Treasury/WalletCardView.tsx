@@ -1453,7 +1453,7 @@ export default function WalletCardView(props:any) {
                 setLoaderCreationComplete(false);
                 setLoadingPropCreation(false);
                 
-                if (propResponse){
+                if (propResponse && propResponse?.address){
                     console.log("Prop Reponse: "+JSON.stringify(propResponse));
                     
                     // check if this is a valid prop
