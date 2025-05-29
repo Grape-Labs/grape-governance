@@ -575,7 +575,7 @@ export default function GovernanceCreateProposalView(props: any){
         
         if (returnTx){
           console.log("returnTx: "+JSON.stringify(propResponse));
-          if (setSentInstructionsObject){
+          if (setSentInstructionsObject && propResponse && propResponse?.address){
             //setSentInstructionsObject(propResponse);
             let tdescription = '';
             tdescription = `Creating DAO Proposal at ${cachedRealm.pubKey} using ${governingTokenMint} Governing Token Mint`;
