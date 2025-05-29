@@ -1528,7 +1528,7 @@ export function GovernanceProposalV2View(props: any){
 
         let mVoteSentiment = new Array();
 
-        if (voteResults){
+        if (voteResults && voteResults.length > 0){
             let counter = 0;
             for (let item of voteResults){
                 setLoadingMessage(`Loading Voting Results ${counter+1} of ${voteResults.length} voters...`);
