@@ -134,7 +134,8 @@ import {
 import { 
     getAllProposalsFromAllPrograms,
     getAllProposalsIndexed,
-    getAllGovernancesIndexed
+    getAllGovernancesIndexed,
+    fetchRealmNameFromRulesWallet
 } from '../../Governance/api/queries';
 
 import { formatAmount, getFormattedNumberToLocale } from '../../utils/grapeTools/helpers'
@@ -493,6 +494,26 @@ function TablePaginationActions(props) {
 
         const [governanceInfo, setGovernanceInfo] = React.useState(null);
 
+        React.useEffect(() => {
+        const loadGovernanceInfo = async () => {
+            if (rulesWallet) {
+                const result = await fetchRealmNameFromRulesWallet(rulesWallet, item.owner);
+                if (result) {
+                    const { name, realm } = result;
+                    setGovernanceInfo({
+                        governanceName: name,
+                        governanceAddress: realm,
+                    });
+                    console.log("Found governance name:", name);
+                    console.log("Proposal:", item?.owner?.toBase58?.() ?? item?.owner);
+                }
+            }
+        };
+
+        loadGovernanceInfo();
+    }, [rulesWallet]);
+
+    /*
         React.useEffect(() => { 
             if (governanceLookup){
                 for (let glitem of governanceLookup){
@@ -501,7 +522,8 @@ function TablePaginationActions(props) {
                         for (let ggitem of glitem.governances){
                             if (ggitem.pubkey === rulesWallet){
                                 setGovernanceInfo(glitem);
-                                //console.log("found: "+glitem.governanceName);
+                                console.log("found: "+glitem.governanceName);
+                                console.log("proposal: "+JSON.stringify(item.owner));
                                 //console.log("found governanceAddress: "+glitem.governanceAddress);
                             }
                         }
@@ -511,7 +533,7 @@ function TablePaginationActions(props) {
             
 
         }, [governanceLookup]);
-
+    */
 
         const shortenWordRegex: RegExp = /^(.{6})(?:\.(.{6}))?$/;
 

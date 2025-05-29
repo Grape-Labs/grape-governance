@@ -496,6 +496,40 @@ function GET_QUERY_PROPOSALS(governanceArray?:string[], realmOwner?:string, prog
     }
 }
 
+function GET_QUERY_GOVERNANCE_BY_PUBKEY(rulesWallet: string, realmOwner?: string) {
+    const programId = realmOwner ?? 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    
+    return gql`
+        query GovernanceByPubkey {
+            ${programId}_GovernanceV2(where: { pubkey: { _eq: "${rulesWallet}" } }) {
+                pubkey
+                realm
+            }
+            ${programId}_GovernanceV1(where: { pubkey: { _eq: "${rulesWallet}" } }) {
+                pubkey
+                realm
+            }
+        }
+    `;
+}
+
+function GET_QUERY_REALM_NAME(realm: string, realmOwner?: string) {
+    const programId = realmOwner ?? 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    
+    return gql`
+        query RealmName {
+            ${programId}_RealmV2(where: { pubkey: { _eq: "${realm}" } }) {
+                name
+                communityMint
+            }
+            ${programId}_RealmV1(where: { pubkey: { _eq: "${realm}" } }) {
+                name
+                communityMint
+            }
+        }
+    `;
+}
+
 function GET_QUERY_RULES(realm:string, realmOwner:string){
 
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
@@ -681,7 +715,6 @@ function GET_QUERY_REALM(realm:string, realmOwner?:string){
         }
         `
 }
-
 
 function GET_QUERY_ALL_TOKEN_OWNER_RECORDS(owner:string, realmOwner?:string){
     console.log("TokenOwner: "+owner)
@@ -1760,3 +1793,35 @@ export const getRealmConfigIndexed = async (realmConfigPk?: any, realmOwner?: an
         }
     }
 };
+
+export async function fetchRealmNameFromRulesWallet(
+    rulesWallet: string,
+    realmOwner: string = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw'
+): Promise<{ realm: string; name: string } | null> {
+    try {
+        const { data: governanceData } = await client.query({
+            query: GET_QUERY_GOVERNANCE_BY_PUBKEY(rulesWallet, realmOwner),
+            fetchPolicy: 'no-cache',
+        });
+
+        const realm =
+            governanceData?.[`${realmOwner}_GovernanceV2`]?.[0]?.realm ||
+            governanceData?.[`${realmOwner}_GovernanceV1`]?.[0]?.realm;
+
+        if (!realm) return null;
+
+        const { data: realmData } = await client.query({
+            query: GET_QUERY_REALM_NAME(realm, realmOwner),
+            fetchPolicy: 'no-cache',
+        });
+
+        const name =
+            realmData?.[`${realmOwner}_RealmV2`]?.[0]?.name ||
+            realmData?.[`${realmOwner}_RealmV1`]?.[0]?.name;
+
+        return name ? { realm, name } : null;
+    } catch (err) {
+        console.warn(`Failed to resolve realm name for rules wallet ${rulesWallet}:`, err);
+        return null;
+    }
+}
