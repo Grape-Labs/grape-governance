@@ -119,6 +119,7 @@ import {
     GGAPI_STORAGE_URI,
     FRICTIONLESS_BG,
     APP_ICON,
+    APP_LOGO,
 } from '../../utils/grapeTools/constants';
 
 import { 
@@ -1513,19 +1514,36 @@ export function GovernanceRealtimeView(props: any) {
                                 <Grid item xs>
                                     <Typography variant="h4" sx={{ textAlign: "left" }}>Realtime Proposals <BlinkingDot /></Typography>
                                 </Grid>
-                                <Grid item alignContent={"right"}>
-                                    <Typography variant="body2" 
-                                        sx={{ 
-                                            textAlign:"left",
-                                            fontSize:"10px",
-                                            color:"gray",
-                                            // Responsive padding for mobile devices
-                                            '@media (max-width: 600px)': {
-                                                mr:1.5,
-                                            }, }}>
-                                                Powered by<br/>GRAPE X SOLANA</Typography>
-
-                                </Grid>
+                                <Grid item alignContent="right">
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                        textAlign: "left",
+                                        fontSize: "10px",
+                                        color: "gray",
+                                        a: {
+                                            display: 'inline-block',
+                                            color: 'gray',
+                                            textDecoration: 'none',
+                                            '&:hover': {
+                                            textDecoration: 'none',
+                                            },
+                                        },
+                                        img: {
+                                            maxHeight: '14px',
+                                            verticalAlign: 'middle',
+                                        },
+                                        '@media (max-width: 600px)': {
+                                            mr: 1.5,
+                                        },
+                                        }}
+                                    >
+                                        Powered by<br />
+                                        <a href="https://governance.so" target="_blank" rel="noopener noreferrer">
+                                        <img src={APP_LOGO} alt="Governance.so | Powered by Grape" />
+                                        </a>
+                                    </Typography>
+                                    </Grid>
                             </Grid>
                                 
                                 <RenderGovernanceTable 

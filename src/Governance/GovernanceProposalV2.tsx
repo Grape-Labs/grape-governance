@@ -2509,69 +2509,6 @@ export function GovernanceProposalV2View(props: any){
                                                     }}
                                                     >
                                                     <ButtonGroup variant="outlined" aria-label="outlined primary button group" sx={{textAlign:'center',height:'70px'}}>
-                                                        {/*thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
-                                                            <Button
-                                                                color="success"
-                                                                sx={{borderRadius:'17px',textTransform:'none'}}
-                                                            >
-                                                                
-                                                                <Grid container direction="column" alignItems="center">
-                                                                    <Grid item>
-                                                                        <Grid container direction='row' alignItems='center'>
-                                                                            <Grid item>
-                                                                                <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
-                                                                            </Grid>
-                                                                            <Grid item>
-                                                                                {forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                            </Grid>
-                                                                        </Grid>
-                                                                    </Grid>
-                                                                    
-                                                                    <Grid item sx={{minWidth:'100px'}}>
-                                                                        <Divider />
-                                                                        <Grid>
-                                                                            <Typography sx={{fontSize:'10px'}}>
-                                                                                <>
-                                                                                
-                                                                                For <>{forVotes ? 
-                                                                                <>
-                                                                                    {(forVotes/(forVotes+againstVotes)*100).toFixed(2)}%
-                                                                                </>
-                                                                                :
-                                                                                <>
-                                                                                    {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
-                                                                                        <>
-                                                                                        {`${(((Number(thisitem.account?.options[0].voteWeight))/((Number(thisitem.account?.denyVoteWeight))+(Number(thisitem.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
-                                                                                        </>
-                                                                                    :
-                                                                                        <>
-                                                                                            {thisitem.account.yesVotesCount ?
-                                                                                                <>{(Number(thisitem.account.yesVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
-                                                                                            :
-                                                                                                <>0%</>
-                                                                                            }
-                                                                                        </>
-                                                                                    } 
-                                                                                </>   
-                                                                                }</></>
-                                                                            </Typography>
-                                                                        </Grid>
-                                                                    </Grid>
-                                                                </Grid>
-                                                            </Button>
-                                                        :
-                                                            <>
-                                                                {thisitem.account?.yesVotesCount && 
-                                                                        <Button
-                                                                            color="success"
-                                                                            sx={{borderRadius:'17px'}}
-                                                                        >
-                                                                            <ThumbUpIcon color='success' fontSize='small' sx={{mr:1,ml:1}} />
-                                                                            {forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                        </Button>
-                                                                }
-                                                            </>
-                                                        */}
                                                     {realm &&
                                                         <VoteForProposal 
                                                             title={`${
@@ -2624,72 +2561,7 @@ export function GovernanceProposalV2View(props: any){
                                                         }}
                                                     >
                                                     <ButtonGroup variant="outlined" aria-label="outlined primary button group" sx={{height:'70px'}}>
-                                                        {/*thisitem.account?.denyVoteWeight ?
-                                                            <Button
-                                                                    color="error"
-                                                                    sx={{borderRadius:'17px',textTransform:'none'}}
-                                                                >
-                                                                    <Grid container direction="column" alignItems="center">
-                                                                        <Grid item>
-                                                                            <Grid container direction='row' alignItems='center'>
-                                                                                <Grid item>
-                                                                                    <ThumbDownIcon fontSize='small' sx={{mr:1,ml:1}} />
-                                                                                </Grid>
-                                                                                <Grid item>
-                                                                                    {againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                                </Grid>
-                                                                            </Grid>
-                                                                        </Grid>
-                                                                        
-                                                                        <Grid item sx={{minWidth:'100px'}}>
-                                                                            <Divider />
-                                                                            <Grid>
-                                                                                <Typography sx={{fontSize:'10px'}}>
-                                                                                    <>
-                                                                                    
-                                                                                    Against <>{againstVotes ? 
-                                                                                        <>
-                                                                                            {(againstVotes/(forVotes+againstVotes)*100).toFixed(2)}%
-                                                                                        </>
-                                                                                        :       
-                                                                                        <>
-                                                                                            {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
-                                                                                                <>
-                                                                                                {`${(((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))/((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))+(Number(thisitem.account?.options[0].voteWeight)/Math.pow(10, tokenDecimals))))*100).toFixed(2)}%`}
-                                                                                                </>
-                                                                                            :
-                                                                                                <>
-                                                                                                    {thisitem.account.noVotesCount ?
-                                                                                                        <>{(Number(thisitem.account.noVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
-                                                                                                    :
-                                                                                                        <>0%</>
-                                                                                                    }
-                                                                                                </>
-                                                                                            }
-                                                                                        </>
-                                                                                    }</></>
-                                                                                </Typography>
-                                                                            </Grid>
-                                                                        </Grid>
-                                                                    </Grid>
-                                                                    
-                                                                    
-                                                                    
-                                                            </Button>
-                                                        :
-                                                            <>
-                                                                {thisitem.account?.noVotesCount && 
-                                                                    <Button
-                                                                        color="error"
-                                                                        sx={{borderRadius:'17px'}}
-                                                                    >
-                                                                        <ThumbDownIcon color='error' fontSize='small' sx={{mr:1}} />
-                                                                        {againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                    </Button>
-                                                                }
-                                                            </>
-                                                        */}
-                                                        
+                                                    {realm &&
                                                         <VoteForProposal 
                                                             title={`${
                                                                 thisitem.account?.denyVoteWeight ?
@@ -2722,6 +2594,7 @@ export function GovernanceProposalV2View(props: any){
                                                             quorum={totalQuorum}
                                                             state={thisitem.account.state}
                                                             governanceRules={thisGovernance} />
+                                                        }
                                                     </ButtonGroup>
                                                 </Box>
                                             </Grid>

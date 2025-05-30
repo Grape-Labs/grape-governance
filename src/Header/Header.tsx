@@ -442,13 +442,9 @@ export function Header(props: any) {
                                         maxHeight:'40px',
                                         maxWidth:'150px'}}
                                 >
-                                    <img src={APP_LOGO} className="header-logo" alt="SPL Governance | Powered by Solana" />
+                                    <img src={APP_LOGO} className="header-logo" alt="Governance.so | Powered by Grape" />
                                 </Typography>
                             </Button>
-                        
-                            {/*
-                            <Tooltip title={`Go to SPL Governance`}><IconButton sx={{borderRadius:'17px'}} component="a" href='https://realms.today/realms'><DashboardOutlinedIcon/></IconButton></Tooltip>
-                            */}
                         </Box>
                         
                         {/*
