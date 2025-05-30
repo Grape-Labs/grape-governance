@@ -1465,7 +1465,7 @@ export function GovernanceRealtimeView(props: any) {
                             disable-screenshots="true"
                             manifest-url="/up_/manifest.webmanifest"
                             name="Governance"
-                            description="Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS"         
+                            description="Governance.so | Next-gen DAO tooling for better proposals, faster execution, and real ownership. #OPOS"         
                             icon={APP_ICON}
                         ></pwa-install>
 
