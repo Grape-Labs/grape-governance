@@ -64,4 +64,4 @@ export const PROP_TOKEN = process.env.REACT_APP_API_PROP_TOKEN || "5Hb1JX2H85yBu
 export const METRICS_TOKEN = process.env.REACT_APP_API_METRICS_TOKEN || "CmtdUmxdML91oNUGj4qiEnWffcYibfUJPCJwaPkhWogc";
 export const ADMIN_TOKEN = process.env.REACT_APP_API_METRICS_TOKEN || "CmtdUmxdML91oNUGj4qiEnWffcYibfUJPCJwaPkhWogc";
 
-export const BLACKLIST_WALLETS = ["4nd2Ryy5asxoBdXiZsd8JKzRhZ1RdSaNCxADNSF3KaRT"];
+export const BLACKLIST_WALLETS = ["4nd2Ryy5asxoBdXiZsd8JKzRhZ1RdSaNCxADNSF3KaRT", "GZCxBgjj1mSsixBss2bdLHvqEGncDTY3KuvzBs4Q8q5R"];

@@ -47,6 +47,8 @@ import { SwitchProps } from '@mui/material/Switch';
 
 import { createSvgIcon } from '@mui/material/utils';
 
+import { RenderDescription } from '../../Governance/RenderDescription';
+
 import { gistApi, resolveProposalDescription } from '../../utils/grapeTools/github';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -436,7 +438,6 @@ function TablePaginationActions(props) {
                             <>
                             { thisitem.account?.state === 2 ?
                                 <AccessTimeIcon />
-                            
                             : 
                                 <>
                                     { (thisitem.account?.state === 0) ?
@@ -626,7 +627,6 @@ function TablePaginationActions(props) {
                     <>
                         
                             <Button 
-                                
                                 component={governanceInfo && governanceInfo.governanceName && Link}
                                 to={(governanceInfo && governanceInfo.governanceName) && `/proposal/${governanceInfo.governanceAddress}/${proposal}`}
                                 /*
@@ -717,20 +717,22 @@ function TablePaginationActions(props) {
                                                                     >
                                                                         <>
                                                                             {window.location.hostname !== 'localhost' ? (
-                                                                                <ReactMarkdown 
-                                                                                    remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
-                                                                                    //transformImageUri={transformImageUri}
-                                                                                    children={descriptionMarkdown}
-                                                                                    components={{
-                                                                                        // Custom component for overriding the image rendering
-                                                                                        img: ({ node, ...props }) => (
-                                                                                        <img
-                                                                                            {...props}
-                                                                                            style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
-                                                                                        />
-                                                                                        ),
-                                                                                    }}
-                                                                                />
+                                                                                <>
+                                                                                    <ReactMarkdown 
+                                                                                        remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
+                                                                                        //transformImageUri={transformImageUri}
+                                                                                        children={descriptionMarkdown}
+                                                                                        components={{
+                                                                                            // Custom component for overriding the image rendering
+                                                                                            img: ({ node, ...props }) => (
+                                                                                            <img
+                                                                                                {...props}
+                                                                                                style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
+                                                                                            />
+                                                                                            ),
+                                                                                        }}
+                                                                                    />
+                                                                                </>
                                                                             ) : (
                                                                                 <p>Markdown rendering is disabled on localhost.</p>
                                                                             )}
@@ -777,7 +779,7 @@ function TablePaginationActions(props) {
                                                                     </>
                                                                     :
                                                                         <>
-                                                                            {description &&
+                                                                            {description ?
                                                                                 <>
                                                                                     <Typography variant="body1" 
                                                                                         color='gray' 
@@ -799,6 +801,8 @@ function TablePaginationActions(props) {
                                                                                         </>
                                                                                     }
                                                                                 </>
+                                                                            :
+                                                                                    <><RenderDescription title={name} description={description} fallback={proposal}/></>
                                                                             }
                                                                         </>
                                                                     }
@@ -1540,7 +1544,7 @@ export function GovernanceRealtimeView(props: any) {
                                     >
                                         Powered by<br />
                                         <a href="https://governance.so" target="_blank" rel="noopener noreferrer">
-                                        <img src={APP_LOGO} alt="Governance.so | Powered by Grape" />
+                                        <img src={APP_LOGO} alt="Governance.so" />
                                         </a>
                                     </Typography>
                                     </Grid>

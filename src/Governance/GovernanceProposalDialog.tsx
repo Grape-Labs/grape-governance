@@ -29,6 +29,8 @@ import IconButton from '@mui/material/IconButton';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 
+import { RenderDescription, isValidDescription } from './RenderDescription';
+
 export interface DialogTitleProps {
     id: string;
     children?: React.ReactNode;
@@ -165,7 +167,13 @@ export function GovernanceProposalDialog(props: any){
                           <Typography variant="h6" 
                             color={(state === 2) ? `white` : `gray`}
                             sx={{ textDecoration: isCancelled ? 'line-through' : 'none' }}>
-                              {title}
+                              
+                                {isValidDescription(title) ?
+                                    `${title}`
+                                :
+                                    <RenderDescription title={title} description={description} fallback={`${thisitem.pubkey.toBase58()}`} />
+                                }
+                              
                               {isCouncil &&
                                 <Tooltip title='Council Vote'><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon sx={{ fontSize:16 }} /></Button></Tooltip>
                               }
@@ -191,9 +199,8 @@ export function GovernanceProposalDialog(props: any){
                       onClick={handleClickOpen}
                       color={'inherit'}
                       sx={{  }}>
-                      <ZoomOutMapIcon />
-                      {/*
-                      <FitScreenIcon />*/}
+                        <ZoomOutMapIcon />
+                    
                   </IconButton>
               </Tooltip>
             }
