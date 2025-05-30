@@ -95,6 +95,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import WarningIcon from '@mui/icons-material/Warning';
 import ShareIcon from '@mui/icons-material/Share';
 import ArticleIcon from '@mui/icons-material/Article';
 import InfoIcon from '@mui/icons-material/Info';
@@ -130,6 +131,8 @@ import {
     formatAmount, 
     getFormattedNumberToLocale,
     VSR_PLUGIN_PKS } from '../utils/grapeTools/helpers'
+
+import { RenderDescription } from './RenderDescription';
 
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
@@ -2681,7 +2684,7 @@ export function GovernanceProposalV2View(props: any){
                                                     </Button>
                                                 </Box>
                                             </Box>
-                                            :
+                                        :
                                             
                                             <>
                                                 {gDocs ?
@@ -2712,12 +2715,16 @@ export function GovernanceProposalV2View(props: any){
                                                 </>
                                                 :
                                                     <>
-                                                        {thisitem.account?.descriptionLink &&
+                                                        {thisitem.account?.descriptionLink ?
                                                             <>
                                                                 <Typography variant="body1" 
                                                                     color='gray' 
                                                                     sx={{ display: 'flex', alignItems: 'center' }}>
-                                                                    {thisitem.account?.descriptionLink}
+                                                                    <RenderDescription 
+                                                                        title={thisitem.account?.name}
+                                                                        description={thisitem.account?.descriptionLink} 
+                                                                        fallback={proposalPk?.toBase58()}
+                                                                    />
                                                                 </Typography>
                                                                 
                                                                 {gitBook &&
@@ -2735,6 +2742,15 @@ export function GovernanceProposalV2View(props: any){
                                                                     </>
                                                                 }
                                                             </>
+                                                        :
+                                                            <Typography variant="body1" 
+                                                                color='gray' 
+                                                                sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                <RenderDescription 
+                                                                    description={thisitem.account?.descriptionLink} 
+                                                                    fallback={proposalPk?.toBase58()}
+                                                                />
+                                                            </Typography>
                                                         }
                                                     </>
                                                 }
