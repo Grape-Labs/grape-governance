@@ -31,9 +31,7 @@ export const RenderDescription: React.FC<RenderDescriptionProps> = ({ title, des
 
   return (
     <Typography
-      variant="body1"
       color="gray"
-      sx={{ display: 'flex', alignItems: 'center' }}
     >
       {hasValidTitle ? (
         title
@@ -41,12 +39,14 @@ export const RenderDescription: React.FC<RenderDescriptionProps> = ({ title, des
         description
       ) : (
         <>
-          <Tooltip title="Invalid or missing description">
-            <h4 style={{ color: 'red' }}>
-              <WarningIcon sx={{ fontSize: 16, color: 'red' }} /> WARNING! This proposal has missing data; carefully review the instructions before voting
-              <br />
-              Proposal {fallback}
-            </h4>
+          <Tooltip title={`Invalid or missing data`}>
+            <h5 style={{ color: 'red' }}>
+              <WarningIcon sx={{ fontSize: 16, color: 'red' }} /> <strong>WARNING!</strong> This proposal has missing data; carefully review the instructions before voting
+              <small>
+                <br/>Title: "{title}" Description: "{description}"
+                <br />Proposal: {fallback}
+              </small>
+            </h5>
           </Tooltip>
         </>
       )}
