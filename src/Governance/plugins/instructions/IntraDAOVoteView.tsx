@@ -35,6 +35,7 @@ import {
 
   import { 
     getRealmIndexed,
+    getRealmsIndexed,
     getProposalIndexed,
     getProposalNewIndexed,
     getAllProposalsIndexed,
@@ -592,7 +593,7 @@ export default function IntraDAOVoteView(props: any) {
         try{
             
             const rlms = await getRealms(RPC_CONNECTION, [programId]);
-            //const rlms = await getRealmIndexed(programId.toBase58())
+            //const rlms = await getRealmsIndexed(programId.toBase58())
             //console.log("rlms "+JSON.stringify(rlms));
 
             const uTable = rlms.reduce((acc, it) => (acc[it.pubkey.toBase58()] = it, acc), {})
@@ -608,7 +609,9 @@ export default function IntraDAOVoteView(props: any) {
             //console.log("all uTable "+JSON.stringify(uTable))
             let decimals = 0;
             for (const item of thisOwnerRecordsbyOwner){
-                const realm = uTable[item.account.realm.toBase58()];
+                console.log("uTable: "+JSON.stringify(uTable))
+                console.log("item: "+JSON.stringify(item))
+                const realm = item?.account?.realm ? uTable[item.account.realm.toBase58()] : uTable[item.pubkey.toBase58()];
                 console.log("realm: "+JSON.stringify(realm))
                 const name = realm.account.name;
                 let voteCount = 0;

@@ -10,6 +10,7 @@ import {
     getGovernance,
     getProposal,
     getRealm, 
+    getRealms,
     getAllGovernances,
     getAllProposals, 
     getAllTokenOwnerRecords,
@@ -118,7 +119,7 @@ export const govOwners = [
     },
 ]
 
-function findGovOwnerByDao(dao:string) {
+function findGovOwnerByDao(dao:string, programId?:string) {
     const matchingGovOwner = govOwners.find((govOwner) => govOwner.dao === dao);
     if (!matchingGovOwner)
         return {
@@ -129,7 +130,7 @@ function findGovOwnerByDao(dao:string) {
     else
         return matchingGovOwner;
     //console.log("found: "+JSON.stringify(matchingGovOwner));
-  }
+}
 
     /*
        'HT19EcD68zn7NoCF79b2ucQF8XaMdowyPt5ccS6g1PUx': 'Ratio_Finance',
@@ -690,30 +691,61 @@ function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number, toke
     }
 }
 
-function GET_QUERY_REALM(realm:string, realmOwner?:string){
-    console.log("REALM: "+realm)
+function GET_QUERY_REALMS(realmOwner?: string) {
+  console.log("realmOwner:", realmOwner);
 
-    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    return gql `
-        query MyQuery {
-            ${programId}_RealmV1(where: {pubkey: {_eq: "${realm}"}}) {
-                authority
-                communityMint
-                config
-                name
-                reserved
-                
-            }
-            ${programId}_RealmV2(where: {pubkey: {_eq: "${realm}"}}) {
-                authority
-                communityMint
-                config
-                name
-                reserved
-                
-            }
-        }
-        `
+  const programId = realmOwner || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+  return gql`
+    query GetRealm {
+      ${programId}_RealmV1 {
+        pubkey
+        authority
+        communityMint
+        config
+        name
+        reserved
+      }
+      ${programId}_RealmV2 {
+        pubkey
+        authority
+        communityMint
+        config
+        name
+        reserved
+      }
+    }
+  `;
+}
+
+function GET_QUERY_REALM(realm?: string, realmOwner?: string) {
+  console.log("realm:", realm);
+  console.log("realmOwner:", realmOwner);
+
+  const programId = realmOwner || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+  const realmFilter = realm ? `(where: {pubkey: {_eq: "${realm}"}})` : '';
+
+  return gql`
+    query GetRealm {
+      ${programId}_RealmV1${realmFilter} {
+        pubkey
+        authority
+        communityMint
+        config
+        name
+        reserved
+      }
+      ${programId}_RealmV2${realmFilter} {
+        pubkey
+        authority
+        communityMint
+        config
+        name
+        reserved
+      }
+    }
+  `;
 }
 
 function GET_QUERY_ALL_TOKEN_OWNER_RECORDS(owner:string, realmOwner?:string){
@@ -809,9 +841,82 @@ export const getProposalInstructionsIndexed = async (filterRealm?: string, propo
     return allProposalIx;
 };
 
-export const getRealmIndexed = async (filterRealm?:string) => {
-    if (filterRealm){
-        const programId = findGovOwnerByDao(filterRealm)?.owner;
+export const getRealmsIndexed = async (programId?:string) => {
+    if (programId){
+        const allRealms = new Array();
+
+        try{
+            console.log("getRealmsIndexed: "+programId);
+            const { data } = await client.query({ query: GET_QUERY_REALMS(programId), fetchPolicy: 'no-cache' });
+            
+            data[programId+"_RealmV2"] && data[programId+"_RealmV2"]?.map((item) => {
+                allRealms.push({
+                    pubkey: new PublicKey(item.pubkey),
+                    owner: new PublicKey(programId),
+                    account: {
+                        realm: new PublicKey(item.pubkey),
+                        authority: item?.authority ? new PublicKey(item.authority) : ``,
+                        communityMint: new PublicKey(item.communityMint),
+                        config: {
+                            councilMint: item.config?.councilMint ? new PublicKey(item.config.councilMint) : ``,
+                            communityMintMaxVoteWeightSource: {
+                                type:item.config.communityMintMaxVoteWeightSource.type,
+                                value:new BN(item.config.communityMintMaxVoteWeightSource.value)
+                            },
+                            minCommunityTokensToCreateGovernance: new BN(item.config.minCommunityTokensToCreateGovernance),
+                            useCommunityVoterWeightAddin: item.config.useCommunityVoterWeightAddin,
+                            useMaxCommunityVoterWeightAddin: item.config.useMaxCommunityVoterWeightAddin,
+                            reserved: item.config.reserved,
+                        },
+                        name: item.name,
+                    }
+                })
+            });
+
+            data[programId+"_RealmV1"] && data[programId+"_RealmV1"]?.map((item) => {
+                allRealms.push({
+                    pubkey: new PublicKey(item.pubkey),
+                    owner: new PublicKey(programId),
+                    account: {
+                        realm: new PublicKey(item.pubkey),
+                        authority: item?.authority ? new PublicKey(item.authority) : ``,
+                        communityMint: new PublicKey(item.communityMint),
+                        config: {
+                            councilMint: item.config?.councilMint ? new PublicKey(item.config.councilMint) : ``,
+                            communityMintMaxVoteWeightSource: {
+                                type:item.config.communityMintMaxVoteWeightSource.type,
+                                value:new BN(item.config.communityMintMaxVoteWeightSource.value)
+                            },
+                            minCommunityTokensToCreateGovernance: new BN(item.config.minCommunityTokensToCreateGovernance),
+                            useCommunityVoterWeightAddin: item.config.useCommunityVoterWeightAddin,
+                            useMaxCommunityVoterWeightAddin: item.config.useMaxCommunityVoterWeightAddin,
+                            reserved: item.config.reserved,
+                        },
+                        name: item.name,
+                    }
+                })
+            });
+        }catch(e){
+
+            console.log("Realm Index Err reverting to RPC ",e);
+        }
+
+       if ((!allRealms || allRealms.length <= 0) && (programId)){ // fallback to RPC call is governance not found in index
+                console.log("No indexed realm found reverting to RPC getRealm")
+                const realm = await getRealms(RPC_CONNECTION, [new PublicKey(programId)]);
+                allRealms.push(realm);
+        } else{
+            console.log("Indexed realm found!")
+        }
+
+        //console.log("allRealms: "+JSON.stringify(allRealms));        
+        return allRealms;
+    }
+};
+
+export const getRealmIndexed = async (filterRealm?:string, program?:string) => {
+    if (filterRealm || program){
+        const programId = program || findGovOwnerByDao(filterRealm)?.owner;
         
         const allRealms = new Array();
 
@@ -821,9 +926,9 @@ export const getRealmIndexed = async (filterRealm?:string) => {
             
             //console.log("data: "+JSON.stringify(data));
             
-            data[programId+"_RealmV2"] && data[programId+"_RealmV2"].map((item) => {
+            data[programId+"_RealmV2"] && data[programId+"_RealmV2"]?.map((item) => {
                 allRealms.push({
-                    pubkey: new PublicKey(filterRealm),
+                    pubkey: new PublicKey(item.pubkey),
                     owner: new PublicKey(programId),
                     account: {
                         authority: new PublicKey(item.authority),
@@ -846,9 +951,9 @@ export const getRealmIndexed = async (filterRealm?:string) => {
                 })
             });
 
-            data[programId+"_RealmV1"] && data[programId+"_RealmV1"].map((item) => {
+            data[programId+"_RealmV1"] && data[programId+"_RealmV1"]?.map((item) => {
                 allRealms.push({
-                    pubkey: new PublicKey(filterRealm),
+                    pubkey: new PublicKey(item.pubkey),
                     owner: new PublicKey(programId),
                     account: {
                         authority: new PublicKey(item.authority),
@@ -873,13 +978,10 @@ export const getRealmIndexed = async (filterRealm?:string) => {
             console.log("Realm Index Err reverting to RPC");
         }
 
-        //console.log("programId: "+programId);
-        //console.log("allRealms: "+JSON.stringify(allRealms));
-
-        if ((!allRealms || allRealms.length <= 0) && filterRealm){ // fallback to RPC call is governance not found in index
-            console.log("No indexed realm found reverting to RPC getRealm")
-            const realm = await getRealm(RPC_CONNECTION, new PublicKey(filterRealm));
-            allRealms.push(realm);
+       if ((!allRealms || allRealms.length <= 0) && (filterRealm || programId)){ // fallback to RPC call is governance not found in index
+                console.log("No indexed realm found reverting to RPC getRealm")
+                const realm = await getRealm(RPC_CONNECTION, new PublicKey(filterRealm));
+                allRealms.push(realm);
         } else{
             console.log("Indexed realm found!")
         }
