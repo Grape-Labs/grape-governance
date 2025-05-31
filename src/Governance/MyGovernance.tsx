@@ -148,6 +148,10 @@ export function MyGovernanceView(props: any){
             return torPubkeys.some(torPk => torPk.equals(p.account.tokenOwnerRecord));
         });
 
+        // 🔽 Sort by draft date descending
+        filtered.sort((a, b) => b.account.draftAt - a.account.draftAt);
+
+
         console.log(`🎯 Final matched proposals: ${filtered.length}`);
         setCreatedProposals(filtered);
     };
