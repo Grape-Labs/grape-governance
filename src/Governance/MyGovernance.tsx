@@ -27,6 +27,7 @@ import moment from 'moment';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
+import { filterE } from 'fp-ts/lib/Witherable';
 
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
   height: 15,
@@ -91,31 +92,63 @@ export function MyGovernanceView(props: any){
   };
 
     const fetchUserProposals = async () => {
+        const userPk = new PublicKey(pubkey);
         const programId = new PublicKey('GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw');
-        
-        // 1. Get all token owner records by this wallet
-        const ownerRecords = await getTokenOwnerRecordsByOwnerIndexed(null, programId.toBase58(), new PublicKey(pubkey).toBase58());
 
-        console.log("Owner Records:", ownerRecords);
+        // 1. Get all TORs owned by the user (across all realms)
+        const ownerRecords = await getTokenOwnerRecordsByOwnerIndexed(null, programId.toBase58(), userPk.toBase58());
 
-        const torPubkeys = ownerRecords.map(tor => tor.pubkey.toBase58());
+        const torPubkeys: PublicKey[] = [];
+        const realmPubkeys: Set<string> = new Set();
 
-        // 2. Get all proposals (across all governances)
-        const allGovernances = await getAllGovernancesIndexed(null, programId.toBase58());
+        for (const tor of ownerRecords) {
+            try {
+                const torPk = new PublicKey(tor.pubkey);
+                torPubkeys.push(torPk);
 
-        console.log("All Governances:", allGovernances);
+                if (tor.account?.realm) {
+                    realmPubkeys.add(tor.account.realm.toBase58());
+                }
+            } catch (e) {
+                console.warn('Invalid TOR entry:', tor, e);
+            }
+        }
 
+        console.log("✅ User's TORs:", torPubkeys.map(pk => pk.toBase58()));
+        console.log("✅ Realms from TORs:", Array.from(realmPubkeys));
 
-        const govKeys = allGovernances.map(g => g.pubkey.toBase58());
-        const proposals = await getAllProposalsIndexed(govKeys, programId, null);
+        const proposalMap = new Map<string, any>();
 
-        console.log("All Proposals:", proposals);
+        for (const realmPk of realmPubkeys) {
+            // 🧠 Only get governances for this realm
+            const realmGovernances = await getAllGovernancesIndexed(realmPk, programId.toBase58());
+            const govKeys = realmGovernances.map(g => g.pubkey.toBase58());
 
-        // 3. Filter proposals where the tokenOwnerRecord matches one of the user's
-        const filtered = proposals.filter(p =>
-            torPubkeys.includes(p.account.tokenOwnerRecord?.toBase58())
-        );
+            if (govKeys.length === 0) {
+                console.warn(`⚠️ No governances found for realm ${realmPk}`);
+                continue;
+            }
 
+            // 🧠 Now only get proposals for this realm and its governances
+            const realmProposals = await getAllProposalsIndexed(govKeys, programId, realmPk);
+            console.log(`📦 Realm ${realmPk} proposals fetched:`, realmProposals.length);
+
+            for (const proposal of realmProposals) {
+                proposalMap.set(proposal.pubkey.toBase58(), proposal); // 🧼 avoids duplicates
+            }
+        }
+
+        const allProposals = Array.from(proposalMap.values());
+
+        console.log(`📊 Total unique proposals fetched: ${allProposals.length}`);
+
+        // 3. Filter proposals authored by user's TORs
+        const filtered = allProposals.filter(p => {
+            if (!p.account.tokenOwnerRecord) return false;
+            return torPubkeys.some(torPk => torPk.equals(p.account.tokenOwnerRecord));
+        });
+
+        console.log(`🎯 Final matched proposals: ${filtered.length}`);
         setCreatedProposals(filtered);
     };
 
