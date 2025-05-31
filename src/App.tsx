@@ -327,9 +327,7 @@ function DashboardContent() {
                                                 <Route path=":handlekey" element={<GovernanceDirectoryTestView />} />
                                               </Route>
 
-                                              <Route path="profile/*" element={<MyGovernanceView />} >
-                                                <Route path=":handlekey" element={<MyGovernanceView />} />
-                                              </Route>
+                                              <Route path="/profile/:walletAddress" element={<MyGovernanceView />} />
 
                                               <Route path="governance/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />

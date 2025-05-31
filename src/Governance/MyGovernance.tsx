@@ -1,9 +1,9 @@
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import React, { useCallback } from 'react';
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { styled, useTheme } from '@mui/material/styles';
 import { PublicKey, Connection, TransactionInstruction, VersionedTransaction, TransactionMessage } from '@solana/web3.js';
-import { Chip, Divider, Button, ButtonGroup, Grid, Typography, Box, LinearProgress, TextField, CircularProgress } from '@mui/material';
+import { Chip, Divider, Button, ButtonGroup, Grid, Typography, Box, LinearProgress, TextField, CircularProgress, Tooltip, IconButton } from '@mui/material';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useSnackbar } from 'notistack';
 import { RPC_CONNECTION } from '../utils/grapeTools/constants';
@@ -24,6 +24,8 @@ import GetGovernanceFromRulesView from './GetGovernanceFromRules';
 
 import moment from 'moment';
 
+import LinkIcon from '@mui/icons-material/Link';
+import ShareIcon from '@mui/icons-material/Share';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
 import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
@@ -39,7 +41,8 @@ const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
 }));
 
 export function MyGovernanceView(props: any){
-  const [pubkey, setPubkey] = React.useState(props?.pubkey || '');
+  const { walletAddress } = useParams();
+  const [pubkey, setPubkey] = React.useState(walletAddress || props?.pubkey || '');
   const [governanceRecordRows, setGovernanceRecordRows] = React.useState<any[]>([]);
   const [createdProposals, setCreatedProposals] = React.useState<any[]>([]);
   const [participatingDaos, setParticipatingDaos] = React.useState<any[]>([]);
@@ -48,6 +51,7 @@ export function MyGovernanceView(props: any){
   const [refresh, setRefresh] = React.useState(true);
   const { publicKey } = useWallet();
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
 
   const governancecolumns: GridColDef[] = [
     { field: 'governance', headerName: 'Governance', minWidth: 130, flex: 1 },
@@ -157,6 +161,13 @@ export function MyGovernanceView(props: any){
     };
 
     
+React.useEffect(() => {
+    if (walletAddress && pubkey !== walletAddress) {
+        setPubkey(walletAddress);
+        setRefresh(true);
+    }
+}, [walletAddress]);
+
   React.useEffect(() => {
     if (pubkey && refresh) {
       fetchGovernance();
@@ -174,6 +185,25 @@ export function MyGovernanceView(props: any){
 
   return (
     <Box sx={{ mt: 6, background: 'rgba(0,0,0,0.6)', borderRadius: '17px', p: 4 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+            <Typography variant="h4" gutterBottom>
+                Profile
+            </Typography>
+            <Tooltip title="Copy profile link">
+                <IconButton
+                size="small"
+                onClick={() => {
+                    const shareUrl = `${window.location.origin}/profile/${pubkey}`;
+                    navigator.clipboard.writeText(shareUrl)
+                    .then(() => enqueueSnackbar('Link copied to clipboard!', { variant: 'success' }))
+                    .catch(() => enqueueSnackbar('Failed to copy link.', { variant: 'error' }));
+                }}
+                sx={{ color: 'gray' }}
+                >
+                <LinkIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>
+            </Box>
         <Grid container spacing={2} sx={{ mb: 3 }} alignItems="center">
             <Grid item xs={12} md={6}>
                 <TextField
@@ -208,8 +238,6 @@ export function MyGovernanceView(props: any){
                 </Button>
             </Grid>
         </Grid>
-
-      <Typography variant="h4" gutterBottom>Profile</Typography>
 
       {loadingGovernance ? <LinearProgress /> : (
         <>
