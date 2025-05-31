@@ -609,10 +609,10 @@ export default function IntraDAOVoteView(props: any) {
             //console.log("all uTable "+JSON.stringify(uTable))
             let decimals = 0;
             for (const item of thisOwnerRecordsbyOwner){
-                console.log("uTable: "+JSON.stringify(uTable))
-                console.log("item: "+JSON.stringify(item))
+                //console.log("uTable: "+JSON.stringify(uTable))
+                //console.log("item: "+JSON.stringify(item))
                 const realm = item?.account?.realm ? uTable[item.account.realm.toBase58()] : uTable[item.pubkey.toBase58()];
-                console.log("realm: "+JSON.stringify(realm))
+                //console.log("realm: "+JSON.stringify(realm))
                 const name = realm.account.name;
                 let voteCount = 0;
                 let tokenType = false;

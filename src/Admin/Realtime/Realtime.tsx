@@ -481,7 +481,6 @@ function TablePaginationActions(props) {
     }
     
     function GetGovernanceFromRulesView(props:any){
-        const governanceLookup = props.governanceLookup;
         const rulesWallet = props.rulesWallet;
         const proposal = props.proposal;
         const name = props?.name;
@@ -514,28 +513,6 @@ function TablePaginationActions(props) {
 
         loadGovernanceInfo();
     }, [rulesWallet]);
-
-    /*
-        React.useEffect(() => { 
-            if (governanceLookup){
-                for (let glitem of governanceLookup){
-                    //console.log("glitem: "+JSON.stringify(glitem));
-                    if (glitem?.governances){
-                        for (let ggitem of glitem.governances){
-                            if (ggitem.pubkey === rulesWallet){
-                                setGovernanceInfo(glitem);
-                                console.log("found: "+glitem.governanceName);
-                                console.log("proposal: "+JSON.stringify(item.owner));
-                                //console.log("found governanceAddress: "+glitem.governanceAddress);
-                            }
-                        }
-                    }
-                }
-            }
-            
-
-        }, [governanceLookup]);
-    */
 
         const shortenWordRegex: RegExp = /^(.{6})(?:\.(.{6}))?$/;
 
