@@ -60,6 +60,7 @@ import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ExploreIcon from '@mui/icons-material/Explore';
 import PersonIcon from '@mui/icons-material/Person';
+import ContactPageIcon from '@mui/icons-material/ContactPage';
 
 import { trimAddress } from "./WalletAddress";
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -583,32 +584,60 @@ export default function ExplorerView(props:any){
                             open={openDialog}
                             PaperProps={{
                                 style: {
-                                    boxShadow: '3',
-                                    borderRadius: '17px',
-                                    },
-                                }}
-                        >
+                                boxShadow: '0px 4px 20px rgba(0,0,0,0.1)',
+                                borderRadius: '17px',
+                                padding: '24px',
+                                background: 'linear-gradient(to right, #434343, #111111)' // ✅ use 'background' here
+                                },
+                            }}
+                            >
                             <DialogContentText id="alert-dialog-description">
-                                <div style={{ height: "auto", margin: "0 auto", maxWidth: "100%", width: "100%", borderRadius: "10px", padding:10, backgroundColor:'#fff' }}>
+                                <Box
+                                    display="flex"
+                                    flexDirection="column"
+                                    alignItems="center"
+                                    justifyContent="center"
+                                    sx={{
+                                        borderRadius: 2,
+                                        backgroundColor: '#1e1e1e',  // ✅ Dark theme friendly
+                                        p: 2,
+                                        mb: 2,
+                                        border: '1px solid #444',    // ✅ Adds subtle separation
+                                        boxShadow: 1,
+                                        maxWidth: 256,
+                                        mx: 'auto',
+                                    }}
+                                    >
                                     <QRCode
-                                    size={256}
-                                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                                    value={address}
-                                    viewBox={`0 0 256 256`}
+                                        size={256}
+                                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                                        value={address}
+                                        viewBox={`0 0 256 256`}
+                                        fgColor="#ffffff"  // ✅ Make QR code white for visibility on dark
+                                        bgColor="#1e1e1e"
                                     />
-                                </div>
+                                    </Box>
 
-                                <Grid container>
-                                    <Grid item xs={12} textAlign={'center'}>
-                                        <Typography variant='body2'>{address}</Typography>
+                                <Grid container spacing={1} justifyContent="center" textAlign="center">
+                                    <Grid item xs={12}>
+                                        <Typography
+                                            variant="subtitle1"
+                                            color="text.secondary"
+                                            sx={{
+                                                wordBreak: 'break-all',
+                                            }}
+                                        >
+                                        {address}
+                                        </Typography>
                                     </Grid>
-                                    <Grid item xs={12} textAlign={'center'}>
-                                        <Typography variant='caption'>Send to this SOL Address</Typography>
+                                    <Grid item xs={12}>
+                                        <Typography variant="caption" color="text.secondary">
+                                        Send to this address
+                                        </Typography>
                                     </Grid>
                                 </Grid>
-                                
                             </DialogContentText>
-                        </BootstrapDialog>
+                            </BootstrapDialog>
                         </>
                     }
                     <Divider />
@@ -640,6 +669,18 @@ export default function ExplorerView(props:any){
                     */}
                 {grapeArtProfile && 
                     <>    
+                        <MenuItem 
+                            color='inherit'
+                            component='a'
+                            target='_blank'
+                            href={`https://governance.so/profile/${address}`}
+                            onClick={handleClose}>
+                                <ListItemIcon>
+                                    <ContactPageIcon fontSize="small" />
+                                </ListItemIcon>
+                                Governance Profile
+                        </MenuItem>
+
                         <MenuItem 
                             color='inherit'
                             component='a'
