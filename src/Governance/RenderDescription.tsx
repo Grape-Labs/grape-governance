@@ -33,9 +33,7 @@ export const RenderDescription: React.FC<RenderDescriptionProps> = ({ title, des
     <Typography
       color="gray"
     >
-      {hasValidTitle ? (
-        title
-      ) : hasValidDescription ? (
+      {(hasValidTitle && hasValidDescription) ? (
         description
       ) : (
         <>
