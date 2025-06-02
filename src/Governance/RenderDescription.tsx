@@ -39,7 +39,7 @@ export const RenderDescription: React.FC<RenderDescriptionProps> = ({ title, des
         <>
           <Tooltip title={`Invalid or missing data`}>
             <h5 style={{ color: 'red' }}>
-              <WarningIcon sx={{ fontSize: 16, color: 'red' }} /> <strong>WARNING!</strong> This proposal has missing data; carefully review the instructions before voting
+              <WarningIcon sx={{ fontSize: 16, color: 'red' }} /> <strong>WARNING!</strong> This proposal has missing data; if this proposal has instructions carefully review them before voting
               <small>
                 <br/>Title: "{title}" Description: "{description}"
                 <br />Proposal: {fallback}
