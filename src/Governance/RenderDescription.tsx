@@ -16,7 +16,12 @@ export const isValidDescription = (desc?: string): boolean => {
 };
 
 export const isValidTitle = (title?: string): boolean => {
-  return !!title && title.trim().length >= 2 && /[a-zA-Z0-9]/.test(title);
+  return (
+    !!title &&
+    title.trim().length >= 2 &&
+    /[a-zA-Z0-9]/.test(title) &&
+    title.trim().toLowerCase() !== "transfer tokens"
+  );
 };
 
 type RenderDescriptionProps = {
@@ -33,7 +38,9 @@ export const RenderDescription: React.FC<RenderDescriptionProps> = ({ title, des
     <Typography
       color="gray"
     >
-      {(hasValidTitle && hasValidDescription) ? (
+      {hasValidTitle ? (
+        title
+      ) : hasValidDescription ? (
         description
       ) : (
         <>
