@@ -2747,6 +2747,7 @@ export function GovernanceProposalV2View(props: any){
                                                                 color='gray' 
                                                                 sx={{ display: 'flex', alignItems: 'center' }}>
                                                                 <RenderDescription 
+                                                                    title={thisitem.account?.name} 
                                                                     description={thisitem.account?.descriptionLink} 
                                                                     fallback={proposalPk?.toBase58()}
                                                                 />
