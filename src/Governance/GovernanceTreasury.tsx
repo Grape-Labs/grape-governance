@@ -7,9 +7,7 @@ import {
     getAssociatedTokenAddress
 } from "@solana/spl-token-v2";
 
-import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
-import {getRealms, RequestStatus} from "gspl-directory";
-import {publicKey as UmiPK} from "@metaplex-foundation/umi";
+import { initGrapeGovernanceDirectory } from './api/gspl_queries';
 
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import axios from "axios";
@@ -127,20 +125,6 @@ export function GovernanceTreasuryView(props: any) {
     const [gsplMetadata, setGSPLMetadata] = React.useState(null);
 
     const { publicKey } = useWallet();
-
-    const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
-    const initGrapeGovernanceDirectory = async() => {
-        try{
-            const umi = createUmi(RPC_CONNECTION);
-            const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
-            //console.log("Entries: "+JSON.stringify(entries));
-            return entries;
-        } catch(e){
-            console.log("Could not load GSPDL");
-        }
-    }
-
-
 
     const getTokens = async () => {
         const tarray:any[] = [];

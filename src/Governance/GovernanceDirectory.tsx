@@ -2,9 +2,7 @@ import React, { useCallback } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import { Link } from "react-router-dom";
 
-import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
-import {getRealms, RequestStatus} from "gspl-directory";
-import {publicKey as UmiPK} from "@metaplex-foundation/umi";
+import { initGrapeGovernanceDirectory } from './api/gspl_queries';
 
 import {
     Box,
@@ -299,21 +297,6 @@ export function GovernanceDirectoryView(props: Props) {
         );
     }
     
-    const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
-    const initGrapeGovernanceDirectory = async() => {
-        try{
-            const umi = createUmi(RPC_ENDPOINT);
-            const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
-            
-            // set to verified list
-            // set entry in verified list
-            console.log("Entries: "+JSON.stringify(entries));
-            return entries;
-        } catch(e){
-            console.log("Could not load GSPDL");
-        }
-    }
-
     const callGovernanceLookup = async() => {
         
         const gspldir = await initGrapeGovernanceDirectory();
