@@ -270,6 +270,8 @@ export function Header(props: any) {
     const [rpcSettingsOpen, setRpcSettingsOpen] = React.useState(false);
     const handleOpenRpcSettings = () => setRpcSettingsOpen(true);
     const handleCloseRpcSettings = () => setRpcSettingsOpen(false);
+    const [rpcSelectionMode, setRpcSelectionMode] =React.useState('predefined');
+    const [customRpcInput, setCustomRpcInput] = React.useState('');
 
     const handleDrawerOpen = () => {
         setOpen(true);
@@ -681,25 +683,67 @@ export function Header(props: any) {
                 <DialogTitle>Select RPC Provider</DialogTitle>
                 <Box p={2}>
                     <FormControl fullWidth>
-                        <TextField
-                            select
-                            label="RPC Provider"
-                            value={getPreferredRpc()}
-                            onChange={(e) => {
-                                setPreferredRpc(e.target.value);
-                                handleCloseRpcSettings();
-                                window.location.reload();
-                            }}
-                            size="small"
-                            variant="outlined"
+                        <RadioGroup
+                            value={rpcSelectionMode}
+                            onChange={(e) => setRpcSelectionMode(e.target.value)}
                         >
-                            {Object.entries(RPC_OPTIONS).map(([label, url]) => (
-                                <MenuItem key={label} value={url}>
-                                    {label}
-                                </MenuItem>
-                            ))}
-                        </TextField>
+                            <FormControlLabel value="predefined" control={<Radio />} label="Select from predefined list" />
+                            <FormControlLabel value="custom" control={<Radio />} label="Use custom RPC URL" />
+                        </RadioGroup>
                     </FormControl>
+
+                    {rpcSelectionMode === 'predefined' && (
+                        <FormControl fullWidth sx={{ mt: 2 }}>
+                            <TextField
+                                select
+                                label="RPC Provider"
+                                value={getPreferredRpc()}
+                                onChange={(e) => {
+                                    setPreferredRpc(e.target.value);
+                                    handleCloseRpcSettings();
+                                    window.location.reload();
+                                }}
+                                size="small"
+                                variant="outlined"
+                            >
+                                {Object.entries(RPC_OPTIONS).map(([label, url]) => (
+                                    <MenuItem key={label} value={url}>
+                                        {label}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        </FormControl>
+                    )}
+
+                    {rpcSelectionMode === 'custom' && (
+                        <Box mt={2}>
+                            <TextField
+                                fullWidth
+                                label="Custom RPC URL"
+                                value={customRpcInput}
+                                onChange={(e) => setCustomRpcInput(e.target.value)}
+                                size="small"
+                                variant="outlined"
+                                placeholder="https://your-custom-rpc.solana.com"
+                            />
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                sx={{ mt: 2 }}
+                                onClick={() => {
+                                    if (customRpcInput.startsWith('http')) {
+                                        setPreferredRpc(customRpcInput);
+                                        handleCloseRpcSettings();
+                                        window.location.reload();
+                                    } else {
+                                        alert('Please enter a valid URL starting with http or https');
+                                    }
+                                }}
+                            >
+                                Save & Reload
+                            </Button>
+                        </Box>
+                    )}
                 </Box>
             </Dialog>
         </>
