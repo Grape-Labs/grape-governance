@@ -70,6 +70,8 @@ import {
     createConfig
 } from "gspl-directory";
 
+import { initGrapeGovernanceDirectory } from '../../api/gspl_queries';
+
 import {publicKey as UmiPK, createNoopSigner, Context, generateSigner, KeypairSigner, Pda, isSome, MaybeRpcAccount} from "@metaplex-foundation/umi";
 import {toWeb3JsPublicKey, toWeb3JsInstruction, fromWeb3JsPublicKey} from "@metaplex-foundation/umi-web3js-adapters";
 import { TransactionInstruction } from '@solana/web3.js';
@@ -562,24 +564,7 @@ export default function DirectoryExtensionView(props: any){
     const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
     let exists = false;
     let typeOfAction = 0;
-    //RPC call to get from Directory all the listings with various combinations of requestStatus
-    const initGrapeGovernanceDirectory = async(): Promise<GovernanceEntryAccountData[]> => {
-        try{
-            const umi = createUmi(RPC_ENDPOINT);
-            const requestStatuses = [RequestStatus.Approved, RequestStatus.Pending, RequestStatus.Rejected, RequestStatus.Disabled];
-            const allEntries: GovernanceEntryAccountData[] = [];
-            for (const status of requestStatuses) {
-                const entries = await getRealms(umi, CONFIG, status);
-                allEntries.push(...entries); // Push each result into the final array
-            }
-            //console.log("Entries: "+JSON.stringify(allEntries));
-            return allEntries;
-        } catch(e){
-            console.log("Could not load GSPL directory");
-            return [];
-        }
-    }
-
+    
     //returns the gspl configuration verifier, admin and verifierOverride
     const initGrapeGovernanceConfig = async(): Promise<GovBoardingConfigAccountData> => {
         try{

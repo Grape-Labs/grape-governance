@@ -719,7 +719,7 @@ export function Header(props: any) {
                         <Box mt={2}>
                             <TextField
                                 fullWidth
-                                label="Custom RPC URL"
+                                label="Custom RPC Endpoint"
                                 value={customRpcInput}
                                 onChange={(e) => setCustomRpcInput(e.target.value)}
                                 size="small"
@@ -731,12 +731,12 @@ export function Header(props: any) {
                                 color="primary"
                                 sx={{ mt: 2 }}
                                 onClick={() => {
-                                    if (customRpcInput.startsWith('http')) {
+                                    if (customRpcInput.startsWith('https')) {
                                         setPreferredRpc(customRpcInput);
                                         handleCloseRpcSettings();
                                         window.location.reload();
                                     } else {
-                                        alert('Please enter a valid URL starting with http or https');
+                                        alert('Please enter a valid URL starting with https');
                                     }
                                 }}
                             >

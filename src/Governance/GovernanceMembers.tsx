@@ -4,10 +4,7 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import axios from "axios";
 import { DataGrid, GridColDef, GridValueGetterParams } from '@mui/x-data-grid';
 import moment from 'moment';
-import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
-import {getRealms, RequestStatus} from "gspl-directory";
-import {publicKey as UmiPK} from "@metaplex-foundation/umi";
-
+import { initGrapeGovernanceDirectory } from './api/gspl_queries';
 import { 
     tryGetName,
 } from '@cardinal/namespaces';
@@ -380,20 +377,6 @@ export function GovernanceMembersView(props: any) {
     const [pluginDao, setPluginDao] = React.useState(null);
     const [gspl, setGSPL] = React.useState(null);
     const [gsplMetadata, setGSPLMetadata] = React.useState(null);
-
-    const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
-    const initGrapeGovernanceDirectory = async() => {
-        try{
-            const umi = createUmi(RPC_CONNECTION);
-            const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
-            //console.log("Entries: "+JSON.stringify(entries));
-            return entries;
-        } catch(e){
-            console.log("Could not load GSPDL");
-        }
-    }
-
-
 
     const getTokens = async () => {
         const tarray:any[] = [];

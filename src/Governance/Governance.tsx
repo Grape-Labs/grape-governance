@@ -8,9 +8,7 @@ import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import grapeTheme from  '../utils/config/theme';
 import { ThemeProvider } from '@mui/material/styles';
 
-import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
-import {getRealms, RequestStatus} from "gspl-directory";
-import {publicKey as UmiPK} from "@metaplex-foundation/umi";
+import { initGrapeGovernanceDirectory } from './api/gspl_queries';
 
 import {
     Avatar,
@@ -251,18 +249,6 @@ function TablePaginationActions(props) {
             </IconButton>
         </Box>
     );
-}
-
-const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
-const initGrapeGovernanceDirectory = async() => {
-    try{
-        const umi = createUmi(RPC_CONNECTION);
-        const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
-        //console.log("Entries: "+JSON.stringify(entries));
-        return entries;
-    } catch(e){
-        console.log("Could not load GSPL");
-    }
 }
 
 function RenderGovernanceTable(props:any) {
