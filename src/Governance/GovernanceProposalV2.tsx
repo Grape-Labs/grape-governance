@@ -126,6 +126,7 @@ import {
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI,
     SHYFT_KEY,
+    HELIUS_API,
     BLACKLIST_WALLETS } from '../utils/grapeTools/constants';
 import { 
     formatAmount, 
@@ -600,9 +601,24 @@ export function GovernanceProposalV2View(props: any){
 
     const fetchTokenName = async(address:string) => {
         try{
-            if (SHYFT_KEY){
+            if (HELIUS_API){
+                const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
+                const response = await fetch(uri, {
+                    method: 'POST',
+                    headers: {
+                    "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                    "jsonrpc": "2.0",
+                    "id": "text",
+                    "method": "getAsset",
+                    "params": {
+                        id: address,
+                    }
+                    }),
+                });
+                /*
                 const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
-
                 const response = await fetch(uri, {
                     method: 'POST',
                     headers: {
@@ -613,10 +629,11 @@ export function GovernanceProposalV2View(props: any){
                         id: 'rpc-id',
                         method: 'getAsset',
                         params: {
-                        id: address
+                            id: address
                         },
                     }),
                     });
+                    */ 
                 const { result } = await response.json();
                 
                 if (result){
@@ -627,12 +644,9 @@ export function GovernanceProposalV2View(props: any){
                     }
                     return null;
                 }
-            } else{
-                return null;
             }
         } catch(e){
             console.log("ERR: "+e);
-            return null;
         }
     }
 

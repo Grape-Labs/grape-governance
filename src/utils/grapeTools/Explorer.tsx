@@ -20,6 +20,7 @@ import {
     RPC_CONNECTION, 
     TWITTER_PROXY,
     SHYFT_KEY,
+    HELIUS_API,
     BLACKLIST_WALLETS } from './constants';
 
 import { 
@@ -204,6 +205,90 @@ export default function ExplorerView(props:any){
 
     const fetchTokenData = async() => {
         try{
+            
+            if (HELIUS_API){
+                const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
+                const response = await fetch(uri, {
+                    method: 'POST',
+                    headers: {
+                    "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                    "jsonrpc": "2.0",
+                    "id": "text",
+                    "method": "getAsset",
+                    "params": {
+                        id: address,
+                    }
+                    }),
+                });
+                /*
+                const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
+                const response = await fetch(uri, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 'rpc-id',
+                        method: 'getAsset',
+                        params: {
+                            id: address
+                        },
+                    }),
+                    });
+                    */ 
+                const { result } = await response.json();
+                
+                if (result){
+                    if (result?.content?.metadata?.name){
+                        setSolanaDomain(result?.content?.metadata?.name);
+                        //return result?.content?.metadata?.name;
+                    }
+                    const image = result?.content?.links?.image;
+                
+                    if (image){
+                        if (image){
+                            setProfilePictureUrl(image);
+                            setHasProfilePicture(true);
+                        }
+                    }
+                    return null;
+                } else {
+
+                    const MD_PUBKEY = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+                    const [pda, bump] = await PublicKey.findProgramAddress(
+                        [Buffer.from('metadata'), MD_PUBKEY.toBuffer(), new PublicKey(address).toBuffer()],
+                        MD_PUBKEY
+                    );
+                    
+                    const tokendata = await connection.getParsedAccountInfo(new PublicKey(pda));
+
+                    if (tokendata){
+                        //console.log("tokendata: "+JSON.stringify(tokendata));
+                        if (tokendata.value?.data) {
+                            const buf = Buffer.from(tokendata.value.data, 'base64');
+                            const meta_final = decodeMetadata(buf);
+                            
+                            if (meta_final?.data?.name){
+                                setSolanaDomain(meta_final.data.name);
+                                if (meta_final.data?.uri){
+                                    const urimeta = await window.fetch(meta_final.data.uri).then((res: any) => res.json());
+                                    const image = urimeta?.image;
+                                    if (image){
+                                        setProfilePictureUrl(image);
+                                        setHasProfilePicture(true);
+                                    }
+                                }
+                            }
+                            //console.log("meta_final: "+JSON.stringify(meta_final));
+                        }
+                    }
+                }
+            }
+            
+            /*
             const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
 
             const response = await fetch(uri, {
@@ -266,6 +351,7 @@ export default function ExplorerView(props:any){
                     }
                 }
             }
+            */
         }catch(e){
             console.log("ERR: "+e)
         }
