@@ -23,7 +23,26 @@ export const SHYFT_KEY = process.env.REACT_APP_API_SHYFT_KEY;
 export const FLUX_RPC_ENDPOINT = process.env.REACT_APP_API_FLUX_RPC_ENDPOINT || null;
 export const SHYFT_RPC_ENDPOINT = SHYFT_KEY ? `https://rpc.shyft.to?api_key=${SHYFT_KEY}` : null;
 export const SHYFT_RPC_DEVNET_ENDPOINT = SHYFT_KEY ? `https://devnet-rpc.shyft.to?api_key=${SHYFT_KEY}` : null;
-export const RPC_ENDPOINT =  QUICKNODE_RPC_ENDPOINT || SHYFT_RPC_ENDPOINT || ALCHEMY_RPC_ENDPOINT || FLUX_RPC_ENDPOINT || HELIUS_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
+//export const RPC_ENDPOINT =  QUICKNODE_RPC_ENDPOINT || SHYFT_RPC_ENDPOINT || ALCHEMY_RPC_ENDPOINT || FLUX_RPC_ENDPOINT || HELIUS_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
+export const RPC_OPTIONS = {
+  SHYFT: SHYFT_RPC_ENDPOINT,
+  QUICKNODE: QUICKNODE_RPC_ENDPOINT,
+  HELIUS: HELIUS_RPC_ENDPOINT,
+  ALCHEMY: ALCHEMY_RPC_ENDPOINT,
+  FLUX: FLUX_RPC_ENDPOINT,
+//  SOLANA: 'https://api.mainnet-beta.solana.com',
+};
+
+export const getPreferredRpc = () => {
+  return localStorage.getItem('preferred_rpc') || RPC_OPTIONS.QUICKNODE;
+};
+
+export const setPreferredRpc = (url: string) => {
+  localStorage.setItem('preferred_rpc', url);
+};
+
+export const RPC_ENDPOINT = getPreferredRpc();
+
 export const RPC_DEVNET_ENDPOINT = QUICKNODE_RPC_DEVNET_ENDPOINT || ALCHEMY_RPC_DEVNET_ENDPOINT || QUICKNODE_RPC_DEVNET_ENDPOINT || SHYFT_RPC_DEVNET_ENDPOINT || HELLO_MOON_DEVNET_ENDPOINT || HELIUS_RPC_DEVNET_ENDPOINT || 'https://api.devnet.solana.com';
 export const WS_ENDPOINT = process.env?.REACT_APP_API_QUICKNODE_RPC_ENDPOINT ? process.env.REACT_APP_API_QUICKNODE_RPC_ENDPOINT.replace('https://', 'wss://') : 'wss://api.mainnet-beta.solana.com';
 export const ALCHEMY_ETH_KEY = process.env.REACT_APP_API_ALCHEMY_ETH || null;

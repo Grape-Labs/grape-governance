@@ -23,7 +23,10 @@ import {
 
 import { 
     APP_LOGO,
-    APP_ICON
+    APP_ICON,
+    getPreferredRpc,
+    setPreferredRpc,
+    RPC_OPTIONS,
 } from '../utils/grapeTools/constants';
 
 import {
@@ -41,7 +44,6 @@ import { useAddToHomescreenPrompt } from "./useAddToHomeScreen";
 import {
     Box,
     Toolbar,
-    MenuItem,
     Typography,
     Button,
     Menu,
@@ -63,7 +65,9 @@ import {
     TextField,
     Radio,
     RadioGroup,
-    FormControlLabel
+    FormControlLabel,
+    FormControl,
+    MenuItem,
 } from '@mui/material';
 
 import ClickAwayListener from '@mui/material/ClickAwayListener';
@@ -263,6 +267,10 @@ export function Header(props: any) {
 
     const [open, setOpen] = React.useState(false);
 
+    const [rpcSettingsOpen, setRpcSettingsOpen] = React.useState(false);
+    const handleOpenRpcSettings = () => setRpcSettingsOpen(true);
+    const handleCloseRpcSettings = () => setRpcSettingsOpen(false);
+
     const handleDrawerOpen = () => {
         setOpen(true);
     };
@@ -403,6 +411,7 @@ export function Header(props: any) {
     }, [governanceAddress]);
 
     return (
+        <>
         <ClickAwayListener onClickAway={handleDrawerClose}>
             <Box sx={{ display: 'flex' }}>
             
@@ -485,6 +494,11 @@ export function Header(props: any) {
                             </Tooltip>
                     :<></>*/}                        
 
+                        <Tooltip title="RPC Settings">
+                            <IconButton onClick={handleOpenRpcSettings} sx={{ ml: 1 }}>
+                                <SettingsSuggestIcon />
+                            </IconButton>
+                        </Tooltip>
                         <div className="grape-wallet-adapter">
                             <WalletDialogProvider className="grape-wallet-provider">
                                 <WalletMultiButton className="grape-wallet-button" />
@@ -661,9 +675,34 @@ export function Header(props: any) {
                             */}
                         </List>
                 </Drawer>
-            
             </Box>
         </ClickAwayListener>
+            <Dialog open={rpcSettingsOpen} onClose={handleCloseRpcSettings}>
+                <DialogTitle>Select RPC Provider</DialogTitle>
+                <Box p={2}>
+                    <FormControl fullWidth>
+                        <TextField
+                            select
+                            label="RPC Provider"
+                            value={getPreferredRpc()}
+                            onChange={(e) => {
+                                setPreferredRpc(e.target.value);
+                                handleCloseRpcSettings();
+                                window.location.reload();
+                            }}
+                            size="small"
+                            variant="outlined"
+                        >
+                            {Object.entries(RPC_OPTIONS).map(([label, url]) => (
+                                <MenuItem key={label} value={url}>
+                                    {label}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    </FormControl>
+                </Box>
+            </Dialog>
+        </>
     );
 }
 
