@@ -937,6 +937,40 @@ export function GovernanceProposalV2View(props: any){
                         }
                         */
                         
+                        // === Add this before your loop ===
+
+                        const uniquePubkeys = new Set();
+                        // Step 1: Collect unique and valid pubkeys from accountInstruction.accounts[0]
+                        for (const instructionItem of useInstructions) {
+                            if (instructionItem.account?.instructions?.length > 0) {
+                                for (const accountInstruction of instructionItem.account.instructions) {
+                                    const rawPubkey = accountInstruction.accounts?.[0]?.pubkey;
+                                    if (rawPubkey) {
+                                        try {
+                                            const key = new PublicKey(rawPubkey).toBase58();
+                                            uniquePubkeys.add(key); // Set ensures uniqueness
+                                        } catch (e) {
+                                            console.warn("Invalid pubkey:", rawPubkey, e);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Step 2: Batch fetch all accounts using getMultipleAccountsInfo
+                        const pubkeyList = [...uniquePubkeys].map(key => new PublicKey(key));
+                        const allResults = new Map();
+                        const chunkSize = 100;
+
+                        for (let i = 0; i < pubkeyList.length; i += chunkSize) {
+                            const chunk = pubkeyList.slice(i, i + chunkSize);
+                            const infos = await connection.getMultipleAccountsInfo(chunk);
+                            chunk.forEach((key, idx) => {
+                                allResults.set(key.toBase58(), infos[idx]);
+                            });
+                        }
+
+                        
                         let lastMint = null;
                         let lastMintName = null;
                         let lastMintDecimals = null;
@@ -982,9 +1016,29 @@ export function GovernanceProposalV2View(props: any){
                                                 gai = mintResults[cnt];
                                             } 
 
-                                            if (!gai)
-                                                gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                            if (!gai){
+                                                //gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
                                             
+                                                // === Inside your main loop, REPLACE this ===
+                                                // gai = await getParsedAccountInfoCached(new PublicKey(accountInstruction.accounts[0].pubkey));
+
+                                                // === WITH this ===
+                                                const pubkey = new PublicKey(accountInstruction.accounts[0].pubkey);
+                                                gai = allResults.get(pubkey.toBase58());
+
+                                                // === Also replace: ===
+                                                // let tai = await getParsedAccountInfoCached(tokenMintAccount);
+                                                // === WITH ===
+                                                //const tai = allResults.get(tokenMintAccount.toBase58());
+
+                                                // If tokenMintAccount is not guaranteed to be in the original set, you can fallback to:
+                                                // const tai = allResults.get(tokenMintAccount.toBase58()) || await connection.getParsedAccountInfo(tokenMintAccount);
+
+                                                // === Notes ===
+                                                // Ensure all `accountInstruction.accounts[0].pubkey` and `tokenMintAccount` values you expect are added to `uniquePubkeys` before batch fetch.
+                                                // You can extend this to cover other accounts too (e.g. accounts[2], accounts[3]) as needed.
+                                            }
+
                                             if (gai){
                                                 // get token metadata
                                                 console.log("gai: "+JSON.stringify(gai))
@@ -1084,9 +1138,11 @@ export function GovernanceProposalV2View(props: any){
                                                 gai = mintResults[cnt];
                                             } 
 
-                                            if (!gai)
-                                                gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
-                                            
+                                            if (!gai){
+                                                //gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                                const pubkey = new PublicKey(accountInstruction.accounts[0].pubkey);
+                                                gai = allResults.get(pubkey.toBase58());
+                                            }
                                             if (gai){
                                                 // get token metadata
                                                 console.log("gai: "+JSON.stringify(gai))
@@ -1164,8 +1220,11 @@ export function GovernanceProposalV2View(props: any){
                                                 gai = mintResults[cnt];
                                             } 
 
-                                            if (!gai)
-                                                gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                            if (!gai){
+                                                //gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                                const pubkey = new PublicKey(accountInstruction.accounts[0].pubkey);
+                                                gai = allResults.get(pubkey.toBase58());
+                                            }
                                             
                                             if (gai){
                                                 
@@ -1342,9 +1401,11 @@ export function GovernanceProposalV2View(props: any){
                                                             gai = mintResults[cnt];
                                                         } 
 
-                                                        if (!gai)
-                                                            gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
-                                                        
+                                                        if (!gai){
+                                                            //gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                                            const pubkey = new PublicKey(accountInstruction.accounts[0].pubkey);
+                                                            gai = allResults.get(pubkey.toBase58());
+                                                        }
                                                         //console.log("GAI: "+JSON.stringify(gai));
                                                         const decimals = gai?.data?.parsed?.info?.tokenAmount?.decimals || 0;
                                                         const divisor = new BN(10).pow(new BN(decimals));
@@ -1359,7 +1420,9 @@ export function GovernanceProposalV2View(props: any){
                                                             if (decimals <= 0){
                                                                 let tokenMintAccount = accountInstruction?.accounts[2].pubkey;
                                                                 
-                                                                let tai = await connection.getParsedAccountInfo(tokenMintAccount);
+                                                                //let tai = await connection.getParsedAccountInfo(tokenMintAccount);
+                                                                let tai = allResults.get(tokenMintAccount.toBase58()) || await connection.getParsedAccountInfo(tokenMintAccount);
+
                                                                 let tdecimals = 0;
                                                                 
                                                                 if (tai && tai?.value.data?.parsed?.info?.tokenAmount?.decimals){
@@ -2192,7 +2255,53 @@ export function GovernanceProposalV2View(props: any){
     };
 
 
-    const populateArrayWithOwners = async (instructionTransferDetails:any) => {
+    const populateArrayWithOwners = async (instructionTransferDetails: any[]) => {
+        // Step 1: Collect unique destinationAta public keys
+        const uniqueAtas = new Set(
+            instructionTransferDetails
+                .filter(item => item?.amount > 0 && item.destinationAta)
+                .map(item => new PublicKey(item.destinationAta).toBase58())
+        );
+
+        // Step 2: Batch fetch all ATAs using getMultipleAccountsInfo
+        const ataPubkeys = [...uniqueAtas].map(key => new PublicKey(key));
+        const ataOwnerMap = new Map();
+        const chunkSize = 100;
+
+        for (let i = 0; i < ataPubkeys.length; i += chunkSize) {
+            const chunk = ataPubkeys.slice(i, i + chunkSize);
+            const infos = await connection.getMultipleAccountsInfo(chunk);
+            chunk.forEach((pubkey, idx) => {
+                ataOwnerMap.set(pubkey.toBase58(), infos[idx]);
+            });
+        }
+
+        // Step 3: Build the final populated array
+        const populatedArray = instructionTransferDetails
+            .filter(item => item?.amount > 0)
+            .map(item => {
+                const ataKey = new PublicKey(item.destinationAta).toBase58();
+                const ataInfo = ataOwnerMap.get(ataKey);
+                let tokenOwner = null;
+
+                if (ataInfo && ataInfo.owner.equals(TOKEN_PROGRAM_ID)) {
+                    const accountData = AccountLayout.decode(new Uint8Array(ataInfo.data));
+                    tokenOwner = new PublicKey(accountData.owner).toBase58();
+                    item.tokenOwner = tokenOwner;
+                }
+
+                return {
+                    amount: item.amount,
+                    mint: item.mint,
+                    address: tokenOwner || item.destinationAta, // fallback to destinationAta
+                };
+            });
+
+        // Step 4: Update state
+        setDestinationWalletArray(populatedArray);
+    };
+
+    const populateArrayWithOwnersSingle = async (instructionTransferDetails:any) => {
         const populatedArray = await Promise.all(
             instructionTransferDetails
                 .filter(item => item?.amount > 0)
@@ -2213,13 +2322,31 @@ export function GovernanceProposalV2View(props: any){
         //return populatedArray;
     };
 
-    // Process and map over the reduced result
+    const fetchedAtasRef = React.useRef<Set<string>>(new Set());
+
     React.useEffect(() => {
-        if (instructionTransferDetails && instructionTransferDetails?.length > 0){
-            // Populate destinationWalletArray
-            populateArrayWithOwners(instructionTransferDetails)
-            
-        }
+        const runPopulate = async () => {
+            if (!instructionTransferDetails || instructionTransferDetails.length === 0) return;
+
+            // Extract all unique destination ATAs from current data
+            const incomingAtas = new Set(
+                instructionTransferDetails
+                    .filter(item => item?.amount > 0 && item.destinationAta)
+                    .map(item => new PublicKey(item.destinationAta).toBase58())
+            );
+
+            // Only call populateArrayWithOwners if there's a new ATA we haven't seen before
+            const newAtas = [...incomingAtas].filter(ata => !fetchedAtasRef.current.has(ata));
+
+            if (newAtas.length > 0) {
+                await populateArrayWithOwners(instructionTransferDetails);
+
+                // Add to the seen list
+                newAtas.forEach(ata => fetchedAtasRef.current.add(ata));
+            }
+        };
+
+        runPopulate();
     }, [instructionTransferDetails]);
 
     return (
