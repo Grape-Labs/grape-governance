@@ -412,271 +412,271 @@ export function Header(props: any) {
 
     return (
         <>
-        <ClickAwayListener onClickAway={handleDrawerClose}>
-            <Box sx={{ display: 'flex' }}>
-            
-                <AppBar position="fixed" 
-                    open={open}
-                    className="app-header"
-                    sx={{background:'rgba(0,0,0,0.25)'}}>
-                    <Toolbar
-                        color="inherit"
-                        >
-                        
-                        <IconButton
+            <ClickAwayListener onClickAway={handleDrawerClose}>
+                <Box sx={{ display: 'flex' }}>
+                
+                    <AppBar position="fixed" 
+                        open={open}
+                        className="app-header"
+                        sx={{background:'rgba(0,0,0,0.25)'}}>
+                        <Toolbar
                             color="inherit"
-                            aria-label="open drawer"
-                            onClick={handleDrawerOpen}
-                            edge="start"
-                            sx={{ mr: 2, ...(open && { display: 'none' }) }}
-                        >
-                            <MenuIcon />
-                        </IconButton>
-
-                        <Box display='flex' flexGrow={1}>
-                            <Button
-                                variant="text"
-                                color="inherit" 
-                                href='/'
-                                sx={{borderRadius:'17px',pl:1,pr:1}}
                             >
-                                <Typography
-                                    component="h1"
-                                    variant="h6"
-                                    color="inherit"
-                                    display='flex'
-                                    sx={{
-                                        ml:1,
-                                        mr:1, 
-                                        maxHeight:'40px',
-                                        maxWidth:'150px'}}
+                            
+                            <IconButton
+                                color="inherit"
+                                aria-label="open drawer"
+                                onClick={handleDrawerOpen}
+                                edge="start"
+                                sx={{ mr: 2, ...(open && { display: 'none' }) }}
+                            >
+                                <MenuIcon />
+                            </IconButton>
+
+                            <Box display='flex' flexGrow={1}>
+                                <Button
+                                    variant="text"
+                                    color="inherit" 
+                                    href='/'
+                                    sx={{borderRadius:'17px',pl:1,pr:1}}
                                 >
-                                    <img src={APP_LOGO} className="header-logo" alt="Governance.so | Powered by Grape" />
-                                </Typography>
-                            </Button>
-                        </Box>
-                        
-                        {/*
-                        <pwa-install
-                            //manual-apple="true"
-                            //manual-chrome="true"
-                            //disable-chrome="true"
-                          
-                            install-description="Custom call to install text"
-                            disable-install-description="true"
-                            disable-screenshots="true"
-                            manifest-url="/up_/manifest.webmanifest"
-                            name="Governance"
-                            description="Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS"         
-                            icon={APP_ICON}
-                        ></pwa-install>
-                        */}
-                        
-                        {showInstallAppButton &&
-                            <div onClick={() => setShowInstallAppButton(false)}>
-                                <Tooltip title="Install Governance" sx={{mr:1}}>
-                                    <IconButton
-                                        onClick={promptToInstall}
+                                    <Typography
+                                        component="h1"
+                                        variant="h6"
+                                        color="inherit"
+                                        display='flex'
+                                        sx={{
+                                            ml:1,
+                                            mr:1, 
+                                            maxHeight:'40px',
+                                            maxWidth:'150px'}}
                                     >
-                                        <InstallMobileIcon />
+                                        <img src={APP_LOGO} className="header-logo" alt="Governance.so | Powered by Grape" />
+                                    </Typography>
+                                </Button>
+                            </Box>
+                            
+                            {/*
+                            <pwa-install
+                                //manual-apple="true"
+                                //manual-chrome="true"
+                                //disable-chrome="true"
+                            
+                                install-description="Custom call to install text"
+                                disable-install-description="true"
+                                disable-screenshots="true"
+                                manifest-url="/up_/manifest.webmanifest"
+                                name="Governance"
+                                description="Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS"         
+                                icon={APP_ICON}
+                            ></pwa-install>
+                            */}
+                            
+                            {showInstallAppButton &&
+                                <div onClick={() => setShowInstallAppButton(false)}>
+                                    <Tooltip title="Install Governance" sx={{mr:1}}>
+                                        <IconButton
+                                            onClick={promptToInstall}
+                                        >
+                                            <InstallMobileIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                </div>
+                            }
+
+                            {/*(Notification && Notification.permission === "granted") ?
+                                <Tooltip title="Test Notification" sx={{mr:1}}>
+                                    <IconButton
+                                        onClick={testNotification}
+                                    >
+                                        <NotificationsActiveIcon />
                                     </IconButton>
                                 </Tooltip>
-                            </div>
-                        }
+                        :<></>*/}                        
 
-                        {/*(Notification && Notification.permission === "granted") ?
-                            <Tooltip title="Test Notification" sx={{mr:1}}>
-                                <IconButton
-                                    onClick={testNotification}
-                                >
-                                    <NotificationsActiveIcon />
+                            <Tooltip title="RPC Settings">
+                                <IconButton onClick={handleOpenRpcSettings} sx={{ ml: 1 }}>
+                                    <SettingsSuggestIcon />
                                 </IconButton>
                             </Tooltip>
-                    :<></>*/}                        
-
-                        <Tooltip title="RPC Settings">
-                            <IconButton onClick={handleOpenRpcSettings} sx={{ ml: 1 }}>
-                                <SettingsSuggestIcon />
-                            </IconButton>
-                        </Tooltip>
-                        <div className="grape-wallet-adapter">
-                            <WalletDialogProvider className="grape-wallet-provider">
-                                <WalletMultiButton className="grape-wallet-button" />
-                            </WalletDialogProvider>
-                        </div>
-                    </Toolbar>
-                </AppBar>
-            
-                <Drawer
-                    sx={{
-                    width: drawerWidth,
-                    flexShrink: 0,
-                    '& .MuiDrawer-paper': {
+                            <div className="grape-wallet-adapter">
+                                <WalletDialogProvider className="grape-wallet-provider">
+                                    <WalletMultiButton className="grape-wallet-button" />
+                                </WalletDialogProvider>
+                            </div>
+                        </Toolbar>
+                    </AppBar>
+                
+                    <Drawer
+                        sx={{
                         width: drawerWidth,
-                        boxSizing: 'border-box',
-                    },
-                    }}
-                    variant="persistent"
-                    anchor="left"
-                    open={open}
-                >
-                    <DrawerHeader>
-                        <IconButton onClick={handleDrawerClose}>
-                            {/*theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />*/}
-                            <ChevronLeftIcon />
-                        </IconButton>
-                        </DrawerHeader>
-                        <Divider />
-                        <List>
-                            
-                        <ListItem disablePadding>
-                            <Tooltip title={`back to Directory`} placement="right" arrow>
-                                <ListItemButton 
-                                    component={Link}
-                                    to={'/'}
-                                >
-                                <ListItemIcon><HomeIcon/></ListItemIcon>
-                                <Typography variant="h6">Directory</Typography>
-                                </ListItemButton>
-                            </Tooltip>
-                        </ListItem>
-                        {publicKey &&
+                        flexShrink: 0,
+                        '& .MuiDrawer-paper': {
+                            width: drawerWidth,
+                            boxSizing: 'border-box',
+                        },
+                        }}
+                        variant="persistent"
+                        anchor="left"
+                        open={open}
+                    >
+                        <DrawerHeader>
+                            <IconButton onClick={handleDrawerClose}>
+                                {/*theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />*/}
+                                <ChevronLeftIcon />
+                            </IconButton>
+                            </DrawerHeader>
+                            <Divider />
+                            <List>
+                                
                             <ListItem disablePadding>
-                                <Tooltip title={`View your Governance Profile`} placement="right" arrow>
+                                <Tooltip title={`back to Directory`} placement="right" arrow>
                                     <ListItemButton 
                                         component={Link}
-                                        to={'/profile'}
+                                        to={'/'}
                                     >
-                                    <ListItemIcon><PersonIcon /></ListItemIcon>
-                                        <Typography variant="h6">Profile</Typography>
+                                    <ListItemIcon><HomeIcon/></ListItemIcon>
+                                    <Typography variant="h6">Directory</Typography>
                                     </ListItemButton>
                                 </Tooltip>
                             </ListItem>
-                        }
+                            {publicKey &&
+                                <ListItem disablePadding>
+                                    <Tooltip title={`View your Governance Profile`} placement="right" arrow>
+                                        <ListItemButton 
+                                            component={Link}
+                                            to={'/profile'}
+                                        >
+                                        <ListItemIcon><PersonIcon /></ListItemIcon>
+                                            <Typography variant="h6">Profile</Typography>
+                                        </ListItemButton>
+                                    </Tooltip>
+                                </ListItem>
+                            }
 
-                        <ListItem disablePadding>
-                            <Tooltip title={`Realtime Proposals`} placement="right" arrow>
-                                <ListItemButton 
-                                    component={Link}
-                                    to={'/realtime'}
-                                >
-                                <ListItemIcon><PodcastsIcon/></ListItemIcon>
-                                <Typography variant="h6">Realtime</Typography>
-                                </ListItemButton>
-                            </Tooltip>
-                        </ListItem>
-
-                        <ListItem disablePadding>
-                            <Tooltip title={`*tools for whitelisted addresses`} placement="right" arrow>
-                                <ListItemButton 
-                                    component={Link}
-                                    to={'/admin'}
-                                >
-                                <ListItemIcon><SettingsSuggestIcon /></ListItemIcon>
-                                <Typography variant="h6">Admin Tools</Typography>
-                                </ListItemButton>
-                            </Tooltip>
-                        </ListItem>
-
-                        <ListItem disablePadding>
-                            <AboutDialog /> 
-                        </ListItem>
-
-                        {governanceAutocomplete ?
-                            
                             <ListItem disablePadding>
-                                <Search
-                                    sx={{ mt:1,mb:1, backgroundColor:'rgba(255,255,255,0.05)' }}
-                                >
+                                <Tooltip title={`Realtime Proposals`} placement="right" arrow>
+                                    <ListItemButton 
+                                        component={Link}
+                                        to={'/realtime'}
+                                    >
+                                    <ListItemIcon><PodcastsIcon/></ListItemIcon>
+                                    <Typography variant="h6">Realtime</Typography>
+                                    </ListItemButton>
+                                </Tooltip>
+                            </ListItem>
+
+                            <ListItem disablePadding>
+                                <Tooltip title={`*tools for whitelisted addresses`} placement="right" arrow>
+                                    <ListItemButton 
+                                        component={Link}
+                                        to={'/admin'}
+                                    >
+                                    <ListItemIcon><SettingsSuggestIcon /></ListItemIcon>
+                                    <Typography variant="h6">Admin Tools</Typography>
+                                    </ListItemButton>
+                                </Tooltip>
+                            </ListItem>
+
+                            <ListItem disablePadding>
+                                <AboutDialog /> 
+                            </ListItem>
+
+                            {governanceAutocomplete ?
+                                
+                                <ListItem disablePadding>
+                                    <Search
+                                        sx={{ mt:1,mb:1, backgroundColor:'rgba(255,255,255,0.05)' }}
+                                    >
+                                        <Autocomplete
+                                            sx={{ minWidth:'25ch',border:'none'}}
+                                            disablePortal
+                                            size="small"
+                                            id="combo-box-demo"
+                                            options={governanceAutocomplete}
+                                            getOptionLabel={(option) => option.label}
+                                            renderOption={(props, option) => (
+                                                <Box sx={{border:'none'}} component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                                {option.label}
+                                                &nbsp;
+                                                <small>(
+                                                    {option.totalProposalsVoting ? <><HowToVoteIcon sx={{fontSize:10}} /> <strong>{option.totalProposalsVoting}</strong> of </> : ``}
+                                                    {option.totalProposals})
+                                                </small>
+                                                
+                                                </Box>
+                                            )}
+                                            onChange={(e, sel) => handleGovernanceSelect(sel?.value)}
+                                            renderInput={(params) => 
+                                                <TextField 
+                                                    sx={{fontSize:'14px'}}
+                                                    {...params} onChange={(e) => handleGovernanceSelect(e.target.value)} label="" 
+                                                />
+                                            }
+                                        />
+                                    </Search>
+                                    {/*
                                     <Autocomplete
-                                        sx={{ minWidth:'25ch',border:'none'}}
+                                        sx={{ mt:1,ml:2, minWidth: 300 }}
                                         disablePortal
                                         size="small"
                                         id="combo-box-demo"
                                         options={governanceAutocomplete}
-                                        getOptionLabel={(option) => option.label}
+                                        getOptionLabel={(option) => option.value}
                                         renderOption={(props, option) => (
-                                            <Box sx={{border:'none'}} component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                            <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
                                             {option.label}
                                             &nbsp;
                                             <small>(
-                                                {option.totalProposalsVoting ? <><HowToVoteIcon sx={{fontSize:10}} /> <strong>{option.totalProposalsVoting}</strong> of </> : ``}
+                                                {option.totalProposalsVoting ? <><strong>{option.totalProposalsVoting} voting</strong> of </> : ``}
                                                 {option.totalProposals})
                                             </small>
                                             
                                             </Box>
                                         )}
-                                        onChange={(e, sel) => handleGovernanceSelect(sel?.value)}
+                                        onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
                                         renderInput={(params) => 
-                                            <TextField 
-                                                sx={{fontSize:'14px'}}
-                                                {...params} onChange={(e) => handleGovernanceSelect(e.target.value)} label="" 
-                                            />
+                                            <TextField {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="Governance" />
                                         }
                                     />
-                                </Search>
-                                {/*
-                                <Autocomplete
-                                    sx={{ mt:1,ml:2, minWidth: 300 }}
-                                    disablePortal
-                                    size="small"
-                                    id="combo-box-demo"
-                                    options={governanceAutocomplete}
-                                    getOptionLabel={(option) => option.value}
-                                    renderOption={(props, option) => (
-                                        <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
-                                        {option.label}
-                                        &nbsp;
-                                        <small>(
-                                            {option.totalProposalsVoting ? <><strong>{option.totalProposalsVoting} voting</strong> of </> : ``}
-                                            {option.totalProposals})
-                                        </small>
-                                        
-                                        </Box>
-                                    )}
-                                    onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
-                                    renderInput={(params) => 
-                                        <TextField {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="Governance" />
-                                    }
-                                />
-                                */}
-                            </ListItem>
-                        :
-                            <ListItem disablePadding>
-                                <Search
-                                    sx={{ mt:1,ml:2,mb:1 }}
-                                >
-                                    <SearchIconWrapper>
-                                    <SearchIcon />
-                                    </SearchIconWrapper>
-                                    <StyledInputBase
-                                        placeholder="Enter a governance address"
-                                        inputProps={{ 'aria-label': 'search' }}
-                                        onChange={(e) => setGovernanceAddress(e.target.value)}
-                                    />
-                                </Search>
-                            </ListItem>
-                        }
-                            {/*
-                            <ListItem disablePadding>
-                                <RadioGroup
-                                        row
-                                        aria-labelledby="demo-row-radio-buttons-group-label"
-                                        name="row-radio-buttons-group"
-                                        value={fetchType}
-                                        onChange={handleChange}
-                                        sx={{ml:2,display:'none'}}
+                                    */}
+                                </ListItem>
+                            :
+                                <ListItem disablePadding>
+                                    <Search
+                                        sx={{ mt:1,ml:2,mb:1 }}
                                     >
+                                        <SearchIconWrapper>
+                                        <SearchIcon />
+                                        </SearchIconWrapper>
+                                        <StyledInputBase
+                                            placeholder="Enter a governance address"
+                                            inputProps={{ 'aria-label': 'search' }}
+                                            onChange={(e) => setGovernanceAddress(e.target.value)}
+                                        />
+                                    </Search>
+                                </ListItem>
+                            }
+                                {/*
+                                <ListItem disablePadding>
+                                    <RadioGroup
+                                            row
+                                            aria-labelledby="demo-row-radio-buttons-group-label"
+                                            name="row-radio-buttons-group"
+                                            value={fetchType}
+                                            onChange={handleChange}
+                                            sx={{ml:2,display:'none'}}
+                                        >
 
-                                        <FormControlLabel value="cachedgovernance" control={<Radio />} label="Cached" />
-                                        <FormControlLabel value="rpcgovernance" control={<Radio />} label="RPC" />
-                                </RadioGroup>
-                            </ListItem>
-                            */}
-                        </List>
-                </Drawer>
-            </Box>
-        </ClickAwayListener>
+                                            <FormControlLabel value="cachedgovernance" control={<Radio />} label="Cached" />
+                                            <FormControlLabel value="rpcgovernance" control={<Radio />} label="RPC" />
+                                    </RadioGroup>
+                                </ListItem>
+                                */}
+                            </List>
+                    </Drawer>
+                </Box>
+            </ClickAwayListener>
             <Dialog open={rpcSettingsOpen} onClose={handleCloseRpcSettings}>
                 <DialogTitle>Select RPC Provider</DialogTitle>
                 <Box p={2}>
