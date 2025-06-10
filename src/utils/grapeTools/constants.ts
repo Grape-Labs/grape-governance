@@ -74,6 +74,8 @@ export const GGAPI_STORAGE_URI = 'https://shdw-drive.genesysgo.net';
 export const APP_WHITELIST = process.env.REACT_APP_API_WHITELIST || null;
 export const APP_GOVERNANCEPROPWHITELIST = process.env.REACT_APP_API_GOVERNANCEPROPWHITELIST || null;
 
+export const APP_EXTENSION_LULU = process.env.REACT_APP_API_EXTENSION_LULU || null;
+
 export const PRIMARY_STORAGE_WALLET = process.env.REACT_APP_API_PRIMARY_STORAGE_WALLET || null;
 export const SECONDARY_STORAGE_WALLET = process.env.REACT_APP_API_SECONDARY_STORAGE_WALLET || null;
 export const TERTIARY_STORAGE_WALLET = process.env.REACT_APP_API_TERTIARY_STORAGE_WALLET || null;
