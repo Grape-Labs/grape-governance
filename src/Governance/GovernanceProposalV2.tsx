@@ -2106,7 +2106,7 @@ export function GovernanceProposalV2View(props: any){
         const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, realmOwner);
         setGovernanceRules(governanceRulesIndexed);
 
-        if (!thisitem){
+        if (!thisitem || reload){
             console.log("Calling Index/RPC");
             //const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
             const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
@@ -2202,6 +2202,10 @@ export function GovernanceProposalV2View(props: any){
                             // Your function code here
                             if (thisitem?.instructions)
                                 thisitem.instructions = null;
+                            // we need to updat the status of the proposal every time
+                            // thisitem.account?.state
+                            validateGovernanceSetup();
+                            
                             getVotingParticipants();
                             setReload(false);
                           }, 7500);

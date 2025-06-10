@@ -802,9 +802,8 @@ export const getProposalInstructionsIndexed = async (filterRealm?: string, propo
         for (const item of indexedResults) {
             if (item?.instructions) {
                 allProposalIx.push({
-                    pubkey: new PublicKey(0), // Placeholder — actual pubkey not included in GraphQL result
+                    pubkey: new PublicKey(item.pubkey), // Placeholder — actual pubkey not included in GraphQL result
                     account: {
-                        pubkey: new PublicKey(item.pubkey),
                         proposal: new PublicKey(proposalPk),
                         executedAt: item.executedAt,
                         executionStatus: item.executionStatus,
