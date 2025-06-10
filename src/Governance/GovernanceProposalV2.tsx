@@ -2175,6 +2175,7 @@ export function GovernanceProposalV2View(props: any){
     }
 
     const getGroupedInstructions = (ixTransferDetails) => {
+        /*
         const uniqueInstructions = Array.from(
             new Map(
                 ixTransferDetails.map(item => {
@@ -2182,10 +2183,10 @@ export function GovernanceProposalV2View(props: any){
                     return [key, item];
                 })
             ).values()
-        );
+        );*/
 
         return Object.values(
-            uniqueInstructions.reduce((result, item) => {
+            ixTransferDetails.reduce((result, item) => {
                 if (item && typeof item === 'object') {
                     const { mint, amount, name, logoURI, destinationAta } = item;
                     if (!mint || !destinationAta) return result;
