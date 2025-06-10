@@ -1055,7 +1055,8 @@ export function GovernanceProposalV2View(props: any){
 
                                             if (gai){
                                                 // get token metadata
-                                                console.log("gai: "+JSON.stringify(gai))
+                                                //console.log("gai: "+JSON.stringify(gai))
+                                                //console.log("accountInstruction: "+JSON.stringify(accountInstruction));
                                                 /*
                                                 const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai?.data?.parsed?.info?.mint}`;
                                                 
@@ -1117,6 +1118,7 @@ export function GovernanceProposalV2View(props: any){
 
                                                     newObject = {
                                                         type:"TokenTransfer",
+                                                        ix: instructionItem.pubkey,
                                                         pubkey: accountInstruction.accounts[0].pubkey,
                                                         mint: gai?.data.parsed.info.mint,
                                                         name: tname,
@@ -1135,11 +1137,12 @@ export function GovernanceProposalV2View(props: any){
                                                 accountInstruction.gai = gai;
                                                 
                                                 if (instructionTransferDetails){
-                                                    const hasInstruction = instructionTransferDetails.some(obj => obj?.pubkey === instructionItem.account.instructions[0].accounts[0]?.pubkey);
-                                                    
+                                                    const hasInstruction = instructionTransferDetails.some(obj => 
+                                                        obj?.pubkey === instructionItem.account.instructions[0]?.accounts[0]?.pubkey ||
+                                                        obj?.ix === instructionItem?.account?.ix
+                                                    );
                                                     if (!hasInstruction){
                                                         //console.log("newObject: "+JSON.stringify(newObject))
-
                                                         setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
                                                     }
                                                 }
@@ -1200,6 +1203,7 @@ export function GovernanceProposalV2View(props: any){
 
                                                     newObject = {
                                                         type:"BatchTokenTransfer",
+                                                        ix: instructionItem.pubkey,
                                                         pubkey: accountInstruction.accounts[0].pubkey,
                                                         mint: gai?.data.parsed.info.mint,
                                                         name: tname,
@@ -1217,11 +1221,13 @@ export function GovernanceProposalV2View(props: any){
                                                 }
                                                 accountInstruction.gai = gai;
                                                 
-                                                const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instructionItem.account.instructions[0].accounts[0].pubkey);
+                                                const hasInstruction = instructionTransferDetails.some(obj => 
+                                                    obj?.pubkey === instructionItem.account.instructions[0]?.accounts[0]?.pubkey ||
+                                                    obj?.ix === instructionItem?.account?.ix
+                                                );
                                                 
                                                 if (!hasInstruction){
                                                     //console.log("newObject: "+JSON.stringify(newObject))
-
                                                     setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
                                                 }
                                                 
@@ -1261,6 +1267,7 @@ export function GovernanceProposalV2View(props: any){
                                                     let symbol = "SOL";
                                                     newObject = {
                                                         type:"SOL Transfer",
+                                                        ix: instructionItem.pubkey,
                                                         pubkey: accountInstruction.accounts[0].pubkey,
                                                         mint: "So11111111111111111111111111111111111111112",//"SOL",//gai?.data.parsed.info.mint,
                                                         name: symbol,
@@ -1278,7 +1285,10 @@ export function GovernanceProposalV2View(props: any){
                                                 }
                                                 accountInstruction.gai = gai;
                                                 
-                                                const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instructionItem.account.instructions[0].accounts[0].pubkey);
+                                                const hasInstruction = instructionTransferDetails.some(obj => 
+                                                    obj?.pubkey === instructionItem.account.instructions[0]?.accounts[0]?.pubkey ||
+                                                    obj?.ix === instructionItem?.account?.ix
+                                                );
                                                 
                                                 if (!hasInstruction){
                                                     //console.log("newObject: "+JSON.stringify(newObject))
@@ -1520,6 +1530,7 @@ export function GovernanceProposalV2View(props: any){
 
                                                 const newObject = {
                                                     type:"SPL Governance Program by Solana",
+                                                    ix: instructionItem.pubkey,
                                                     decodedIx:decodedIx,
                                                     amount: amount ? parseFloat(amount.replace(/,/g, '')) : null, //amount,
                                                     pubkey: accountInstruction.accounts[0].pubkey,
@@ -1533,7 +1544,10 @@ export function GovernanceProposalV2View(props: any){
                                                 accountInstruction.info = newObject;
 
                                                 //if (amount > 0){
-                                                    const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instructionItem.account.instructions[0].accounts[0].pubkey);
+                                                    const hasInstruction = instructionTransferDetails.some(obj => 
+                                                        obj?.pubkey === instructionItem.account.instructions[0]?.accounts[0]?.pubkey ||
+                                                        obj?.ix === instructionItem?.account?.ix
+                                                    );
                                                     
                                                     if (!hasInstruction){
                                                         //console.log("newObject: "+JSON.stringify(newObject))
@@ -2159,6 +2173,46 @@ export function GovernanceProposalV2View(props: any){
 
         setGovernanceNativeWallet(nta);
     }
+
+    const getGroupedInstructions = (ixTransferDetails) => {
+        /*
+        const uniqueInstructions = Array.from(
+            new Map(
+                ixTransferDetails.map(item => {
+                    const key = `${item.ix}_${item.mint}_${item.destinationAta}`;
+                    return [key, item];
+                })
+            ).values()
+        );*/
+
+        return Object.values(
+            ixTransferDetails.reduce((result, item) => {
+                if (item && typeof item === 'object') {
+                    const { mint, amount, name, logoURI, destinationAta } = item;
+                    if (!mint || !destinationAta) return result;
+
+                    if (!result[mint]) {
+                        result[mint] = {
+                            mint,
+                            name,
+                            logoURI,
+                            destinationAmounts: {},
+                            totalAmount: 0,
+                        };
+                    }
+
+                    const group = result[mint];
+                    const parsedAmount = parseFloat(amount) || 0;
+
+                    group.destinationAmounts[destinationAta] = (group.destinationAmounts[destinationAta] || 0) + parsedAmount;
+                    group.totalAmount += parsedAmount;
+
+                    console.log(`[DEBUG] ix: ${item.ix}, mint: ${mint}, dest: ${destinationAta}, amount: ${parsedAmount}`);
+                }
+                return result;
+            }, {})
+        );
+    };
 
     React.useEffect(() => { 
         if (thisitem && !governanceNativeWallet){
@@ -3616,38 +3670,7 @@ export function GovernanceProposalV2View(props: any){
                                                         Instructions Summary
                                                     </Typography>
                                                     <Typography variant="caption">
-                                                        {Object.values(
-                                                            instructionTransferDetails.reduce((result, item) => {
-                                                                if (item && typeof item === 'object') {
-                                                                    const { mint, amount, name, logoURI, destinationAta } = item;
-                                                                    if (!mint || !destinationAta) return result;
-
-                                                                    if (!result[mint]) {
-                                                                        result[mint] = {
-                                                                            mint,
-                                                                            name,
-                                                                            logoURI,
-                                                                            destinationAmounts: {}, // map destinationAta => amount
-                                                                            totalAmount: 0,
-                                                                        };
-                                                                    }
-
-                                                                    const group = result[mint];
-
-                                                                    if (!group.destinationAmounts[destinationAta]) {
-                                                                        group.destinationAmounts[destinationAta] = 0;
-                                                                    }
-
-                                                                    group.destinationAmounts[destinationAta] += +amount || 0;
-
-                                                                    group.totalAmount = Object.values(group.destinationAmounts).reduce(
-                                                                        (sum, val) => sum + val,
-                                                                        0
-                                                                    );
-                                                                }
-                                                                return result;
-                                                            }, {})
-                                                        ).map((item, key, array) => (
+                                                        {getGroupedInstructions(instructionTransferDetails).map((item, key, array) => (
                                                             <Grid container direction="row" key={item.mint}>
                                                                 <Grid item>
                                                                     {(item && item.totalAmount > 0 && Object.keys(item.destinationAmounts).length > 0) && (
