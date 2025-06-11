@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Button, Checkbox, FormControlLabel, CircularProgress
+  TextField, Button, Checkbox, FormControlLabel, CircularProgress,
+  Snackbar, Alert
 } from '@mui/material';
 import { APP_GITHUB_CLIENT_ID } from '../utils/grapeTools/constants';
 
@@ -13,6 +14,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
   const [githubToken, setGithubToken] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
+  const [copySnackbarOpen, setCopySnackbarOpen] = useState(false);
 
   const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [userCode, setUserCode] = useState('');
@@ -181,7 +183,23 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
         <DialogContent>
           <p>To proceed, authorize this app with GitHub.</p>
           <p>
-            <strong>Code:</strong> {userCode}
+            <strong>Code:</strong>
+            <strong
+              style={{
+                cursor: 'pointer',
+                background: '#eee',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                display: 'inline-block',
+              }}
+              onClick={() => {
+                navigator.clipboard.writeText(userCode);
+                setCopySnackbarOpen(true);
+              }}
+              title="Click to copy"
+            >
+              {userCode}
+            </strong>
           </p>
           <Button
             variant="outlined"
@@ -203,6 +221,16 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
           <Button onClick={() => setVerificationDialogOpen(false)}>Cancel</Button>
         </DialogActions>
       </Dialog>
+      <Snackbar
+        open={copySnackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setCopySnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setCopySnackbarOpen(false)} severity="success" sx={{ width: '100%' }}>
+          Code copied to clipboard!
+        </Alert>
+      </Snackbar>
     </>
   );
 }

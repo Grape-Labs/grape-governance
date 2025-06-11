@@ -1976,37 +1976,39 @@ export default function GovernanceCreateProposalView(props: any){
                                     sx={{maxlength:maxDescriptionLen}}
                                     />
 
-                                <Grid sx={{textAlign:'left'}}>
-                                  {governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
-                                    <CreateGistWithOAuth
-                                      onGistCreated={(url) => {
-                                        // Set it to your description field, or trigger your handler
-                                        setDescription(url); // or handleDescriptionChange(url)
-                                      }}
-                                      defaultText={description}
-                                    />
-                                 }
-                                </Grid>
-
-                                <Grid sx={{textAlign:'right',}}>
-
-                                  {isGistDescription ?
-                                    <>
-                                      <GovernanceGistDialog gist={description} />
-                                      <Button
-                                          color='inherit'
-                                          size='small'
-                                          target='_blank'
-                                          href={description}
-                                          sx={{borderRadius:'17px'}}
-                                      >
-                                          <GitHubIcon sx={{mr:1}} /> GIST
-                                      </Button>
-                                    </>
-                                  :
-                                    <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
+                                <Grid container justifyContent="space-between" alignItems="center">
+                                  <Grid item sx={{textAlign:'left'}}>
+                                    {governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
+                                      <CreateGistWithOAuth
+                                        onGistCreated={(url) => {
+                                          // Set it to your description field, or trigger your handler
+                                          setDescription(url); // or handleDescriptionChange(url)
+                                        }}
+                                        defaultText={description}
+                                      />
                                   }
-                                  
+                                  </Grid>
+
+                                  <Grid item sx={{textAlign:'right',}}>
+
+                                    {isGistDescription ?
+                                      <>
+                                        <GovernanceGistDialog gist={description} />
+                                        <Button
+                                            color='inherit'
+                                            size='small'
+                                            target='_blank'
+                                            href={description}
+                                            sx={{borderRadius:'17px'}}
+                                        >
+                                            <GitHubIcon sx={{mr:1}} /> GIST
+                                        </Button>
+                                      </>
+                                    :
+                                      <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
+                                    }
+                                    
+                                  </Grid>
                                 </Grid>
 
                             </FormControl>
