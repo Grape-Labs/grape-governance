@@ -12,7 +12,7 @@
 Governance.so leverages **indexed RPCs and cached storage** to dramatically reduce load times — making governance feel like using a native wallet.
 
 ### 🛠 Rapid Proposal Builder
-Create **multi-instruction proposals** with ease. Whether it's token transfers, DAO role assignments, or granting voting power, our UI generates structured summaries so users can confidently submit complex proposals.
+Create **multi-instruction proposals** with ease. Whether it's token transfers, DAO role assignments, or granting voting power, our UI generates structured summaries so users can confidently submit complex proposals and voters can easily understand what the proposal details are.
 
 ### 👛 DAO Wallet Viewer
 A familiar wallet-style interface for DAO treasuries:
@@ -35,9 +35,14 @@ Empower governance:
 - Clear, transparent voter records
 
 ### 🔴 Realtime Feed
+[https://governance.so/realtime](https://governance.so/realtime)
+
 Watch new proposals and vote activity unfold **live**. The Realtime tab gives an instant overview of all network-wide DAO activity.
 
 ### 👤 Profile Interface
+
+[https://governance.so/profile](https://governance.so/profile)
+
 View your governance footprint:
 - DAOs you participate in
 - Proposals you've created
@@ -52,7 +57,7 @@ View your governance footprint:
 Whitelisted wallets can:
 - Fetch governance accounts
 - Generate cached proposal files
-- Upload to decentralized storage (Shadow Drive)
+- Upload to decentralized storage
 
 ---
 
