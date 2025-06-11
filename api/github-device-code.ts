@@ -15,7 +15,9 @@ export default async function handler(req, res) {
     })
   });
 
-  const data = await response.text(); // GitHub sometimes responds as text
-  res.setHeader('Content-Type', 'application/json');
-  res.status(200).send(data);
+  const raw = await response.text();
+  const params = new URLSearchParams(raw);
+  const data = Object.fromEntries(params.entries());
+
+  res.status(200).json(data);
 }
