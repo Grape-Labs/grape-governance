@@ -14,12 +14,6 @@
     { "src": "/api/(.*)", "dest": "/api/$1.ts" },
     { "src": "/[^.]+", "dest": "/", "status": 200 }
   ],
-  "crons": [
-    {
-      "path": "/api/cron",
-      "schedule": "0 15 * * *"
-    }
-  ],
   "buildCommand": "yarn build:client",
   "outputDirectory": "dist"
 }
