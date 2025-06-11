@@ -1682,6 +1682,12 @@ export default function GovernanceCreateProposalView(props: any){
       
     }, []);
 
+    React.useEffect(() => {
+      if (description) {
+        handleDescriptionChange(description); // re-validate or re-check Gist
+      }
+    }, [description]);
+
     /*
     const nextFieldRef = React.useRef(null); // Reference to the next input field
 
@@ -1969,6 +1975,19 @@ export default function GovernanceCreateProposalView(props: any){
                                     
                                     sx={{maxlength:maxDescriptionLen}}
                                     />
+
+                                <Grid sx={{textAlign:'left'}}>
+                                  {governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
+                                    <CreateGistWithOAuth
+                                      onGistCreated={(url) => {
+                                        // Set it to your description field, or trigger your handler
+                                        setDescription(url); // or handleDescriptionChange(url)
+                                      }}
+                                      defaultText={description}
+                                    />
+                                 }
+                                </Grid>
+
                                 <Grid sx={{textAlign:'right',}}>
 
                                   {isGistDescription ?
@@ -1987,17 +2006,7 @@ export default function GovernanceCreateProposalView(props: any){
                                   :
                                     <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
                                   }
-
-                                  {governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
-                                    <CreateGistWithOAuth
-                                      onGistCreated={(url) => {
-                                        // Set it to your description field, or trigger your handler
-                                        setDescription(url); // or handleDescriptionChange(url)
-                                      }}
-                                      defaultText={description}
-                                    />
-                                 }
-                                
+                                  
                                 </Grid>
 
                             </FormControl>
