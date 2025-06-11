@@ -1822,7 +1822,13 @@ export default function GovernanceCreateProposalView(props: any){
                   <>
                     
                     <>
-                    <Dialog open={open} onClose={handleCancel}>
+                    <Dialog
+                      open={open}
+                      onClose={handleCancel}
+                      fullWidth
+                      disableEnforceFocus
+                      disableRestoreFocus
+                    >
                       <DialogTitle>Continue from where you left off?</DialogTitle>
                       <DialogContent>
                         <DialogContentText>
