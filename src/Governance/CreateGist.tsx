@@ -176,27 +176,33 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
         </DialogActions>
       </Dialog>
 
-      <DialogContent>
-        <p>To proceed, authorize this app with GitHub.</p>
-        <p>
-          <strong>Code:</strong> {userCode}
-        </p>
-        <Button
-          variant="outlined"
-          fullWidth
-          onClick={() => window.open(verificationUri, '_blank')}
-          sx={{ mt: 1 }}
-        >
-          Open GitHub Login Page
-        </Button>
+      <Dialog open={verificationDialogOpen} onClose={() => setVerificationDialogOpen(false)}>
+        <DialogTitle>Authorize GitHub</DialogTitle>
+        <DialogContent>
+          <p>To proceed, authorize this app with GitHub.</p>
+          <p>
+            <strong>Code:</strong> {userCode}
+          </p>
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={() => window.open(verificationUri, '_blank')}
+            sx={{ mt: 1 }}
+          >
+            Open GitHub Login Page
+          </Button>
 
-        {isPolling && (
-          <div style={{ display: 'flex', alignItems: 'center', marginTop: '16px' }}>
-            <CircularProgress size={20} sx={{ mr: 1 }} />
-            <span>Waiting for authorization...</span>
-          </div>
-        )}
-      </DialogContent>
+          {isPolling && (
+            <div style={{ display: 'flex', alignItems: 'center', marginTop: '16px' }}>
+              <CircularProgress size={20} sx={{ mr: 1 }} />
+              <span>Waiting for authorization...</span>
+            </div>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setVerificationDialogOpen(false)}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
