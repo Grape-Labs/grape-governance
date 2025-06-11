@@ -1822,7 +1822,13 @@ export default function GovernanceCreateProposalView(props: any){
                   <>
                     
                     <>
-                    <Dialog open={open} onClose={handleCancel}>
+                    <Dialog
+                      open={open}
+                      onClose={handleCancel}
+                      fullWidth
+                      disableEnforceFocus
+                      disableRestoreFocus
+                    >
                       <DialogTitle>Continue from where you left off?</DialogTitle>
                       <DialogContent>
                         <DialogContentText>
@@ -1869,6 +1875,7 @@ export default function GovernanceCreateProposalView(props: any){
                                                 </Button>
                                               </Tooltip>
                                             }
+                                            {/*
                                               <Button
                                                   sx={{
                                                     borderRadius:'17px',
@@ -1879,6 +1886,7 @@ export default function GovernanceCreateProposalView(props: any){
                                               >
                                                 <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
                                               </Button>
+                                              */}
                                             </ButtonGroup>
                                         </Grid>
 

@@ -151,22 +151,35 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
             )
           ) : (
             <>
-              <TextField
-                fullWidth
-                label="Gist Description"
-                value={gistDescription}
-                onChange={(e) => setGistDescription(e.target.value)}
-                margin="dense"
-              />
-              <TextField
-                fullWidth
-                label="Content"
-                value={gistContent}
-                onChange={(e) => setGistContent(e.target.value)}
-                multiline
-                rows={6}
-                margin="dense"
-              />
+                {/* Description */}
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  label="Gist Description"
+                  placeholder="Brief description of your gist"
+                  value={gistDescription}
+                  onChange={(e) => setGistDescription(e.target.value)}
+                  margin="dense"
+                  sx={{ mb: 2 }}
+                />
+
+                {/* Code Content */}
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  label="Code Snippet"
+                  placeholder="// Write your code here"
+                  value={gistContent}
+                  onChange={(e) => setGistContent(e.target.value)}
+                  multiline
+                  rows={10}
+                  margin="dense"
+                  sx={{
+                    fontFamily: 'monospace',
+                    whiteSpace: 'pre-wrap',
+                    mb: 2,
+                  }}
+                />
               <FormControlLabel
                 control={
                   <Checkbox
