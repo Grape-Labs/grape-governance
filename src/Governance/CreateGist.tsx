@@ -15,7 +15,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
 
   const startDeviceFlow = async () => {
     if (!APP_GITHUB_CLIENT_ID) {
-      alert('GitHub client ID is not configured. Please set APP_GITHUB_CLIENT_ID in your environment.');
+      alert('GitHub client ID is not configured. Please set REACT_APP_API_GITHUBCLIENTID in your environment.');
       return;
     }
 
