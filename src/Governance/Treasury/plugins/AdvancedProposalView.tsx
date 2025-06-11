@@ -190,9 +190,11 @@ export default function AdvanvedProposalView(props: any){
                     <Grid container justifyContent="space-between" alignItems="center">
                         <Grid item sx={{textAlign:'left',}}>
                             <CreateGistWithOAuth
-                                defaultText="// your default snippet"
-                                onGistCreated={(url) => console.log('Gist created at:', url)}
-                                buttonLabel="+ Gist"
+                            onGistCreated={(url) => {
+                                // Set it to your description field, or trigger your handler
+                                setProposalDescription(url); // or handleDescriptionChange(url)
+                            }}
+                            defaultText={proposalDescription}
                             />
                         </Grid>
 
