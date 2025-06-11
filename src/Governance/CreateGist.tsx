@@ -125,6 +125,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
         open={open}
         onClose={handleClose}
         fullWidth
+        disableEnforceFocus
         disableRestoreFocus
       >
         <DialogTitle>Create GitHub Gist</DialogTitle>
@@ -223,7 +224,11 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
           <Button
             variant="outlined"
             fullWidth
-            onClick={() => window.open(verificationUri, '_blank')}
+            onClick={() => {
+              navigator.clipboard.writeText(userCode);
+              setCopySnackbarOpen(true);
+              window.open(verificationUri, '_blank');
+            }}
             sx={{ mt: 1 }}
           >
             Open GitHub Login Page
