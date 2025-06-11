@@ -6,8 +6,8 @@
       "use": "@vercel/node"
     },
     {
-      "src": "dist/index.html",
-      "use": "@vercel/static"
+      "src": "src/index.html",
+      "use": "@vercel/static-build"
     }
   ],
   "routes": [
@@ -19,5 +19,7 @@
       "path": "/api/cron",
       "schedule": "0 15 * * *"
     }
-  ]
+  ],
+  "buildCommand": "yarn build:client",
+  "outputDirectory": "dist"
 }
