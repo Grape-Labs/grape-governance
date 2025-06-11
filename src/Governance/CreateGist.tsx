@@ -16,6 +16,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
   const [isPolling, setIsPolling] = useState(false);
   const [copySnackbarOpen, setCopySnackbarOpen] = useState(false);
 
+  const [verificationConfirmed, setVerificationConfirmed] = useState(false);
   const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [userCode, setUserCode] = useState('');
   const [verificationUri, setVerificationUri] = useState('');
@@ -50,9 +51,13 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
       if (tokenData.access_token) {
         clearInterval(intervalId);
         setIsPolling(false);
+        setVerificationConfirmed(true); // 👈 add this
         setVerificationDialogOpen(false);
         setGithubToken(tokenData.access_token);
-        alert('GitHub authentication successful. You may now create a Gist.');
+        // Show confirmation for 2 seconds, then close the dialog
+        setTimeout(() => {
+          setVerificationDialogOpen(false);
+        }, 2000);
       } else if (tokenData.error === 'slow_down' && tokenData.interval) {
         clearInterval(intervalId);
         pollingInterval = (tokenData.interval || data.interval) * 1000;
@@ -116,7 +121,12 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
         {buttonLabel}
       </Button>
 
-      <Dialog open={open} onClose={handleClose} fullWidth>
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        fullWidth
+        disableRestoreFocus
+      >
         <DialogTitle>Create GitHub Gist</DialogTitle>
         <DialogContent>
           {!githubToken ? (
@@ -184,22 +194,31 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
           <p>To proceed, authorize this app with GitHub.</p>
           <p>
             <strong>Code:</strong>
-            <strong
-              style={{
-                cursor: 'pointer',
-                background: '#eee',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                display: 'inline-block',
-              }}
+            <Button
+              variant="outlined"
+              size="small"
               onClick={() => {
                 navigator.clipboard.writeText(userCode);
                 setCopySnackbarOpen(true);
               }}
+              sx={{
+                textTransform: 'none',
+                ml: 1,
+                fontWeight: 600,
+                px: 1.5,
+                py: 0.5,
+                minWidth: 'auto',
+                backgroundColor: '#f0f0f0',
+                color: '#333',
+                borderColor: '#ccc',
+                '&:hover': {
+                  backgroundColor: '#e0e0e0',
+                }
+              }}
               title="Click to copy"
             >
               {userCode}
-            </strong>
+            </Button>
           </p>
           <Button
             variant="outlined"
@@ -210,10 +229,16 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
             Open GitHub Login Page
           </Button>
 
-          {isPolling && (
+          {isPolling && !verificationConfirmed && (
             <div style={{ display: 'flex', alignItems: 'center', marginTop: '16px' }}>
               <CircularProgress size={20} sx={{ mr: 1 }} />
               <span>Waiting for authorization...</span>
+            </div>
+          )}
+
+          {verificationConfirmed && (
+            <div style={{ marginTop: '16px', color: 'green', fontWeight: 'bold' }}>
+              GitHub authentication confirmed! You may now return and create your Gist.
             </div>
           )}
         </DialogContent>
