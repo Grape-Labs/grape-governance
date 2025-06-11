@@ -1698,6 +1698,28 @@ export default function GovernanceCreateProposalView(props: any){
       }
     };*/
 
+    React.useEffect(() => {
+      const handler = (e: KeyboardEvent) => {
+        // Allow typing in inputs, textareas, and editable divs
+        const el = document.activeElement;
+        const isTyping =
+          el?.tagName === 'INPUT' ||
+          el?.tagName === 'TEXTAREA' ||
+          el?.getAttribute('contenteditable') === 'true';
+
+        if (isTyping) return; // ✅ allow key through
+
+        if (e.key === 'g' || e.key === 'c') {
+          e.preventDefault();
+          console.log(`Global shortcut: ${e.key}`);
+          // Perform shortcut action
+        }
+      };
+
+      window.addEventListener('keydown', handler);
+      return () => window.removeEventListener('keydown', handler);
+    }, []);
+
     return (
         <>
         {!publicKey ?
@@ -1822,13 +1844,15 @@ export default function GovernanceCreateProposalView(props: any){
                   <>
                     
                     <>
-                    <Dialog
-                      open={open}
-                      onClose={handleCancel}
-                      fullWidth
-                      disableEnforceFocus
-                      disableRestoreFocus
-                    >
+                      <Dialog
+                        open={open}
+                        onClose={handleCancel}
+                        fullWidth
+                        disableEnforceFocus
+                        disableRestoreFocus
+                        disableEscapeKeyDown // ← Add this
+                        disableAutoFocus     // ← Add this if needed
+                      >
                       <DialogTitle>Continue from where you left off?</DialogTitle>
                       <DialogContent>
                         <DialogContentText>
@@ -1933,12 +1957,13 @@ export default function GovernanceCreateProposalView(props: any){
                                     onFocus={() => console.log("Title Field focused")}
                                     onBlur={() => console.log("Title Field blurred")}
                                     onKeyDown={(e) => {
+                                      /*
                                       if (e.key === 'G' || e.key === 'g') {
                                           console.log("Refocusing field on 'G'");
                                           if (e.target instanceof HTMLInputElement) {
                                             e.target.focus(); // Safely access focus
                                           }
-                                      }
+                                      }*/
                                   }}
                                     onChange={(e) => {
                                         if (!title || title.length < maxTitleLen)
@@ -1964,12 +1989,14 @@ export default function GovernanceCreateProposalView(props: any){
                                     onFocus={() => console.log("Description Field focused")}
                                     onBlur={() => console.log("Description Field blurred")}
                                     onKeyDown={(e) => {
+                                      /*
                                       if (e.key === 'G' || e.key === 'g') {
                                           console.log("Refocusing field on 'G'");
                                           if (e.target instanceof HTMLInputElement) {
                                             e.target.focus(); // Safely access focus
                                           }
                                       }
+                                      */
                                   }}
                                     onChange={(e) => {
                                       const newValue = e.target.value;

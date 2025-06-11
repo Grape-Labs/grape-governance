@@ -121,7 +121,7 @@ export function IntegratedGovernanceProposalDialogView(props: any){
     const handleClose = () => {
         setPropOpen(false);
     };
-
+    
     return (
         <>
             <Tooltip title={title}>
@@ -209,11 +209,6 @@ export function IntegratedGovernanceProposalDialogView(props: any){
                 disableAutoFocus
                 disableEnforceFocus
                 disableRestoreFocus
-                onKeyDown={(e) => {
-                    if (e.key === 'Tab') {
-                        e.preventDefault(); // Prevent dialog from closing
-                    }
-                }}
                 >
                 <BootstrapDialogTitle id="create-storage-pool" onClose={handleCloseDialog}>
                     {title} {editProposalAddress && editProposalAddress.toBase58()}
