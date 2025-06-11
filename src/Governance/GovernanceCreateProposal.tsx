@@ -1869,6 +1869,7 @@ export default function GovernanceCreateProposalView(props: any){
                                                 </Button>
                                               </Tooltip>
                                             }
+                                            {/*
                                               <Button
                                                   sx={{
                                                     borderRadius:'17px',
@@ -1879,6 +1880,7 @@ export default function GovernanceCreateProposalView(props: any){
                                               >
                                                 <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
                                               </Button>
+                                              */}
                                             </ButtonGroup>
                                         </Grid>
 
