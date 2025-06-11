@@ -62,6 +62,8 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import { GovernanceGistDialog } from './GovernanceGistDialog';
 
+import CreateGistWithOAuth from './CreateGist';
+
 //import StreamflowPaymentsView from './plugins/instructions/StreamflowPaymentsView';
 import IntraDAOProposalView from './plugins/instructions/IntraDAOProposalView';
 import IntraDAOGrantView from './plugins/instructions/IntraDAOGrantView';
@@ -1985,8 +1987,19 @@ export default function GovernanceCreateProposalView(props: any){
                                   :
                                     <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
                                   }
-                                </Grid>
+
+                                  {governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
+                                    <CreateGistWithOAuth
+                                      onGistCreated={(url) => {
+                                        // Set it to your description field, or trigger your handler
+                                        setDescription(url); // or handleDescriptionChange(url)
+                                      }}
+                                      defaultText={description}
+                                    />
+                                 }
                                 
+                                </Grid>
+
                             </FormControl>
                             
                             <FormControl fullWidth  sx={{mb:2}}>

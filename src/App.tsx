@@ -24,6 +24,10 @@ import { GovernanceProposalWrapper } from "./Governance/GovernanceProposalWrappe
 import GovernanceCreateProposalView from "./Governance/GovernanceCreateProposal";
 import { GovernanceWalletView } from "./Governance/Treasury/SingleWalletWrapperView";
 
+//import CreateNewDAO from "./Governance/CreateNewDAO/CreateNewDAO";
+//import MultiSigWizard from "./Governance/CreateNewDAO/CreateMultiSig";
+//import CommunityTokenWizard from "./Governance/CreateNewDAO/CreateCommunity";
+
 import TestEmbed from "./Governance/TestEmbed";
 import { ApiView } from "./api/api";
 import CssBaseline from '@mui/material/CssBaseline';
@@ -321,8 +325,13 @@ function DashboardContent() {
                                                 <Route path=":handlekey" element={<ApiView />} />
                                             </Route>
                                             */}
-
-
+                                              
+                                            {/*
+                                              <Route path="/new/create" element={<CreateNewDAO />} />
+                                              <Route path="/new/create/multisig" element={<MultiSigWizard />} />
+                                              <Route path="/new/create/community" element={<CommunityTokenWizard />} />
+                                              */}
+                                              
                                               <Route path="gspl/*" element={<GovernanceDirectoryTestView />} >
                                                 <Route path=":handlekey" element={<GovernanceDirectoryTestView />} />
                                               </Route>

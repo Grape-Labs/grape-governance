@@ -1,11 +1,15 @@
 {
-  "routes": [{ 
-    "src": "/[^.]+", 
-    "dest": "/", 
-    "status": 200 
-  }],
-  "crons": [{
-    "path": "/api/cron",
-    "schedule": "0 15 * * *"
-  }]
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/**/*.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1.ts"
+    }
+  ]
 }
