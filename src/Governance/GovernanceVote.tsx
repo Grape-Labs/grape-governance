@@ -212,6 +212,8 @@ export function VoteForProposal(props:any){
     const [memberMap, setMemberMap] = React.useState(null);
     const [voterRecord, setVoterRecord] = React.useState(null);
     const [delegatedVoterRecord, setDelegatedVoterRecord] = React.useState(null);
+    const [councilVoterRecord, setCouncilVoterRecord] = React.useState(null);
+    const [councilDelegateVoterRecord, setCouncilDelegateVoterRecord] = React.useState(null);
     const [selectedIndex, setSelectedIndex] = React.useState(1);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const [anchorElYes, setAnchorElYes] = React.useState(null);
@@ -779,26 +781,42 @@ export function VoteForProposal(props:any){
 
     const loadMemberMap = async() => {
         
-        //const programId = new PublicKey(realm.owner);
-        //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
-        
-        //const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null);
         const rawTokenOwnerRecords = await getTokenOwnerRecordsByRealmIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null, publicKey.toBase58());
         setMemberMap(rawTokenOwnerRecords);
 
         let memberItem = rawTokenOwnerRecords.find(item => 
             (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
             item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
-
+        
         setVoterRecord(memberItem);
-        console.log("memberItem: "+JSON.stringify(memberItem));
+        //console.log("memberItem: "+JSON.stringify(memberItem));
         
         let delegatedItems = rawTokenOwnerRecords.filter(item => 
             (item.account?.governanceDelegate?.toBase58() === publicKey.toBase58() && 
             item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
-        setDelegatedVoterRecord(delegatedItems);
         
-        console.log("delegatedItems: "+JSON.stringify(delegatedItems));
+        setDelegatedVoterRecord(delegatedItems);
+        //console.log("delegatedItems: "+JSON.stringify(delegatedItems));
+
+        // check if this is a community proposal
+        // if community proposal check if the voter is a council member & check if the delegate is a council member
+        if (realm && realm.account && realm.account.config && realm.account.config?.councilMint &&
+            realm.account.config.councilMint.toBase58() !== thisitem.account.governingTokenMint.toBase58()){
+            // this is a community proposal so now lets check
+                //rawTokenOwnerRecords
+            console.log("community proposal, checking council members...");
+            let councilMemberItem = rawTokenOwnerRecords.find(item => 
+                (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
+                 item.account.governingTokenMint.toBase58() === realm.account.config.councilMint.toBase58()));
+                console.log("councilMemberItem: "+JSON.stringify(councilMemberItem));
+            setCouncilVoterRecord(councilMemberItem);
+            
+            let councilDelegateMemberItem = rawTokenOwnerRecords.find(item => 
+                (item.account.governanceDelegate.toBase58() === publicKey.toBase58() && 
+                 item.account.governingTokenMint.toBase58() === realm.account.config.councilMint.toBase58()));
+                console.log("delegateCouncilMemberItem: "+JSON.stringify(councilMemberItem));
+            setCouncilDelegateVoterRecord(councilDelegateMemberItem);
+        }
     }
 
     const handleDelegateOpenYesToggle = (event:any) => {
@@ -925,8 +943,6 @@ export function VoteForProposal(props:any){
             <>
             {(thisitem.account?.state === 2 && publicKey) &&
                 <>
-                
-
                     {type === 0 ?
                         <>
                         {!hasVoted &&
@@ -1045,7 +1061,6 @@ export function VoteForProposal(props:any){
                                 sx={{borderRadius:'17px',textTransform:'none'}}
                             >{(title && subtitle && showIcon) ?
                                 <>
-                                
                                     <Grid container direction="column" alignItems="center">
                                         <Grid item>
                                             <Grid container direction='row' alignItems='center'>
@@ -1073,7 +1088,6 @@ export function VoteForProposal(props:any){
                                             </Grid>
                                         </Grid>
                                     </Grid>
-                                
                                 </>
                             :
                                 <>
