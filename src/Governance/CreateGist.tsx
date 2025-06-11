@@ -6,6 +6,8 @@ import {
 } from '@mui/material';
 import { APP_GITHUB_CLIENT_ID } from '../utils/grapeTools/constants';
 
+import GitHubIcon from '@mui/icons-material/GitHub';
+
 export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gist', defaultText = '' }) {
   const [open, setOpen] = useState(false);
   const [gistDescription, setGistDescription] = useState('');
@@ -26,6 +28,16 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
       alert('GitHub client ID is not configured.');
       return;
     }
+
+    // Disallow usage on localhost or file:// origins
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.protocol === 'file:';
+    if (isLocalhost) {
+      alert(
+        'GitHub authentication is not supported on localhost or file://. Please deploy this app to a public HTTPS URL to test Gist integration.'
+      );
+      return;
+    }
+
 
     const res = await fetch('/api/github-device-code', { method: 'POST' });
     const data = await res.json();
@@ -133,7 +145,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
           {!githubToken ? (
             !userCode ? (
               <Button onClick={startDeviceFlow} variant="contained">
-                Authenticate with GitHub
+                Authenticate with&nbsp;<GitHubIcon/> GitHub
               </Button>
             ) : (
               <>

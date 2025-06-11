@@ -255,6 +255,29 @@ export default function WalletCardView(props:any) {
         setIsCopied(false);
     };
 
+    React.useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            const el = document.activeElement;
+
+            const isInputField =
+            (el instanceof HTMLInputElement && el.type !== 'button') ||
+            el instanceof HTMLTextAreaElement ||
+            el?.getAttribute('contenteditable') === 'true';
+
+            if (isInputField) return; // ✅ Let typing happen normally
+
+            // Handle global shortcuts
+            if (e.key === 'g' || e.key === 'c') {
+            e.preventDefault();
+            console.log(`Global shortcut: ${e.key}`);
+            // Do shortcut actions...
+            }
+        };
+
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, []);
+
     function SettingsMenu() {
         const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
         const open = Boolean(anchorEl);
