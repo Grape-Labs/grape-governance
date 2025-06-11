@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      client_id: process.env.APP_GITHUB_CLIENT_ID,
+      client_id: process.env.REACT_APP_API_GITHUBCLIENTID,
       scope: 'gist'
     })
   });
