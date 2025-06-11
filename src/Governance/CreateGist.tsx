@@ -13,18 +13,24 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
   const [githubToken, setGithubToken] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
+  const [userCode, setUserCode] = useState('');
+  const [verificationUri, setVerificationUri] = useState('');
+
   const startDeviceFlow = async () => {
     if (!APP_GITHUB_CLIENT_ID) {
-      alert('GitHub client ID is not configured. Please set REACT_APP_API_GITHUBCLIENTID in your environment.');
+      alert('GitHub client ID is not configured.');
       return;
     }
 
-    const res = await fetch('/api/github-device-code', {
-      method: 'POST',
-    });
+    const res = await fetch('/api/github-device-code', { method: 'POST' });
     const data = await res.json();
-    alert(`Visit ${data.verification_uri} and enter code: ${data.user_code}`);
-    
+
+    // Save code + URI for modal
+    setUserCode(data.user_code);
+    setVerificationUri(decodeURIComponent(data.verification_uri));
+    setVerificationDialogOpen(true);
+
     const interval = setInterval(async () => {
       const tokenRes = await fetch('/api/github-token', {
         method: 'POST',
@@ -37,10 +43,12 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
       const tokenData = await tokenRes.json();
       if (tokenData.access_token) {
         clearInterval(interval);
+        setVerificationDialogOpen(false);
         setGithubToken(tokenData.access_token);
         alert('GitHub authentication successful. You may now create a Gist.');
       } else if (tokenData.error !== 'authorization_pending') {
         clearInterval(interval);
+        setVerificationDialogOpen(false);
         alert(`OAuth failed: ${tokenData.error}`);
       }
     }, data.interval * 1000);
@@ -98,9 +106,24 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
         <DialogTitle>Create GitHub Gist</DialogTitle>
         <DialogContent>
           {!githubToken ? (
-            <Button onClick={startDeviceFlow} variant="contained">
-              Authenticate with GitHub
-            </Button>
+            !userCode ? (
+              <Button onClick={startDeviceFlow} variant="contained">
+                Authenticate with GitHub
+              </Button>
+            ) : (
+              <>
+                <p>To proceed, authorize this app with GitHub.</p>
+                <p><strong>Code:</strong> {userCode}</p>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  onClick={() => window.open(verificationUri, '_blank')}
+                  sx={{ mt: 1 }}
+                >
+                  Open GitHub Login Page
+                </Button>
+              </>
+            )
           ) : (
             <>
               <TextField
@@ -138,6 +161,27 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
               {loading ? <CircularProgress size={20} /> : 'Create Gist'}
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={verificationDialogOpen} onClose={() => setVerificationDialogOpen(false)}>
+        <DialogTitle>Authorize GitHub</DialogTitle>
+        <DialogContent>
+          <p>To proceed, authorize this app with GitHub.</p>
+          <p>
+            <strong>Code:</strong> {userCode}
+          </p>
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={() => window.open(verificationUri, '_blank')}
+            sx={{ mt: 1 }}
+          >
+            Open GitHub Login Page
+          </Button>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setVerificationDialogOpen(false)}>Cancel</Button>
         </DialogActions>
       </Dialog>
     </>
