@@ -12,6 +12,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
   const [isPublic, setIsPublic] = useState(true);
   const [githubToken, setGithubToken] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
 
   const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [userCode, setUserCode] = useState('');
@@ -26,32 +27,43 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
     const res = await fetch('/api/github-device-code', { method: 'POST' });
     const data = await res.json();
 
-    // Save code + URI for modal
     setUserCode(data.user_code);
     setVerificationUri(decodeURIComponent(data.verification_uri));
     setVerificationDialogOpen(true);
 
-    const interval = setInterval(async () => {
+    setIsPolling(true); // Start loader
+
+    let pollingInterval = data.interval * 1000;
+    let intervalId = null;
+
+    const poll = async () => {
       const tokenRes = await fetch('/api/github-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          device_code: data.device_code,
-        })
+        body: JSON.stringify({ device_code: data.device_code }),
       });
 
       const tokenData = await tokenRes.json();
+
       if (tokenData.access_token) {
-        clearInterval(interval);
+        clearInterval(intervalId);
+        setIsPolling(false);
         setVerificationDialogOpen(false);
         setGithubToken(tokenData.access_token);
         alert('GitHub authentication successful. You may now create a Gist.');
+      } else if (tokenData.error === 'slow_down' && tokenData.interval) {
+        clearInterval(intervalId);
+        pollingInterval = (tokenData.interval || data.interval) * 1000;
+        intervalId = setInterval(poll, pollingInterval);
       } else if (tokenData.error !== 'authorization_pending') {
-        clearInterval(interval);
+        clearInterval(intervalId);
+        setIsPolling(false);
         setVerificationDialogOpen(false);
         alert(`OAuth failed: ${tokenData.error}`);
       }
-    }, data.interval * 1000);
+    };
+
+    intervalId = setInterval(poll, pollingInterval);
   };
 
   const handleCreateGist = async () => {
@@ -164,26 +176,27 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
         </DialogActions>
       </Dialog>
 
-      <Dialog open={verificationDialogOpen} onClose={() => setVerificationDialogOpen(false)}>
-        <DialogTitle>Authorize GitHub</DialogTitle>
-        <DialogContent>
-          <p>To proceed, authorize this app with GitHub.</p>
-          <p>
-            <strong>Code:</strong> {userCode}
-          </p>
-          <Button
-            variant="outlined"
-            fullWidth
-            onClick={() => window.open(verificationUri, '_blank')}
-            sx={{ mt: 1 }}
-          >
-            Open GitHub Login Page
-          </Button>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setVerificationDialogOpen(false)}>Cancel</Button>
-        </DialogActions>
-      </Dialog>
+      <DialogContent>
+        <p>To proceed, authorize this app with GitHub.</p>
+        <p>
+          <strong>Code:</strong> {userCode}
+        </p>
+        <Button
+          variant="outlined"
+          fullWidth
+          onClick={() => window.open(verificationUri, '_blank')}
+          sx={{ mt: 1 }}
+        >
+          Open GitHub Login Page
+        </Button>
+
+        {isPolling && (
+          <div style={{ display: 'flex', alignItems: 'center', marginTop: '16px' }}>
+            <CircularProgress size={20} sx={{ mr: 1 }} />
+            <span>Waiting for authorization...</span>
+          </div>
+        )}
+      </DialogContent>
     </>
   );
 }
