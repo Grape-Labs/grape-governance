@@ -76,7 +76,7 @@ export const APP_GOVERNANCEPROPWHITELIST = process.env.REACT_APP_API_GOVERNANCEP
 
 export const APP_EXTENSION_LULU = process.env.REACT_APP_API_EXTENSION_LULU || null;
 
-export const APP_GITHUB_CLIENT_ID = process.env.REACT_APP_API_GITHUBCLIENTID || null;
+export const APP_GITHUB_CLIENT_ID = process.env.APP_GITHUB_CLIENT_ID || null;
 
 export const PRIMARY_STORAGE_WALLET = process.env.REACT_APP_API_PRIMARY_STORAGE_WALLET || null;
 export const SECONDARY_STORAGE_WALLET = process.env.REACT_APP_API_SECONDARY_STORAGE_WALLET || null;

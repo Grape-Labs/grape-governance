@@ -14,7 +14,7 @@ export default async function handler(req, res) {
       'Accept': 'application/json'
     },
     body: JSON.stringify({
-      client_id: process.env.REACT_APP_API_GITHUBCLIENTID,
+      client_id: process.env.APP_GITHUB_CLIENT_ID,
       device_code: body.device_code,
       grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
     })
