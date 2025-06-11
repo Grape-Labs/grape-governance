@@ -24,7 +24,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
     });
     const data = await res.json();
     alert(`Visit ${data.verification_uri} and enter code: ${data.user_code}`);
-
+    
     const interval = setInterval(async () => {
       const tokenRes = await fetch('/api/github-token', {
         method: 'POST',
