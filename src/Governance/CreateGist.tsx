@@ -203,6 +203,19 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
                 }
                 label="Public"
               />
+
+              <Button
+                variant="outlined"
+                size="small"
+                color="secondary"
+                onClick={() => {
+                  localStorage.removeItem('github_token');
+                  setGithubToken(null);
+                }}
+                sx={{ mt: 2 }}
+              >
+                Switch GitHub Account
+              </Button>
             </>
           )}
         </DialogContent>
