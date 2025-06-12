@@ -213,8 +213,8 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
                       const fullGist = await fullGistRes.json();
                       const firstFile = Object.values(fullGist.files)[0];
 
-                      setGistFilename(firstFile.filename || 'dao_proposal_snippet.txt');
-                      setGistContent(firstFile.content || '');
+                      setGistFilename(firstFile?.filename || 'dao_proposal_snippet.txt');
+                      setGistContent(firstFile?.content || '');
                       setGistDescription(`Cloned from: ${fullGist.description || 'Untitled'}`);
                     }}
                     SelectProps={{ native: true }}
@@ -233,7 +233,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
                   fullWidth
                   variant="outlined"
                   label="Filename"
-                  placeholder="e.g. daosnippet.txt"
+                  placeholder="e.g. dao_proposal_snippet.txt"
                   value={gistFilename}
                   onChange={(e) => setGistFilename(e.target.value)}
                   margin="dense"
