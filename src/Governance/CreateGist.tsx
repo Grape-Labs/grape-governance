@@ -282,20 +282,21 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
           )}
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'space-between' }}>
-
-          <Button
-              variant="outlined"
-              size="small"
-              color="secondary"
-              onClick={() => {
-                localStorage.removeItem('github_token');
-                setGithubToken(null);
-              }}
-              sx={{ mt: 2 }}
-            >
-              Switch GitHub Account
-            </Button>
-          <Box>
+          {githubToken &&
+            <Button
+                variant="outlined"
+                size="small"
+                color="secondary"
+                onClick={() => {
+                  localStorage.removeItem('github_token');
+                  setGithubToken(null);
+                }}
+                sx={{ mt: 2 }}
+              >
+                Switch GitHub Account
+              </Button>
+            }
+            <Box>
             <Button onClick={handleClose}>Cancel</Button>
             {githubToken && (
               <Button onClick={handleCreateGist} variant="contained" disabled={loading}>
