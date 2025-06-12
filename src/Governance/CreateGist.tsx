@@ -193,12 +193,27 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
                     fullWidth
                     label="Clone Existing Gist"
                     value={selectedGistId || ''}
-                    onChange={(e) => {
-                      const selected = userGists.find(g => g.id === e.target.value);
-                      setSelectedGistId(selected.id);
-                      const file = Object.values(selected.files)[0]; // First file
-                      setGistContent(file?.content || '');
-                      setGistDescription(`Cloned from: ${selected.description || 'Untitled'}`);
+                    onChange={async (e) => {
+                      const gistId = e.target.value;
+                      setSelectedGistId(gistId);
+
+                      const fullGistRes = await fetch(`https://api.github.com/gists/${gistId}`, {
+                        headers: {
+                          Authorization: `token ${githubToken}`,
+                          Accept: 'application/vnd.github.v3+json',
+                        }
+                      });
+
+                      if (!fullGistRes.ok) {
+                        alert('Failed to fetch full Gist content.');
+                        return;
+                      }
+
+                      const fullGist = await fullGistRes.json();
+                      const firstFile = Object.values(fullGist.files)[0];
+
+                      setGistContent(firstFile.content || '');
+                      setGistDescription(`Cloned from: ${fullGist.description || 'Untitled'}`);
                     }}
                     SelectProps={{ native: true }}
                     sx={{ mb: 2 }}
