@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Button, Checkbox, FormControlLabel, CircularProgress,
@@ -14,6 +14,8 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
   const [gistContent, setGistContent] = useState(defaultText);
   const [isPublic, setIsPublic] = useState(true);
   //const [githubToken, setGithubToken] = useState(null);
+  const [userGists, setUserGists] = useState([]);
+  const [selectedGistId, setSelectedGistId] = useState(null);
   const [githubToken, setGithubToken] = useState(() => localStorage.getItem('github_token'));
   const [loading, setLoading] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
@@ -129,6 +131,26 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
     setGistDescription('');
   };
 
+  useEffect(() => {
+    const fetchUserGists = async () => {
+      if (!githubToken) return;
+
+      const res = await fetch('https://api.github.com/gists', {
+        headers: {
+          Authorization: `token ${githubToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUserGists(data);
+      }
+    };
+
+    fetchUserGists();
+  }, [githubToken]);
+
   return (
     <>
       <Button variant="text" size="small" onClick={handleOpen}>
@@ -165,6 +187,31 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
             )
           ) : (
             <>
+                {userGists && userGists.length > 0 && (
+                  <TextField
+                    select
+                    fullWidth
+                    label="Clone Existing Gist"
+                    value={selectedGistId || ''}
+                    onChange={(e) => {
+                      const selected = userGists.find(g => g.id === e.target.value);
+                      setSelectedGistId(selected.id);
+                      const file = Object.values(selected.files)[0]; // First file
+                      setGistContent(file?.content || '');
+                      setGistDescription(`Cloned from: ${selected.description || 'Untitled'}`);
+                    }}
+                    SelectProps={{ native: true }}
+                    sx={{ mb: 2 }}
+                  >
+                    <option value="">(Select a gist to clone)</option>
+                    {userGists.map(g => (
+                      <option key={g.id} value={g.id}>
+                        {g.description || 'Untitled'}
+                      </option>
+                    ))}
+                  </TextField>
+                )}
+                
                 {/* Description */}
                 <TextField
                   fullWidth
