@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Button, Checkbox, FormControlLabel, CircularProgress,
-  Snackbar, Alert
+  Snackbar, Alert, Box
 } from '@mui/material';
 import { APP_GITHUB_CLIENT_ID } from '../utils/grapeTools/constants';
 
@@ -124,7 +124,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
 
   const handleClose = () => {
     setOpen(false);
-    setGithubToken(null);
+    //setGithubToken(null);
     setLoading(false);
     setGistDescription('');
   };
@@ -203,29 +203,31 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
                 }
                 label="Public"
               />
-
-              <Button
-                variant="outlined"
-                size="small"
-                color="secondary"
-                onClick={() => {
-                  localStorage.removeItem('github_token');
-                  setGithubToken(null);
-                }}
-                sx={{ mt: 2 }}
-              >
-                Switch GitHub Account
-              </Button>
             </>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          {githubToken && (
-            <Button onClick={handleCreateGist} variant="contained" disabled={loading}>
-              {loading ? <CircularProgress size={20} /> : 'Create Gist'}
+        <DialogActions sx={{ justifyContent: 'space-between' }}>
+
+          <Button
+              variant="outlined"
+              size="small"
+              color="secondary"
+              onClick={() => {
+                localStorage.removeItem('github_token');
+                setGithubToken(null);
+              }}
+              sx={{ mt: 2 }}
+            >
+              Switch GitHub Account
             </Button>
-          )}
+          <Box>
+            <Button onClick={handleClose}>Cancel</Button>
+            {githubToken && (
+              <Button onClick={handleCreateGist} variant="contained" disabled={loading}>
+                {loading ? <CircularProgress size={20} /> : 'Create Gist'}
+              </Button>
+            )}
+          </Box>
         </DialogActions>
       </Dialog>
 
