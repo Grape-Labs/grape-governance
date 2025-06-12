@@ -20,6 +20,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
   const [loading, setLoading] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [copySnackbarOpen, setCopySnackbarOpen] = useState(false);
+  const [gistFilename, setGistFilename] = useState('dao_proposal_snippet.txt');
 
   const [verificationConfirmed, setVerificationConfirmed] = useState(false);
   const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
@@ -101,7 +102,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
         description: gistDescription,
         public: isPublic,
         files: {
-          'snippet.txt': {
+          [gistFilename || 'dao_proposal_snippet.txt']: {
             content: gistContent
           }
         }
@@ -212,6 +213,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
                       const fullGist = await fullGistRes.json();
                       const firstFile = Object.values(fullGist.files)[0];
 
+                      setGistFilename(firstFile.filename || 'dao_proposal_snippet.txt');
                       setGistContent(firstFile.content || '');
                       setGistDescription(`Cloned from: ${fullGist.description || 'Untitled'}`);
                     }}
@@ -227,6 +229,17 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
                   </TextField>
                 )}
                 
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  label="Filename"
+                  placeholder="e.g. daosnippet.txt"
+                  value={gistFilename}
+                  onChange={(e) => setGistFilename(e.target.value)}
+                  margin="dense"
+                  sx={{ mb: 2 }}
+                />
+
                 {/* Description */}
                 <TextField
                   fullWidth
