@@ -13,7 +13,8 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
   const [gistDescription, setGistDescription] = useState('');
   const [gistContent, setGistContent] = useState(defaultText);
   const [isPublic, setIsPublic] = useState(true);
-  const [githubToken, setGithubToken] = useState(null);
+  //const [githubToken, setGithubToken] = useState(null);
+  const [githubToken, setGithubToken] = useState(() => localStorage.getItem('github_token'));
   const [loading, setLoading] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [copySnackbarOpen, setCopySnackbarOpen] = useState(false);
@@ -66,6 +67,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
         setVerificationConfirmed(true); // 👈 add this
         setVerificationDialogOpen(false);
         setGithubToken(tokenData.access_token);
+        localStorage.setItem('github_token', tokenData.access_token); // <-- Store token
         // Show confirmation for 2 seconds, then close the dialog
         setTimeout(() => {
           setVerificationDialogOpen(false);
@@ -180,7 +182,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
                   fullWidth
                   variant="outlined"
                   label="Code Snippet"
-                  placeholder="// Write your code here"
+                  placeholder="// Write your Gist Markup code here"
                   value={gistContent}
                   onChange={(e) => setGistContent(e.target.value)}
                   multiline
@@ -201,6 +203,19 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
                 }
                 label="Public"
               />
+
+              <Button
+                variant="outlined"
+                size="small"
+                color="secondary"
+                onClick={() => {
+                  localStorage.removeItem('github_token');
+                  setGithubToken(null);
+                }}
+                sx={{ mt: 2 }}
+              >
+                Switch GitHub Account
+              </Button>
             </>
           )}
         </DialogContent>
