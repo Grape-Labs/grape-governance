@@ -182,7 +182,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
                   fullWidth
                   variant="outlined"
                   label="Code Snippet"
-                  placeholder="// Write your code here"
+                  placeholder="// Write your Gist Markup code here"
                   value={gistContent}
                   onChange={(e) => setGistContent(e.target.value)}
                   multiline
