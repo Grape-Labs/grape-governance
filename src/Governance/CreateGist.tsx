@@ -193,7 +193,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
                     select
                     fullWidth
                     label="Clone Existing Gist"
-                    value={selectedGistId || ''}
+                    value={String(selectedGistId) || ''}
                     onChange={async (e) => {
                       const gistId = e.target.value;
                       setSelectedGistId(gistId);
@@ -234,7 +234,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
                   variant="outlined"
                   label="Filename"
                   placeholder="e.g. dao_proposal_snippet.txt"
-                  value={gistFilename}
+                  value={String(gistFilename || '')}
                   onChange={(e) => setGistFilename(e.target.value)}
                   margin="dense"
                   sx={{ mb: 2 }}
@@ -246,7 +246,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
                   variant="outlined"
                   label="Gist Description"
                   placeholder="Brief description of your gist"
-                  value={gistDescription}
+                  value={String(gistDescription || '')}
                   onChange={(e) => setGistDescription(e.target.value)}
                   margin="dense"
                   sx={{ mb: 2 }}
@@ -258,7 +258,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
                   variant="outlined"
                   label="Code Snippet"
                   placeholder="// Write your Gist Markup code here"
-                  value={gistContent}
+                  value={String(gistContent || '')}
                   onChange={(e) => setGistContent(e.target.value)}
                   multiline
                   rows={10}
