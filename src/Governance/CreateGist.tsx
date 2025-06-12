@@ -13,7 +13,8 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
   const [gistDescription, setGistDescription] = useState('');
   const [gistContent, setGistContent] = useState(defaultText);
   const [isPublic, setIsPublic] = useState(true);
-  const [githubToken, setGithubToken] = useState(null);
+  //const [githubToken, setGithubToken] = useState(null);
+  const [githubToken, setGithubToken] = useState(() => localStorage.getItem('github_token'));
   const [loading, setLoading] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [copySnackbarOpen, setCopySnackbarOpen] = useState(false);
@@ -66,6 +67,7 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
         setVerificationConfirmed(true); // 👈 add this
         setVerificationDialogOpen(false);
         setGithubToken(tokenData.access_token);
+        localStorage.setItem('github_token', tokenData.access_token); // <-- Store token
         // Show confirmation for 2 seconds, then close the dialog
         setTimeout(() => {
           setVerificationDialogOpen(false);
