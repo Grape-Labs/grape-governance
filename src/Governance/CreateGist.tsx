@@ -21,7 +21,6 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
   const [isPolling, setIsPolling] = useState(false);
   const [copySnackbarOpen, setCopySnackbarOpen] = useState(false);
   const [gistFilename, setGistFilename] = useState('dao_proposal_snippet.txt');
-
   const [verificationConfirmed, setVerificationConfirmed] = useState(false);
   const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [userCode, setUserCode] = useState('');
