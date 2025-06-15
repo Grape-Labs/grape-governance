@@ -178,7 +178,7 @@ function RenderGovernanceMembersTable(props:any) {
     
     
     const memberresultscolumns: GridColDef[] = [
-        { field: 'id', headerName: 'ID', minWidth: 70, hide: true},
+        { field: 'id', headerName: 'Rank', minWidth: 70, hide: true},
         { field: 'address', headerName: 'Address', minWidth: 70, hide: true},
         { field: 'record', headerName: 'Record', minWidth: 70, hide: true},
         { field: 'delegate', headerName: 'Delegate', minWidth: 200, hide: true},
