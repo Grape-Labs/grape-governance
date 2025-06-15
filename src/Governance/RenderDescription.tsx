@@ -38,10 +38,10 @@ export const RenderDescription: React.FC<RenderDescriptionProps> = ({ title, des
     <Typography
       color="gray"
     >
-      {hasValidTitle ? (
-        title
-      ) : hasValidDescription ? (
+      {hasValidDescription  ? (
         description
+      ) : hasValidTitle ? (
+        title
       ) : (
         <>
           <Tooltip title={`Invalid or missing data`}>

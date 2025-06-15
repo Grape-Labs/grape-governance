@@ -2942,6 +2942,7 @@ export function GovernanceProposalV2View(props: any){
                                                                 }
                                                             </>
                                                         :
+                                                            <>
                                                             <Typography variant="body1" 
                                                                 color='gray' 
                                                                 sx={{ display: 'flex', alignItems: 'center' }}>
@@ -2951,6 +2952,7 @@ export function GovernanceProposalV2View(props: any){
                                                                     fallback={proposalPk?.toBase58()}
                                                                 />
                                                             </Typography>
+                                                            </>
                                                         }
                                                     </>
                                                 }
