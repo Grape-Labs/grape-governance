@@ -2013,7 +2013,7 @@ export default function GovernanceCreateProposalView(props: any){
 
                                 <Grid container justifyContent="space-between" alignItems="center">
                                   <Grid item sx={{textAlign:'left'}}>
-                                    {governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
+                                    {/*governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&*/}
                                       <CreateGistWithOAuth
                                         onGistCreated={(url) => {
                                           // Set it to your description field, or trigger your handler
@@ -2021,7 +2021,7 @@ export default function GovernanceCreateProposalView(props: any){
                                         }}
                                         defaultText={description}
                                       />
-                                  }
+                                  
                                   </Grid>
 
                                   <Grid item sx={{textAlign:'right',}}>
