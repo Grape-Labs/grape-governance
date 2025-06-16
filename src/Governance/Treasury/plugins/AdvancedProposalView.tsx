@@ -189,7 +189,7 @@ export default function AdvanvedProposalView(props: any){
 
                     <Grid container justifyContent="space-between" alignItems="center">
                         
-                        {governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&
+                        {/*governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&*/}
                         <Grid item sx={{textAlign:'left',}}>
                             <CreateGistWithOAuth
                             onGistCreated={(url) => {
@@ -199,7 +199,6 @@ export default function AdvanvedProposalView(props: any){
                             defaultText={proposalDescription}
                             />
                         </Grid>
-    }
 
                         <Grid sx={{textAlign:'right',}}>
                             <Typography variant="caption">{proposalDescription ? proposalDescription.length > 0 ? maxDescriptionLen - proposalDescription.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
