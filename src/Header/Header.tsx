@@ -88,6 +88,7 @@ import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import BookIcon from '@mui/icons-material/Book';
 
 import AboutDialog from '../About/AboutDialog';
 
@@ -581,100 +582,78 @@ export function Header(props: any) {
                             </ListItem>
 
                             <ListItem disablePadding>
+                                <Tooltip title={`Governance & GSPL Documentation`} placement="right" arrow>
+                                    <a
+                                        href="https://grape-governance.gitbook.io/gspl"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ textDecoration: 'none', color: 'inherit' }}
+                                        >
+                                        <ListItemButton>
+                                            <ListItemIcon><BookIcon /></ListItemIcon>
+                                            <Typography variant="h6">Documentation</Typography>
+                                        </ListItemButton>
+                                    </a>
+                                </Tooltip>
+                            </ListItem>
+
+                            <ListItem disablePadding>
                                 <AboutDialog /> 
                             </ListItem>
 
-                            {governanceAutocomplete ?
-                                
+                            {governanceAutocomplete ? (
                                 <ListItem disablePadding>
-                                    <Search
-                                        sx={{ mt:1,mb:1, backgroundColor:'rgba(255,255,255,0.05)' }}
-                                    >
-                                        <Autocomplete
-                                            sx={{ minWidth:'25ch',border:'none'}}
-                                            disablePortal
-                                            size="small"
-                                            id="combo-box-demo"
-                                            options={governanceAutocomplete}
-                                            getOptionLabel={(option) => option.label}
-                                            renderOption={(props, option) => (
-                                                <Box sx={{border:'none'}} component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
-                                                {option.label}
-                                                &nbsp;
-                                                <small>(
-                                                    {option.totalProposalsVoting ? <><HowToVoteIcon sx={{fontSize:10}} /> <strong>{option.totalProposalsVoting}</strong> of </> : ``}
-                                                    {option.totalProposals})
-                                                </small>
-                                                
-                                                </Box>
-                                            )}
-                                            onChange={(e, sel) => handleGovernanceSelect(sel?.value)}
-                                            renderInput={(params) => 
-                                                <TextField 
-                                                    sx={{fontSize:'14px'}}
-                                                    {...params} onChange={(e) => handleGovernanceSelect(e.target.value)} label="" 
-                                                />
-                                            }
-                                        />
-                                    </Search>
-                                    {/*
+                                    <Search sx={{ mt: 1, mb: 1, backgroundColor: 'rgba(255,255,255,0.05)' }}>
                                     <Autocomplete
-                                        sx={{ mt:1,ml:2, minWidth: 300 }}
+                                        sx={{ minWidth: '25ch', border: 'none' }}
                                         disablePortal
                                         size="small"
                                         id="combo-box-demo"
                                         options={governanceAutocomplete}
-                                        getOptionLabel={(option) => option.value}
+                                        getOptionLabel={(option) => option.label}
+                                        onChange={(e, sel) => {
+                                        if (sel?.value) handleGovernanceSelect(sel.value);
+                                        }}
                                         renderOption={(props, option) => (
-                                            <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
+                                        <Box
+                                            component="li"
+                                            sx={{ '& > img': { mr: 2, flexShrink: 0 }, border: 'none' }}
+                                            {...props}
+                                        >
                                             {option.label}
                                             &nbsp;
-                                            <small>(
-                                                {option.totalProposalsVoting ? <><strong>{option.totalProposalsVoting} voting</strong> of </> : ``}
-                                                {option.totalProposals})
+                                            <small>
+                                            (
+                                            {option.totalProposalsVoting ? (
+                                                <>
+                                                <HowToVoteIcon sx={{ fontSize: 10 }} />{' '}
+                                                <strong>{option.totalProposalsVoting}</strong> of{' '}
+                                                </>
+                                            ) : (
+                                                ''
+                                            )}
+                                            {option.totalProposals})
                                             </small>
-                                            
-                                            </Box>
+                                        </Box>
                                         )}
-                                        onChange={(e, sel) => setGovernanceAddress(sel?.value)} 
-                                        renderInput={(params) => 
-                                            <TextField {...params} onChange={(e) => setGovernanceAddress(e.target.value)} label="Governance" />
-                                        }
+                                        renderInput={(params) => <TextField {...params} label="" />}
                                     />
-                                    */}
-                                </ListItem>
-                            :
-                                <ListItem disablePadding>
-                                    <Search
-                                        sx={{ mt:1,ml:2,mb:1 }}
-                                    >
-                                        <SearchIconWrapper>
-                                        <SearchIcon />
-                                        </SearchIconWrapper>
-                                        <StyledInputBase
-                                            placeholder="Enter a governance address"
-                                            inputProps={{ 'aria-label': 'search' }}
-                                            onChange={(e) => setGovernanceAddress(e.target.value)}
-                                        />
                                     </Search>
                                 </ListItem>
-                            }
-                                {/*
+                                ) : (
                                 <ListItem disablePadding>
-                                    <RadioGroup
-                                            row
-                                            aria-labelledby="demo-row-radio-buttons-group-label"
-                                            name="row-radio-buttons-group"
-                                            value={fetchType}
-                                            onChange={handleChange}
-                                            sx={{ml:2,display:'none'}}
-                                        >
-
-                                            <FormControlLabel value="cachedgovernance" control={<Radio />} label="Cached" />
-                                            <FormControlLabel value="rpcgovernance" control={<Radio />} label="RPC" />
-                                    </RadioGroup>
+                                    <Search sx={{ mt: 1, ml: 2, mb: 1 }}>
+                                    <SearchIconWrapper>
+                                        <SearchIcon />
+                                    </SearchIconWrapper>
+                                    <StyledInputBase
+                                        placeholder="Enter a governance address"
+                                        inputProps={{ 'aria-label': 'search' }}
+                                        onChange={(e) => setGovernanceAddress(e.target.value)}
+                                    />
+                                    </Search>
                                 </ListItem>
-                                */}
+                                )}
                             </List>
                     </Drawer>
                 </Box>
