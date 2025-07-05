@@ -88,6 +88,7 @@ import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import BookIcon from '@mui/icons-material/Book';
 
 import AboutDialog from '../About/AboutDialog';
 
@@ -581,8 +582,26 @@ export function Header(props: any) {
                             </ListItem>
 
                             <ListItem disablePadding>
+                                <Tooltip title={`Governance & GSPL Documentation`} placement="right" arrow>
+                                    <a
+                                        href="https://grape-governance.gitbook.io/gspl"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ textDecoration: 'none', color: 'inherit' }}
+                                        >
+                                        <ListItemButton>
+                                            <ListItemIcon><BookIcon /></ListItemIcon>
+                                            <Typography variant="h6">Documentation</Typography>
+                                        </ListItemButton>
+                                    </a>
+                                </Tooltip>
+                            </ListItem>
+
+                            <ListItem disablePadding>
                                 <AboutDialog /> 
                             </ListItem>
+
+                            
 
                             {governanceAutocomplete ?
                                 
