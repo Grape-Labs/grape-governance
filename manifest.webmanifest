@@ -1,7 +1,7 @@
 {
     "name": "Governance",
     "short_name": "Governance",
-    "description": "Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS",
+    "description": "Governance.so | Next-gen DAO tooling for better proposals, faster execution, and real ownership. #OPOS",
     "id": "app.governance.so",
     "dir": "ltr",
     "lang": "en",
@@ -31,31 +31,31 @@
           "purpose": "maskable"
         },
         {
-          "src": "./src/public/android/android-launchericon-48-48.png",
+          "src": "./src/public/AppIcons/android-icon-48x48.png",
           "type": "image/png",
           "sizes": "48x48",
           "purpose": "any"
         },
         {
-          "src": "./src/public/android/android-launchericon-96-96.png",
+          "src": "./src/public/AppIcons/favicon-96x96.png",
           "type": "image/png",
           "sizes": "96x96",
           "purpose": "any"
         },
         {
-          "src": "./src/public/ios/144.png",
+          "src": "./src/public/AppIcons/ms-icon-144x144.png",
           "type": "image/png",
           "sizes": "144x144",
           "purpose": "any"
         },
         {
-          "src": "./src/public/ios/152.png",
+          "src": "./src/public/AppIcons/apple-icon-152x152.png",
           "type": "image/png",
           "sizes": "152x152",
           "purpose": "any"
         },
         {
-          "src": "./src/public/ios/192.png",
+          "src": "./src/public/AppIcons/android-icon-192x192.png",
           "type": "image/png",
           "sizes": "192x192",
           "purpose": "any"

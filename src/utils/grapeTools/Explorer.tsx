@@ -19,7 +19,9 @@ import Jazzicon, { jsNumberForAddress } from 'react-jazzicon';
 import { 
     RPC_CONNECTION, 
     TWITTER_PROXY,
-    SHYFT_KEY } from './constants';
+    SHYFT_KEY,
+    HELIUS_API,
+    BLACKLIST_WALLETS } from './constants';
 
 import { 
     Avatar,
@@ -59,6 +61,7 @@ import ExploreOutlinedIcon from '@mui/icons-material/ExploreOutlined';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ExploreIcon from '@mui/icons-material/Explore';
 import PersonIcon from '@mui/icons-material/Person';
+import ContactPageIcon from '@mui/icons-material/ContactPage';
 
 import { trimAddress } from "./WalletAddress";
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -141,6 +144,8 @@ export default function ExplorerView(props:any){
     const showTokenMetadata = props?.showTokenMetadata;
     const tokenMap = props?.tokenMap;
 
+    const isBlacklisted = BLACKLIST_WALLETS.some(w => w.toLowerCase() === address.toLowerCase());
+
     const handleClickOpenDialog = (event:any) => {
         setOpenDialog(true);
     };
@@ -200,6 +205,90 @@ export default function ExplorerView(props:any){
 
     const fetchTokenData = async() => {
         try{
+            
+            if (HELIUS_API){
+                const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
+                const response = await fetch(uri, {
+                    method: 'POST',
+                    headers: {
+                    "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                    "jsonrpc": "2.0",
+                    "id": "text",
+                    "method": "getAsset",
+                    "params": {
+                        id: address,
+                    }
+                    }),
+                });
+                /*
+                const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
+                const response = await fetch(uri, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 'rpc-id',
+                        method: 'getAsset',
+                        params: {
+                            id: address
+                        },
+                    }),
+                    });
+                    */ 
+                const { result } = await response.json();
+                
+                if (result){
+                    if (result?.content?.metadata?.name){
+                        setSolanaDomain(result?.content?.metadata?.name);
+                        //return result?.content?.metadata?.name;
+                    }
+                    const image = result?.content?.links?.image;
+                
+                    if (image){
+                        if (image){
+                            setProfilePictureUrl(image);
+                            setHasProfilePicture(true);
+                        }
+                    }
+                    return null;
+                } else {
+
+                    const MD_PUBKEY = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+                    const [pda, bump] = await PublicKey.findProgramAddress(
+                        [Buffer.from('metadata'), MD_PUBKEY.toBuffer(), new PublicKey(address).toBuffer()],
+                        MD_PUBKEY
+                    );
+                    
+                    const tokendata = await connection.getParsedAccountInfo(new PublicKey(pda));
+
+                    if (tokendata){
+                        //console.log("tokendata: "+JSON.stringify(tokendata));
+                        if (tokendata.value?.data) {
+                            const buf = Buffer.from(tokendata.value.data, 'base64');
+                            const meta_final = decodeMetadata(buf);
+                            
+                            if (meta_final?.data?.name){
+                                setSolanaDomain(meta_final.data.name);
+                                if (meta_final.data?.uri){
+                                    const urimeta = await window.fetch(meta_final.data.uri).then((res: any) => res.json());
+                                    const image = urimeta?.image;
+                                    if (image){
+                                        setProfilePictureUrl(image);
+                                        setHasProfilePicture(true);
+                                    }
+                                }
+                            }
+                            //console.log("meta_final: "+JSON.stringify(meta_final));
+                        }
+                    }
+                }
+            }
+            
+            /*
             const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
 
             const response = await fetch(uri, {
@@ -262,6 +351,7 @@ export default function ExplorerView(props:any){
                     }
                 }
             }
+            */
         }catch(e){
             console.log("ERR: "+e)
         }
@@ -445,6 +535,7 @@ export default function ExplorerView(props:any){
 
     return (
         <>
+            <Tooltip title={isBlacklisted ? "This wallet is blacklisted" : "View in explorer"}>
             <Button
                 aria-controls={open ? 'basic-menu' : undefined}
                 aria-haspopup="true"
@@ -470,7 +561,13 @@ export default function ExplorerView(props:any){
                                 {hideIcon ?
                                     <></>
                                 :
-                                    <ExploreIcon sx={{color:`${buttonColor}`, fontSize:`${fontSize}`}} />
+                                    <>
+                                        {isBlacklisted ? (
+                                            <WarningAmberIcon sx={{ color: 'orange', fontSize: fontSize }} />
+                                        ) : (
+                                            <ExploreIcon sx={{ color: buttonColor, fontSize: fontSize }} />
+                                        )}
+                                    </>
                                 }
                                 </>
                             }
@@ -512,6 +609,7 @@ export default function ExplorerView(props:any){
                     
                 </Typography>
             </Button>
+            </Tooltip>
             <Box
             >
                 <StyledMenu
@@ -572,32 +670,60 @@ export default function ExplorerView(props:any){
                             open={openDialog}
                             PaperProps={{
                                 style: {
-                                    boxShadow: '3',
-                                    borderRadius: '17px',
-                                    },
-                                }}
-                        >
+                                boxShadow: '0px 4px 20px rgba(0,0,0,0.1)',
+                                borderRadius: '17px',
+                                padding: '24px',
+                                background: 'linear-gradient(to right, #434343, #111111)' // ✅ use 'background' here
+                                },
+                            }}
+                            >
                             <DialogContentText id="alert-dialog-description">
-                                <div style={{ height: "auto", margin: "0 auto", maxWidth: "100%", width: "100%", borderRadius: "10px", padding:10, backgroundColor:'#fff' }}>
+                                <Box
+                                    display="flex"
+                                    flexDirection="column"
+                                    alignItems="center"
+                                    justifyContent="center"
+                                    sx={{
+                                        borderRadius: 2,
+                                        backgroundColor: '#1e1e1e',  // ✅ Dark theme friendly
+                                        p: 2,
+                                        mb: 2,
+                                        border: '1px solid #444',    // ✅ Adds subtle separation
+                                        boxShadow: 1,
+                                        maxWidth: 256,
+                                        mx: 'auto',
+                                    }}
+                                    >
                                     <QRCode
-                                    size={256}
-                                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                                    value={address}
-                                    viewBox={`0 0 256 256`}
+                                        size={256}
+                                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                                        value={address}
+                                        viewBox={`0 0 256 256`}
+                                        fgColor="#ffffff"  // ✅ Make QR code white for visibility on dark
+                                        bgColor="#1e1e1e"
                                     />
-                                </div>
+                                    </Box>
 
-                                <Grid container>
-                                    <Grid item xs={12} textAlign={'center'}>
-                                        <Typography variant='body2'>{address}</Typography>
+                                <Grid container spacing={1} justifyContent="center" textAlign="center">
+                                    <Grid item xs={12}>
+                                        <Typography
+                                            variant="subtitle1"
+                                            color="text.secondary"
+                                            sx={{
+                                                wordBreak: 'break-all',
+                                            }}
+                                        >
+                                        {address}
+                                        </Typography>
                                     </Grid>
-                                    <Grid item xs={12} textAlign={'center'}>
-                                        <Typography variant='caption'>Send to this SOL Address</Typography>
+                                    <Grid item xs={12}>
+                                        <Typography variant="caption" color="text.secondary">
+                                        Send to this address
+                                        </Typography>
                                     </Grid>
                                 </Grid>
-                                
                             </DialogContentText>
-                        </BootstrapDialog>
+                            </BootstrapDialog>
                         </>
                     }
                     <Divider />
@@ -629,6 +755,18 @@ export default function ExplorerView(props:any){
                     */}
                 {grapeArtProfile && 
                     <>    
+                        <MenuItem 
+                            color='inherit'
+                            component='a'
+                            target='_blank'
+                            href={`https://governance.so/profile/${address}`}
+                            onClick={handleClose}>
+                                <ListItemIcon>
+                                    <ContactPageIcon fontSize="small" />
+                                </ListItemIcon>
+                                Governance Profile
+                        </MenuItem>
+
                         <MenuItem 
                             color='inherit'
                             component='a'

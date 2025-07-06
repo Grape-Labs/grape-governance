@@ -47,6 +47,8 @@ import { SwitchProps } from '@mui/material/Switch';
 
 import { createSvgIcon } from '@mui/material/utils';
 
+import { RenderDescription } from '../../Governance/RenderDescription';
+
 import { gistApi, resolveProposalDescription } from '../../utils/grapeTools/github';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -119,6 +121,7 @@ import {
     GGAPI_STORAGE_URI,
     FRICTIONLESS_BG,
     APP_ICON,
+    APP_LOGO,
 } from '../../utils/grapeTools/constants';
 
 import { 
@@ -134,7 +137,8 @@ import {
 import { 
     getAllProposalsFromAllPrograms,
     getAllProposalsIndexed,
-    getAllGovernancesIndexed
+    getAllGovernancesIndexed,
+    fetchRealmNameFromRulesWallet
 } from '../../Governance/api/queries';
 
 import { formatAmount, getFormattedNumberToLocale } from '../../utils/grapeTools/helpers'
@@ -434,7 +438,6 @@ function TablePaginationActions(props) {
                             <>
                             { thisitem.account?.state === 2 ?
                                 <AccessTimeIcon />
-                            
                             : 
                                 <>
                                     { (thisitem.account?.state === 0) ?
@@ -478,7 +481,6 @@ function TablePaginationActions(props) {
     }
     
     function GetGovernanceFromRulesView(props:any){
-        const governanceLookup = props.governanceLookup;
         const rulesWallet = props.rulesWallet;
         const proposal = props.proposal;
         const name = props?.name;
@@ -493,25 +495,24 @@ function TablePaginationActions(props) {
 
         const [governanceInfo, setGovernanceInfo] = React.useState(null);
 
-        React.useEffect(() => { 
-            if (governanceLookup){
-                for (let glitem of governanceLookup){
-                    //console.log("glitem: "+JSON.stringify(glitem));
-                    if (glitem?.governances){
-                        for (let ggitem of glitem.governances){
-                            if (ggitem.pubkey === rulesWallet){
-                                setGovernanceInfo(glitem);
-                                //console.log("found: "+glitem.governanceName);
-                                //console.log("found governanceAddress: "+glitem.governanceAddress);
-                            }
-                        }
-                    }
+        React.useEffect(() => {
+        const loadGovernanceInfo = async () => {
+            if (rulesWallet) {
+                const result = await fetchRealmNameFromRulesWallet(rulesWallet, item.owner);
+                if (result) {
+                    const { name, realm } = result;
+                    setGovernanceInfo({
+                        governanceName: name,
+                        governanceAddress: realm,
+                    });
+                    console.log("Found governance name:", name);
+                    console.log("Proposal:", item?.owner?.toBase58?.() ?? item?.owner);
                 }
             }
-            
+        };
 
-        }, [governanceLookup]);
-
+        loadGovernanceInfo();
+    }, [rulesWallet]);
 
         const shortenWordRegex: RegExp = /^(.{6})(?:\.(.{6}))?$/;
 
@@ -603,7 +604,6 @@ function TablePaginationActions(props) {
                     <>
                         
                             <Button 
-                                
                                 component={governanceInfo && governanceInfo.governanceName && Link}
                                 to={(governanceInfo && governanceInfo.governanceName) && `/proposal/${governanceInfo.governanceAddress}/${proposal}`}
                                 /*
@@ -694,20 +694,22 @@ function TablePaginationActions(props) {
                                                                     >
                                                                         <>
                                                                             {window.location.hostname !== 'localhost' ? (
-                                                                                <ReactMarkdown 
-                                                                                    remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
-                                                                                    //transformImageUri={transformImageUri}
-                                                                                    children={descriptionMarkdown}
-                                                                                    components={{
-                                                                                        // Custom component for overriding the image rendering
-                                                                                        img: ({ node, ...props }) => (
-                                                                                        <img
-                                                                                            {...props}
-                                                                                            style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
-                                                                                        />
-                                                                                        ),
-                                                                                    }}
-                                                                                />
+                                                                                <>
+                                                                                    <ReactMarkdown 
+                                                                                        remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
+                                                                                        //transformImageUri={transformImageUri}
+                                                                                        children={descriptionMarkdown}
+                                                                                        components={{
+                                                                                            // Custom component for overriding the image rendering
+                                                                                            img: ({ node, ...props }) => (
+                                                                                            <img
+                                                                                                {...props}
+                                                                                                style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
+                                                                                            />
+                                                                                            ),
+                                                                                        }}
+                                                                                    />
+                                                                                </>
                                                                             ) : (
                                                                                 <p>Markdown rendering is disabled on localhost.</p>
                                                                             )}
@@ -754,7 +756,7 @@ function TablePaginationActions(props) {
                                                                     </>
                                                                     :
                                                                         <>
-                                                                            {description &&
+                                                                            {description ?
                                                                                 <>
                                                                                     <Typography variant="body1" 
                                                                                         color='gray' 
@@ -776,6 +778,8 @@ function TablePaginationActions(props) {
                                                                                         </>
                                                                                     }
                                                                                 </>
+                                                                            :
+                                                                                    <><RenderDescription title={name} description={description} fallback={proposal}/></>
                                                                             }
                                                                         </>
                                                                     }
@@ -1442,7 +1446,7 @@ export function GovernanceRealtimeView(props: any) {
                             disable-screenshots="true"
                             manifest-url="/up_/manifest.webmanifest"
                             name="Governance"
-                            description="Governance by Grape | Making Governance faster, better and more efficient for DAOs #OPOS"         
+                            description="Governance.so | Next-gen DAO tooling for better proposals, faster execution, and real ownership. #OPOS"         
                             icon={APP_ICON}
                         ></pwa-install>
 
@@ -1491,19 +1495,36 @@ export function GovernanceRealtimeView(props: any) {
                                 <Grid item xs>
                                     <Typography variant="h4" sx={{ textAlign: "left" }}>Realtime Proposals <BlinkingDot /></Typography>
                                 </Grid>
-                                <Grid item alignContent={"right"}>
-                                    <Typography variant="body2" 
-                                        sx={{ 
-                                            textAlign:"left",
-                                            fontSize:"10px",
-                                            color:"gray",
-                                            // Responsive padding for mobile devices
-                                            '@media (max-width: 600px)': {
-                                                mr:1.5,
-                                            }, }}>
-                                                Powered by<br/>GRAPE X SOLANA</Typography>
-
-                                </Grid>
+                                <Grid item alignContent="right">
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                        textAlign: "left",
+                                        fontSize: "10px",
+                                        color: "gray",
+                                        a: {
+                                            display: 'inline-block',
+                                            color: 'gray',
+                                            textDecoration: 'none',
+                                            '&:hover': {
+                                            textDecoration: 'none',
+                                            },
+                                        },
+                                        img: {
+                                            maxHeight: '14px',
+                                            verticalAlign: 'middle',
+                                        },
+                                        '@media (max-width: 600px)': {
+                                            mr: 1.5,
+                                        },
+                                        }}
+                                    >
+                                        Powered by<br />
+                                        <a href="https://governance.so" target="_blank" rel="noopener noreferrer">
+                                        <img src={APP_LOGO} alt="Governance.so" />
+                                        </a>
+                                    </Typography>
+                                    </Grid>
                             </Grid>
                                 
                                 <RenderGovernanceTable 

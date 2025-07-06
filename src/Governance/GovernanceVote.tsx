@@ -139,7 +139,8 @@ import {
     PROXY, 
     RPC_CONNECTION, 
     GGAPI_STORAGE_POOL, 
-    GGAPI_STORAGE_URI } from '../utils/grapeTools/constants';
+    GGAPI_STORAGE_URI,
+    BLACKLIST_WALLETS } from '../utils/grapeTools/constants';
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
 
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
@@ -211,6 +212,8 @@ export function VoteForProposal(props:any){
     const [memberMap, setMemberMap] = React.useState(null);
     const [voterRecord, setVoterRecord] = React.useState(null);
     const [delegatedVoterRecord, setDelegatedVoterRecord] = React.useState(null);
+    const [councilVoterRecord, setCouncilVoterRecord] = React.useState(null);
+    const [councilDelegateVoterRecord, setCouncilDelegateVoterRecord] = React.useState(null);
     const [selectedIndex, setSelectedIndex] = React.useState(1);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const [anchorElYes, setAnchorElYes] = React.useState(null);
@@ -221,6 +224,8 @@ export function VoteForProposal(props:any){
     const governanceRules = props?.governanceRules;
     const [open, setOpen] = React.useState(false);
     
+    const isBlacklisted = BLACKLIST_WALLETS.includes(publicKey?.toBase58()) ? true : false;
+
     const handleClickOpen = () => {
         setOpen(true);
     };
@@ -380,59 +385,6 @@ export function VoteForProposal(props:any){
             if (voteTx){
                 console.log("Removing vote as: "+publicKey.toBase58());
             }
-
-            /*
-            if (delegatedItems){ // if we wanta to add all to vote
-                let cnt = 0;
-                for (var delegateItem of delegatedItems){ // if vote for all delegates + your own
-                    // check with delegate
-                    console.log("delegate setting: "+delegate);    
-                    if (withAllDelegates){
-                        // check if delegate has voted
-                        const hasVotedItem = votingParticipants.some(item => item.governingTokenOwner === delegateItem.account.governingTokenOwner.toBase58());
-                        if (!hasVotedItem){
-                            
-                            const delegateVoteTx = await createCastVoteTransaction(
-                                realm,
-                                publicKey,
-                                transactionData,
-                                delegateItem,
-                                delegateItem.account.governingTokenOwner.toBase58(),//null,
-                                isCommunityVote,
-                                multiChoice,
-                                type
-                            );
-                            
-                            if (delegateVoteTx){
-                                voteTx.add(delegateVoteTx);
-                                console.log("Casting vote as a delegator for "+delegateItem.account.governingTokenOwner.toBase58())
-                            }
-                        }
-                    } else if (delegate){ // if sinlge delegate
-                        if (delegate === delegateItem.account.governingTokenOwner.toBase58()){
-                            const delegateVoteTx = await createCastVoteTransaction(
-                                realm,
-                                publicKey,
-                                transactionData,
-                                delegateItem,
-                                delegateItem.account.governingTokenOwner.toBase58(),
-                                isCommunityVote,
-                                multiChoice,
-                                type
-                            );
-                            
-                            if (delegateVoteTx)
-                                voteTx.add(delegateVoteTx);
-                        }
-                    }
-                    cnt++;
-
-                }
-            }
-            */
-
-            //console.log("vvvt: "+JSON.stringify(vvvt));
-            
             if (voteTx){
 
                 //console.log("voteTx: " + JSON.stringify(voteTx));
@@ -481,236 +433,390 @@ export function VoteForProposal(props:any){
         }
     }
     
-    const handleVote = async (type: Number, delegate?: string, withOwnerRecord?:boolean, withAllDelegates?:boolean) => {
-        const wOwner = withOwnerRecord ? true : false;
-        const wAllDelegates = withAllDelegates ? true : false;
-        setAnchorElYes(false);
-        setAnchorElNo(false);
+    const handleVetoVote = async (type: Number, delegate?: string, withOwnerRecord?:boolean) => {
         
-        const programId = new PublicKey(realm.owner);
-        
-        let rawTokenOwnerRecords = null;
-        
-        if (memberMap){
-            rawTokenOwnerRecords = memberMap;
-        } else{
-            rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null, publicKey.toBase58());
-            //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
-        }
-
-        //console.log("rawTokenOwnerRecords: "+JSON.stringify(rawTokenOwnerRecords))
-        // 6R78nYux2yVDtNBd8CBXojRtgkSmRvECvQsAtZMkcDWM
-        
-        let memberItem = voterRecord || rawTokenOwnerRecords.find(item => 
-            (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
-            item.account.governingTokenMint.toBase58() === thisitem));
-        
-        
-        let delegatedItems = delegatedVoterRecord || rawTokenOwnerRecords.filter(item => 
-            (item.account?.governanceDelegate?.toBase58() === publicKey.toBase58() && 
-            item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
-        
-        console.log("delegatedItems: "+JSON.stringify(delegatedItems))
-        
-        //console.log("tokenOwnerRecord: "+JSON.stringify(thisitem.account.tokenOwnerRecord));
-        
-        const proposal = {
-            governanceId: thisitem.account.governance,
-            proposalId: thisitem.pubkey,
-            tokenOwnerRecord: thisitem.account.tokenOwnerRecord,
-            governingTokenMint: thisitem.account.governingTokenMint
-        }
-        const transactionData = {proposal:proposal,action:0} // 0 = yes
-        //console.log("realm: "+JSON.stringify(realm));
-        //console.log("thisitem/proposal: "+JSON.stringify(thisitem));
-        //console.log("thisGovernance: "+JSON.stringify(thisGovernance));
-        
-        /*
-        const realmData = {
-            pubKey:thisGovernance.pubkey,
-            realmId:thisitem.pubkey,
-            governanceId:thisitem.account.governance,
-            communityMint: thisitem.account.governingTokenMint
-        }*/
-
-        //console.log("Proposal: "+JSON.stringify(proposal));
-        //console.log("realmData: "+JSON.stringify(realmData));
-        //console.log("memberItem: "+JSON.stringify(memberItem));
-
-        //console.log("memberMapReduced: "+JSON.stringify(memberMapReduced));
-
-        // check if voter can participate
-        if (publicKey && memberItem) {
+        if (!isBlacklisted){
+            const wOwner = withOwnerRecord ? true : false;
+            setAnchorElYes(false);
+            setAnchorElNo(false);
             
-            const voteTx = new Transaction();
-            let supportedVote = true;
+            const programId = new PublicKey(realm.owner);
             
-            if (wOwner){ // vote for your own if delegate is not set and value of delegate is not = 1
+            let rawTokenOwnerRecords = null;
+            
+            if (memberMap){
+                rawTokenOwnerRecords = memberMap;
+            } else{
+                rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null, publicKey.toBase58());
+                //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
+            }
+
+            //console.log("rawTokenOwnerRecords: "+JSON.stringify(rawTokenOwnerRecords))
+            // 6R78nYux2yVDtNBd8CBXojRtgkSmRvECvQsAtZMkcDWM
+            
+            let memberItem = voterRecord || rawTokenOwnerRecords.find(item => 
+                (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
+                item.account.governingTokenMint.toBase58() === thisitem));
+            
+            let delegatedItems = delegatedVoterRecord || rawTokenOwnerRecords.filter(item => 
+                (item.account?.governanceDelegate?.toBase58() === publicKey.toBase58() && 
+                item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
+            
+            let counclilMemberItem = voterRecord || rawTokenOwnerRecords.find(item => 
+                (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
+                item.account.governingTokenMint.toBase58() === thisitem));
+            
+            console.log("delegatedItems: "+JSON.stringify(delegatedItems))
+            
+            //console.log("tokenOwnerRecord: "+JSON.stringify(thisitem.account.tokenOwnerRecord));
+            
+            const proposal = {
+                governanceId: thisitem.account.governance,
+                proposalId: thisitem.pubkey,
+                tokenOwnerRecord: thisitem.account.tokenOwnerRecord,
+                governingTokenMint: thisitem.account.governingTokenMint
+            }
+            const transactionData = {proposal:proposal,action:0} // 0 = yes
+            
+            // check if voter can participate
+            if (publicKey && counclilMemberItem) {
                 
-                const hasVotedItem = votingParticipants.some(item => item.governingTokenOwner === publicKey.toBase58());
-                console.log("*** isCommunityVote: "+JSON.stringify(isCommunityVote))
-                if (!hasVotedItem){
-                    const tmpVote = await createCastVoteTransaction(
-                        realm,
-                        publicKey,
-                        transactionData,
-                        memberItem,
-                        null,
-                        isCommunityVote,
-                        multiChoice,
-                        type
-                    );
-                    if (tmpVote){
-                        voteTx.add(tmpVote);
-                    } else {
-                        supportedVote = false;
-                        enqueueSnackbar("Additional Plugin Voting Support Coming Soon (NFT, Gateway)", { variant: 'error' });
+                const voteTx = new Transaction();
+                let supportedVote = true;
+                
+                if (wOwner){ // vote for your own if delegate is not set and value of delegate is not = 1
+                    
+                    const hasVotedItem = votingParticipants.some(item => item.governingTokenOwner === publicKey.toBase58());
+                    console.log("*** isCommunityVote: "+JSON.stringify(isCommunityVote))
+                    if (!hasVotedItem){
+                        const tmpVote = await createCastVoteTransaction(
+                            realm,
+                            publicKey,
+                            transactionData,
+                            counclilMemberItem,
+                            null,
+                            isCommunityVote,
+                            multiChoice,
+                            type
+                        );
+                        if (tmpVote){
+                            voteTx.add(tmpVote);
+                        } else {
+                            supportedVote = false;
+                            enqueueSnackbar("Additional Plugin Voting Support Coming Soon (NFT, Gateway)", { variant: 'error' });
+                        }
                     }
                 }
-            }
-            
-            if (voteTx && supportedVote){
-                console.log("Casting vote as: "+publicKey.toBase58());
-            } 
+                
+                if (voteTx && supportedVote){
+                    console.log("Casting veto vote as: "+publicKey.toBase58());
+                } 
+                //console.log("vvvt: "+JSON.stringify(vvvt));
+                
+                if (voteTx){
+                    if (supportedVote){
+                        console.log("voteTx: " + JSON.stringify(voteTx));
+                        try{
+                            enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
+                            const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
+                                skipPreflight: true,
+                                preflightCommitment: "confirmed",
+                            });
+                            const snackprogress = (key:any) => (
+                                <CircularProgress sx={{padding:'10px'}} />
+                            );
+                            const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
+                            //await connection.confirmTransaction(signature, 'processed');
+                            const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
+                            await RPC_CONNECTION.confirmTransaction({
+                                blockhash: latestBlockHash.blockhash,
+                                lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+                                signature: signature}, 
+                                'confirmed'
+                            );
 
-            let addCnt = voteTx ? 1 : 0;
-            if (delegatedItems){ // if we wanta to add all to vote
-                let cnt = 0;
-                for (var delegateItem of delegatedItems){ // if vote for all delegates + your own
-                    // check with delegate
-                    console.log("delegate setting: "+delegate);    
-                    if (withAllDelegates){
-                        // check if delegate has voted
-                        const hasVotedItem = votingParticipants.some(item => item.governingTokenOwner === delegateItem.account.governingTokenOwner.toBase58());
-                        if (!hasVotedItem){
+                            closeSnackbar(cnfrmkey);
+                            const action = (key:any) => (
+                                    <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
+                                        Signature: {shortenString(signature,5,5)}
+                                    </Button>
+                            );
                             
-                            let voteWithDelegate = true;
+                            enqueueSnackbar(`Congratulations, you have participated in voting for this Proposal`,{ variant: 'success', action });
 
-                            if (quorum && quorum > 0){
-                                if (addCnt < quorum)
-                                    voteWithDelegate = true;
-                                else 
-                                    voteWithDelegate = false;
-                            } else {
+                            // trigger a refresh here...
+                            
+                            const redirectTimer = setTimeout(() => {
+                                getVotingParticipants();
+                            }, 5000); // 5 seconds*/
+                            //getVotingParticipants();
+                        }catch(e:any){
+                            enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
+                        } 
+                    }
+                } else{
+                    enqueueSnackbar("Could not vote for proposal!", { variant: 'error' });
+                }
+                
+            } else if (!counclilMemberItem){
+                enqueueSnackbar("Voter Record Not Found!", { variant: 'error' });
+            }
+        } else{
+            enqueueSnackbar("An error occured, please try again later!", { variant: 'error' });
+        }
+    }
 
+    const handleVote = async (type: Number, delegate?: string, withOwnerRecord?:boolean, withAllDelegates?:boolean) => {
+        
+        if (!isBlacklisted){
+            const wOwner = withOwnerRecord ? true : false;
+            const wAllDelegates = withAllDelegates ? true : false;
+            setAnchorElYes(false);
+            setAnchorElNo(false);
+            
+            const programId = new PublicKey(realm.owner);
+            
+            let rawTokenOwnerRecords = null;
+            
+            if (memberMap){
+                rawTokenOwnerRecords = memberMap;
+            } else{
+                rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null, publicKey.toBase58());
+                //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
+            }
+
+            //console.log("rawTokenOwnerRecords: "+JSON.stringify(rawTokenOwnerRecords))
+            // 6R78nYux2yVDtNBd8CBXojRtgkSmRvECvQsAtZMkcDWM
+            
+            let memberItem = voterRecord || rawTokenOwnerRecords.find(item => 
+                (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
+                item.account.governingTokenMint.toBase58() === thisitem));
+            
+            
+            let delegatedItems = delegatedVoterRecord || rawTokenOwnerRecords.filter(item => 
+                (item.account?.governanceDelegate?.toBase58() === publicKey.toBase58() && 
+                item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
+            
+            console.log("delegatedItems: "+JSON.stringify(delegatedItems))
+            
+            //console.log("tokenOwnerRecord: "+JSON.stringify(thisitem.account.tokenOwnerRecord));
+            
+            const proposal = {
+                governanceId: thisitem.account.governance,
+                proposalId: thisitem.pubkey,
+                tokenOwnerRecord: thisitem.account.tokenOwnerRecord,
+                governingTokenMint: thisitem.account.governingTokenMint
+            }
+            const transactionData = {proposal:proposal,action:0} // 0 = yes
+            //console.log("realm: "+JSON.stringify(realm));
+            //console.log("thisitem/proposal: "+JSON.stringify(thisitem));
+            //console.log("thisGovernance: "+JSON.stringify(thisGovernance));
+            
+            /*
+            const realmData = {
+                pubKey:thisGovernance.pubkey,
+                realmId:thisitem.pubkey,
+                governanceId:thisitem.account.governance,
+                communityMint: thisitem.account.governingTokenMint
+            }*/
+
+            //console.log("Proposal: "+JSON.stringify(proposal));
+            //console.log("realmData: "+JSON.stringify(realmData));
+            //console.log("memberItem: "+JSON.stringify(memberItem));
+
+            //console.log("memberMapReduced: "+JSON.stringify(memberMapReduced));
+
+            // check if voter can participate
+            if (publicKey && memberItem) {
+                
+                const voteTx = new Transaction();
+                let supportedVote = true;
+                
+                if (wOwner){ // vote for your own if delegate is not set and value of delegate is not = 1
+                    
+                    const hasVotedItem = votingParticipants.some(item => item.governingTokenOwner === publicKey.toBase58());
+                    console.log("*** isCommunityVote: "+JSON.stringify(isCommunityVote))
+                    if (!hasVotedItem){
+                        const tmpVote = await createCastVoteTransaction(
+                            realm,
+                            publicKey,
+                            transactionData,
+                            memberItem,
+                            null,
+                            isCommunityVote,
+                            multiChoice,
+                            type
+                        );
+                        if (tmpVote){
+                            voteTx.add(tmpVote);
+                        } else {
+                            supportedVote = false;
+                            enqueueSnackbar("Additional Plugin Voting Support Coming Soon (NFT, Gateway)", { variant: 'error' });
+                        }
+                    }
+                }
+                
+                if (voteTx && supportedVote){
+                    console.log("Casting vote as: "+publicKey.toBase58());
+                } 
+
+                let addCnt = voteTx ? 1 : 0;
+                if (delegatedItems){ // if we wanta to add all to vote
+                    let cnt = 0;
+                    for (var delegateItem of delegatedItems){ // if vote for all delegates + your own
+                        // check with delegate
+                        console.log("delegate setting: "+delegate);    
+                        if (withAllDelegates){
+                            // check if delegate has voted
+                            const hasVotedItem = votingParticipants.some(item => item.governingTokenOwner === delegateItem.account.governingTokenOwner.toBase58());
+                            if (!hasVotedItem){
+                                
+                                let voteWithDelegate = true;
+
+                                if (quorum && quorum > 0){
+                                    if (addCnt < quorum)
+                                        voteWithDelegate = true;
+                                    else 
+                                        voteWithDelegate = false;
+                                } else {
+
+                                }
+
+                                if (voteWithDelegate){
+                                    //console.log(addCnt+" ("+quorum+"): Voting with delegate ");
+                                    const delegateVoteTx = await createCastVoteTransaction(
+                                        realm,
+                                        publicKey,
+                                        transactionData,
+                                        delegateItem,
+                                        delegateItem.account.governingTokenOwner.toBase58(),//null,
+                                        isCommunityVote,
+                                        multiChoice,
+                                        type
+                                    );
+                                    
+                                    if (delegateVoteTx){
+                                        voteTx.add(delegateVoteTx);
+                                        console.log("Casting vote as a delegator for "+delegateItem.account.governingTokenOwner.toBase58())
+                                    }
+                                }
+                                addCnt++;
                             }
-
-                            if (voteWithDelegate){
-                                //console.log(addCnt+" ("+quorum+"): Voting with delegate ");
+                        } else if (delegate){ // if sinlge delegate
+                            if (delegate === delegateItem.account.governingTokenOwner.toBase58()){
                                 const delegateVoteTx = await createCastVoteTransaction(
                                     realm,
                                     publicKey,
                                     transactionData,
                                     delegateItem,
-                                    delegateItem.account.governingTokenOwner.toBase58(),//null,
+                                    delegateItem.account.governingTokenOwner.toBase58(),
                                     isCommunityVote,
                                     multiChoice,
                                     type
                                 );
                                 
-                                if (delegateVoteTx){
+                                if (delegateVoteTx)
                                     voteTx.add(delegateVoteTx);
-                                    console.log("Casting vote as a delegator for "+delegateItem.account.governingTokenOwner.toBase58())
-                                }
                             }
-                            addCnt++;
                         }
-                    } else if (delegate){ // if sinlge delegate
-                        if (delegate === delegateItem.account.governingTokenOwner.toBase58()){
-                            const delegateVoteTx = await createCastVoteTransaction(
-                                realm,
-                                publicKey,
-                                transactionData,
-                                delegateItem,
-                                delegateItem.account.governingTokenOwner.toBase58(),
-                                isCommunityVote,
-                                multiChoice,
-                                type
+                        cnt++;
+
+                    }
+                }
+
+                //console.log("vvvt: "+JSON.stringify(vvvt));
+                
+                if (voteTx){
+                    if (supportedVote){
+                        console.log("voteTx: " + JSON.stringify(voteTx));
+                        try{
+                            enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
+                            const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
+                                skipPreflight: true,
+                                preflightCommitment: "confirmed",
+                            });
+                            const snackprogress = (key:any) => (
+                                <CircularProgress sx={{padding:'10px'}} />
+                            );
+                            const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
+                            //await connection.confirmTransaction(signature, 'processed');
+                            const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
+                            await RPC_CONNECTION.confirmTransaction({
+                                blockhash: latestBlockHash.blockhash,
+                                lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+                                signature: signature}, 
+                                'confirmed'
+                            );
+
+                            closeSnackbar(cnfrmkey);
+                            const action = (key:any) => (
+                                    <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
+                                        Signature: {shortenString(signature,5,5)}
+                                    </Button>
                             );
                             
-                            if (delegateVoteTx)
-                                voteTx.add(delegateVoteTx);
-                        }
+                            enqueueSnackbar(`Congratulations, you have participated in voting for this Proposal`,{ variant: 'success', action });
+
+                            // trigger a refresh here...
+                            
+                            const redirectTimer = setTimeout(() => {
+                                getVotingParticipants();
+                            }, 5000); // 5 seconds*/
+                            //getVotingParticipants();
+                        }catch(e:any){
+                            enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
+                        } 
                     }
-                    cnt++;
-
+                } else{
+                    enqueueSnackbar("Could not vote for proposal!", { variant: 'error' });
                 }
+                
+            } else if (!memberItem){
+                enqueueSnackbar("Voter Record Not Found!", { variant: 'error' });
             }
-
-            //console.log("vvvt: "+JSON.stringify(vvvt));
-            
-            if (voteTx){
-                if (supportedVote){
-                    console.log("voteTx: " + JSON.stringify(voteTx));
-                    try{
-                        enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
-                        const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
-                            skipPreflight: true,
-                            preflightCommitment: "confirmed",
-                        });
-                        const snackprogress = (key:any) => (
-                            <CircularProgress sx={{padding:'10px'}} />
-                        );
-                        const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
-                        //await connection.confirmTransaction(signature, 'processed');
-                        const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
-                        await RPC_CONNECTION.confirmTransaction({
-                            blockhash: latestBlockHash.blockhash,
-                            lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-                            signature: signature}, 
-                            'confirmed'
-                        );
-
-                        closeSnackbar(cnfrmkey);
-                        const action = (key:any) => (
-                                <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                                    Signature: {shortenString(signature,5,5)}
-                                </Button>
-                        );
-                        
-                        enqueueSnackbar(`Congratulations, you have participated in voting for this Proposal`,{ variant: 'success', action });
-
-                        // trigger a refresh here...
-                        
-                        const redirectTimer = setTimeout(() => {
-                            getVotingParticipants();
-                        }, 5000); // 5 seconds*/
-                        //getVotingParticipants();
-                    }catch(e:any){
-                        enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
-                    } 
-                }
-            } else{
-                enqueueSnackbar("Could not vote for proposal!", { variant: 'error' });
-            }
-            
-        } else if (!memberItem){
-            enqueueSnackbar("Voter Record Not Found!", { variant: 'error' });
+        } else{
+            enqueueSnackbar("An error occured, please try again later!", { variant: 'error' });
         }
     }
 
     const loadMemberMap = async() => {
         
-        //const programId = new PublicKey(realm.owner);
-        //const rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
-        
-        //const rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null);
         const rawTokenOwnerRecords = await getTokenOwnerRecordsByRealmIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null, publicKey.toBase58());
         setMemberMap(rawTokenOwnerRecords);
 
         let memberItem = rawTokenOwnerRecords.find(item => 
             (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
             item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
-
+        
         setVoterRecord(memberItem);
-        console.log("memberItem: "+JSON.stringify(memberItem));
+        //console.log("memberItem: "+JSON.stringify(memberItem));
         
         let delegatedItems = rawTokenOwnerRecords.filter(item => 
             (item.account?.governanceDelegate?.toBase58() === publicKey.toBase58() && 
             item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
-        setDelegatedVoterRecord(delegatedItems);
         
-        console.log("delegatedItems: "+JSON.stringify(delegatedItems));
+        setDelegatedVoterRecord(delegatedItems);
+        //console.log("delegatedItems: "+JSON.stringify(delegatedItems));
+
+        // check if this is a community proposal
+        // if community proposal check if the voter is a council member & check if the delegate is a council member
+        if (realm && realm.account && realm.account.config && realm.account.config?.councilMint &&
+            realm.account.config.councilMint.toBase58() !== thisitem.account.governingTokenMint.toBase58()){
+            // this is a community proposal so now lets check
+                //rawTokenOwnerRecords
+            console.log("community proposal, checking council members...");
+            let councilMemberItem = rawTokenOwnerRecords.find(item => 
+                (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
+                 item.account.governingTokenMint.toBase58() === realm.account.config.councilMint.toBase58()));
+                console.log("councilMemberItem: "+JSON.stringify(councilMemberItem));
+            setCouncilVoterRecord(councilMemberItem);
+            
+            let councilDelegateMemberItem = rawTokenOwnerRecords.find(item => 
+                (item.account.governanceDelegate.toBase58() === publicKey.toBase58() && 
+                 item.account.governingTokenMint.toBase58() === realm.account.config.councilMint.toBase58()));
+                console.log("delegateCouncilMemberItem: "+JSON.stringify(councilMemberItem));
+            setCouncilDelegateVoterRecord(councilDelegateMemberItem);
+        }
     }
 
     const handleDelegateOpenYesToggle = (event:any) => {
@@ -837,8 +943,6 @@ export function VoteForProposal(props:any){
             <>
             {(thisitem.account?.state === 2 && publicKey) &&
                 <>
-                
-
                     {type === 0 ?
                         <>
                         {!hasVoted &&
@@ -957,7 +1061,6 @@ export function VoteForProposal(props:any){
                                 sx={{borderRadius:'17px',textTransform:'none'}}
                             >{(title && subtitle && showIcon) ?
                                 <>
-                                
                                     <Grid container direction="column" alignItems="center">
                                         <Grid item>
                                             <Grid container direction='row' alignItems='center'>
@@ -985,7 +1088,6 @@ export function VoteForProposal(props:any){
                                             </Grid>
                                         </Grid>
                                     </Grid>
-                                
                                 </>
                             :
                                 <>

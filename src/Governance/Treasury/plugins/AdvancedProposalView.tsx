@@ -38,6 +38,8 @@ import {
     getVoteRecordsByVoterIndexed,
 } from '../../api/queries';
 
+import CreateGistWithOAuth from '../../CreateGist';
+
 import { useWallet } from '@solana/wallet-adapter-react';
 
 export default function AdvanvedProposalView(props: any){
@@ -184,8 +186,23 @@ export default function AdvanvedProposalView(props: any){
                     onChange={(e) => setProposalDescription(e.target.value)}
                     sx={{textAlign:"center"}}
                     />
-                    <Grid sx={{textAlign:'right',}}>
-                        <Typography variant="caption">{proposalDescription ? proposalDescription.length > 0 ? maxDescriptionLen - proposalDescription.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
+
+                    <Grid container justifyContent="space-between" alignItems="center">
+                        
+                        {/*governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&*/}
+                        <Grid item sx={{textAlign:'left',}}>
+                            <CreateGistWithOAuth
+                            onGistCreated={(url) => {
+                                // Set it to your description field, or trigger your handler
+                                setProposalDescription(url); // or handleDescriptionChange(url)
+                            }}
+                            defaultText={proposalDescription}
+                            />
+                        </Grid>
+
+                        <Grid sx={{textAlign:'right',}}>
+                            <Typography variant="caption">{proposalDescription ? proposalDescription.length > 0 ? maxDescriptionLen - proposalDescription.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
+                        </Grid>
                     </Grid>
                 </FormControl>
 

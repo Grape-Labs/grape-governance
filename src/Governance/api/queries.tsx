@@ -1,7 +1,7 @@
 import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
-import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
+import { PublicKey, MemcmpFilter } from '@solana/web3.js';
+//import gql from 'graphql-tag';
 import { 
-    SHYFT_KEY,
     RPC_CONNECTION } from '../../utils/grapeTools/constants';
 
 import BN from 'bignumber.js';
@@ -10,6 +10,7 @@ import {
     getGovernance,
     getProposal,
     getRealm, 
+    getRealms,
     getAllGovernances,
     getAllProposals, 
     getAllTokenOwnerRecords,
@@ -18,7 +19,9 @@ import {
     tryGetRealmConfig, 
     ProposalTransaction,
     getGovernanceAccounts,
+    getNativeTreasuryAddress,
     pubkeyFilter,
+    SignatoryRecord,
     getRealmConfig  } from '@solana/spl-governance';
 
 import { getVoteRecords } from '../../utils/governanceTools/getVoteRecords';
@@ -116,7 +119,7 @@ export const govOwners = [
     },
 ]
 
-function findGovOwnerByDao(dao:string) {
+export function findGovOwnerByDao(dao:string, programId?:string) {
     const matchingGovOwner = govOwners.find((govOwner) => govOwner.dao === dao);
     if (!matchingGovOwner)
         return {
@@ -127,7 +130,7 @@ function findGovOwnerByDao(dao:string) {
     else
         return matchingGovOwner;
     //console.log("found: "+JSON.stringify(matchingGovOwner));
-  }
+}
 
     /*
        'HT19EcD68zn7NoCF79b2ucQF8XaMdowyPt5ccS6g1PUx': 'Ratio_Finance',
@@ -167,7 +170,6 @@ function GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk?:string, realmOwner?:string)
                 pubkey
             }
         }
-        
     `;
 }
 
@@ -495,6 +497,40 @@ function GET_QUERY_PROPOSALS(governanceArray?:string[], realmOwner?:string, prog
     }
 }
 
+function GET_QUERY_GOVERNANCE_BY_PUBKEY(rulesWallet: string, realmOwner?: string) {
+    const programId = realmOwner ?? 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    
+    return gql`
+        query GovernanceByPubkey {
+            ${programId}_GovernanceV2(where: { pubkey: { _eq: "${rulesWallet}" } }) {
+                pubkey
+                realm
+            }
+            ${programId}_GovernanceV1(where: { pubkey: { _eq: "${rulesWallet}" } }) {
+                pubkey
+                realm
+            }
+        }
+    `;
+}
+
+function GET_QUERY_REALM_NAME(realm: string, realmOwner?: string) {
+    const programId = realmOwner ?? 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    
+    return gql`
+        query RealmName {
+            ${programId}_RealmV2(where: { pubkey: { _eq: "${realm}" } }) {
+                name
+                communityMint
+            }
+            ${programId}_RealmV1(where: { pubkey: { _eq: "${realm}" } }) {
+                name
+                communityMint
+            }
+        }
+    `;
+}
+
 function GET_QUERY_RULES(realm:string, realmOwner:string){
 
     const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
@@ -655,32 +691,62 @@ function GET_QUERY_MEMBERS(realm:string, realmOwner:string, pointer:number, toke
     }
 }
 
-function GET_QUERY_REALM(realm:string, realmOwner?:string){
-    console.log("REALM: "+realm)
+function GET_QUERY_REALMS(realmOwner?: string) {
+  console.log("realmOwner:", realmOwner);
 
-    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    return gql `
-        query MyQuery {
-            ${programId}_RealmV1(where: {pubkey: {_eq: "${realm}"}}) {
-                authority
-                communityMint
-                config
-                name
-                reserved
-                
-            }
-            ${programId}_RealmV2(where: {pubkey: {_eq: "${realm}"}}) {
-                authority
-                communityMint
-                config
-                name
-                reserved
-                
-            }
-        }
-        `
+  const programId = realmOwner || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+  return gql`
+    query GetRealm {
+      ${programId}_RealmV1 {
+        pubkey
+        authority
+        communityMint
+        config
+        name
+        reserved
+      }
+      ${programId}_RealmV2 {
+        pubkey
+        authority
+        communityMint
+        config
+        name
+        reserved
+      }
+    }
+  `;
 }
 
+function GET_QUERY_REALM(realm?: string, realmOwner?: string) {
+  console.log("realm:", realm);
+  console.log("realmOwner:", realmOwner);
+
+  const programId = realmOwner || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+  const realmFilter = realm ? `(where: {pubkey: {_eq: "${realm}"}})` : '';
+
+  return gql`
+    query GetRealm {
+      ${programId}_RealmV1${realmFilter} {
+        pubkey
+        authority
+        communityMint
+        config
+        name
+        reserved
+      }
+      ${programId}_RealmV2${realmFilter} {
+        pubkey
+        authority
+        communityMint
+        config
+        name
+        reserved
+      }
+    }
+  `;
+}
 
 function GET_QUERY_ALL_TOKEN_OWNER_RECORDS(owner:string, realmOwner?:string){
     console.log("TokenOwner: "+owner)
@@ -718,72 +784,138 @@ function GET_QUERY_ALL_TOKEN_OWNER_RECORDS(owner:string, realmOwner?:string){
         `
 }
 
-export const getProposalInstructionsIndexed = async (filterRealm?:string, proposalPk?:string) => {
-    
-    
+export const getProposalInstructionsIndexed = async (filterRealm?: string, proposalPk?: string) => {
     const programId = findGovOwnerByDao(filterRealm)?.owner;
+    const allProposalIx = [];
 
-    const allProposalIx = new Array();
-    try{
-        const { data } = await client.query({ query: GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk, programId), fetchPolicy: 'no-cache' });
-        
-        data[programId+"_ProposalTransactio"] && data[programId+"_ProposalTransactio"].map((item) => {
-            if (item?.instructions){
-                
+    let fallbackToRPC = false;
 
-                allProposalIx.push({
-                    pubkey: new PublicKey(0),
-                    account: {
-                            pubkey: new PublicKey(item.pubkey),
-                            proposal: new PublicKey(proposalPk),
-                            executedAt: item.executedAt,
-                            executionStatus: item.executionStatus,
-                            instructionIndex: item?.instructionIndex,
-                            holdUpTime: item.holdUpTime,
-                            instructions: item.instructions.map((ixn) => {
-                                return {
-                                    programId: new PublicKey(ixn.programId),
-                                    accounts: ixn.accounts.map((acts) => {
-                                        return {
-                                            pubkey: new PublicKey(acts.pubkey),
-                                            isSigner: acts.isSigner,
-                                            isWritable: acts.isWritable,
-                                        }
-                                    }),
-                                    data: ixn.data,
-                                }
-                            })
-                        }
-                    }
-                )
-            
-            }
+    try {
+        const { data } = await client.query({
+            query: GET_QUERY_PROPOSAL_INSTRUCTIONS(proposalPk, programId),
+            fetchPolicy: 'no-cache',
         });
-        
-        //console.log("allProposalIx Index: "+JSON.stringify(allProposalIx));
-    }catch(e){
-        console.log("Ix Index Err reverting to RPC "+e);
+
+        const gqlKey = `${programId}_ProposalTransactio`;
+        const indexedResults = data?.[gqlKey] || [];
+
+        for (const item of indexedResults) {
+            if (item?.instructions) {
+                allProposalIx.push({
+                    pubkey: new PublicKey(item.pubkey), // Placeholder — actual pubkey not included in GraphQL result
+                    account: {
+                        proposal: new PublicKey(proposalPk),
+                        executedAt: item.executedAt,
+                        executionStatus: item.executionStatus,
+                        instructionIndex: item.instructionIndex,
+                        holdUpTime: item.holdUpTime,
+                        instructions: item.instructions.map((ixn) => ({
+                            programId: new PublicKey(ixn.programId),
+                            accounts: ixn.accounts.map((acts) => ({
+                                pubkey: new PublicKey(acts.pubkey),
+                                isSigner: acts.isSigner,
+                                isWritable: acts.isWritable,
+                            })),
+                            data: ixn.data,
+                        })),
+                    },
+                });
+            }
+        }
+    } catch (e) {
+        console.warn("GraphQL error for ProposalInstructions — falling back to RPC:", e);
+        fallbackToRPC = true;
     }
 
-    
-    if ((!allProposalIx || allProposalIx.length <= 0) && filterRealm){ // fallback to RPC call is governance not found in index
-        const instructions = await getGovernanceAccounts(
+    if (fallbackToRPC) {
+        const rpcResults = await getGovernanceAccounts(
             RPC_CONNECTION,
             new PublicKey(programId),
             ProposalTransaction,
             [pubkeyFilter(1, new PublicKey(proposalPk))!]
         );
-        allProposalIx.push(...instructions);
+        allProposalIx.push(...rpcResults);
     }
-    //console.log("allProposalIx: "+JSON.stringify(allProposalIx));
-    return allProposalIx;
-    
-    
-}
 
-export const getRealmIndexed = async (filterRealm?:string) => {
-    if (filterRealm){
-        const programId = findGovOwnerByDao(filterRealm)?.owner;
+    return allProposalIx;
+};
+
+export const getRealmsIndexed = async (programId?:string) => {
+    if (programId){
+        const allRealms = new Array();
+
+        try{
+            console.log("getRealmsIndexed: "+programId);
+            const { data } = await client.query({ query: GET_QUERY_REALMS(programId), fetchPolicy: 'no-cache' });
+            
+            data[programId+"_RealmV2"] && data[programId+"_RealmV2"]?.map((item) => {
+                allRealms.push({
+                    pubkey: new PublicKey(item.pubkey),
+                    owner: new PublicKey(programId),
+                    account: {
+                        realm: new PublicKey(item.pubkey),
+                        authority: item?.authority ? new PublicKey(item.authority) : ``,
+                        communityMint: new PublicKey(item.communityMint),
+                        config: {
+                            councilMint: item.config?.councilMint ? new PublicKey(item.config.councilMint) : ``,
+                            communityMintMaxVoteWeightSource: {
+                                type:item.config.communityMintMaxVoteWeightSource.type,
+                                value:new BN(item.config.communityMintMaxVoteWeightSource.value)
+                            },
+                            minCommunityTokensToCreateGovernance: new BN(item.config.minCommunityTokensToCreateGovernance),
+                            useCommunityVoterWeightAddin: item.config.useCommunityVoterWeightAddin,
+                            useMaxCommunityVoterWeightAddin: item.config.useMaxCommunityVoterWeightAddin,
+                            reserved: item.config.reserved,
+                        },
+                        name: item.name,
+                    }
+                })
+            });
+
+            data[programId+"_RealmV1"] && data[programId+"_RealmV1"]?.map((item) => {
+                allRealms.push({
+                    pubkey: new PublicKey(item.pubkey),
+                    owner: new PublicKey(programId),
+                    account: {
+                        realm: new PublicKey(item.pubkey),
+                        authority: item?.authority ? new PublicKey(item.authority) : ``,
+                        communityMint: new PublicKey(item.communityMint),
+                        config: {
+                            councilMint: item.config?.councilMint ? new PublicKey(item.config.councilMint) : ``,
+                            communityMintMaxVoteWeightSource: {
+                                type:item.config.communityMintMaxVoteWeightSource.type,
+                                value:new BN(item.config.communityMintMaxVoteWeightSource.value)
+                            },
+                            minCommunityTokensToCreateGovernance: new BN(item.config.minCommunityTokensToCreateGovernance),
+                            useCommunityVoterWeightAddin: item.config.useCommunityVoterWeightAddin,
+                            useMaxCommunityVoterWeightAddin: item.config.useMaxCommunityVoterWeightAddin,
+                            reserved: item.config.reserved,
+                        },
+                        name: item.name,
+                    }
+                })
+            });
+        }catch(e){
+
+            console.log("Realm Index Err reverting to RPC ",e);
+        }
+
+       if ((!allRealms || allRealms.length <= 0) && (programId)){ // fallback to RPC call is governance not found in index
+                console.log("No indexed realm found reverting to RPC getRealm")
+                const realm = await getRealms(RPC_CONNECTION, [new PublicKey(programId)]);
+                allRealms.push(realm);
+        } else{
+            console.log("Indexed realm found!")
+        }
+
+        //console.log("allRealms: "+JSON.stringify(allRealms));        
+        return allRealms;
+    }
+};
+
+export const getRealmIndexed = async (filterRealm?:string, program?:string) => {
+    if (filterRealm || program){
+        const programId = program || findGovOwnerByDao(filterRealm)?.owner;
         
         const allRealms = new Array();
 
@@ -793,9 +925,9 @@ export const getRealmIndexed = async (filterRealm?:string) => {
             
             //console.log("data: "+JSON.stringify(data));
             
-            data[programId+"_RealmV2"] && data[programId+"_RealmV2"].map((item) => {
+            data[programId+"_RealmV2"] && data[programId+"_RealmV2"]?.map((item) => {
                 allRealms.push({
-                    pubkey: new PublicKey(filterRealm),
+                    pubkey: new PublicKey(item.pubkey),
                     owner: new PublicKey(programId),
                     account: {
                         authority: new PublicKey(item.authority),
@@ -818,9 +950,9 @@ export const getRealmIndexed = async (filterRealm?:string) => {
                 })
             });
 
-            data[programId+"_RealmV1"] && data[programId+"_RealmV1"].map((item) => {
+            data[programId+"_RealmV1"] && data[programId+"_RealmV1"]?.map((item) => {
                 allRealms.push({
-                    pubkey: new PublicKey(filterRealm),
+                    pubkey: new PublicKey(item.pubkey),
                     owner: new PublicKey(programId),
                     account: {
                         authority: new PublicKey(item.authority),
@@ -845,13 +977,10 @@ export const getRealmIndexed = async (filterRealm?:string) => {
             console.log("Realm Index Err reverting to RPC");
         }
 
-        //console.log("programId: "+programId);
-        //console.log("allRealms: "+JSON.stringify(allRealms));
-
-        if ((!allRealms || allRealms.length <= 0) && filterRealm){ // fallback to RPC call is governance not found in index
-            console.log("No indexed realm found reverting to RPC getRealm")
-            const realm = await getRealm(RPC_CONNECTION, new PublicKey(filterRealm));
-            allRealms.push(realm);
+       if ((!allRealms || allRealms.length <= 0) && (filterRealm || programId)){ // fallback to RPC call is governance not found in index
+                console.log("No indexed realm found reverting to RPC getRealm")
+                const realm = await getRealm(RPC_CONNECTION, new PublicKey(filterRealm));
+                allRealms.push(realm);
         } else{
             console.log("Indexed realm found!")
         }
@@ -872,73 +1001,80 @@ export const getGovernanceIndexed = async (filterRealm?:any, realmOwner?:any, go
     }
 }
 
-export const getAllGovernancesIndexed = async (filterRealm?:string, realmOwner?:string) => {
-    //const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    //const programName = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programName = findGovOwnerByDao(filterRealm)?.name ? findGovOwnerByDao(filterRealm).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    const programId = realmOwner ? realmOwner : findGovOwnerByDao(filterRealm)?.owner ? findGovOwnerByDao(filterRealm).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
-    
-    //console.log("programName: "+programName);
+export const getAllGovernancesIndexed = async (filterRealm?: string, realmOwner?: string) => {
+    const allRules = [];
 
-    const allRules = new Array();
+    const programName = realmOwner
+        ? realmOwner
+        : findGovOwnerByDao(filterRealm)?.name || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
 
-    if (filterRealm){
-        try{
-            const { data } = await client.query({ query: GET_QUERY_RULES(filterRealm, programName), fetchPolicy: 'no-cache' });
-            // normalize data
-            
-            data[programName+"_GovernanceV2"] && data[programName+"_GovernanceV2"].map((item) => {
-                allRules.push({
-                    pubkey: new PublicKey(item.pubkey),
-                    owner: programId,
-                    account: {
-                        realm: new PublicKey(item.realm),
-                        governedAccount: new PublicKey(item.governedAccount),
-                        config: item.config, 
-                        /*{
-                            communityVoteThreshold: item.config.communityVoteThreshold,
-                            minCommunityTokensToCreateProposal: new BN(item.config.minCommunityTokensToCreateProposal),
-                            minInstructionHoldUpTime: item.config.minInstructionHoldUpTime,
-                            baseVotingTime: item.config.baseVotingTime,
-                            communityVoteTipping: item.config.communityVoteTipping,
-                            minCouncilTokensToCreateProposal: new BN(item.config.minCouncilTokensToCreateProposal),
-                            councilVoteThreshold: item.config.councilVoteThreshold,
-                            councilVetoVoteThreshold: item.config.councilVetoVoteThreshold,
-                            communityVetoVoteThreshold: item.config.communityVetoVoteThreshold,
-                            councilVoteTipping: item.config.councilVoteTipping,
-                            votingCoolOffTime: item.config.votingCoolOffTime,
-                            depositExemptProposalCount: item.config.depositExemptProposalCount,
-                        } ,*/
-                        activeProposalCount: item.activeProposalCount
+    const programId = realmOwner
+        ? realmOwner
+        : findGovOwnerByDao(filterRealm)?.owner || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+    try {
+        const query = filterRealm
+            ? GET_QUERY_RULES(filterRealm, programName)
+            : gql`
+                query AllGovernances {
+                    ${programName}_GovernanceV2(limit: 500) {
+                        pubkey
+                        realm
+                        reserved
+                        lamports
+                        governedAccount
+                        config
+                        activeProposalCount
                     }
-                })
-            });
-
-            data[programName+"_GovernanceV1"] && data[programName+"_GovernanceV1"].map((item) => {
-                allRules.push({
-                    pubkey: new PublicKey(item.pubkey),
-                    owner: programId,
-                    account: {
-                        realm: new PublicKey(item.realm),
-                        governedAccount: new PublicKey(item.governedAccount),
-                        config: item.config,
-                        proposalsCount: item.proposalsCount
+                    ${programName}_GovernanceV1(limit: 500) {
+                        pubkey
+                        config
+                        governedAccount
+                        lamports
+                        proposalsCount
+                        realm
                     }
-                })
-            });
-        }catch(e){
-            console.log("Error fetching all governances, reverting to RPC");
-        }
-        
-        if (!allRules || allRules.length <= 0){ // fallback to RPC call is governance not found in index
+                }
+            `;
 
+        const { data } = await client.query({ query, fetchPolicy: 'no-cache' });
+
+        data[programName + "_GovernanceV2"]?.forEach((item) => {
+            allRules.push({
+                pubkey: new PublicKey(item.pubkey),
+                owner: programId,
+                account: {
+                    realm: new PublicKey(item.realm),
+                    governedAccount: new PublicKey(item.governedAccount),
+                    config: item.config,
+                    activeProposalCount: item.activeProposalCount
+                }
+            });
+        });
+
+        data[programName + "_GovernanceV1"]?.forEach((item) => {
+            allRules.push({
+                pubkey: new PublicKey(item.pubkey),
+                owner: programId,
+                account: {
+                    realm: new PublicKey(item.realm),
+                    governedAccount: new PublicKey(item.governedAccount),
+                    config: item.config,
+                    proposalsCount: item.proposalsCount
+                }
+            });
+        });
+    } catch (e) {
+        console.log("Error fetching governances from index, reverting to RPC", e);
+
+        if (filterRealm) {
             const rules = await getAllGovernances(RPC_CONNECTION, new PublicKey(programId), new PublicKey(filterRealm));
             for (let item of rules)
                 allRules.push(item);
         }
-        
-        return allRules;
     }
+
+    return allRules;
 };
 
 export const getTokenOwnerRecordsByOwnerIndexed = async (filterRealm?:string, realmOwner?:string, tokenOwner?:string) => {
@@ -1064,7 +1200,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:string, realmO
                             governingTokenMint: new PublicKey(item.governingTokenMint),
                             governingTokenOwner: new PublicKey(item.governingTokenOwner),
                             governanceDelegate: item?.governanceDelegate ? new PublicKey(item.governanceDelegate):null,
-                            governingTokenDepositAmount: new BN(item.governingTokenDepositAmount),
+                            governingTokenDepositAmount: new BN(item.governingTokenDepositAmount?.toString() || "0"),
                             unrelinquishedVotesCount: item.unrelinquishedVotesCount,
                             totalVotesCount: item.totalVotesCount,
                             outstandingProposalCount: item.outstandingProposalCount,
@@ -1084,7 +1220,7 @@ export const getAllTokenOwnerRecordsIndexed = async (filterRealm?:string, realmO
                             governingTokenMint: new PublicKey(item.governingTokenMint),
                             governingTokenOwner: new PublicKey(item.governingTokenOwner),
                             governanceDelegate: item?.governanceDelegate ? new PublicKey(item.governanceDelegate):null,
-                            governingTokenDepositAmount: new BN(item.governingTokenDepositAmount),
+                            governingTokenDepositAmount: new BN(item.governingTokenDepositAmount?.toString() || "0"),
                             unrelinquishedVotesCount: item.unrelinquishedVotesCount,
                             totalVotesCount: item.totalVotesCount,
                             outstandingProposalCount: item.outstandingProposalCount,
@@ -1606,4 +1742,195 @@ export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, re
             console.log("VoteRecords: "+JSON.stringify(indexedRecord));
             return indexedRecord;
         }
+}
+
+function GET_QUERY_SIGNATORYRECORDS(proposalPk?: string, realmOwner?: string) {
+    const programId = realmOwner ? realmOwner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+    return gql `
+        query MyQuery {
+            ${programId}_SignatoryRecordV2(limit: 100, where: { proposal: { _eq: "${proposalPk}" } }) {
+                pubkey
+                proposal
+                signatory
+                signedOff
+                slot
+                lamports
+            }
+            ${programId}_SignatoryRecordV1(limit: 100, where: { proposal: { _eq: "${proposalPk}" } }) {
+                pubkey
+                proposal
+                signatory
+                signedOff
+                slot
+                lamports
+            }
+        }
+    `;
+}
+
+export const getSignatoryRecordsIndexed = async (proposalPk?: any, realmOwner?: any, realmPk?: any) => {
+    const programName = findGovOwnerByDao(realmPk)?.name
+        ? findGovOwnerByDao(realmPk).name
+        : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programId = realmOwner
+        ? realmOwner
+        : findGovOwnerByDao(realmPk)?.owner
+        ? findGovOwnerByDao(realmPk).owner
+        : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+    const indexedRecord = [];
+    try {
+        const { data } = await client.query({
+            query: GET_QUERY_SIGNATORYRECORDS(proposalPk, realmOwner),
+            fetchPolicy: 'no-cache',
+        });
+
+        if (data[programName + '_SignatoryRecordV2']) {
+            data[programName + '_SignatoryRecordV2'].forEach((account) => {
+                indexedRecord.push({
+                    owner: programId,
+                    pubkey: new PublicKey(account.pubkey),
+                    account: {
+                        proposal: new PublicKey(account.proposal),
+                        signatory: new PublicKey(account.signatory),
+                        signedOff: account.signedOff,
+                        slot: account.slot,
+                        lamports: account.lamports,
+                    },
+                });
+            });
+        }
+
+        if (data[programName + '_SignatoryRecordV1']) {
+            data[programName + '_SignatoryRecordV1'].forEach((account) => {
+                indexedRecord.push({
+                    owner: programId,
+                    pubkey: new PublicKey(account.pubkey),
+                    account: {
+                        proposal: new PublicKey(account.proposal),
+                        signatory: new PublicKey(account.signatory),
+                        signedOff: account.signedOff,
+                        slot: account.slot,
+                        lamports: account.lamports,
+                    },
+                });
+            });
+        }
+    } catch (e) {
+        console.log('Signatory Record Index Err. Falling back to RPC...');
+        const memcmpFilter = {
+                memcmp: {
+                    offset: 1,
+                    bytes: new PublicKey(proposalPk).toBase58(),
+                },
+            };
+        
+            const filters: MemcmpFilter[] = [
+                memcmpFilter,
+            ];
+        
+            const filter = pubkeyFilter(1, new PublicKey(proposalPk))
+            const signatoryResults = await getGovernanceAccounts(
+                RPC_CONNECTION,
+                programId,
+                SignatoryRecord,
+                [filter]
+            );
+
+            return signatoryResults;
+    }
+
+    return indexedRecord;
+};
+
+function GET_QUERY_REALMCONFIG(realmConfigPk?: string, realmOwner?: string) {
+    const programId = realmOwner || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+
+    const queryStr = `
+        query GetRealmConfig {
+            ${programId}_RealmConfig(where: { realm: { _eq: "${realmConfigPk}" } }) {
+                realm
+                communityTokenConfig
+                councilTokenConfig
+                lamports
+                reserved
+                slot
+            }
+        }
+    `;
+
+    return gql`${queryStr}`;
+}
+
+export const getRealmConfigIndexed = async (realmConfigPk?: any, realmOwner?: any, realmPk?: any) => {
+    const programId = realmOwner || findGovOwnerByDao(realmPk)?.owner || 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
+    const programName = findGovOwnerByDao(realmPk)?.name || programId;
+
+    try {
+        const { data } = await client.query({
+            query: GET_QUERY_REALMCONFIG(realmConfigPk, realmOwner),
+            fetchPolicy: 'no-cache',
+        });
+
+        const result = data?.[programName + '_RealmConfig']?.[0];
+
+        if (!result) return null;
+
+        return {
+            owner: programId,
+            pubkey: new PublicKey(result.realm),
+            account: {
+                communityTokenConfig: result.communityTokenConfig,
+                councilTokenConfig: result.councilTokenConfig,
+                lamports: result.lamports,
+                reserved: result.reserved,
+                slot: result.slot,
+            },
+        };
+    } catch (e) {
+        console.warn('Failed to fetch RealmConfig via Shyft index. Consider falling back to RPC.');
+        if (realmConfigPk){
+            const realmConfig = await getRealmConfig(
+                RPC_CONNECTION,
+                realmConfigPk
+            )
+            return realmConfig;
+        } else if (realmOwner && realmPk){
+            const realmConfig = await tryGetRealmConfig(RPC_CONNECTION, new PublicKey(realmOwner), new PublicKey(realmPk));
+            return realmConfig;
+        }
+    }
+};
+
+export async function fetchRealmNameFromRulesWallet(
+    rulesWallet: string,
+    realmOwner: string = 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw'
+): Promise<{ realm: string; name: string } | null> {
+    try {
+        const { data: governanceData } = await client.query({
+            query: GET_QUERY_GOVERNANCE_BY_PUBKEY(rulesWallet, realmOwner),
+            fetchPolicy: 'no-cache',
+        });
+
+        const realm =
+            governanceData?.[`${realmOwner}_GovernanceV2`]?.[0]?.realm ||
+            governanceData?.[`${realmOwner}_GovernanceV1`]?.[0]?.realm;
+
+        if (!realm) return null;
+
+        const { data: realmData } = await client.query({
+            query: GET_QUERY_REALM_NAME(realm, realmOwner),
+            fetchPolicy: 'no-cache',
+        });
+
+        const name =
+            realmData?.[`${realmOwner}_RealmV2`]?.[0]?.name ||
+            realmData?.[`${realmOwner}_RealmV1`]?.[0]?.name;
+
+        return name ? { realm, name } : null;
+    } catch (err) {
+        console.warn(`Failed to resolve realm name for rules wallet ${rulesWallet}:`, err);
+        return null;
+    }
 }

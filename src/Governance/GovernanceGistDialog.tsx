@@ -1,19 +1,3 @@
-import { 
-    getRealm, 
-    getAllProposals, 
-    getGovernance, 
-    getGovernanceAccounts, 
-    getGovernanceChatMessages, 
-    getTokenOwnerRecord, 
-    getTokenOwnerRecordsByOwner, 
-    getAllTokenOwnerRecords, 
-    getRealmConfigAddress, 
-    getGovernanceAccount, 
-    getAccountTypes, 
-    GovernanceAccountType, 
-    tryGetRealmConfig, 
-    getRealmConfig,
-    InstructionData  } from '@solana/spl-governance';
 import { getVoteRecords } from '../utils/governanceTools/getVoteRecords';
 import { PublicKey, TokenAmount, Connection } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -50,21 +34,9 @@ import {
   
 } from '@mui/material/';
 
-import {
-    Timeline,
-    TimelineItem,
-    TimelineSeparator,
-    TimelineConnector,
-    TimelineContent,
-    TimelineOppositeContent,
-    TimelineDot,
-} from '@mui/lab'
-
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
  
-import { GovernanceProposalView } from './GovernanceProposal';
-
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';

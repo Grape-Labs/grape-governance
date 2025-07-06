@@ -1,24 +1,8 @@
 import { 
-    getRealm, 
-    getProposal,
-    getAllProposals, 
-    getGovernance, 
-    getGovernanceAccounts, 
-    getNativeTreasuryAddress,
-    getGovernanceChatMessages, 
-    getTokenOwnerRecord, 
-    getTokenOwnerRecordsByOwner, 
-    getAllTokenOwnerRecords,
-    getMaxVoterWeightRecord,
-    getRealmConfigAddress, 
-    getGovernanceAccount, 
-    getAccountTypes, 
-    ProposalTransaction,
+    getGovernanceAccounts,
     pubkeyFilter,
-    GovernanceAccountType, 
-    tryGetRealmConfig, 
-    getRealmConfig,
-    InstructionData  } from '@solana/spl-governance';
+    ProposalTransaction,
+    getNativeTreasuryAddress } from '@solana/spl-governance';
 import { Buffer } from 'buffer';
 import { 
         getRealmIndexed,
@@ -111,6 +95,7 @@ import { createCastVoteTransaction } from '../utils/governanceTools/components/i
 import ExplorerView from '../utils/grapeTools/Explorer';
 import moment from 'moment';
 
+import WarningIcon from '@mui/icons-material/Warning';
 import ShareIcon from '@mui/icons-material/Share';
 import ArticleIcon from '@mui/icons-material/Article';
 import InfoIcon from '@mui/icons-material/Info';
@@ -140,11 +125,15 @@ import {
     RPC_CONNECTION, 
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI,
-    SHYFT_KEY } from '../utils/grapeTools/constants';
+    SHYFT_KEY,
+    HELIUS_API,
+    BLACKLIST_WALLETS } from '../utils/grapeTools/constants';
 import { 
     formatAmount, 
     getFormattedNumberToLocale,
     VSR_PLUGIN_PKS } from '../utils/grapeTools/helpers'
+
+import { RenderDescription } from './RenderDescription';
 
 //import { RevokeCollectionAuthority } from '@metaplex-foundation/mpl-token-metadata';
 
@@ -264,6 +253,7 @@ export function GovernanceProposalV2View(props: any){
     const [verifiedDAODestinationWalletArray, setVerifiedDAODestinationWalletArray] = React.useState(null);
     const [destinationWalletArray, setDestinationWalletArray] = React.useState(null);
     
+    const [loadingMessage, setLoadingMessage] = React.useState(null);
 
     const toggleInfoExpand = () => {
         setExpandInfo(!expandInfo)
@@ -419,6 +409,8 @@ export function GovernanceProposalV2View(props: any){
         let governance_item = null;
         let governance = null;
         
+        setLoadingMessage("Loading Governance...");
+
         if (governanceLookup){
             for (let glitem of governanceLookup){
                 if (glitem.governanceAddress === governanceAddress){
@@ -467,6 +459,8 @@ export function GovernanceProposalV2View(props: any){
             //}
             
             //console.log("communityMintPromise ("+thisitem.account.governingTokenMint+") "+JSON.stringify(governingMintPromise))
+            
+            setLoadingMessage("Loading Governance Mint...");
             setGoverningMintInfo(governingMintDetails);
             
             const communityWeight = governingMintDetails.value.data.parsed.info.supply - Number(realm.account.config.minCommunityTokensToCreateGovernance);
@@ -607,9 +601,24 @@ export function GovernanceProposalV2View(props: any){
 
     const fetchTokenName = async(address:string) => {
         try{
-            if (SHYFT_KEY){
+            if (HELIUS_API){
+                const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
+                const response = await fetch(uri, {
+                    method: 'POST',
+                    headers: {
+                    "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                    "jsonrpc": "2.0",
+                    "id": "text",
+                    "method": "getAsset",
+                    "params": {
+                        id: address,
+                    }
+                    }),
+                });
+                /*
                 const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
-
                 const response = await fetch(uri, {
                     method: 'POST',
                     headers: {
@@ -620,10 +629,11 @@ export function GovernanceProposalV2View(props: any){
                         id: 'rpc-id',
                         method: 'getAsset',
                         params: {
-                        id: address
+                            id: address
                         },
                     }),
                     });
+                    */ 
                 const { result } = await response.json();
                 
                 if (result){
@@ -634,12 +644,9 @@ export function GovernanceProposalV2View(props: any){
                     }
                     return null;
                 }
-            } else{
-                return null;
             }
         } catch(e){
             console.log("ERR: "+e);
-            return null;
         }
     }
 
@@ -664,6 +671,8 @@ export function GovernanceProposalV2View(props: any){
         let td = 0; // this is the default for NFT mints
         let vType = null;
 
+
+        setLoadingMessage("Loading Voting Participants...");
         // this method is not correct, migrate to set decimals by an RPC:
         const tokenInfo = await getMint(RPC_CONNECTION, new PublicKey(thisitem.account.governingTokenMint));
         
@@ -745,8 +754,10 @@ export function GovernanceProposalV2View(props: any){
 
             if (thisitem.account.signatoriesCount > 0){
                 // how many signed off? check signatoriesSignedOffCount
-                console.log("test "+new PublicKey(thisitem.owner || realm.owner).toBase58());
+                //console.log("test "+new PublicKey(thisitem.owner || realm.owner).toBase58());
                 //alert("Getting signatories");
+                
+                setLoadingMessage("Loading Additional Signatory Records...");
                 const allSignatoryRecords = await getAllProposalSignatoryRecords(new PublicKey(thisitem.owner || realm.owner), new PublicKey(thisitem.pubkey), new PublicKey(governanceAddress))
                 console.log("allSignatoryRecords: "+JSON.stringify(allSignatoryRecords));
                 setProposalSignatories(allSignatoryRecords)
@@ -773,10 +784,15 @@ export function GovernanceProposalV2View(props: any){
             }
         }
 
+
+        setLoadingMessage("Loading Governances...");
+
         //if (!vresults){
             //const gp = await getProposal(RPC_CONNECTION, thisitem.pubkey);
             const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, thisitem?.owner);
             const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
+        
+        setLoadingMessage("Loading Proposal...");
             const gp = await getProposalIndexed(governanceRulesStrArr, null, governanceAddress, proposalPk);
             //const gpiv2 = await getProposalNewIndexed(thisitem.pubkey);
             //console.log("gp: "+JSON.stringify(gp));
@@ -833,6 +849,7 @@ export function GovernanceProposalV2View(props: any){
 
                     from_cache = false;
 
+                    setLoadingMessage("Loading Vote Records...");
                     const voteRecords = await getVoteRecordsIndexed(
                         thisitem.pubkey,
                         (thisitem.owner || realm.owner),
@@ -861,26 +878,21 @@ export function GovernanceProposalV2View(props: any){
                 // if this is voting we should fetch via RPC
                 let instructions = null;
                 
-                
-                if (!thisitem?.instructions || thisitem.account.state === 0){
-                
-                    //if (!thisitem?.instructions){
-                        //(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
-                        
-                        instructions = await getGovernanceAccounts(
-                            connection,
-                            new PublicKey(thisitem.owner || realm.owner),
-                            ProposalTransaction,
-                            [pubkeyFilter(1, new PublicKey(thisitem.pubkey))!]
-                        );
-                        
-                        thisitem.instructions = instructions;
-                    //}
-                } else {
-                    if (!thisitem?.instructions){
-                        instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
-                        thisitem.instructions = instructions;
-                    }
+                if (!thisitem?.instructions) {
+
+                    setLoadingMessage("Loading Proposal Instructions...");
+                    //instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                    /*
+                    const test = await getGovernanceAccounts(
+                                RPC_CONNECTION,
+                                new PublicKey(thisitem.owner || realm.owner),
+                                ProposalTransaction,
+                                [pubkeyFilter(1, new PublicKey(proposalPk))!]
+                            );
+                    console.log("test: "+JSON.stringify(test));
+                    */      
+                    instructions = await getProposalInstructionsIndexed(governanceAddress, new PublicKey(thisitem.pubkey).toBase58());
+                    thisitem.instructions = instructions;
                 }
 
                 if (thisitem?.instructions){
@@ -895,7 +907,32 @@ export function GovernanceProposalV2View(props: any){
                     var ataArray = new Array();
                     if (useInstructions){
                         let cnt = 0;
+                            
+                        
+                    
+                        // Collect all unique mint PublicKeys from useInstructions
+                        const mintSet = new Set<string>();
 
+                        for (const instructionItem of useInstructions) {
+                        for (const accountInstruction of instructionItem.account.instructions) {
+                            const pubkey = accountInstruction.accounts?.[0]?.pubkey;
+                            if (pubkey) {
+                            mintSet.add(pubkey); // use string form to prevent duplicate PublicKey instances
+                            }
+                        }
+                        }
+
+                        // Convert Set to array of PublicKey objects
+                        const mintArr = Array.from(mintSet, (key) => new PublicKey(key));
+
+                        // Fetch parsed accounts
+                        let mintResults = [];
+
+                        if (mintArr.length > 0) {
+                        const { value } = await RPC_CONNECTION.getMultipleParsedAccounts(mintArr);
+                        mintResults = value?.filter(Boolean) || [];
+                        }
+                        /*
                         const mintArr = new Array();
                         for (var instructionItem of useInstructions){
                             // use multiple accounts rather than a single account to get gai
@@ -906,13 +943,47 @@ export function GovernanceProposalV2View(props: any){
                                     mintArr.push(new PublicKey(accountInstruction.accounts[0].pubkey))
                             }
                         }
-                        
                         let mintResults = null;
                         if (mintArr && mintArr?.length > 0){
                             const results = await RPC_CONNECTION.getMultipleParsedAccounts(mintArr);
                             mintResults = results.value;
                             //console.log("mintArrResults: "+JSON.stringify(mintResults));
                         }
+                        */
+                        
+                        // === Add this before your loop ===
+
+                        const uniquePubkeys = new Set();
+                        // Step 1: Collect unique and valid pubkeys from accountInstruction.accounts[0]
+                        for (const instructionItem of useInstructions) {
+                            if (instructionItem.account?.instructions?.length > 0) {
+                                for (const accountInstruction of instructionItem.account.instructions) {
+                                    const rawPubkey = accountInstruction.accounts?.[0]?.pubkey;
+                                    if (rawPubkey) {
+                                        try {
+                                            const key = new PublicKey(rawPubkey).toBase58();
+                                            uniquePubkeys.add(key); // Set ensures uniqueness
+                                        } catch (e) {
+                                            console.warn("Invalid pubkey:", rawPubkey, e);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Step 2: Batch fetch all accounts using getMultipleAccountsInfo
+                        const pubkeyList = [...uniquePubkeys].map(key => new PublicKey(key));
+                        const allResults = new Map();
+                        const chunkSize = 100;
+
+                        for (let i = 0; i < pubkeyList.length; i += chunkSize) {
+                            const chunk = pubkeyList.slice(i, i + chunkSize);
+                            const infos = await connection.getMultipleAccountsInfo(chunk);
+                            chunk.forEach((key, idx) => {
+                                allResults.set(key.toBase58(), infos[idx]);
+                            });
+                        }
+
                         
                         let lastMint = null;
                         let lastMintName = null;
@@ -922,6 +993,8 @@ export function GovernanceProposalV2View(props: any){
                         let thisMintDecimals = null;
                         for (var instructionItem of useInstructions){
                             
+                            setLoadingMessage(`Loading Instruction ${cnt+1} of ${useInstructions.length}...`);
+
                             if (instructionItem.account?.instructions && instructionItem.account.instructions.length > 0){
                                 for (var accountInstruction of instructionItem.account.instructions){
                                     for (var account of accountInstruction.accounts){
@@ -957,12 +1030,33 @@ export function GovernanceProposalV2View(props: any){
                                                 gai = mintResults[cnt];
                                             } 
 
-                                            if (!gai)
-                                                gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                            if (!gai){
+                                                //gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
                                             
+                                                // === Inside your main loop, REPLACE this ===
+                                                // gai = await getParsedAccountInfoCached(new PublicKey(accountInstruction.accounts[0].pubkey));
+
+                                                // === WITH this ===
+                                                const pubkey = new PublicKey(accountInstruction.accounts[0].pubkey);
+                                                gai = allResults.get(pubkey.toBase58());
+
+                                                // === Also replace: ===
+                                                // let tai = await getParsedAccountInfoCached(tokenMintAccount);
+                                                // === WITH ===
+                                                //const tai = allResults.get(tokenMintAccount.toBase58());
+
+                                                // If tokenMintAccount is not guaranteed to be in the original set, you can fallback to:
+                                                // const tai = allResults.get(tokenMintAccount.toBase58()) || await connection.getParsedAccountInfo(tokenMintAccount);
+
+                                                // === Notes ===
+                                                // Ensure all `accountInstruction.accounts[0].pubkey` and `tokenMintAccount` values you expect are added to `uniquePubkeys` before batch fetch.
+                                                // You can extend this to cover other accounts too (e.g. accounts[2], accounts[3]) as needed.
+                                            }
+
                                             if (gai){
                                                 // get token metadata
-                                                console.log("gai: "+JSON.stringify(gai))
+                                                //console.log("gai: "+JSON.stringify(gai))
+                                                //console.log("accountInstruction: "+JSON.stringify(accountInstruction));
                                                 /*
                                                 const uri = `https://api.shyft.to/sol/v1/nft/read?network=mainnet-beta&token_record=true&refresh=false&token_address=${gai?.data?.parsed?.info?.mint}`;
                                                 
@@ -1024,6 +1118,7 @@ export function GovernanceProposalV2View(props: any){
 
                                                     newObject = {
                                                         type:"TokenTransfer",
+                                                        ix: instructionItem.pubkey,
                                                         pubkey: accountInstruction.accounts[0].pubkey,
                                                         mint: gai?.data.parsed.info.mint,
                                                         name: tname,
@@ -1042,11 +1137,12 @@ export function GovernanceProposalV2View(props: any){
                                                 accountInstruction.gai = gai;
                                                 
                                                 if (instructionTransferDetails){
-                                                    const hasInstruction = instructionTransferDetails.some(obj => obj?.pubkey === instructionItem.account.instructions[0].accounts[0]?.pubkey);
-                                                    
+                                                    const hasInstruction = instructionTransferDetails.some(obj => 
+                                                        obj?.pubkey === instructionItem.account.instructions[0]?.accounts[0]?.pubkey ||
+                                                        obj?.ix === instructionItem?.account?.ix
+                                                    );
                                                     if (!hasInstruction){
                                                         //console.log("newObject: "+JSON.stringify(newObject))
-
                                                         setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
                                                     }
                                                 }
@@ -1059,9 +1155,11 @@ export function GovernanceProposalV2View(props: any){
                                                 gai = mintResults[cnt];
                                             } 
 
-                                            if (!gai)
-                                                gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
-                                            
+                                            if (!gai){
+                                                //gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                                const pubkey = new PublicKey(accountInstruction.accounts[0].pubkey);
+                                                gai = allResults.get(pubkey.toBase58());
+                                            }
                                             if (gai){
                                                 // get token metadata
                                                 console.log("gai: "+JSON.stringify(gai))
@@ -1105,6 +1203,7 @@ export function GovernanceProposalV2View(props: any){
 
                                                     newObject = {
                                                         type:"BatchTokenTransfer",
+                                                        ix: instructionItem.pubkey,
                                                         pubkey: accountInstruction.accounts[0].pubkey,
                                                         mint: gai?.data.parsed.info.mint,
                                                         name: tname,
@@ -1122,11 +1221,13 @@ export function GovernanceProposalV2View(props: any){
                                                 }
                                                 accountInstruction.gai = gai;
                                                 
-                                                const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instructionItem.account.instructions[0].accounts[0].pubkey);
+                                                const hasInstruction = instructionTransferDetails.some(obj => 
+                                                    obj?.pubkey === instructionItem.account.instructions[0]?.accounts[0]?.pubkey ||
+                                                    obj?.ix === instructionItem?.account?.ix
+                                                );
                                                 
                                                 if (!hasInstruction){
                                                     //console.log("newObject: "+JSON.stringify(newObject))
-
                                                     setInstructionTransferDetails((prevArray) => [...prevArray, newObject]);
                                                 }
                                                 
@@ -1139,8 +1240,11 @@ export function GovernanceProposalV2View(props: any){
                                                 gai = mintResults[cnt];
                                             } 
 
-                                            if (!gai)
-                                                gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                            if (!gai){
+                                                //gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                                const pubkey = new PublicKey(accountInstruction.accounts[0].pubkey);
+                                                gai = allResults.get(pubkey.toBase58());
+                                            }
                                             
                                             if (gai){
                                                 
@@ -1163,6 +1267,7 @@ export function GovernanceProposalV2View(props: any){
                                                     let symbol = "SOL";
                                                     newObject = {
                                                         type:"SOL Transfer",
+                                                        ix: instructionItem.pubkey,
                                                         pubkey: accountInstruction.accounts[0].pubkey,
                                                         mint: "So11111111111111111111111111111111111111112",//"SOL",//gai?.data.parsed.info.mint,
                                                         name: symbol,
@@ -1180,7 +1285,10 @@ export function GovernanceProposalV2View(props: any){
                                                 }
                                                 accountInstruction.gai = gai;
                                                 
-                                                const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instructionItem.account.instructions[0].accounts[0].pubkey);
+                                                const hasInstruction = instructionTransferDetails.some(obj => 
+                                                    obj?.pubkey === instructionItem.account.instructions[0]?.accounts[0]?.pubkey ||
+                                                    obj?.ix === instructionItem?.account?.ix
+                                                );
                                                 
                                                 if (!hasInstruction){
                                                     //console.log("newObject: "+JSON.stringify(newObject))
@@ -1298,7 +1406,7 @@ export function GovernanceProposalV2View(props: any){
                                                 //const instruction = instructionItem.account.instructions[0];
                                                 //const buffer = Buffer.from(instructionItem.account.instructions[0].data);
                                                 
-                                                let description = "SPL Governance Interaction";
+                                                let description = "GSPL Governance Interaction";
                                                 let decodedIx = null;
                                                 let amount = null;
                                                 let mint = null;
@@ -1317,9 +1425,11 @@ export function GovernanceProposalV2View(props: any){
                                                             gai = mintResults[cnt];
                                                         } 
 
-                                                        if (!gai)
-                                                            gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
-                                                        
+                                                        if (!gai){
+                                                            //gai = await connection.getParsedAccountInfo(new PublicKey(accountInstruction.accounts[0].pubkey))
+                                                            const pubkey = new PublicKey(accountInstruction.accounts[0].pubkey);
+                                                            gai = allResults.get(pubkey.toBase58());
+                                                        }
                                                         //console.log("GAI: "+JSON.stringify(gai));
                                                         const decimals = gai?.data?.parsed?.info?.tokenAmount?.decimals || 0;
                                                         const divisor = new BN(10).pow(new BN(decimals));
@@ -1334,7 +1444,9 @@ export function GovernanceProposalV2View(props: any){
                                                             if (decimals <= 0){
                                                                 let tokenMintAccount = accountInstruction?.accounts[2].pubkey;
                                                                 
-                                                                let tai = await connection.getParsedAccountInfo(tokenMintAccount);
+                                                                //let tai = await connection.getParsedAccountInfo(tokenMintAccount);
+                                                                let tai = allResults.get(tokenMintAccount.toBase58()) || await connection.getParsedAccountInfo(tokenMintAccount);
+
                                                                 let tdecimals = 0;
                                                                 
                                                                 if (tai && tai?.value.data?.parsed?.info?.tokenAmount?.decimals){
@@ -1418,6 +1530,7 @@ export function GovernanceProposalV2View(props: any){
 
                                                 const newObject = {
                                                     type:"SPL Governance Program by Solana",
+                                                    ix: instructionItem.pubkey,
                                                     decodedIx:decodedIx,
                                                     amount: amount ? parseFloat(amount.replace(/,/g, '')) : null, //amount,
                                                     pubkey: accountInstruction.accounts[0].pubkey,
@@ -1431,7 +1544,10 @@ export function GovernanceProposalV2View(props: any){
                                                 accountInstruction.info = newObject;
 
                                                 //if (amount > 0){
-                                                    const hasInstruction = instructionTransferDetails.some(obj => obj.pubkey === instructionItem.account.instructions[0].accounts[0].pubkey);
+                                                    const hasInstruction = instructionTransferDetails.some(obj => 
+                                                        obj?.pubkey === instructionItem.account.instructions[0]?.accounts[0]?.pubkey ||
+                                                        obj?.ix === instructionItem?.account?.ix
+                                                    );
                                                     
                                                     if (!hasInstruction){
                                                         //console.log("newObject: "+JSON.stringify(newObject))
@@ -1467,7 +1583,7 @@ export function GovernanceProposalV2View(props: any){
                             cnt++;
                         }
 
-
+                        setLoadingMessage(`Loading Multiple Account Info for ${useInstructions.length} accounts...`);
                         const chunks = [];
                         let chunk = [];
 
@@ -1489,46 +1605,6 @@ export function GovernanceProposalV2View(props: any){
 
                         setInstructionOwnerRecord(chunks);
                         setInstructionOwnerRecordATA(ataArray);
-
-                        // replace newObject if .destinationAta is set
-
-
-                        
-
-                        /*
-                        if (ataArray && ataArray.length <= 100 ){ // to fix add support for over 100 records for gma
-
-                            const owners = await connection.getMultipleParsedAccounts(ataArray);
-                            setInstructionOwnerRecord(owners.value);
-                            setInstructionOwnerRecordATA(ataArray);
-                        }*/
-
-                        /* IMPORTANT Move to this for better efficiency
-                        const chunkSize = 100;
-                        const holderArr = new Array();
-                        // Loop through the array in chunks
-                        for (let i = 0; i < ataArray.length; i += chunkSize) {
-                            // Slice the array to get a chunk of 100 items
-                            const chunk = ataArray.slice(i, i + chunkSize);
-
-                            // Fetch parsed account information for the current chunk
-                            const accountInfo = await connection.getMultipleParsedAccounts(chunk);
-                            if (accountInfo){
-                                // Extract relevant data from the account information and parse it to ensure deep cloning
-                                const holders = JSON.parse(JSON.stringify(accountInfo)).value.map(
-                                (data:any, key:number) => {
-                                    // Map the account data to a new format, extracting address and converting balance
-                                    return {data};
-                                }
-                                );
-
-                                holderArr.push(...holders);
-                                // Process the fetched information as needed
-                                console.log(`Processed ${holders.length} accounts in chunk ${i / chunkSize + 1}`);
-                            }
-                        }
-                        */
-                        
                     }
                     
                     
@@ -1547,10 +1623,10 @@ export function GovernanceProposalV2View(props: any){
 
         let mVoteSentiment = new Array();
 
-        if (voteResults){
+        if (voteResults && voteResults.length > 0){
             let counter = 0;
             for (let item of voteResults){
-
+                setLoadingMessage(`Loading Voting Results ${counter+1} of ${voteResults.length} voters...`);
                 counter++;
                 //console.log("counter: "+counter);
                 //console.log("voter item: "+JSON.stringify(item));
@@ -1700,7 +1776,6 @@ export function GovernanceProposalV2View(props: any){
                             multipleChoice: multipleChoice
                         }
                     });
-                        
                 }
 
                 if (counter > 1)
@@ -2045,7 +2120,7 @@ export function GovernanceProposalV2View(props: any){
         const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, realmOwner);
         setGovernanceRules(governanceRulesIndexed);
 
-        if (!thisitem){
+        if (!thisitem || reload){
             console.log("Calling Index/RPC");
             //const prop = await getProposal(RPC_CONNECTION, new PublicKey(proposalPk));
             const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
@@ -2099,6 +2174,46 @@ export function GovernanceProposalV2View(props: any){
         setGovernanceNativeWallet(nta);
     }
 
+    const getGroupedInstructions = (ixTransferDetails) => {
+        /*
+        const uniqueInstructions = Array.from(
+            new Map(
+                ixTransferDetails.map(item => {
+                    const key = `${item.ix}_${item.mint}_${item.destinationAta}`;
+                    return [key, item];
+                })
+            ).values()
+        );*/
+
+        return Object.values(
+            ixTransferDetails.reduce((result, item) => {
+                if (item && typeof item === 'object') {
+                    const { mint, amount, name, logoURI, destinationAta } = item;
+                    if (!mint || !destinationAta) return result;
+
+                    if (!result[mint]) {
+                        result[mint] = {
+                            mint,
+                            name,
+                            logoURI,
+                            destinationAmounts: {},
+                            totalAmount: 0,
+                        };
+                    }
+
+                    const group = result[mint];
+                    const parsedAmount = parseFloat(amount) || 0;
+
+                    group.destinationAmounts[destinationAta] = (group.destinationAmounts[destinationAta] || 0) + parsedAmount;
+                    group.totalAmount += parsedAmount;
+
+                    console.log(`[DEBUG] ix: ${item.ix}, mint: ${mint}, dest: ${destinationAta}, amount: ${parsedAmount}`);
+                }
+                return result;
+            }, {})
+        );
+    };
+
     React.useEffect(() => { 
         if (thisitem && !governanceNativeWallet){
             fetchNativeTreasuryAddress(thisitem.account.governance);
@@ -2141,6 +2256,10 @@ export function GovernanceProposalV2View(props: any){
                             // Your function code here
                             if (thisitem?.instructions)
                                 thisitem.instructions = null;
+                            // we need to updat the status of the proposal every time
+                            // thisitem.account?.state
+                            validateGovernanceSetup();
+                            
                             getVotingParticipants();
                             setReload(false);
                           }, 7500);
@@ -2208,7 +2327,53 @@ export function GovernanceProposalV2View(props: any){
     };
 
 
-    const populateArrayWithOwners = async (instructionTransferDetails:any) => {
+    const populateArrayWithOwners = async (instructionTransferDetails: any[]) => {
+        // Step 1: Collect unique destinationAta public keys
+        const uniqueAtas = new Set(
+            instructionTransferDetails
+                .filter(item => item?.amount > 0 && item.destinationAta)
+                .map(item => new PublicKey(item.destinationAta).toBase58())
+        );
+
+        // Step 2: Batch fetch all ATAs using getMultipleAccountsInfo
+        const ataPubkeys = [...uniqueAtas].map(key => new PublicKey(key));
+        const ataOwnerMap = new Map();
+        const chunkSize = 100;
+
+        for (let i = 0; i < ataPubkeys.length; i += chunkSize) {
+            const chunk = ataPubkeys.slice(i, i + chunkSize);
+            const infos = await connection.getMultipleAccountsInfo(chunk);
+            chunk.forEach((pubkey, idx) => {
+                ataOwnerMap.set(pubkey.toBase58(), infos[idx]);
+            });
+        }
+
+        // Step 3: Build the final populated array
+        const populatedArray = instructionTransferDetails
+            .filter(item => item?.amount > 0)
+            .map(item => {
+                const ataKey = new PublicKey(item.destinationAta).toBase58();
+                const ataInfo = ataOwnerMap.get(ataKey);
+                let tokenOwner = null;
+
+                if (ataInfo && ataInfo.owner.equals(TOKEN_PROGRAM_ID)) {
+                    const accountData = AccountLayout.decode(new Uint8Array(ataInfo.data));
+                    tokenOwner = new PublicKey(accountData.owner).toBase58();
+                    item.tokenOwner = tokenOwner;
+                }
+
+                return {
+                    amount: item.amount,
+                    mint: item.mint,
+                    address: tokenOwner || item.destinationAta, // fallback to destinationAta
+                };
+            });
+
+        // Step 4: Update state
+        setDestinationWalletArray(populatedArray);
+    };
+
+    const populateArrayWithOwnersSingle = async (instructionTransferDetails:any) => {
         const populatedArray = await Promise.all(
             instructionTransferDetails
                 .filter(item => item?.amount > 0)
@@ -2229,13 +2394,31 @@ export function GovernanceProposalV2View(props: any){
         //return populatedArray;
     };
 
-    // Process and map over the reduced result
+    const fetchedAtasRef = React.useRef<Set<string>>(new Set());
+
     React.useEffect(() => {
-        if (instructionTransferDetails && instructionTransferDetails?.length > 0){
-            // Populate destinationWalletArray
-            populateArrayWithOwners(instructionTransferDetails)
-            
-        }
+        const runPopulate = async () => {
+            if (!instructionTransferDetails || instructionTransferDetails.length === 0) return;
+
+            // Extract all unique destination ATAs from current data
+            const incomingAtas = new Set(
+                instructionTransferDetails
+                    .filter(item => item?.amount > 0 && item.destinationAta)
+                    .map(item => new PublicKey(item.destinationAta).toBase58())
+            );
+
+            // Only call populateArrayWithOwners if there's a new ATA we haven't seen before
+            const newAtas = [...incomingAtas].filter(ata => !fetchedAtasRef.current.has(ata));
+
+            if (newAtas.length > 0) {
+                await populateArrayWithOwners(instructionTransferDetails);
+
+                // Add to the seen list
+                newAtas.forEach(ata => fetchedAtasRef.current.add(ata));
+            }
+        };
+
+        runPopulate();
     }, [instructionTransferDetails]);
 
     return (
@@ -2260,13 +2443,13 @@ export function GovernanceProposalV2View(props: any){
                             <meta property="og:type" content="website"/>
                             <meta property="og:title" content={`${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``} `}/>
                             <meta property="og:description" content={`Proposal ${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``}  powered by Governance.so by Grape`}/>
-                            <meta property="og:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplash.png"/>  
+                            <meta property="og:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplashv2.png"/>  
                             
                             <meta name="twitter:card" content="summary_large_image"/>
                             <meta name="twitter:title" content={`${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``} `}/>
                             <meta name="twitter:site" content="@grapeprotocol"/>
                             <meta name="twitter:description" content={`Proposal ${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``}  powered by Governance.so by Grape`}/>
-                            <meta name="twitter:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplash.png"/>
+                            <meta name="twitter:image" content="https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/governancesocialsplashv2.png"/>
                             <meta name="twitter:image:alt" content={`${thisitem.account?.name} ${realmName ? ` | ${realmName}` : ``} `}/>
                         </Helmet>
                         
@@ -2528,69 +2711,6 @@ export function GovernanceProposalV2View(props: any){
                                                     }}
                                                     >
                                                     <ButtonGroup variant="outlined" aria-label="outlined primary button group" sx={{textAlign:'center',height:'70px'}}>
-                                                        {/*thisitem.account?.options && thisitem.account?.options.length >= 0 ? 
-                                                            <Button
-                                                                color="success"
-                                                                sx={{borderRadius:'17px',textTransform:'none'}}
-                                                            >
-                                                                
-                                                                <Grid container direction="column" alignItems="center">
-                                                                    <Grid item>
-                                                                        <Grid container direction='row' alignItems='center'>
-                                                                            <Grid item>
-                                                                                <ThumbUpIcon fontSize='small' sx={{mr:1,ml:1}} />
-                                                                            </Grid>
-                                                                            <Grid item>
-                                                                                {forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.options[0].voteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                            </Grid>
-                                                                        </Grid>
-                                                                    </Grid>
-                                                                    
-                                                                    <Grid item sx={{minWidth:'100px'}}>
-                                                                        <Divider />
-                                                                        <Grid>
-                                                                            <Typography sx={{fontSize:'10px'}}>
-                                                                                <>
-                                                                                
-                                                                                For <>{forVotes ? 
-                                                                                <>
-                                                                                    {(forVotes/(forVotes+againstVotes)*100).toFixed(2)}%
-                                                                                </>
-                                                                                :
-                                                                                <>
-                                                                                    {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
-                                                                                        <>
-                                                                                        {`${(((Number(thisitem.account?.options[0].voteWeight))/((Number(thisitem.account?.denyVoteWeight))+(Number(thisitem.account?.options[0].voteWeight))))*100).toFixed(2)}%`}
-                                                                                        </>
-                                                                                    :
-                                                                                        <>
-                                                                                            {thisitem.account.yesVotesCount ?
-                                                                                                <>{(Number(thisitem.account.yesVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
-                                                                                            :
-                                                                                                <>0%</>
-                                                                                            }
-                                                                                        </>
-                                                                                    } 
-                                                                                </>   
-                                                                                }</></>
-                                                                            </Typography>
-                                                                        </Grid>
-                                                                    </Grid>
-                                                                </Grid>
-                                                            </Button>
-                                                        :
-                                                            <>
-                                                                {thisitem.account?.yesVotesCount && 
-                                                                        <Button
-                                                                            color="success"
-                                                                            sx={{borderRadius:'17px'}}
-                                                                        >
-                                                                            <ThumbUpIcon color='success' fontSize='small' sx={{mr:1,ml:1}} />
-                                                                            {forVotes ? getFormattedNumberToLocale(formatAmount((forVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.yesVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                        </Button>
-                                                                }
-                                                            </>
-                                                        */}
                                                     {realm &&
                                                         <VoteForProposal 
                                                             title={`${
@@ -2643,72 +2763,7 @@ export function GovernanceProposalV2View(props: any){
                                                         }}
                                                     >
                                                     <ButtonGroup variant="outlined" aria-label="outlined primary button group" sx={{height:'70px'}}>
-                                                        {/*thisitem.account?.denyVoteWeight ?
-                                                            <Button
-                                                                    color="error"
-                                                                    sx={{borderRadius:'17px',textTransform:'none'}}
-                                                                >
-                                                                    <Grid container direction="column" alignItems="center">
-                                                                        <Grid item>
-                                                                            <Grid container direction='row' alignItems='center'>
-                                                                                <Grid item>
-                                                                                    <ThumbDownIcon fontSize='small' sx={{mr:1,ml:1}} />
-                                                                                </Grid>
-                                                                                <Grid item>
-                                                                                    {againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.denyVoteWeight)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                                </Grid>
-                                                                            </Grid>
-                                                                        </Grid>
-                                                                        
-                                                                        <Grid item sx={{minWidth:'100px'}}>
-                                                                            <Divider />
-                                                                            <Grid>
-                                                                                <Typography sx={{fontSize:'10px'}}>
-                                                                                    <>
-                                                                                    
-                                                                                    Against <>{againstVotes ? 
-                                                                                        <>
-                                                                                            {(againstVotes/(forVotes+againstVotes)*100).toFixed(2)}%
-                                                                                        </>
-                                                                                        :       
-                                                                                        <>
-                                                                                            {thisitem.account?.options && thisitem.account?.options[0]?.voteWeight && thisitem?.account?.denyVoteWeight && Number(thisitem.account?.options[0].voteWeight) > 0 ?
-                                                                                                <>
-                                                                                                {`${(((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))/((Number(thisitem.account?.denyVoteWeight)/Math.pow(10, tokenDecimals))+(Number(thisitem.account?.options[0].voteWeight)/Math.pow(10, tokenDecimals))))*100).toFixed(2)}%`}
-                                                                                                </>
-                                                                                            :
-                                                                                                <>
-                                                                                                    {thisitem.account.noVotesCount ?
-                                                                                                        <>{(Number(thisitem.account.noVotesCount)/(Number(thisitem.account.noVotesCount)+Number(thisitem.account.yesVotesCount))*100).toFixed(2)}%</>
-                                                                                                    :
-                                                                                                        <>0%</>
-                                                                                                    }
-                                                                                                </>
-                                                                                            }
-                                                                                        </>
-                                                                                    }</></>
-                                                                                </Typography>
-                                                                            </Grid>
-                                                                        </Grid>
-                                                                    </Grid>
-                                                                    
-                                                                    
-                                                                    
-                                                            </Button>
-                                                        :
-                                                            <>
-                                                                {thisitem.account?.noVotesCount && 
-                                                                    <Button
-                                                                        color="error"
-                                                                        sx={{borderRadius:'17px'}}
-                                                                    >
-                                                                        <ThumbDownIcon color='error' fontSize='small' sx={{mr:1}} />
-                                                                        {againstVotes ? getFormattedNumberToLocale(formatAmount((againstVotes))) : getFormattedNumberToLocale(formatAmount(+(Number(thisitem.account.noVotesCount)/Math.pow(10, tokenDecimals)).toFixed(0)))}
-                                                                    </Button>
-                                                                }
-                                                            </>
-                                                        */}
-                                                        
+                                                    {realm &&
                                                         <VoteForProposal 
                                                             title={`${
                                                                 thisitem.account?.denyVoteWeight ?
@@ -2741,6 +2796,7 @@ export function GovernanceProposalV2View(props: any){
                                                             quorum={totalQuorum}
                                                             state={thisitem.account.state}
                                                             governanceRules={thisGovernance} />
+                                                        }
                                                     </ButtonGroup>
                                                 </Box>
                                             </Grid>
@@ -2827,7 +2883,7 @@ export function GovernanceProposalV2View(props: any){
                                                     </Button>
                                                 </Box>
                                             </Box>
-                                            :
+                                        :
                                             
                                             <>
                                                 {gDocs ?
@@ -2858,12 +2914,16 @@ export function GovernanceProposalV2View(props: any){
                                                 </>
                                                 :
                                                     <>
-                                                        {thisitem.account?.descriptionLink &&
+                                                        {thisitem.account?.descriptionLink ?
                                                             <>
                                                                 <Typography variant="body1" 
                                                                     color='gray' 
                                                                     sx={{ display: 'flex', alignItems: 'center' }}>
-                                                                    {thisitem.account?.descriptionLink}
+                                                                    <RenderDescription 
+                                                                        title={thisitem.account?.name}
+                                                                        description={thisitem.account?.descriptionLink} 
+                                                                        fallback={proposalPk?.toBase58()}
+                                                                    />
                                                                 </Typography>
                                                                 
                                                                 {gitBook &&
@@ -2880,6 +2940,18 @@ export function GovernanceProposalV2View(props: any){
                                                                         </Box>
                                                                     </>
                                                                 }
+                                                            </>
+                                                        :
+                                                            <>
+                                                            <Typography variant="body1" 
+                                                                color='gray' 
+                                                                sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                <RenderDescription 
+                                                                    title={thisitem.account?.name} 
+                                                                    description={thisitem.account?.descriptionLink} 
+                                                                    fallback={proposalPk?.toBase58()}
+                                                                />
+                                                            </Typography>
                                                             </>
                                                         }
                                                     </>
@@ -3587,78 +3659,60 @@ export function GovernanceProposalV2View(props: any){
                                     >
                                         
                                         <Box>
-                                            {(instructionTransferDetails && instructionTransferDetails.length > 0) &&
+                                            {(instructionTransferDetails && instructionTransferDetails.length > 0) && (
                                                 <Box
                                                     sx={{
-                                                        p:1,
-                                                        m:1,
-                                                        borderRadius:'17px',
-                                                        backgroundColor:'rgba(0,0,0,0.2)'}}
+                                                        p: 1,
+                                                        m: 1,
+                                                        borderRadius: '17px',
+                                                        backgroundColor: 'rgba(0,0,0,0.2)',
+                                                    }}
                                                 >
                                                     <Typography variant="subtitle1">
                                                         Instructions Summary
                                                     </Typography>
                                                     <Typography variant="caption">
-                                                    
-                                                        {Object.values(
-                                                                instructionTransferDetails.reduce((result, item) => {
-                                                                    // Ensure item exists and has necessary properties before destructuring
-                                                                    if (item && typeof item === 'object') {
-                                                                        const { mint, amount, name, logoURI, destinationAta } = item;
-                                                                        if (!result[mint]) {
-                                                                            result[mint] = { mint, totalAmount: 0, name, logoURI, uniqueDestinationAta: new Set() };
-                                                                        }
-                                                                        result[mint].totalAmount += +amount || 0; // Fallback to 0 if amount is invalid
-                                                                        if (destinationAta) result[mint].uniqueDestinationAta.add(destinationAta);
-                                                                    }
-                                                                    return result;
-                                                                }, {})
-                                                            ).map((item, key, array) => (
-                                                                    <>
-                                                                        <Grid container
-                                                                            direction="row"
-                                                                        >
-                                                                            <Grid item>
-                                                                                {(item && item?.totalAmount > 0 && item.uniqueDestinationAta.size > 0) &&
-                                                                                    <>
-                                                                                    <ExplorerView
-                                                                                        address={item.mint} type='address' useLogo={item?.logoURI} 
-                                                                                        title={`${item.totalAmount.toLocaleString()} 
-                                                                                            ${item?.name || (item?.mint && trimAddress(item.mint)) || 'Explore'}
-                                                                                            to ${item.uniqueDestinationAta.size} unique wallet${(item.uniqueDestinationAta.size > 1) ? `s`:``}
-                                                                                        `} 
-                                                                                        hideTitle={false} style='text' color='white' fontSize='12px'
-                                                                                        showNftData={true} 
+                                                        {getGroupedInstructions(instructionTransferDetails).map((item, key, array) => (
+                                                            <Grid container direction="row" key={item.mint}>
+                                                                <Grid item>
+                                                                    {(item && item.totalAmount > 0 && Object.keys(item.destinationAmounts).length > 0) && (
+                                                                        <>
+                                                                            <ExplorerView
+                                                                                address={item.mint}
+                                                                                type="address"
+                                                                                useLogo={item.logoURI}
+                                                                                title={`${item.totalAmount.toLocaleString()} ${item.name || trimAddress(item.mint)} to ${Object.keys(item.destinationAmounts).length} unique wallet${Object.keys(item.destinationAmounts).length > 1 ? 's' : ''}`}
+                                                                                hideTitle={false}
+                                                                                style="text"
+                                                                                color="white"
+                                                                                fontSize="12px"
+                                                                                showNftData={true}
+                                                                            />
+
+                                                                            {(publicKey && key === array.length - 1 && thisitem.account?.state === 0) && (
+                                                                                <>
+                                                                                    <GrapeVerificationSpeedDial
+                                                                                        address={governanceNativeWallet.toBase58()}
+                                                                                        destinationWalletArray={destinationWalletArray}
+                                                                                        setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}
                                                                                     />
-                                                                                
-                                                                                    {(publicKey && key === array.length - 1 && thisitem.account?.state === 0) && (
-                                                                                        <>
-                                                                                            <GrapeVerificationSpeedDial
-                                                                                                address={governanceNativeWallet.toBase58()}
-                                                                                                destinationWalletArray={destinationWalletArray}
-                                                                                                setVerifiedDestinationWalletArray={setVerifiedDestinationWalletArray}
-                                                                                            />
-                                                                                            <GrapeVerificationDAO
-                                                                                                governanceAddress={governanceAddress}
-                                                                                                governanceLookup={governanceLookup}
-                                                                                                address={governanceNativeWallet.toBase58()}
-                                                                                                destinationWalletArray={destinationWalletArray}
-                                                                                                setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray}
-                                                                                            />
-                                                                                        </>
-
-                                                                                    )}
-                                                                                    </>
-                                                                                }
-                                                                            </Grid>
-                                                                        </Grid>
-                                                                    </>
-                                                                )
-
-                                                        )}
+                                                                                    <GrapeVerificationDAO
+                                                                                        governanceAddress={governanceAddress}
+                                                                                        governanceLookup={governanceLookup}
+                                                                                        address={governanceNativeWallet.toBase58()}
+                                                                                        destinationWalletArray={destinationWalletArray}
+                                                                                        setVerifiedDAODestinationWalletArray={setVerifiedDAODestinationWalletArray}
+                                                                                    />
+                                                                                </>
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                </Grid>
+                                                            </Grid>
+                                                        ))}
                                                     </Typography>
                                                 </Box>
-                                            }
+                                            )}
                                         </Box>
                                         
                                             
@@ -3855,7 +3909,8 @@ export function GovernanceProposalV2View(props: any){
                             xs={12}
                             sx={{textAlign:'center'}}
                         >
-                            <CircularProgress color="inherit" />
+                            <CircularProgress color="inherit" /><br/>
+                            <small>{loadingMessage || 'Loading...'}</small>
                         </Grid>
                     }
                 </Box>

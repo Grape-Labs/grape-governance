@@ -8,9 +8,7 @@ import { getBackedTokenMetadata } from '../utils/grapeTools/strataHelpers';
 import grapeTheme from  '../utils/config/theme';
 import { ThemeProvider } from '@mui/material/styles';
 
-import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
-import {getRealms, RequestStatus} from "gspl-directory";
-import {publicKey as UmiPK} from "@metaplex-foundation/umi";
+import { initGrapeGovernanceDirectory } from './api/gspl_queries';
 
 import {
     Avatar,
@@ -83,17 +81,11 @@ import {
     RPC_CONNECTION,
     GGAPI_STORAGE_POOL, 
     GGAPI_STORAGE_URI,
-    SHYFT_KEY } from '../utils/grapeTools/constants';
+    SHYFT_KEY,
+    HELIUS_API } from '../utils/grapeTools/constants';
 
-import { 
-    getGovernance,
-    getRealm, 
-    getAllGovernances,
-    getAllProposals, 
-    getAllTokenOwnerRecords, 
-    getRealmConfigAddress, 
-    tryGetRealmConfig, 
-    getRealmConfig  } from '@solana/spl-governance';
+import {  
+    getRealmConfigAddress  } from '@solana/spl-governance';
 
 import { 
     getRealmIndexed,
@@ -101,6 +93,7 @@ import {
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
     getVoteRecordsByVoterIndexed,
+    getRealmConfigIndexed,
 } from './api/queries';
 
 import { formatAmount, getFormattedNumberToLocale } from '../utils/grapeTools/helpers'
@@ -256,18 +249,6 @@ function TablePaginationActions(props) {
             </IconButton>
         </Box>
     );
-}
-
-const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
-const initGrapeGovernanceDirectory = async() => {
-    try{
-        const umi = createUmi(RPC_CONNECTION);
-        const entries = await getRealms(umi, CONFIG, RequestStatus.Approved);
-        //console.log("Entries: "+JSON.stringify(entries));
-        return entries;
-    } catch(e){
-        console.log("Could not load GSPDL");
-    }
 }
 
 function RenderGovernanceTable(props:any) {
@@ -957,7 +938,7 @@ export function GovernanceCachedView(props: any) {
         } catch(e){console.log("ERR: "+e)}
     }
 
-    const getGovernanceParameters = async (cached_governance:any) => {
+    const getGovernanceParameters = async () => {
         let grealm = null;
         if (!loading){
             setRealm(null);
@@ -1067,123 +1048,7 @@ export function GovernanceCachedView(props: any) {
                 }
                 
                 const gprops = await getAllProposalsIndexed(governanceRulesStrArr, grealm?.owner, governanceAddress);
-                if (cached_governance){
-                    
-                    console.log("Fetching via hybrid cache...")
-                    
-                    let passed = 0;
-                    let defeated = 0;
-                    let ttvc = 0;
-                    let tcvc = 0;
-                    const hybridCache = true;
-
-                    //console.log("ggov: "+JSON.stringify(ggov));
-                    //console.log("proposalCount: "+grealm?.account?.proposalCount);
-
-                    if (hybridCache){
-                        //console.log("grealm.owner: "+JSON.stringify(grealm.owner));
-                        
-                        //console.log("Indexed Proposals: "+JSON.stringify(gprops));
-                        //const gprops = await getAllProposals(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk);
-                        // with the results compare with cached_governance
-                        //console.log("All Proposals: "+JSON.stringify(gpropsRpc))
-                        const rpcprops = new Array();
-                        for (const props of gprops){
-                            if (props && props.length > 0){
-                                for (const prop of props){
-                                    if (prop){
-                                        rpcprops.push(prop);
-                                    }
-                                }
-                            } else{
-                                rpcprops.push(props);
-                            }
-                        }
-                        const sortedRPCResults = rpcprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
-                        
-                        console.log(sortedRPCResults.length +" vs "+ cached_governance.length)
-                        
-                        if (rpcprops.length > cached_governance.length){
-                            
-                            cached_governance = sortedRPCResults;
-                            console.log("Hybrid Cache: there is a new proposal we have not fetched")
-                            // the following code will be used when we implement the GPA call to fetch only voting proposals
-                            /*
-                            // Check if each key in rpc_prop exists in cached_governance
-                            gprops.forEach(obj => {
-                                const found = cached_governance.some(
-                                  cachedObj => cachedObj.pubkey.toBase58() === obj.pubkey.toBase58()
-                                );
-                                if (!found) {
-                                  // Add the missing object to cached_governance
-                                  cached_governance.push(JSON.stringify(obj));
-                                }
-                            });
-                            */
-                        } else{
-                            console.log("Hybrid Cache: all proposals fetched")
-                        }
-                    }
-                    
-                    const allprops: any[] = [];
-                    for (var prop of cached_governance){
-                        if (prop?.account){
-                            //console.log("ITEM: "+JSON.stringify(prop.account))
-                            if (prop.account.state === 3 || prop.account.state === 5)
-                                passed++;
-                            else if (prop.account.state === 7)
-                                defeated++;
-                            
-                            let amountAsNum = 0;
-                            let amountAsCouncilNum = 0;
-                            if (prop.account?.yesVotesCount && prop.account?.noVotesCount){
-                                //console.log("tmap: "+JSON.stringify(tokenMap));
-                                //console.log("item a: "+JSON.stringify(prop))
-                                //if (tokenMap){
-                                if (grealm.account.config?.councilMint && new PublicKey(grealm.account.config?.councilMint).toBase58() === new PublicKey(prop.account?.governingTokenMint).toBase58()){
-                                    amountAsCouncilNum = +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))).toFixed(0))
-                                } else{
-                                    amountAsNum = +(((Number(prop.account?.yesVotesCount) + Number(prop.account?.noVotesCount))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
-                                }
-                                
-                                //console.log("a ttvc: "+ttvc)
-                                //console.log("a - "+prop.account?.yesVotesCount)
-                                
-                            } else if (prop.account?.options) {
-                                //console.log("item b: "+JSON.stringify(prop))
-                                //if (tokenMap){
-                                if (grealm.account.config?.councilMint && new PublicKey(grealm.account.config?.councilMint).toBase58() === new PublicKey(prop.account?.governingTokenMint).toBase58()){
-                                    amountAsCouncilNum = +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))).toFixed(0))
-                                } else{
-                                    amountAsNum = +(((Number(prop.account?.options[0].voteWeight) + Number(prop.account?.denyVoteWeight))/Math.pow(10, (gTD ? gTD : 6) )).toFixed(0))
-                                    //console.log('amountAsNum '+amountAsNum)
-                                }
-                            }
-
-                            if (amountAsNum && amountAsNum > 0)
-                                ttvc += amountAsNum;
-                            if (amountAsCouncilNum && amountAsCouncilNum > 0)
-                                tcvc += amountAsCouncilNum;
-
-                            //console.log("pushing Item")
-                            allprops.push(prop);
-                        }
-                        
-                    }
-
-                    setTotalDefeated(defeated);
-                    setTotalPassed(passed);
-                    setTotalActualProposals(+defeated+passed);
-                    setTotalProposals(allprops.length);
-                    setTotalCouncilVotesCasted(tcvc);
-                    setTotalVotesCasted(ttvc);
-                    
-                    const sortedResults = allprops.sort((a:any, b:any) => ((b.account?.draftAt != null ? b.account?.draftAt : 0) - (a.account?.draftAt != null ? a.account?.draftAt : 0)))
-                    setAllProposals(allprops);
-                    setProposals(sortedResults);
-                
-                } else {
-                    
+                    //console.log("gprops: "+JSON.stringify(gprops));    
                     //console.log("B realm: "+JSON.stringify(grealm));
 
                     //console.log("communityMintMaxVoteWeightSource: " + grealm.account.config.communityMintMaxVoteWeightSource.value.toNumber());
@@ -1202,11 +1067,23 @@ export function GovernanceCachedView(props: any) {
 
                             console.log("Getting Realm Config")
 
+                            /*
                             const realmConfig = await getRealmConfig(
                                 connection,
                                 realmConfigPk
                             )
-                            //console.log("realmConfig: "+JSON.stringify(realmConfig));
+                            */
+
+                            const realmConfig = await getRealmConfigIndexed(
+                                //realmConfigPk,
+                                null,
+                                programId,
+                                realmPk,
+                            )
+
+                            
+
+                            console.log("realmConfig: "+JSON.stringify(realmConfig));
                             /*
                             const tryRealmConfig = await tryGetRealmConfig(
                                 connection,
@@ -1283,7 +1160,7 @@ export function GovernanceCachedView(props: any) {
                     setAllProposals(allprops);
                     setProposals(sortedResults);
 
-                }
+                
             }catch(e){console.log("ERR: "+e)}
         }
 
@@ -1320,6 +1197,15 @@ export function GovernanceCachedView(props: any) {
 
                     setGSPLMetadata(gsplMeta);
                     console.log("GSPL Entry found for "+diritem.name);
+                }
+            }
+        } else {
+            if (realm){
+                console.log("Fetch community mint if available and set token metadata accordingly");
+                if (realm.account?.communityMint){
+                    // use DAS to efficiently get the token metadata
+                    // only use this call if we do not have GSPL
+                    fetchTokenData(new PublicKey(realm.account.communityMint).toBase58());
                 }
             }
         }
@@ -1374,36 +1260,54 @@ export function GovernanceCachedView(props: any) {
 
     const fetchTokenData = async(address:string) => {
         try{
-            const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
-
-            const response = await fetch(uri, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    jsonrpc: '2.0',
-                    id: 'rpc-id',
-                    method: 'getAsset',
-                    params: {
-                    id: address
+            if (HELIUS_API && !gsplMetadata){
+                const uri = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API}`;
+                const response = await fetch(uri, {
+                    method: 'POST',
+                    headers: {
+                    "Content-Type": "application/json"
                     },
-                }),
+                    body: JSON.stringify({
+                    "jsonrpc": "2.0",
+                    "id": "text",
+                    "method": "getAsset",
+                    "params": {
+                        id: address,
+                    }
+                    }),
                 });
-            const { result } = await response.json();
-            
-            if (result){
-                if (result?.content?.metadata?.name){
-                    //setSolanaDomain(result?.content?.metadata?.name);
-                    setDaoName(result.content.metadata.name);
-                }
-                const image = result?.content?.links?.image;
+                /*
+                const uri = `https://rpc.shyft.to/?api_key=${SHYFT_KEY}`;
+                const response = await fetch(uri, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 'rpc-id',
+                        method: 'getAsset',
+                        params: {
+                            id: address
+                        },
+                    }),
+                    });
+                    */ 
+                const { result } = await response.json();
                 
-                if (image){
-                    setDaoIcon(image);
-                } else { // check token registry if token exists
-                    if (governanceAddress === "899YG3yk4F66ZgbNWLHriZHTXSKk9e1kvsKEquW7L6Mo"){
-                        setDaoIcon("https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/MNDEFzGvMt87ueuHvVU9VcTqsAP5b3fTGPsHuuPA5ey/logo.png");
+                if (result){
+                    if (result?.content?.metadata?.name){
+                        //setSolanaDomain(result?.content?.metadata?.name);
+                        setDaoName(result.content.metadata.name);
+                    }
+                    const image = result?.content?.links?.image;
+                    
+                    if (image){
+                        setDaoIcon(image);
+                    } else { // check token registry if token exists
+                        if (governanceAddress === "899YG3yk4F66ZgbNWLHriZHTXSKk9e1kvsKEquW7L6Mo"){
+                            setDaoIcon("https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/MNDEFzGvMt87ueuHvVU9VcTqsAP5b3fTGPsHuuPA5ey/logo.png");
+                        }
                     }
                 }
             }
@@ -1565,29 +1469,33 @@ export function GovernanceCachedView(props: any) {
         }
     }, [daoName, daoIcon]);
 
-    React.useEffect(() => {
-        if (realm){
-            console.log("Fetch community mint if available and set token metadata accordingly");
-            if (realm.account?.communityMint){
-                // use DAS to efficiently get the token metadata
-                fetchTokenData(new PublicKey(realm.account.communityMint).toBase58());
-            }
-        }
-    }, [realm]);
+    
+    const POLLING_INTERVAL_MS = 600000; // 60 mins, adjust as needed
 
     React.useEffect(() => {
-        if (cachedGovernance && governanceAddress){
-            console.log("Step 3.")
-            getGovernanceParameters(cachedGovernance);
-        }
-    }, [cachedGovernance]);
+        if (!governanceAddress) return;
 
-    React.useEffect(() => {
-        if (governanceAddress && governanceLookup){
-            console.log("Step 2.")
-            //getCachedGovernanceFromLookup();
-        }
-    }, [governanceLookup, governanceAddress]);
+        let intervalId: NodeJS.Timeout;
+
+        const loadAndPoll = async () => {
+            console.log("Step 2.");
+            await getGovernanceParameters();
+
+            // Start interval after first load
+            intervalId = setInterval(() => {
+                console.log("Refreshing governance data...");
+                getGovernanceParameters();
+            }, POLLING_INTERVAL_MS);
+        };
+
+        loadAndPoll();
+
+        // Cleanup on unmount or governanceAddress change
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+        };
+
+    }, [governanceAddress]);
     
     const callGovernanceLookup = async() => {
         const fglf = await fetchGovernanceLookupFile(storagePool);
@@ -1616,7 +1524,7 @@ export function GovernanceCachedView(props: any) {
         if (tokenMap){
             console.log("Step 1.")
             //callGovernanceLookup();
-            getGovernanceParameters(cachedGovernance);
+            getGovernanceParameters();
         }
     }, [tokenMap]);
 
@@ -1775,7 +1683,7 @@ export function GovernanceCachedView(props: any) {
                                         />
 
                                         {(showGovernanceNavigation && realm) ?
-                                            <Grid item xs={6} container justifyContent="flex-end">
+                                            <Grid item sm={6} container justifyContent="flex-end">
                                                 <GovernanceNavigation governanceAddress={governanceAddress} cachedMemberMap={cachedMemberMap} realm={realm} />
                                                 <ThemeProvider theme={grapeTheme}>  
                                                     <GovernancePower governanceAddress={governanceAddress} realm={realm} />
@@ -2058,7 +1966,7 @@ export function GovernanceCachedView(props: any) {
                                             <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Visit the Realms UI
                                         </Button>
                                         <br/>
-                                        Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime Hybrid Caching<br/>
+                                        Rendering Time: {Math.floor(((endTime-startTime) / 1000) % 60)}s ({Math.floor((endTime-startTime))}ms) Realtime<br/>
                                         {cachedTimestamp &&
                                             <>Cached: {moment.unix(Number(cachedTimestamp)).format("MMMM D, YYYY, h:mm a") }<br/></>
                                         }

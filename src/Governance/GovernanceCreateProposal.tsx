@@ -62,6 +62,8 @@ import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 import { GovernanceGistDialog } from './GovernanceGistDialog';
 
+import CreateGistWithOAuth from './CreateGist';
+
 //import StreamflowPaymentsView from './plugins/instructions/StreamflowPaymentsView';
 import IntraDAOProposalView from './plugins/instructions/IntraDAOProposalView';
 import IntraDAOGrantView from './plugins/instructions/IntraDAOGrantView';
@@ -575,7 +577,7 @@ export default function GovernanceCreateProposalView(props: any){
         
         if (returnTx){
           console.log("returnTx: "+JSON.stringify(propResponse));
-          if (setSentInstructionsObject){
+          if (setSentInstructionsObject && propResponse && propResponse?.address){
             //setSentInstructionsObject(propResponse);
             let tdescription = '';
             tdescription = `Creating DAO Proposal at ${cachedRealm.pubKey} using ${governingTokenMint} Governing Token Mint`;
@@ -1680,6 +1682,12 @@ export default function GovernanceCreateProposalView(props: any){
       
     }, []);
 
+    React.useEffect(() => {
+      if (description) {
+        handleDescriptionChange(description); // re-validate or re-check Gist
+      }
+    }, [description]);
+
     /*
     const nextFieldRef = React.useRef(null); // Reference to the next input field
 
@@ -1689,6 +1697,28 @@ export default function GovernanceCreateProposalView(props: any){
         nextFieldRef.current.focus(); // Focus the next input field
       }
     };*/
+
+    React.useEffect(() => {
+      const handler = (e: KeyboardEvent) => {
+        // Allow typing in inputs, textareas, and editable divs
+        const el = document.activeElement;
+        const isTyping =
+          el?.tagName === 'INPUT' ||
+          el?.tagName === 'TEXTAREA' ||
+          el?.getAttribute('contenteditable') === 'true';
+
+        if (isTyping) return; // ✅ allow key through
+
+        if (e.key === 'g' || e.key === 'c') {
+          e.preventDefault();
+          console.log(`Global shortcut: ${e.key}`);
+          // Perform shortcut action
+        }
+      };
+
+      window.addEventListener('keydown', handler);
+      return () => window.removeEventListener('keydown', handler);
+    }, []);
 
     return (
         <>
@@ -1814,7 +1844,15 @@ export default function GovernanceCreateProposalView(props: any){
                   <>
                     
                     <>
-                    <Dialog open={open} onClose={handleCancel}>
+                      <Dialog
+                        open={open}
+                        onClose={handleCancel}
+                        fullWidth
+                        disableEnforceFocus
+                        disableRestoreFocus
+                        disableEscapeKeyDown // ← Add this
+                        disableAutoFocus     // ← Add this if needed
+                      >
                       <DialogTitle>Continue from where you left off?</DialogTitle>
                       <DialogContent>
                         <DialogContentText>
@@ -1861,6 +1899,7 @@ export default function GovernanceCreateProposalView(props: any){
                                                 </Button>
                                               </Tooltip>
                                             }
+                                            {/*
                                               <Button
                                                   sx={{
                                                     borderRadius:'17px',
@@ -1871,6 +1910,7 @@ export default function GovernanceCreateProposalView(props: any){
                                               >
                                                 <OpenInNewIcon fontSize='inherit' sx={{mr:1}} /> Realms
                                               </Button>
+                                              */}
                                             </ButtonGroup>
                                         </Grid>
 
@@ -1917,12 +1957,13 @@ export default function GovernanceCreateProposalView(props: any){
                                     onFocus={() => console.log("Title Field focused")}
                                     onBlur={() => console.log("Title Field blurred")}
                                     onKeyDown={(e) => {
+                                      /*
                                       if (e.key === 'G' || e.key === 'g') {
                                           console.log("Refocusing field on 'G'");
                                           if (e.target instanceof HTMLInputElement) {
                                             e.target.focus(); // Safely access focus
                                           }
-                                      }
+                                      }*/
                                   }}
                                     onChange={(e) => {
                                         if (!title || title.length < maxTitleLen)
@@ -1948,12 +1989,14 @@ export default function GovernanceCreateProposalView(props: any){
                                     onFocus={() => console.log("Description Field focused")}
                                     onBlur={() => console.log("Description Field blurred")}
                                     onKeyDown={(e) => {
+                                      /*
                                       if (e.key === 'G' || e.key === 'g') {
                                           console.log("Refocusing field on 'G'");
                                           if (e.target instanceof HTMLInputElement) {
                                             e.target.focus(); // Safely access focus
                                           }
                                       }
+                                      */
                                   }}
                                     onChange={(e) => {
                                       const newValue = e.target.value;
@@ -1967,26 +2010,42 @@ export default function GovernanceCreateProposalView(props: any){
                                     
                                     sx={{maxlength:maxDescriptionLen}}
                                     />
-                                <Grid sx={{textAlign:'right',}}>
 
-                                  {isGistDescription ?
-                                    <>
-                                      <GovernanceGistDialog gist={description} />
-                                      <Button
-                                          color='inherit'
-                                          size='small'
-                                          target='_blank'
-                                          href={description}
-                                          sx={{borderRadius:'17px'}}
-                                      >
-                                          <GitHubIcon sx={{mr:1}} /> GIST
-                                      </Button>
-                                    </>
-                                  :
-                                    <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
-                                  }
+                                <Grid container justifyContent="space-between" alignItems="center">
+                                  <Grid item sx={{textAlign:'left'}}>
+                                    {/*governanceAddress === 'BVfB1PfxCdcKozoQQ5kvC9waUY527bZuwJVyT7Qvf8N2' &&*/}
+                                      <CreateGistWithOAuth
+                                        onGistCreated={(url) => {
+                                          // Set it to your description field, or trigger your handler
+                                          setDescription(url); // or handleDescriptionChange(url)
+                                        }}
+                                        defaultText={description}
+                                      />
+                                  
+                                  </Grid>
+
+                                  <Grid item sx={{textAlign:'right',}}>
+
+                                    {isGistDescription ?
+                                      <>
+                                        <GovernanceGistDialog gist={description} />
+                                        <Button
+                                            color='inherit'
+                                            size='small'
+                                            target='_blank'
+                                            href={description}
+                                            sx={{borderRadius:'17px'}}
+                                        >
+                                            <GitHubIcon sx={{mr:1}} /> GIST
+                                        </Button>
+                                      </>
+                                    :
+                                      <Typography variant="caption">{description ? description.length > 0 ? maxDescriptionLen - description.length : maxDescriptionLen : maxDescriptionLen} characters remaining</Typography>
+                                    }
+                                    
+                                  </Grid>
                                 </Grid>
-                                
+
                             </FormControl>
                             
                             <FormControl fullWidth  sx={{mb:2}}>

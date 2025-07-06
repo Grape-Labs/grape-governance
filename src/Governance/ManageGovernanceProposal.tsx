@@ -57,7 +57,8 @@ import {
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
     getTokenOwnerRecordsByRealmIndexed,
-    getProposalInstructionsIndexed
+    getProposalInstructionsIndexed,
+    getSignatoryRecordsIndexed
   } from './api/queries';
 import { getGrapeGovernanceProgramVersion } from '../utils/grapeTools/helpers';
 
@@ -88,6 +89,10 @@ import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { AlreadyInitializedError } from '@metaplex-foundation/mpl-token-metadata';
 
 export const getAllProposalSignatories = async(programId:PublicKey, proposalAddress:PublicKey) => {
+    
+    const signatoryResults = await getSignatoryRecordsIndexed(proposalAddress.toBase58());
+
+    /*
 
     const memcmpFilter = {
         memcmp: {
@@ -104,7 +109,7 @@ export const getAllProposalSignatories = async(programId:PublicKey, proposalAddr
     //const memCmpFltr = new MemcmpFilter();
     //const AccountType extends GovernanceAccount;
     const filter = pubkeyFilter(1, proposalAddress)
-    
+    alert("GovernanceAccount: "+JSON.stringify(filter));
     const signatoryResults = await getGovernanceAccounts(
         RPC_CONNECTION,
         programId,
@@ -130,6 +135,7 @@ export const getAllProposalSignatories = async(programId:PublicKey, proposalAddr
 
     //console.log("programAccounts: "+JSON.stringify(programAccounts));
     // consider mapping signatories with records
+    
     return signatoryResults;
 }
 

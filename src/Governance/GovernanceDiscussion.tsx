@@ -1,19 +1,4 @@
 import { 
-    getRealm, 
-    getAllProposals, 
-    getGovernance, 
-    getGovernanceAccounts, 
-    getTokenOwnerRecord, 
-    getTokenOwnerRecordsByOwner, 
-    getAllTokenOwnerRecords, 
-    getRealmConfigAddress, 
-    getGovernanceAccount, 
-    getAccountTypes, 
-    GovernanceAccountType, 
-    tryGetRealmConfig, 
-    getRealmConfig,
-    InstructionData,
-    getGovernanceChatMessagesByVoter,
     getTokenOwnerRecordAddress,
     GOVERNANCE_CHAT_PROGRAM_ID,
     getGovernanceChatMessages,
@@ -96,8 +81,6 @@ import {
 
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 import { useSnackbar } from 'notistack';
- 
-import { GovernanceProposalView } from './GovernanceProposal';
 
 import { createCastVoteTransaction } from '../utils/governanceTools/components/instructions/createVote';
 import ExplorerView from '../utils/grapeTools/Explorer';
@@ -407,14 +390,11 @@ export default function GovernanceDiscussion(props: any){
     const getGovernanceDiscussion = async() => {
         
         setLoading(true);
-
         const messages = await getGovernanceChatMessages(
             RPC_CONNECTION,
             GOVERNANCE_CHAT_PROGRAM_ID,
             proposalPk
         );
-
-        //console.log("Messages Loaded: "+JSON.stringify(messages));
 
         setDiscussionMessages(messages);
 

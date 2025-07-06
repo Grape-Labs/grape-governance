@@ -13,16 +13,20 @@ import { GovernanceCachedView } from "./Governance/Governance";
 import { GovernanceRealtimeView } from "./Admin/Realtime/Realtime";
 import { PremiumView } from "./Governance/Premium";
 import { GovernanceMetricsView } from "./Governance/GovernanceMetrics";
+import { GovernanceStatsView } from "./Governance/GovernanceStats";
 import { GovernanceMembersView } from "./Governance/GovernanceMembers";
 import { GovernanceTreasuryView } from "./Governance/GovernanceTreasury";
 import { GovernanceDirectoryView } from "./Governance/GovernanceDirectory";
 import { GovernanceDirectoryTestView } from "./Governance/GovernanceDirectoryTest";
 import { GovernanceReputationView } from "./Governance/GovernanceReputation";
-import { GovernanceProposalView } from "./Governance/GovernanceProposal";
 import { GovernanceProposalV2View } from "./Governance/GovernanceProposalV2";
 import { GovernanceProposalWrapper } from "./Governance/GovernanceProposalWrapper";
 import GovernanceCreateProposalView from "./Governance/GovernanceCreateProposal";
 import { GovernanceWalletView } from "./Governance/Treasury/SingleWalletWrapperView";
+
+//import CreateNewDAO from "./Governance/CreateNewDAO/CreateNewDAO";
+//import MultiSigWizard from "./Governance/CreateNewDAO/CreateMultiSig";
+//import CommunityTokenWizard from "./Governance/CreateNewDAO/CreateCommunity";
 
 import TestEmbed from "./Governance/TestEmbed";
 import { ApiView } from "./api/api";
@@ -321,14 +325,19 @@ function DashboardContent() {
                                                 <Route path=":handlekey" element={<ApiView />} />
                                             </Route>
                                             */}
-
-
+                                              
+                                            {/*
+                                              <Route path="/new/create" element={<CreateNewDAO />} />
+                                              <Route path="/new/create/multisig" element={<MultiSigWizard />} />
+                                              <Route path="/new/create/community" element={<CommunityTokenWizard />} />
+                                              */}
+                                              
                                               <Route path="gspl/*" element={<GovernanceDirectoryTestView />} >
                                                 <Route path=":handlekey" element={<GovernanceDirectoryTestView />} />
                                               </Route>
 
-                                              <Route path="profile/*" element={<MyGovernanceView />} >
-                                                <Route path=":handlekey" element={<MyGovernanceView />} />
+                                              <Route path="/profile/*" element={<MyGovernanceView />} >
+                                                  <Route path=":walletAddress" element={<MyGovernanceView />} />
                                               </Route>
 
                                               <Route path="governance/*" element={<GovernanceCachedView />} >
@@ -370,6 +379,9 @@ function DashboardContent() {
                                               */}
                                               <Route path="members/*" element={<GovernanceMembersView />} >
                                                   <Route path=":handlekey" element={<GovernanceMembersView />} />
+                                              </Route>
+                                              <Route path="stats/*" element={<GovernanceStatsView />} >
+                                                  <Route path=":handlekey" element={<GovernanceStatsView />} />
                                               </Route>
                                               <Route path="treasury/*" element={<GovernanceTreasuryView />} >
                                                   <Route path=":address" element={<GovernanceTreasuryView />} />

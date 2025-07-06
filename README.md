@@ -1,58 +1,78 @@
-# Governance UI by Grape
+# 🗳 Governance.so — The Fastest Interface for SPL Governance
 
-Grape offers an incredibly fast DAO tooling infrastructure designed to enhance the SPL Governance experience. We introduce innovative ways to utilize SPL Governance through an easy-to-use interface, enabling users to view historical data and extract essential governance metrics—tasks that have been challenging to perform efficiently. Additionally, we provide an API that allows any developer to compose on SPL Governance with minimal RPC overhead. Our platform achieves Web2-like load speeds while leveraging the powerful Web3 DAO primitive (SPL Governance). This seamless and transparent experience paves the way for building tools that can onboard the next billion users to crypto.
-                    
-                    Our development doesn’t stop there. We showcase tools like "Realtime" and demonstrate real-world use cases for organizations through simulations using "Frictionless" proposal authors. DAOs require even more tools, and Governance.so delivers a comprehensive suite of plugins. Our full IntraDAO tooling enables existing DAOs to join and participate in voting processes within other DAOs. Moreover, our groundbreaking IntraDAO proposal creation leverages Grape and Integration Partners' extensive plugin suite to craft proposals, revolutionizing DAO tooling within the Solana ecosystem.
-                    “Building the Web3 infrastructure at Web2 Native Speeds!”
+**Governance.so**, built by Grape, is a blazing-fast, indexed, and developer-friendly platform designed to simplify and supercharge DAO operations on Solana. We transform governance from slow and opaque into intuitive, composable, and real-time.
 
-**Getting Started**
-- The Administration panel requires the connected wallet to be whitelisted (https://governance.so/admin), this provides a GUI for fetching single Governances, Generating cached files and Uploading the created files to a decentralized storage pool
-- <img width="436" alt="Screenshot 2023-03-22 at 11 55 19 PM" src="https://user-images.githubusercontent.com/13381905/227047472-fb31afd1-079b-4b3d-836b-5b0f27d74183.png">
-- <img width="428" alt="Screenshot 2023-03-22 at 11 55 57 PM" src="https://user-images.githubusercontent.com/13381905/227047565-037eb923-e341-4548-857e-80754137f65b.png">
+> “DAO tooling should be as fast and easy as sending tokens from your wallet. That’s what we’ve built.”
 
+---
 
-- The simulation can be run for any Governance and a timer will show for the load time on the bottom https://governance.so/dao/HgcYAkXFT1ENpUCjBZWc1TjAAFacUwdGZRNhTHx9cuo
+## ⚡ Key Features
 
-<img width="1682" alt="Screenshot 2023-03-22 at 11 53 50 PM" src="https://user-images.githubusercontent.com/13381905/227047342-0fd4d7a8-7638-44c2-8d63-1d0fab2a7e4b.png">
+### 🔍 Blazing Fast & Indexed
+Governance.so leverages **indexed RPCs and cached storage** to dramatically reduce load times — making governance feel like using a native wallet.
 
+### 🛠 Rapid Proposal Builder
+Create **multi-instruction proposals** with ease. Whether it's token transfers, DAO role assignments, or granting voting power, our UI generates structured summaries so users can confidently submit complex proposals and voters can easily understand what the proposal details are.
 
-Time taken on Realms UI for SPL Governance https://realms.today/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE is roughly **25-35s**
+### 👛 DAO Wallet Viewer
+A familiar wallet-style interface for DAO treasuries:
+- View tokens & NFTs held by the DAO
+- Create transfer proposals with 1-click
+- No complex form filling or guesswork
 
-Time taken for load via Cached Storage **<1s (38ms!)** (Governance: Mango https://governance.so/dao/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
-<img width="543" alt="Screenshot 2023-03-22 at 11 56 46 PM" src="https://user-images.githubusercontent.com/13381905/227047694-0d793e26-c49f-4ae3-87fa-c7767076555a.png">
+### 🧩 Extensible Proposal Integrations
+Support for plugin-like **proposal extensions** — enabling integrations with external protocols, custom instruction builders, and DAO-specific workflows.
 
+### 📊 DAO Metrics & Members
+- Visualize participation trends
+- Export proposal and vote data
+- Member view with integrated identity (SNS/Cardinal)
 
-Time taken to load via Indexed RPC calls **~10s** (Governance: Mango https://governance.so/rpcgovernance/DPiH3H3c7t47BMxqTxLsuPQpEC6Kne8GA9VXbxpnZxFE):
-<img width="861" alt="Screenshot 2023-03-15 at 2 46 11 PM" src="https://user-images.githubusercontent.com/13381905/225312925-7557e495-859e-46ac-9b85-86dd481893f2.png">
+### 👥 Voter Participation & Delegation
+Empower governance:
+- View real-time voting behavior
+- Delegate your voting power to another wallet
+- Clear, transparent voter records
 
-Featuring a full active DAO (cached) Directory:
-<img width="1776" alt="Screenshot 2023-03-24 at 11 05 03 PM" src="https://user-images.githubusercontent.com/13381905/227641140-b5763868-0a00-49a4-b018-53d544a30067.png">
+### 🔴 Realtime Feed
+[https://governance.so/realtime](https://governance.so/realtime)
 
-Cached Metrics & exportable data:
-<img width="1773" alt="Screenshot 2023-03-24 at 11 06 18 PM" src="https://user-images.githubusercontent.com/13381905/227641408-e541cd2b-f98e-4c5a-8b5f-af2fbe9d63d6.png">
+Watch new proposals and vote activity unfold **live**. The Realtime tab gives an instant overview of all network-wide DAO activity.
 
-Governance (cached) Member Details (with Solana identity integration composed with Cardinal & Bonfida):
-<img width="1768" alt="Screenshot 2023-03-24 at 11 06 58 PM" src="https://user-images.githubusercontent.com/13381905/227641591-da0fbbaf-a8d9-4cc6-829f-b06ccf04aa4b.png">
+### 👤 Profile Interface
 
+[https://governance.so/profile](https://governance.so/profile)
 
+View your governance footprint:
+- DAOs you participate in
+- Proposals you've created
+- Delegations you’ve made or received
 
-References:
+---
 
-Solana Governance:
-- SPL Governance (https://github.com/solana-labs/solana-program-library/tree/master/governance)
+## 🔧 Admin Panel
 
-Wallet Adapter:
-- Solana Wallet Adapter (https://github.com/solana-labs/wallet-adapter)
+[https://governance.so/admin](https://governance.so/admin)
 
-Storage Pools:
-- GenesysGo Shadow Drive (https://github.com/GenesysGo/shadow-drive)
+Whitelisted wallets can:
+- Fetch governance accounts
+- Generate cached proposal files
+- Upload to decentralized storage
 
-Identity:
-- SNS (https://github.com/Bonfida)
+---
 
-UI:
-- Interface: MUI 5 https://mui.com
+## 🧰 Tech Stack
 
-BUILD/START:
-- `yarn install`
-- `yarn start`
+- **Governance Engine:** [SPL Governance](https://github.com/solana-labs/solana-program-library/tree/master/governance)
+- **Storage:** [GenesysGo Shadow Drive](https://github.com/GenesysGo/shadow-drive)
+- **Wallets:** [Solana Wallet Adapter](https://github.com/solana-labs/wallet-adapter)
+- **UI Framework:** [Material UI v5](https://mui.com)
+- **Identity:** [Bonfida SNS](https://github.com/Bonfida), [Cardinal](https://github.com/cardinal-labs)
+
+---
+
+## 🛠 Build & Run Locally
+
+```bash
+yarn install
+yarn start

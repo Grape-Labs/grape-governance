@@ -1,11 +1,19 @@
 {
-  "routes": [{ 
-    "src": "/[^.]+", 
-    "dest": "/", 
-    "status": 200 
-  }],
-  "crons": [{
-    "path": "/api/cron",
-    "schedule": "0 15 * * *"
-  }]
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/**/*.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build"
+    }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1.ts" },
+    { "src": "/[^.]+", "dest": "/", "status": 200 }
+  ],
+  "buildCommand": "yarn build:client",
+  "outputDirectory": "dist"
 }
