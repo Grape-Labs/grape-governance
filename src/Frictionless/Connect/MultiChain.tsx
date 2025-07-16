@@ -8,9 +8,9 @@ import { useSnackbar } from 'notistack';
 import Confetti from 'react-dom-confetti';
 import { QueryClientProvider } from 'react-query';
 
-import { DynamicContextProvider, DynamicWidget, useDynamicContext } from '@dynamic-labs/sdk-react-core';
-import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
-import { SolanaWalletConnectors } from "@dynamic-labs/solana";
+//import { DynamicContextProvider, DynamicWidget, useDynamicContext } from '@dynamic-labs/sdk-react-core';
+//import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
+//import { SolanaWalletConnectors } from "@dynamic-labs/solana";
 
 import {
   Typography,
@@ -188,10 +188,10 @@ function MultiChainOathView(props:any) {
     }, [authMode])
     
     function DisconnectComponent() {
-      const { handleLogOut } = useDynamicContext();
+      //const { handleLogOut } = useDynamicContext();
     
       const handleUserLogOut = () => {
-        handleLogOut();
+      //  handleLogOut();
       };
       
       return (
@@ -216,6 +216,7 @@ function MultiChainOathView(props:any) {
 
 
     function Profile() {
+      /*
       const { authMode, primaryWallet, user } = useDynamicContext();
       
       //console.log("user: "+JSON.stringify(user))
@@ -253,6 +254,7 @@ function MultiChainOathView(props:any) {
       if (autoConnect && connectedAddress){
         handleLogin();
       }
+      */
     }
 
     React.useEffect(() => {
@@ -312,7 +314,7 @@ function MultiChainOathView(props:any) {
                         </Button>
                     )*/}
                       <Grid container alignContent={"center"} justifyContent={"center"} sx={{textAlign:'center'}}>
-                        {generatedPin &&
+                        {/*generatedPin &&
                           <DynamicContextProvider 
 
                             settings={{ 
@@ -359,7 +361,7 @@ function MultiChainOathView(props:any) {
                             /> 
                             <Profile />
                           </DynamicContextProvider> 
-                        }
+                        */}
                       </Grid>
                     </FormControl>
                 </DialogContent>
