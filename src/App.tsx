@@ -292,7 +292,7 @@ function DashboardContent() {
                   </Suspense>
               }></Route>
 
-              <Route path="/*" element={
+              <Route path="*" element={
                 <Suspense fallback={renderLoader()}>
                   <ThemeProvider theme={grapeTheme}>
                       <div className="app-body">
