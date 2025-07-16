@@ -1,6 +1,6 @@
 {
     "name": "@omg-labs/grape-governance",
-    "version": "1.2.02",
+    "version": "1.2.03",
     "author": "Governance by Grape",
     "repository": "https://github.com/omg-labs/grape-governance",
     "license": "Apache-2.0",
@@ -66,10 +66,6 @@
         "@dialectlabs/identity-sns": "^0.0.2",
         "@dialectlabs/react": "^0.5.6",
         "@dialectlabs/react-ui": "^1.0.0-beta.66",
-        "@dynamic-labs/ethereum": "^0.19.0",
-        "@dynamic-labs/sdk-react": "^0.18.28",
-        "@dynamic-labs/sdk-react-core": "^0.19.0",
-        "@dynamic-labs/solana": "^0.19.0",
         "@ellipsis-labs/phoenix-sdk": "^2.0.2",
         "@emotion/react": "^11.4.1",
         "@emotion/styled": "^11.8.1",
