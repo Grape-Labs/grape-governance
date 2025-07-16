@@ -7,7 +7,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 
 import { AdminView } from "./Admin/Admin";
 //import GovernanceAppPageView from "./GovernanceCached/v2/page";
-import FrictionlessView from "./Frictionless/FrictionlessView";
+//import FrictionlessView from "./Frictionless/FrictionlessView";
 import { MyGovernanceView } from "./Governance/MyGovernance";
 import { GovernanceCachedView } from "./Governance/Governance";
 import { GovernanceRealtimeView } from "./Admin/Realtime/Realtime";
@@ -241,7 +241,7 @@ function DashboardContent() {
                   <Route path=":governance/:wallet" element={<GovernanceWalletView />} />
               </Route>
 
-
+              {/*
               <Route path="/frictionless/*" element={
                 <Suspense fallback={renderLoader()}>
                   <ThemeProvider theme={grapeTheme}>
@@ -265,6 +265,7 @@ function DashboardContent() {
                     </ThemeProvider>
                   </Suspense>
               }></Route>
+              */}
 
               <Route path="/realtime/*" element={
                 <Suspense fallback={renderLoader()}>
