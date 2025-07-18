@@ -348,11 +348,7 @@ function DashboardContent() {
                                               <Route path="dao/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                               </Route>
-
-                                              <Route path="cachedgovernance/*" element={<GovernanceCachedView />} >
-                                                  <Route path=":handlekey" element={<GovernanceCachedView />} />
-                                              </Route>
-
+                                              
                                               <Route path="newproposal/*" element={<GovernanceCreateProposalView />} >
                                                   <Route path=":handlekey" element={<GovernanceCreateProposalView />} />
                                               </Route>
@@ -360,11 +356,6 @@ function DashboardContent() {
                                               <Route path="proposal/*" element={<GovernanceProposalWrapper/>} >
                                                   <Route path=":governance/:proposal" element={<GovernanceProposalWrapper />} />
                                               </Route>
-
-                                              <Route path="v2/*" element={<GovernanceProposalWrapper beta={true}/>} >
-                                                  <Route path=":governance/:proposal" element={<GovernanceProposalWrapper beta={true} />} />
-                                              </Route>
-
                                               
                                               <Route path="proposals/*" element={<GovernanceRealtimeView />} >
                                                   <Route path=":handlekey" element={<GovernanceRealtimeView />} />
