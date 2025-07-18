@@ -1620,7 +1620,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 if (!hasBeenFound){
 
                 }
-
+                
                 if (!hasAwards || getAwards){
                     console.log("Checking Award Emitted...")
                     if (grealm.account?.communityMint){
