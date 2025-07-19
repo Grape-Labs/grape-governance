@@ -1684,7 +1684,7 @@ export const getVoteRecordsByVoterIndexed = async (realmOwner?:any, realmPk?:any
     }
 }
 
-export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, realmPk?:any) => {
+export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, realmPk?:any, donotfallback?:boolean) => {
     
     const programName = findGovOwnerByDao(realmPk)?.name ? findGovOwnerByDao(realmPk).name : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
     const programId = realmOwner ? realmOwner : findGovOwnerByDao(realmPk)?.owner ? findGovOwnerByDao(realmPk).owner : 'GovER5Lthms3bLBqWub97yVrMmEogzX7xNjdXpPPCVZw';
@@ -1728,7 +1728,7 @@ export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, re
             console.log("Vote Record Index Err Reverting to RPC");
         }
         
-        if ((!indexedRecord || indexedRecord.length <= 0) && realmPk){ // fallback to RPC call is governance not found in index
+        if ((!indexedRecord || indexedRecord.length <= 0) && realmPk && !donotfallback){ // fallback to RPC call is governance not found in index
             console.log("Using RPC getVoteRecords");
             const voteRecords = await getVoteRecords({
                 connection: RPC_CONNECTION,
@@ -1738,8 +1738,7 @@ export const getVoteRecordsIndexed = async (proposalPk?:any, realmOwner?:any, re
             //console.log("RPC voteRecord: "+JSON.stringify(voteRecords));
             return voteRecords;
         } else{
-
-            console.log("VoteRecords: "+JSON.stringify(indexedRecord));
+            //console.log("VoteRecords: "+JSON.stringify(indexedRecord));
             return indexedRecord;
         }
 }
