@@ -404,7 +404,7 @@ export function GovernanceStatsView(props: any) {
                     // Apply decimals only for community mint
                     if (mint === grealm.account.communityMint.toBase58()) {
                         groupedRecords[wallet].staked.governingTokenDepositAmount +=
-                        Number(trecord.account.governingTokenDepositAmount || 0) / Math.pow(10, thisTokenDecimals || 0);
+                        +(Number(trecord.account.governingTokenDepositAmount || 0) / Math.pow(10, thisTokenDecimals || 0)).toFixed(0);
                     } else {
                         // Council mint always uses 0 decimals (raw integer)
                         groupedRecords[wallet].staked.governingCouncilDepositAmount +=

@@ -122,7 +122,8 @@ export default function ParticipationStatsTable({ proposals, participantArray })
                 renderCell: (params) => (
                     params.value.toLocaleString()
                 ),
-                cellClassName: 'MuiDataGrid-cell--right'
+                align: 'right',
+                headerAlign: 'right'
               },
               {
                 field: 'councilStaked',
@@ -130,7 +131,8 @@ export default function ParticipationStatsTable({ proposals, participantArray })
                 width: 150,
                 valueGetter: (p) => p.row.staked.governingCouncilDepositAmount,
                 sortComparator: (v1, v2) => v1 - v2,
-                cellClassName: 'MuiDataGrid-cell--right',
+                align: 'right',
+                headerAlign: 'right'
               },
               {
                 field: 'totalVotes',
@@ -138,7 +140,8 @@ export default function ParticipationStatsTable({ proposals, participantArray })
                 width: 120,
                 valueGetter: (p) => p.row.voteStats.total,
                 sortComparator: (v1, v2) => v1 - v2,
-                cellClassName: 'MuiDataGrid-cell--right',
+                align: 'right',
+                headerAlign: 'right'
               },
               {
                 field: 'participation',
@@ -146,7 +149,8 @@ export default function ParticipationStatsTable({ proposals, participantArray })
                 width: 150,
                 valueGetter: (p) => p.row.voteStats.participationPercent,
                 sortComparator: (v1, v2) => v1 - v2,
-                cellClassName: 'MuiDataGrid-cell--right',
+                align: 'right',
+                headerAlign: 'right',
                 hide: true
               },
               {
@@ -155,7 +159,8 @@ export default function ParticipationStatsTable({ proposals, participantArray })
                 width: 100,
                 valueGetter: (p) => p.row.voteStats.approve,
                 sortComparator: (v1, v2) => v1 - v2,
-                cellClassName: 'MuiDataGrid-cell--right',
+                align: 'right',
+                headerAlign: 'right'
               },
               {
                 field: 'deny',
@@ -163,7 +168,8 @@ export default function ParticipationStatsTable({ proposals, participantArray })
                 width: 100,
                 valueGetter: (p) => p.row.voteStats.deny,
                 sortComparator: (v1, v2) => v1 - v2,
-                cellClassName: 'MuiDataGrid-cell--right',
+                align: 'right',
+                headerAlign: 'right'
               },
               {
                 field: 'abstain',
@@ -171,7 +177,8 @@ export default function ParticipationStatsTable({ proposals, participantArray })
                 width: 100,
                 valueGetter: (p) => p.row.voteStats.abstain,
                 sortComparator: (v1, v2) => v1 - v2,
-                cellClassName: 'MuiDataGrid-cell--right',
+                align: 'right',
+                headerAlign: 'right',
                 hide: true
               },
               {
