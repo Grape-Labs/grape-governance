@@ -41,6 +41,7 @@ import {
 } from '@mui/material/';
 
 import { GovernanceHeaderView } from './GovernanceHeaderView';
+import GovernanceStatsParticipationTableView from './GovernanceStatsParticipationTable';
 import GovernanceNavigation from './GovernanceNavigation'; 
 import {
     fetchGovernanceLookupFile,
@@ -67,10 +68,12 @@ import IconButton from '@mui/material/IconButton';
 
 import { 
     getRealmIndexed,
+    getProposalIndexed,
     getAllProposalsIndexed,
     getAllGovernancesIndexed,
     getAllTokenOwnerRecordsIndexed,
     getRealmConfigIndexed,
+    getVoteRecordsIndexed,
 } from './api/queries';
 
 import PropTypes from 'prop-types';
@@ -159,183 +162,6 @@ function TablePaginationActions(props) {
     );
   }
 
-function RenderGovernanceMembersTable(props:any) {
-    const tokenMap = props.tokenMap;
-    const memberMap = props.memberMap;
-    const [loading, setLoading] = React.useState(false);
-    //const [proposals, setProposals] = React.useState(props.proposals);
-    const participating = props.participating;
-    const members = props.members;
-    const circulatingSupply = props.circulatingSupply;
-    const totalDepositedVotes = props.totalDepositedVotes;
-    const [memberVotingResults, setMemberVotingResults] = React.useState(null);
-    const [page, setPage] = React.useState(0);
-    const [rowsPerPage, setRowsPerPage] = React.useState(10);
-    // Avoid a layout jump when reaching the last page with empty rows.
-    const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - members.length) : 0;
-    const token = props.token;
-    const governingTokenMint = props?.governingTokenMint;
-    const governingTokenDecimals = props?.governingTokenDecimals || 0;
-    
-    
-    const memberresultscolumns: GridColDef[] = [
-        { field: 'id', headerName: 'ID', minWidth: 70, hide: true},
-        { field: 'address', headerName: 'Address', minWidth: 70, hide: true},
-        { field: 'record', headerName: 'Record', minWidth: 70, hide: true},
-        { field: 'delegate', headerName: 'Delegate', minWidth: 200, hide: true},
-        { field: 'member', headerName: 'Member', minWidth: 200, flex: 1,
-            renderCell: (params) => {
-                return(
-                    <>
-                    <ExplorerView showSolanaProfile={true} memberMap={memberMap} grapeArtProfile={true} address={params.value.address} type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='18px' />
-                    {Number(params.value.governingCouncilDepositAmount) > 0 &&
-                        <Grid item>
-                            <Tooltip title={`Council Member - Votes: ${Number(params.value.governingCouncilDepositAmount)}`}><Button color='inherit' sx={{ml:1,borderRadius:'17px'}}><AssuredWorkloadIcon /></Button></Tooltip>
-                        </Grid>
-                    }</>
-                )
-            }
-        },
-        { field: 'staked', headerName: 'Votes Staked', minWidth: 170, flex: 1, headerAlign: 'center', align: 'right',
-            sortable: true, // Enable sorting on this column
-            sortComparator: (v1, v2, cellParams1, cellParams2) => {
-                // Custom sorting logic based on governanceRewards field
-                const param1 = cellParams1.value.governingTokenDepositAmount || 0;
-                const param2 = cellParams2.value.governingTokenDepositAmount || 0;
-                return param1 - param2;
-            },   
-            renderCell: (params) => {
-                return(
-                    <Typography variant="h6">
-                        {getFormattedNumberToLocale(params.value.governingTokenDepositAmount)}
-                    </Typography>
-                )
-            }
-        },
-        { field: 'unstaked', headerName: 'Not Staked', minWidth: 170, headerAlign: 'center', align: 'right', hide: true,
-            renderCell: (params) => {
-                return(
-                    <Typography variant="caption">
-                        {getFormattedNumberToLocale(params.value)}
-                    </Typography>
-                )
-            }
-        },
-        { field: 'percentDepositedGovernance', headerName: '% of Deposited Governance', minWidth: 170, headerAlign: 'center', align: 'right',
-            renderCell: (params) => {
-                return(
-                    <Typography variant="h6">
-                        {params.value}%
-                    </Typography>
-                )
-            }
-        },
-        { field: 'percentSupply', headerName: '% of Supply', minWidth: 170, headerAlign: 'center', align: 'right',
-            renderCell: (params) => {
-                return(
-                    <Typography variant="h6">
-                        {params.value}%
-                    </Typography>
-                )
-            }
-        },
-    ];
-
-
-    const handleChangePage = (event:any, newPage:number) => {
-        setPage(newPage);
-    };
-
-    const handleChangeRowsPerPage = (event:any) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0);
-    };
-
-    /*
-    const getProposals = async (GOVERNANCE_PROGRAM_ID:string) => {
-        if (!loading){
-            setLoading(true);
-            
-        }
-        setLoading(false);
-    }*/
-
-    const createMemberTableRows = async() => {
-        const mmbr = new Array();
-        let x = 0;
-        for (const member of members){
-            mmbr.push({
-                id:x+1,
-                address: member.governingTokenOwner.toBase58(),
-                delegate: member?.governanceDelegate ? member.governanceDelegate.toBase58() : null,
-                record: member.pubkey.toBase58(),
-                member:{
-                    address: member.governingTokenOwner.toBase58(),
-                    governingCouncilDepositAmount:((Number(member.governingCouncilDepositAmount) > 0) ? Number(member.governingCouncilDepositAmount) : 0),
-                    },
-                staked:
-                    {
-                        governingTokenDepositAmount:(+((Number(member.governingTokenDepositAmount))/Math.pow(10, governingTokenDecimals || 0)).toFixed(0)),
-                        governingCouncilDepositAmount:((Number(member.governingCouncilDepositAmount) > 0) ? Number(member.governingCouncilDepositAmount) : 0),
-                    },
-                unstaked:Number(member.walletBalanceAmount),
-                percentDepositedGovernance:Number(member.governingTokenDepositAmount) > 0 ? ((+Number(member.governingTokenDepositAmount)/totalDepositedVotes)*100).toFixed(2) : 0,
-                percentSupply:Number(member.governingTokenDepositAmount) > 0 ? ((Number(member.governingTokenDepositAmount)/circulatingSupply.value.amount)*100).toFixed(2) : 0,
-            })
-            x++;
-        }
-
-        console.log("mmbr: "+JSON.stringify(mmbr))
-        setMemberVotingResults(mmbr);
-    }
-
-    React.useEffect(() => {
-        if (members && !memberVotingResults){
-            createMemberTableRows();
-        }
-    }, [members]);
-
-    if(loading){
-        return (
-            <Box sx={{ width: '100%' }}>
-                <LinearProgress sx={{borderRadius:'10px;'}} />
-            </Box>
-        )
-    }
-    
-    return (
-        
-        <>
-            {memberVotingResults &&
-                <div style={{ height: 600, width: '100%' }}>
-                    <div style={{ display: 'flex', height: '100%' }}>
-                        <div style={{ flexGrow: 1 }}>
-                                
-                                <DataGrid
-                                    //rows={mapMemberObject(memberVotingResults)}
-                                    rows={memberVotingResults}
-                                    columns={memberresultscolumns}
-                                    //disableColumnFilter
-                                    pageSize={25}
-                                    rowsPerPageOptions={[]}
-                                    sx={{
-                                        borderRadius:'17px',
-                                        borderColor:'rgba(255,255,255,0.25)',
-                                        '& .MuiDataGrid-cell':{
-                                            borderColor:'rgba(255,255,255,0.25)'
-                                        }}}
-                                    sortingOrder={['asc', 'desc', null]}
-                                    disableSelectionOnClick
-                                
-                                />
-                        </div>
-                    </div>
-                </div>
-            }
-        </>
-    )
-}
-
 export function GovernanceStatsView(props: any) {
     const [searchParams, setSearchParams] = useSearchParams();
     const {handlekey} = useParams<{ handlekey: string }>();
@@ -349,6 +175,7 @@ export function GovernanceStatsView(props: any) {
     const [startTime, setStartTime] = React.useState(null);
     const [endTime, setEndTime] = React.useState(null);
     
+    const [loadingMessage, setLoadingMessage] = React.useState("Loading Stats...");
     const [loading, setLoading] = React.useState(false);
     const [members, setMembers] = React.useState(null);
     const connection = RPC_CONNECTION;
@@ -385,6 +212,9 @@ export function GovernanceStatsView(props: any) {
     const [top10GovernanceShare, setTop10GovernanceShare] = React.useState<string | null>(null);
     const [councilVoteShare, setCouncilVoteShare] = React.useState<string | null>(null);
 
+    const [governanceProposals, setGovernanceProposals] = React.useState<any[]>([]);
+    const [governanceParticipants, setGovernanceParticipants] = React.useState<any[]>([]);
+
     const CONFIG = UmiPK("GrVTaSRsanVMK7dP4YZnxTV6oWLcsFDV1w6MHGvWnWCS");
     const initGrapeGovernanceDirectory = async() => {
         try{
@@ -418,8 +248,6 @@ export function GovernanceStatsView(props: any) {
         } catch(e){console.log("ERR: "+e); return null;}
     }
 
-    
-
     const getGovernanceMembers = async () => {
         if (!loading){
             setLoading(true);
@@ -427,22 +255,7 @@ export function GovernanceStatsView(props: any) {
             try{  
                 const programId = new PublicKey(GOVERNANCE_PROGRAM_ID);
                 
-                console.log("SPL Governance: "+governanceAddress);
-                
-                /*
-                const ownerRecordsbyOwner = await getTokenOwnerRecordsByOwner(connection, programId, publicKey);
-                // check if part of this realm
-                let pcp = false;
-                for (let ownerRecord of ownerRecordsbyOwner){
-                    
-                    if (ownerRecord.account.realm.toBase58() === governanceAddress){
-                        pcp = true;
-                        setParticipatingRealm(realm);
-                    }
-                }
-                setParticipating(pcp);
-                */
-                
+                console.log("Governance: "+governanceAddress);
                 
                 if (cachedRealm){
                     console.log("Realm from cache")
@@ -467,22 +280,6 @@ export function GovernanceStatsView(props: any) {
                 // with realm check if this is a backed token
                 let thisTokenDecimals = 0;
 
-                /*
-                if (tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58())){
-                    thisTokenDecimals = tokenMap.get(new PublicKey(grealm.account?.communityMint).toBase58()).decimals;
-                    setGoverningTokenDecimals(thisTokenDecimals);
-                } else{
-                    const btkn = await getBackedTokenMetadata(new PublicKey(grealm.account?.communityMint).toBase58(), wallet);
-                    if (btkn){
-                        thisTokenDecimals = btkn.decimals;
-                        setGoverningTokenDecimals(thisTokenDecimals)
-                    } else{ 
-                        thisTokenDecimals = 6;
-                        setGoverningTokenDecimals(thisTokenDecimals);
-                    }
-                }
-                */
-
                 let gTD = null;
                 let tokenDetails = await connection.getParsedAccountInfo(new PublicKey(grealm.account?.communityMint))
                 //console.log("tokenDetails: "+JSON.stringify(tokenDetails))
@@ -490,20 +287,171 @@ export function GovernanceStatsView(props: any) {
                 thisTokenDecimals = gTD;
                 setGoverningTokenDecimals(thisTokenDecimals);
                 
-                setGoverningTokenDecimals(thisTokenDecimals);
-
                 const tknSupply = await connection.getTokenSupply(new PublicKey(grealm.account.communityMint));
 
                 //const governingMintPromise = await connection.getParsedAccountInfo(grealm.account.communityMint);
                 if (tknSupply)
                     setCirculatingSupply(tknSupply);
                 
-                let trecords = null;
-
-                const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(realmPk.toBase58(), grealm.owner)
-                //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
-                trecords = indexedTokenOwnerRecords;
                 
+                // THE FOLLOWING WILL GET ALL PROPOSALS
+                // THIS WILL BE A METRIC USED TO GET ALL PROPOSALS CREATED WITH A VOTER RECORD
+                const governanceRulesIndexed = await getAllGovernancesIndexed(governanceAddress, grealm?.owner);
+                const governanceRulesStrArr = governanceRulesIndexed.map(item => item.pubkey.toBase58());
+            
+                setLoadingMessage("Loading Proposals...");
+                const gap = await getAllProposalsIndexed(governanceRulesStrArr, null, governanceAddress);
+                //console.log("gap: ", gap);
+                setGovernanceProposals(gap);
+                setLoadingMessage("Getting Participation...");
+                const allVoteRecords: any[] = [];
+
+                for (let i = 0; i < gap.length; i++) {
+                    const proposal = gap[i];
+                    setLoadingMessage(`${i + 1} of ${gap.length} Proposal Participation...`);
+
+                    if (proposal.account.state !== 0) { // Skip drafts
+                        const voteRecords = await getVoteRecordsIndexed(
+                            proposal.pubkey.toBase58(),
+                            grealm?.owner,
+                            governanceAddress,
+                            true
+                        );
+
+                        // Attach to proposal if needed
+                        proposal.voteRecords = voteRecords;
+
+                        let recordsArray: any[] = [];
+                        if (Array.isArray(voteRecords)) {
+                            recordsArray = voteRecords;
+                        } else if (voteRecords && typeof voteRecords === 'object' && 'value' in voteRecords) {
+                            recordsArray = voteRecords.value ?? [];
+                        }
+
+                        allVoteRecords.push(...recordsArray);
+                    }
+                }
+
+                setLoadingMessage("Processing Participation Data...");
+
+                // Build proposal metadata lookup
+                const proposalMetaMap = {};
+                for (const p of gap) {
+                    proposalMetaMap[p.pubkey.toBase58()] = {
+                        title: p.account.name,
+                        mint: p.account.governingTokenMint.toBase58(),
+                        draftAt: p.account.draftAt, //?.toNumber?.() || null,
+                        signingOffAt: p.account.signingOffAt,//?.toNumber?.() || null,
+                        votingAt: p.account.votingAt,//?.toNumber?.() || null,
+                        votingCompletedAt: p.account.votingCompletedAt,//?.toNumber?.() || null,
+                        proposalState: p.account.state,
+                    };
+                }
+                
+                // Group vote records by wallet
+                const voteRecordMap = {};
+                for (const vr of allVoteRecords) {
+                    const wallet = vr.account.governingTokenOwner;
+                    const proposalId = vr.account.proposal;
+                    const proposalMeta = proposalMetaMap[proposalId] || {};
+
+                    if (!voteRecordMap[wallet]) voteRecordMap[wallet] = [];
+
+                    voteRecordMap[wallet].push({
+                        pubkey:proposalId,
+                        proposalTitle: proposalMeta.title,
+                        proposalMint: proposalMeta.mint,
+                        voteType: vr.account.vote?.voteType,
+                        voteWeight: vr.account.voterWeight ?? 0,
+                        draftAt: proposalMeta.draftAt,
+                        signingOffAt: proposalMeta.signingOffAt,
+                        votingAt: proposalMeta.votingAt,
+                        votingCompletedAt: proposalMeta.votingCompletedAt,
+                        proposalState: proposalMeta.proposalState,
+                        rawVote: vr.account.vote,
+                    });
+                }
+
+                setLoadingMessage("Fetching Participants...");
+                // Fetch token owner records
+                let trecords = null;
+                const indexedTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(
+                    realmPk.toBase58(),
+                    grealm.owner
+                );
+                trecords = indexedTokenOwnerRecords;
+
+                // Build participant array
+                setLoadingMessage("Merging Data...");
+                // Step 1: Group token owner records by wallet
+                const groupedRecords = {};
+
+                for (const trecord of trecords) {
+                    const wallet = trecord.account.governingTokenOwner.toBase58();
+                    const mint = trecord.account.governingTokenMint.toBase58();
+
+                    if (!groupedRecords[wallet]) {
+                        groupedRecords[wallet] = {
+                        wallet,
+                        voteHistory: [],
+                        staked: {
+                            governingTokenDepositAmount: 0,
+                            governingCouncilDepositAmount: 0,
+                        },
+                        };
+                    }
+
+                    // Apply decimals only for community mint
+                    if (mint === grealm.account.communityMint.toBase58()) {
+                        groupedRecords[wallet].staked.governingTokenDepositAmount +=
+                        Number(trecord.account.governingTokenDepositAmount || 0) / Math.pow(10, thisTokenDecimals || 0);
+                    } else {
+                        // Council mint always uses 0 decimals (raw integer)
+                        groupedRecords[wallet].staked.governingCouncilDepositAmount +=
+                        Number(trecord.account.governingTokenDepositAmount || 0);
+                    }
+                }
+
+                // Step 2: Merge vote history and compute stats
+                const participantArray = [];
+
+                for (const wallet in groupedRecords) {
+                    const record = groupedRecords[wallet];
+                    const voteHistory = voteRecordMap[wallet] || [];
+
+                    const voteStats = {
+                        total: voteHistory.length,
+                        approve: voteHistory.filter(v => v.voteType === 0).length,
+                        deny: voteHistory.filter(v => v.voteType === 1).length,
+                        abstain: voteHistory.filter(v => v.voteType === 2).length,
+                    };
+
+                    // Determine first/last participation by draftAt
+                    const draftTimestamps = voteHistory
+                        .map(v => v.draftAt)
+                        .filter(ts => typeof ts === 'number' && ts > 0);
+
+                    const firstVoteAt = draftTimestamps.length > 0 ? Math.min(...draftTimestamps) : null;
+                    const lastVoteAt = draftTimestamps.length > 0 ? Math.max(...draftTimestamps) : null;
+
+                    participantArray.push({
+                        wallet,
+                        voteStats,
+                        voteHistory,
+                        firstVoteAt,
+                        lastVoteAt,
+                        staked: record.staked,
+                    });
+                }
+
+                setGovernanceParticipants(participantArray);
+
+                console.log("participantArray:", participantArray);
+
+
+                // now loop through all token owner records and then merge with the vote records so that we can get the stats in one place per voter record
+
+
                 //console.log("indexTokenOwnerRecords: ("+indexedTokenOwnerRecords.length+") "+JSON.stringify(indexedTokenOwnerRecords));
                 //console.log("grealm: "+JSON.stringify(grealm))
                 let hasVoterWeight = false;
@@ -520,27 +468,7 @@ export function GovernanceStatsView(props: any) {
                 
                 {
 
-                    /*
-                    if (cachedMemberMap){
-                        console.log("Members from cache");
-                        // merge with cachedMemberMap?
-                        for (var rRecord of indexedTokenOwnerRecords){
-                            for (var cRecord of cachedMemberMap){
-                                if (rRecord.pubkey.toBase58() === cRecord.pubkey){
-                                    rRecord.socialConnections = cRecord.socialConnections;
-                                    rRecord.firstTransactionDate = cRecord.firstTransactionDate;
-                                    rRecord.multisigs = cRecord.multisigs;
-                                }
-                            }
-                        }
-                        trecords = indexedTokenOwnerRecords;//cachedMemberMap;
-                    } else if (!indexedTokenOwnerRecords){
-                        trecords = await getAllTokenOwnerRecords(RPC_CONNECTION, new PublicKey(grealm.owner), realmPk)
-                    }
-                    */
-
-                    //console.log("trecords: "+JSON.stringify(trecords));
-
+                    
                     //let sortedResults = trecords.sort((a,b) => (a.account?.outstandingProposalCount < b.account?.outstandingProposalCount) ? 1 : -1);
                     //const sortedResults = trecords.sort((a,b) => (a.account?.totalVotesCount < b.account?.totalVotesCount) ? 1 : -1);
                     
@@ -728,6 +656,8 @@ export function GovernanceStatsView(props: any) {
             
             }catch(e){console.log("ERR: "+e)}
         
+            setLoadingMessage("Fetching GSPL...");
+
             const fetchedgspl = await initGrapeGovernanceDirectory();
             setGSPL(fetchedgspl);
             console.log("fetchedgspl: "+JSON.stringify(fetchedgspl));
@@ -765,85 +695,10 @@ export function GovernanceStatsView(props: any) {
                 }
             }
         }
+        setLoadingMessage("Done");
+                
         setLoading(false);
         endTimer();
-    }
-
-    const getCachedGovernanceFromLookup = async () => {
-        
-        let cached_governance = new Array();
-        if (governanceLookup){
-            for (let glitem of governanceLookup){
-                if (glitem.governanceAddress === governanceAddress){
-
-                    if (glitem?.realm){
-                        setCachedRealm(glitem?.realm);
-                    }
-                    if (glitem?.memberFilename){
-                        const cached_members = await getFileFromLookup(glitem.memberFilename, storagePool);
-                        setCachedMemberMap(cached_members);
-                    }
-
-                    cached_governance = await getFileFromLookup(glitem.filename, storagePool);
-                    setCachedTimestamp(glitem.timestamp);
-                }
-            }
-        }
-
-        // convert values in governance to BigInt and PublicKeys accordingly
-        let counter = 0;
-        for (let cupdated of cached_governance){
-
-            cupdated.account.governance = new PublicKey(cupdated.account.governance);
-            cupdated.account.governingTokenMint = new PublicKey(cupdated.account.governingTokenMint);
-            cupdated.account.tokenOwnerRecord = new PublicKey(cupdated.account.tokenOwnerRecord);
-            cupdated.owner = new PublicKey(cupdated.owner);
-            cupdated.pubkey = new PublicKey(cupdated.pubkey);
-
-            if (cupdated.account?.options && cupdated.account?.options[0]?.voteWeight)
-                cupdated.account.options[0].voteWeight = Number(cupdated.account.options[0].voteWeight)
-            if (cupdated.account?.denyVoteWeight)
-                cupdated.account.denyVoteWeight = Number(cupdated.account.denyVoteWeight).toString()
-
-            if (cupdated.account?.yesVotesCount)
-                cupdated.account.yesVotesCount = Number(cupdated.account.yesVotesCount).toString()
-            if (cupdated.account?.noVotesCount)
-                cupdated.account.noVotesCount = Number(cupdated.account.noVotesCount).toString()
-            
-            cupdated.account.draftAt = Number(cupdated.account.draftAt).toString()
-            cupdated.account.signingOffAt = Number(cupdated.account.signingOffAt).toString()
-            cupdated.account.votingAt = Number(cupdated.account.votingAt).toString()
-            cupdated.account.votingAtSlot = Number(cupdated.account.votingAtSlot).toString()
-            cupdated.account.vetoVoteWeight = Number(cupdated.account.vetoVoteWeight).toString()
-            cupdated.account.votingCompletedAt = Number(cupdated.account.votingCompletedAt).toString()
-
-            // move to nested voting results
-            if (cupdated?.votingResults){
-                
-                for (let inner of cupdated.votingResults){
-                    inner.pubkey = new PublicKey(inner.pubkey);
-                    inner.proposal = new PublicKey(inner.proposal);
-                    inner.governingTokenOwner = new PublicKey(inner.governingTokenOwner);
-                    inner.voteAddress = new PublicKey(inner.voteAddress);
-                    if (inner.vote?.councilMint)
-                        inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
-                    inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
-                    if (inner.vote?.councilMint)
-                        inner.vote.councilMint = new PublicKey(inner.vote.councilMint);
-                    inner.vote.governingTokenMint = new PublicKey(inner.vote.governingTokenMint);
-                    /*
-                    inner.vote.voterWeight = Number("0x"+inner.vote.voterWeight).toString()
-                    inner.vote.legacyYes = Number("0x"+inner.vote.legacyYes).toString()
-                    inner.vote.legacyNo = Number("0x"+inner.vote.legacyNo).toString()
-                    */
-                }
-            }
-
-            counter++;
-        }
-        
-        setCachedGovernance(cached_governance);
-        //getGovernance(cached_governance);
     }
 
     const startTimer = () => {
@@ -854,20 +709,22 @@ export function GovernanceStatsView(props: any) {
         setEndTime(Date.now())
     }
 
+    /*
     const callGovernanceLookup = async() => {
         const fglf = await fetchGovernanceLookupFile(storagePool);
         setGovernanceLookup(fglf);
     }
-
+    */
     React.useEffect(() => {
-        if (cachedGovernance && governanceAddress){
+        if (governanceAddress){
             getGovernanceMembers();
         }
-    }, [cachedGovernance]);
+    }, []);
 
+    /*
     React.useEffect(() => {
         if (governanceLookup){
-            getCachedGovernanceFromLookup();
+        //    getCachedGovernanceFromLookup();
         }
     }, [governanceLookup, governanceAddress]);
     
@@ -877,7 +734,7 @@ export function GovernanceStatsView(props: any) {
             callGovernanceLookup();
         }
     }, [tokenMap]);
-
+    */
     React.useEffect(() => { 
         if (!loading){
             if (!tokenMap){
@@ -898,10 +755,12 @@ export function GovernanceStatsView(props: any) {
                         alignItems: 'center', textAlign: 'center'
                     }} 
                 > 
-                    <Typography variant="caption">Loading Governance Members {governanceAddress}
-                        <><br/>For DAOs with over 2k voters this may take a minute</>
-                        {recordCount && 
-                            <><br/>Record: {recordCount}</>}
+                    <Typography variant="caption">Loading Governance Stats {governanceAddress}
+                        <>
+                        <br/>
+                        {loadingMessage && <>{loadingMessage}</>}
+                        <br/>
+                        </>
                     </Typography>
                     
                     <LinearProgress color="inherit" />
@@ -959,9 +818,12 @@ export function GovernanceStatsView(props: any) {
                                 councilVoteShare={councilVoteShare}
                                 top10Participants={top10Participants}
                             />
-                            
-                        <RenderGovernanceMembersTable members={members} memberMap={cachedMemberMap} participating={participating} tokenMap={tokenMap} governingTokenMint={governingTokenMint} governingTokenDecimals={governingTokenDecimals} circulatingSupply={circulatingSupply} totalDepositedVotes={totalDepositedVotes} />
-                    
+
+                        <GovernanceStatsParticipationTableView
+                            proposals={governanceProposals}
+                            participantArray={governanceParticipants}
+                        />
+                        
                         {endTime &&
                             <Typography 
                                 variant="caption"
