@@ -43,7 +43,6 @@ export default function ParticipationStatsTable({ proposals, participantArray, o
 
     useEffect(() => {
 
-        if (startDate && endDate){
             const start = startDate ? new Date(startDate.setHours(0, 0, 0, 0)) : null;
             const end = endDate ? new Date(endDate.setHours(23, 59, 59, 999)) : null;
             const startSec = start ? Math.floor(start.getTime() / 1000) : null;
@@ -112,7 +111,6 @@ export default function ParticipationStatsTable({ proposals, participantArray, o
                 end: globalMax ? new Date(globalMax * 1000) : null,
                 });
             }
-        }
     }, [startDate, endDate, proposals, participantArray]);
 
   return (
@@ -149,21 +147,10 @@ export default function ParticipationStatsTable({ proposals, participantArray, o
                 setEndDate(null);
               }}
             >
-              Reset Dates
+              Clear
             </Button>
           </Grid>
         )}
-        <Grid item>
-            <Button
-                variant="outlined"
-                onClick={() => {
-                setStartDate(null);
-                setEndDate(null);
-                }}
-            >
-                Clear
-            </Button>
-        </Grid>
       </Grid>
 
       <Card>
