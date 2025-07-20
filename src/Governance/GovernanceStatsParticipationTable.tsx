@@ -80,12 +80,22 @@ export default function ParticipationStatsTable({ proposals, participantArray })
       <Grid container spacing={2} mb={2}>
         <Grid item>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <DatePicker label="Start Date" value={startDate} onChange={setStartDate} renderInput={(params) => <TextField {...params} />} />
+            <DatePicker
+              label="Start Date"
+              value={startDate}
+              onChange={setStartDate}
+              slotProps={{ textField: { fullWidth: true } }}
+            />
           </LocalizationProvider>
         </Grid>
         <Grid item>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <DatePicker label="End Date" value={endDate} onChange={setEndDate} renderInput={(params) => <TextField {...params} />} />
+            <DatePicker
+              label="End Date"
+              value={endDate}
+              onChange={setEndDate}
+              slotProps={{ textField: { fullWidth: true } }}
+            />
           </LocalizationProvider>
         </Grid>
       </Grid>
@@ -240,7 +250,7 @@ export default function ParticipationStatsTable({ proposals, participantArray })
                     <TableCell>{votingTypeToText(v.voteType)}</TableCell>
                     <TableCell align="right">
                         {v.proposalMint === v.communityMint
-                            ? (Number(v.voteWeight) / Math.pow(10, v.communityDecimals || 0)).toFixed(0).toLocaleString()
+                            ? ((Number(v.voteWeight) / Math.pow(10, v.communityDecimals || 0)).toFixed(0)).toLocaleString()
                             : v.voteWeight}
                     </TableCell>
                     <TableCell>{formatDate(v.draftAt)}</TableCell>
