@@ -368,6 +368,8 @@ export function GovernanceStatsView(props: any) {
                         votingAt: proposalMeta.votingAt,
                         votingCompletedAt: proposalMeta.votingCompletedAt,
                         proposalState: proposalMeta.proposalState,
+                        communityMint: new PublicKey(grealm?.account?.communityMint).toBase58(),
+                        communityDecimals: thisTokenDecimals,
                         rawVote: vr.account.vote,
                     });
                 }
@@ -822,7 +824,11 @@ export function GovernanceStatsView(props: any) {
                         <GovernanceStatsParticipationTableView
                             proposals={governanceProposals}
                             participantArray={governanceParticipants}
-                        />
+                            onDateRangeCalculated={({ start, end }) => {
+                                console.log('Calculated date range:', start, end);
+                                // set default filters or use it elsewhere
+                            }}
+                            />
                         
                         {endTime &&
                             <Typography 

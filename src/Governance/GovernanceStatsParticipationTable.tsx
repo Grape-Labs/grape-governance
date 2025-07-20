@@ -35,43 +35,83 @@ function votingTypeToText(type) {
   return 'Unknown';
 }
 
-export default function ParticipationStatsTable({ proposals, participantArray }) {
+export default function ParticipationStatsTable({ proposals, participantArray, onDateRangeCalculated }) {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [rows, setRows] = useState([]);
   const [selectedWallet, setSelectedWallet] = useState(null);
 
-  useEffect(() => {
-    const filteredProposals = proposals.filter((p) => {
-      const ts = p.account.votingAt?.toNumber?.() || 0;
-      return (!startDate || ts >= startDate.getTime() / 1000) && (!endDate || ts <= endDate.getTime() / 1000);
-    });
+    useEffect(() => {
 
-    const activeProposalIds = filteredProposals.map(p => p.pubkey.toBase58());
-    const activeProposalCount = activeProposalIds.length;
+            const start = startDate ? new Date(startDate.setHours(0, 0, 0, 0)) : null;
+            const end = endDate ? new Date(endDate.setHours(23, 59, 59, 999)) : null;
+            const startSec = start ? Math.floor(start.getTime() / 1000) : null;
+            const endSec = end ? Math.floor(end.getTime() / 1000) : null;
 
-    const updated = participantArray.map((p) => {
-      const filteredVotes = p.voteHistory.filter(v => activeProposalIds.includes(v.pubkey));
-      const participationPercent = activeProposalCount > 0 ? Math.round((filteredVotes.length / activeProposalCount) * 100) : 0;
+            console.log('🔎 Filter Dates');
+            console.log('Start Date:', start?.toISOString(), '→', startSec);
+            console.log('End Date:', end?.toISOString(), '→', endSec);
 
-      const allTimestamps = filteredVotes.map(v => v.draftAt).filter(Boolean);
-      const firstParticipation = allTimestamps.length ? Math.min(...allTimestamps) : null;
-      const lastParticipation = allTimestamps.length ? Math.max(...allTimestamps) : null;
+            const filteredProposals = proposals.filter((p) => {
+                const ts = p.account.votingAt?.toNumber?.() || 0;
+                const pass = (!startSec || ts >= startSec) && (!endSec || ts <= endSec);
+                console.log(`Proposal ${p.pubkey.toBase58()} votingAt=${ts}: pass=${pass}`);
+                return pass;
+            });
 
-      return {
-        ...p,
-        voteStats: {
-          ...p.voteStats,
-          participationPercent,
-          filteredVotes: filteredVotes.length,
-        },
-        firstParticipation,
-        lastParticipation,
-      };
-    });
+            const activeProposalIds = filteredProposals.map(p => p.pubkey.toBase58());
+            const activeProposalCount = activeProposalIds.length;
 
-    setRows(updated);
-  }, [startDate, endDate, proposals, participantArray]);
+            const updated = participantArray
+                .map((p) => {
+                const filteredVotes = p.voteHistory.filter(v => activeProposalIds.includes(v.pubkey));
+                const participationPercent = activeProposalCount > 0
+                    ? Math.round((filteredVotes.length / activeProposalCount) * 100)
+                    : 0;
+
+                const allTimestamps = p.voteHistory.map(v => v.draftAt).filter(Boolean);
+                const firstParticipation = allTimestamps.length ? Math.min(...allTimestamps) : null;
+                const lastParticipation = allTimestamps.length ? Math.max(...allTimestamps) : null;
+
+                return {
+                    ...p,
+                    voteStats: {
+                    ...p.voteStats,
+                    participationPercent,
+                    filteredVotes: filteredVotes.length,
+                    },
+                    firstParticipation,
+                    lastParticipation,
+                };
+                })
+                .filter((p) => {
+                const lastTs = p.lastParticipation;
+                const pass = (!startSec && !endSec) ||
+                            (!startSec && endSec && lastTs <= endSec) ||
+                            (startSec && !endSec && lastTs >= startSec) ||
+                            (startSec && endSec && lastTs >= startSec && lastTs <= endSec);
+                console.log(`Participant ${p.wallet} lastParticipation=${p.lastParticipation}: pass=${pass}`);
+                return pass;
+                });
+
+            console.log('✅ Final visible participants:', updated.map(p => p.wallet));
+
+            setRows(updated);
+
+            // Emit global range
+            const allFirstDates = updated.map(r => r.firstParticipation).filter(Boolean);
+            const allLastDates = updated.map(r => r.lastParticipation).filter(Boolean);
+
+            const globalMin = allFirstDates.length ? Math.min(...allFirstDates) : null;
+            const globalMax = allLastDates.length ? Math.max(...allLastDates) : null;
+
+            if (onDateRangeCalculated && (globalMin || globalMax)) {
+                onDateRangeCalculated({
+                start: globalMin ? new Date(globalMin * 1000) : null,
+                end: globalMax ? new Date(globalMax * 1000) : null,
+                });
+            }
+    }, [startDate, endDate, proposals, participantArray]);
 
   return (
     <Box p={2}>
@@ -80,14 +120,37 @@ export default function ParticipationStatsTable({ proposals, participantArray })
       <Grid container spacing={2} mb={2}>
         <Grid item>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <DatePicker label="Start Date" value={startDate} onChange={setStartDate} renderInput={(params) => <TextField {...params} />} />
+            <DatePicker
+              label="Start Date"
+              value={startDate}
+              onChange={setStartDate}
+              slotProps={{ textField: { fullWidth: true } }}
+            />
           </LocalizationProvider>
         </Grid>
         <Grid item>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <DatePicker label="End Date" value={endDate} onChange={setEndDate} renderInput={(params) => <TextField {...params} />} />
+            <DatePicker
+              label="End Date"
+              value={endDate}
+              onChange={setEndDate}
+              slotProps={{ textField: { fullWidth: true } }}
+            />
           </LocalizationProvider>
         </Grid>
+        {startDate && endDate && (
+          <Grid item>
+            <Button
+              variant="contained"
+              onClick={() => {
+                setStartDate(null);
+                setEndDate(null);
+              }}
+            >
+              Clear
+            </Button>
+          </Grid>
+        )}
       </Grid>
 
       <Card>
@@ -238,7 +301,11 @@ export default function ParticipationStatsTable({ proposals, participantArray })
                     <TableRow key={i}>
                     <TableCell>{v.proposalTitle || v.proposalId}</TableCell>
                     <TableCell>{votingTypeToText(v.voteType)}</TableCell>
-                    <TableCell>{v.voteWeight}</TableCell>
+                    <TableCell align="right">
+                        {v.proposalMint === v.communityMint
+                            ? ((Number(v.voteWeight) / Math.pow(10, v.communityDecimals || 0)).toFixed(0)).toLocaleString()
+                            : v.voteWeight}
+                    </TableCell>
                     <TableCell>{formatDate(v.draftAt)}</TableCell>
                     </TableRow>
                 ))}
