@@ -117,8 +117,11 @@ export default function ParticipationStatsTable({ proposals, participantArray })
                 field: 'communityStaked',
                 headerName: 'Community Staked',
                 width: 150,
-                valueGetter: (p) => p.row.staked.governingTokenDepositAmount,
+                valueGetter: (p) => (p.row.staked.governingTokenDepositAmount),
                 sortComparator: (v1, v2) => v1 - v2,
+                renderCell: (params) => (
+                    params.value.toLocaleString()
+                )
               },
               {
                 field: 'councilStaked',
@@ -161,6 +164,7 @@ export default function ParticipationStatsTable({ proposals, participantArray })
                 width: 100,
                 valueGetter: (p) => p.row.voteStats.abstain,
                 sortComparator: (v1, v2) => v1 - v2,
+                hide: true
               },
               {
                 field: 'firstParticipation',

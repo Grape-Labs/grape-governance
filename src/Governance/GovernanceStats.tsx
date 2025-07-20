@@ -287,8 +287,6 @@ export function GovernanceStatsView(props: any) {
                 thisTokenDecimals = gTD;
                 setGoverningTokenDecimals(thisTokenDecimals);
                 
-                setGoverningTokenDecimals(thisTokenDecimals);
-
                 const tknSupply = await connection.getTokenSupply(new PublicKey(grealm.account.communityMint));
 
                 //const governingMintPromise = await connection.getParsedAccountInfo(grealm.account.communityMint);
@@ -387,23 +385,31 @@ export function GovernanceStatsView(props: any) {
                 setLoadingMessage("Merging Data...");
                 // Step 1: Group token owner records by wallet
                 const groupedRecords = {};
+
                 for (const trecord of trecords) {
                     const wallet = trecord.account.governingTokenOwner.toBase58();
+                    const mint = trecord.account.governingTokenMint.toBase58();
 
                     if (!groupedRecords[wallet]) {
                         groupedRecords[wallet] = {
-                            wallet,
-                            voteHistory: [],
-                            staked: {
-                                governingTokenDepositAmount: 0,
-                                governingCouncilDepositAmount: 0,
-                            },
+                        wallet,
+                        voteHistory: [],
+                        staked: {
+                            governingTokenDepositAmount: 0,
+                            governingCouncilDepositAmount: 0,
+                        },
                         };
                     }
 
-                    // Sum up deposits
-                    groupedRecords[wallet].staked.governingTokenDepositAmount += Number(trecord.account.governingTokenDepositAmount || 0);
-                    groupedRecords[wallet].staked.governingCouncilDepositAmount += Number(trecord.account.governingCouncilDepositAmount || 0);
+                    // Apply decimals only for community mint
+                    if (mint === grealm.account.communityMint.toBase58()) {
+                        groupedRecords[wallet].staked.governingTokenDepositAmount +=
+                        Number(trecord.account.governingTokenDepositAmount || 0) / Math.pow(10, thisTokenDecimals || 0);
+                    } else {
+                        // Council mint always uses 0 decimals (raw integer)
+                        groupedRecords[wallet].staked.governingCouncilDepositAmount +=
+                        Number(trecord.account.governingTokenDepositAmount || 0);
+                    }
                 }
 
                 // Step 2: Merge vote history and compute stats
