@@ -368,6 +368,8 @@ export function GovernanceStatsView(props: any) {
                         votingAt: proposalMeta.votingAt,
                         votingCompletedAt: proposalMeta.votingCompletedAt,
                         proposalState: proposalMeta.proposalState,
+                        communityMint: new PublicKey(grealm?.account?.communityMint).toBase58(),
+                        communityDecimals: thisTokenDecimals,
                         rawVote: vr.account.vote,
                     });
                 }

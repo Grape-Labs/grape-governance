@@ -238,7 +238,11 @@ export default function ParticipationStatsTable({ proposals, participantArray })
                     <TableRow key={i}>
                     <TableCell>{v.proposalTitle || v.proposalId}</TableCell>
                     <TableCell>{votingTypeToText(v.voteType)}</TableCell>
-                    <TableCell>{v.voteWeight}</TableCell>
+                    <TableCell align="right">
+                        {v.proposalMint === v.communityMint
+                            ? (Number(v.voteWeight) / Math.pow(10, v.communityDecimals || 0)).toFixed(0).toLocaleString()
+                            : v.voteWeight}
+                    </TableCell>
                     <TableCell>{formatDate(v.draftAt)}</TableCell>
                     </TableRow>
                 ))}
