@@ -824,7 +824,11 @@ export function GovernanceStatsView(props: any) {
                         <GovernanceStatsParticipationTableView
                             proposals={governanceProposals}
                             participantArray={governanceParticipants}
-                        />
+                            onDateRangeCalculated={({ start, end }) => {
+                                console.log('Calculated date range:', start, end);
+                                // set default filters or use it elsewhere
+                            }}
+                            />
                         
                         {endTime &&
                             <Typography 
