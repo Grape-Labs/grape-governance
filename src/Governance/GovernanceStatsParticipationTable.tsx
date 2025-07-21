@@ -14,13 +14,14 @@ import {
   TableHead,
   TableRow,
   TableCell,
-  TableBody
+  TableBody,
+  Stack
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-
+import { CopyToClipboard } from 'react-copy-to-clipboard';
 import ExplorerView from '../utils/grapeTools/Explorer';
 
 function formatDate(ts) {
@@ -35,122 +36,132 @@ function votingTypeToText(type) {
   return 'Unknown';
 }
 
+function generateCSV(rows) {
+  const header = ['Wallet', 'Community Staked', 'Council Staked', 'Total Votes', '% Participation', 'Approve', 'Deny', 'Abstain', 'First Vote', 'Last Vote'];
+  const csvRows = [header.join(',')];
+
+  rows.forEach(r => {
+    csvRows.push([
+      r.wallet,
+      r.staked.governingTokenDepositAmount,
+      r.staked.governingCouncilDepositAmount,
+      r.voteStats.total,
+      r.voteStats.participationPercent,
+      r.voteStats.approve,
+      r.voteStats.deny,
+      r.voteStats.abstain,
+      formatDate(r.firstVoteAt),
+      formatDate(r.lastVoteAt)
+    ].join(','));
+  });
+
+  return csvRows.join('\n');
+}
+
 export default function ParticipationStatsTable({ proposals, participantArray, onDateRangeCalculated }) {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [rows, setRows] = useState([]);
   const [selectedWallet, setSelectedWallet] = useState(null);
+  const [csvText, setCsvText] = useState('');
 
-    useEffect(() => {
+  useEffect(() => {
+    const start = startDate ? new Date(startDate.setHours(0, 0, 0, 0)) : null;
+    const end = endDate ? new Date(endDate.setHours(23, 59, 59, 999)) : null;
+    const startSec = start ? Math.floor(start.getTime() / 1000) : null;
+    const endSec = end ? Math.floor(end.getTime() / 1000) : null;
 
-            const start = startDate ? new Date(startDate.setHours(0, 0, 0, 0)) : null;
-            const end = endDate ? new Date(endDate.setHours(23, 59, 59, 999)) : null;
-            const startSec = start ? Math.floor(start.getTime() / 1000) : null;
-            const endSec = end ? Math.floor(end.getTime() / 1000) : null;
+    const filteredProposals = proposals.filter((p) => {
+      const ts = p.account.votingAt?.toNumber?.() || 0;
+      return (!startSec || ts >= startSec) && (!endSec || ts <= endSec);
+    });
 
-            console.log('🔎 Filter Dates');
-            console.log('Start Date:', start?.toISOString(), '→', startSec);
-            console.log('End Date:', end?.toISOString(), '→', endSec);
+    const activeProposalIds = filteredProposals.map(p => p.pubkey.toBase58());
+    const activeProposalCount = activeProposalIds.length;
 
-            const filteredProposals = proposals.filter((p) => {
-                const ts = p.account.votingAt?.toNumber?.() || 0;
-                const pass = (!startSec || ts >= startSec) && (!endSec || ts <= endSec);
-                console.log(`Proposal ${p.pubkey.toBase58()} votingAt=${ts}: pass=${pass}`);
-                return pass;
-            });
+    const updated = participantArray
+      .map((p) => {
+        const filteredVotes = p.voteHistory.filter(v => activeProposalIds.includes(v.pubkey));
+        const participationPercent = activeProposalCount > 0
+          ? Math.round((filteredVotes.length / activeProposalCount) * 100)
+          : 0;
 
-            const activeProposalIds = filteredProposals.map(p => p.pubkey.toBase58());
-            const activeProposalCount = activeProposalIds.length;
+        const allTimestamps = p.voteHistory.map(v => v.draftAt).filter(Boolean);
+        const firstParticipation = allTimestamps.length ? Math.min(...allTimestamps) : null;
+        const lastParticipation = allTimestamps.length ? Math.max(...allTimestamps) : null;
 
-            const updated = participantArray
-                .map((p) => {
-                const filteredVotes = p.voteHistory.filter(v => activeProposalIds.includes(v.pubkey));
-                const participationPercent = activeProposalCount > 0
-                    ? Math.round((filteredVotes.length / activeProposalCount) * 100)
-                    : 0;
+        return {
+          ...p,
+          voteStats: {
+            ...p.voteStats,
+            participationPercent,
+            filteredVotes: filteredVotes.length,
+          },
+          firstParticipation,
+          lastParticipation,
+        };
+      })
+      .filter((p) => {
+        const lastTs = p.lastParticipation;
+        return (!startSec && !endSec) ||
+               (!startSec && endSec && lastTs <= endSec) ||
+               (startSec && !endSec && lastTs >= startSec) ||
+               (startSec && endSec && lastTs >= startSec && lastTs <= endSec);
+      });
 
-                const allTimestamps = p.voteHistory.map(v => v.draftAt).filter(Boolean);
-                const firstParticipation = allTimestamps.length ? Math.min(...allTimestamps) : null;
-                const lastParticipation = allTimestamps.length ? Math.max(...allTimestamps) : null;
+    setRows(updated);
+    setCsvText(generateCSV(updated));
 
-                return {
-                    ...p,
-                    voteStats: {
-                    ...p.voteStats,
-                    participationPercent,
-                    filteredVotes: filteredVotes.length,
-                    },
-                    firstParticipation,
-                    lastParticipation,
-                };
-                })
-                .filter((p) => {
-                const lastTs = p.lastParticipation;
-                const pass = (!startSec && !endSec) ||
-                            (!startSec && endSec && lastTs <= endSec) ||
-                            (startSec && !endSec && lastTs >= startSec) ||
-                            (startSec && endSec && lastTs >= startSec && lastTs <= endSec);
-                console.log(`Participant ${p.wallet} lastParticipation=${p.lastParticipation}: pass=${pass}`);
-                return pass;
-                });
+    const allFirstDates = updated.map(r => r.firstParticipation).filter(Boolean);
+    const allLastDates = updated.map(r => r.lastParticipation).filter(Boolean);
+    const globalMin = allFirstDates.length ? Math.min(...allFirstDates) : null;
+    const globalMax = allLastDates.length ? Math.max(...allLastDates) : null;
 
-            console.log('✅ Final visible participants:', updated.map(p => p.wallet));
-
-            setRows(updated);
-
-            // Emit global range
-            const allFirstDates = updated.map(r => r.firstParticipation).filter(Boolean);
-            const allLastDates = updated.map(r => r.lastParticipation).filter(Boolean);
-
-            const globalMin = allFirstDates.length ? Math.min(...allFirstDates) : null;
-            const globalMax = allLastDates.length ? Math.max(...allLastDates) : null;
-
-            if (onDateRangeCalculated && (globalMin || globalMax)) {
-                onDateRangeCalculated({
-                start: globalMin ? new Date(globalMin * 1000) : null,
-                end: globalMax ? new Date(globalMax * 1000) : null,
-                });
-            }
-    }, [startDate, endDate, proposals, participantArray]);
+    if (onDateRangeCalculated && (globalMin || globalMax)) {
+      onDateRangeCalculated({
+        start: globalMin ? new Date(globalMin * 1000) : null,
+        end: globalMax ? new Date(globalMax * 1000) : null,
+      });
+    }
+  }, [startDate, endDate, proposals, participantArray]);
 
   return (
     <Box p={2}>
       <Typography variant="h5" gutterBottom>DAO Participation Statistics</Typography>
 
-      <Grid container spacing={2} mb={2}>
+      <Grid container spacing={2} mb={2} alignItems="center">
         <Grid item>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <DatePicker
-              label="Start Date"
-              value={startDate}
-              onChange={setStartDate}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
+            <DatePicker label="Start Date" value={startDate} onChange={setStartDate} slotProps={{ textField: { fullWidth: true } }} />
           </LocalizationProvider>
         </Grid>
         <Grid item>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <DatePicker
-              label="End Date"
-              value={endDate}
-              onChange={setEndDate}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
+            <DatePicker label="End Date" value={endDate} onChange={setEndDate} slotProps={{ textField: { fullWidth: true } }} />
           </LocalizationProvider>
         </Grid>
         {startDate && endDate && (
           <Grid item>
-            <Button
-              variant="contained"
-              onClick={() => {
-                setStartDate(null);
-                setEndDate(null);
-              }}
-            >
-              Clear
-            </Button>
+            <Button variant="contained" onClick={() => { setStartDate(null); setEndDate(null); }}>Clear</Button>
           </Grid>
         )}
+        <Grid item>
+          <Stack direction="row" spacing={1}>
+            <Button variant="outlined" onClick={() => {
+              const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.setAttribute('download', 'dao_participation_stats.csv');
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}>Export CSV</Button>
+            <CopyToClipboard text={csvText}>
+              <Button variant="outlined">Copy CSV</Button>
+            </CopyToClipboard>
+          </Stack>
+        </Grid>
       </Grid>
 
       <Card>

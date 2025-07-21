@@ -212,6 +212,10 @@ export function GovernanceStatsView(props: any) {
     const [top10GovernanceShare, setTop10GovernanceShare] = React.useState<string | null>(null);
     const [councilVoteShare, setCouncilVoteShare] = React.useState<string | null>(null);
 
+    const [mostParticipatedProposal, setMostParticipatedProposal] = React.useState(null);
+    const [averageVotesPerProposal, setAverageVotesPerProposal] = React.useState(null);
+    const [proposalParticipationStats, setProposalParticipationStats] = React.useState([]);
+
     const [governanceProposals, setGovernanceProposals] = React.useState<any[]>([]);
     const [governanceParticipants, setGovernanceParticipants] = React.useState<any[]>([]);
 
@@ -445,6 +449,28 @@ export function GovernanceStatsView(props: any) {
                         staked: record.staked,
                     });
                 }
+
+                // New: Calculate proposal participation stats
+                const proposalParticipationStats = gap
+                .filter(p => Array.isArray(p.voteRecords))
+                .map(p => ({
+                    title: p.account.name,
+                    pubkey: p.pubkey.toBase58(),
+                    totalVotes: p.voteRecords.length,
+                    state: GOVERNANNCE_STATE[p.account.state] || 'Unknown'
+                }));
+
+                const sortedProposalsByParticipation = proposalParticipationStats.sort((a, b) => b.totalVotes - a.totalVotes);
+
+                const mostParticipatedProposal = sortedProposalsByParticipation[0];
+                const averageVotesPerProposal = proposalParticipationStats.length > 0
+                ? (proposalParticipationStats.reduce((sum, p) => sum + p.totalVotes, 0) / proposalParticipationStats.length).toFixed(1)
+                : null;
+
+                // Optional: save to state
+                setMostParticipatedProposal(mostParticipatedProposal);
+                setAverageVotesPerProposal(averageVotesPerProposal);
+                setProposalParticipationStats(proposalParticipationStats);
 
                 setGovernanceParticipants(participantArray);
 
@@ -819,6 +845,9 @@ export function GovernanceStatsView(props: any) {
                                 top10GovernanceShare={top10GovernanceShare}
                                 councilVoteShare={councilVoteShare}
                                 top10Participants={top10Participants}
+                                mostParticipatedProposal={mostParticipatedProposal}
+                                averageVotesPerProposal={averageVotesPerProposal}
+                                proposalParticipationStats={proposalParticipationStats}
                             />
 
                         <GovernanceStatsParticipationTableView
