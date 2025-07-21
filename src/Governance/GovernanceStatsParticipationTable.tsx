@@ -46,11 +46,9 @@ function generateCSV(rows) {
       r.staked.governingTokenDepositAmount,
       r.staked.governingCouncilDepositAmount,
       r.proposalCreatedCount || 0,
-      r.voteStats.total,
-      r.voteStats.participationPercent,
+      r.voteStats.filteredVotes,
       r.voteStats.approve,
       r.voteStats.deny,
-      r.voteStats.abstain,
       formatDate(r.firstVoteAt),
       formatDate(r.lastVoteAt)
     ].join(','));
