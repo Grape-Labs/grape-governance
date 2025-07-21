@@ -852,6 +852,7 @@ export function GovernanceStatsView(props: any) {
 
                         <GovernanceStatsParticipationTableView
                             proposals={governanceProposals}
+                            members={members}
                             participantArray={governanceParticipants}
                             onDateRangeCalculated={({ start, end }) => {
                                 console.log('Calculated date range:', start, end);
@@ -902,7 +903,7 @@ export function GovernanceStatsView(props: any) {
                             alignItems: 'center', textAlign: 'center'
                         }} 
                     > 
-                        <Typography variant="caption">Governance Members {governanceAddress}</Typography>
+                        <Typography variant="caption">Governance Stats {governanceAddress}</Typography>
                         
                     </Box>
                 );

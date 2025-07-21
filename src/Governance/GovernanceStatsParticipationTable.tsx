@@ -45,11 +45,10 @@ function generateCSV(rows) {
       r.wallet,
       r.staked.governingTokenDepositAmount,
       r.staked.governingCouncilDepositAmount,
-      r.voteStats.total,
-      r.voteStats.participationPercent,
+      r.proposalCreatedCount || 0,
+      r.voteStats.filteredVotes,
       r.voteStats.approve,
       r.voteStats.deny,
-      r.voteStats.abstain,
       formatDate(r.firstVoteAt),
       formatDate(r.lastVoteAt)
     ].join(','));
@@ -58,13 +57,13 @@ function generateCSV(rows) {
   return csvRows.join('\n');
 }
 
-export default function ParticipationStatsTable({ proposals, participantArray, onDateRangeCalculated }) {
+export default function ParticipationStatsTable({ proposals, members, participantArray, onDateRangeCalculated }) {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [rows, setRows] = useState([]);
   const [selectedWallet, setSelectedWallet] = useState(null);
   const [csvText, setCsvText] = useState('');
-
+    
   useEffect(() => {
     const start = startDate ? new Date(startDate.setHours(0, 0, 0, 0)) : null;
     const end = endDate ? new Date(endDate.setHours(23, 59, 59, 999)) : null;
@@ -72,42 +71,106 @@ export default function ParticipationStatsTable({ proposals, participantArray, o
     const endSec = end ? Math.floor(end.getTime() / 1000) : null;
 
     const filteredProposals = proposals.filter((p) => {
-      const ts = p.account.votingAt?.toNumber?.() || 0;
-      return (!startSec || ts >= startSec) && (!endSec || ts <= endSec);
+        const ts = p.account.votingAt?.toNumber?.() || 0;
+        return (!startSec || ts >= startSec) && (!endSec || ts <= endSec);
     });
 
     const activeProposalIds = filteredProposals.map(p => p.pubkey.toBase58());
     const activeProposalCount = activeProposalIds.length;
 
+    // Create a map from tokenOwnerRecord pubkey to governingTokenOwner wallet
+    const tokenOwnerRecordToWallet = members.reduce((acc, member) => {
+        const torKey = member.pubkey?.toBase58?.();
+        const wallet = member.governingTokenOwner?.toBase58?.();
+        if (torKey && wallet) {
+            acc[torKey] = wallet;
+        }
+        return acc;
+    }, {});
+
+    //console.log('🔄 TokenOwnerRecord → Wallet mapping:', tokenOwnerRecordToWallet);
+
+    const proposalsCreatedInRangeByWallet = proposals.reduce((acc, p) => {
+        const tokenOwnerRecordKey = p.account.tokenOwnerRecord?.toBase58?.();
+        const votingAt = p?.account?.votingAt ? Number(p.account.votingAt) : 0;
+        //console.log(`🔄 Proposal: ${p.pubkey.toBase58()}, TokenOwnerRecord: ${tokenOwnerRecordKey}, VotingAt: ${votingAt}`);
+        const wallet = tokenOwnerRecordToWallet[tokenOwnerRecordKey];
+
+        if (!wallet) {
+            //console.log(`❌ No wallet found for tokenOwnerRecord: ${tokenOwnerRecordKey}`);
+            return acc;
+        }
+
+        const inRange =
+            (!startSec && !endSec) ||
+            (!startSec && endSec && votingAt <= endSec) ||
+            (startSec && !endSec && votingAt >= startSec) ||
+            (startSec && endSec && votingAt >= startSec && votingAt <= endSec);
+
+        if (inRange) {
+            acc[wallet] = (acc[wallet] || 0) + 1;
+        }
+
+        return acc;
+        }, {});
+    /*
+    const lastProposal = [...proposals]
+        .sort((a, b) => (b.account.votingAt?.toNumber?.() || 0) - (a.account.votingAt?.toNumber?.() || 0))[0];
+
+        if (lastProposal) {
+        const torKey = lastProposal.account.tokenOwnerRecord?.toBase58?.();
+        const votingAt = lastProposal.account.votingAt?.toNumber?.();
+        const wallet = tokenOwnerRecordToWallet[torKey];
+
+        console.log('🧪 Last Proposal:');
+        console.log('Proposal Title:', lastProposal.account.name);
+        console.log('TokenOwnerRecord:', torKey);
+        console.log('Mapped Wallet:', wallet || '❌ Not found in tokenOwnerRecordToWallet');
+    }
+    */
+
     const updated = participantArray
-      .map((p) => {
-        const filteredVotes = p.voteHistory.filter(v => activeProposalIds.includes(v.pubkey));
-        const participationPercent = activeProposalCount > 0
-          ? Math.round((filteredVotes.length / activeProposalCount) * 100)
-          : 0;
+        .map((p) => {
+            const filteredVotes = p.voteHistory.filter(v => {
+                const ts = v.draftAt || 0;
+                return (!startSec || ts >= startSec) && (!endSec || ts <= endSec);
+            });
 
-        const allTimestamps = p.voteHistory.map(v => v.draftAt).filter(Boolean);
-        const firstParticipation = allTimestamps.length ? Math.min(...allTimestamps) : null;
-        const lastParticipation = allTimestamps.length ? Math.max(...allTimestamps) : null;
+            const participationPercent = filteredVotes.length > 0
+                ? Math.round((filteredVotes.length / proposals.length) * 100)
+                : 0;
 
-        return {
-          ...p,
-          voteStats: {
-            ...p.voteStats,
-            participationPercent,
-            filteredVotes: filteredVotes.length,
-          },
-          firstParticipation,
-          lastParticipation,
-        };
-      })
-      .filter((p) => {
-        const lastTs = p.lastParticipation;
-        return (!startSec && !endSec) ||
-               (!startSec && endSec && lastTs <= endSec) ||
-               (startSec && !endSec && lastTs >= startSec) ||
-               (startSec && endSec && lastTs >= startSec && lastTs <= endSec);
-      });
+            const allTimestamps = p.voteHistory.map(v => v.draftAt).filter(Boolean);
+            const firstParticipation = allTimestamps.length ? Math.min(...allTimestamps) : null;
+            const lastParticipation = allTimestamps.length ? Math.max(...allTimestamps) : null;
+
+            // Count vote types in-range
+            const approve = filteredVotes.filter(v => v.voteType === 0).length;
+            const deny = filteredVotes.filter(v => v.voteType === 1).length;
+            const abstain = filteredVotes.filter(v => v.voteType === 2).length;
+
+            return {
+                ...p,
+                voteStats: {
+                    ...p.voteStats,
+                    participationPercent,
+                    filteredVotes: filteredVotes.length,
+                    approve,
+                    deny,
+                    abstain
+                },
+                proposalCreatedCount: proposalsCreatedInRangeByWallet[p.wallet] || 0,
+                firstParticipation,
+                lastParticipation,
+            };
+        })
+        .filter((p) => {
+            const lastTs = p.lastParticipation;
+            return (!startSec && !endSec) ||
+                (!startSec && endSec && lastTs <= endSec) ||
+                (startSec && !endSec && lastTs >= startSec) ||
+                (startSec && endSec && lastTs >= startSec && lastTs <= endSec);
+        });
 
     setRows(updated);
     setCsvText(generateCSV(updated));
@@ -118,12 +181,12 @@ export default function ParticipationStatsTable({ proposals, participantArray, o
     const globalMax = allLastDates.length ? Math.max(...allLastDates) : null;
 
     if (onDateRangeCalculated && (globalMin || globalMax)) {
-      onDateRangeCalculated({
+        onDateRangeCalculated({
         start: globalMin ? new Date(globalMin * 1000) : null,
         end: globalMax ? new Date(globalMax * 1000) : null,
-      });
+        });
     }
-  }, [startDate, endDate, proposals, participantArray]);
+    }, [startDate, endDate, proposals, participantArray]);
 
   return (
     <Box p={2}>
@@ -173,6 +236,7 @@ export default function ParticipationStatsTable({ proposals, participantArray, o
                 field: 'wallet',
                 headerName: 'Wallet',
                 flex: 1,
+                width: 200,
                 renderCell: (params) => (
                   <ExplorerView
                     showSolanaProfile={true}
@@ -190,7 +254,7 @@ export default function ParticipationStatsTable({ proposals, participantArray, o
               {
                 field: 'communityStaked',
                 headerName: 'Community Staked',
-                width: 150,
+                width: 120,
                 valueGetter: (p) => (p.row.staked.governingTokenDepositAmount),
                 sortComparator: (v1, v2) => v1 - v2,
                 renderCell: (params) => (
@@ -202,11 +266,27 @@ export default function ParticipationStatsTable({ proposals, participantArray, o
               {
                 field: 'councilStaked',
                 headerName: 'Council Staked',
-                width: 150,
+                width: 120,
                 valueGetter: (p) => p.row.staked.governingCouncilDepositAmount,
                 sortComparator: (v1, v2) => v1 - v2,
                 align: 'right',
                 headerAlign: 'right'
+              },
+              {
+                field: 'proposalCreatedCount',
+                headerName: 'Created',
+                width: 100,
+                sortComparator: (v1, v2) => v1 - v2,
+                align: 'right',
+                headerAlign: 'right',
+              },
+              {
+                field: 'votesInRange',
+                headerName: 'Votes',
+                width: 100,
+                valueGetter: (p) => p.row.voteStats.filteredVotes,
+                align: 'right',
+                headerAlign: 'right',
               },
               {
                 field: 'totalVotes',
@@ -215,7 +295,8 @@ export default function ParticipationStatsTable({ proposals, participantArray, o
                 valueGetter: (p) => p.row.voteStats.total,
                 sortComparator: (v1, v2) => v1 - v2,
                 align: 'right',
-                headerAlign: 'right'
+                headerAlign: 'right',
+                hide: true
               },
               {
                 field: 'participation',

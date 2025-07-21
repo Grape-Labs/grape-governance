@@ -156,11 +156,11 @@ export default function GovernanceNavigation(props: any){
                             ><AccountBalanceIcon /></Button>
                         </Tooltip>
                         <Tooltip title={
-                            <><strong>Metrics</strong><br/>* Via Cached Storage<br/>** Premium Feature
+                            <><strong>Metrics</strong>
                             </>}>
                             <Button
                                 component={Link}
-                                to={'/metrics/'+governanceAddress}
+                                to={'/stats/'+governanceAddress}
                                 sx={{borderTopRightRadius:'17px', borderBottomRightRadius:'17px'}}
                             ><BarChartIcon /></Button>
                         </Tooltip>
