@@ -14,6 +14,8 @@ import {
     tryGetName,
 } from '@cardinal/namespaces';
 
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, Legend, BarChart, Bar } from 'recharts';
+
 import { CardinalTwitterIdentityResolver } from '@dialectlabs/identity-cardinal';
 import React, { useCallback } from 'react';
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -38,6 +40,8 @@ import {
   Tooltip,
   CircularProgress,
   LinearProgress,
+  Card, 
+  CardContent,
 } from '@mui/material/';
 
 import { GovernanceHeaderView } from './GovernanceHeaderView';
@@ -216,6 +220,9 @@ export function GovernanceStatsView(props: any) {
     const [averageVotesPerProposal, setAverageVotesPerProposal] = React.useState(null);
     const [proposalParticipationStats, setProposalParticipationStats] = React.useState([]);
 
+    const [proposalsPerMonthArray, setProposalsPerMonthArray] = React.useState<any[]>([]);
+    const [participationArray, setParticipationArray] = React.useState<any[]>([]);
+
     const [governanceProposals, setGovernanceProposals] = React.useState<any[]>([]);
     const [governanceParticipants, setGovernanceParticipants] = React.useState<any[]>([]);
 
@@ -307,6 +314,24 @@ export function GovernanceStatsView(props: any) {
                 const gap = await getAllProposalsIndexed(governanceRulesStrArr, null, governanceAddress);
                 //console.log("gap: ", gap);
                 setGovernanceProposals(gap);
+
+                const proposalsPerMonth = gap.reduce((acc, p) => {
+                    const votingAt = p.account?.votingAt;
+                    if (!votingAt) return acc;
+
+                    const date = new Date(votingAt * 1000);
+                    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+                    acc[key] = (acc[key] || 0) + 1;
+                    return acc;
+                    }, {});
+
+                const tproposalsPerMonthArray = Object.entries(proposalsPerMonth)
+                    .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+                    .map(([month, count]) => ({ month, count }));
+
+                setProposalsPerMonthArray(tproposalsPerMonthArray);
+
                 setLoadingMessage("Getting Participation...");
                 const allVoteRecords: any[] = [];
 
@@ -449,6 +474,26 @@ export function GovernanceStatsView(props: any) {
                         staked: record.staked,
                     });
                 }
+
+                const participationMap = {};
+                participantArray.forEach((p) => {
+                    const seenMonths = new Set();
+                    p.voteHistory.forEach(v => {
+                        const date = new Date((v.draftAt || 0) * 1000);
+                        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                        if (!seenMonths.has(key)) {
+                        participationMap[key] = (participationMap[key] || new Set()).add(p.wallet);
+                        seenMonths.add(key);
+                        }
+                    });
+                });
+
+                // Convert Set to count
+                const tparticipationArray = Object.entries(participationMap)
+                    .map(([month, set]) => ({ month, voters: set?.size }))
+                    .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+
+                setParticipationArray(tparticipationArray);
 
                 // New: Calculate proposal participation stats
                 const proposalParticipationStats = gap
@@ -829,26 +874,62 @@ export function GovernanceStatsView(props: any) {
                         :
                             <></>
                         }
-                            
-                            <GovernanceStatsSummaryView
-                                activeParticipants={activeParticipants}
-                                votingParticipants={votingParticipants}
-                                totalParticipants={totalParticipants}
-                                totalDepositedVotes={totalDepositedVotes}
-                                totalDepositedCouncilVotes={totalDepositedCouncilVotes}
-                                governingTokenDecimals={governingTokenDecimals}
-                                circulatingSupply={circulatingSupply}
-                                members={members}
-                                quorumPercentage={quorumPercentage}
-                                activeParticipationPercentage={activeParticipationPercentage}
-                                votingParticipationPercentage={votingParticipationPercentage}
-                                top10GovernanceShare={top10GovernanceShare}
-                                councilVoteShare={councilVoteShare}
-                                top10Participants={top10Participants}
-                                mostParticipatedProposal={mostParticipatedProposal}
-                                averageVotesPerProposal={averageVotesPerProposal}
-                                proposalParticipationStats={proposalParticipationStats}
-                            />
+
+                        {proposalsPerMonthArray && proposalsPerMonthArray.length > 0 &&
+                            <Card sx={{ my: 4 }}>
+                                <CardContent>
+                                    <Typography variant="h6" gutterBottom>Proposals Created Per Month</Typography>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={proposalsPerMonthArray}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="month" />
+                                        <YAxis allowDecimals={false} />
+                                        <ReTooltip />
+                                        <Legend />
+                                        <Bar dataKey="count" fill="#8884d8" name="Proposals" />
+                                    </BarChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        }
+
+                        <GovernanceStatsSummaryView
+                            activeParticipants={activeParticipants}
+                            votingParticipants={votingParticipants}
+                            totalParticipants={totalParticipants}
+                            totalDepositedVotes={totalDepositedVotes}
+                            totalDepositedCouncilVotes={totalDepositedCouncilVotes}
+                            governingTokenDecimals={governingTokenDecimals}
+                            circulatingSupply={circulatingSupply}
+                            members={members}
+                            quorumPercentage={quorumPercentage}
+                            activeParticipationPercentage={activeParticipationPercentage}
+                            votingParticipationPercentage={votingParticipationPercentage}
+                            top10GovernanceShare={top10GovernanceShare}
+                            councilVoteShare={councilVoteShare}
+                            top10Participants={top10Participants}
+                            mostParticipatedProposal={mostParticipatedProposal}
+                            averageVotesPerProposal={averageVotesPerProposal}
+                            proposalParticipationStats={proposalParticipationStats}
+                        />
+
+                        {participationArray && participationArray.length > 0 &&
+                            <Card sx={{ my: 4 }}>
+                                <CardContent>
+                                    <Typography variant="h6" gutterBottom>Voter Participation Per Month</Typography>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                    <LineChart data={participationArray}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="month" />
+                                        <YAxis allowDecimals={false} />
+                                        <ReTooltip />
+                                        <Legend />
+                                        <Line type="monotone" dataKey="voters" stroke="#82ca9d" name="Voters" />
+                                    </LineChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        }
 
                         <GovernanceStatsParticipationTableView
                             proposals={governanceProposals}
