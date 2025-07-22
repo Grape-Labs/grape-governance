@@ -14,9 +14,21 @@ import {
     tryGetName,
 } from '@cardinal/namespaces';
 
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, Legend, BarChart, Bar } from 'recharts';
+//import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, Legend, BarChart, Bar } from 'recharts';
+//import { BarChart, LineChart } from '@mui/x-charts';
 
-import { CardinalTwitterIdentityResolver } from '@dialectlabs/identity-cardinal';
+import {
+    Chart,
+    BarSeries,
+    LineSeries,
+    Title,
+    ArgumentAxis,
+    ValueAxis,
+    Legend
+  } from '@devexpress/dx-react-chart-material-ui';
+import { Stack, Animation } from '@devexpress/dx-react-chart';
+//import { withStyles } from '@mui/styles';
+
 import React, { useCallback } from 'react';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import BN from 'bn.js';
@@ -782,32 +794,13 @@ export function GovernanceStatsView(props: any) {
         setEndTime(Date.now())
     }
 
-    /*
-    const callGovernanceLookup = async() => {
-        const fglf = await fetchGovernanceLookupFile(storagePool);
-        setGovernanceLookup(fglf);
-    }
-    */
     React.useEffect(() => {
         if (governanceAddress){
             getGovernanceMembers();
         }
     }, []);
 
-    /*
-    React.useEffect(() => {
-        if (governanceLookup){
-        //    getCachedGovernanceFromLookup();
-        }
-    }, [governanceLookup, governanceAddress]);
     
-    React.useEffect(() => { 
-        if (tokenMap){  
-            startTimer();
-            callGovernanceLookup();
-        }
-    }, [tokenMap]);
-    */
     React.useEffect(() => { 
         if (!loading){
             if (!tokenMap){
@@ -815,6 +808,8 @@ export function GovernanceStatsView(props: any) {
             }
         }
     }, []);
+
+
 
     
         if(loading){
@@ -875,23 +870,22 @@ export function GovernanceStatsView(props: any) {
                             <></>
                         }
 
-                        {proposalsPerMonthArray && proposalsPerMonthArray.length > 0 &&
+                        {proposalsPerMonthArray?.length > 0 && (
                             <Card sx={{ my: 4 }}>
                                 <CardContent>
-                                    <Typography variant="h6" gutterBottom>Proposals Created Per Month</Typography>
-                                    <ResponsiveContainer width="100%" height={300}>
-                                    <BarChart data={proposalsPerMonthArray}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="month" />
-                                        <YAxis allowDecimals={false} />
-                                        <ReTooltip />
-                                        <Legend />
-                                        <Bar dataKey="count" fill="#8884d8" name="Proposals" />
-                                    </BarChart>
-                                    </ResponsiveContainer>
+                                    <Paper sx={{ overflowX: 'auto' }}>
+                                        <Chart data={proposalsPerMonthArray}>
+                                        <ArgumentAxis/>
+                                        <ValueAxis />
+
+                                        <BarSeries valueField="count" argumentField="month" name="Proposals" />
+                                        <Animation />
+                                        <Title text="Monthly Proposal Count" />
+                                        </Chart>
+                                    </Paper>
                                 </CardContent>
                             </Card>
-                        }
+                            )}
 
                         <GovernanceStatsSummaryView
                             activeParticipants={activeParticipants}
@@ -912,24 +906,28 @@ export function GovernanceStatsView(props: any) {
                             averageVotesPerProposal={averageVotesPerProposal}
                             proposalParticipationStats={proposalParticipationStats}
                         />
-    
-                        {participationArray && participationArray.length > 0 &&
+
+                        {/*participationArray?.length > 0 && (
                             <Card sx={{ my: 4 }}>
                                 <CardContent>
-                                    <Typography variant="h6" gutterBottom>Voter Participation Per Month</Typography>
-                                    <ResponsiveContainer width="100%" height={300}>
-                                    <LineChart data={participationArray}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="month" />
-                                        <YAxis allowDecimals={false} />
-                                        <ReTooltip />
-                                        <Legend />
-                                        <Line type="monotone" dataKey="voters" stroke="#82ca9d" name="Voters" />
-                                    </LineChart>
-                                    </ResponsiveContainer>
+                                <Typography variant="h6" gutterBottom>
+                                    Voter Participation Per Month
+                                </Typography>
+                                <Paper sx={{ overflowX: 'auto' }}>
+                                    <Chart data={participationArray}>
+                                    <ArgumentAxis />
+                                    <ValueAxis />
+
+                                    <LineSeries valueField="voters" argumentField="month" name="Voters" />
+
+                                    <Animation />
+                                    <Legend />
+                                    <Title text="Monthly Voter Participation" />
+                                    </Chart>
+                                </Paper>
                                 </CardContent>
                             </Card>
-                        }
+                        )*/}
 
                         <GovernanceStatsParticipationTableView
                             proposals={governanceProposals}
