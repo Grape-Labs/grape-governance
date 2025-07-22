@@ -893,24 +893,6 @@ export function GovernanceStatsView(props: any) {
                             </Card>
                         }
 
-                        {participationArray && participationArray.length > 0 &&
-                            <Card sx={{ my: 4 }}>
-                                <CardContent>
-                                    <Typography variant="h6" gutterBottom>Voter Participation Per Month</Typography>
-                                    <ResponsiveContainer width="100%" height={300}>
-                                    <LineChart data={participationArray}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="month" />
-                                        <YAxis allowDecimals={false} />
-                                        <ReTooltip />
-                                        <Legend />
-                                        <Line type="monotone" dataKey="voters" stroke="#82ca9d" name="Voters" />
-                                    </LineChart>
-                                    </ResponsiveContainer>
-                                </CardContent>
-                            </Card>
-                        }
-                            
                         <GovernanceStatsSummaryView
                             activeParticipants={activeParticipants}
                             votingParticipants={votingParticipants}
@@ -930,6 +912,24 @@ export function GovernanceStatsView(props: any) {
                             averageVotesPerProposal={averageVotesPerProposal}
                             proposalParticipationStats={proposalParticipationStats}
                         />
+
+                        {participationArray && participationArray.length > 0 &&
+                            <Card sx={{ my: 4 }}>
+                                <CardContent>
+                                    <Typography variant="h6" gutterBottom>Voter Participation Per Month</Typography>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                    <LineChart data={participationArray}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="month" />
+                                        <YAxis allowDecimals={false} />
+                                        <ReTooltip />
+                                        <Legend />
+                                        <Line type="monotone" dataKey="voters" stroke="#82ca9d" name="Voters" />
+                                    </LineChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        }
 
                         <GovernanceStatsParticipationTableView
                             proposals={governanceProposals}
