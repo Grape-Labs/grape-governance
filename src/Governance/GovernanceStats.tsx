@@ -912,7 +912,7 @@ export function GovernanceStatsView(props: any) {
                             averageVotesPerProposal={averageVotesPerProposal}
                             proposalParticipationStats={proposalParticipationStats}
                         />
-
+    
                         {participationArray && participationArray.length > 0 &&
                             <Card sx={{ my: 4 }}>
                                 <CardContent>
