@@ -53,35 +53,81 @@ export const fetchGovernanceLookupFile = async (storagePool: string): Promise<an
     const url = `${GGAPI_STORAGE_URI}/${storagePool}/governance_lookup.json#${moment().unix()}`;
     return fetchAndDecompressFile(url);
 };*/
+// types are optional — adapt to your real shape
+export type GovernanceLookup = Record<string, unknown>;
+
+let legacyCache: GovernanceLookup | null = null;
+
+async function loadLegacy(): Promise<GovernanceLookup | null> {
+  if (legacyCache) return legacyCache;
+  try {
+    // Works with either default or named exports
+    const mod = await import('../Governance/api/legacy_lookup');
+    legacyCache =
+      (mod as any).default ??
+      (mod as any).LEGACY_LOOKUP ??
+      (mod as any).legacyLookup ??
+      (mod as any).lookup ??
+      (mod as any);
+    return legacyCache;
+  } catch (e) {
+    console.error('fetchGovernanceLookupFile: failed to load legacy_lookup', e);
+    return null;
+  }
+}
+
+async function timeoutFetch(
+  input: RequestInfo | URL,
+  ms = 8000,
+  init?: RequestInit
+): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 export const fetchGovernanceLookupFile = async (
   storagePool: string
-): Promise<any | null> => {
-  const url = `${GGAPI_STORAGE_URI}/${storagePool}/governance_lookup.json#${moment().unix()}`;
+): Promise<GovernanceLookup | null> => {
+  // Build URL. If you intentionally leave it empty, we’ll skip to legacy.
+  const url =
+    storagePool
+      ? `${GGAPI_STORAGE_URI}/${storagePool}/governance_lookup.json#${Date.now()}`
+      : '';
 
-  // Add timeout (e.g., 8 seconds)
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  // If URL is falsy, go straight to the legacy file.
+  if (!url) {
+    return await loadLegacy();
+  }
 
   try {
-    const response = await fetch(url, { signal: controller.signal });
-
-    if (!response.ok) {
-      // 404, 500, etc.
-      console.warn(`fetchGovernanceLookupFile: Failed with status ${response.status}`);
-      return null;
+    const res = await timeoutFetch(url, 8000);
+    if (!res.ok) {
+      console.warn(
+        `fetchGovernanceLookupFile: HTTP ${res.status} for ${url}`
+      );
+      return await loadLegacy();
     }
 
-    const data = await response.json();
-    return data;
-  } catch (err) {
-    if ((err as any).name === "AbortError") {
-      console.warn("fetchGovernanceLookupFile: request timed out");
+    // Protect against bad JSON
+    try {
+      const data = (await res.json()) as GovernanceLookup;
+      return data ?? (await loadLegacy());
+    } catch (jsonErr) {
+      console.warn('fetchGovernanceLookupFile: invalid JSON, using legacy', jsonErr);
+      return await loadLegacy();
+    }
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      console.warn('fetchGovernanceLookupFile: request timed out');
     } else {
-      console.error("fetchGovernanceLookupFile: fetch failed", err);
+      console.error('fetchGovernanceLookupFile: fetch failed', err);
     }
-    return null; // don’t crash the app
-  } finally {
-    clearTimeout(timeout);
+    return await loadLegacy();
   }
 };
 
