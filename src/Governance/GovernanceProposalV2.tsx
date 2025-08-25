@@ -991,6 +991,7 @@ export function GovernanceProposalV2View(props: any){
                         let thisMint = null;
                         let thisMintName = null;
                         let thisMintDecimals = null;
+                        
                         for (var instructionItem of useInstructions){
                             
                             setLoadingMessage(`Loading Instruction ${cnt+1} of ${useInstructions.length}...`);
@@ -1014,6 +1015,27 @@ export function GovernanceProposalV2View(props: any){
                                     }
                                 }
 
+                                const U64 = (buf: number[] | Uint8Array, offset = 0) =>
+                                new BN(Buffer.from(buf).slice(offset, offset + 8), "le");
+                                const U32 = (buf: number[] | Uint8Array, offset = 0) =>
+                                new BN(Buffer.from(buf).slice(offset, offset + 4), "le");
+
+                                const toDecimalAmount = (amountBN: BN, decimals: number) => {
+                                    if (decimals <= 0) return amountBN.toString(); // integer
+                                    const base = new BN(10).pow(new BN(decimals));
+                                    // avoid toNumber() overflow: do a decimal string
+                                    const q = amountBN.div(base).toString();
+                                    const r = amountBN.mod(base).toString().padStart(decimals, "0").replace(/0+$/, "");
+                                    return r.length ? `${q}.${r}` : q;
+                                };
+
+                                const formatAmount = (s: string, minFrac = 2, maxFrac = 6) => {
+                                    if (!s.includes(".")) return Number(s).toLocaleString();
+                                    const n = Number(s);
+                                    return n.toLocaleString(undefined, { minimumFractionDigits: minFrac, maximumFractionDigits: maxFrac });
+                                };
+
+                                const shortPk = (pk: string) => `${pk.slice(0, 4)}…${pk.slice(-4)}`;
 
                                 for (var accountInstruction of instructionItem.account.instructions){
                                     //if (instructionItem?.account?.instructions[0].data && instructionItem.account.instructions[0].data.length > 0){
@@ -1566,7 +1588,261 @@ export function GovernanceProposalV2View(props: any){
                                                 };
                                                 accountInstruction.info = newObject;
                                             }
+                                        } else if (programId === "TokenzQdBNbLqP5VEh84bYQNJ9Y7fA1aC33mW7zk1g") {
+                                            // Token-2022 Transfer / TransferChecked (basic support like SPL Token)
+                                            let gai = null;
+                                            if (mintResults?.length) gai = mintResults[cnt];
+                                            if (!gai) {
+                                                const pubkey = new PublicKey(accountInstruction.accounts[0].pubkey);
+                                                gai = allResults.get(pubkey.toBase58());
+                                            }
+                                            if (gai) {
+                                                try {
+                                                // same layout assumption as Token: first byte = ix enum, then amount u64
+                                                const amountBN = U64(accountInstruction.data, 1);
+                                                const decimals = gai?.data?.parsed?.info?.tokenAmount?.decimals || 0;
+
+                                                const decimalStr = toDecimalAmount(amountBN, decimals);
+                                                const amount = decimalStr.includes(".")
+                                                    ? formatAmount(decimalStr)
+                                                    : Number(decimalStr).toLocaleString();
+
+                                                let symbol: string | null = null;
+                                                let tname: string | null = null;
+                                                let logo: string | null = null;
+                                                const mint = gai?.data?.parsed?.info?.mint;
+
+                                                if (tokenMap && mint) {
+                                                    const tmap = tokenMap.get(new PublicKey(mint).toBase58());
+                                                    if (tmap) {
+                                                    tname ??= tmap.name;
+                                                    symbol ??= tmap.symbol;
+                                                    logo ??= tmap.logoURI;
+                                                    }
+                                                }
+                                                symbol ??= `${mint.slice(0, 3)}...${mint.slice(-3)}`;
+
+                                                const newObject = {
+                                                    type: "Token2022Transfer",
+                                                    ix: instructionItem.pubkey,
+                                                    pubkey: accountInstruction.accounts[0].pubkey,
+                                                    mint,
+                                                    name: tname,
+                                                    logoURI: logo,
+                                                    amount: parseFloat(amount.replace(/,/g, "")),
+                                                    data: accountInstruction.data,
+                                                    destinationAta: accountInstruction.accounts[1]?.pubkey,
+                                                    description: `${amount} ${symbol} to ${accountInstruction.accounts[1]?.pubkey}`,
+                                                };
+                                                accountInstruction.info = newObject;
+
+                                                const hasInstruction = instructionTransferDetails.some(obj =>
+                                                    obj?.pubkey === instructionItem.account.instructions[0]?.accounts[0]?.pubkey ||
+                                                    obj?.ix === instructionItem?.account?.ix
+                                                );
+                                                if (!hasInstruction) setInstructionTransferDetails(prev => [...prev, newObject]);
+                                                } catch (e) {
+                                                console.log("Token-2022 ERR:", e);
+                                                }
+                                            }
+                                        } else if (programId === "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL") {
+                                            // Create Associated Token Account
+                                            const payer = accountInstruction.accounts[0]?.pubkey;
+                                            const ata   = accountInstruction.accounts[1]?.pubkey;
+                                            const owner = accountInstruction.accounts[2]?.pubkey;
+                                            const mint  = accountInstruction.accounts[3]?.pubkey;
+
+                                            accountInstruction.info = {
+                                                type: "CreateAssociatedTokenAccount",
+                                                payer,
+                                                ata,
+                                                owner,
+                                                mint,
+                                                description: `Create ATA ${shortPk(ata)} for owner ${shortPk(owner)} / mint ${shortPk(mint)} (payer ${shortPk(payer)})`,
+                                                data: accountInstruction.data,
+                                            };
+                                        } else if (programId === "ComputeBudget111111111111111111111111111111") {
+                                            const tag = accountInstruction.data?.[0] ?? 255;
+                                            let description = "Compute Budget: Unknown";
+
+                                            try {
+                                                if (tag === 1) {
+                                                const limit = U32(accountInstruction.data, 1).toNumber();
+                                                description = `Compute Budget: SetComputeUnitLimit = ${limit}`;
+                                                } else if (tag === 2) {
+                                                const microLamports = U64(accountInstruction.data, 1).toString();
+                                                description = `Compute Budget: SetComputeUnitPrice = ${microLamports} micro-lamports/unit`;
+                                                } else if (tag === 3) {
+                                                const size = U32(accountInstruction.data, 1).toNumber();
+                                                description = `Compute Budget: SetLoadedAccountsDataSizeLimit = ${size} bytes`;
+                                                }
+                                            } catch (e) {
+                                                console.log("ComputeBudget decode error", e);
+                                            }
+
+                                            accountInstruction.info = {
+                                                type: "ComputeBudget",
+                                                description,
+                                                data: accountInstruction.data,
+                                            };
+                                        } else if (programId === "AddressLookupTab1e1111111111111111111111111") {
+                                            // Simple tag by opcode (first byte)
+                                            const tag = accountInstruction.data?.[0] ?? 255;
+                                            const table = accountInstruction.accounts[0]?.pubkey;
+                                            const auth  = accountInstruction.accounts[1]?.pubkey;
+                                            let op = "Unknown ALT op";
+
+                                            if (tag === 0) op = "Create Address Lookup Table";
+                                            else if (tag === 1) op = "Freeze/Extend (Add Addresses)";
+                                            else if (tag === 2) op = "Deactivate";
+                                            else if (tag === 3) op = "Close";
+
+                                            accountInstruction.info = {
+                                                type: "AddressLookupTable",
+                                                table,
+                                                authority: auth,
+                                                description: `${op} on table ${shortPk(table)} (authority ${shortPk(auth)})`,
+                                                data: accountInstruction.data,
+                                            };
+                                        } else if (programId === "Stake11111111111111111111111111111111111111") {
+                                            const tag = accountInstruction.data?.[0] ?? 255;
+                                            const stakeAcc = accountInstruction.accounts[0]?.pubkey;
+                                            const authAcc  = accountInstruction.accounts[1]?.pubkey;
+                                            const toAcc    = accountInstruction.accounts[2]?.pubkey;
+
+                                            const names: Record<number,string> = {
+                                                0: "Initialize",
+                                                1: "Authorize",
+                                                2: "DelegateStake",
+                                                3: "Split",
+                                                4: "Withdraw",
+                                                5: "Deactivate",
+                                                6: "SetLockup",
+                                                7: "Merge",
+                                                8: "AuthorizeWithSeed",
+                                                9: "InitializeChecked",
+                                                10: "AuthorizeChecked",
+                                                11: "AuthorizeCheckedWithSeed",
+                                                12: "SetLockupChecked",
+                                            };
+                                            let title = names[tag] || "UnknownStakeInstruction";
+                                            let extra = "";
+
+                                            try {
+                                                if (tag === 4 /* Withdraw */) {
+                                                // layout: tag(1) + lamports u64 at offset 1
+                                                const lamportsBN = U64(accountInstruction.data, 1);
+                                                const solStr = toDecimalAmount(lamportsBN, 9);
+                                                extra = ` – Withdraw ${formatAmount(solStr)} SOL to ${shortPk(toAcc)}`;
+                                                } else if (tag === 2 /* Delegate */) {
+                                                const voteAcc = accountInstruction.accounts[2]?.pubkey;
+                                                extra = ` – Delegate ${shortPk(stakeAcc)} to vote ${shortPk(voteAcc)}`;
+                                                } else if (tag === 5 /* Deactivate */) {
+                                                extra = ` – Deactivate stake ${shortPk(stakeAcc)}`;
+                                                }
+                                            } catch (e) {
+                                                console.log("Stake decode error", e);
+                                            }
+
+                                            accountInstruction.info = {
+                                                type: "StakeProgram",
+                                                op: title,
+                                                stakeAccount: stakeAcc,
+                                                authority: authAcc,
+                                                destination: toAcc,
+                                                description: `Stake: ${title}${extra}`,
+                                                data: accountInstruction.data,
+                                            };  
+                                        } else if (programId === "11111111111111111111111111111111") {
+                                            // You already handle raw SOL Transfer above.
+                                            // Augment with CreateAccount / TransferWithSeed recognition.
+                                            const tag = accountInstruction.data?.[0] ?? 255;
+
+                                            if (tag !== 2 /* transfer */) {
+                                                try {
+                                                if (tag === 0 /* CreateAccount */) {
+                                                    const lamports = U64(accountInstruction.data, 1);
+                                                    const space    = U64(accountInstruction.data, 9); // u64
+                                                    const newAcc   = accountInstruction.accounts[0]?.pubkey; // new
+                                                    const funder   = accountInstruction.accounts[1]?.pubkey; // from
+                                                    const solStr   = toDecimalAmount(lamports, 9);
+                                                    accountInstruction.info = {
+                                                    type: "SystemProgram",
+                                                    op: "CreateAccount",
+                                                    newAccount: newAcc,
+                                                    funder,
+                                                    lamports: Number(solStr),
+                                                    space: Number(space.toString()),
+                                                    description: `CreateAccount ${shortPk(newAcc)} funded by ${shortPk(funder)} with ${formatAmount(solStr)} SOL, space ${space.toString()} bytes`,
+                                                    data: accountInstruction.data,
+                                                    };
+                                                } else if (tag === 3 /* Assign */) {
+                                                    const account = accountInstruction.accounts[0]?.pubkey;
+                                                    const programOwner = accountInstruction.accounts[1]?.pubkey;
+                                                    accountInstruction.info = {
+                                                    type: "SystemProgram",
+                                                    op: "Assign",
+                                                    account,
+                                                    programOwner,
+                                                    description: `Assign ${shortPk(account)} to program ${shortPk(programOwner)}`,
+                                                    data: accountInstruction.data,
+                                                    };
+                                                } else if (tag === 11 /* TransferWithSeed */) {
+                                                    // tag(1) + lamports u64 at 1
+                                                    const lamports = U64(accountInstruction.data, 1);
+                                                    const solStr = toDecimalAmount(lamports, 9);
+                                                    const from = accountInstruction.accounts[0]?.pubkey;
+                                                    const to   = accountInstruction.accounts[1]?.pubkey;
+                                                    accountInstruction.info = {
+                                                    type: "SystemProgram",
+                                                    op: "TransferWithSeed",
+                                                    from, to,
+                                                    lamports: Number(solStr),
+                                                    description: `TransferWithSeed ${formatAmount(solStr)} SOL from ${shortPk(from)} to ${shortPk(to)}`,
+                                                    data: accountInstruction.data,
+                                                    };
+                                                }
+                                                // else fall back to your existing SOL Transfer branch above (already handled)
+                                                } catch (e) {
+                                                console.log("System extra decode error", e);
+                                                }
+                                            }   
+                                        } else if (programId === "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s") {
+                                            // High-level only (full decode requires IDL + variant tables)
+                                            const metadataAcc = accountInstruction.accounts[0]?.pubkey;
+                                            const mint        = accountInstruction.accounts[1]?.pubkey;
+                                            const authority   = accountInstruction.accounts[2]?.pubkey;
+
+                                            accountInstruction.info = {
+                                                type: "MetaplexTokenMetadata",
+                                                metadata: metadataAcc,
+                                                mint,
+                                                authority,
+                                                description: `Token Metadata op on mint ${shortPk(mint)} (metadata ${shortPk(metadataAcc)})`,
+                                                data: accountInstruction.data, // keep raw for advanced view
+                                            };     
                                         } else {
+                                            if (accountInstruction?.data) {
+                                                const buf = Buffer.from(accountInstruction.data);
+                                                const hex = buf.toString("hex");
+                                                const b64 = buf.toString("base64");
+
+                                                const acctSummary = (accountInstruction.accounts || [])
+                                                .map((a: any, i: number) => `#${i}: ${a?.pubkey}${a?.isSigner ? " (signer)" : ""}${a?.isWritable ? " (w)" : ""}`)
+                                                .join(", ");
+
+                                                accountInstruction.info = {
+                                                type: "Unknown Program",
+                                                description: `Raw(utf8): ${buf.toString("utf-8")}`,
+                                                hex,
+                                                base64: b64,
+                                                accounts: acctSummary,
+                                                data: accountInstruction.data,
+                                                };
+                                            }
+                                        }
+                                        /*                               
+                                        else {
                                             if (accountInstruction?.data){
                                                 const buffer = Buffer.from(accountInstruction.data);
                                                 const newObject = {
@@ -1576,7 +1852,7 @@ export function GovernanceProposalV2View(props: any){
                                                 };
                                                 accountInstruction.info = newObject;
                                             }
-                                        } 
+                                        } */
                                     
                                 }
                             }

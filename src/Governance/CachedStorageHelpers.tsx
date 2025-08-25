@@ -48,9 +48,41 @@ export const fetchGovernanceMasterMembersFile = async (storagePool: string): Pro
 };
 
 // Fetch governance lookup file
+/*
 export const fetchGovernanceLookupFile = async (storagePool: string): Promise<any> => {
     const url = `${GGAPI_STORAGE_URI}/${storagePool}/governance_lookup.json#${moment().unix()}`;
     return fetchAndDecompressFile(url);
+};*/
+export const fetchGovernanceLookupFile = async (
+  storagePool: string
+): Promise<any | null> => {
+  const url = `${GGAPI_STORAGE_URI}/${storagePool}/governance_lookup.json#${moment().unix()}`;
+
+  // Add timeout (e.g., 8 seconds)
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+
+    if (!response.ok) {
+      // 404, 500, etc.
+      console.warn(`fetchGovernanceLookupFile: Failed with status ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    if ((err as any).name === "AbortError") {
+      console.warn("fetchGovernanceLookupFile: request timed out");
+    } else {
+      console.error("fetchGovernanceLookupFile: fetch failed", err);
+    }
+    return null; // don’t crash the app
+  } finally {
+    clearTimeout(timeout);
+  }
 };
 
 // Generic function to fetch any lookup file
