@@ -255,10 +255,20 @@ export const fetchGovernanceMasterMembersFile = async (
   return fetchAndDecompressFileSafe(url, 5000); // 5s cap
 };
 
+/*
 // Generic function to fetch any lookup file
 export const fetchLookupFile = async (fileName: string, storagePool: string): Promise<any> => {
     const url = `${GGAPI_STORAGE_URI}/${storagePool}/${fileName}`;
     return fetchAndDecompressFile(url);
+};*/
+// Generic function to fetch any lookup file (safe, with timeout)
+export const fetchLookupFile = async (
+  fileName: string,
+  storagePool: string,
+  ms = 5000
+): Promise<any | null> => {
+  const url = `${GGAPI_STORAGE_URI}/${storagePool}/${fileName}`;
+  return fetchAndDecompressFileSafe(url, ms);
 };
 
 // Get file from lookup
