@@ -32,6 +32,9 @@ import XIcon from '@mui/icons-material/X';
 import LanguageIcon from '@mui/icons-material/Language';
 import DiscordIcon from '../components/static/DiscordIcon';
 
+import { 
+    GRAPE_LOGO } from '../utils/grapeTools/constants';
+
 export function GovernanceHeaderView(props: any) {
     const { governanceName, governanceAddress, gsplMetadata } = props;
     
@@ -70,7 +73,13 @@ export function GovernanceHeaderView(props: any) {
                                 {gsplMetadata?.metadata?.ogImage && !gsplMetadata.metadata.ogImage.endsWith("/") && (
                                     <Grid item>
                                         <Avatar 
-                                            src={gsplMetadata.metadata?.ogImage.startsWith("http") ? gsplMetadata.metadata.ogImage : `https://realms.today${gsplMetadata.metadata.ogImage}`} 
+                                            src={
+                                                gsplMetadata.metadata?.ogImage === "/realms/Grape/img/grape.png"
+                                                    ? GRAPE_LOGO
+                                                    : (gsplMetadata.metadata?.ogImage?.startsWith("http")
+                                                        ? gsplMetadata.metadata.ogImage
+                                                        : `https://realms.today${gsplMetadata.metadata?.ogImage}`)
+                                            }
                                             alt={gsplMetadata.metadata?.displayName || governanceName}
                                             sx={{
                                                 width: 40, // Small and consistent
