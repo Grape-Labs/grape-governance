@@ -13,10 +13,12 @@ import { Metadata,
     getCreateMetadataAccountV3InstructionDataSerializer } from "@metaplex-foundation/mpl-token-metadata";
 import {createUmi} from "@metaplex-foundation/umi-bundle-defaults"
 import { useWallet } from '@solana/wallet-adapter-react';
-
+import axios
+ from 'axios';
 import { 
     RPC_CONNECTION,
-    FRICTIONLESS_WALLET } from '../../../utils/grapeTools/constants';
+    FRICTIONLESS_WALLET,
+    SHYFT_KEY } from '../../../utils/grapeTools/constants';
 import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
 
 import {
@@ -163,6 +165,7 @@ export default function TokenTransferView(props: any) {
     
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
 
+
     const [availableTokens, setAvailableTokens] = React.useState([
         {
             mint:"So11111111111111111111111111111111111111112",
@@ -261,6 +264,56 @@ export default function TokenTransferView(props: any) {
         }
         return chunks;
     };
+
+    const getWalletAllTokenBalance = async(tokenOwnerRecord: PublicKey) => {
+    
+        const uri = `https://api.shyft.to/sol/v1/wallet/all_tokens?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}`;
+    
+        return axios.get(uri, {
+            headers: {
+                'x-api-key': SHYFT_KEY,
+                'Accept-Encoding': 'gzip, deflate, br'
+            }
+            })
+            .then(response => {
+                if (response.data?.result){
+                    return response.data.result;
+                }
+                return null
+            })
+            .catch(error => 
+                {   
+                    // revert to RPC
+                    console.error(error);
+                    return null;
+                });
+    }
+    
+    const getWalletBalance = async(tokenOwnerRecord: PublicKey) => {
+        
+        const uri = `https://api.shyft.to/sol/v1/wallet/balance?network=mainnet-beta&wallet=${tokenOwnerRecord.toBase58()}`;
+        
+        return axios.get(uri, {
+                headers: {
+                    'x-api-key': SHYFT_KEY,
+                    'Accept-Encoding': 'gzip, deflate, br'
+                }
+                })
+            .then(response => {
+                if (response.data?.result){
+                    console.log("balance for "+tokenOwnerRecord.toBase58()+": "+response.data.result?.balance)
+                    return response.data.result?.balance;
+                }
+                return null
+            })
+            .catch(error => 
+                {   
+                    // revert to RPC
+                    console.error(error);
+                    return null;
+                });
+    }
+
 
 
     async function transferTokens() {
@@ -965,7 +1018,8 @@ export default function TokenTransferView(props: any) {
     }
 
     async function fetchWalletHoldings(wallet:string){
-        
+        if (wallet === null || wallet === undefined) return null;
+
         if (!tokenMap){
             const tmap = await getTokens(setTokenMap);
             setTokenMap(tmap);
@@ -1009,21 +1063,6 @@ export default function TokenTransferView(props: any) {
         if (tokenBalance && tokenBalance?.value){
             for (let titem of tokenBalance.value){
                 itemsToAdd.push(titem);
-                    
-                    /*
-                    let foundCached = false;
-                    for (let gitem of governanceWallet.tokens.value){
-                        if (titem.pubkey.toBase58() === gitem.pubkey){
-                            foundCached = true;
-                            gitem.account.data.parsed.info.tokenAmount.amount = titem.account.data.parsed.info.tokenAmount.amount;
-                            gitem.account.data.parsed.info.tokenAmount.uiAmount = titem.account.data.parsed.info.tokenAmount.uiAmount;
-                            itemsToAdd.push(gitem);
-                        }
-                    }
-                    if (!foundCached) {
-                        itemsToAdd.push(titem);
-                    }*/
-                
             }
         }
 
@@ -1039,13 +1078,26 @@ export default function TokenTransferView(props: any) {
     async function getAndUpdateWalletHoldings(){
         try{
             setLoadingWallet(true);
-            //console.log("1. governanceWallet: "+JSON.stringify(governanceWallet));
+            console.log("1. governanceWallet: "+JSON.stringify(governanceWallet));
             //console.log("fetching governanceWallet: "+(governanceWallet?.vault?.pubkey || governanceWallet?.pubkey.toBase58()));
             const gwToAdd = await fetchWalletHoldings(governanceWallet?.vault?.pubkey || governanceWallet?.nativeTreasuryAddress?.toBase58());
-            //console.log("fetching rules now rules: "+governanceRulesWallet);
-            const rwToAdd = await fetchWalletHoldings(governanceRulesWallet);
+            console.log("gwToAdd: ",gwToAdd);
 
+            console.log("fetching rules now rules: "+governanceRulesWallet);
+            
+            let rwToAdd = null;
 
+            if (governanceRulesWallet) {
+                rwToAdd = await fetchWalletHoldings(
+                    typeof governanceRulesWallet === "string"
+                    ? governanceRulesWallet
+                    : governanceRulesWallet.toBase58()
+                );
+                console.log("rwToAdd: ", rwToAdd);
+            } else {
+                console.log("No governanceRulesWallet defined, skipping fetch.");
+            }
+            
             // add metadata!
             const getTokenMintInfo = async(mintAddress:string) => {
         
@@ -1138,8 +1190,8 @@ export default function TokenTransferView(props: any) {
             //governanceWallet.tokens.value = gwToAdd;//[...governanceWallet.tokens.value, ...itemsToAdd];
             //governanceRulesWallet. = rwToAdd;
 
-            //console.log("Rules Wallet: " +JSON.stringify(rwToAdd));
-            //console.log("Wallet: " +JSON.stringify(gwToAdd));
+            console.log("Rules Wallet: " +JSON.stringify(rwToAdd));
+            console.log("Wallet: " +JSON.stringify(gwToAdd));
 
             const walletObjects = [gwToAdd, rwToAdd];
 
@@ -1150,7 +1202,6 @@ export default function TokenTransferView(props: any) {
             console.log("ERR: "+e);
             setLoadingWallet(false);
         }
-
     }
 
     React.useEffect(() => { 

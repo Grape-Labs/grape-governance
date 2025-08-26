@@ -200,7 +200,7 @@ export default function WalletCardView(props:any) {
     const governanceValue = props?.governanceValue;
     const setGovernanceValue = props?.setGovernanceValue;
     const governanceWallets = props?.governanceWallets;
-
+    
     const shortWalletAddress = shortenString(walletAddress,5,5);
     const shortRulesWalletAddress = shortenString(rulesWalletAddress,5,5);
     const [nativeSol, setNativeSol] = React.useState(null);
