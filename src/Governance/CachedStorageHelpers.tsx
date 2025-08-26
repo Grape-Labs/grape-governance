@@ -240,10 +240,19 @@ export const fetchGovernanceLookupFile = async (pool: string): Promise<any | nul
   return null; // or {}
 };
 
+/*
 // Fetch governance master members file
 export const fetchGovernanceMasterMembersFile = async (storagePool: string): Promise<any> => {
     const url = `${GGAPI_STORAGE_URI}/${storagePool}/governance_mastermembers.json`;
     return fetchAndDecompressFile(url);
+};*/
+
+// Use this for mastermembers
+export const fetchGovernanceMasterMembersFile = async (
+  storagePool: string
+): Promise<any | null> => {
+  const url = `${GGAPI_STORAGE_URI}/${storagePool}/governance_mastermembers.json`;
+  return fetchAndDecompressFileSafe(url, 5000); // 5s cap
 };
 
 // Generic function to fetch any lookup file
