@@ -2996,6 +2996,7 @@ const updateGovernanceLookupFile = async(drive:any, sentRealm:any, address: stri
             console.log("Cleaned: "+(freshGovernanceLookup.length-cleanLookup.length)+" New Total: "+cleanLookup.length);
 
             console.log("Replacing Governance Lookup");
+            console.log("Governance Lookup",JSON.stringify(cleanLookup));
             const uploadFile = await returnJSON(JSON.stringify(cleanLookup), "governance_lookup.json");
             const fileSize  = uploadFile.size;
             if (setCurrentUploadInfo) setCurrentUploadInfo("Replacing "+"governance_lookup.json"+" - "+formatBytes(fileSize));
