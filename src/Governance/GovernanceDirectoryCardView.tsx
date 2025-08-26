@@ -2,6 +2,7 @@ import { Card, CardContent, CardActions, Grid, Typography, Tooltip, Button, Icon
 import { Link } from "react-router-dom";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import moment from "moment";
+import { GRAPE_LOGO } from '../utils/grapeTools/constants';
 
 function GovernanceDirectoryCardView(props: any) {
     const { item, metadata } = props;
@@ -22,8 +23,14 @@ function GovernanceDirectoryCardView(props: any) {
                     {metadata?.ogImage && !metadata.ogImage.endsWith("/") && (
                         <Grid item>
                             <Avatar 
-                                src={metadata.ogImage.startsWith("http") ? metadata.ogImage : `https://realms.today${metadata.ogImage}`} 
-                                alt={metadata.displayName || item.governanceName}
+                                src={
+                                    metadata?.ogImage === "/realms/Grape/img/grape.png"
+                                        ? GRAPE_LOGO
+                                        : (metadata?.ogImage?.startsWith("http")
+                                            ? metadata.ogImage
+                                            : `https://realms.today${metadata?.ogImage}`)
+                                }
+                                alt={metadata?.displayName || item.governanceName}
                                 sx={{
                                     width: 40, // Small and consistent
                                     height: 40, // Small and consistent
