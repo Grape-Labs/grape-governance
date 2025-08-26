@@ -127,7 +127,8 @@ import {
     GGAPI_STORAGE_URI,
     SHYFT_KEY,
     HELIUS_API,
-    BLACKLIST_WALLETS } from '../utils/grapeTools/constants';
+    BLACKLIST_WALLETS,
+    GIST_LOGO } from '../utils/grapeTools/constants';
 import { 
     formatAmount, 
     getFormattedNumberToLocale,
@@ -2173,17 +2174,24 @@ export function GovernanceProposalV2View(props: any){
                 if (parts.length > 1)
                     tGist = parts[2];
 
-                if (url.hostname === "gist.github.com"){
-
+                if (url.hostname === "gist.github.com") {
                     setGist(tGist);
                     const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
-                    
-                    // Regular expression to match image URLs
+
+                    // Regex for image URLs (jpg, jpeg, gif, png)
                     const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
-                    const stringWithPreviews = rpd.replace(imageUrlRegex, (match:any, imageUrl:any) => {
-                        return "![Image X]("+imageUrl+")";
+                    const targetUrl = "https://shdw-drive.genesysgo.net/4HMWqo1YLwnxuVbh4c8KXMcZvQj4aw7oxnNmWVm4RmVV/Screenshot_2023-05-28_at_10.43.34.png";
+
+                    const stringWithPreviews = rpd.replace(imageUrlRegex, (match: string) => {
+                        // Special case: shdw-drive images → replace with GIST_LOGO
+                        if (match === targetUrl) {
+                            return GIST_LOGO;
+                        }
+                        // Default case: keep as Markdown image
+                        return `![Image X](${match})`;
                     });
-                    setProposalDescription(rpd);
+
+                    setProposalDescription(stringWithPreviews);
                 } else if (url.hostname === "docs.google.com") {
                     setGoogleDocs(tGist);
                 } else if (url.hostname.includes("gitbook.io")){
