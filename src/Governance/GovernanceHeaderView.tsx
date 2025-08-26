@@ -70,8 +70,8 @@ export function GovernanceHeaderView(props: any) {
                                 {gsplMetadata?.metadata?.ogImage && !gsplMetadata.metadata.ogImage.endsWith("/") && (
                                     <Grid item>
                                         <Avatar 
-                                            src={gsplMetadata.metadata.ogImage.startsWith("http") ? gsplMetadata.metadata.ogImage : `https://realms.today${gsplMetadata.metadata.ogImage}`} 
-                                            alt={gsplMetadata.metadata.displayName || governanceName}
+                                            src={gsplMetadata.metadata?.ogImage.startsWith("http") ? gsplMetadata.metadata.ogImage : `https://realms.today${gsplMetadata.metadata.ogImage}`} 
+                                            alt={gsplMetadata.metadata?.displayName || governanceName}
                                             sx={{
                                                 width: 40, // Small and consistent
                                                 height: 40, // Small and consistent
@@ -99,7 +99,7 @@ export function GovernanceHeaderView(props: any) {
                                                             Verified Governance 
                                                         </Typography>
                                                         <Typography variant="subtitle2">
-                                                            {gsplMetadata.metadata.displayName || governanceName} GSPL Metadata
+                                                            {gsplMetadata.metadata?.displayName || governanceName} GSPL Metadata
                                                         </Typography>
                                                         <pre style={{ margin: 0, fontSize: '0.65rem', lineHeight: '1', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                                                             {JSON.stringify(gsplMetadata, null, 2)}
