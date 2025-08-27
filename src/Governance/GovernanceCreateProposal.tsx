@@ -1616,7 +1616,7 @@ export default function GovernanceCreateProposalView(props: any){
     }, [instructionsObject]);
 
     React.useEffect(() => {
-      if (cachedGovernance && sentRulesAddress && governanceWallets){
+      if (sentRulesAddress && governanceWallets){
         handleNativeWalletFromRules(new PublicKey(sentRulesAddress).toBase58())
       }
       if (sentRulesAddress)
