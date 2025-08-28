@@ -5,6 +5,31 @@ const base58 = require('bs58');
 
 export type StringPublicKey = string;
 
+// Rewrites: https://realms.today/realms/{nested/path.png}
+//    to:    https://v2.realms.today/_next/image?url=%2Frealms%2F{nested%2Fpath.png}&w=3840&q=75
+export function toRealmsV2Image(url: string, w = 3840, q = 75): string {
+	if (!url) return url;
+
+	// Already v2? leave it
+	if (url.startsWith("https://v2.realms.today/_next/image")) return url;
+
+	// Absolute match
+	const abs = /^https?:\/\/realms\.today\/realms\/(.+)$/i.exec(url);
+	if (abs && abs[1]) {
+		const encoded = encodeURIComponent(`/realms/${abs[1]}`);
+		return `https://v2.realms.today/_next/image?url=${encoded}&w=${w}&q=${q}`;
+	}
+
+	// Relative match (e.g. "/realms/Grape/img/grape.png")
+	const rel = /^\/realms\/(.+)$/i.exec(url);
+	if (rel && rel[1]) {
+		const encoded = encodeURIComponent(`/realms/${rel[1]}`);
+		return `https://v2.realms.today/_next/image?url=${encoded}&w=${w}&q=${q}`;
+	}
+
+	return url; // unchanged
+}
+
 export const extendBorsh = () => {
 	(BinaryReader.prototype as any).readPubkey = function () {
 		const reader = this as unknown as BinaryReader;
