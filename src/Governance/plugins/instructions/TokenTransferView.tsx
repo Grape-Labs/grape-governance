@@ -215,6 +215,12 @@ export default function TokenTransferView(props: any) {
             symbol:"BONK",
             decimals:5,
             logo:"https://arweave.net/hQiPZOsRZXGXBJd_82PhVdlM_hACsT_q6wqwf5cSY7I"
+        },{
+            mint:"8n5buhK82U6Mb5tTwwRJgJWBt1HjEJM2CxhRutw1n6qT",
+            name:"VINE v3",
+            symbol:"VINE",
+            decimals:6,
+            logo:"public/vine.png"
         }]);
     
     const objectToken = {};
