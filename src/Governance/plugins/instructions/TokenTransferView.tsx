@@ -17,7 +17,7 @@ import axios
  from 'axios';
 import { 
     RPC_CONNECTION,
-    FRICTIONLESS_WALLET,
+    VINE_LOGO,
     SHYFT_KEY } from '../../../utils/grapeTools/constants';
 import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
 
@@ -164,8 +164,6 @@ export default function TokenTransferView(props: any) {
     const tokenMetadataCache = new Map<string, { name: string; logo: string }>();
     
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
-
-
     const [availableTokens, setAvailableTokens] = React.useState([
         {
             mint:"So11111111111111111111111111111111111111112",
@@ -215,6 +213,12 @@ export default function TokenTransferView(props: any) {
             symbol:"BONK",
             decimals:5,
             logo:"https://arweave.net/hQiPZOsRZXGXBJd_82PhVdlM_hACsT_q6wqwf5cSY7I"
+        },{
+            mint:"8n5buhK82U6Mb5tTwwRJgJWBt1HjEJM2CxhRutw1n6qT",
+            name:"VINE v3",
+            symbol:"VINE",
+            decimals:6,
+            logo:VINE_LOGO
         }]);
     
     const objectToken = {};

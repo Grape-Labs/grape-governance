@@ -913,8 +913,8 @@ export default function GovernancePower(props: any){
                                 <Grid item>
                                 <ExplorerView 
                                     address={isCouncil ? currentCouncilDelegate : currentCommunityDelegate} 
-                                    title={isCouncil ? `You delegate to: ${currentCouncilDelegate.slice(0, 4)}...${currentCouncilDelegate.slice(-4)} : ` :
-                                            `You delegate to: ${currentCommunityDelegate.slice(0, 4)}...${currentCommunityDelegate.slice(-4)} : `} 
+                                    title={isCouncil ? `You delegate to: ${currentCouncilDelegate.slice(0, 4)}...${currentCouncilDelegate.slice(-4)}` :
+                                            `You delegate to: ${currentCommunityDelegate.slice(0, 4)}...${currentCommunityDelegate.slice(-4)}`} 
                                     type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='10px' /> 
                                 </Grid>
                                 <Grid item>
