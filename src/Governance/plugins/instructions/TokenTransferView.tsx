@@ -17,7 +17,7 @@ import axios
  from 'axios';
 import { 
     RPC_CONNECTION,
-    FRICTIONLESS_WALLET,
+    VINE_LOGO,
     SHYFT_KEY } from '../../../utils/grapeTools/constants';
 import { RegexTextField } from '../../../utils/grapeTools/RegexTextField';
 
@@ -164,8 +164,6 @@ export default function TokenTransferView(props: any) {
     const tokenMetadataCache = new Map<string, { name: string; logo: string }>();
     
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
-    const VineLogo = "../../../public/vine.jpg";
-
     const [availableTokens, setAvailableTokens] = React.useState([
         {
             mint:"So11111111111111111111111111111111111111112",
@@ -220,7 +218,7 @@ export default function TokenTransferView(props: any) {
             name:"VINE v3",
             symbol:"VINE",
             decimals:6,
-            logo:VineLogo
+            logo:VINE_LOGO
         }]);
     
     const objectToken = {};
