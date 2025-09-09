@@ -164,7 +164,7 @@ export default function TokenTransferView(props: any) {
     const tokenMetadataCache = new Map<string, { name: string; logo: string }>();
     
     //console.log("governanceWallet: "+JSON.stringify(governanceWallet));
-
+    const VineLogo = "../../../public/vine.png";
 
     const [availableTokens, setAvailableTokens] = React.useState([
         {
@@ -220,7 +220,7 @@ export default function TokenTransferView(props: any) {
             name:"VINE v3",
             symbol:"VINE",
             decimals:6,
-            logo:"../../../public/vine.png"
+            logo:VineLogo
         }]);
     
     const objectToken = {};
