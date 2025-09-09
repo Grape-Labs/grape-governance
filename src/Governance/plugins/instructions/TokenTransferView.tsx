@@ -220,7 +220,7 @@ export default function TokenTransferView(props: any) {
             name:"VINE v3",
             symbol:"VINE",
             decimals:6,
-            logo:"public/vine.png"
+            logo:"../../../public/vine.png"
         }]);
     
     const objectToken = {};
