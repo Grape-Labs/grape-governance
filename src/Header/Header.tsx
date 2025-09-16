@@ -665,6 +665,7 @@ export function Header(props: any) {
                 <DialogTitle>Settings</DialogTitle>
 
                 <DialogContent dividers>
+                    <Divider sx={{ my: 3 }} />
                     {/* ===== RPC Selection ===== */}
                     <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
                     RPC Selection
