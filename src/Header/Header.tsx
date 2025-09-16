@@ -51,6 +51,7 @@ import {
     Drawer,
     Dialog,
     DialogTitle,
+    DialogActions,
     Divider,
     InputBase,
     Paper,
@@ -259,7 +260,7 @@ export function Header(props: any) {
     //const currPath = location?.pathname ?? "";
     const { enqueueSnackbar } = useSnackbar();
     
-    const { publicKey, wallet } = useWallet();
+    const { publicKey, disconnect } = useWallet();
     const theme: 'dark' | 'light' = 'dark';
     
     //Menu
@@ -659,7 +660,7 @@ export function Header(props: any) {
                 </Box>
             </ClickAwayListener>
             <Dialog open={rpcSettingsOpen} onClose={handleCloseRpcSettings}>
-                <DialogTitle>Select RPC Provider</DialogTitle>
+                <DialogTitle>Settings</DialogTitle>
                 <Box p={2}>
                     <FormControl fullWidth>
                         <RadioGroup
@@ -723,6 +724,19 @@ export function Header(props: any) {
                             </Button>
                         </Box>
                     )}
+
+                    <DialogActions>
+                        <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={async () => {
+                            await disconnect();
+                            handleCloseRpcSettings();
+                        }}
+                        >
+                        Disconnect Wallet
+                        </Button>
+                    </DialogActions>
                 </Box>
             </Dialog>
         </>
