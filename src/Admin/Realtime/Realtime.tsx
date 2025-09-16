@@ -493,6 +493,7 @@ function TablePaginationActions(props) {
         const [gist, setGist] = React.useState(null);
         const [gDocs, setGoogleDocs] = React.useState(null);
         const [gitBook, setGitBook] = React.useState(null);
+        const [irys, setIrys] = React.useState(null);
 
         const [governanceInfo, setGovernanceInfo] = React.useState(null);
 
@@ -590,6 +591,8 @@ function TablePaginationActions(props) {
                             setGoogleDocs(tGist);
                         } else if (url.hostname.includes("gitbook.io")){
                             setGitBook(tGist);
+                        } else if (url.hostname.includes("gateway.irys.xyz")){
+                            setIrys(tGist);
                         }
                 } else{ // check if it contains a partial <text />
                     
@@ -762,33 +765,42 @@ function TablePaginationActions(props) {
                                                                         </Box>
                                                                     </>
                                                                     :
+                                                                        irys ?
                                                                         <>
-                                                                            {description ?
+                                                                            <iframe
+                                                                                src={irys}
+                                                                                title="Irys Content"
+                                                                                style={{ width: "100%", minHeight: "500px", border: "none" }}
+                                                                            />
+                                                                        </>
+                                                                        :
                                                                                 <>
-                                                                                    <Typography variant="body1" 
-                                                                                        color='gray' 
-                                                                                        sx={{ display: 'flex', alignItems: 'center' }}>
-                                                                                        {replaceUrls(description)}
-                                                                                    </Typography>
-                                                                                    {gitBook &&
+                                                                                    {description ?
                                                                                         <>
-                                                                                            <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
-                                                                                                <Button
-                                                                                                    color='inherit'
-                                                                                                    target='_blank'
-                                                                                                    href={description}
-                                                                                                    sx={{borderRadius:'17px'}}
-                                                                                                >
-                                                                                                    <ArticleIcon sx={{mr:1}} /> GitBook
-                                                                                                </Button>
-                                                                                            </Box>
+                                                                                            <Typography variant="body1" 
+                                                                                                color='gray' 
+                                                                                                sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                                                {replaceUrls(description)}
+                                                                                            </Typography>
+                                                                                            {gitBook &&
+                                                                                                <>
+                                                                                                    <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
+                                                                                                        <Button
+                                                                                                            color='inherit'
+                                                                                                            target='_blank'
+                                                                                                            href={description}
+                                                                                                            sx={{borderRadius:'17px'}}
+                                                                                                        >
+                                                                                                            <ArticleIcon sx={{mr:1}} /> GitBook
+                                                                                                        </Button>
+                                                                                                    </Box>
+                                                                                                </>
+                                                                                            }
                                                                                         </>
+                                                                                    :
+                                                                                            <><RenderDescription title={name} description={description} fallback={proposal}/></>
                                                                                     }
                                                                                 </>
-                                                                            :
-                                                                                    <><RenderDescription title={name} description={description} fallback={proposal}/></>
-                                                                            }
-                                                                        </>
                                                                     }
                                                                 </>
                                                                 }

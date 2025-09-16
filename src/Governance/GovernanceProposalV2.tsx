@@ -216,6 +216,7 @@ export function GovernanceProposalV2View(props: any){
     const [gist, setGist] = React.useState(null);
     const [gDocs, setGoogleDocs] = React.useState(null);
     const [gitBook, setGitBook] = React.useState(null);
+    const [irys, setIrys] = React.useState(null);
     const [proposalDescription, setProposalDescription] = React.useState(null);
     const [thisGovernance, setThisGovernance] = React.useState(null);
     const [proposalAuthor, setProposalAuthor] = React.useState(null);
@@ -2196,6 +2197,8 @@ export function GovernanceProposalV2View(props: any){
                     setGoogleDocs(tGist);
                 } else if (url.hostname.includes("gitbook.io")){
                     setGitBook(tGist);
+                } else if (url.hostname.includes("gateway.irys.xyz")){
+                    setIrys(tGist);
                 }
             }
         } catch(e){
