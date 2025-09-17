@@ -608,6 +608,11 @@ function TablePaginationActions(props) {
             }
         }, []);
 
+
+        const isLocalhost =
+            typeof window !== 'undefined' &&
+            (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+            
         return (
             <>
                 
@@ -684,129 +689,102 @@ function TablePaginationActions(props) {
                                                         {shortenString(name)}
                                                     </Typography>
 
-                                                    <Grid item xs={12}
+                                                    <Grid
+                                                        item
+                                                        xs={12}
                                                         sx={{
-                                                            mb:1,
+                                                            mb: 1,
+                                                            // Make ellipsis actually work on small screens
                                                             '@media (max-width: 600px)': {
-                                                                textOverflow: 'ellipsis', /* Truncates the URL text after a certain length and adds an ellipsis (...) */
-                                                                overflow: 'hidden',
-                                                            }
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap',
+                                                            display: 'block',
+                                                            maxWidth: '100%',
+                                                            },
                                                         }}
-                                                    >
-                                                        
-                                                            {gist ?
-                                                                <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
-                                                                    <Grid
-                                                                        style={{
-                                                                            border: 'none',
-                                                                            padding:4,
-                                                                        }} 
-                                                                    >
-                                                                        <>
-                                                                            {window.location.hostname !== 'localhost' ? (
-                                                                                <>
-                                                                                    <ReactMarkdown 
-                                                                                        remarkPlugins={[[remarkGfm, {singleTilde: false}], remarkImages]} 
-                                                                                        //transformImageUri={transformImageUri}
-                                                                                        children={descriptionMarkdown}
-                                                                                        components={{
-                                                                                            // Custom component for overriding the image rendering
-                                                                                            img: ({ node, ...props }) => (
-                                                                                            <img
-                                                                                                {...props}
-                                                                                                style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
-                                                                                            />
-                                                                                            ),
-                                                                                        }}
-                                                                                    />
-                                                                                </>
-                                                                            ) : (
-                                                                                <p>Markdown rendering is disabled on localhost.</p>
-                                                                            )}
-                                                                        </>
-                                                                    </Grid>
-                                                                    <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
-                                                                        <Button
-                                                                            color='inherit'
-                                                                            target='_blank'
-                                                                            href={description}
-                                                                            sx={{borderRadius:'17px'}}
-                                                                        >
-                                                                            <GitHubIcon sx={{mr:1}} /> GIST
-                                                                        </Button>
-                                                                    </Box>
-                                                                </Box>
-                                                                :
-                                                                <>
-                                                                    {gDocs ?
-                                                                    <>
-                                                                        <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
-                                                                            <Grid
-                                                                                style={{
-                                                                                    border: 'none',
-                                                                                    padding:4,
-                                                                                }} 
-                                                                            >
-                                                                                <iframe src={description} width="100%" height="500px" style={{"border": "none"}}></iframe>
-                                                                            </Grid>
-                                                                                <>
+                                                        >
+                                                        {gist ? (
+                                                            <Box sx={{ textAlign: 'left' }}>
+                                                            <Grid style={{ border: 'none', padding: 4 }}>
+                                                                {isLocalhost ? (
+                                                                <p>Markdown rendering is disabled on localhost.</p>
+                                                                ) : (
+                                                                <ReactMarkdown
+                                                                    remarkPlugins={[[remarkGfm, { singleTilde: false }]]}
+                                                                    components={{
+                                                                    img: (props) => (
+                                                                        <img
+                                                                        {...props}
+                                                                        style={{ maxWidth: '100%', height: 'auto' }}
+                                                                        loading="lazy"
+                                                                        alt={props.alt || ''}
+                                                                        />
+                                                                    ),
+                                                                    }}
+                                                                >
+                                                                    {descriptionMarkdown || ''}
+                                                                </ReactMarkdown>
+                                                                )}
+                                                            </Grid>
 
-                                                                                    <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
-                                                                                        <Button
-                                                                                            color='inherit'
-                                                                                            target='_blank'
-                                                                                            href={description}
-                                                                                            sx={{borderRadius:'17px'}}
-                                                                                        >
-                                                                                            <ArticleIcon sx={{mr:1}} /> Google Docs
-                                                                                        </Button>
-                                                                                    </Box>
-                                                                                </>
-                                                                        </Box>
-                                                                    </>
-                                                                    :
-                                                                        irys ?
-                                                                        <>
-                                                                            <iframe
-                                                                                src={irys}
-                                                                                title="Irys Content"
-                                                                                style={{ width: "100%", minHeight: "500px", border: "none" }}
-                                                                            />
-                                                                        </>
-                                                                        :
-                                                                                <>
-                                                                                    {description ?
-                                                                                        <>
-                                                                                            <Typography variant="body1" 
-                                                                                                color='gray' 
-                                                                                                sx={{ display: 'flex', alignItems: 'center' }}>
-                                                                                                {replaceUrls(description)}
-                                                                                            </Typography>
-                                                                                            {gitBook &&
-                                                                                                <>
-                                                                                                    <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
-                                                                                                        <Button
-                                                                                                            color='inherit'
-                                                                                                            target='_blank'
-                                                                                                            href={description}
-                                                                                                            sx={{borderRadius:'17px'}}
-                                                                                                        >
-                                                                                                            <ArticleIcon sx={{mr:1}} /> GitBook
-                                                                                                        </Button>
-                                                                                                    </Box>
-                                                                                                </>
-                                                                                            }
-                                                                                        </>
-                                                                                    :
-                                                                                            <><RenderDescription title={name} description={description} fallback={proposal}/></>
-                                                                                    }
-                                                                                </>
-                                                                    }
-                                                                </>
-                                                                }
-                                                        
+                                                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
+                                                                <Button color="inherit" target="_blank" href={description} sx={{ borderRadius: '17px' }}>
+                                                                <GitHubIcon sx={{ mr: 1 }} /> GIST
+                                                                </Button>
+                                                            </Box>
+                                                            </Box>
+                                                        ) : gDocs ? (
+                                                            <Box sx={{ textAlign: 'left' }}>
+                                                            <Grid style={{ border: 'none', padding: 4 }}>
+                                                                <iframe
+                                                                src={description}
+                                                                width="100%"
+                                                                height="500"
+                                                                style={{ border: 'none' }}
+                                                                loading="lazy"
+                                                                referrerPolicy="no-referrer"
+                                                                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                                                                title="Google Doc"
+                                                                />
+                                                            </Grid>
+
+                                                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
+                                                                <Button color="inherit" target="_blank" href={description} sx={{ borderRadius: '17px' }}>
+                                                                <ArticleIcon sx={{ mr: 1 }} /> Google Docs
+                                                                </Button>
+                                                            </Box>
+                                                            </Box>
+                                                        ) : irys ? (
+                                                            <iframe
+                                                                src={irys}
+                                                                title="Irys Content"
+                                                                style={{ width: '100%', minHeight: 500, border: 'none' }}
+                                                                loading="lazy"
+                                                                referrerPolicy="no-referrer"
+                                                                sandbox="allow-same-origin allow-scripts allow-popups"
+                                                            />
+                                                        ) : description ? (
+                                                            <>
+                                                            <Typography variant="body1" color="gray" sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                {replaceUrls(description)}
+                                                            </Typography>
+
+                                                            {gitBook && (
+                                                                <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
+                                                                <Button color="inherit" target="_blank" href={description} sx={{ borderRadius: '17px' }}>
+                                                                    <ArticleIcon sx={{ mr: 1 }} /> GitBook
+                                                                </Button>
+                                                                </Box>
+                                                            )}
+                                                            </>
+                                                        ) : (
+                                                            <RenderDescription title={name} description={description} fallback={proposal} />
+                                                        )}
                                                     </Grid>
                                                 </Grid>
+
+                                                {irys} HERE!!!
                                                 
                                                 <Divider orientation="vertical" flexItem
                                                     sx={{
