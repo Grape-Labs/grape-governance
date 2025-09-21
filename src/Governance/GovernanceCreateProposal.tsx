@@ -13,7 +13,7 @@ import { useSnackbar } from 'notistack';
 import { createProposalInstructionsLegacy } from './Proposals/createProposalInstructionsLegacy';
 import { createProposalInstructionsV0, InstructionDataWithHoldUpTime } from './Proposals/createProposalInstructionsV0';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
-
+import axios from 'axios';
 import ExplorerView from '../utils/grapeTools/Explorer';
 
 import {
@@ -89,7 +89,8 @@ import {
   RPC_CONNECTION,
   GGAPI_STORAGE_POOL, 
   GGAPI_STORAGE_URI,
-  PROP_TOKEN
+  PROP_TOKEN,
+  SHYFT_KEY,
 } from '../utils/grapeTools/constants';
 
 import { 
@@ -1431,8 +1432,9 @@ export default function GovernanceCreateProposalView(props: any){
                     }
 
                     if (glitem?.governanceVaultsFilename){
-                        const cached_treasury = await getFileFromLookup(glitem.governanceVaultsFilename, storagePool);
-                        // merge treasury with only the wallet rules addresses
+                      const cached_treasury = await getFileFromLookup(glitem.governanceVaultsFilename, storagePool);
+                      // merge treasury with only the wallet rules addresses
+                      if (cached_treasury && cached_treasury.length > 0){   
                         for (let item of cached_treasury) {
                           if (item.vault.nativeTreasuryAddress) {
                             for (let citem of cached_treasury) {
@@ -1445,11 +1447,12 @@ export default function GovernanceCreateProposalView(props: any){
                             }
                           }
                         }
+                      }
 
                         //console.log("merged_treasury: "+JSON.stringify(cached_treasury))
                         //console.log("cached_treasury: "+JSON.stringify(cached_treasury));
 
-                        setCachedTreasury(cached_treasury);
+                      setCachedTreasury(cached_treasury);
                     }
 
                     setRealmName(glitem.governanceName);
@@ -1506,28 +1509,30 @@ export default function GovernanceCreateProposalView(props: any){
 
             for (var gitem of governanceWallets){
               let found = false;
-              for (var citem of cachedTreasury){
-                console.log("Checking: "+gitem.nativeTreasuryAddress.toBase58() + " vs "+ citem.vault.pubkey)
-                  
-                if (gitem.nativeTreasuryAddress.toBase58() === citem.vault.pubkey){
-                  found = true;  
-                  citem.solBalance = gitem.solBalance*10**9;
-                  
-                }
-                //console.log("wallet item: "+JSON.stringify(item))
-              }
-              if (!found){
-                cachedTreasury.push({
-                  vault:{
-                    pubkey:gitem.pubkey.toBase58(),
-                    vaultId:cachedTreasury.length+1,
-                    nativeTreasuryAddress:gitem.nativeTreasuryAddress.toBase58(),
-                    solBalance:gitem.solBalance*10**9,
-                    domains:gitem.domains,
-                    tokens:null,
-                    nfts:null
+              if (cachedTreasury && cachedTreasury.length > 0){
+                for (var citem of cachedTreasury){
+                  console.log("Checking: "+gitem.nativeTreasuryAddress.toBase58() + " vs "+ citem.vault.pubkey)
+                    
+                  if (gitem.nativeTreasuryAddress.toBase58() === citem.vault.pubkey){
+                    found = true;  
+                    citem.solBalance = gitem.solBalance*10**9;
+                    
                   }
-                });
+                  //console.log("wallet item: "+JSON.stringify(item))
+                }
+                if (!found){
+                  cachedTreasury.push({
+                    vault:{
+                      pubkey:gitem.pubkey.toBase58(),
+                      vaultId:cachedTreasury.length+1,
+                      nativeTreasuryAddress:gitem.nativeTreasuryAddress.toBase58(),
+                      solBalance:gitem.solBalance*10**9,
+                      domains:gitem.domains,
+                      tokens:null,
+                      nfts:null
+                    }
+                  });
+                }
               }
             //}
             
@@ -1611,9 +1616,11 @@ export default function GovernanceCreateProposalView(props: any){
     }, [instructionsObject]);
 
     React.useEffect(() => {
-      if (cachedGovernance && sentRulesAddress && governanceWallets){
+      if (sentRulesAddress && governanceWallets){
         handleNativeWalletFromRules(new PublicKey(sentRulesAddress).toBase58())
       }
+      if (sentRulesAddress)
+        setGovernanceRulesWallet(sentRulesAddress);
 
       console.log("sentRulesAddress: "+(sentRulesAddress));
       //console.log("governanceWallet: "+(JSON.stringify(governanceWallet)));
@@ -2062,12 +2069,22 @@ export default function GovernanceCreateProposalView(props: any){
 
                             {proposalType === 4 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <TokenTransferView tokenMap={tokenMap} governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} setInstructionsObject={setInstructionsObject} />
+                                <TokenTransferView 
+                                  tokenMap={tokenMap}
+                                   governanceAddress={governanceAddress} 
+                                   governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={4} governanceWallet={governanceWallet} 
+                                   governanceRulesWallet={governanceRulesWallet} 
+                                   setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
                             {proposalType === 5 &&
                               <FormControl fullWidth sx={{mb:2}}>
-                                <TokenTransferView tokenMap={tokenMap} governanceAddress={governanceAddress} governanceLookup={governanceLookup} payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} governanceRulesWallet={governanceRulesWallet} setInstructionsObject={setInstructionsObject} />
+                                <TokenTransferView 
+                                  tokenMap={tokenMap} 
+                                  governanceAddress={governanceAddress} 
+                                  governanceLookup={governanceLookup} 
+                                  payerWallet={publicKey} pluginType={5} governanceWallet={governanceWallet} 
+                                  governanceRulesWallet={governanceRulesWallet} setInstructionsObject={setInstructionsObject} />
                               </FormControl>
                             }
                             {/*

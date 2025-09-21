@@ -20,8 +20,11 @@ html {
 }
 
 body .realtime-body{
-  background: #19141F;  /* fallback for old browsers */
-  background: linear-gradient(200deg, #bbd2c5, #536976, #292e49);
+  /*background: #bbd2c5;  /* fallback for old browsers */
+  /*background: linear-gradient(200deg, #bbd2c5, #536976, #292e49);*/
+  background-color: #3b2f50; /* Fallback solid color */
+  background: linear-gradient(70deg, #3b2f50, #111111, #923CB5, #ffffff);
+  
   height:100%;
   min-height: 100vh;
   padding:0;
@@ -44,6 +47,11 @@ body .frictionless-body{
   min-height: 100vh;
   padding:0;
   background-attachment: fixed;
+}
+
+.MuiDataGrid-cell--right {
+  justify-content: flex-end;
+  text-align: right;
 }
 
 .BlinkingDot {

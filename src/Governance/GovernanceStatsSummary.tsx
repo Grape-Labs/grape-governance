@@ -21,6 +21,19 @@ interface GovernanceStatsProps {
         percentageOfSupply: number;
         percentageOfGovernanceSupply: number;
     };
+    mostParticipatedProposal?: {
+        title: string;
+        pubkey: string;
+        totalVotes: number;
+        state?: string;
+    } | null;
+    averageVotesPerProposal?: string | number | null;
+    proposalParticipationStats?: {
+        title: string;
+        pubkey: string;
+        totalVotes: number;
+        state?: string;
+    }[];
 }
 
 export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
@@ -39,6 +52,9 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
         top10GovernanceShare,
         councilVoteShare,
         top10Participants,
+        mostParticipatedProposal,
+        averageVotesPerProposal,
+        proposalParticipationStats
     } = props;
 
     const [averageVotesPerParticipant, setAverageVotesPerParticipant] = useState<string | null>(null);
@@ -70,6 +86,30 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
     return (
         <Box sx={{ p: 1 }}>
             <Grid container spacing={1}>
+                
+                <Grid item xs={12} md={6} lg={3}>
+                    <StatBox
+                        title="Most Participated Proposal"
+                        tooltip={`${mostParticipatedProposal.title}`}
+                        value={`${mostParticipatedProposal.totalVotes}`}
+                    />
+                </Grid>
+                <Grid item xs={12} md={6} lg={3}>
+                    <StatBox
+                        title="Average Votes per Proposal"
+                        tooltip="Average number of votes cast across all proposals in the realm."
+                        value={`${averageVotesPerProposal}`}
+                    />
+                </Grid>
+                <Grid item xs={12} md={6} lg={3}>
+                    <StatBox
+                        title="Total Proposals"
+                        tooltip="All Proposals in the realm."
+                        value={`${proposalParticipationStats.length}`}
+                    />
+                </Grid>
+                
+                
                 <Grid item xs={12} md={6} lg={3}>
                     <StatBox
                         title="Active / Participating / All Voters"
@@ -112,32 +152,6 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
                     />
                 </Grid>
 
-                
-                {top10Participants && (
-                    <>
-                        <Grid item xs={12} md={6} lg={3}>
-                            <StatBox
-                                title="Top 10 Deposited"
-                                tooltip="Tokens held by the top 10 participants in this governance."
-                                value={`${getFormattedNumberToLocale(+top10Participants.votes.toFixed(0))}`}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6} lg={3}>
-                            <StatBox
-                                title="Top 10 Percentage of Governance Weight"
-                                tooltip="The voting power of the top 10 participants as a percentage of the total deposited governance."
-                                value={`${top10Participants.percentageOfGovernanceSupply.toFixed(1)}%`}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6} lg={3}>
-                            <StatBox
-                                title="Top 10 Percentage of Supply"
-                                tooltip="The voting power of the top 10 participants as a percentage of the total token supply."
-                                value={`${top10Participants.percentageOfSupply.toFixed(1)}%`}
-                            />
-                        </Grid>
-                    </>
-                )}
                 {circulatingSupply && (
                     <Grid item xs={12} md={6} lg={3}>
                         <StatBox
@@ -148,16 +162,6 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
                                     ? `${((totalDepositedVotes / circulatingSupply.value.amount) * 100).toFixed(1)}%`
                                     : '-'
                             }
-                        />
-                    </Grid>
-                )}
-
-                {quorumPercentage && (
-                    <Grid item xs={12} md={6} lg={3}>
-                        <StatBox
-                            title="Quorum %"
-                            tooltip="Percentage of circulating supply deposited in governance."
-                            value={`${quorumPercentage}%`}
                         />
                     </Grid>
                 )}
@@ -178,16 +182,6 @@ export function GovernanceStatsSummaryView(props: GovernanceStatsProps) {
                             title="Voting Participation %"
                             tooltip="Percentage of members who have ever voted."
                             value={`${votingParticipationPercentage}%`}
-                        />
-                    </Grid>
-                )}
-
-                {top10GovernanceShare && (
-                    <Grid item xs={12} md={6} lg={3}>
-                        <StatBox
-                            title="Top 10 Governance Share"
-                            tooltip="% of governance voting power held by top 10 voters."
-                            value={`${top10GovernanceShare}%`}
                         />
                     </Grid>
                 )}

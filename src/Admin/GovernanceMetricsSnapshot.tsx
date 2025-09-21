@@ -1620,7 +1620,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                 if (!hasBeenFound){
 
                 }
-
+                
                 if (!hasAwards || getAwards){
                     console.log("Checking Award Emitted...")
                     if (grealm.account?.communityMint){
@@ -1780,7 +1780,8 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                     }
                 }
 
-                if (!hasFtd){
+                if (!hasFtd){ // we can uncomment this to get the first transaction date but this can take time for large DAOs
+                    /*
                     let ftd = await getFirstTransactionDate(tokenOwnerRecord.toBase58(), connection);
                     if (ftd){
                         const txBlockTime = moment.unix(ftd)
@@ -1788,6 +1789,7 @@ const fetchGovernance = async(address:string, grealm:any, tokenMap: any, governa
                         console.log("First Transaction Date for "+tokenOwnerRecord.toBase58()+": "+txBlockTime.format('llll'));
                         if (setPrimaryStatus) setPrimaryStatus("Fetching Token Owner Records - "+mcount+" of "+rawTokenOwnerRecords.length+" Member Wallet Balance - "+tokenOwnerRecord.toBase58()+" "+txBlockTime.format(''));
                     }
+                    */
                 }
 
             }

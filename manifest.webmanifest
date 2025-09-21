@@ -68,7 +68,7 @@
           "description": "See what is going on in realtime from all DAOs on Solana",
           "icons": [
             {
-              "src": "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/shortcut_feed.png",
+              "src": "./src/public/shortcut_feed.png",
               "sizes": "512x512"
             }
           ]
@@ -79,7 +79,7 @@
           "description": "View the DAOs you are participating in",
           "icons": [
             {
-              "src": "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/shortcut_user.png",
+              "src": "./src/public/shortcut_user.png",
               "sizes": "512x512"
             }
           ]
@@ -90,7 +90,7 @@
           "description": "The OG Community DAO of Solana",
           "icons": [
             {
-              "src": "https://shdw-drive.genesysgo.net/5nwi4maAZ3v3EwTJtcg9oFfenQUX7pb9ry4KuhyUSawK/shortcut_grape.png",
+              "src": "./src/public/shortcut_grape.png",
               "sizes": "512x512"
             }
           ]

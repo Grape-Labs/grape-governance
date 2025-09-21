@@ -7,7 +7,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 
 import { AdminView } from "./Admin/Admin";
 //import GovernanceAppPageView from "./GovernanceCached/v2/page";
-import FrictionlessView from "./Frictionless/FrictionlessView";
+//import FrictionlessView from "./Frictionless/FrictionlessView";
 import { MyGovernanceView } from "./Governance/MyGovernance";
 import { GovernanceCachedView } from "./Governance/Governance";
 import { GovernanceRealtimeView } from "./Admin/Realtime/Realtime";
@@ -241,7 +241,7 @@ function DashboardContent() {
                   <Route path=":governance/:wallet" element={<GovernanceWalletView />} />
               </Route>
 
-
+              {/*
               <Route path="/frictionless/*" element={
                 <Suspense fallback={renderLoader()}>
                   <ThemeProvider theme={grapeTheme}>
@@ -265,6 +265,7 @@ function DashboardContent() {
                     </ThemeProvider>
                   </Suspense>
               }></Route>
+              */}
 
               <Route path="/realtime/*" element={
                 <Suspense fallback={renderLoader()}>
@@ -291,7 +292,7 @@ function DashboardContent() {
                   </Suspense>
               }></Route>
 
-              <Route path="/*" element={
+              <Route path="*" element={
                 <Suspense fallback={renderLoader()}>
                   <ThemeProvider theme={grapeTheme}>
                       <div className="app-body">
@@ -347,11 +348,7 @@ function DashboardContent() {
                                               <Route path="dao/*" element={<GovernanceCachedView />} >
                                                   <Route path=":handlekey" element={<GovernanceCachedView />} />
                                               </Route>
-
-                                              <Route path="cachedgovernance/*" element={<GovernanceCachedView />} >
-                                                  <Route path=":handlekey" element={<GovernanceCachedView />} />
-                                              </Route>
-
+                                              
                                               <Route path="newproposal/*" element={<GovernanceCreateProposalView />} >
                                                   <Route path=":handlekey" element={<GovernanceCreateProposalView />} />
                                               </Route>
@@ -359,11 +356,6 @@ function DashboardContent() {
                                               <Route path="proposal/*" element={<GovernanceProposalWrapper/>} >
                                                   <Route path=":governance/:proposal" element={<GovernanceProposalWrapper />} />
                                               </Route>
-
-                                              <Route path="v2/*" element={<GovernanceProposalWrapper beta={true}/>} >
-                                                  <Route path=":governance/:proposal" element={<GovernanceProposalWrapper beta={true} />} />
-                                              </Route>
-
                                               
                                               <Route path="proposals/*" element={<GovernanceRealtimeView />} >
                                                   <Route path=":handlekey" element={<GovernanceRealtimeView />} />
@@ -372,11 +364,6 @@ function DashboardContent() {
                                               <Route path="metrics/*" element={<PremiumView />} >
                                                   <Route path=":handlekey" element={<PremiumView />} />
                                               </Route>
-                                              {/*
-                                              <Route path="metrics/*" element={<GovernanceMetricsView />} >
-                                                  <Route path=":handlekey" element={<GovernanceMetricsView />} />
-                                              </Route>
-                                              */}
                                               <Route path="members/*" element={<GovernanceMembersView />} >
                                                   <Route path=":handlekey" element={<GovernanceMembersView />} />
                                               </Route>

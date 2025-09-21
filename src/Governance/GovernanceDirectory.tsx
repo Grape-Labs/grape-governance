@@ -58,7 +58,10 @@ import {
     timeAgo
 } from '../utils/grapeTools/WalletAddress'
 
-import { GGAPI_STORAGE_POOL, RPC_CONNECTION, RPC_ENDPOINT } from '../utils/grapeTools/constants';
+import { GGAPI_STORAGE_POOL, 
+    RPC_CONNECTION, 
+    RPC_ENDPOINT,
+    GRAPE_LOGO } from '../utils/grapeTools/constants';
 import moment from 'moment';
 
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({

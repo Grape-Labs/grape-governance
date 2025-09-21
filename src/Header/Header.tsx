@@ -51,6 +51,8 @@ import {
     Drawer,
     Dialog,
     DialogTitle,
+    DialogActions,
+    DialogContent,
     Divider,
     InputBase,
     Paper,
@@ -68,6 +70,7 @@ import {
     FormControlLabel,
     FormControl,
     MenuItem,
+    Stack,
 } from '@mui/material';
 
 import ClickAwayListener from '@mui/material/ClickAwayListener';
@@ -259,7 +262,7 @@ export function Header(props: any) {
     //const currPath = location?.pathname ?? "";
     const { enqueueSnackbar } = useSnackbar();
     
-    const { publicKey, wallet } = useWallet();
+    const { publicKey, disconnect } = useWallet();
     const theme: 'dark' | 'light' = 'dark';
     
     //Menu
@@ -658,73 +661,107 @@ export function Header(props: any) {
                     </Drawer>
                 </Box>
             </ClickAwayListener>
-            <Dialog open={rpcSettingsOpen} onClose={handleCloseRpcSettings}>
-                <DialogTitle>Select RPC Provider</DialogTitle>
-                <Box p={2}>
+            <Dialog open={rpcSettingsOpen} onClose={handleCloseRpcSettings} fullWidth maxWidth="sm">
+                <DialogTitle>Settings</DialogTitle>
+
+                <DialogContent dividers>
+                    <Divider sx={{ my: 3 }} />
+                    {/* ===== RPC Selection ===== */}
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                    RPC Selection
+                    </Typography>
+
                     <FormControl fullWidth>
-                        <RadioGroup
-                            value={rpcSelectionMode}
-                            onChange={(e) => setRpcSelectionMode(e.target.value)}
-                        >
-                            <FormControlLabel value="predefined" control={<Radio />} label="Select from predefined list" />
-                            <FormControlLabel value="custom" control={<Radio />} label="Use custom RPC URL" />
-                        </RadioGroup>
+                    <RadioGroup
+                        value={rpcSelectionMode}
+                        onChange={(e) => setRpcSelectionMode(e.target.value)}
+                    >
+                        <FormControlLabel
+                        value="predefined"
+                        control={<Radio />}
+                        label="Select from predefined list"
+                        />
+                        <FormControlLabel value="custom" control={<Radio />} label="Use custom RPC URL" />
+                    </RadioGroup>
                     </FormControl>
 
                     {rpcSelectionMode === 'predefined' && (
-                        <FormControl fullWidth sx={{ mt: 2 }}>
-                            <TextField
-                                select
-                                label="RPC Provider"
-                                value={getPreferredRpc()}
-                                onChange={(e) => {
-                                    setPreferredRpc(e.target.value);
-                                    handleCloseRpcSettings();
-                                    window.location.reload();
-                                }}
-                                size="small"
-                                variant="outlined"
-                            >
-                                {Object.entries(RPC_OPTIONS).map(([label, url]) => (
-                                    <MenuItem key={label} value={url}>
-                                        {label}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
-                        </FormControl>
+                    <FormControl fullWidth sx={{ mt: 2 }}>
+                        <TextField
+                        select
+                        label="RPC Provider"
+                        value={getPreferredRpc()}
+                        onChange={(e) => {
+                            setPreferredRpc(e.target.value);
+                            handleCloseRpcSettings();
+                            window.location.reload();
+                        }}
+                        size="small"
+                        variant="outlined"
+                        >
+                        {Object.entries(RPC_OPTIONS).map(([label, url]) => (
+                            <MenuItem key={label} value={url}>
+                            {label}
+                            </MenuItem>
+                        ))}
+                        </TextField>
+                    </FormControl>
                     )}
 
                     {rpcSelectionMode === 'custom' && (
-                        <Box mt={2}>
-                            <TextField
-                                fullWidth
-                                label="Custom RPC Endpoint"
-                                value={customRpcInput}
-                                onChange={(e) => setCustomRpcInput(e.target.value)}
-                                size="small"
-                                variant="outlined"
-                                placeholder="https://your-custom-rpc.solana.com"
-                            />
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                sx={{ mt: 2 }}
-                                onClick={() => {
-                                    if (customRpcInput.startsWith('https')) {
-                                        setPreferredRpc(customRpcInput);
-                                        handleCloseRpcSettings();
-                                        window.location.reload();
-                                    } else {
-                                        alert('Please enter a valid URL starting with https');
-                                    }
-                                }}
-                            >
-                                Save & Reload
-                            </Button>
-                        </Box>
+                    <Box mt={2}>
+                        <TextField
+                        fullWidth
+                        label="Custom RPC Endpoint"
+                        value={customRpcInput}
+                        onChange={(e) => setCustomRpcInput(e.target.value)}
+                        size="small"
+                        variant="outlined"
+                        placeholder="https://your-custom-rpc.solana.com"
+                        />
+                        <Button
+                        variant="contained"
+                        sx={{ mt: 2 }}
+                        onClick={() => {
+                            if (customRpcInput.startsWith('https')) {
+                            setPreferredRpc(customRpcInput);
+                            handleCloseRpcSettings();
+                            window.location.reload();
+                            } else {
+                            alert('Please enter a valid URL starting with https');
+                            }
+                        }}
+                        >
+                        Save & Reload
+                        </Button>
+                    </Box>
                     )}
-                </Box>
-            </Dialog>
+
+                    <Divider sx={{ my: 3 }} />
+
+                    {/* ===== Wallet Tools ===== */}
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                    Wallet Tools
+                    </Typography>
+
+                    <Stack direction="row" spacing={1}>
+                    <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={async () => {
+                        await disconnect();
+                        handleCloseRpcSettings();
+                        }}
+                    >
+                        Disconnect Wallet
+                    </Button>
+                    </Stack>
+                </DialogContent>
+
+                <DialogActions>
+                    <Button onClick={handleCloseRpcSettings}>Close</Button>
+                </DialogActions>
+                </Dialog>
         </>
     );
 }

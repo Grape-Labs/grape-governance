@@ -99,6 +99,38 @@ export interface DialogTitleProps {
     onClose: () => void;
 }
 
+// ==== add near your imports (below constants) ====
+
+const cardSX = {
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.06)",
+  borderRadius: "16px",
+  p: 1.5,
+};
+
+const sectionSX = {
+  m: 2,
+  background: "rgba(255,255,255,0.03)",
+  borderRadius: "16px",
+  p: 2,
+  width: "100%",
+  minWidth: "360px",
+};
+
+function fmt(amount?: number | string | null, decimals = 0, digits = 0): string {
+  if (amount == null) return "0";
+  const n = Number(amount) / Math.pow(10, decimals);
+  if (!isFinite(n)) return "0";
+  return n.toLocaleString(undefined, { maximumFractionDigits: digits });
+}
+
+function fmtInt(amount?: number | string | null, decimals = 0): string {
+  if (amount == null) return "0";
+  const n = Math.floor(Number(amount) / Math.pow(10, decimals));
+  if (!isFinite(n)) return "0";
+  return n.toLocaleString();
+}
+
 const BootstrapDialogTitle = (props: DialogTitleProps) => {
     const { children, onClose, ...other } = props;
   
@@ -686,407 +718,304 @@ export default function GovernancePower(props: any){
         const selectedMintDepositedAmount = props?.mintVotingPower;
         const isCouncil= props?.isCouncil;
         const decimals = isCouncil ? 0 : (props?.decimals || mintDecimals);
-        // generateMEEditListingInstructions(selectedTokenMint:string, selectedTokenAtaString: string, price: number, newPrice: number)
-        const [delegatedStr, setDelegatedStr] = React.useState(null);
-        
+
+        const [delegatedStr, setDelegatedStr] = React.useState<string | null>(null);
         const [open, setOpen] = React.useState(false);
-        const [newDepositAmount, setNewDepositAmount] = React.useState(selectedMintAvailableAmount/10**decimals);
+        const [newDepositAmount, setNewDepositAmount] = React.useState<number>(
+            Number(selectedMintAvailableAmount) > 0 ? Number(selectedMintAvailableAmount) / Math.pow(10, decimals) : 0
+        );
 
-        const handleClickOpen = () => {
-            setOpen(true);
-        };
+        const handleClickOpen = () => setOpen(true);
+        const handleClose = () => setOpen(false);
+        const handleSetDelegateStr = (e: any) => setDelegatedStr(e.target.value?.trim() || null);
 
-        const handleClose = () => {
-            setOpen(false);
-        };
-
-        const handleSetDelegateStr = (event) => {
-            setDelegatedStr(event.target.value); // Update delegateStr with the input value
-        };
-
-        
         function handleClickRemoveDelegate(){
             setGovernanceDelegate(selectedMintAddress, null);
         }
-
         function handleClickSetDelegate(){
-            if (delegatedStr){
-                if (delegatedStr !== currentCommunityDelegate){
-                    // also check if pubkey is valid...
-                    setGovernanceDelegate(selectedMintAddress, delegatedStr);
-                } else if (delegatedStr !== currentCouncilDelegate){
-                    // also check if pubkey is valid...
-                    setGovernanceDelegate(selectedMintAddress, delegatedStr);
-                }
-            }
+            if (!delegatedStr) return;
+            if (!isCouncil && delegatedStr === currentCommunityDelegate) return;
+            if ( isCouncil && delegatedStr === currentCouncilDelegate) return;
+            if (delegatedStr === publicKey.toBase58()) return;
+            setGovernanceDelegate(selectedMintAddress, delegatedStr);
         }
 
         function handleAdvancedDepositVotesToGovernance(){
-            if (newDepositAmount && newDepositAmount > 0){
-                depositVotesToGovernance(newDepositAmount, decimals, selectedMintAddress);
-                setOpen(false);
+            const maxHuman = Number(selectedMintAvailableAmount)/Math.pow(10, decimals);
+            const amt = Number(newDepositAmount || 0);
+            if (amt > 0 && amt <= maxHuman){
+            depositVotesToGovernance(amt, decimals, selectedMintAddress);
             } else {
-                handleDepositCommunityMax();
-                setOpen(false);
+            // fallback to max
+            depositVotesToGovernance(maxHuman, decimals, selectedMintAddress);
             }
+            setOpen(false);
         }
         function handleAdvancedDepositMaxVotesToGovernance(){
-            handleDepositCommunityMax();
+            const maxHuman = Number(selectedMintAvailableAmount)/Math.pow(10, decimals);
+            depositVotesToGovernance(maxHuman, decimals, selectedMintAddress);
             setOpen(false);
         }
 
+        const deposited = fmtInt(selectedMintDepositedAmount, decimals);
+        const inWallet = fmt(selectedMintAvailableAmount, decimals);
+        const afterDeposit = (() => {
+            const base = Number(selectedMintDepositedAmount)/Math.pow(10, decimals);
+            const add = Number(newDepositAmount || 0) || Number(selectedMintAvailableAmount)/Math.pow(10, decimals);
+            return Math.floor(base + add).toLocaleString();
+        })();
+
+        const hasAvailable = Number(selectedMintAvailableAmount) > 0;
+
         return (
             <>
-            
-                <Tooltip title="Delegation &amp; Advanced Tools">
-                    <IconButton
-                        aria-label="Advanced"
-                        color={inlineAdvanced ? 'inherit' : 'success'}
-                        onClick={handleClickOpen}
-                        sx={{
-                            borderColor:'rgba(255,255,255,0.05)',
-                            fontSize:'10px',
-                            minWidth: inlineAdvanced ? '0' : undefined,
-                            //p: inlineAdvanced ? undefined : 1,
-                        }}
-                    ><SettingsIcon  sx={{fontSize: inlineAdvanced ? '10px' : '14px',}} /></IconButton>
-                </Tooltip>
-
-                <Dialog open={open} onClose={handleClose}
-                    PaperProps={{
-                        style: {
-                            background: '#13151C',
-                            border: '1px solid rgba(255,255,255,0.05)',
-                            borderTop: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: '20px'
-                        }
-                    }}
+            <Tooltip title="Advanced (amount, delegate, withdraw)">
+                <IconButton
+                aria-label="Advanced"
+                color={inlineAdvanced ? 'inherit' : 'success'}
+                onClick={handleClickOpen}
+                sx={{ fontSize:'10px', minWidth: inlineAdvanced ? 0 : undefined }}
                 >
-                    <BootstrapDialogTitle id="create-storage-pool" onClose={handleClose}>
-                        Advanced
-                    </BootstrapDialogTitle>
-                    
-                    <DialogContent>
-                    <DialogContentText>
-                        <Grid container>
-                            <Box sx={{
-                                    m:2,
-                                    background: 'rgba(0, 0, 0, 0.1)',
-                                    borderRadius: '17px',
-                                    p:1,
-                                    width:"100%",
-                                    minWidth:'360px'
-                                }}>
-                                {selectedMintAvailableAmount > 0 &&
-                                    <>
-                                    <Box sx={{ my: 3, mx: 2 }}>
-                                        <Grid container alignItems="center">
-                                        <Grid item xs>
-                                            <Typography gutterBottom variant="h5" component="div">
-                                            New Voting Power
-                                            </Typography>
-                                        </Grid>
-                                        <Grid item>
-                                            {newDepositAmount ?
-                                            <Typography gutterBottom variant="h6" component="div">
-                                                {(Number(((selectedMintDepositedAmount/10**decimals)+(+newDepositAmount)).toFixed(0))).toLocaleString()}
-                                            </Typography>
-                                            :
-                                            <Typography gutterBottom variant="h6" component="div">
-                                                {(Number((((+selectedMintDepositedAmount + +selectedMintAvailableAmount)/10**decimals)).toFixed(0))).toLocaleString()}
-                                            </Typography>
-                                            }
-                                        </Grid>
-                                        </Grid>
-                                        <Typography color="text.secondary" variant="body2">
-                                            Total voting power after depositing
-                                        </Typography>
-                                    </Box>
+                <SettingsIcon sx={{ fontSize: inlineAdvanced ? 16 : 18 }} />
+                </IconButton>
+            </Tooltip>
 
-                                    <Divider variant="middle" />
-                                    </>
-                                }
-                                <Box sx={{ my: 3, mx: 2 }}>
-                                    <Grid container alignItems="center">
-                                    <Grid item xs>
-                                        <Typography gutterBottom variant="subtitle1" component="div">
-                                            Voting Power
-                                        </Typography>
-                                    </Grid>
-                                    <Grid item>
-                                        <Typography gutterBottom variant="body1" component="div">
-                                            {(Number((selectedMintDepositedAmount/10**decimals).toFixed(0))).toLocaleString()}
-                                        </Typography>
-                                    </Grid>
-                                    </Grid>
-                                    <Typography color="text.secondary" variant="caption">
-                                        This is your current voting power 
-                                            <Tooltip title="Withdraw">
-                                                <IconButton 
-                                                        aria-label="Deposit"
-                                                        color='inherit'
-                                                        onClick={isCouncil ? handleWithdrawCouncilMax : handleWithdrawCommunityMax}
-                                                        sx={{
-                                                            borderRadius:'17px',
-                                                            borderColor:'rgba(255,255,255,0.05)',
-                                                            ml:1,
-                                                        }}
-                                                    >
-                                                    <LogoutIcon sx={{fontSize:'12px'}} />
-                                                </IconButton>
-                                            </Tooltip>
-                                    </Typography>
-                                </Box>
-                                
-                                {selectedMintAvailableAmount > 0 &&
-                                    <Box sx={{ my: 3, mx: 2 }}>
-                                        <Grid container alignItems="center">
-                                        <Grid item xs>
-                                            <Typography gutterBottom variant="subtitle1" component="div">
-                                            Available to Deposit
-                                            </Typography>
-                                        </Grid>
-                                        <Grid item>
-                                            <Typography gutterBottom variant="body1" component="div">
-                                            {(selectedMintAvailableAmount/10**decimals).toLocaleString()}
-                                            </Typography>
-                                        </Grid>
-                                        </Grid>
-                                        <Typography color="text.secondary" variant="caption">
-                                        This is the voting power you have in your wallet
-                                        </Typography>
-                                    </Box>
-                                }
-                                <Box sx={{ my: 3, mx: 2 }}>
-                                    <Grid container alignItems="center">
-                                    <Grid item xs>
-                                        
-                                    </Grid>
-                                    <Grid item>
-                                        <Typography gutterBottom variant="body1" component="div">
-                                            <ExplorerView 
-                                                address={selectedMintAddress} 
-                                                title={`Governing Mint ${selectedMintName ? selectedMintName : `${selectedMintAddress.slice(0, 3)}...${selectedMintAddress.slice(-3)}`}`} 
-                                                type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='14px' 
-                                                showTokenMetadata={true} /> 
-                                        </Typography>
-                                    </Grid>
-                                    </Grid>
-                                </Box>
+            <Dialog open={open} onClose={handleClose}
+                PaperProps={{
+                style: {
+                    background: '#13151C',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: 20
+                }
+                }}
+            >
+                <BootstrapDialogTitle id="advanced" onClose={handleClose}>
+                Advanced
+                </BootstrapDialogTitle>
 
-                            </Box>
-
-                            <Box sx={{
-                                    m:2,
-                                    background: 'rgba(0, 0, 0, 0.1)',
-                                    borderRadius: '17px',
-                                    p:1,
-                                    width:"100%",
-                                    minWidth:'360px'
-                                }}>
-                                <Box sx={{ my: 3, mx: 2 }}>
-                                    <Grid container alignItems="center">
-                                        <Grid item xs>
-                                            <Typography gutterBottom variant="h5" component="div">
-                                            Delegation
-                                            </Typography>
-                                        </Grid>
-                                        <Grid item
-                                            sx={{ alignItems: 'right' }}
-                                        >
-                                            <OutlinedInput
-                                                size={'small'}
-                                                sx={{borderRadius:'17px'}}
-                                                //value={currentDelegate}
-                                                onChange={handleSetDelegateStr}
-                                                endAdornment={
-                                                    <InputAdornment position="end">
-                                                        <IconButton
-                                                            aria-label="Save Delegate"
-                                                            onClick={handleClickSetDelegate}
-                                                            edge="end"
-                                                            color={'success'}
-                                                            disabled={
-                                                                (!delegatedStr) ||
-                                                                (delegatedStr === publicKey.toBase58()) ||
-                                                                (!isCouncil && currentCommunityDelegate === delegatedStr)||
-                                                                (isCouncil && currentCouncilDelegate === delegatedStr)
-                                                            }
-                                                        >
-                                                            <SaveIcon />
-                                                        </IconButton>
-                                                    </InputAdornment>
-                                                }
-                                            />
-                                        </Grid>
-                                    </Grid>
-                                    <Typography color="text.secondary" variant="caption">
-                                        
-                                        {(isCouncil && currentCouncilDelegate) || (!isCouncil && currentCommunityDelegate) ?
-                                            <>
-                                                <Grid container direction='row'>
-                                                    <ExplorerView 
-                                                        address={isCouncil ? currentCouncilDelegate : currentCommunityDelegate} 
-                                                        title={isCouncil ? `Delegated to ${currentCouncilDelegate.slice(0, 4)}...${currentCouncilDelegate.slice(-4)} : ` :
-                                                                `Delegated to ${currentCommunityDelegate.slice(0, 4)}...${currentCommunityDelegate.slice(-4)} : `} 
-                                                        type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='10px' /> 
-                                                    
-                                                    <IconButton
-                                                        aria-label="Remove Delegate"
-                                                        onClick={handleClickRemoveDelegate}
-                                                        edge="end"
-                                                        color={'error'}
-                                                        sx={{fontSize:'10px'}}
-                                                    >
-                                                        <CancelIcon />
-                                                    </IconButton>
-                                                </Grid>
-                                            </>
-                                            :<>Delegate your voting power to another wallet</>
-                                        }
-                                    </Typography>
-                                </Box>
-                            </Box>
-
-                            {currentCommunityDelegateFrom &&
-                                <Box sx={{
-                                    m:2,
-                                    background: 'rgba(0, 0, 0, 0.1)',
-                                    borderRadius: '17px',
-                                    p:1,
-                                    width:"100%",
-                                    minWidth:'360px'
-                                }}>
-                                    <Box sx={{ my: 3, mx: 2 }}>
-                                        <Grid container alignItems="center">
-                                            <Grid item xs>
-                                                <Typography gutterBottom variant="h5" component="div">
-                                                You have Community Delegation
-                                                </Typography>
-                                            </Grid>
-                                        </Grid>
-                                        <Typography color="text.secondary" variant="body1">
-                                            {(currentCommunityDelegateFromAmount/10**decimals).toLocaleString()} - 
-                                            <ExplorerView 
-                                                address={currentCommunityDelegateFrom} 
-                                                type='address' shorten={4} hideTitle={false} style='text' color='white' fontSize='14px' 
-                                            /> 
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            }
-                            {currentCouncilDelegateFrom &&
-                                <Box sx={{
-                                    m:2,
-                                    background: 'rgba(0, 0, 0, 0.1)',
-                                    borderRadius: '17px',
-                                    p:1,
-                                    width:"100%",
-                                    minWidth:'360px'
-                                }}>
-                                    <Box sx={{ my: 3, mx: 2 }}>
-                                        <Grid container alignItems="center">
-                                            <Grid item xs>
-                                                <Typography gutterBottom variant="h5" component="div">
-                                                You have Council Delegation
-                                                </Typography>
-                                            </Grid>
-                                        </Grid>
-                                        <Typography color="text.secondary" variant="body1">
-                                            {(currentCouncilDelegateFromAmount/10**decimals).toLocaleString()} - 
-                                            <ExplorerView 
-                                                address={currentCouncilDelegateFrom} 
-                                                type='address' shorten={4} hideTitle={false} style='text' color='white' fontSize='14px' 
-                                            /> 
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            }
-                        </Grid>
-                    </DialogContentText>
-                    
-                    {selectedMintAvailableAmount > 0 &&
-                        <RegexTextField
-                            regex={/[^0-9]+\.?[^0-9]/gi}
-                            autoFocus
-                            autoComplete='off'
-                            margin="dense"
-                            id="preview_deposit_id"
-                            label='Set the amount to deposit'
-                            type="text"
-                            fullWidth
-                            variant="standard"
-                            value={newDepositAmount}
-                            defaultValue={(selectedMintAvailableAmount/10**decimals)}
-                            helperText={
-                                <Grid sx={{textAlign:'right',}}>
-                                    <Typography variant="caption" color="info">
-                                        <Button
-                                            variant="text"
-                                            size="small"
-                                            onClick={(e) => setNewDepositAmount(selectedMintAvailableAmount/10**decimals)}
-                                            sx={{borderRadius:'17px'}}
-                                        >
-                                            Max
-                                        </Button>
-                                    </Typography>
+                <DialogContent>
+                <DialogContentText component="div">
+                    <Grid container>
+                    {/* Totals card */}
+                    <Box sx={sectionSX}>
+                        {hasAvailable && (
+                        <>
+                            <Box sx={{ mb: 2 }}>
+                            <Grid container alignItems="center">
+                                <Grid item xs>
+                                <Typography variant="h6">New total after deposit</Typography>
                                 </Grid>
-                            }
-                            onChange={(e: any) => {
-                                setNewDepositAmount(e.target.value)}
-                            }
-                            inputProps={{
-                                style: { 
-                                    textAlign:'center', 
-                                    fontSize: '34px'
-                                }
-                            
-                            }}
-                        
-                        />
-                    }
-                        
-                    {/*
-                    <TextField
-                        autoFocus
-                        margin="dense"
-                        id="newlistprice"
-                        label="New List Price"
-                        type="text"
-                        fullWidth
-                        variant="standard"
-                        onChange={(e) => setNewListPrice(e.target.value)}
-                        />*/}
-                    </DialogContent>
-                    {selectedMintAvailableAmount > 0 &&
-                        <DialogActions>
-                            
-                            
-                            <Button color="success" onClick={handleAdvancedDepositVotesToGovernance}
-                                sx={{borderRadius:'17px'}}
-                                disabled={
-                                    (newDepositAmount <= (selectedMintAvailableAmount/10**decimals)) ? false : true
-                                }
-                            ><LoginIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
-                            {/*
-                            <ButtonGroup>
-                                <Button color="success" onClick={handleAdvancedDepositVotesToGovernance}
-                                    sx={{borderTopLeftRadius:'17px',borderBottomLeftRadius:'17px'}}
-                                    disabled={
-                                        newDepositAmount ? false : true
-                                    }
-                                ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit</Button>
-                                <Button color="success" onClick={handleAdvancedDepositMaxVotesToGovernance}
-                                    sx={{borderTopRightRadius:'17px',borderBottomRightRadius:'17px'}}
-                                ><DownloadIcon fontSize='inherit' sx={{mr:1}}/> Deposit Max</Button>
-                            </ButtonGroup>
-                            */}
-                        </DialogActions>
-                    }
-                </Dialog>
-            </>
+                                <Grid item>
+                                <Typography variant="h6">{afterDeposit}</Typography>
+                                </Grid>
+                            </Grid>
+                            <Typography color="text.secondary" variant="body2">
+                                Estimated voting power after this deposit
+                            </Typography>
+                            </Box>
+                            <Divider variant="middle" />
+                        </>
+                        )}
 
-        )
+                        <Box sx={{ mt: hasAvailable ? 2 : 0 }}>
+                        <Grid container alignItems="center">
+                            <Grid item xs>
+                            <Typography variant="subtitle2">Deposited</Typography>
+                            </Grid>
+                            <Grid item>
+                            <Typography variant="body1">{deposited}</Typography>
+                            </Grid>
+                        </Grid>
+                        <Typography color="text.secondary" variant="caption">
+                            Your current voting power
+                            <Tooltip title="Withdraw">
+                            <IconButton
+                                aria-label="Withdraw"
+                                color="inherit"
+                                onClick={isCouncil ? handleWithdrawCouncilMax : handleWithdrawCommunityMax}
+                                sx={{ ml: 1 }}
+                                size="small"
+                            >
+                                <LogoutIcon fontSize="inherit" />
+                            </IconButton>
+                            </Tooltip>
+                        </Typography>
+                        </Box>
+
+                        {hasAvailable && (
+                        <Box sx={{ mt: 2 }}>
+                            <Grid container alignItems="center">
+                            <Grid item xs>
+                                <Typography variant="subtitle2">In Wallet</Typography>
+                            </Grid>
+                            <Grid item>
+                                <Typography variant="body1">{inWallet}</Typography>
+                            </Grid>
+                            </Grid>
+                            <Typography color="text.secondary" variant="caption">
+                            Undeposited voting power available in your wallet
+                            </Typography>
+                        </Box>
+                        )}
+
+                        <Box sx={{ mt: 2 }}>
+                        <Grid container justifyContent="flex-end" alignItems="center">
+                            <Grid item>
+                            <ExplorerView
+                                address={selectedMintAddress}
+                                title={`Governing Mint ${selectedMintName ? selectedMintName : `${selectedMintAddress.slice(0, 3)}...${selectedMintAddress.slice(-3)}`}`}
+                                type="address" shorten={8} hideTitle={false} style="text" color="white" fontSize="14px"
+                                showTokenMetadata={true}
+                            />
+                            </Grid>
+                        </Grid>
+                        </Box>
+                    </Box>
+
+                    {/* Delegation card */}
+                    <Box sx={sectionSX}>
+                        <Box>
+                        <Grid container alignItems="center" spacing={1}>
+                            <Grid item xs>
+                            <Typography variant="h6">Delegation</Typography>
+                            </Grid>
+                            <Grid item>
+                            <OutlinedInput
+                                size="small"
+                                sx={{ borderRadius: '14px' }}
+                                placeholder="Delegate address"
+                                onChange={handleSetDelegateStr}
+                                endAdornment={
+                                <InputAdornment position="end">
+                                    <IconButton
+                                    aria-label="Save Delegate"
+                                    onClick={handleClickSetDelegate}
+                                    edge="end"
+                                    color="success"
+                                    disabled={
+                                        !delegatedStr ||
+                                        delegatedStr === publicKey.toBase58() ||
+                                        (!isCouncil && currentCommunityDelegate === delegatedStr) ||
+                                        (isCouncil && currentCouncilDelegate === delegatedStr)
+                                    }
+                                    >
+                                    <SaveIcon />
+                                    </IconButton>
+                                </InputAdornment>
+                                }
+                            />
+                            </Grid>
+                        </Grid>
+
+                        <Box sx={{ mt: 1 }}>
+                            { (isCouncil ? currentCouncilDelegate : currentCommunityDelegate) ? (
+                            <Grid container alignItems="center" spacing={1}>
+                                <Grid item>
+                                <ExplorerView 
+                                    address={isCouncil ? currentCouncilDelegate : currentCommunityDelegate} 
+                                    title={isCouncil ? `You delegate to: ${currentCouncilDelegate.slice(0, 4)}...${currentCouncilDelegate.slice(-4)}` :
+                                            `You delegate to: ${currentCommunityDelegate.slice(0, 4)}...${currentCommunityDelegate.slice(-4)}`} 
+                                    type='address' shorten={8} hideTitle={false} style='text' color='white' fontSize='10px' /> 
+                                </Grid>
+                                <Grid item>
+                                <Button
+                                    size="small"
+                                    color="error"
+                                    variant="outlined"
+                                    onClick={handleClickRemoveDelegate}
+                                    startIcon={<CancelIcon sx={{ fontSize: 14 }} />}
+                                    sx={{ borderRadius: "12px", textTransform: "none" }}
+                                >
+                                    Remove
+                                </Button>
+                                </Grid>
+                            </Grid>
+                            ) : (
+                            <Typography variant="caption" color="text.secondary">
+                                Delegate your voting power to another wallet
+                            </Typography>
+                            )}
+                        </Box>
+                        </Box>
+                    </Box>
+
+                    {/* Incoming delegations */}
+                    {currentCommunityDelegateFrom && !isCouncil && (
+                        <Box sx={sectionSX}>
+                        <Typography variant="subtitle1" gutterBottom>Incoming Delegations — Community</Typography>
+                        <Typography color="text.secondary" variant="body2">
+                            <ExplorerView 
+                                address={currentCommunityDelegateFrom} 
+                                title={`${fmt(currentCommunityDelegateFromAmount, decimals)} — from: ${currentCommunityDelegateFrom.slice(0, 4)}...${currentCommunityDelegateFrom.slice(-4)}`}
+                                type="address" shorten={4} style="text" color="white" fontSize="14px" />
+                        </Typography>
+                        </Box>
+                    )}
+                    {currentCouncilDelegateFrom && isCouncil && (
+                        <Box sx={sectionSX}>
+                        <Typography variant="subtitle1" gutterBottom>Incoming Delegations — Council</Typography>
+                        <Typography color="text.secondary" variant="body2">
+                            <ExplorerView 
+                                address={currentCouncilDelegateFrom} 
+                                title={`${fmt(currentCouncilDelegateFromAmount, decimals)} — from: ${currentCouncilDelegateFrom.slice(0, 4)}...${currentCouncilDelegateFrom.slice(-4)}`}
+                                type="address" shorten={4} style="text" color="white" fontSize="14px" />
+                        </Typography>
+                        </Box>
+                    )}
+                    </Grid>
+                </DialogContentText>
+
+                {hasAvailable && (
+                    <RegexTextField
+                    regex={/[^0-9]+\.?[^0-9]/gi}
+                    autoFocus
+                    autoComplete="off"
+                    margin="dense"
+                    id="preview_deposit_id"
+                    label="Amount to deposit"
+                    type="text"
+                    fullWidth
+                    variant="standard"
+                    value={newDepositAmount}
+                    defaultValue={Number(selectedMintAvailableAmount)/Math.pow(10, decimals)}
+                    helperText={
+                        <Grid sx={{ textAlign:'right' }}>
+                        <Typography variant="caption" color="info">
+                            <Button
+                            variant="text" size="small"
+                            onClick={() => setNewDepositAmount(Number(selectedMintAvailableAmount)/Math.pow(10, decimals))}
+                            sx={{ borderRadius:'14px' }}
+                            >
+                            Max
+                            </Button>
+                        </Typography>
+                        </Grid>
+                    }
+                    onChange={(e: any) => setNewDepositAmount(Number(e.target.value || 0))}
+                    inputProps={{ style: { textAlign:'center', fontSize: 32 } }}
+                    />
+                )}
+                </DialogContent>
+
+                {hasAvailable && (
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button
+                    color="success"
+                    onClick={handleAdvancedDepositVotesToGovernance}
+                    sx={{ borderRadius:'14px', textTransform: 'none' }}
+                    disabled={Number(newDepositAmount) <= 0 || Number(newDepositAmount) > (Number(selectedMintAvailableAmount)/Math.pow(10, decimals))}
+                    >
+                    <LoginIcon sx={{ mr:1 }} /> Deposit
+                    </Button>
+                    {/* If you want a 1-click max: */}
+                    {/* <Button color="success" variant="outlined" onClick={handleAdvancedDepositMaxVotesToGovernance} sx={{ borderRadius:'14px', textTransform:'none' }}>
+                    Deposit Max
+                    </Button> */}
+                </DialogActions>
+                )}
+            </Dialog>
+            </>
+        );
     }
 
     return(

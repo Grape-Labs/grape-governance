@@ -41,7 +41,6 @@ export default function CreateGistWithOAuth({ onGistCreated, buttonLabel = '+ Gi
       return;
     }
 
-
     const res = await fetch('/api/github-device-code', { method: 'POST' });
     const data = await res.json();
 

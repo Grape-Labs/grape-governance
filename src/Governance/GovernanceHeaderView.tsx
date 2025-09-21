@@ -32,6 +32,11 @@ import XIcon from '@mui/icons-material/X';
 import LanguageIcon from '@mui/icons-material/Language';
 import DiscordIcon from '../components/static/DiscordIcon';
 
+import { 
+    GRAPE_LOGO } from '../utils/grapeTools/constants';
+    
+import { toRealmsV2Image } from '../utils/grapeTools/utils';
+
 export function GovernanceHeaderView(props: any) {
     const { governanceName, governanceAddress, gsplMetadata } = props;
     
@@ -70,12 +75,20 @@ export function GovernanceHeaderView(props: any) {
                                 {gsplMetadata?.metadata?.ogImage && !gsplMetadata.metadata.ogImage.endsWith("/") && (
                                     <Grid item>
                                         <Avatar 
-                                            src={gsplMetadata.metadata.ogImage.startsWith("http") ? gsplMetadata.metadata.ogImage : `https://realms.today${gsplMetadata.metadata.ogImage}`} 
-                                            alt={gsplMetadata.metadata.displayName || governanceName}
+                                            src={
+                                                gsplMetadata.metadata?.ogImage === "/realms/Grape/img/grape.png"
+                                                ? GRAPE_LOGO
+                                                : toRealmsV2Image(
+                                                    gsplMetadata.metadata?.ogImage?.startsWith("http")
+                                                        ? gsplMetadata.metadata.ogImage
+                                                        : `https://realms.today${gsplMetadata.metadata?.ogImage}`
+                                                    )
+                                            }
+                                            alt={gsplMetadata.metadata?.displayName || governanceName}
                                             sx={{
-                                                width: 40, // Small and consistent
-                                                height: 40, // Small and consistent
-                                                boxShadow: "0px 4px 10px rgba(0,0,0,0.3)" // Subtle shadow effect
+                                                width: 40,
+                                                height: 40,
+                                                boxShadow: "0px 4px 10px rgba(0,0,0,0.3)"
                                             }}
                                         />
                                     </Grid>
@@ -99,7 +112,7 @@ export function GovernanceHeaderView(props: any) {
                                                             Verified Governance 
                                                         </Typography>
                                                         <Typography variant="subtitle2">
-                                                            {gsplMetadata.metadata.displayName || governanceName} GSPL Metadata
+                                                            {gsplMetadata.metadata?.displayName || governanceName} GSPL Metadata
                                                         </Typography>
                                                         <pre style={{ margin: 0, fontSize: '0.65rem', lineHeight: '1', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                                                             {JSON.stringify(gsplMetadata, null, 2)}

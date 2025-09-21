@@ -29,7 +29,11 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { Link } from "react-router-dom";
 
-import { RPC_CONNECTION, SHYFT_KEY } from '../utils/grapeTools/constants';
+import { RPC_CONNECTION, 
+    SHYFT_KEY,
+    GRAPE_LOGO } from '../utils/grapeTools/constants';
+
+import { toRealmsV2Image } from '../utils/grapeTools/utils';
 
 function GovernanceParticipationView(props: any) {
     const pubkey = props.pubkey;
@@ -216,7 +220,24 @@ const DAOItem = ({ name, governanceAddress, logoUrl, balance, hasMetadata }) => 
             >
                 <CardActionArea component={Link} to={'/dao/' + governanceAddress}>
                     <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                        <Avatar src={logoUrl} alt={name} sx={{ width: 40, height: 40 }} />
+                        <Avatar 
+                            src={
+                                logoUrl === "/realms/Grape/img/grape.png"
+                                ? GRAPE_LOGO
+                                : toRealmsV2Image(
+                                    logoUrl?.startsWith("http")
+                                        ? logoUrl
+                                        : `https://realms.today${logoUrl}`
+                                    )
+                            }
+                            alt={name}
+                            sx={{
+                                width: 40,
+                                height: 40,
+                                boxShadow: "0px 4px 10px rgba(0,0,0,0.3)"
+                            }}
+                        />
+                        
                         <Typography variant="body2">{name}</Typography>
                         {hasMetadata && 
                             <Tooltip title="Governance Verified">
