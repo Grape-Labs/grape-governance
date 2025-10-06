@@ -273,7 +273,9 @@ export async function getJupiterPrices(tokens:string[], vsToken?:string, strict?
   const resp = await window.fetch(finalUrl, {
   })
   const json = await resp.json(); 
-  return json.data;
+  if (json?.data)
+    return json.data;
+  return json;
 }
 
 export async function getCoinGeckoPrices(tokens:string[]) {
