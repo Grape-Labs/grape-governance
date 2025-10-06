@@ -592,7 +592,7 @@ function TablePaginationActions(props) {
                         } else if (url.hostname.includes("gitbook.io")){
                             setGitBook(tGist);
                         } else if (url.hostname.includes("gateway.irys.xyz")){
-                            setIrys(tGist);
+                            setIrys(url);
                         }
                 } else{ // check if it contains a partial <text />
                     
@@ -612,7 +612,7 @@ function TablePaginationActions(props) {
         const isLocalhost =
             typeof window !== 'undefined' &&
             (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-            
+
         return (
             <>
                 
@@ -756,14 +756,16 @@ function TablePaginationActions(props) {
                                                             </Box>
                                                             </Box>
                                                         ) : irys ? (
-                                                            <iframe
-                                                                src={irys}
-                                                                title="Irys Content"
-                                                                style={{ width: '100%', minHeight: 500, border: 'none' }}
-                                                                loading="lazy"
-                                                                referrerPolicy="no-referrer"
-                                                                sandbox="allow-same-origin allow-scripts allow-popups"
-                                                            />
+                                                            <>
+                                                                <iframe
+                                                                    src={irys.toString()}
+                                                                    title="Irys Content"
+                                                                    style={{ width: '100%', minHeight: 500, border: 'none' }}
+                                                                    loading="lazy"
+                                                                    referrerPolicy="no-referrer"
+                                                                    sandbox="allow-same-origin allow-scripts allow-popups"
+                                                                />
+                                                            </>
                                                         ) : description ? (
                                                             <>
                                                             <Typography variant="body1" color="gray" sx={{ display: 'flex', alignItems: 'center' }}>
@@ -783,8 +785,6 @@ function TablePaginationActions(props) {
                                                         )}
                                                     </Grid>
                                                 </Grid>
-
-                                                {irys} HERE!!!
                                                 
                                                 <Divider orientation="vertical" flexItem
                                                     sx={{
