@@ -1992,7 +1992,21 @@ export default function WalletCardView(props:any) {
                                                                                     {...props}
                                                                                     style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
                                                                                 />
-                                                                                ),
+                                                                                ),a: ({ node, ...props }) => {
+                                                                                    const href = props.href || '';
+                                                                                    const safe = /^(https?:|mailto:|tel:|#)/i.test(href);
+                                                                                    return (
+                                                                                        <a
+                                                                                        {...props}
+                                                                                        href={safe ? href : undefined} // block javascript: etc
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        style={{ color: '#1976d2', textDecoration: 'underline' }}
+                                                                                        >
+                                                                                        {props.children}
+                                                                                        </a>
+                                                                                    );
+                                                                                },
                                                                             }}
                                                                         />
                                                                     ) : (

@@ -703,14 +703,29 @@ function TablePaginationActions(props) {
                                                                     <ReactMarkdown
                                                                         remarkPlugins={[[remarkGfm, { singleTilde: false }]]}
                                                                         components={{
-                                                                        img: (props) => (
-                                                                            <img
-                                                                            {...props}
-                                                                            style={{ maxWidth: '100%', height: 'auto' }}
-                                                                            loading="lazy"
-                                                                            alt={props.alt || ''}
-                                                                            />
-                                                                        ),
+                                                                            img: (props) => (
+                                                                                <img
+                                                                                {...props}
+                                                                                style={{ maxWidth: '100%', height: 'auto' }}
+                                                                                loading="lazy"
+                                                                                alt={props.alt || ''}
+                                                                                />
+                                                                            ),
+                                                                            a: ({ node, ...props }) => {
+                                                                                const href = props.href || '';
+                                                                                const safe = /^(https?:|mailto:|tel:|#)/i.test(href);
+                                                                                return (
+                                                                                    <a
+                                                                                    {...props}
+                                                                                    href={safe ? href : undefined} // block javascript: etc
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                    style={{ color: '#1976d2', textDecoration: 'underline' }}
+                                                                                    >
+                                                                                    {props.children}
+                                                                                    </a>
+                                                                                );
+                                                                            },
                                                                         }}
                                                                     >
                                                                         {descriptionMarkdown || ''}
