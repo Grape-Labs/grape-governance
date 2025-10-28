@@ -263,7 +263,7 @@ export async function getJupiterPrices(tokens:string[], vsToken?:string, strict?
   // Remove duplicates by converting to a Set and back to an array
   finalTokenList = [...new Set(finalTokenList)];
   
-  let apiUrl = "https://lite-api.jup.ag/price/v2?ids=";
+  let apiUrl = "https://lite-api.jup.ag/price/v3?ids=";
   //let apiUrl = "https://api.jup.ag/price/v2?ids=";
   //let apiUrl = "https://price.jup.ag/v4/price?ids=";
   
@@ -273,7 +273,9 @@ export async function getJupiterPrices(tokens:string[], vsToken?:string, strict?
   const resp = await window.fetch(finalUrl, {
   })
   const json = await resp.json(); 
-  return json.data;
+  if (json?.data)
+    return json.data;
+  return json;
 }
 
 export async function getCoinGeckoPrices(tokens:string[]) {

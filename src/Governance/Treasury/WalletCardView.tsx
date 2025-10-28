@@ -1082,7 +1082,7 @@ export default function WalletCardView(props:any) {
                                             <Typography variant="caption" sx={{color:'#919EAB'}}>
                                             {usdcValue ? 
                                                 <>{usdcValue['So11111111111111111111111111111111111111112'] ? 
-                                                    <>${(((item.total_amount) * usdcValue['So11111111111111111111111111111111111111112']?.price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
+                                                    <>${(((item.total_amount) * usdcValue['So11111111111111111111111111111111111111112']?.usdPrice).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
                                                     :<></>
                                                 }</>
                                             :<></>}</Typography>
@@ -1158,14 +1158,14 @@ export default function WalletCardView(props:any) {
             let tokenStableAccountVal = 0;
             let tokenAccountVal = 0;
             let stakeAccountVal = 0;
-            let solAccountVal = usdcValue['So11111111111111111111111111111111111111112']?.price ? usdcValue['So11111111111111111111111111111111111111112']?.price*(+nativeSol + +rulesSol) : 0;
+            let solAccountVal = usdcValue['So11111111111111111111111111111111111111112']?.usdPrice ? usdcValue['So11111111111111111111111111111111111111112']?.usdPrice*(+nativeSol + +rulesSol) : 0;
             //alert(usdcValue['So11111111111111111111111111111111111111112'].price + " " +(+nativeSol + +rulesSol));
             totalVal += solAccountVal;
             
             if (nativeTokens){
                 for (let item of nativeTokens){
                     if (usdcValue[item.address]){
-                        tokenAccountVal += usdcValue[item.address].price * item.balance;
+                        tokenAccountVal += usdcValue[item.address].usdPrice * item.balance;
                     }
 
                     if (item.address === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ||
@@ -1173,15 +1173,15 @@ export default function WalletCardView(props:any) {
                         item.address === "BQcdHdAQW1hczDbBi9hiegXAR7A98Q9jx3X3iBBBDiq4" ||
                         item.address === "D3KdBta3p53RV5FoahnJM5tP45h6Fd3AyFYgXTJvGCaK" ||
                         item.address === "Ea5SjE2Y6yvCeW5dYTn7PYMuW5ikXkvbGdcmSnXeaLjS"){
-                            if (usdcValue[item.address] && usdcValue[item.address]?.price)
-                                tokenStableAccountVal += usdcValue[item.address].price * item.balance;
+                            if (usdcValue[item.address] && usdcValue[item.address]?.usdPrice)
+                                tokenStableAccountVal += usdcValue[item.address].usdPrice * item.balance;
                     }
                 }
             }
             if (rulesTokens){
                 for (let item of rulesTokens){
                     if (usdcValue[item.address]){
-                        tokenAccountVal += usdcValue[item.address].price * item.balance;
+                        tokenAccountVal += usdcValue[item.address].usdPrice * item.balance;
                     }
 
                     if (item.address === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ||
@@ -1189,8 +1189,8 @@ export default function WalletCardView(props:any) {
                         item.address === "BQcdHdAQW1hczDbBi9hiegXAR7A98Q9jx3X3iBBBDiq4" ||
                         item.address === "D3KdBta3p53RV5FoahnJM5tP45h6Fd3AyFYgXTJvGCaK" ||
                         item.address === "Ea5SjE2Y6yvCeW5dYTn7PYMuW5ikXkvbGdcmSnXeaLjS"){
-                            if (usdcValue[item.address] && usdcValue[item.address]?.price)
-                                tokenStableAccountVal += usdcValue[item.address].price * item.balance;
+                            if (usdcValue[item.address] && usdcValue[item.address]?.usdPrice)
+                                tokenStableAccountVal += usdcValue[item.address].usdPrice * item.balance;
                     }
                 }
             }
@@ -1198,12 +1198,12 @@ export default function WalletCardView(props:any) {
 
             if (nativeStakeAccounts){
                 for (let item of nativeStakeAccounts){
-                    stakeAccountVal += item.total_amount * usdcValue['So11111111111111111111111111111111111111112']?.price
+                    stakeAccountVal += item.total_amount * usdcValue['So11111111111111111111111111111111111111112']?.usdPrice
                 }
             } 
             if (rulesStakeAccounts){
                 for (let item of rulesStakeAccounts){
-                    stakeAccountVal += item.total_amount * usdcValue['So11111111111111111111111111111111111111112']?.price
+                    stakeAccountVal += item.total_amount * usdcValue['So11111111111111111111111111111111111111112']?.usdPrice
                 }
             } 
 
@@ -1992,7 +1992,21 @@ export default function WalletCardView(props:any) {
                                                                                     {...props}
                                                                                     style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
                                                                                 />
-                                                                                ),
+                                                                                ),a: ({ node, ...props }) => {
+                                                                                    const href = props.href || '';
+                                                                                    const safe = /^(https?:|mailto:|tel:|#)/i.test(href);
+                                                                                    return (
+                                                                                        <a
+                                                                                        {...props}
+                                                                                        href={safe ? href : undefined} // block javascript: etc
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        style={{ color: '#1976d2', textDecoration: 'underline' }}
+                                                                                        >
+                                                                                        {props.children}
+                                                                                        </a>
+                                                                                    );
+                                                                                },
                                                                             }}
                                                                         />
                                                                     ) : (
@@ -2610,7 +2624,7 @@ export default function WalletCardView(props:any) {
                                         <Typography variant="caption" sx={{color:'#919EAB'}}>
                                             {usdcValue ? 
                                                 <>{usdcValue['So11111111111111111111111111111111111111112'] ? 
-                                                    <>${(((nativeSol+rulesSol) * usdcValue['So11111111111111111111111111111111111111112']?.price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
+                                                    <>${(((nativeSol+rulesSol) * usdcValue['So11111111111111111111111111111111111111112']?.usdPrice).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
                                                     :<></>
                                                 }</>
                                             :<></>}</Typography>
@@ -2654,8 +2668,8 @@ export default function WalletCardView(props:any) {
                                     secondary={
                                         <Typography variant="caption">
                                             {
-                                                usdcValue && usdcValue['So11111111111111111111111111111111111111112']?.price 
-                                                ? `$${Number(usdcValue['So11111111111111111111111111111111111111112'].price).toFixed(2)}`
+                                                usdcValue && usdcValue['So11111111111111111111111111111111111111112']?.usdPrice 
+                                                ? `$${Number(usdcValue['So11111111111111111111111111111111111111112'].usdPrice).toFixed(2)}`
                                                 : 'N/A' // Fallback in case price is undefined or not a number
                                             }
                                         </Typography>
@@ -2862,8 +2876,8 @@ export default function WalletCardView(props:any) {
                         {nativeTokens && nativeTokens
                             //.sort((a:any,b:any) => (b.balance - a.balance))
                             .sort((a, b) => {
-                                const priceA = usdcValue[a.address]?.price;
-                                const priceB = usdcValue[b.address]?.price;
+                                const priceA = usdcValue[a.address]?.usdPrice;
+                                const priceB = usdcValue[b.address]?.usdPrice;
                                 
                                 if (priceA !== undefined && priceB !== undefined) {
                                     return (b.balance * priceB) - (a.balance * priceA);
@@ -2934,7 +2948,7 @@ export default function WalletCardView(props:any) {
                                                 <Typography variant="caption" sx={{color:'#919EAB'}}>
                                                 {usdcValue ? 
                                                     <>{usdcValue[item.address] ? 
-                                                        <>${((item.balance * usdcValue[item.address]?.price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
+                                                        <>${((item.balance * usdcValue[item.address]?.usdPrice).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
                                                         :<></>
                                                     }</>
                                                 :<></>}</Typography>
@@ -2979,8 +2993,8 @@ export default function WalletCardView(props:any) {
                                             secondary={
                                                 <>
                                                     <Typography variant="caption">
-                                                        {usdcValue && usdcValue[item.address]?.price !== undefined && !isNaN(usdcValue[item.address]?.price) ? (
-                                                            <>${Number(usdcValue[item.address]?.price).toFixed(6)}</>
+                                                        {usdcValue && usdcValue[item.address]?.usdPrice !== undefined && !isNaN(usdcValue[item.address]?.usdPrice) ? (
+                                                            <>${Number(usdcValue[item.address]?.usdPrice).toFixed(6)}</>
                                                         ) : (
                                                             <></>
                                                         )}
@@ -3012,8 +3026,8 @@ export default function WalletCardView(props:any) {
                         {rulesTokens && rulesTokens
                             //.sort((a:any,b:any) => (b.balance - a.balance))
                             .sort((a, b) => {
-                                const priceA = usdcValue[a.address]?.price;
-                                const priceB = usdcValue[b.address]?.price;
+                                const priceA = usdcValue[a.address]?.usdPrice;
+                                const priceB = usdcValue[b.address]?.usdPrice;
                                 
                                 if (priceA !== undefined && priceB !== undefined) {
                                     return (b.balance * priceB) - (a.balance * priceA);
@@ -3080,7 +3094,7 @@ export default function WalletCardView(props:any) {
                                             <Typography variant="caption" sx={{color:'#919EAB'}}>
                                             {usdcValue ? 
                                                 <>{usdcValue[item.address] ? 
-                                                    <>${((item.balance * usdcValue[item.address]?.price).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
+                                                    <>${((item.balance * usdcValue[item.address]?.usdPrice).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','))}</>
                                                     :<></>
                                                 }</>
                                             :<></>}</Typography>
@@ -3125,8 +3139,8 @@ export default function WalletCardView(props:any) {
                                         secondary={
                                             <>
                                                 <Typography variant="caption">
-                                                    {usdcValue && usdcValue[item.address]?.price !== undefined && !isNaN(usdcValue[item.address]?.price) ? (
-                                                        <>${Number(usdcValue[item.address]?.price).toFixed(6)}</>
+                                                    {usdcValue && usdcValue[item.address]?.usdPrice !== undefined && !isNaN(usdcValue[item.address]?.usdPrice) ? (
+                                                        <>${Number(usdcValue[item.address]?.usdPrice).toFixed(6)}</>
                                                     ) : (
                                                         <></>
                                                     )}

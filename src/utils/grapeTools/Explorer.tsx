@@ -376,15 +376,18 @@ export default function ExplorerView(props:any){
     }
 
     const fetchSolanaDomain = async () => {
+        
         console.log("fetching tryGetName: "+address);
         setTwitterRegistration(null);
         setHasSolanaDomain(false);
         let found_cardinal = false;
+        /*
         //const cardinalResolver = new CardinalTwitterIdentityResolver(ggoconnection);
         try{
             //const cardinal_registration = await cardinalResolver.resolve(new PublicKey(address));
             //const identity = await cardinalResolver.resolveReverse(address);
             //console.log("identity "+JSON.stringify(cardinal_registration))
+            
             
             const cardinal_registration = await tryGetName(
                 connection, 
@@ -405,10 +408,12 @@ export default function ExplorerView(props:any){
                     setHasProfilePicture(true);
                 }
             }
+            
         }catch(e){
             console.log("ERR: "+e);
         }
-
+        */
+        
         if (!found_cardinal){
             const domain = await findDisplayName(connection, address);
             if (domain) {

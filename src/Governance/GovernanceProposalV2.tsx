@@ -216,6 +216,7 @@ export function GovernanceProposalV2View(props: any){
     const [gist, setGist] = React.useState(null);
     const [gDocs, setGoogleDocs] = React.useState(null);
     const [gitBook, setGitBook] = React.useState(null);
+    const [irys, setIrys] = React.useState(null);
     const [proposalDescription, setProposalDescription] = React.useState(null);
     const [thisGovernance, setThisGovernance] = React.useState(null);
     const [proposalAuthor, setProposalAuthor] = React.useState(null);
@@ -2196,6 +2197,8 @@ export function GovernanceProposalV2View(props: any){
                     setGoogleDocs(tGist);
                 } else if (url.hostname.includes("gitbook.io")){
                     setGitBook(tGist);
+                } else if (url.hostname.includes("gateway.irys.xyz")){
+                    setIrys(tGist);
                 }
             }
         } catch(e){
@@ -3132,7 +3135,21 @@ export function GovernanceProposalV2View(props: any){
                                                                                 {...props}
                                                                                 style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
                                                                             />
-                                                                        ),
+                                                                        ),a: ({ node, ...props }) => {
+                                                                            const href = props.href || '';
+                                                                            const safe = /^(https?:|mailto:|tel:|#)/i.test(href);
+                                                                            return (
+                                                                                <a
+                                                                                {...props}
+                                                                                href={safe ? href : undefined} // block javascript: etc
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                style={{ color: '#1976d2', textDecoration: 'underline' }}
+                                                                                >
+                                                                                {props.children}
+                                                                                </a>
+                                                                            );
+                                                                        },
                                                                     }}
                                                                 />
                                                             ) : (
