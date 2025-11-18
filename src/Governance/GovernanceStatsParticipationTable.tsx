@@ -70,11 +70,18 @@ export default function ParticipationStatsTable({ proposals, members, participan
     const startSec = start ? Math.floor(start.getTime() / 1000) : null;
     const endSec = end ? Math.floor(end.getTime() / 1000) : null;
 
-    const filteredProposals = proposals.filter((p) => {
-        const ts = p.account.votingAt?.toNumber?.() || 0;
-        return (!startSec || ts >= startSec) && (!endSec || ts <= endSec);
-    });
+    const getVotingAtSeconds = (p: any) => {
+      const v = p?.account?.votingAt;
+      if (!v) return 0;
+      if (typeof v === 'number') return v;
+      if (typeof v.toNumber === 'function') return v.toNumber();
+      return 0;
+    };
 
+    const filteredProposals = proposals.filter((p) => {
+      const ts = getVotingAtSeconds(p);
+      return (!startSec || ts >= startSec) && (!endSec || ts <= endSec);
+    });
     const activeProposalIds = filteredProposals.map(p => p.pubkey.toBase58());
     const activeProposalCount = activeProposalIds.length;
 
@@ -130,47 +137,46 @@ export default function ParticipationStatsTable({ proposals, members, participan
     */
 
     const updated = participantArray
-        .map((p) => {
-            const filteredVotes = p.voteHistory.filter(v => {
-                const ts = v.draftAt || 0;
-                return (!startSec || ts >= startSec) && (!endSec || ts <= endSec);
-            });
+  .map((p) => {
+    const filteredVotes = p.voteHistory.filter(v => {
+      const ts = v.draftAt || 0;
+      return (!startSec || ts >= startSec) && (!endSec || ts <= endSec);
+    });
 
-            const participationPercent = filteredVotes.length > 0
-                ? Math.round((filteredVotes.length / proposals.length) * 100)
-                : 0;
+    const approve = filteredVotes.filter(v => v.voteType === 0).length;
+    const deny    = filteredVotes.filter(v => v.voteType === 1).length;
+    const abstain = filteredVotes.filter(v => v.voteType === 2).length;
 
-            const allTimestamps = p.voteHistory.map(v => v.draftAt).filter(Boolean);
-            const firstParticipation = allTimestamps.length ? Math.min(...allTimestamps) : null;
-            const lastParticipation = allTimestamps.length ? Math.max(...allTimestamps) : null;
+    // Use proposals in RANGE as denominator, not all proposals
+    const proposalsInRangeCount = filteredProposals.length || 1;
+    const participationPercent = filteredVotes.length > 0
+      ? Math.round((filteredVotes.length / proposalsInRangeCount) * 100)
+      : 0;
 
-            // Count vote types in-range
-            const approve = filteredVotes.filter(v => v.voteType === 0).length;
-            const deny = filteredVotes.filter(v => v.voteType === 1).length;
-            const abstain = filteredVotes.filter(v => v.voteType === 2).length;
+    // “global” first/last for context (all time)
+    const allTimestamps = p.voteHistory.map(v => v.draftAt).filter(Boolean);
+    const firstParticipation = allTimestamps.length ? Math.min(...allTimestamps) : null;
+    const lastParticipation  = allTimestamps.length ? Math.max(...allTimestamps) : null;
 
-            return {
-                ...p,
-                voteStats: {
-                    ...p.voteStats,
-                    participationPercent,
-                    filteredVotes: filteredVotes.length,
-                    approve,
-                    deny,
-                    abstain
-                },
-                proposalCreatedCount: proposalsCreatedInRangeByWallet[p.wallet] || 0,
-                firstParticipation,
-                lastParticipation,
-            };
-        })
-        .filter((p) => {
-            const lastTs = p.lastParticipation;
-            return (!startSec && !endSec) ||
-                (!startSec && endSec && lastTs <= endSec) ||
-                (startSec && !endSec && lastTs >= startSec) ||
-                (startSec && endSec && lastTs >= startSec && lastTs <= endSec);
-        });
+    return {
+      ...p,
+      voteStats: {
+        ...p.voteStats,
+        participationPercent,
+        filteredVotes: filteredVotes.length,
+        approve,
+        deny,
+        abstain,
+      },
+      proposalCreatedCount: proposalsCreatedInRangeByWallet[p.wallet] || 0,
+      firstParticipation,
+      lastParticipation,
+    };
+  })
+  // ✅ Only show participants that actually did something in this range
+  .filter((p) => {
+    return p.voteStats.filteredVotes > 0 || p.proposalCreatedCount > 0;
+  });
 
     setRows(updated);
     setCsvText(generateCSV(updated));
