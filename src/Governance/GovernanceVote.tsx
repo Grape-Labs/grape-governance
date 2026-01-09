@@ -856,8 +856,8 @@ export function VoteForProposal(props:any){
         });
     }
     };
-    }
 
+    
     const loadMemberMap = async() => {
         
         const rawTokenOwnerRecords = await getTokenOwnerRecordsByRealmIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null, publicKey.toBase58());
