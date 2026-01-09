@@ -572,7 +572,6 @@ export function VoteForProposal(props:any){
     // - Uses simulateTransaction for actionable logs
     // - Uses the SAME blockhash for send+confirm per tx (important!)
     // - Fixes memberItem mint comparison bug
-
     const handleVote = async (
     type: Number,
     delegate?: string,
