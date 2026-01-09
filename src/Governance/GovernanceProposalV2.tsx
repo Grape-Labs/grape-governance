@@ -1036,8 +1036,12 @@ export function GovernanceProposalV2View(props: any){
                                     const n = Number(s);
                                     return n.toLocaleString(undefined, { minimumFractionDigits: minFrac, maximumFractionDigits: maxFrac });
                                 };
-
-                                const shortPk = (pk: string) => `${pk.slice(0, 4)}…${pk.slice(-4)}`;
+                                
+                                const shortPk = (pk?: unknown): string => {
+                                    if (typeof pk !== 'string') return '—';
+                                    if (pk.length <= 8) return pk;
+                                    return `${pk.slice(0, 4)}…${pk.slice(-4)}`;
+                                };
 
                                 for (var accountInstruction of instructionItem.account.instructions){
                                     //if (instructionItem?.account?.instructions[0].data && instructionItem.account.instructions[0].data.length > 0){
