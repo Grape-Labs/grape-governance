@@ -566,219 +566,297 @@ export function VoteForProposal(props:any){
         }
     }
 
-    const handleVote = async (type: Number, delegate?: string, withOwnerRecord?:boolean, withAllDelegates?:boolean) => {
-        
-        if (!isBlacklisted){
-            const wOwner = withOwnerRecord ? true : false;
-            const wAllDelegates = withAllDelegates ? true : false;
-            setAnchorElYes(false);
-            setAnchorElNo(false);
-            
-            const programId = new PublicKey(realm.owner);
-            
-            let rawTokenOwnerRecords = null;
-            
-            if (memberMap){
-                rawTokenOwnerRecords = memberMap;
-            } else{
-                rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null, publicKey.toBase58());
-                //rawTokenOwnerRecords = await getAllTokenOwnerRecords(RPC_CONNECTION, programId, new PublicKey(realm.pubkey))
-            }
-
-            //console.log("rawTokenOwnerRecords: "+JSON.stringify(rawTokenOwnerRecords))
-            // 6R78nYux2yVDtNBd8CBXojRtgkSmRvECvQsAtZMkcDWM
-            
-            let memberItem = voterRecord || rawTokenOwnerRecords.find(item => 
-                (item.account.governingTokenOwner.toBase58() === publicKey.toBase58() && 
-                item.account.governingTokenMint.toBase58() === thisitem));
-            
-            
-            let delegatedItems = delegatedVoterRecord || rawTokenOwnerRecords.filter(item => 
-                (item.account?.governanceDelegate?.toBase58() === publicKey.toBase58() && 
-                item.account.governingTokenMint.toBase58() === thisitem.account.governingTokenMint.toBase58()));
-            
-            console.log("delegatedItems: "+JSON.stringify(delegatedItems))
-            
-            //console.log("tokenOwnerRecord: "+JSON.stringify(thisitem.account.tokenOwnerRecord));
-            
-            const proposal = {
-                governanceId: thisitem.account.governance,
-                proposalId: thisitem.pubkey,
-                tokenOwnerRecord: thisitem.account.tokenOwnerRecord,
-                governingTokenMint: thisitem.account.governingTokenMint
-            }
-            const transactionData = {proposal:proposal,action:0} // 0 = yes
-            //console.log("realm: "+JSON.stringify(realm));
-            //console.log("thisitem/proposal: "+JSON.stringify(thisitem));
-            //console.log("thisGovernance: "+JSON.stringify(thisGovernance));
-            
-            /*
-            const realmData = {
-                pubKey:thisGovernance.pubkey,
-                realmId:thisitem.pubkey,
-                governanceId:thisitem.account.governance,
-                communityMint: thisitem.account.governingTokenMint
-            }*/
-
-            //console.log("Proposal: "+JSON.stringify(proposal));
-            //console.log("realmData: "+JSON.stringify(realmData));
-            //console.log("memberItem: "+JSON.stringify(memberItem));
-
-            //console.log("memberMapReduced: "+JSON.stringify(memberMapReduced));
-
-            // check if voter can participate
-            if (publicKey && memberItem) {
-                
-                const voteTx = new Transaction();
-                let supportedVote = true;
-                
-                if (wOwner){ // vote for your own if delegate is not set and value of delegate is not = 1
-                    
-                    const hasVotedItem = votingParticipants.some(item => item.governingTokenOwner === publicKey.toBase58());
-                    console.log("*** isCommunityVote: "+JSON.stringify(isCommunityVote))
-                    if (!hasVotedItem){
-                        const tmpVote = await createCastVoteTransaction(
-                            realm,
-                            publicKey,
-                            transactionData,
-                            memberItem,
-                            null,
-                            isCommunityVote,
-                            multiChoice,
-                            type
-                        );
-                        if (tmpVote){
-                            voteTx.add(tmpVote);
-                        } else {
-                            supportedVote = false;
-                            enqueueSnackbar("Additional Plugin Voting Support Coming Soon (NFT, Gateway)", { variant: 'error' });
-                        }
-                    }
-                }
-                
-                if (voteTx && supportedVote){
-                    console.log("Casting vote as: "+publicKey.toBase58());
-                } 
-
-                let addCnt = voteTx ? 1 : 0;
-                if (delegatedItems){ // if we wanta to add all to vote
-                    let cnt = 0;
-                    for (var delegateItem of delegatedItems){ // if vote for all delegates + your own
-                        // check with delegate
-                        console.log("delegate setting: "+delegate);    
-                        if (withAllDelegates){
-                            // check if delegate has voted
-                            const hasVotedItem = votingParticipants.some(item => item.governingTokenOwner === delegateItem.account.governingTokenOwner.toBase58());
-                            if (!hasVotedItem){
-                                
-                                let voteWithDelegate = true;
-
-                                if (quorum && quorum > 0){
-                                    if (addCnt < quorum)
-                                        voteWithDelegate = true;
-                                    else 
-                                        voteWithDelegate = false;
-                                } else {
-
-                                }
-
-                                if (voteWithDelegate){
-                                    //console.log(addCnt+" ("+quorum+"): Voting with delegate ");
-                                    const delegateVoteTx = await createCastVoteTransaction(
-                                        realm,
-                                        publicKey,
-                                        transactionData,
-                                        delegateItem,
-                                        delegateItem.account.governingTokenOwner.toBase58(),//null,
-                                        isCommunityVote,
-                                        multiChoice,
-                                        type
-                                    );
-                                    
-                                    if (delegateVoteTx){
-                                        voteTx.add(delegateVoteTx);
-                                        console.log("Casting vote as a delegator for "+delegateItem.account.governingTokenOwner.toBase58())
-                                    }
-                                }
-                                addCnt++;
-                            }
-                        } else if (delegate){ // if sinlge delegate
-                            if (delegate === delegateItem.account.governingTokenOwner.toBase58()){
-                                const delegateVoteTx = await createCastVoteTransaction(
-                                    realm,
-                                    publicKey,
-                                    transactionData,
-                                    delegateItem,
-                                    delegateItem.account.governingTokenOwner.toBase58(),
-                                    isCommunityVote,
-                                    multiChoice,
-                                    type
-                                );
-                                
-                                if (delegateVoteTx)
-                                    voteTx.add(delegateVoteTx);
-                            }
-                        }
-                        cnt++;
-
-                    }
-                }
-
-                //console.log("vvvt: "+JSON.stringify(vvvt));
-                
-                if (voteTx){
-                    if (supportedVote){
-                        console.log("voteTx: " + JSON.stringify(voteTx));
-                        try{
-                            enqueueSnackbar(`Preparing to cast vote`,{ variant: 'info' });
-                            const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
-                                skipPreflight: true,
-                                preflightCommitment: "confirmed",
-                            });
-                            const snackprogress = (key:any) => (
-                                <CircularProgress sx={{padding:'10px'}} />
-                            );
-                            const cnfrmkey = enqueueSnackbar(`Confirming transaction`,{ variant: 'info', action:snackprogress, persist: true });
-                            //await connection.confirmTransaction(signature, 'processed');
-                            const latestBlockHash = await RPC_CONNECTION.getLatestBlockhash();
-                            await RPC_CONNECTION.confirmTransaction({
-                                blockhash: latestBlockHash.blockhash,
-                                lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-                                signature: signature}, 
-                                'confirmed'
-                            );
-
-                            closeSnackbar(cnfrmkey);
-                            const action = (key:any) => (
-                                    <Button href={`https://explorer.solana.com/tx/${signature}`} target='_blank'  sx={{color:'white'}}>
-                                        Signature: {shortenString(signature,5,5)}
-                                    </Button>
-                            );
-                            
-                            enqueueSnackbar(`Congratulations, you have participated in voting for this Proposal`,{ variant: 'success', action });
-
-                            // trigger a refresh here...
-                            
-                            const redirectTimer = setTimeout(() => {
-                                getVotingParticipants();
-                            }, 5000); // 5 seconds*/
-                            //getVotingParticipants();
-                        }catch(e:any){
-                            enqueueSnackbar(e.message ? `${e.name}: ${e.message}` : e.name, { variant: 'error' });
-                        } 
-                    }
-                } else{
-                    enqueueSnackbar("Could not vote for proposal!", { variant: 'error' });
-                }
-                
-            } else if (!memberItem){
-                enqueueSnackbar("Voter Record Not Found!", { variant: 'error' });
-            }
-        } else{
-            enqueueSnackbar("An error occured, please try again later!", { variant: 'error' });
+    // Chunked vote sender for: own vote + delegate votes (all or single)
+    // Notes:
+    // - Sends multiple transactions when voting with many delegates to avoid tx size/compute limits
+    // - Uses simulateTransaction for actionable logs
+    // - Uses the SAME blockhash for send+confirm per tx (important!)
+    // - Fixes memberItem mint comparison bug
+    const handleVote = async (
+    type: Number,
+    delegate?: string,
+    withOwnerRecord?: boolean,
+    withAllDelegates?: boolean
+    ) => {
+    try {
+        if (isBlacklisted) {
+        enqueueSnackbar("An error occured, please try again later!", { variant: "error" });
+        return;
         }
-    }
 
+        const wOwner = !!withOwnerRecord;
+        const wAllDelegates = !!withAllDelegates;
+
+        setAnchorElYes(false);
+        setAnchorElNo(false);
+
+        if (!publicKey) {
+        enqueueSnackbar("Wallet not connected.", { variant: "error" });
+        return;
+        }
+
+        // NOTE: programId kept (though not used below) in case you need it for non-indexed paths
+        const programId = new PublicKey(realm.owner);
+
+        // Load token owner records
+        let rawTokenOwnerRecords: any[] = [];
+        if (memberMap) {
+        rawTokenOwnerRecords = memberMap;
+        } else {
+        rawTokenOwnerRecords = await getAllTokenOwnerRecordsIndexed(
+            new PublicKey(realm.pubkey).toBase58(),
+            realm.owner ? new PublicKey(realm.owner).toBase58() : null,
+            publicKey.toBase58()
+        );
+        }
+
+        // ---- Fix bug here: compare mint to thisitem.account.governingTokenMint, NOT "thisitem"
+        const myPk58 = publicKey.toBase58();
+        const proposalMint58 = thisitem?.account?.governingTokenMint?.toBase58?.() ?? "";
+
+        const memberItem =
+        voterRecord ||
+        rawTokenOwnerRecords.find(
+            (item: any) =>
+            item?.account?.governingTokenOwner?.toBase58?.() === myPk58 &&
+            item?.account?.governingTokenMint?.toBase58?.() === proposalMint58
+        );
+
+        const delegatedItems =
+        delegatedVoterRecord ||
+        rawTokenOwnerRecords.filter(
+            (item: any) =>
+            item?.account?.governanceDelegate?.toBase58?.() === myPk58 &&
+            item?.account?.governingTokenMint?.toBase58?.() === proposalMint58
+        );
+
+        console.log("delegatedItems:", delegatedItems);
+
+        const proposal = {
+        governanceId: thisitem.account.governance,
+        proposalId: thisitem.pubkey,
+        tokenOwnerRecord: thisitem.account.tokenOwnerRecord,
+        governingTokenMint: thisitem.account.governingTokenMint,
+        };
+
+        const transactionData = { proposal, action: 0 }; // 0 = yes (as per your original)
+
+        if (!memberItem) {
+        enqueueSnackbar("Voter Record Not Found!", { variant: "error" });
+        return;
+        }
+
+        // -------------------------
+        // Build vote instructions list
+        // -------------------------
+        const ixs: any[] = [];
+        let supportedVote = true;
+
+        // Helper: has already voted?
+        const hasVoted = (owner58: string) =>
+        votingParticipants.some((p: any) => p.governingTokenOwner === owner58);
+
+        // Add "own vote" (optional)
+        if (wOwner) {
+        const iAlreadyVoted = hasVoted(myPk58);
+        console.log("*** isCommunityVote:", isCommunityVote);
+
+        if (!iAlreadyVoted) {
+            const ix = await createCastVoteTransaction(
+            realm,
+            publicKey,
+            transactionData,
+            memberItem,
+            null,
+            isCommunityVote,
+            multiChoice,
+            type
+            );
+
+            if (ix) {
+            ixs.push(ix);
+            } else {
+            supportedVote = false;
+            enqueueSnackbar("Additional Plugin Voting Support Coming Soon (NFT, Gateway)", {
+                variant: "error",
+            });
+            }
+        }
+        }
+
+        // Add delegate votes
+        if (delegatedItems && delegatedItems.length) {
+        let addCnt = ixs.length; // count of votes we intend to include
+
+        for (const delegateItem of delegatedItems) {
+            const owner58 = delegateItem?.account?.governingTokenOwner?.toBase58?.();
+            if (!owner58) continue;
+
+            // skip if already voted
+            if (hasVoted(owner58)) continue;
+
+            // Determine whether this delegate should be included
+            if (wAllDelegates) {
+            // quorum limiting: only include up to quorum
+            if (quorum && quorum > 0 && addCnt >= quorum) {
+                continue;
+            }
+
+            const ix = await createCastVoteTransaction(
+                realm,
+                publicKey,
+                transactionData,
+                delegateItem,
+                owner58, // delegator
+                isCommunityVote,
+                multiChoice,
+                type
+            );
+
+            if (ix) {
+                ixs.push(ix);
+                addCnt++;
+                console.log("Adding delegate vote for:", owner58);
+            }
+            } else if (delegate) {
+            // single delegate mode
+            if (delegate === owner58) {
+                const ix = await createCastVoteTransaction(
+                realm,
+                publicKey,
+                transactionData,
+                delegateItem,
+                owner58,
+                isCommunityVote,
+                multiChoice,
+                type
+                );
+                if (ix) ixs.push(ix);
+                break;
+            }
+            }
+        }
+        }
+
+        if (!supportedVote) return;
+
+        if (!ixs.length) {
+        enqueueSnackbar("No eligible votes to cast (already voted / no delegates).", {
+            variant: "warning",
+        });
+        return;
+        }
+
+        // -------------------------
+        // Chunk & send transactions
+        // -------------------------
+        // Start small. Increase to 3–4 if you confirm it works reliably.
+        const CHUNK_SIZE = 2;
+
+        // Make instruction chunks
+        const chunks: any[][] = [];
+        for (let i = 0; i < ixs.length; i += CHUNK_SIZE) {
+        chunks.push(ixs.slice(i, i + CHUNK_SIZE));
+        }
+
+        enqueueSnackbar(
+        chunks.length > 1
+            ? `Preparing to cast ${ixs.length} votes in ${chunks.length} transactions…`
+            : `Preparing to cast vote…`,
+        { variant: "info" }
+        );
+
+        const snackprogress = (key: any) => <CircularProgress sx={{ padding: "10px" }} />;
+
+        // Send each chunk as its own transaction
+        const sigs: string[] = [];
+
+        for (let i = 0; i < chunks.length; i++) {
+        const voteTx = new Transaction();
+        for (const ix of chunks[i]) voteTx.add(ix);
+
+        // IMPORTANT: use same blockhash for send+confirm for this tx
+        const { blockhash, lastValidBlockHeight } = await RPC_CONNECTION.getLatestBlockhash(
+            "confirmed"
+        );
+        voteTx.recentBlockhash = blockhash;
+        voteTx.feePayer = publicKey;
+
+        // Optional: simulate to catch size/compute/account errors with logs
+        try {
+            const sim = await RPC_CONNECTION.simulateTransaction(voteTx);
+            if (sim.value.err) {
+            console.log("SIM ERR:", sim.value.err);
+            console.log("SIM LOGS:", sim.value.logs);
+            enqueueSnackbar(`Simulation failed: ${JSON.stringify(sim.value.err)}`, {
+                variant: "error",
+            });
+            return;
+            }
+        } catch (e) {
+            // simulation itself can fail sometimes on some RPCs; don’t hard stop unless you want to
+            console.warn("simulateTransaction failed (continuing):", e);
+        }
+
+        const cnfrmkey = enqueueSnackbar(`Confirming transaction ${i + 1}/${chunks.length}`, {
+            variant: "info",
+            action: snackprogress,
+            persist: true,
+        });
+
+        try {
+            const signature = await sendTransaction(voteTx, RPC_CONNECTION, {
+            skipPreflight: false, // IMPORTANT: get real errors
+            preflightCommitment: "confirmed",
+            });
+
+            await RPC_CONNECTION.confirmTransaction(
+            { signature, blockhash, lastValidBlockHeight },
+            "confirmed"
+            );
+
+            sigs.push(signature);
+            closeSnackbar(cnfrmkey);
+
+            const action = (key: any) => (
+            <Button
+                href={`https://explorer.solana.com/tx/${signature}`}
+                target="_blank"
+                sx={{ color: "white" }}
+            >
+                Signature: {shortenString(signature, 5, 5)}
+            </Button>
+            );
+
+            enqueueSnackbar(
+            chunks.length > 1
+                ? `Vote transaction ${i + 1}/${chunks.length} confirmed`
+                : `Vote confirmed`,
+            { variant: "success", action }
+            );
+        } catch (e: any) {
+            closeSnackbar(cnfrmkey);
+            console.error("vote tx failed:", e);
+            enqueueSnackbar(e?.message ? `${e.name}: ${e.message}` : e?.name || "Vote failed", {
+            variant: "error",
+            });
+            return; // stop on first failure; change if you want to continue remaining chunks
+        }
+        }
+
+        // Refresh participants after last tx
+        setTimeout(() => {
+        getVotingParticipants();
+        }, 5000);
+    } catch (e: any) {
+        console.error("handleVote fatal:", e);
+        enqueueSnackbar(e?.message ? `${e.name}: ${e.message}` : e?.name || "Vote failed", {
+        variant: "error",
+        });
+    }
+    };
+
+    
     const loadMemberMap = async() => {
         
         const rawTokenOwnerRecords = await getTokenOwnerRecordsByRealmIndexed(new PublicKey(realm.pubkey).toBase58(), realm.owner ? new PublicKey(realm.owner).toBase58() : null, publicKey.toBase58());
