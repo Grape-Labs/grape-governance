@@ -4,6 +4,8 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import React, { useCallback } from 'react';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { styled, useTheme } from '@mui/material/styles';
+import DOMPurify from "dompurify";
+import ErrorBoundary from '../../Governance/ErrorBoundary';
 
 import {
   Typography,
@@ -470,6 +472,14 @@ function TablePaginationActions(props) {
           return false;
         }
     }
+
+    async function fetchIrysText(url: string) {
+        const res = await fetch(url, {
+            headers: { Accept: "text/html,text/plain,*/*" },
+        });
+        if (!res.ok) throw new Error(`Irys fetch failed (${res.status})`);
+        return await res.text();
+    }
     
     function GetGovernanceFromRulesView(props:any){
         const rulesWallet = props.rulesWallet;
@@ -483,7 +493,12 @@ function TablePaginationActions(props) {
         const [gist, setGist] = React.useState(null);
         const [gDocs, setGoogleDocs] = React.useState(null);
         const [gitBook, setGitBook] = React.useState(null);
-        const [irys, setIrys] = React.useState(null);
+        const [irys, setIrys] = React.useState<string | null>(null);
+        const [irysUrl, setIrysUrl] = React.useState<string | null>(null);
+        const [irysLoading, setIrysLoading] = React.useState(false);
+        const [irysHtml, setIrysHtml] = React.useState<string | null>(null);
+        const [irysError, setIrysError] = React.useState<string | null>(null);
+        
 
         const [governanceInfo, setGovernanceInfo] = React.useState(null);
 
@@ -541,54 +556,77 @@ function TablePaginationActions(props) {
         }
 
         const resolveDescription = async(descriptionStr: string) => {
+
             try{
-                const cleanString = description.replace(/(\s+)(https?:\/\/[a-zA-Z0-9\.\/]+)/g, '$2');
-                
-                if (cleanString && cleanString.length > 0 && isValidURL(description)) {
-
-                        const url = new URL(cleanString);
-
-                        const pathname = url.pathname;
-                        const parts = pathname.split('/');
-                        //console.log("pathname: "+pathname)
-                        //console.log("hostname: "+url.hostname)
-                        
-                        let tGist = null;
-                        if (parts.length > 1)
-                            tGist = parts[2];
-                        
-                        if (url.hostname === "gist.github.com"){
-
-                            setGist(tGist);
-                            
-                            const rpd = await resolveProposalDescription(description);
-                
-                            const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
-                            const targetUrl = "https://shdw-drive.genesysgo.net/4HMWqo1YLwnxuVbh4c8KXMcZvQj4aw7oxnNmWVm4RmVV/Screenshot_2023-05-28_at_10.43.34.png";
-                            
-                            const stringWithPreviews = rpd.replace(imageUrlRegex, (match: string) => {
-                                // Special case: shdw-drive images → replace with GIST_LOGO
-                                if (match === targetUrl) {
-                                    return GIST_LOGO;
-                                }
-                                // Default case: keep as Markdown image
-                                return `![Image X](${match})`;
+                const cleanString = descriptionStr.replace(/(\s+)(https?:\/\/[a-zA-Z0-9\.\/]+)/g, '$2');
+                if (cleanString && cleanString.length > 0 && cleanString.includes("http")) {
+                    let url: URL;
+                    try {
+                        url = new URL(cleanString);
+                    } catch (e) {
+                        // if cleanString is somehow not a valid absolute URL, bail safely
+                        console.warn("Invalid URL:", cleanString, e);
+                        return;
+                    }
+    
+                    const hostname = (url.hostname || "").toLowerCase();
+                    const parts = (url.pathname || "").split("/");
+    
+                    // gist id is typically /{user}/{gistId}[...]
+                    const gistId = parts.length > 2 ? parts[2] : null;
+    
+                    // reset (optional but prevents stale state)
+                    setGist(null);
+                    setGoogleDocs(null);
+                    setGitBook(null);
+                    setIrys(null);
+    
+                    if (hostname === "gist.github.com") {
+                        setGist(gistId);
+    
+                        const rpd = await resolveProposalDescription(cleanString);
+    
+                        const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
+                        const targetUrl =
+                        "https://shdw-drive.genesysgo.net/4HMWqo1YLwnxuVbh4c8KXMcZvQj4aw7oxnNmWVm4RmVV/Screenshot_2023-05-28_at_10.43.34.png";
+    
+                        const stringWithPreviews = rpd.replace(imageUrlRegex, (match: string) => {
+                        if (match === targetUrl) return GIST_LOGO;
+                        return `![Image X](${match})`;
+                        });
+    
+                        setDescriptionMarkdown(stringWithPreviews);
+                    } else if (hostname === "docs.google.com") {
+                        setGoogleDocs(cleanString); // store the URL (or a flag if you prefer)
+                    } else if (hostname.includes("gitbook.io")) {
+                        setGitBook(cleanString); // store the URL (or a flag)
+                    } else if (hostname.endsWith("irys.xyz")) {
+                        setIrysLoading(true);
+                        setIrysError(null);
+                        setIrysUrl(url.href);
+    
+                        try {
+                            const raw = await fetchIrysText(url.href);
+    
+                            // Sanitize. Keep basic formatting tags; block scripts, onclick, etc.
+                            const safe = DOMPurify.sanitize(raw, {
+                            USE_PROFILES: { html: true },
+                            // Optional: if you want to allow images and links (safe defaults are ok)
+                            // ADD_TAGS: ["img"],
+                            // ADD_ATTR: ["target", "rel"],
                             });
-                            
-                            setDescriptionMarkdown(rpd);
-                            
-                        } else if (url.hostname === "docs.google.com") {
-                            setGoogleDocs(tGist);
-                        } else if (url.hostname.includes("gitbook.io")){
-                            setGitBook(tGist);
-                        } else if (url.hostname.includes("gateway.irys.xyz")){
-                            setIrys(url);
+    
+                            setIrysHtml(safe);
+                        } catch (e: any) {
+                            setIrysHtml(null);
+                            setIrysError(e?.message || "Failed to load Irys content");
+                        } finally {
+                            setIrysLoading(false);
                         }
-                } else{ // check if it contains a partial <text />
-                    
+                    }
                 }
             } catch(e){
-                console.log("Invalid URL: "+e)
+                console.log("ERR: "+e)
             }
         }
 
@@ -694,105 +732,174 @@ function TablePaginationActions(props) {
                                                             },
                                                         }}
                                                         >
-                                                        {gist ? (
-                                                            <Box sx={{ textAlign: 'left' }}>
-                                                                <Grid style={{ border: 'none', padding: 4 }}>
-                                                                    {isLocalhost ? (
-                                                                    <p>Markdown rendering is disabled on localhost.</p>
-                                                                    ) : (
-                                                                    <ReactMarkdown
-                                                                        remarkPlugins={[[remarkGfm, { singleTilde: false }]]}
-                                                                        components={{
-                                                                            img: (props) => (
-                                                                                <img
-                                                                                {...props}
-                                                                                style={{ maxWidth: '100%', height: 'auto' }}
-                                                                                loading="lazy"
-                                                                                alt={props.alt || ''}
-                                                                                />
-                                                                            ),
-                                                                            a: ({ node, ...props }) => {
-                                                                                const href = props.href || '';
-                                                                                const safe = /^(https?:|mailto:|tel:|#)/i.test(href);
-                                                                                return (
-                                                                                    <a
-                                                                                    {...props}
-                                                                                    href={safe ? href : undefined} // block javascript: etc
-                                                                                    target="_blank"
-                                                                                    rel="noopener noreferrer"
-                                                                                    style={{ color: '#1976d2', textDecoration: 'underline' }}
-                                                                                    >
-                                                                                    {props.children}
-                                                                                    </a>
-                                                                                );
-                                                                            },
-                                                                        }}
-                                                                    >
-                                                                        {descriptionMarkdown || ''}
-                                                                    </ReactMarkdown>
-                                                                    )}
-                                                                </Grid>
+                                                        {irysUrl ? (
+                                          <Box sx={{ alignItems: "left", textAlign: "left" }}>
+                                                <div
+                                                style={{
+                                                    border: "solid",
+                                                    borderRadius: 15,
+                                                    borderColor: "rgba(255,255,255,0.05)",
+                                                    padding: 12,
+                                                }}
+                                                >
+                                                {irysLoading ? (
+                                                    <Typography variant="body2">Loading Irys…</Typography>
+                                                ) : irysError ? (
+                                                    <Typography variant="body2" color="error">
+                                                    {irysError}
+                                                    </Typography>
+                                                ) : (
+                                                    <div
+                                                    // safe because we sanitized with DOMPurify
+                                                    dangerouslySetInnerHTML={{ __html: irysHtml || "" }}
+                                                    style={{
+                                                        // Make it look good in your dark UI
+                                                        fontSize: 14,
+                                                        lineHeight: 1.6,
+                                                        wordBreak: "break-word",
+                                                    }}
+                                                    />
+                                                )}
+                                                </div>
 
-                                                                <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
-                                                                    <Button color="inherit" target="_blank" href={description} sx={{ borderRadius: '17px' }}>
-                                                                    <GitHubIcon sx={{ mr: 1 }} /> GIST
-                                                                    </Button>
-                                                                </Box>
-                                                            </Box>
-                                                        ) : gDocs ? (
-                                                            <Box sx={{ textAlign: 'left' }}>
-                                                                <Grid style={{ border: 'none', padding: 4 }}>
-                                                                    <iframe
-                                                                    src={description}
-                                                                    width="100%"
-                                                                    height="500"
-                                                                    style={{ border: 'none' }}
-                                                                    loading="lazy"
-                                                                    referrerPolicy="no-referrer"
-                                                                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                                                                    title="Google Doc"
-                                                                    />
-                                                                </Grid>
+                                                <Box sx={{ alignItems: "right", textAlign: "right", p: 1 }}>
+                                                <Button
+                                                    color="inherit"
+                                                    target="_blank"
+                                                    href={irysUrl}
+                                                    sx={{ borderRadius: "17px" }}
+                                                >
+                                                    View Irys
+                                                </Button>
+                                                </Box>
+                                            </Box>
+                                        ) : gist ? (
+                                        // --- your existing GIST branch unchanged ---
+                                        <Box sx={{ alignItems: "left", textAlign: "left" }}>
+                                        <div
+                                            style={{
+                                            border: "solid",
+                                            borderRadius: 15,
+                                            borderColor: "rgba(255,255,255,0.05)",
+                                            padding: 4,
+                                            }}
+                                        >
+                                            <Typography variant="body2">
+                                            <ErrorBoundary>
+                                                {window.location.hostname !== "localhost" ? (
+                                                <ReactMarkdown
+                                                    remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkImages]}
+                                                    children={description}
+                                                    components={{
+                                                    img: ({ node, ...props }) => (
+                                                        <img {...props} style={{ width: "100%", height: "auto" }} />
+                                                    ),
+                                                    a: ({ node, ...props }) => {
+                                                        const href = props.href || "";
+                                                        const safe = /^(https?:|mailto:|tel:|#)/i.test(href);
+                                                        return (
+                                                        <a
+                                                            {...props}
+                                                            href={safe ? href : undefined}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            style={{ color: "#1976d2", textDecoration: "underline" }}
+                                                        >
+                                                            {props.children}
+                                                        </a>
+                                                        );
+                                                    },
+                                                    }}
+                                                />
+                                                ) : (
+                                                <p>Markdown rendering is disabled on localhost.</p>
+                                                )}
+                                            </ErrorBoundary>
+                                            </Typography>
+                                        </div>
 
-                                                                <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
-                                                                    <Button color="inherit" target="_blank" href={description} sx={{ borderRadius: '17px' }}>
-                                                                    <ArticleIcon sx={{ mr: 1 }} /> Google Docs
-                                                                    </Button>
-                                                                </Box>
-                                                            </Box>
-                                                        ) : irys ? (
-                                                            <>
-                                                                <iframe
-                                                                    src={irys.toString()}
-                                                                    title="Irys Content"
-                                                                    style={{ width: '100%', minHeight: 500, border: 'none' }}
-                                                                    loading="lazy"
-                                                                    referrerPolicy="no-referrer"
-                                                                    sandbox="allow-same-origin allow-scripts allow-popups"
-                                                                />
-                                                            </>
-                                                        ) : description ? (
-                                                            <>
-                                                                <RenderDescription title={name} description={description} fallback={proposal} />
-                                                            {/*}
-                                                            <Typography variant="body1" color="gray" sx={{ display: 'flex', alignItems: 'center' }}>
-                                                                {replaceUrls(description)}
-                                                            </Typography>
-                                                            */}
+                                        <Box sx={{ alignItems: "right", textAlign: "right", p: 1 }}>
+                                            <Button
+                                            color="inherit"
+                                            target="_blank"
+                                            href={description}
+                                            sx={{ borderRadius: "17px" }}
+                                            >
+                                            <GitHubIcon sx={{ mr: 1 }} /> GIST
+                                            </Button>
+                                        </Box>
+                                        </Box>
+                                    ) : (
+                                        // --- your existing non-gist branch unchanged ---
+                                        <>
+                                        {gDocs ? (
+                                            <Box sx={{ alignItems: "left", textAlign: "left" }}>
+                                            <Grid style={{ border: "none", padding: 4 }}>
+                                                <iframe
+                                                src={description}
+                                                width="100%"
+                                                height="750px"
+                                                style={{ border: "none" }}
+                                                />
+                                            </Grid>
 
-                                                            {gitBook && (
-                                                                <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
-                                                                    <Button color="inherit" target="_blank" href={description} sx={{ borderRadius: '17px' }}>
-                                                                        <ArticleIcon sx={{ mr: 1 }} /> GitBook
-                                                                    </Button>
-                                                                </Box>
-                                                            )}
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <RenderDescription title={name} description={description} fallback={proposal} />
-                                                            </>
-                                                        )}
+                                            <Box sx={{ alignItems: "right", textAlign: "right", p: 1 }}>
+                                                <Button
+                                                color="inherit"
+                                                target="_blank"
+                                                href={description}
+                                                sx={{ borderRadius: "17px" }}
+                                                >
+                                                <ArticleIcon sx={{ mr: 1 }} /> Google Docs
+                                                </Button>
+                                            </Box>
+                                            </Box>
+                                        ) : (
+                                            <>
+                                            {description ? (
+                                                <>
+                                                <Typography
+                                                    variant="body1"
+                                                    color="gray"
+                                                    sx={{ display: "flex", alignItems: "center" }}
+                                                >
+                                                    <RenderDescription
+                                                    title={name}
+                                                    description={description}
+                                                    fallback={proposal}
+                                                    />
+                                                </Typography>
+
+                                                {gitBook && (
+                                                    <Box sx={{ alignItems: "right", textAlign: "right", p: 1 }}>
+                                                    <Button
+                                                        color="inherit"
+                                                        target="_blank"
+                                                        href={description}
+                                                        sx={{ borderRadius: "17px" }}
+                                                    >
+                                                        <ArticleIcon sx={{ mr: 1 }} /> GitBook
+                                                    </Button>
+                                                    </Box>
+                                                )}
+                                                </>
+                                            ) : (
+                                                <Typography
+                                                variant="body1"
+                                                color="gray"
+                                                sx={{ display: "flex", alignItems: "center" }}
+                                                >
+                                                <RenderDescription
+                                                    title={name}
+                                                    description={description}
+                                                    fallback={proposal}
+                                                />
+                                                </Typography>
+                                            )}
+                                            </>
+                                        )}
+                                        </>
+                                    )}
                                                     </Grid>
                                                 </Grid>
                                                 
