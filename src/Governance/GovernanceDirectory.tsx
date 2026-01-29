@@ -579,6 +579,7 @@ export function GovernanceDirectoryView(props: Props) {
                         <Box sx={{ 
                             p:1}}>
                             <Grid container spacing={0}>
+                                {/*
                                 <Grid item xs={12} md={12} lg={6} key={1}>
                                     <Box
                                         sx={{
@@ -721,8 +722,8 @@ export function GovernanceDirectoryView(props: Props) {
                                         </Tooltip>
                                     </Box>
                                 </Grid>
-
-                                <Grid item xs={12} md={6} lg={3} key={1}>
+                                */}
+                                <Grid item xs={12} md={6} lg={4} key={1}>
                                     <Box
                                         sx={{
                                             borderRadius:'24px',
@@ -760,7 +761,7 @@ export function GovernanceDirectoryView(props: Props) {
                                     </Box>
                                 </Grid>
 
-                                <Grid item xs={12} md={6} lg={3} key={1}>
+                                <Grid item xs={12} md={6} lg={4} key={1}>
                                     <Box
                                         sx={{
                                             borderRadius:'24px',
@@ -796,7 +797,7 @@ export function GovernanceDirectoryView(props: Props) {
                                     </Box>
                                 </Grid>
 
-                                <Grid item xs={12} md={6} lg={3} key={1}>
+                                <Grid item xs={12} md={6} lg={4} key={1}>
                                     <Box
                                         sx={{
                                             borderRadius:'24px',
