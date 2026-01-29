@@ -200,6 +200,12 @@ export default function WalletCardView(props:any) {
     const governanceValue = props?.governanceValue;
     const setGovernanceValue = props?.setGovernanceValue;
     const governanceWallets = props?.governanceWallets;
+
+    // optional: parent can pass this to resort wallets when value changes
+    const onWalletValueUpdated = props?.onWalletValueUpdated as undefined | ((walletValue: number) => void);
+
+    // avoid calling parent on every render / tiny float differences
+    const lastReportedWalletValueRef = React.useRef<number | null>(null);
     
     const shortWalletAddress = shortenString(walletAddress,5,5);
     const shortRulesWalletAddress = shortenString(rulesWalletAddress,5,5);
@@ -1215,6 +1221,14 @@ export default function WalletCardView(props:any) {
             setTotalWalletValue(totalVal);
             rulesWallet.walletValue = totalVal;
             rulesWallet.solBalance = +nativeSol + +rulesSol;
+
+
+            // ✅ add this
+            const rounded = Math.round(totalVal * 100) / 100;
+            if (lastReportedWalletValueRef.current !== rounded) {
+                lastReportedWalletValueRef.current = rounded;
+                if (typeof onWalletValueUpdated === "function") onWalletValueUpdated(rounded);
+            }
 
             const newGovernanceObject = {
                 address: walletAddress,

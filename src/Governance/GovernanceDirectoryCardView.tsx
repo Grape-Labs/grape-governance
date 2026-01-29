@@ -106,7 +106,8 @@ function GovernanceDirectoryCardView(props: any) {
                     <TableContainer>
                         <Table size="small" aria-label="dense table">
                             <TableBody>
-                                {item?.totalVaultValue > 1 && (
+
+                                {/*item?.totalVaultValue > 1 && (
                                     <TableRow>
                                         <TableCell><strong>Treasury</strong></TableCell>
                                         <TableCell align="right"><strong>{Number(item.totalVaultValue).toLocaleString()} USD</strong></TableCell>
@@ -132,7 +133,7 @@ function GovernanceDirectoryCardView(props: any) {
                                         <TableCell>Treasury NFT Floor Price</TableCell>
                                         <TableCell align="right">{Number(item.totalVaultNftValue).toLocaleString()} USD</TableCell>
                                     </TableRow>
-                                )}
+                                )*/}
 
                                 {item?.totalMembers > 0 && (
                                     <TableRow>
