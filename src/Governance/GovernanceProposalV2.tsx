@@ -4,6 +4,7 @@ import {
     ProposalTransaction,
     getNativeTreasuryAddress } from '@solana/spl-governance';
 import { Buffer } from 'buffer';
+import DOMPurify from "dompurify";
 import { 
         getRealmIndexed,
         getProposalIndexed,
@@ -219,6 +220,7 @@ export function GovernanceProposalV2View(props: any){
     const [irys, setIrys] = React.useState<string | null>(null);
     const [irysUrl, setIrysUrl] = React.useState<string | null>(null);
     const [irysLoading, setIrysLoading] = React.useState(false);
+    const [irysHtml, setIrysHtml] = React.useState<string | null>(null);
     const [irysError, setIrysError] = React.useState<string | null>(null);
     const [proposalDescription, setProposalDescription] = React.useState(null);
     const [thisGovernance, setThisGovernance] = React.useState(null);
@@ -275,7 +277,7 @@ export function GovernanceProposalV2View(props: any){
 
     async function fetchIrysText(url: string) {
         const res = await fetch(url, {
-            headers: { Accept: "text/plain,text/html,*/*" },
+            headers: { Accept: "text/html,text/plain,*/*" },
         });
         if (!res.ok) throw new Error(`Irys fetch failed (${res.status})`);
         return await res.text();
@@ -2232,10 +2234,18 @@ export function GovernanceProposalV2View(props: any){
 
                     try {
                         const raw = await fetchIrysText(url.href);
-                        const text = stripHtmlToText(raw); // gateway often returns HTML
-                        setIrys(text);
+
+                        // Sanitize. Keep basic formatting tags; block scripts, onclick, etc.
+                        const safe = DOMPurify.sanitize(raw, {
+                        USE_PROFILES: { html: true },
+                        // Optional: if you want to allow images and links (safe defaults are ok)
+                        // ADD_TAGS: ["img"],
+                        // ADD_ATTR: ["target", "rel"],
+                        });
+
+                        setIrysHtml(safe);
                     } catch (e: any) {
-                        setIrys(null);
+                        setIrysHtml(null);
                         setIrysError(e?.message || "Failed to load Irys content");
                     } finally {
                         setIrysLoading(false);
@@ -3153,38 +3163,46 @@ export function GovernanceProposalV2View(props: any){
                                     
                                     <Box sx={{ alignItems: "left", textAlign: "left", m: 1 }}>
                                     {irysUrl ? (
-                                        <Box sx={{ alignItems: "left", textAlign: "left" }}>
-                                            <div
-                                            style={{
-                                                border: "solid",
-                                                borderRadius: 15,
-                                                borderColor: "rgba(255,255,255,0.05)",
-                                                padding: 12,
-                                            }}
-                                            >
-                                            <Typography
-                                                variant="body2"
-                                                sx={{
-                                                whiteSpace: "pre-wrap",
-                                                wordBreak: "break-word",
-                                                fontFamily: "monospace",
+                                          <Box sx={{ alignItems: "left", textAlign: "left" }}>
+                                                <div
+                                                style={{
+                                                    border: "solid",
+                                                    borderRadius: 15,
+                                                    borderColor: "rgba(255,255,255,0.05)",
+                                                    padding: 12,
                                                 }}
-                                            >
-                                                {irysLoading ? "Loading Irys…" : irysError ? irysError : (irys || "")}
-                                            </Typography>
-                                            </div>
+                                                >
+                                                {irysLoading ? (
+                                                    <Typography variant="body2">Loading Irys…</Typography>
+                                                ) : irysError ? (
+                                                    <Typography variant="body2" color="error">
+                                                    {irysError}
+                                                    </Typography>
+                                                ) : (
+                                                    <div
+                                                    // safe because we sanitized with DOMPurify
+                                                    dangerouslySetInnerHTML={{ __html: irysHtml || "" }}
+                                                    style={{
+                                                        // Make it look good in your dark UI
+                                                        fontSize: 14,
+                                                        lineHeight: 1.6,
+                                                        wordBreak: "break-word",
+                                                    }}
+                                                    />
+                                                )}
+                                                </div>
 
-                                            <Box sx={{ alignItems: "right", textAlign: "right", p: 1 }}>
-                                            <Button
-                                                color="inherit"
-                                                target="_blank"
-                                                href={irysUrl}
-                                                sx={{ borderRadius: "17px" }}
-                                            >
-                                                View Irys
-                                            </Button>
+                                                <Box sx={{ alignItems: "right", textAlign: "right", p: 1 }}>
+                                                <Button
+                                                    color="inherit"
+                                                    target="_blank"
+                                                    href={irysUrl}
+                                                    sx={{ borderRadius: "17px" }}
+                                                >
+                                                    View Irys
+                                                </Button>
+                                                </Box>
                                             </Box>
-                                        </Box>
                                         ) : gist ? (
                                         // --- your existing GIST branch unchanged ---
                                         <Box sx={{ alignItems: "left", textAlign: "left" }}>

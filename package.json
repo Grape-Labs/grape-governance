@@ -134,6 +134,7 @@
         "commander": "^8.3.0",
         "dayjs": "^1.11.7",
         "discord.js": "^14.13.0",
+        "dompurify": "^3.3.1",
         "dotenv": "^16.4.5",
         "esm": "^3.2.25",
         "ethers": "^5.5.4",
