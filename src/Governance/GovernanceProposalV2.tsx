@@ -216,7 +216,10 @@ export function GovernanceProposalV2View(props: any){
     const [gist, setGist] = React.useState(null);
     const [gDocs, setGoogleDocs] = React.useState(null);
     const [gitBook, setGitBook] = React.useState(null);
-    const [irys, setIrys] = React.useState(null);
+    const [irys, setIrys] = React.useState<string | null>(null);
+    const [irysUrl, setIrysUrl] = React.useState<string | null>(null);
+    const [irysLoading, setIrysLoading] = React.useState(false);
+    const [irysError, setIrysError] = React.useState<string | null>(null);
     const [proposalDescription, setProposalDescription] = React.useState(null);
     const [thisGovernance, setThisGovernance] = React.useState(null);
     const [proposalAuthor, setProposalAuthor] = React.useState(null);
@@ -269,6 +272,20 @@ export function GovernanceProposalV2View(props: any){
     const handleCopyClick = () => {
         enqueueSnackbar(`Copied!`,{ variant: 'success' });
     };
+
+    async function fetchIrysText(url: string) {
+        const res = await fetch(url, {
+            headers: { Accept: "text/plain,text/html,*/*" },
+        });
+        if (!res.ok) throw new Error(`Irys fetch failed (${res.status})`);
+        return await res.text();
+    }
+
+    function stripHtmlToText(html: string) {
+        const div = document.createElement("div");
+        div.innerHTML = html;
+        return (div.textContent || div.innerText || "").trim();
+    }
 
     const votingresultcolumns: GridColDef[] = [
         { field: 'id', headerName: 'ID', width: 70, hide: true},
@@ -2166,43 +2183,63 @@ export function GovernanceProposalV2View(props: any){
         votingResults.sort((a:any, b:any) => a?.vote.voterWeight < b?.vote.voterWeight ? 1 : -1); 
         
         try{
-
             const cleanString = thisitem.account?.descriptionLink.replace(/(\s+)(https?:\/\/[a-zA-Z0-9\.\/]+)/g, '$2');
-                
-            if (cleanString && cleanString.length > 0 && cleanString.includes('http')) {
-                const url = new URL(cleanString);
+            if (cleanString && cleanString.length > 0 && cleanString.includes("http")) {
+                let url: URL;
+                try {
+                    url = new URL(cleanString);
+                } catch (e) {
+                    // if cleanString is somehow not a valid absolute URL, bail safely
+                    console.warn("Invalid URL:", cleanString, e);
+                    return;
+                }
 
-                const pathname = url.pathname;
-                const parts = pathname.split('/');
-                //console.log("pathname: "+pathname)
-                let tGist = null;
-                if (parts.length > 1)
-                    tGist = parts[2];
+                const hostname = (url.hostname || "").toLowerCase();
+                const parts = (url.pathname || "").split("/");
 
-                if (url.hostname === "gist.github.com") {
-                    setGist(tGist);
-                    const rpd = await resolveProposalDescription(thisitem.account?.descriptionLink);
+                // gist id is typically /{user}/{gistId}[...]
+                const gistId = parts.length > 2 ? parts[2] : null;
 
-                    // Regex for image URLs (jpg, jpeg, gif, png)
+                // reset (optional but prevents stale state)
+                setGist(null);
+                setGoogleDocs(null);
+                setGitBook(null);
+                setIrys(null);
+
+                if (hostname === "gist.github.com") {
+                    setGist(gistId);
+
+                    const rpd = await resolveProposalDescription(cleanString);
+
                     const imageUrlRegex = /https?:\/\/[^\s"]+\.(?:jpg|jpeg|gif|png)/gi;
-                    const targetUrl = "https://shdw-drive.genesysgo.net/4HMWqo1YLwnxuVbh4c8KXMcZvQj4aw7oxnNmWVm4RmVV/Screenshot_2023-05-28_at_10.43.34.png";
+                    const targetUrl =
+                    "https://shdw-drive.genesysgo.net/4HMWqo1YLwnxuVbh4c8KXMcZvQj4aw7oxnNmWVm4RmVV/Screenshot_2023-05-28_at_10.43.34.png";
 
                     const stringWithPreviews = rpd.replace(imageUrlRegex, (match: string) => {
-                        // Special case: shdw-drive images → replace with GIST_LOGO
-                        if (match === targetUrl) {
-                            return GIST_LOGO;
-                        }
-                        // Default case: keep as Markdown image
-                        return `![Image X](${match})`;
+                    if (match === targetUrl) return GIST_LOGO;
+                    return `![Image X](${match})`;
                     });
 
                     setProposalDescription(stringWithPreviews);
-                } else if (url.hostname === "docs.google.com") {
-                    setGoogleDocs(tGist);
-                } else if (url.hostname.includes("gitbook.io")){
-                    setGitBook(tGist);
-                } else if (url.hostname.includes("gateway.irys.xyz")){
-                    setIrys(tGist);
+                } else if (hostname === "docs.google.com") {
+                    setGoogleDocs(cleanString); // store the URL (or a flag if you prefer)
+                } else if (hostname.includes("gitbook.io")) {
+                    setGitBook(cleanString); // store the URL (or a flag)
+                } else if (hostname.endsWith("irys.xyz")) {
+                    setIrysLoading(true);
+                    setIrysError(null);
+                    setIrysUrl(url.href);
+
+                    try {
+                        const raw = await fetchIrysText(url.href);
+                        const text = stripHtmlToText(raw); // gateway often returns HTML
+                        setIrys(text);
+                    } catch (e: any) {
+                        setIrys(null);
+                        setIrysError(e?.message || "Failed to load Irys content");
+                    } finally {
+                        setIrysLoading(false);
+                    }
                 }
             }
         } catch(e){
@@ -3114,156 +3151,167 @@ export function GovernanceProposalV2View(props: any){
                                         <Typography variant='h5'>{thisitem.account?.name}</Typography>
                                     </Box>
                                     
-                                    <Box sx={{ alignItems: 'left', textAlign: 'left',m:1}}>
-                                        {gist ?
-                                            <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
-                                                <div
-                                                    style={{
-                                                        border: 'solid',
-                                                        borderRadius: 15,
-                                                        borderColor:'rgba(255,255,255,0.05)',
-                                                        padding:4,
-                                                    }} 
-                                                >
-                                                    <Typography variant='body2'>
-                                                        <ErrorBoundary>
-                                                            
-                                                            {window.location.hostname !== 'localhost' ? (
-                                                                <ReactMarkdown
-                                                                    remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkImages]}
-                                                                    children={proposalDescription}
-                                                                    components={{
-                                                                        // Custom component for overriding the image rendering
-                                                                        img: ({ node, ...props }) => (
-                                                                            <img
-                                                                                {...props}
-                                                                                style={{ width: '100%', height: 'auto' }} // Set the desired width and adjust height accordingly
-                                                                            />
-                                                                        ),a: ({ node, ...props }) => {
-                                                                            const href = props.href || '';
-                                                                            const safe = /^(https?:|mailto:|tel:|#)/i.test(href);
-                                                                            return (
-                                                                                <a
-                                                                                {...props}
-                                                                                href={safe ? href : undefined} // block javascript: etc
-                                                                                target="_blank"
-                                                                                rel="noopener noreferrer"
-                                                                                style={{ color: '#1976d2', textDecoration: 'underline' }}
-                                                                                >
-                                                                                {props.children}
-                                                                                </a>
-                                                                            );
-                                                                        },
-                                                                    }}
-                                                                />
-                                                            ) : (
-                                                                <p>Markdown rendering is disabled on localhost.</p>
-                                                            )}
-                                                            
-                                                        </ErrorBoundary>
-                                                        {/*
-                                                        <ReactMarkdown
-                                                            remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkImages]}
-                                                            components={{
-                                                                img: ({ src, alt }) => (
-                                                                    <img src={transformImageUri(src)} alt={alt} style={{ maxWidth: '100%' }} />
-                                                                ),
-                                                            }}
-                                                        >
-                                                            {proposalDescription}
-                                                        </ReactMarkdown>
-                                                        */}
-                                                        
-                                                        
-                                                    </Typography>
-                                                </div>
-                                                <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
-                                                    <Button
-                                                        color='inherit'
-                                                        target='_blank'
-                                                        href={thisitem.account?.descriptionLink}
-                                                        sx={{borderRadius:'17px'}}
-                                                    >
-                                                        <GitHubIcon sx={{mr:1}} /> GIST
-                                                    </Button>
-                                                </Box>
-                                            </Box>
-                                        :
-                                            
-                                            <>
-                                                {gDocs ?
-                                                <>
-                                                    <Box sx={{ alignItems: 'left', textAlign: 'left'}}>
-                                                        <Grid
-                                                            style={{
-                                                                border: 'none',
-                                                                padding:4,
-                                                            }} 
-                                                        >
-                                                            <iframe src={thisitem.account?.descriptionLink} width="100%" height="750px" style={{"border": "none"}}></iframe>
-                                                        </Grid>
-                                                            <>
+                                    <Box sx={{ alignItems: "left", textAlign: "left", m: 1 }}>
+                                    {irysUrl ? (
+                                        <Box sx={{ alignItems: "left", textAlign: "left" }}>
+                                            <div
+                                            style={{
+                                                border: "solid",
+                                                borderRadius: 15,
+                                                borderColor: "rgba(255,255,255,0.05)",
+                                                padding: 12,
+                                            }}
+                                            >
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                whiteSpace: "pre-wrap",
+                                                wordBreak: "break-word",
+                                                fontFamily: "monospace",
+                                                }}
+                                            >
+                                                {irysLoading ? "Loading Irys…" : irysError ? irysError : (irys || "")}
+                                            </Typography>
+                                            </div>
 
-                                                                <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
-                                                                    <Button
-                                                                        color='inherit'
-                                                                        target='_blank'
-                                                                        href={thisitem.account?.descriptionLink}
-                                                                        sx={{borderRadius:'17px'}}
-                                                                    >
-                                                                        <ArticleIcon sx={{mr:1}} /> Google Docs
-                                                                    </Button>
-                                                                </Box>
-                                                            </>
+                                            <Box sx={{ alignItems: "right", textAlign: "right", p: 1 }}>
+                                            <Button
+                                                color="inherit"
+                                                target="_blank"
+                                                href={irysUrl}
+                                                sx={{ borderRadius: "17px" }}
+                                            >
+                                                View Irys
+                                            </Button>
+                                            </Box>
+                                        </Box>
+                                        ) : gist ? (
+                                        // --- your existing GIST branch unchanged ---
+                                        <Box sx={{ alignItems: "left", textAlign: "left" }}>
+                                        <div
+                                            style={{
+                                            border: "solid",
+                                            borderRadius: 15,
+                                            borderColor: "rgba(255,255,255,0.05)",
+                                            padding: 4,
+                                            }}
+                                        >
+                                            <Typography variant="body2">
+                                            <ErrorBoundary>
+                                                {window.location.hostname !== "localhost" ? (
+                                                <ReactMarkdown
+                                                    remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkImages]}
+                                                    children={proposalDescription}
+                                                    components={{
+                                                    img: ({ node, ...props }) => (
+                                                        <img {...props} style={{ width: "100%", height: "auto" }} />
+                                                    ),
+                                                    a: ({ node, ...props }) => {
+                                                        const href = props.href || "";
+                                                        const safe = /^(https?:|mailto:|tel:|#)/i.test(href);
+                                                        return (
+                                                        <a
+                                                            {...props}
+                                                            href={safe ? href : undefined}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            style={{ color: "#1976d2", textDecoration: "underline" }}
+                                                        >
+                                                            {props.children}
+                                                        </a>
+                                                        );
+                                                    },
+                                                    }}
+                                                />
+                                                ) : (
+                                                <p>Markdown rendering is disabled on localhost.</p>
+                                                )}
+                                            </ErrorBoundary>
+                                            </Typography>
+                                        </div>
+
+                                        <Box sx={{ alignItems: "right", textAlign: "right", p: 1 }}>
+                                            <Button
+                                            color="inherit"
+                                            target="_blank"
+                                            href={thisitem.account?.descriptionLink}
+                                            sx={{ borderRadius: "17px" }}
+                                            >
+                                            <GitHubIcon sx={{ mr: 1 }} /> GIST
+                                            </Button>
+                                        </Box>
+                                        </Box>
+                                    ) : (
+                                        // --- your existing non-gist branch unchanged ---
+                                        <>
+                                        {gDocs ? (
+                                            <Box sx={{ alignItems: "left", textAlign: "left" }}>
+                                            <Grid style={{ border: "none", padding: 4 }}>
+                                                <iframe
+                                                src={thisitem.account?.descriptionLink}
+                                                width="100%"
+                                                height="750px"
+                                                style={{ border: "none" }}
+                                                />
+                                            </Grid>
+
+                                            <Box sx={{ alignItems: "right", textAlign: "right", p: 1 }}>
+                                                <Button
+                                                color="inherit"
+                                                target="_blank"
+                                                href={thisitem.account?.descriptionLink}
+                                                sx={{ borderRadius: "17px" }}
+                                                >
+                                                <ArticleIcon sx={{ mr: 1 }} /> Google Docs
+                                                </Button>
+                                            </Box>
+                                            </Box>
+                                        ) : (
+                                            <>
+                                            {thisitem.account?.descriptionLink ? (
+                                                <>
+                                                <Typography
+                                                    variant="body1"
+                                                    color="gray"
+                                                    sx={{ display: "flex", alignItems: "center" }}
+                                                >
+                                                    <RenderDescription
+                                                    title={thisitem.account?.name}
+                                                    description={thisitem.account?.descriptionLink}
+                                                    fallback={proposalPk?.toBase58()}
+                                                    />
+                                                </Typography>
+
+                                                {gitBook && (
+                                                    <Box sx={{ alignItems: "right", textAlign: "right", p: 1 }}>
+                                                    <Button
+                                                        color="inherit"
+                                                        target="_blank"
+                                                        href={thisitem.account?.descriptionLink}
+                                                        sx={{ borderRadius: "17px" }}
+                                                    >
+                                                        <ArticleIcon sx={{ mr: 1 }} /> GitBook
+                                                    </Button>
                                                     </Box>
+                                                )}
                                                 </>
-                                                :
-                                                    <>
-                                                        {thisitem.account?.descriptionLink ?
-                                                            <>
-                                                                <Typography variant="body1" 
-                                                                    color='gray' 
-                                                                    sx={{ display: 'flex', alignItems: 'center' }}>
-                                                                    <RenderDescription 
-                                                                        title={thisitem.account?.name}
-                                                                        description={thisitem.account?.descriptionLink} 
-                                                                        fallback={proposalPk?.toBase58()}
-                                                                    />
-                                                                </Typography>
-                                                                
-                                                                {gitBook &&
-                                                                    <>
-                                                                        <Box sx={{ alignItems: 'right', textAlign: 'right',p:1}}>
-                                                                            <Button
-                                                                                color='inherit'
-                                                                                target='_blank'
-                                                                                href={thisitem.account?.descriptionLink}
-                                                                                sx={{borderRadius:'17px'}}
-                                                                            >
-                                                                                <ArticleIcon sx={{mr:1}} /> GitBook
-                                                                            </Button>
-                                                                        </Box>
-                                                                    </>
-                                                                }
-                                                            </>
-                                                        :
-                                                            <>
-                                                            <Typography variant="body1" 
-                                                                color='gray' 
-                                                                sx={{ display: 'flex', alignItems: 'center' }}>
-                                                                <RenderDescription 
-                                                                    title={thisitem.account?.name} 
-                                                                    description={thisitem.account?.descriptionLink} 
-                                                                    fallback={proposalPk?.toBase58()}
-                                                                />
-                                                            </Typography>
-                                                            </>
-                                                        }
-                                                    </>
-                                                }
+                                            ) : (
+                                                <Typography
+                                                variant="body1"
+                                                color="gray"
+                                                sx={{ display: "flex", alignItems: "center" }}
+                                                >
+                                                <RenderDescription
+                                                    title={thisitem.account?.name}
+                                                    description={thisitem.account?.descriptionLink}
+                                                    fallback={proposalPk?.toBase58()}
+                                                />
+                                                </Typography>
+                                            )}
                                             </>
-                                        }
-                                        
+                                        )}
+                                        </>
+                                    )}
                                     </Box>
                                 </Box>
                             </Grid>
